@@ -107,15 +107,6 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const [selectedAddons, setSelectedAddons] = useState<{ addon_id: string; quantity: number }[]>([]);
 
   // Multi-room selections
-  interface RoomSelection {
-    id: string; // unique key for UI
-    room_type_id: string;
-    template_id: string;
-    template_name: string;
-    quantity: number;
-    roomPrice: number;
-    filteredTemplates: PricingTemplate[];
-  }
   const [roomSelections, setRoomSelections] = useState<RoomSelection[]>([]);
   const MAX_TOTAL_ROOMS = 6;
 
