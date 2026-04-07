@@ -35,6 +35,27 @@ interface Order {
   room_type_id: string;
 }
 
+interface OrderRoom {
+  id: string;
+  order_id: string;
+  room_type_id: string;
+  quantity: number;
+}
+
+// A virtual entry representing one room slot on the calendar
+interface CalendarEntry {
+  id: string; // unique key for rendering
+  orderId: string;
+  order_number: string;
+  guest_name: string;
+  guest_phone: string;
+  check_in_date: string;
+  check_out_date: string;
+  order_status: string;
+  order_source: string;
+  room_type_id: string;
+}
+
 interface PublicHoliday {
   holiday_date: string;
   holiday_name: string;
@@ -116,6 +137,8 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
   }, [dayCount]);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [orderRooms, setOrderRooms] = useState<OrderRoom[]>([]);
+  const [calendarEntries, setCalendarEntries] = useState<CalendarEntry[]>([]);
   const [holidays, setHolidays] = useState<Map<string, PublicHoliday>>(new Map());
   const [inventory, setInventory] = useState<Map<string, InventoryRecord>>(new Map());
   const [expandedRoomTypes, setExpandedRoomTypes] = useState<Set<string>>(new Set());
@@ -178,7 +201,62 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
       if (roomTypesRes.error) throw roomTypesRes.error;
       setRoomTypes(roomTypesRes.data || []);
 
-      setOrders(ordersRes.data || []);
+      const fetchedOrders = ordersRes.data || [];
+      setOrders(fetchedOrders);
+
+      // Fetch order_rooms for multi-room orders
+      const orderIds = fetchedOrders.map(o => o.id);
+      let fetchedOrderRooms: OrderRoom[] = [];
+      if (orderIds.length > 0) {
+        const { data: orData } = await supabase
+          .from("order_rooms")
+          .select("id, order_id, room_type_id, quantity")
+          .in("order_id", orderIds);
+        fetchedOrderRooms = orData || [];
+      }
+      setOrderRooms(fetchedOrderRooms);
+
+      // Build calendar entries: expand multi-room orders
+      const entries: CalendarEntry[] = [];
+      const ordersWithRooms = new Set(fetchedOrderRooms.map(or => or.order_id));
+
+      for (const order of fetchedOrders) {
+        if (ordersWithRooms.has(order.id)) {
+          // Multi-room order: create one entry per quantity per room type
+          const rooms = fetchedOrderRooms.filter(or => or.order_id === order.id);
+          for (const room of rooms) {
+            for (let q = 0; q < room.quantity; q++) {
+              entries.push({
+                id: `${order.id}_${room.id}_${q}`,
+                orderId: order.id,
+                order_number: order.order_number,
+                guest_name: order.guest_name,
+                guest_phone: order.guest_phone,
+                check_in_date: order.check_in_date,
+                check_out_date: order.check_out_date,
+                order_status: order.order_status,
+                order_source: order.order_source,
+                room_type_id: room.room_type_id,
+              });
+            }
+          }
+        } else {
+          // Single-room order: use the order's room_type_id
+          entries.push({
+            id: order.id,
+            orderId: order.id,
+            order_number: order.order_number,
+            guest_name: order.guest_name,
+            guest_phone: order.guest_phone,
+            check_in_date: order.check_in_date,
+            check_out_date: order.check_out_date,
+            order_status: order.order_status,
+            order_source: order.order_source,
+            room_type_id: order.room_type_id,
+          });
+        }
+      }
+      setCalendarEntries(entries);
 
       const holidayMap = new Map<string, PublicHoliday>();
       holidaysRes.data?.forEach(h => holidayMap.set(h.holiday_date, h));
@@ -205,20 +283,12 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
     return inv.available_rooms;
   };
 
-  // Get booked count for a room type on a date
+  // Get booked count for a room type on a date (using calendar entries for accurate multi-room counting)
   const getBookedCount = (roomTypeId: string, dateStr: string): number => {
-    return orders.filter(o => {
-      if (o.room_type_id !== roomTypeId) return false;
-      return o.check_in_date <= dateStr && o.check_out_date > dateStr;
+    return calendarEntries.filter(e => {
+      if (e.room_type_id !== roomTypeId) return false;
+      return e.check_in_date <= dateStr && e.check_out_date > dateStr;
     }).length;
-  };
-
-  // Get orders for a room type on a date
-  const getOrdersForDate = (roomTypeId: string, dateStr: string): Order[] => {
-    return orders.filter(o => {
-      if (o.room_type_id !== roomTypeId) return false;
-      return o.check_in_date <= dateStr && o.check_out_date > dateStr;
-    });
   };
 
   // Check if a date is blocked because an exclusive package is booked
@@ -228,12 +298,12 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
     const exclusiveTypes = roomTypes.filter(r => r.is_exclusive_package);
     for (const dateStr of dateStrings) {
       const hasExclusiveBooking = exclusiveTypes.some(et =>
-        orders.some(o => o.room_type_id === et.id && o.check_in_date <= dateStr && o.check_out_date > dateStr)
+        calendarEntries.some(e => e.room_type_id === et.id && e.check_in_date <= dateStr && e.check_out_date > dateStr)
       );
       if (hasExclusiveBooking) blockedDates.add(dateStr);
     }
     return blockedDates;
-  }, [roomTypes, orders, dateStrings]);
+  }, [roomTypes, calendarEntries, dateStrings]);
 
   const isBlockedByExclusive = (_roomTypeId: string, dateStr: string): boolean => {
     return isDateBlockedByAnyExclusive.has(dateStr);
@@ -246,35 +316,13 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
     for (const et of exclusiveTypes) {
       const bookedDates = new Set<string>();
       for (const dateStr of dateStrings) {
-        const hasBooking = orders.some(o => o.room_type_id === et.id && o.check_in_date <= dateStr && o.check_out_date > dateStr);
+        const hasBooking = calendarEntries.some(e => e.room_type_id === et.id && e.check_in_date <= dateStr && e.check_out_date > dateStr);
         if (hasBooking) bookedDates.add(dateStr);
       }
       if (bookedDates.size > 0) map.set(et.id, bookedDates);
     }
     return map;
-  }, [roomTypes, orders, dateStrings]);
-  const getOrderSpan = (order: Order, dateStr: string): { isStart: boolean; span: number } | null => {
-    const checkIn = order.check_in_date;
-    const checkOut = order.check_out_date;
-    
-    // Only render from the start date of the order (or first visible date)
-    const visibleStart = checkIn < dateStrings[0] ? dateStrings[0] : checkIn;
-    if (dateStr !== visibleStart) return null;
-
-    const visibleEnd = checkOut > dateStrings[dateStrings.length - 1] 
-      ? format(addDays(parseISO(dateStrings[dateStrings.length - 1]), 1), "yyyy-MM-dd")
-      : checkOut;
-    
-    const startIdx = dateStrings.indexOf(visibleStart);
-    const endIdx = dateStrings.indexOf(visibleEnd);
-    
-    const span = endIdx === -1 
-      ? dateStrings.length - startIdx 
-      : endIdx - startIdx;
-
-    return { isStart: checkIn >= dateStrings[0], span: Math.max(1, span) };
-  };
-
+  }, [roomTypes, calendarEntries, dateStrings]);
   const toggleRoomType = (id: string) => {
     setExpandedRoomTypes(prev => {
       const next = new Set(prev);
@@ -462,8 +510,8 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
             const isExpanded = expandedRoomTypes.has(roomType.id);
             const roomCount = roomType.room_count || 0;
 
-            // Get all orders for this room type in the date range
-            const rtOrders = orders.filter(o => o.room_type_id === roomType.id);
+            // Get all calendar entries for this room type in the date range
+            const rtEntries = calendarEntries.filter(e => e.room_type_id === roomType.id);
 
             return (
               <div key={roomType.id}>
@@ -581,28 +629,28 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
 
                     {/* Individual booking rows - group orders into "rooms" */}
                     {(() => {
-                      const roomSlots: Order[][] = [];
-                      const sortedOrders = [...rtOrders].sort((a, b) => a.check_in_date.localeCompare(b.check_in_date));
+                      const roomSlots: CalendarEntry[][] = [];
+                      const sortedEntries = [...rtEntries].sort((a, b) => a.check_in_date.localeCompare(b.check_in_date));
                       
-                      sortedOrders.forEach(order => {
+                      sortedEntries.forEach(entry => {
                         let placed = false;
                         for (const slot of roomSlots) {
-                          const lastOrder = slot[slot.length - 1];
-                          if (lastOrder.check_out_date <= order.check_in_date) {
-                            slot.push(order);
+                          const lastEntry = slot[slot.length - 1];
+                          if (lastEntry.check_out_date <= entry.check_in_date) {
+                            slot.push(entry);
                             placed = true;
                             break;
                           }
                         }
                         if (!placed) {
-                          roomSlots.push([order]);
+                          roomSlots.push([entry]);
                         }
                       });
 
                       const minRows = Math.max(roomCount, roomSlots.length, 1);
 
                       const slotRows = Array.from({ length: minRows }, (_, slotIdx) => {
-                        const slotOrders = roomSlots[slotIdx] || [];
+                        const slotEntries = roomSlots[slotIdx] || [];
                         
                         return (
                           <div key={slotIdx} className="flex border-b last:border-b-0">
@@ -646,9 +694,9 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                               })}
 
                               {/* Order cards positioned absolutely */}
-                              {slotOrders.map(order => {
-                                const checkInDate = order.check_in_date;
-                                const checkOutDate = order.check_out_date;
+                              {slotEntries.map(entry => {
+                                const checkInDate = entry.check_in_date;
+                                const checkOutDate = entry.check_out_date;
                                 
                                 const visibleStart = checkInDate < dateStrings[0] ? dateStrings[0] : checkInDate;
                                 const visibleEnd = checkOutDate > dateStrings[dateStrings.length - 1]
@@ -670,14 +718,14 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
 
                                 return (
                                   <div
-                                    key={order.id}
+                                    key={entry.id}
                                     className={cn(
                                       "absolute top-1 bottom-1 z-[5] cursor-pointer",
-                                      order.order_status === 'hold'
+                                      entry.order_status === 'hold'
                                         ? "border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200"
-                                        : order.order_status === 'confirmed'
+                                        : entry.order_status === 'confirmed'
                                           ? "border border-emerald-300 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200"
-                                          : order.order_status === 'checked_in'
+                                          : entry.order_status === 'checked_in'
                                             ? "border border-violet-300 bg-violet-100 dark:bg-violet-900/30 text-violet-800 dark:text-violet-200"
                                             : "border border-amber-300 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200",
                                       "rounded-md flex items-center px-2 gap-1 text-xs overflow-hidden",
@@ -689,14 +737,14 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                       left: `${leftPercent}%`,
                                       width: `${widthPercent}%`,
                                     }}
-                                    onClick={() => navigate(`/admin/orders/${order.id}`, { state: { from: '/admin/room-inventory' } })}
-                                    title={`${order.guest_name} | ${order.check_in_date} ~ ${order.check_out_date} | ${getSourceLabel(order.order_source)}`}
+                                    onClick={() => navigate(`/admin/orders/${entry.orderId}`, { state: { from: '/admin/room-inventory' } })}
+                                    title={`${entry.guest_name} | ${entry.check_in_date} ~ ${entry.check_out_date} | ${getSourceLabel(entry.order_source)}`}
                                   >
-                                    <span className="shrink-0">{SOURCE_ICONS[order.order_source] || "📋"}</span>
-                                    <span className="font-medium truncate">{order.guest_name}</span>
-                                    {span >= 2 && order.order_source !== 'website' && order.order_source !== 'manual' && (
+                                    <span className="shrink-0">{SOURCE_ICONS[entry.order_source] || "📋"}</span>
+                                    <span className="font-medium truncate">{entry.guest_name}</span>
+                                    {span >= 2 && entry.order_source !== 'website' && entry.order_source !== 'manual' && (
                                       <span className="text-muted-foreground truncate hidden sm:inline">
-                                        {getSourceLabel(order.order_source)}
+                                        {getSourceLabel(entry.order_source)}
                                       </span>
                                     )}
                                   </div>
