@@ -649,7 +649,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         deposit_amount: depositAmount,
         paid_amount: paidAmount,
         notes: form.notes.trim() || null,
-        total_price: roomPrice + totals.addonTotal,
+        total_price: totals.roomTotal + totals.addonTotal,
         discount_amount: totals.discount,
         final_price: totals.final,
         discount_code: appliedDiscount?.code || null,
