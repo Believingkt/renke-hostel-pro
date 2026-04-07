@@ -324,6 +324,12 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
                   {unmatchedCount} 筆未匹配房型
                 </Badge>
               )}
+              {memberMatchedCount > 0 && (
+                <Badge className="bg-blue-100 text-blue-800 border-blue-200">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  {memberMatchedCount} 筆已匹配會員
+                </Badge>
+              )}
             </div>
 
             <div className="flex-1 min-h-0 overflow-y-auto">
