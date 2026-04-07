@@ -576,7 +576,7 @@ const HeroSection = ({
               color: currentSlide.text_color === 'black' ? '#000' : currentSlide.text_color === 'primary' ? 'hsl(var(--primary))' : '#fff'
             }}
           >
-            <div className={`w-full ${useCompactHero ? 'space-y-0.5 md:space-y-1' : 'space-y-3 md:space-y-4'}`}>
+            <div className={`w-full ${useCompactHero ? 'space-y-1.5 md:space-y-2' : 'space-y-3 md:space-y-4'}`}>
               {/* 主標題：優先使用圖片標題，否則使用全局標題或住宿名稱 */}
               <h1 
                 className={cn(
