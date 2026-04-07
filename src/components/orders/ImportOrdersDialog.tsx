@@ -126,13 +126,15 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
     if (fileInputRef.current) fileInputRef.current.value = "";
 
     try {
-      // Load room types & existing order numbers in parallel
-      const [rtRes, existingRes] = await Promise.all([
+      // Load room types, existing order numbers & platform members in parallel
+      const [rtRes, existingRes, membersRes] = await Promise.all([
         supabase.from("room_types").select("id, name").eq("accommodation_id", accommodationId),
         supabase.from("orders").select("notes").eq("accommodation_id", accommodationId).not("notes", "is", null),
+        supabase.from("platform_members").select("id, name, email, phone"),
       ]);
       const rts: RoomType[] = rtRes.data || [];
       setRoomTypes(rts);
+      const members: Member[] = membersRes.data || [];
 
       // Extract existing imported order numbers from notes
       const existingImportedNumbers = new Set<string>();
@@ -151,6 +153,7 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
         const originalOrderNumber = String(row["訂單編號"] || "");
         const guestName = String(row["顧客"] || row["訂購人"] || "").replace(/^未填\s*/, "").trim();
         const phone = normalizePhone(row["訂購人電話"] as string | number);
+        const email = String(row["訂購人信箱"] || row["Email"] || "").trim();
         const checkIn = String(row["入住時間"] || "");
         const checkOut = String(row["退房時間"] || "");
         const adults = Number(row["成人"]) || 1;
@@ -162,11 +165,14 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
         const notes = String(row["訂單備註"] || "");
         const roomName = String(row["房型房號"] || "");
 
+        const matched = matchMember(phone, email, members);
+
         return {
           originalOrderNumber,
           orderDate: String(row["訂購日期"] || "").slice(0, 10),
           guestName,
           guestPhone: phone,
+          guestEmail: email,
           checkInDate: checkIn,
           checkOutDate: checkOut,
           guestCount: adults + kids,
@@ -177,6 +183,8 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
           notes: notes,
           roomTypeName: roomName,
           matchedRoomTypeId: fuzzyMatchRoom(roomName, rts),
+          matchedMemberId: matched?.id || null,
+          matchedMemberName: matched?.name || null,
           isDuplicate: existingImportedNumbers.has(originalOrderNumber),
         };
       });
