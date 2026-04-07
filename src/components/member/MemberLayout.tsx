@@ -3,6 +3,7 @@ import { useNavigate, Outlet, Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { User, Gift, Ticket, ShoppingBag, LogOut, Home } from "lucide-react";
+import portalLogo from "@/assets/lakeze-portal-logo.png";
 import { toast } from "sonner";
 
 const navItems = [
@@ -46,9 +47,7 @@ const MemberLayout = () => {
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/booking" className="flex items-center gap-2">
-            <h1 className="text-xl font-bold" style={{ color: "hsl(24, 100%, 50%)" }}>
-              人客多
-            </h1>
+            <img src={portalLogo} alt="Lakeze 人客多" className="h-8 object-contain" />
             <span className="text-sm text-muted-foreground hidden sm:inline">會員中心</span>
           </Link>
           <div className="flex items-center gap-2">

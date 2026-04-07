@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import bookingHeroBg from "@/assets/booking-hero.jpg";
-import lokezeLogo from "@/assets/lokeze-logo.png";
+import lokezeLogo from "@/assets/lakeze-portal-logo.png";
 import BookingFooter from "@/components/BookingFooter";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
