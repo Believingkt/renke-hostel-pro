@@ -299,7 +299,15 @@ const OrderDetailPage = () => {
     }
   }, [isEditing, editForm.total_price, editForm.addon_total, editForm.discount_amount]);
 
-  // Auto-enter editing mode from URL param
+  // Auto-sync total_price when editOrderRooms change
+  useEffect(() => {
+    if (!isEditing || editOrderRooms.length === 0) return;
+    const roomsTotal = editOrderRooms.reduce((sum, r) => sum + r.room_price, 0);
+    if (roomsTotal !== editForm.total_price) {
+      setEditForm(f => ({ ...f, total_price: roomsTotal }));
+    }
+  }, [isEditing, editOrderRooms]);
+
   useEffect(() => {
     if (searchParams.get("editing") === "true" && order && !isEditing) {
       startEditing();
