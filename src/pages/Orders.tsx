@@ -505,12 +505,15 @@ const Orders = () => {
             <Button
               variant="outline"
               onClick={() => {
-                if (filteredOrders.length === 0) {
+              if (filteredOrders.length === 0) {
                   toast({ title: "無資料可匯出", description: "目前沒有符合條件的訂單", variant: "destructive" });
                   return;
                 }
-                exportOrdersToExcel(filteredOrders);
-                toast({ title: "匯出成功", description: `已匯出 ${filteredOrders.length} 筆訂單` });
+                exportOrdersToExcel(filteredOrders).then(() => {
+                  toast({ title: "匯出成功", description: `已匯出 ${filteredOrders.length} 筆訂單` });
+                }).catch(() => {
+                  toast({ title: "匯出失敗", description: "匯出過程中發生錯誤", variant: "destructive" });
+                });
               }}
               className="gap-2"
             >
