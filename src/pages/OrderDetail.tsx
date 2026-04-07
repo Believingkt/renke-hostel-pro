@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation, Link, useSearchParams as useSearchParamsHook } from "react-router-dom";
-import { ArrowLeft, Mail, Home, ShoppingBag, Globe, UserPlus, CreditCard, XCircle, Pencil, Save, X, Minus, Plus } from "lucide-react";
+import { ArrowLeft, Mail, Home, ShoppingBag, Globe, UserPlus, CreditCard, XCircle, Pencil, Save, X, Minus, Plus, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -122,6 +122,14 @@ interface OrderRoom {
   room_types?: { name: string } | null;
 }
 
+interface EditOrderRoom {
+  id: string;
+  room_type_id: string;
+  quantity: number;
+  room_price: number;
+  template_name: string | null;
+}
+
 interface AddonSetting {
   id: string;
   addon_type: string;
@@ -188,6 +196,8 @@ const OrderDetailPage = () => {
   const [roomTypes, setRoomTypes] = useState<RoomTypeOption[]>([]);
   const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
   const [orderRooms, setOrderRooms] = useState<OrderRoom[]>([]);
+  const [editOrderRooms, setEditOrderRooms] = useState<EditOrderRoom[]>([]);
+  const MAX_TOTAL_ROOMS = 6;
   const [depositRatioRef] = useState<{ current: number }>({ current: 0 });
   const [editForm, setEditForm] = useState<EditFormState>({
     guest_name: "",
@@ -246,8 +256,26 @@ const OrderDetailPage = () => {
       custom_addon_details: (order.custom_addon_details as CustomAddonDetail[]) || [],
       addon_total: (order.pet_plan_price || 0) + (order.meal_plan_total || 0) + ((order.custom_addon_details as CustomAddonDetail[]) || []).reduce((sum, d) => sum + d.total, 0),
     });
+    // Initialize edit order rooms
+    if (orderRooms.length > 0) {
+      setEditOrderRooms(orderRooms.map(or => ({
+        id: or.id,
+        room_type_id: or.room_type_id,
+        quantity: or.quantity,
+        room_price: or.room_price,
+        template_name: or.template_name,
+      })));
+      // Use order_rooms total as the real total_price for editing
+      const roomsTotal = orderRooms.reduce((sum, r) => sum + r.room_price, 0);
+      setEditForm(f => ({ ...f, total_price: roomsTotal }));
+    } else {
+      setEditOrderRooms([]);
+    }
     // Store deposit ratio based on original final price
-    const originalFinal = (order.total_price || 0) + ((order.pet_plan_price || 0) + (order.meal_plan_total || 0) + ((order.custom_addon_details as CustomAddonDetail[]) || []).reduce((sum, d) => sum + d.total, 0)) - (order.discount_amount || 0);
+    const effectiveTotal = orderRooms.length > 0
+      ? orderRooms.reduce((sum, r) => sum + r.room_price, 0)
+      : (order.total_price || 0);
+    const originalFinal = effectiveTotal + ((order.pet_plan_price || 0) + (order.meal_plan_total || 0) + ((order.custom_addon_details as CustomAddonDetail[]) || []).reduce((sum, d) => sum + d.total, 0)) - (order.discount_amount || 0);
     depositRatioRef.current = originalFinal > 0 ? (order.deposit_amount || 0) / originalFinal : 0;
     setIsEditing(true);
   };
@@ -271,7 +299,15 @@ const OrderDetailPage = () => {
     }
   }, [isEditing, editForm.total_price, editForm.addon_total, editForm.discount_amount]);
 
-  // Auto-enter editing mode from URL param
+  // Auto-sync total_price when editOrderRooms change
+  useEffect(() => {
+    if (!isEditing || editOrderRooms.length === 0) return;
+    const roomsTotal = editOrderRooms.reduce((sum, r) => sum + r.room_price, 0);
+    if (roomsTotal !== editForm.total_price) {
+      setEditForm(f => ({ ...f, total_price: roomsTotal }));
+    }
+  }, [isEditing, editOrderRooms]);
+
   useEffect(() => {
     if (searchParams.get("editing") === "true" && order && !isEditing) {
       startEditing();
@@ -340,6 +376,22 @@ const OrderDetailPage = () => {
         .eq("id", order.id);
 
       if (error) throw error;
+
+      // Save order_rooms changes if multi-room
+      if (editOrderRooms.length > 0) {
+        // Delete existing order_rooms
+        await supabase.from("order_rooms").delete().eq("order_id", order.id);
+        // Insert updated rooms
+        const newOrderRooms = editOrderRooms.map(r => ({
+          order_id: order.id,
+          room_type_id: r.room_type_id,
+          quantity: r.quantity,
+          room_price: r.room_price,
+          template_name: r.template_name,
+        }));
+        const { error: roomsError } = await supabase.from("order_rooms").insert(newOrderRooms);
+        if (roomsError) throw roomsError;
+      }
 
       // Audit log
       try {
@@ -1129,36 +1181,139 @@ const OrderDetailPage = () => {
             <CardTitle className="text-base md:text-lg">住宿資訊</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {/* Multi-room details from order_rooms */}
-            {orderRooms.length > 0 ? (
+            {/* Multi-room details */}
+            {(isEditing ? editOrderRooms.length > 0 : orderRooms.length > 0) ? (
               <>
                 <div className="space-y-2">
-                  <span className="text-xs md:text-sm text-muted-foreground">預訂房間</span>
-                  {orderRooms.map((or, idx) => (
-                    <div key={or.id} className="p-2.5 rounded-lg border bg-muted/30 space-y-1">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">
-                          {or.room_types?.name || "未知房型"}
-                        </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs md:text-sm text-muted-foreground">預訂房間</span>
+                    {isEditing && (
+                      <div className="flex items-center gap-2">
                         <Badge variant="outline" className="text-xs">
-                          {or.quantity} 間
+                          共 {editOrderRooms.reduce((sum, r) => sum + r.quantity, 0)} / {MAX_TOTAL_ROOMS} 間
                         </Badge>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 gap-1 text-xs"
+                          disabled={editOrderRooms.reduce((sum, r) => sum + r.quantity, 0) >= MAX_TOTAL_ROOMS || roomTypes.length === 0}
+                          onClick={() => {
+                            const rt = roomTypes[0];
+                            if (!rt) return;
+                            setEditOrderRooms(prev => [...prev, {
+                              id: crypto.randomUUID(),
+                              room_type_id: rt.id,
+                              quantity: 1,
+                              room_price: 0,
+                              template_name: null,
+                            }]);
+                          }}
+                        >
+                          <Plus className="h-3 w-3" />
+                          新增
+                        </Button>
                       </div>
-                      {or.template_name && (
-                        <div className="text-xs text-muted-foreground">
-                          專案：{or.template_name}
-                        </div>
-                      )}
-                      {or.room_price > 0 && (
-                        <div className="text-xs text-muted-foreground text-right">
-                          NT$ {or.room_price.toLocaleString()}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  <div className="text-xs text-right text-muted-foreground">
-                    共 {orderRooms.reduce((sum, r) => sum + r.quantity, 0)} 間房
+                    )}
                   </div>
+
+                  {isEditing ? (
+                    <>
+                      {editOrderRooms.map((or, idx) => {
+                        const totalOther = editOrderRooms.reduce((sum, r) => r.id === or.id ? sum : sum + r.quantity, 0);
+                        return (
+                          <div key={or.id} className="p-2.5 rounded-lg border bg-muted/30 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-medium">房間 {idx + 1}</span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setEditOrderRooms(prev => prev.filter(r => r.id !== or.id))}
+                                className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="space-y-1">
+                                <Label className="text-xs">房型</Label>
+                                <Select
+                                  value={or.room_type_id}
+                                  onValueChange={(v) => setEditOrderRooms(prev => prev.map(r => r.id === or.id ? { ...r, room_type_id: v } : r))}
+                                >
+                                  <SelectTrigger className="h-8 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {roomTypes.map(rt => (
+                                      <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">間數</Label>
+                                <div className="flex items-center gap-1">
+                                  <Button type="button" variant="outline" size="sm" className="h-8 w-8 p-0"
+                                    disabled={or.quantity <= 1}
+                                    onClick={() => setEditOrderRooms(prev => prev.map(r => r.id === or.id ? { ...r, quantity: r.quantity - 1 } : r))}
+                                  >
+                                    <Minus className="h-3 w-3" />
+                                  </Button>
+                                  <span className="w-6 text-center text-sm font-medium">{or.quantity}</span>
+                                  <Button type="button" variant="outline" size="sm" className="h-8 w-8 p-0"
+                                    disabled={totalOther + or.quantity >= MAX_TOTAL_ROOMS}
+                                    onClick={() => setEditOrderRooms(prev => prev.map(r => r.id === or.id ? { ...r, quantity: r.quantity + 1 } : r))}
+                                  >
+                                    <Plus className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">金額</Label>
+                              <Input
+                                className="h-8 text-xs text-right"
+                                type="text"
+                                inputMode="numeric"
+                                value={or.room_price}
+                                onChange={(e) => setEditOrderRooms(prev => prev.map(r => r.id === or.id ? { ...r, room_price: Math.max(0, parseInt(e.target.value) || 0) } : r))}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </>
+                  ) : (
+                    <>
+                      {orderRooms.map((or) => (
+                        <div key={or.id} className="p-2.5 rounded-lg border bg-muted/30 space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium">
+                              {or.room_types?.name || "未知房型"}
+                            </span>
+                            <Badge variant="outline" className="text-xs">
+                              {or.quantity} 間
+                            </Badge>
+                          </div>
+                          {or.template_name && (
+                            <div className="text-xs text-muted-foreground">
+                              專案：{or.template_name}
+                            </div>
+                          )}
+                          {or.room_price > 0 && (
+                            <div className="text-xs text-muted-foreground text-right">
+                              NT$ {or.room_price.toLocaleString()}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      <div className="text-xs text-right text-muted-foreground">
+                        共 {orderRooms.reduce((sum, r) => sum + r.quantity, 0)} 間房
+                      </div>
+                    </>
+                  )}
                 </div>
                 <Separator />
               </>
