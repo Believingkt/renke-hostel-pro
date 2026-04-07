@@ -672,7 +672,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                       const minRows = Math.max(roomCount, roomSlots.length, 1);
 
                       const slotRows = Array.from({ length: minRows }, (_, slotIdx) => {
-                        const slotOrders = roomSlots[slotIdx] || [];
+                        const slotEntries = roomSlots[slotIdx] || [];
                         
                         return (
                           <div key={slotIdx} className="flex border-b last:border-b-0">
