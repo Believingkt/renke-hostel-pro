@@ -1089,7 +1089,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
             {sel.roomPrice > 0 && (
               <div className="text-xs text-right text-muted-foreground">
-                小計：NT$ {sel.roomPrice.toLocaleString()} ({sel.quantity} 間)
+                小計：NT$ {sel.roomPrice.toLocaleString()} ({roomTypes.find(r => r.id === sel.room_type_id)?.is_exclusive_package ? '包區' : `${sel.quantity} 間`})
               </div>
             )}
           </div>
