@@ -302,6 +302,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   }, []);
 
   // Calculate room prices for all selections
+  const roomSelectionsKey = roomSelections.map(s => `${s.room_type_id}-${s.template_id}-${s.quantity}`).join(',');
   useEffect(() => {
     const calcPrices = async () => {
       if (roomSelections.length === 0 || !form.check_in_date || !form.check_out_date || !currentAccommodationId) {
@@ -359,7 +360,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     };
 
     calcPrices();
-  }, [form.check_in_date, form.check_out_date, roomSelections.map(s => `${s.room_type_id}-${s.template_id}-${s.quantity}`).join(','), currentAccommodationId, pricingTemplates]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.check_in_date, form.check_out_date, roomSelectionsKey, currentAccommodationId, pricingTemplates]);
 
   // Handle customer name search
   const handleNameChange = useCallback((value: string) => {
