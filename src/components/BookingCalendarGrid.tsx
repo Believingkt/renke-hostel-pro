@@ -717,8 +717,8 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
 
                               {/* Order cards positioned absolutely */}
                               {slotEntries.map(entry => {
-                                const checkInDate = order.check_in_date;
-                                const checkOutDate = order.check_out_date;
+                                const checkInDate = entry.check_in_date;
+                                const checkOutDate = entry.check_out_date;
                                 
                                 const visibleStart = checkInDate < dateStrings[0] ? dateStrings[0] : checkInDate;
                                 const visibleEnd = checkOutDate > dateStrings[dateStrings.length - 1]
@@ -740,14 +740,14 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
 
                                 return (
                                   <div
-                                    key={order.id}
+                                    key={entry.id}
                                     className={cn(
                                       "absolute top-1 bottom-1 z-[5] cursor-pointer",
-                                      order.order_status === 'hold'
+                                      entry.order_status === 'hold'
                                         ? "border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200"
-                                        : order.order_status === 'confirmed'
+                                        : entry.order_status === 'confirmed'
                                           ? "border border-emerald-300 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200"
-                                          : order.order_status === 'checked_in'
+                                          : entry.order_status === 'checked_in'
                                             ? "border border-violet-300 bg-violet-100 dark:bg-violet-900/30 text-violet-800 dark:text-violet-200"
                                             : "border border-amber-300 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200",
                                       "rounded-md flex items-center px-2 gap-1 text-xs overflow-hidden",
@@ -759,14 +759,14 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                       left: `${leftPercent}%`,
                                       width: `${widthPercent}%`,
                                     }}
-                                    onClick={() => navigate(`/admin/orders/${order.id}`, { state: { from: '/admin/room-inventory' } })}
-                                    title={`${order.guest_name} | ${order.check_in_date} ~ ${order.check_out_date} | ${getSourceLabel(order.order_source)}`}
+                                    onClick={() => navigate(`/admin/orders/${entry.orderId}`, { state: { from: '/admin/room-inventory' } })}
+                                    title={`${entry.guest_name} | ${entry.check_in_date} ~ ${entry.check_out_date} | ${getSourceLabel(entry.order_source)}`}
                                   >
-                                    <span className="shrink-0">{SOURCE_ICONS[order.order_source] || "📋"}</span>
-                                    <span className="font-medium truncate">{order.guest_name}</span>
-                                    {span >= 2 && order.order_source !== 'website' && order.order_source !== 'manual' && (
+                                    <span className="shrink-0">{SOURCE_ICONS[entry.order_source] || "📋"}</span>
+                                    <span className="font-medium truncate">{entry.guest_name}</span>
+                                    {span >= 2 && entry.order_source !== 'website' && entry.order_source !== 'manual' && (
                                       <span className="text-muted-foreground truncate hidden sm:inline">
-                                        {getSourceLabel(order.order_source)}
+                                        {getSourceLabel(entry.order_source)}
                                       </span>
                                     )}
                                   </div>
