@@ -11,6 +11,7 @@ import { NetworkIndicator } from "@/components/NetworkIndicator";
 import { PageTransition } from "@/components/PageTransition";
 import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
 import { HQDomainRedirect } from "@/components/HQDomainRedirect";
+import { BookingDomainRedirect } from "@/components/BookingDomainRedirect";
 
 const { Suspense, lazy } = React;
 
@@ -77,6 +78,7 @@ function App() {
     <BrowserRouter>
       <AccommodationProvider>
         <HQDomainRedirect>
+        <BookingDomainRedirect>
           <NetworkIndicator />
           <PageTransition>
             <ChunkErrorBoundary>
@@ -387,6 +389,7 @@ function App() {
               </Routes>
             </ChunkErrorBoundary>
           </PageTransition>
+        </BookingDomainRedirect>
         </HQDomainRedirect>
       </AccommodationProvider>
     </BrowserRouter>
