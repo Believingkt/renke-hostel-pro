@@ -164,6 +164,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       setShowPhoneSuggestions(false);
       setSelectedTemplateId("");
       setFilteredTemplates([]);
+      setRoomSelections([]);
     }
   }, [open, initialData]);
 
