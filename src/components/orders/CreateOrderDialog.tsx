@@ -220,7 +220,15 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     fetchData();
   }, [currentAccommodationId]);
 
-  // Filter templates by room_type_id
+  // Helper: get templates for a room_type_id
+  const getTemplatesForRoomType = useCallback((roomTypeId: string) => {
+    if (!roomTypeId || pricingTemplates.length === 0) return [];
+    const filtered = pricingTemplates.filter(t => (t as any).room_type_id === roomTypeId);
+    const result = filtered.length > 0 ? filtered : pricingTemplates.filter(t => !(t as any).room_type_id);
+    return result.length > 0 ? result : pricingTemplates;
+  }, [pricingTemplates]);
+
+  // Keep legacy form.room_type_id in sync (old template filter useEffect kept for compat)
   useEffect(() => {
     if (!form.room_type_id) {
       setFilteredTemplates([]);
@@ -229,27 +237,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       setIsLoadingTemplates(false);
       return;
     }
-
-    if (pricingTemplates.length === 0) {
-      setFilteredTemplates([]);
-      setSelectedTemplateId("");
-      setIsLoadingTemplates(false);
-      return;
-    }
-
-    // Filter by room_type_id: show templates that match the selected room type or have no room_type_id set
-    const filtered = pricingTemplates.filter(t =>
-      (t as any).room_type_id === form.room_type_id
-    );
-
-    // If no templates are linked to this room type, fall back to unlinked templates
-    const result = filtered.length > 0
-      ? filtered
-      : pricingTemplates.filter(t => !(t as any).room_type_id);
-
-    // If still nothing, show all as last resort
-    const finalList = result.length > 0 ? result : pricingTemplates;
-
+    const finalList = getTemplatesForRoomType(form.room_type_id);
     setFilteredTemplates(finalList);
     setSelectedTemplateId(prev => {
       const stillExists = finalList.some(t => t.id === prev);
@@ -257,13 +245,120 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     });
     setForm(prev => {
       const stillExists = finalList.some(t => t.template_name === prev.meal_plan);
-      return {
-        ...prev,
-        meal_plan: stillExists ? prev.meal_plan : finalList[0]?.template_name || "",
-      };
+      return { ...prev, meal_plan: stillExists ? prev.meal_plan : finalList[0]?.template_name || "" };
     });
     setIsLoadingTemplates(false);
-  }, [form.room_type_id, pricingTemplates]);
+  }, [form.room_type_id, pricingTemplates, getTemplatesForRoomType]);
+
+  // Multi-room helpers
+  const totalRoomCount = roomSelections.reduce((sum, s) => sum + s.quantity, 0);
+
+  const addRoomSelection = useCallback(() => {
+    if (totalRoomCount >= MAX_TOTAL_ROOMS) return;
+    const id = crypto.randomUUID();
+    const defaultRoomType = roomTypes[0];
+    if (!defaultRoomType) return;
+    const templates = getTemplatesForRoomType(defaultRoomType.id);
+    setRoomSelections(prev => [...prev, {
+      id,
+      room_type_id: defaultRoomType.id,
+      template_id: templates[0]?.id || "",
+      template_name: templates[0]?.template_name || "",
+      quantity: 1,
+      roomPrice: 0,
+      filteredTemplates: templates,
+    }]);
+  }, [roomTypes, totalRoomCount, getTemplatesForRoomType]);
+
+  const removeRoomSelection = useCallback((selId: string) => {
+    setRoomSelections(prev => prev.filter(s => s.id !== selId));
+  }, []);
+
+  const updateRoomSelection = useCallback((selId: string, updates: Partial<RoomSelection>) => {
+    setRoomSelections(prev => prev.map(s => {
+      if (s.id !== selId) return s;
+      const updated = { ...s, ...updates };
+      // If room type changed, refresh templates
+      if (updates.room_type_id && updates.room_type_id !== s.room_type_id) {
+        const templates = getTemplatesForRoomType(updates.room_type_id);
+        updated.filteredTemplates = templates;
+        updated.template_id = templates[0]?.id || "";
+        updated.template_name = templates[0]?.template_name || "";
+      }
+      return updated;
+    }));
+  }, [getTemplatesForRoomType]);
+
+  const changeRoomQuantity = useCallback((selId: string, delta: number) => {
+    setRoomSelections(prev => {
+      const sel = prev.find(s => s.id === selId);
+      if (!sel) return prev;
+      const newQty = sel.quantity + delta;
+      const otherTotal = prev.reduce((sum, s) => sum + (s.id === selId ? 0 : s.quantity), 0);
+      if (newQty < 1 || otherTotal + newQty > MAX_TOTAL_ROOMS) return prev;
+      return prev.map(s => s.id === selId ? { ...s, quantity: newQty } : s);
+    });
+  }, []);
+
+  // Calculate room prices for all selections
+  useEffect(() => {
+    const calcPrices = async () => {
+      if (roomSelections.length === 0 || !form.check_in_date || !form.check_out_date || !currentAccommodationId) {
+        setRoomPrice(0);
+        return;
+      }
+      const nights = calculateNights();
+      if (nights === 0) { setRoomPrice(0); return; }
+
+      const dates: string[] = [];
+      const start = new Date(form.check_in_date);
+      for (let i = 0; i < nights; i++) {
+        const d = new Date(start);
+        d.setDate(start.getDate() + i);
+        dates.push(format(d, "yyyy-MM-dd"));
+      }
+
+      let totalPrice = 0;
+      const updatedSelections = [...roomSelections];
+
+      for (const sel of updatedSelections) {
+        const template = pricingTemplates.find(t => t.id === sel.template_id);
+        let selPrice = 0;
+
+        if (template && template.price != null && template.price > 0) {
+          selPrice = template.price * nights * sel.quantity;
+        } else {
+          let priceColumn = 'price';
+          if (template) {
+            const name = template.template_name || template.project_name || '';
+            if (name.includes('三食') || name.includes('3食')) priceColumn = 'price_3_meals';
+            else if (name.includes('二食') || name.includes('2食') || name.includes('兩食')) priceColumn = 'price_2_meals';
+          }
+          let sum = 0;
+          for (const dateStr of dates) {
+            const { data: priceData } = await supabase
+              .from("room_inventory_pricing")
+              .select("price, price_2_meals, price_3_meals")
+              .eq("room_type_id", sel.room_type_id)
+              .eq("date", dateStr)
+              .maybeSingle();
+            if (priceData) {
+              const selectedPrice = (priceData as any)[priceColumn];
+              sum += (selectedPrice != null && selectedPrice > 0) ? selectedPrice : (priceData.price ?? 0);
+            }
+          }
+          selPrice = sum * sel.quantity;
+        }
+        sel.roomPrice = selPrice;
+        totalPrice += selPrice;
+      }
+
+      setRoomSelections(updatedSelections);
+      setRoomPrice(totalPrice);
+    };
+
+    calcPrices();
+  }, [form.check_in_date, form.check_out_date, roomSelections.map(s => `${s.room_type_id}-${s.template_id}-${s.quantity}`).join(','), currentAccommodationId, pricingTemplates]);
 
   // Handle customer name search
   const handleNameChange = useCallback((value: string) => {
