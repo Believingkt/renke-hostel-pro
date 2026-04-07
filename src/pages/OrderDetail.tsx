@@ -122,6 +122,14 @@ interface OrderRoom {
   room_types?: { name: string } | null;
 }
 
+interface EditOrderRoom {
+  id: string;
+  room_type_id: string;
+  quantity: number;
+  room_price: number;
+  template_name: string | null;
+}
+
 interface AddonSetting {
   id: string;
   addon_type: string;
