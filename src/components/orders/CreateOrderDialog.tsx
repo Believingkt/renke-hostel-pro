@@ -110,6 +110,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   // Multi-room selections
   const [roomSelections, setRoomSelections] = useState<RoomSelection[]>([]);
   const MAX_TOTAL_ROOMS = 6;
+  
+  // Booking mode: "exclusive" (包區) or "normal" (非包區) or "" (not yet selected)
+  const [bookingMode, setBookingMode] = useState<"" | "exclusive" | "normal">("");
 
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [filteredTemplates, setFilteredTemplates] = useState<PricingTemplate[]>([]);
