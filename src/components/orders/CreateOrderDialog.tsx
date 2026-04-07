@@ -177,7 +177,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       const [roomTypesResult, holidaysResult, customersResult, addonsResult, templatesResult] = await Promise.all([
         supabase
           .from("room_types")
-          .select("id, name, capacity")
+          .select("id, name, capacity, is_exclusive_package")
           .eq("accommodation_id", currentAccommodationId)
           .order("display_order"),
         supabase
