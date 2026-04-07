@@ -35,6 +35,27 @@ interface Order {
   room_type_id: string;
 }
 
+interface OrderRoom {
+  id: string;
+  order_id: string;
+  room_type_id: string;
+  quantity: number;
+}
+
+// A virtual entry representing one room slot on the calendar
+interface CalendarEntry {
+  id: string; // unique key for rendering
+  orderId: string;
+  order_number: string;
+  guest_name: string;
+  guest_phone: string;
+  check_in_date: string;
+  check_out_date: string;
+  order_status: string;
+  order_source: string;
+  room_type_id: string;
+}
+
 interface PublicHoliday {
   holiday_date: string;
   holiday_name: string;
