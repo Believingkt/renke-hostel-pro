@@ -280,10 +280,11 @@ const BookingPortal = () => {
 
   const handleRoomClick = (room: RoomTypeResult) => {
     const params = new URLSearchParams();
+    params.set("acc", room.accommodation_id);
     params.set("roomId", room.id);
     if (checkIn) params.set("checkIn", format(checkIn, "yyyy-MM-dd"));
     if (checkOut) params.set("checkOut", format(checkOut, "yyyy-MM-dd"));
-    navigate(`/booking/${room.accommodation_id}?${params.toString()}`);
+    navigate(`/book?${params.toString()}`);
   };
 
   const clearFilters = () => {
