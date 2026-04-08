@@ -232,13 +232,51 @@ const BookingPortal = () => {
       );
     }
 
-    // Availability filter — only show rooms with availability when dates are searched
+    // Availability filter
     if (hasDateFilter) {
       result = result.filter((rt) => rt.available_rooms !== null && rt.available_rooms > 0);
     }
 
+    // Region filter
+    if (filters.selectedRegion !== "all") {
+      result = result.filter((rt) => rt.accommodation_region_1 === filters.selectedRegion);
+    }
+
+    // Accommodation filter
+    if (filters.selectedAccommodation !== "all") {
+      result = result.filter((rt) => rt.accommodation_id === filters.selectedAccommodation);
+    }
+
+    // Capacity filter
+    if (filters.minCapacity > 0) {
+      result = result.filter((rt) => rt.capacity >= filters.minCapacity);
+    }
+
+    // Price filter
+    if (filters.maxPrice > 0) {
+      result = result.filter((rt) => {
+        const price = rt.date_price ?? rt.base_price;
+        return price <= filters.maxPrice;
+      });
+    }
+
+    // Sort
+    if (filters.sortBy !== "default") {
+      result = [...result].sort((a, b) => {
+        const priceA = a.date_price ?? a.base_price;
+        const priceB = b.date_price ?? b.base_price;
+        switch (filters.sortBy) {
+          case "price_asc": return priceA - priceB;
+          case "price_desc": return priceB - priceA;
+          case "capacity_asc": return a.capacity - b.capacity;
+          case "capacity_desc": return b.capacity - a.capacity;
+          default: return 0;
+        }
+      });
+    }
+
     return result;
-  }, [roomTypes, searchQuery, hasDateFilter]);
+  }, [roomTypes, searchQuery, hasDateFilter, filters]);
 
   // Group accommodations by region
   const regions = useMemo(() => {
