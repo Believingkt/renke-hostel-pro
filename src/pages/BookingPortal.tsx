@@ -44,6 +44,13 @@ const BookingPortal = () => {
   const [checkOut, setCheckOut] = useState<Date | undefined>();
   const [searching, setSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [filters, setFilters] = useState<RoomFilters>({
+    sortBy: "default",
+    minCapacity: 0,
+    maxPrice: 0,
+    selectedAccommodation: "all",
+    selectedRegion: "all",
+  });
 
   useEffect(() => {
     fetchData();
