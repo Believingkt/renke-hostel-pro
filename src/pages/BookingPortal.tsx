@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import bookingHeroBg from "@/assets/booking-hero.jpg";
 import lokezeLogo from "@/assets/lakeze-portal-logo.png";
 import BookingFooter from "@/components/BookingFooter";
+import MobileBottomNav from "@/components/member/MobileBottomNav";
 import PortalSearchBar from "@/components/booking-portal/PortalSearchBar";
 import RoomTypeCard, { type RoomTypeResult } from "@/components/booking-portal/RoomTypeCard";
 import RoomFilterBar, { type RoomFilters, type SortOption } from "@/components/booking-portal/RoomFilterBar";
@@ -334,7 +335,7 @@ const BookingPortal = () => {
     filters.selectedRegion !== "all";
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-16 md:pb-0">
       {/* ── Header ── */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-border">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between">
@@ -580,6 +581,7 @@ const BookingPortal = () => {
       </section>
 
       <BookingFooter />
+      <MobileBottomNav />
     </div>
   );
 };

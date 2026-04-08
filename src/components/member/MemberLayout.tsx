@@ -6,6 +6,7 @@ import { User, Gift, Ticket, ShoppingBag, LogOut, Home } from "lucide-react";
 import portalLogo from "@/assets/lakeze-portal-logo.png";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
+import MobileBottomNav from "@/components/member/MobileBottomNav";
 
 const navItems = [
   { path: "/member/orders", label: "訂房紀錄", icon: ShoppingBag },
@@ -96,29 +97,7 @@ const MemberLayout = () => {
       </main>
 
       {/* Mobile bottom tab bar */}
-      {isMobile && (
-        <nav className="fixed bottom-0 inset-x-0 z-50 bg-white border-t border-border safe-area-bottom">
-          <div className="flex justify-around items-center h-16 px-2">
-            {navItems.map((item) => {
-              const isActive = location.pathname === item.path;
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-lg transition-colors ${
-                    isActive
-                      ? "text-[hsl(24,100%,50%)]"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  <item.icon className={`h-5 w-5 ${isActive ? "stroke-[2.5]" : ""}`} />
-                  <span className="text-[11px] font-medium leading-tight">{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
-      )}
+      <MobileBottomNav />
     </div>
   );
 };
