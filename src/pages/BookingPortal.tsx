@@ -44,6 +44,8 @@ const BookingPortal = () => {
   const [checkIn, setCheckIn] = useState<Date | undefined>();
   const [checkOut, setCheckOut] = useState<Date | undefined>();
   const [searching, setSearching] = useState(false);
+  const [guests, setGuests] = useState(2);
+  const [rooms, setRooms] = useState(1);
   const [hasSearched, setHasSearched] = useState(false);
   const [filters, setFilters] = useState<RoomFilters>({
     sortBy: "default",
@@ -392,6 +394,10 @@ const BookingPortal = () => {
             checkOut={checkOut}
             onCheckInChange={setCheckIn}
             onCheckOutChange={setCheckOut}
+            guests={guests}
+            onGuestsChange={setGuests}
+            rooms={rooms}
+            onRoomsChange={setRooms}
             onSearch={handleSearch}
           />
         </div>
