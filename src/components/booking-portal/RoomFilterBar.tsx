@@ -195,8 +195,8 @@ const RoomFilterBar = ({
           <Slider
             min={0}
             max={maxPriceInData}
-            step={Math.max(100, Math.round(maxPriceInData / 50) * 100)}
-            value={[filters.maxPrice || maxPriceInData]}
+            step={Math.max(100, Math.round(maxPriceInData / 20) * 100) || 500}
+            value={[filters.maxPrice > 0 && filters.maxPrice <= maxPriceInData ? filters.maxPrice : maxPriceInData]}
             onValueChange={([v]) =>
               update({ maxPrice: v >= maxPriceInData ? 0 : v })
             }
