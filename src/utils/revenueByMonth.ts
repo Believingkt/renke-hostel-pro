@@ -100,7 +100,7 @@ export function aggregateRevenueByMonth(
  * Compute room nights by month from confirmed orders.
  */
 export function computeRoomNightsByMonth(
-  confirmedOrders: { check_in_date: string; check_out_date: string; is_exclusive_package?: boolean }[],
+  confirmedOrders: { check_in_date: string; check_out_date: string; is_exclusive_package?: boolean; room_quantity?: number }[],
   dailyRoomCap: number = 6
 ): Map<string, number> {
   const result = new Map<string, number>();
@@ -109,7 +109,7 @@ export function computeRoomNightsByMonth(
     const checkIn = new Date(order.check_in_date);
     const checkOut = new Date(order.check_out_date);
     const nights = Math.max(1, differenceInDays(checkOut, checkIn));
-    const roomNightsPerDay = order.is_exclusive_package ? dailyRoomCap : 1;
+    const roomNightsPerDay = order.is_exclusive_package ? dailyRoomCap : (order.room_quantity || 1);
     for (let i = 0; i < nights; i++) {
       const day = addDays(checkIn, i);
       const monthKey = format(day, 'yyyy-MM');
