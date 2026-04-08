@@ -192,7 +192,7 @@ const BookingPortal = () => {
 
         <div className="relative max-w-7xl mx-auto px-4 py-12 md:py-20 text-center text-white">
           <h1 className="text-3xl md:text-5xl font-bold mb-3 drop-shadow-sm">
-            探索台灣優質民宿
+            探索優質民宿
           </h1>
           <p className="text-base md:text-lg opacity-90 mb-8">
             安全付款 | 精選住宿 | 會員獨享優惠
