@@ -406,7 +406,7 @@ const MemberAuth = () => {
               <TabsContent value="signup">
                 <form onSubmit={handleSignup} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name">姓名</Label>
+                    <Label htmlFor="signup-name">姓名 <span className="text-destructive">*</span></Label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -415,21 +415,6 @@ const MemberAuth = () => {
                         className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
                         value={signupName}
                         onChange={(e) => setSignupName(e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="signup-email"
-                        type="email"
-                        placeholder="your@email.com"
-                        className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
-                        value={signupEmail}
-                        onChange={(e) => setSignupEmail(e.target.value)}
                         required
                       />
                     </div>
@@ -461,19 +446,7 @@ const MemberAuth = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>地址 <span className="text-muted-foreground text-xs">（選填）</span></Label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="請輸入地址"
-                        className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
-                        value={signupAddress}
-                        onChange={(e) => setSignupAddress(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-phone">手機</Label>
+                    <Label htmlFor="signup-phone">手機 <span className="text-destructive">*</span></Label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -483,6 +456,33 @@ const MemberAuth = () => {
                         value={signupPhone}
                         onChange={(e) => setSignupPhone(e.target.value)}
                         required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-email">Email <span className="text-destructive">*</span></Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="signup-email"
+                        type="email"
+                        placeholder="your@email.com"
+                        className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
+                        value={signupEmail}
+                        onChange={(e) => setSignupEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>地址 <span className="text-muted-foreground text-xs">（選填）</span></Label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="請輸入地址"
+                        className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
+                        value={signupAddress}
+                        onChange={(e) => setSignupAddress(e.target.value)}
                       />
                     </div>
                   </div>
