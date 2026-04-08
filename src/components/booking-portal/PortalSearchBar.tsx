@@ -65,8 +65,8 @@ const PortalSearchBar = ({
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="bg-white rounded-2xl shadow-xl p-4 md:p-6">
+    <div className="max-w-4xl mx-auto px-1 sm:px-0">
+      <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl p-3 sm:p-4 md:p-6">
         <div className="flex flex-col md:flex-row gap-3 md:gap-4 items-stretch md:items-end">
           {/* Destination */}
           <div className="flex-1 text-left">

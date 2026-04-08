@@ -46,7 +46,7 @@ const RoomTypeCard = ({ room, onClick, hasDateFilter, nights }: RoomTypeCardProp
       onClick={onClick}
     >
       {/* Image */}
-      <div className="relative h-44 bg-muted overflow-hidden">
+      <div className="relative h-36 sm:h-44 bg-muted overflow-hidden">
         {room.photo_url ? (
           <img
             src={room.photo_url}
@@ -86,7 +86,7 @@ const RoomTypeCard = ({ room, onClick, hasDateFilter, nights }: RoomTypeCardProp
       </div>
 
       {/* Info */}
-      <CardContent className="p-4">
+      <CardContent className="p-3 sm:p-4">
         <h3 className="font-semibold text-base line-clamp-1 text-foreground mb-0.5">
           {room.name}
         </h3>
@@ -96,7 +96,7 @@ const RoomTypeCard = ({ room, onClick, hasDateFilter, nights }: RoomTypeCardProp
         </p>
 
         {/* Meta row */}
-        <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
+        <div className="flex items-center gap-2 sm:gap-3 text-sm text-muted-foreground mb-2 sm:mb-3 flex-wrap">
           {(room.accommodation_region_1 || room.accommodation_region_2) && (
             <span className="flex items-center gap-0.5">
               <MapPin className="h-3 w-3" />
