@@ -8,8 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
-import { Mail, Lock, User, Phone, Loader2, ArrowLeft, CheckCircle } from "lucide-react";
+import { Mail, Lock, User, Phone, Loader2, ArrowLeft, CheckCircle, MapPin, Globe, Users } from "lucide-react";
 import { getPasswordIssues } from "@/utils/passwordPolicy";
 
 type ViewMode = "auth" | "forgot-password" | "signup-success";
@@ -27,6 +34,9 @@ const MemberAuth = () => {
   const [signupPhone, setSignupPhone] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
+  const [signupGender, setSignupGender] = useState("");
+  const [signupNationality, setSignupNationality] = useState("");
+  const [signupAddress, setSignupAddress] = useState("");
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotSent, setForgotSent] = useState(false);
 
@@ -105,7 +115,7 @@ const MemberAuth = () => {
         email: signupEmail,
         password: signupPassword,
         options: {
-          data: { name: signupName, phone: signupPhone },
+          data: { name: signupName, phone: signupPhone, gender: signupGender || null, nationality: signupNationality || null, address: signupAddress || null },
           emailRedirectTo: window.location.origin + "/member/profile",
         },
       });
@@ -173,7 +183,10 @@ const MemberAuth = () => {
         email: user.email || "",
         phone: user.user_metadata?.phone || null,
         avatar_url: user.user_metadata?.avatar_url || null,
-      });
+        gender: user.user_metadata?.gender || null,
+        nationality: user.user_metadata?.nationality || null,
+        address: user.user_metadata?.address || null,
+      } as any);
     }
   };
 
