@@ -77,8 +77,8 @@ const fetchDashboardData = async (
     endDate = now;
   }
   
-  // Step 1: Fetch room types and orders in parallel
-  const [roomTypesResult, ordersResult] = await Promise.all([
+  // Step 1: Fetch room types, orders, and order_rooms in parallel
+  const [roomTypesResult, ordersResult, orderRoomsResult] = await Promise.all([
     supabase
       .from("room_types")
       .select("id, name, room_count, is_exclusive_package")
@@ -89,7 +89,11 @@ const fetchDashboardData = async (
       .eq("accommodation_id", accommodationId)
       .gte("order_date", startDate.toISOString())
       .lte("order_date", endDate.toISOString())
-      .order("order_date", { ascending: false })
+      .order("order_date", { ascending: false }),
+    supabase
+      .from("order_rooms")
+      .select("order_id, room_type_id, quantity")
+      .limit(10000),
   ]);
   
   if (roomTypesResult.error) throw roomTypesResult.error;
@@ -97,6 +101,18 @@ const fetchDashboardData = async (
   
   const roomTypesData = roomTypesResult.data || [];
   const ordersData = ordersResult.data || [];
+  
+  // Build order_rooms lookup: order_id -> total room quantity
+  const orderRoomsMap = new Map<string, number>();
+  const orderRoomsExclusive = new Map<string, boolean>();
+  const exclusiveSetForLookup = new Set(roomTypesData.filter(rt => rt.is_exclusive_package).map(rt => rt.id));
+  (orderRoomsResult.data || []).forEach(or => {
+    const current = orderRoomsMap.get(or.order_id) || 0;
+    orderRoomsMap.set(or.order_id, current + (or.quantity || 1));
+    if (exclusiveSetForLookup.has(or.room_type_id)) {
+      orderRoomsExclusive.set(or.order_id, true);
+    }
+  });
   
   const isRevenueEligible = (status: string) => status === 'confirmed';
   const totalRoomCount = roomTypesData.reduce((sum, rt) => sum + (rt.room_count || 0), 0);
