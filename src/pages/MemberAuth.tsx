@@ -471,7 +471,6 @@ const MemberAuth = () => {
                         onChange={(e) => setSignupAddress(e.target.value)}
                       />
                     </div>
-                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-phone">手機</Label>
