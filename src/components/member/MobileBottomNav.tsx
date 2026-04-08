@@ -1,5 +1,6 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { ShoppingBag, Ticket, Gift, User, Home } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 const navItems = [
   { path: "/booking", label: "首頁", icon: Home },
@@ -11,9 +12,29 @@ const navItems = [
 
 const MobileBottomNav = () => {
   const location = useLocation();
+  const [visible, setVisible] = useState(true);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const currentY = window.scrollY;
+      if (currentY > lastScrollY.current && currentY > 60) {
+        setVisible(false);
+      } else {
+        setVisible(true);
+      }
+      lastScrollY.current = currentY;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-50 bg-white border-t border-border md:hidden">
+    <nav
+      className={`fixed bottom-0 inset-x-0 z-50 bg-white border-t border-border md:hidden transition-transform duration-300 ${
+        visible ? "translate-y-0" : "translate-y-full"
+      }`}
+    >
       <div className="flex justify-around items-center h-16 px-1 pb-[env(safe-area-inset-bottom)]">
         {navItems.map((item) => {
           const isActive =
