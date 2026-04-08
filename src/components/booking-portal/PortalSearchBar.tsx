@@ -80,6 +80,55 @@ const PortalSearchBar = ({
     if (e.key === "Enter") onSearch();
   };
 
+  const renderGuestPicker = () => (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium">大人</p>
+          <p className="text-sm text-muted-foreground">18 歲以上</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" className="h-7 w-7 rounded-full" onClick={() => onAdultsChange(Math.max(1, adults - 1))} disabled={adults <= 1}>
+            <Minus className="h-3 w-3" />
+          </Button>
+          <span className="w-6 text-center text-sm font-medium">{adults}</span>
+          <Button variant="outline" size="icon" className="h-7 w-7 rounded-full" onClick={() => onAdultsChange(Math.min(20, adults + 1))} disabled={adults >= 20}>
+            <Plus className="h-3 w-3" />
+          </Button>
+        </div>
+      </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium">兒童</p>
+          <p className="text-sm text-muted-foreground">0–17 歲</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" className="h-7 w-7 rounded-full" onClick={() => onChildrenChange(Math.max(0, children - 1))} disabled={children <= 0}>
+            <Minus className="h-3 w-3" />
+          </Button>
+          <span className="w-6 text-center text-sm font-medium">{children}</span>
+          <Button variant="outline" size="icon" className="h-7 w-7 rounded-full" onClick={() => onChildrenChange(Math.min(10, children + 1))} disabled={children >= 10}>
+            <Plus className="h-3 w-3" />
+          </Button>
+        </div>
+      </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium">房間數</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" className="h-7 w-7 rounded-full" onClick={() => onRoomsChange(Math.max(1, rooms - 1))} disabled={rooms <= 1}>
+            <Minus className="h-3 w-3" />
+          </Button>
+          <span className="w-6 text-center text-sm font-medium">{rooms}</span>
+          <Button variant="outline" size="icon" className="h-7 w-7 rounded-full" onClick={() => onRoomsChange(Math.min(10, rooms + 1))} disabled={rooms >= 10}>
+            <Plus className="h-3 w-3" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="max-w-4xl mx-auto px-1 sm:px-0">
       <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl p-3 sm:p-4 md:p-6">
