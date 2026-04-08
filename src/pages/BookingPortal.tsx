@@ -76,10 +76,10 @@ const BookingPortal = () => {
   const fetchData = async () => {
     try {
       // Fetch accommodations and room types in parallel
-      const [{ data: accs }, { data: rooms }, { data: roomPhotos }] = await Promise.all([
+      const [{ data: accs }, { data: rooms }, { data: roomPhotos }, { data: heroPhotos }] = await Promise.all([
         supabase
           .from("accommodation_info")
-          .select("id, name, region_1, region_2, type, address")
+          .select("id, name, region_1, region_2, type, address, country")
           .eq("is_active", true)
           .order("display_order", { ascending: true, nullsFirst: false }),
         supabase
@@ -89,6 +89,11 @@ const BookingPortal = () => {
         supabase
           .from("room_photos")
           .select("room_type_id, photo_url, display_order")
+          .order("display_order", { ascending: true }),
+        supabase
+          .from("accommodation_photos")
+          .select("accommodation_id, photo_url, display_order")
+          .eq("photo_type", "hero")
           .order("display_order", { ascending: true }),
       ]);
 
