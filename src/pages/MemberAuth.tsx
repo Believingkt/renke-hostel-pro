@@ -435,6 +435,43 @@ const MemberAuth = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
+                    <Label>性別 <span className="text-muted-foreground text-xs">（選填）</span></Label>
+                    <Select value={signupGender} onValueChange={setSignupGender}>
+                      <SelectTrigger className="focus-visible:ring-[hsl(24,100%,50%)]">
+                        <Users className="mr-2 h-4 w-4 text-muted-foreground" />
+                        <SelectValue placeholder="請選擇" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">男</SelectItem>
+                        <SelectItem value="female">女</SelectItem>
+                        <SelectItem value="other">其他</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>國籍 <span className="text-muted-foreground text-xs">（選填）</span></Label>
+                    <div className="relative">
+                      <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="例如：台灣"
+                        className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
+                        value={signupNationality}
+                        onChange={(e) => setSignupNationality(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>地址 <span className="text-muted-foreground text-xs">（選填）</span></Label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="請輸入地址"
+                        className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
+                        value={signupAddress}
+                        onChange={(e) => setSignupAddress(e.target.value)}
+                      />
+                    </div>
+                  <div className="space-y-2">
                     <Label htmlFor="signup-phone">手機</Label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
