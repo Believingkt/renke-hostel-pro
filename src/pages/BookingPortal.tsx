@@ -29,6 +29,8 @@ interface AccommodationInfo {
   region_2: string | null;
   type: string | null;
   address: string | null;
+  country: string | null;
+  hero_photo_url?: string | null;
 }
 
 const BookingPortal = () => {
