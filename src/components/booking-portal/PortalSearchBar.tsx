@@ -97,10 +97,10 @@ const PortalSearchBar = ({
                     variant="outline"
                     className={cn(
                       "w-full h-10 justify-start text-left font-normal border-border",
-                      !checkIn && "text-muted-foreground"
+                      checkIn ? "text-foreground" : "text-muted-foreground"
                     )}
                   >
-                    <CalendarDays className="mr-2 h-4 w-4 text-muted-foreground" />
+                    <CalendarDays className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
                     {checkIn
                       ? format(checkIn, "M/d (EEE)", { locale: zhTW })
                       : "選擇日期"}
@@ -128,10 +128,10 @@ const PortalSearchBar = ({
                     variant="outline"
                     className={cn(
                       "w-full h-10 justify-start text-left font-normal border-border",
-                      !checkOut && "text-muted-foreground"
+                      checkOut ? "text-foreground" : "text-muted-foreground"
                     )}
                   >
-                    <CalendarDays className="mr-2 h-4 w-4 text-muted-foreground" />
+                    <CalendarDays className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
                     {checkOut
                       ? format(checkOut, "M/d (EEE)", { locale: zhTW })
                       : "選擇日期"}
