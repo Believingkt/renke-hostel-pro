@@ -89,16 +89,8 @@ const MemberProfile = () => {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label>姓名</Label>
+          <Label>姓名 <span className="text-destructive">*</span></Label>
           <Input value={name} onChange={(e) => setName(e.target.value)} />
-        </div>
-        <div className="space-y-2">
-          <Label>Email</Label>
-          <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
-        </div>
-        <div className="space-y-2">
-          <Label>手機</Label>
-          <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0912345678" />
         </div>
         <div className="space-y-2">
           <Label>性別 <span className="text-muted-foreground text-xs">（選填）</span></Label>
@@ -116,6 +108,14 @@ const MemberProfile = () => {
         <div className="space-y-2">
           <Label>國籍 <span className="text-muted-foreground text-xs">（選填）</span></Label>
           <Input value={nationality} onChange={(e) => setNationality(e.target.value)} placeholder="例如：台灣" />
+        </div>
+        <div className="space-y-2">
+          <Label>手機 <span className="text-destructive">*</span></Label>
+          <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0912345678" />
+        </div>
+        <div className="space-y-2">
+          <Label>Email <span className="text-destructive">*</span></Label>
+          <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
         </div>
         <div className="space-y-2">
           <Label>地址 <span className="text-muted-foreground text-xs">（選填）</span></Label>
