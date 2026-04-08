@@ -8,8 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
-import { Mail, Lock, User, Phone, Loader2, ArrowLeft, CheckCircle } from "lucide-react";
+import { Mail, Lock, User, Phone, Loader2, ArrowLeft, CheckCircle, MapPin, Globe, Users } from "lucide-react";
 import { getPasswordIssues } from "@/utils/passwordPolicy";
 
 type ViewMode = "auth" | "forgot-password" | "signup-success";
@@ -27,6 +34,9 @@ const MemberAuth = () => {
   const [signupPhone, setSignupPhone] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
+  const [signupGender, setSignupGender] = useState("");
+  const [signupNationality, setSignupNationality] = useState("");
+  const [signupAddress, setSignupAddress] = useState("");
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotSent, setForgotSent] = useState(false);
 
@@ -105,7 +115,7 @@ const MemberAuth = () => {
         email: signupEmail,
         password: signupPassword,
         options: {
-          data: { name: signupName, phone: signupPhone },
+          data: { name: signupName, phone: signupPhone, gender: signupGender || null, nationality: signupNationality || null, address: signupAddress || null },
           emailRedirectTo: window.location.origin + "/member/profile",
         },
       });
@@ -173,7 +183,10 @@ const MemberAuth = () => {
         email: user.email || "",
         phone: user.user_metadata?.phone || null,
         avatar_url: user.user_metadata?.avatar_url || null,
-      });
+        gender: user.user_metadata?.gender || null,
+        nationality: user.user_metadata?.nationality || null,
+        address: user.user_metadata?.address || null,
+      } as any);
     }
   };
 
@@ -393,7 +406,7 @@ const MemberAuth = () => {
               <TabsContent value="signup">
                 <form onSubmit={handleSignup} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name">姓名</Label>
+                    <Label htmlFor="signup-name">姓名 <span className="text-destructive">*</span></Label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -407,7 +420,47 @@ const MemberAuth = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
+                    <Label>性別 <span className="text-muted-foreground text-xs">（選填）</span></Label>
+                    <Select value={signupGender} onValueChange={setSignupGender}>
+                      <SelectTrigger className="focus-visible:ring-[hsl(24,100%,50%)]">
+                        <Users className="mr-2 h-4 w-4 text-muted-foreground" />
+                        <SelectValue placeholder="請選擇" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">男</SelectItem>
+                        <SelectItem value="female">女</SelectItem>
+                        <SelectItem value="other">其他</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>國籍 <span className="text-muted-foreground text-xs">（選填）</span></Label>
+                    <div className="relative">
+                      <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="例如：台灣"
+                        className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
+                        value={signupNationality}
+                        onChange={(e) => setSignupNationality(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-phone">手機 <span className="text-destructive">*</span></Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="signup-phone"
+                        placeholder="0912345678"
+                        className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
+                        value={signupPhone}
+                        onChange={(e) => setSignupPhone(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-email">Email <span className="text-destructive">*</span></Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -422,16 +475,14 @@ const MemberAuth = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-phone">手機</Label>
+                    <Label>地址 <span className="text-muted-foreground text-xs">（選填）</span></Label>
                     <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
-                        id="signup-phone"
-                        placeholder="0912345678"
+                        placeholder="請輸入地址"
                         className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
-                        value={signupPhone}
-                        onChange={(e) => setSignupPhone(e.target.value)}
-                        required
+                        value={signupAddress}
+                        onChange={(e) => setSignupAddress(e.target.value)}
                       />
                     </div>
                   </div>
