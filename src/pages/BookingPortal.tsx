@@ -3,6 +3,7 @@ import bookingHeroBg from "@/assets/booking-hero.jpg";
 import lokezeLogo from "@/assets/lakeze-portal-logo.png";
 import BookingFooter from "@/components/BookingFooter";
 import PortalSearchBar from "@/components/booking-portal/PortalSearchBar";
+import RoomTypeCard, { type RoomTypeResult } from "@/components/booking-portal/RoomTypeCard";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,45 +12,40 @@ import { Badge } from "@/components/ui/badge";
 import { format, eachDayOfInterval, addDays } from "date-fns";
 import {
   MapPin,
-  Star,
   User,
   LogIn,
-  ChevronRight,
   Gift,
   Ticket,
   TrendingUp,
   Building2,
   Search,
+  BedDouble,
 } from "lucide-react";
 
-interface AccommodationCard {
+interface AccommodationInfo {
   id: string;
   name: string;
-  description: string | null;
-  address: string | null;
   region_1: string | null;
   region_2: string | null;
-  star_rating: string | null;
-  short_url_alias: string | null;
   type: string | null;
-  hero_photos: string[];
-  min_price: number | null;
+  address: string | null;
 }
 
 const BookingPortal = () => {
   const navigate = useNavigate();
-  const [accommodations, setAccommodations] = useState<AccommodationCard[]>([]);
+  const [accommodations, setAccommodations] = useState<AccommodationInfo[]>([]);
+  const [roomTypes, setRoomTypes] = useState<RoomTypeResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [memberName, setMemberName] = useState("");
   const [checkIn, setCheckIn] = useState<Date | undefined>();
   const [checkOut, setCheckOut] = useState<Date | undefined>();
-  const [availableAccIds, setAvailableAccIds] = useState<Set<string> | null>(null);
   const [searching, setSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
   useEffect(() => {
-    fetchAccommodations();
+    fetchData();
     checkAuth();
   }, []);
 
@@ -68,162 +64,173 @@ const BookingPortal = () => {
     }
   };
 
-  const fetchAccommodations = async () => {
+  const fetchData = async () => {
     try {
-      const { data: accs, error } = await supabase
-        .from("accommodation_info")
-        .select(
-          "id, name, description, address, region_1, region_2, star_rating, short_url_alias, type"
-        )
-        .eq("is_active", true)
-        .order("display_order", { ascending: true, nullsFirst: false });
+      // Fetch accommodations and room types in parallel
+      const [{ data: accs }, { data: rooms }, { data: roomPhotos }] = await Promise.all([
+        supabase
+          .from("accommodation_info")
+          .select("id, name, region_1, region_2, type, address")
+          .eq("is_active", true)
+          .order("display_order", { ascending: true, nullsFirst: false }),
+        supabase
+          .from("room_types")
+          .select("id, name, description, base_price, capacity, size_sqm, room_count, accommodation_id, display_order")
+          .order("display_order", { ascending: true }),
+        supabase
+          .from("room_photos")
+          .select("room_type_id, photo_url, display_order")
+          .order("display_order", { ascending: true }),
+      ]);
 
-      if (error) throw error;
-      if (!accs) return;
+      if (!accs || !rooms) return;
 
-      const enriched = await Promise.all(
-        accs.map(async (acc) => {
-          const [{ data: photos }, { data: rooms }] = await Promise.all([
-            supabase
-              .from("accommodation_photos")
-              .select("photo_url")
-              .eq("accommodation_id", acc.id)
-              .eq("photo_type", "hero")
-              .order("display_order", { ascending: true })
-              .limit(1),
-            supabase
-              .from("room_types")
-              .select("base_price")
-              .eq("accommodation_id", acc.id)
-              .order("base_price", { ascending: true })
-              .limit(1),
-          ]);
+      const accMap = new Map(accs.map((a) => [a.id, a]));
 
+      // Get first photo per room type
+      const photoMap = new Map<string, string>();
+      roomPhotos?.forEach((p) => {
+        if (p.room_type_id && !photoMap.has(p.room_type_id)) {
+          photoMap.set(p.room_type_id, p.photo_url);
+        }
+      });
+
+      // Build room type results — only include rooms belonging to active accommodations
+      const results: RoomTypeResult[] = rooms
+        .filter((r) => r.accommodation_id && accMap.has(r.accommodation_id))
+        .map((r) => {
+          const acc = accMap.get(r.accommodation_id!)!;
           return {
-            ...acc,
-            hero_photos: photos?.map((p) => p.photo_url) || [],
-            min_price: rooms?.[0]?.base_price || null,
+            id: r.id,
+            name: r.name,
+            description: r.description,
+            base_price: r.base_price,
+            capacity: r.capacity,
+            size_sqm: r.size_sqm,
+            room_count: r.room_count,
+            photo_url: photoMap.get(r.id) || null,
+            accommodation_id: acc.id,
+            accommodation_name: acc.name,
+            accommodation_type: acc.type,
+            accommodation_region_1: acc.region_1,
+            accommodation_region_2: acc.region_2,
+            available_rooms: null,
+            date_price: null,
           };
-        })
-      );
+        });
 
-      setAccommodations(enriched);
+      setAccommodations(accs);
+      setRoomTypes(results);
     } catch (error) {
-      console.error("Failed to fetch accommodations:", error);
+      console.error("Failed to fetch data:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const checkAvailability = useCallback(async () => {
-    if (!checkIn || !checkOut) {
-      // No dates selected — clear availability filter
-      setAvailableAccIds(null);
-      return;
-    }
+  const nights = useMemo(() => {
+    if (!checkIn || !checkOut) return 0;
+    return Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
+  }, [checkIn, checkOut]);
+
+  const handleSearch = useCallback(async () => {
+    setHasSearched(true);
+
+    if (!checkIn || !checkOut) return;
 
     setSearching(true);
     try {
-      // Get all dates from check-in to the day before check-out (stay nights)
       const stayDates = eachDayOfInterval({
         start: checkIn,
         end: addDays(checkOut, -1),
       }).map((d) => format(d, "yyyy-MM-dd"));
 
-      // Query room_inventory_pricing for all accommodations across all stay dates
-      // We need to join through room_types to get accommodation_id
-      const { data: roomTypes } = await supabase
-        .from("room_types")
-        .select("id, accommodation_id")
-        .in(
-          "accommodation_id",
-          accommodations.map((a) => a.id)
-        );
-
-      if (!roomTypes || roomTypes.length === 0) {
-        setAvailableAccIds(new Set());
-        return;
-      }
-
       const roomTypeIds = roomTypes.map((rt) => rt.id);
-      const rtToAcc = new Map(roomTypes.map((rt) => [rt.id, rt.accommodation_id]));
 
-      // Query inventory for all room types across the stay dates
+      // Query inventory and pricing for all room types across stay dates
       const { data: inventory } = await supabase
         .from("room_inventory_pricing")
-        .select("room_type_id, date, available_rooms, is_available")
+        .select("room_type_id, date, available_rooms, is_available, price")
         .in("room_type_id", roomTypeIds)
         .in("date", stayDates);
 
-      // For each accommodation, check if at least one room type has availability on ALL stay dates
-      // Group inventory by accommodation -> room_type -> date
-      const accRoomDateMap = new Map<string, Map<string, Map<string, { available: number; isAvailable: boolean }>>>();
+      // Group by room_type_id -> dates
+      const rtDateMap = new Map<string, Map<string, { available: number; isAvailable: boolean; price: number }>>();
 
       inventory?.forEach((inv) => {
-        const accId = rtToAcc.get(inv.room_type_id);
-        if (!accId) return;
-
-        if (!accRoomDateMap.has(accId)) accRoomDateMap.set(accId, new Map());
-        const roomMap = accRoomDateMap.get(accId)!;
-
-        if (!roomMap.has(inv.room_type_id)) roomMap.set(inv.room_type_id, new Map());
-        roomMap.get(inv.room_type_id)!.set(inv.date, {
+        if (!rtDateMap.has(inv.room_type_id)) rtDateMap.set(inv.room_type_id, new Map());
+        rtDateMap.get(inv.room_type_id)!.set(inv.date, {
           available: inv.available_rooms,
           isAvailable: inv.is_available !== false,
+          price: inv.price,
         });
       });
 
-      const available = new Set<string>();
-
-      accRoomDateMap.forEach((roomMap, accId) => {
-        // Check if any room type has availability on all stay dates
-        for (const [, dateMap] of roomMap) {
-          const allDatesAvailable = stayDates.every((date) => {
-            const info = dateMap.get(date);
-            return info && info.isAvailable && info.available > 0;
-          });
-          if (allDatesAvailable) {
-            available.add(accId);
-            break; // One available room type is enough
+      // Update room types with availability info
+      setRoomTypes((prev) =>
+        prev.map((rt) => {
+          const dateMap = rtDateMap.get(rt.id);
+          if (!dateMap) {
+            return { ...rt, available_rooms: 0, date_price: null };
           }
-        }
-      });
 
-      setAvailableAccIds(available);
+          // Check all stay dates — need availability on every date
+          let minAvailable = Infinity;
+          let minPrice = Infinity;
+          let allAvailable = true;
+
+          for (const date of stayDates) {
+            const info = dateMap.get(date);
+            if (!info || !info.isAvailable || info.available <= 0) {
+              allAvailable = false;
+              break;
+            }
+            minAvailable = Math.min(minAvailable, info.available);
+            minPrice = Math.min(minPrice, info.price);
+          }
+
+          if (!allAvailable) {
+            return { ...rt, available_rooms: 0, date_price: null };
+          }
+
+          return {
+            ...rt,
+            available_rooms: minAvailable === Infinity ? 0 : minAvailable,
+            date_price: minPrice === Infinity ? null : minPrice,
+          };
+        })
+      );
     } catch (error) {
       console.error("Availability check failed:", error);
-      setAvailableAccIds(null);
     } finally {
       setSearching(false);
     }
-  }, [checkIn, checkOut, accommodations]);
+  }, [checkIn, checkOut, roomTypes]);
 
-  const handleSearch = useCallback(() => {
-    checkAvailability();
-  }, [checkAvailability]);
+  const hasDateFilter = !!(checkIn && checkOut && hasSearched);
 
   const filtered = useMemo(() => {
-    let result = accommodations;
+    let result = roomTypes;
 
     // Text filter
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
-        (acc) =>
-          acc.name.toLowerCase().includes(q) ||
-          acc.address?.toLowerCase().includes(q) ||
-          acc.region_1?.toLowerCase().includes(q) ||
-          acc.region_2?.toLowerCase().includes(q)
+        (rt) =>
+          rt.name.toLowerCase().includes(q) ||
+          rt.accommodation_name.toLowerCase().includes(q) ||
+          rt.accommodation_region_1?.toLowerCase().includes(q) ||
+          rt.accommodation_region_2?.toLowerCase().includes(q)
       );
     }
 
-    // Availability filter
-    if (availableAccIds !== null) {
-      result = result.filter((acc) => availableAccIds.has(acc.id));
+    // Availability filter — only show rooms with availability when dates are searched
+    if (hasDateFilter) {
+      result = result.filter((rt) => rt.available_rooms !== null && rt.available_rooms > 0);
     }
 
     return result;
-  }, [accommodations, searchQuery, availableAccIds]);
+  }, [roomTypes, searchQuery, hasDateFilter]);
 
   // Group accommodations by region
   const regions = useMemo(() => {
@@ -235,22 +242,26 @@ const BookingPortal = () => {
     return Array.from(map.entries());
   }, [accommodations]);
 
-  const handleCardClick = (acc: AccommodationCard) => {
+  const handleRoomClick = (room: RoomTypeResult) => {
     const params = new URLSearchParams();
     if (checkIn) params.set("checkIn", format(checkIn, "yyyy-MM-dd"));
     if (checkOut) params.set("checkOut", format(checkOut, "yyyy-MM-dd"));
     const qs = params.toString();
-    navigate(`/booking/${acc.id}${qs ? `?${qs}` : ""}`);
+    navigate(`/booking/${room.accommodation_id}${qs ? `?${qs}` : ""}`);
   };
 
   const clearFilters = () => {
     setSearchQuery("");
     setCheckIn(undefined);
     setCheckOut(undefined);
-    setAvailableAccIds(null);
+    setHasSearched(false);
+    // Reset availability data
+    setRoomTypes((prev) =>
+      prev.map((rt) => ({ ...rt, available_rooms: null, date_price: null }))
+    );
   };
 
-  const hasActiveFilters = searchQuery || availableAccIds !== null;
+  const hasActiveFilters = searchQuery || hasDateFilter;
 
   return (
     <div className="min-h-screen bg-background">
@@ -345,9 +356,9 @@ const BookingPortal = () => {
               bg: "hsl(142, 70%, 96%)",
             },
             {
-              icon: Building2,
-              title: "精選民宿",
-              desc: `${accommodations.length} 間優質住宿`,
+              icon: BedDouble,
+              title: "精選房型",
+              desc: `${roomTypes.length} 種房型可選`,
               color: "hsl(270, 60%, 55%)",
               bg: "hsl(270, 60%, 96%)",
             },
@@ -408,18 +419,18 @@ const BookingPortal = () => {
         </section>
       )}
 
-      {/* ── Accommodation List ── */}
+      {/* ── Room Type List ── */}
       <section className="max-w-7xl mx-auto px-4 pb-16">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-foreground">
             {searchQuery
               ? `「${searchQuery}」的搜尋結果`
-              : availableAccIds !== null
-              ? "可訂住宿"
-              : "推薦住宿"}
+              : hasDateFilter
+              ? "可預訂房型"
+              : "所有房型"}
           </h2>
           <span className="text-sm text-muted-foreground">
-            {searching ? "搜尋中..." : `共 ${filtered.length} 家`}
+            {searching ? "搜尋中..." : `共 ${filtered.length} 間`}
           </span>
         </div>
 
@@ -427,9 +438,9 @@ const BookingPortal = () => {
           <div className="text-center py-20 text-muted-foreground">
             <Search className="h-12 w-12 mx-auto mb-4 opacity-30" />
             <p className="text-lg">
-              {availableAccIds !== null
-                ? "所選日期沒有可訂住宿"
-                : "沒有找到符合條件的民宿"}
+              {hasDateFilter
+                ? "所選日期沒有可預訂的房型"
+                : "沒有找到符合條件的房型"}
             </p>
             <p className="text-sm mt-1">試試其他關鍵字或日期</p>
             {hasActiveFilters && (
@@ -445,92 +456,14 @@ const BookingPortal = () => {
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filtered.map((acc) => (
-              <Card
-                key={acc.id}
-                className="overflow-hidden cursor-pointer group border-border/50 hover:border-border"
-                onClick={() => handleCardClick(acc)}
-              >
-                {/* Image */}
-                <div className="relative h-44 bg-muted overflow-hidden">
-                  {acc.hero_photos[0] ? (
-                    <img
-                      src={acc.hero_photos[0]}
-                      alt={acc.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div
-                      className="w-full h-full flex items-center justify-center"
-                      style={{ background: "hsl(25, 60%, 95%)" }}
-                    >
-                      <Building2
-                        className="h-12 w-12"
-                        style={{ color: "hsl(25, 60%, 75%)" }}
-                      />
-                    </div>
-                  )}
-                  {acc.type && (
-                    <Badge
-                      className="absolute top-3 left-3 text-xs font-medium border-none text-white"
-                      style={{ background: "hsla(25, 70%, 45%, 0.85)" }}
-                    >
-                      {acc.type}
-                    </Badge>
-                  )}
-                </div>
-
-                {/* Info */}
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <h3 className="font-semibold text-base line-clamp-1 text-foreground">
-                      {acc.name}
-                    </h3>
-                    {acc.star_rating && (
-                      <div
-                        className="flex items-center gap-0.5 shrink-0"
-                        style={{ color: "hsl(40, 90%, 50%)" }}
-                      >
-                        <Star className="h-3.5 w-3.5 fill-current" />
-                        <span className="text-xs font-medium">{acc.star_rating}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {(acc.region_1 || acc.region_2) && (
-                    <p className="text-sm text-muted-foreground flex items-center gap-1 mb-3">
-                      <MapPin className="h-3.5 w-3.5 shrink-0" />
-                      {[acc.region_1, acc.region_2].filter(Boolean).join(" ")}
-                    </p>
-                  )}
-
-                  {/* Price & CTA */}
-                  <div className="flex items-end justify-between pt-2 border-t border-border/50">
-                    {acc.min_price ? (
-                      <div>
-                        <span className="text-xs text-muted-foreground">每晚最低</span>
-                        <p
-                          className="font-bold text-lg"
-                          style={{ color: "hsl(25, 70%, 50%)" }}
-                        >
-                          NT$ {acc.min_price.toLocaleString()}
-                        </p>
-                      </div>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">洽詢價格</span>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-xs gap-1 shrink-0 text-primary hover:text-white"
-                    >
-                      查看詳情
-                      <ChevronRight className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+            {filtered.map((room) => (
+              <RoomTypeCard
+                key={room.id}
+                room={room}
+                onClick={() => handleRoomClick(room)}
+                hasDateFilter={hasDateFilter}
+                nights={nights}
+              />
             ))}
           </div>
         )}
