@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { useAccommodationCache, DEFAULT_SECTIONS_ORDER } from "@/hooks/use-accommodation-cache";
@@ -30,6 +30,7 @@ import { CustomSectionDisplay, SingleCustomSection, CustomSection } from "@/comp
 const BookingAccommodation = () => {
   const { accId } = useParams<{ accId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { setCurrentAccommodationId } = useAccommodation();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [memberName, setMemberName] = useState("");
@@ -62,6 +63,21 @@ const BookingAccommodation = () => {
       setCurrentAccommodationId(accId);
     }
   }, [accId, setCurrentAccommodationId]);
+
+  // If roomId is in search params, redirect to booking flow
+  useEffect(() => {
+    const roomId = searchParams.get("roomId");
+    if (accId && roomId) {
+      const params = new URLSearchParams();
+      params.set("acc", accId);
+      params.set("roomId", roomId);
+      const checkIn = searchParams.get("checkIn");
+      const checkOut = searchParams.get("checkOut");
+      if (checkIn) params.set("checkIn", checkIn);
+      if (checkOut) params.set("checkOut", checkOut);
+      navigate(`/book?${params.toString()}`, { replace: true });
+    }
+  }, [accId, searchParams, navigate]);
 
   useEffect(() => {
     const checkAuth = async () => {

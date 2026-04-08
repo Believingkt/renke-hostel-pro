@@ -590,6 +590,20 @@ const BookingFlow = () => {
     }
   }, [selectedRoom, allPricingTemplates]);
 
+  // Read checkIn/checkOut from URL params and set in context
+  useEffect(() => {
+    const ciParam = searchParams.get("checkIn");
+    const coParam = searchParams.get("checkOut");
+    if (ciParam && !checkInDate) {
+      const d = new Date(ciParam + "T00:00:00");
+      if (!isNaN(d.getTime())) setCheckInDate(d);
+    }
+    if (coParam && !checkOutDate) {
+      const d = new Date(coParam + "T00:00:00");
+      if (!isNaN(d.getTime())) setCheckOutDate(d);
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     const roomId = searchParams.get("roomId");
     const step = searchParams.get("step");
@@ -598,12 +612,11 @@ const BookingFlow = () => {
       const room = roomTypes.find((r) => r.id === roomId);
       if (room) {
         setSelectedRoom(room);
-        // 如果有指定 step 參數且為有效步驟，則使用該步驟
+        // If dates are set, go to dates step for confirmation; otherwise go to dates
         if (step && ["dates", "room", "addons", "guest", "payment", "confirm"].includes(step)) {
           setCurrentStep(step as BookingStep);
         } else {
-          // 從房型頁面跳轉，已選擇房型，跳到填寫資訊步驟
-          setCurrentStep("guest");
+          setCurrentStep("dates");
         }
       }
     }
