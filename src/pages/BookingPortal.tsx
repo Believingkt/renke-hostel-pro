@@ -355,15 +355,13 @@ const BookingPortal = () => {
                 {memberName || "會員中心"}
               </Button>
             ) : (
-              <Button
-                size="lg"
+              <button
                 onClick={() => navigate("/member/auth")}
-                className="gap-2 rounded-full text-white font-semibold px-8 py-3 text-base shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 border-0"
-                style={{ background: "linear-gradient(135deg, hsl(25, 80%, 55%), hsl(30, 85%, 50%))" }}
+                className="flex items-center gap-1.5 text-[hsl(25,80%,50%)] font-semibold text-sm hover:opacity-80 transition-opacity"
               >
                 <LogIn className="h-5 w-5" />
                 登入 / 註冊
-              </Button>
+              </button>
             )}
           </div>
         </div>
