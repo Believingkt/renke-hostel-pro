@@ -1,4 +1,7 @@
-import { corsHeaders } from "@supabase/supabase-js/cors";
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
 const FROM_EMAIL = "人客多 Lakeze <noreply@lakeze.com>";
