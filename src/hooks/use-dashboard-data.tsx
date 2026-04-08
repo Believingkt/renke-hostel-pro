@@ -157,11 +157,17 @@ const fetchDashboardData = async (
   const exclusiveSet = new Set(roomTypesData.filter(rt => rt.is_exclusive_package).map(rt => rt.id));
   
   const roomNightsByMonth = computeRoomNightsByMonth(
-    confirmedWithDates.map(o => ({
-      check_in_date: o.check_in_date,
-      check_out_date: o.check_out_date,
-      is_exclusive_package: exclusiveSet.has(o.room_type_id),
-    }))
+    confirmedWithDates.map(o => {
+      const orRooms = orderRoomsMap.get(o.id);
+      const orExclusive = orderRoomsExclusive.get(o.id);
+      const isExclusive = orExclusive || exclusiveSet.has(o.room_type_id);
+      return {
+        check_in_date: o.check_in_date,
+        check_out_date: o.check_out_date,
+        is_exclusive_package: isExclusive,
+        room_quantity: isExclusive ? undefined : (orRooms || 1),
+      };
+    })
   );
   const bookingCountByMonth = computeBookingCountByMonth(confirmedWithDates);
   
