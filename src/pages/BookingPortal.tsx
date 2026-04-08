@@ -4,6 +4,7 @@ import lokezeLogo from "@/assets/lakeze-portal-logo.png";
 import BookingFooter from "@/components/BookingFooter";
 import PortalSearchBar from "@/components/booking-portal/PortalSearchBar";
 import RoomTypeCard, { type RoomTypeResult } from "@/components/booking-portal/RoomTypeCard";
+import RoomFilterBar, { type RoomFilters, type SortOption } from "@/components/booking-portal/RoomFilterBar";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,6 @@ import {
   Gift,
   Ticket,
   TrendingUp,
-  Building2,
   Search,
   BedDouble,
 } from "lucide-react";
@@ -43,6 +43,13 @@ const BookingPortal = () => {
   const [checkOut, setCheckOut] = useState<Date | undefined>();
   const [searching, setSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [filters, setFilters] = useState<RoomFilters>({
+    sortBy: "default",
+    minCapacity: 0,
+    maxPrice: 0,
+    selectedAccommodation: "all",
+    selectedRegion: "all",
+  });
 
   useEffect(() => {
     fetchData();
@@ -224,23 +231,52 @@ const BookingPortal = () => {
       );
     }
 
-    // Availability filter — only show rooms with availability when dates are searched
+    // Availability filter
     if (hasDateFilter) {
       result = result.filter((rt) => rt.available_rooms !== null && rt.available_rooms > 0);
     }
 
-    return result;
-  }, [roomTypes, searchQuery, hasDateFilter]);
+    // Region filter
+    if (filters.selectedRegion !== "all") {
+      result = result.filter((rt) => rt.accommodation_region_1 === filters.selectedRegion);
+    }
 
-  // Group accommodations by region
-  const regions = useMemo(() => {
-    const map = new Map<string, number>();
-    accommodations.forEach((acc) => {
-      const region = acc.region_1 || "其他";
-      map.set(region, (map.get(region) || 0) + 1);
-    });
-    return Array.from(map.entries());
-  }, [accommodations]);
+    // Accommodation filter
+    if (filters.selectedAccommodation !== "all") {
+      result = result.filter((rt) => rt.accommodation_id === filters.selectedAccommodation);
+    }
+
+    // Capacity filter
+    if (filters.minCapacity > 0) {
+      result = result.filter((rt) => rt.capacity >= filters.minCapacity);
+    }
+
+    // Price filter
+    if (filters.maxPrice > 0) {
+      result = result.filter((rt) => {
+        const price = rt.date_price ?? rt.base_price;
+        return price <= filters.maxPrice;
+      });
+    }
+
+    // Sort
+    if (filters.sortBy !== "default") {
+      result = [...result].sort((a, b) => {
+        const priceA = a.date_price ?? a.base_price;
+        const priceB = b.date_price ?? b.base_price;
+        switch (filters.sortBy) {
+          case "price_asc": return priceA - priceB;
+          case "price_desc": return priceB - priceA;
+          case "capacity_asc": return a.capacity - b.capacity;
+          case "capacity_desc": return b.capacity - a.capacity;
+          default: return 0;
+        }
+      });
+    }
+
+    return result;
+  }, [roomTypes, searchQuery, hasDateFilter, filters]);
+
 
   const handleRoomClick = (room: RoomTypeResult) => {
     const params = new URLSearchParams();
@@ -255,13 +291,23 @@ const BookingPortal = () => {
     setCheckIn(undefined);
     setCheckOut(undefined);
     setHasSearched(false);
+    setFilters({
+      sortBy: "default",
+      minCapacity: 0,
+      maxPrice: 0,
+      selectedAccommodation: "all",
+      selectedRegion: "all",
+    });
     // Reset availability data
     setRoomTypes((prev) =>
       prev.map((rt) => ({ ...rt, available_rooms: null, date_price: null }))
     );
   };
 
-  const hasActiveFilters = searchQuery || hasDateFilter;
+  const hasActiveFilters = searchQuery || hasDateFilter || 
+    filters.sortBy !== "default" || filters.minCapacity > 0 || 
+    filters.maxPrice > 0 || filters.selectedAccommodation !== "all" || 
+    filters.selectedRegion !== "all";
 
   return (
     <div className="min-h-screen bg-background">
@@ -385,41 +431,7 @@ const BookingPortal = () => {
         </div>
       </section>
 
-      {/* ── Region Quick Links ── */}
-      {regions.length > 1 && (
-        <section className="max-w-7xl mx-auto px-4 pb-6">
-          <h2 className="text-xl font-bold text-foreground mb-4">熱門地區</h2>
-          <div className="flex gap-2 flex-wrap">
-            {regions.map(([region, count]) => (
-              <Button
-                key={region}
-                variant="outline"
-                size="sm"
-                className="rounded-full gap-1 text-sm"
-                onClick={() => setSearchQuery(region)}
-              >
-                <MapPin className="h-3.5 w-3.5" />
-                {region}
-                <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">
-                  {count}
-                </Badge>
-              </Button>
-            ))}
-            {hasActiveFilters && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="rounded-full text-sm text-muted-foreground"
-                onClick={clearFilters}
-              >
-                清除篩選
-              </Button>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* ── Room Type List ── */}
+      {/* ── Filters & Room Type List ── */}
       <section className="max-w-7xl mx-auto px-4 pb-16">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-foreground">
@@ -432,6 +444,16 @@ const BookingPortal = () => {
           <span className="text-sm text-muted-foreground">
             {searching ? "搜尋中..." : `共 ${filtered.length} 間`}
           </span>
+        </div>
+
+        {/* Filter Bar */}
+        <div className="mb-4">
+          <RoomFilterBar
+            filters={filters}
+            onFiltersChange={setFilters}
+            roomTypes={roomTypes}
+            accommodations={accommodations}
+          />
         </div>
 
         {filtered.length === 0 ? (
