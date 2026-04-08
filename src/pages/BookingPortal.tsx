@@ -334,9 +334,9 @@ const BookingPortal = () => {
     <div className="min-h-screen bg-background">
       {/* ── Header ── */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between">
           <Link to="/booking" className="flex items-center gap-2">
-            <img src={lokezeLogo} alt="Lakeze 人客多" className="h-24 object-contain" />
+            <img src={lokezeLogo} alt="Lakeze 人客多" className="h-16 sm:h-24 object-contain" />
           </Link>
           <div className="hidden md:flex flex-1" />
           <div className="flex items-center gap-2">
@@ -348,7 +348,7 @@ const BookingPortal = () => {
                 className="gap-1.5"
               >
                 <User className="h-4 w-4" />
-                <span className="hidden sm:inline">{memberName || "會員中心"}</span>
+                {memberName || "會員中心"}
               </Button>
             ) : (
               <Button
@@ -358,7 +358,7 @@ const BookingPortal = () => {
                 style={{ background: "hsl(25, 70%, 55%)" }}
               >
                 <LogIn className="h-4 w-4" />
-                <span className="hidden sm:inline">登入 / 註冊</span>
+                登入 / 註冊
               </Button>
             )}
           </div>
@@ -377,11 +377,11 @@ const BookingPortal = () => {
               "linear-gradient(135deg, hsla(25, 80%, 55%, 0.6) 0%, hsla(30, 90%, 60%, 0.5) 50%, hsla(35, 85%, 58%, 0.6) 100%)",
           }}
         />
-        <div className="relative max-w-7xl mx-auto px-4 py-12 md:py-20 text-center text-white">
-          <h1 className="text-3xl md:text-5xl font-bold mb-3 drop-shadow-sm">
+        <div className="relative max-w-7xl mx-auto px-3 sm:px-4 py-8 md:py-20 text-center text-white">
+          <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-2 sm:mb-3 drop-shadow-sm">
             探索優質民宿
           </h1>
-          <p className="text-base md:text-lg opacity-90 mb-8">
+          <p className="text-sm sm:text-base md:text-lg opacity-90 mb-6 sm:mb-8">
             精選住宿 | 會員獨享優惠 | 安全付款
           </p>
 
@@ -398,8 +398,8 @@ const BookingPortal = () => {
       </section>
 
       {/* ── Promo Cards ── */}
-      <section className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+      <section className="max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
           {[
             {
               icon: Gift,
@@ -435,16 +435,16 @@ const BookingPortal = () => {
               className="border-none shadow-sm hover:shadow-md transition-shadow cursor-pointer"
               style={{ background: promo.bg }}
             >
-              <CardContent className="p-4 flex items-start gap-3">
+              <CardContent className="p-3 sm:p-4 flex items-start gap-2 sm:gap-3">
                 <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0"
                   style={{ background: promo.color }}
                 >
-                  <promo.icon className="h-5 w-5 text-white" />
+                  <promo.icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 </div>
                 <div className="min-w-0">
                   <p className="font-semibold text-sm text-foreground">{promo.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{promo.desc}</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">{promo.desc}</p>
                 </div>
               </CardContent>
             </Card>
@@ -453,9 +453,9 @@ const BookingPortal = () => {
       </section>
 
       {/* ── Featured Accommodations ── */}
-      <section className="max-w-7xl mx-auto px-4 pb-8">
-        <h2 className="text-xl font-bold text-foreground mb-4">精選民宿</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <section className="max-w-7xl mx-auto px-3 sm:px-4 pb-6 sm:pb-8">
+        <h2 className="text-lg sm:text-xl font-bold text-foreground mb-3 sm:mb-4">精選民宿</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
           {accommodations.map((acc) => {
             const roomCount = roomTypes.filter((r) => r.accommodation_id === acc.id).length;
             const minPrice = roomTypes
@@ -487,19 +487,19 @@ const BookingPortal = () => {
                     </div>
                   )}
                 </div>
-                <CardContent className="p-3">
+                <CardContent className="p-2.5 sm:p-3">
                   <p className="font-semibold text-foreground text-sm truncate">{acc.name}</p>
                   {location && (
-                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                       <MapPin className="h-3 w-3 shrink-0" />
                       {location}
                     </p>
                   )}
                   <div className="flex items-center justify-between mt-2">
-                    <span className="text-xs text-muted-foreground">{roomCount} 種房型</span>
+                    <span className="text-sm text-muted-foreground">{roomCount} 種房型</span>
                     {minPrice !== Infinity && (
                       <span className="text-sm font-bold text-primary">
-                        NT$ {minPrice.toLocaleString()} <span className="text-xs font-normal text-muted-foreground">起</span>
+                        NT$ {minPrice.toLocaleString()} <span className="text-sm font-normal text-muted-foreground">起</span>
                       </span>
                     )}
                   </div>
@@ -511,9 +511,9 @@ const BookingPortal = () => {
       </section>
 
       {/* ── Filters & Room Type List ── */}
-      <section id="room-list-section" className="max-w-7xl mx-auto px-4 pb-16">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-foreground">
+      <section id="room-list-section" className="max-w-7xl mx-auto px-3 sm:px-4 pb-12 sm:pb-16">
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <h2 className="text-lg sm:text-xl font-bold text-foreground">
             {searchQuery
               ? `「${searchQuery}」的搜尋結果`
               : hasDateFilter

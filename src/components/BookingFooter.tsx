@@ -14,12 +14,12 @@ const BookingFooter = () => {
     <footer
       className="border-t border-border relative bg-white"
     >
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
           <div className="flex items-center gap-2 md:-ml-3">
-            <img src={lokezeLogo} alt="Lakeze 人客多" className="h-24 object-contain" />
+            <img src={lokezeLogo} alt="Lakeze 人客多" className="h-16 sm:h-24 object-contain" />
           </div>
-          <div className="flex gap-6 text-sm text-muted-foreground">
+          <div className="flex gap-4 sm:gap-6 text-sm text-muted-foreground">
             <button onClick={() => navigate("/member/auth")} className="hover:text-foreground transition-colors">
               會員中心
             </button>
