@@ -1694,31 +1694,40 @@ export type Database = {
       }
       platform_members: {
         Row: {
+          address: string | null
           avatar_url: string | null
           created_at: string
           email: string | null
+          gender: string | null
           id: string
           name: string
+          nationality: string | null
           phone: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          address?: string | null
           avatar_url?: string | null
           created_at?: string
           email?: string | null
+          gender?: string | null
           id?: string
           name?: string
+          nationality?: string | null
           phone?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          address?: string | null
           avatar_url?: string | null
           created_at?: string
           email?: string | null
+          gender?: string | null
           id?: string
           name?: string
+          nationality?: string | null
           phone?: string | null
           updated_at?: string
           user_id?: string
