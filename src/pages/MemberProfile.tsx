@@ -4,6 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2, Save } from "lucide-react";
 
@@ -13,6 +20,9 @@ const MemberProfile = () => {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [address, setAddress] = useState("");
+  const [gender, setGender] = useState("");
+  const [nationality, setNationality] = useState("");
   const [memberId, setMemberId] = useState("");
 
   useEffect(() => {
@@ -34,6 +44,9 @@ const MemberProfile = () => {
       setName(data.name || "");
       setPhone(data.phone || "");
       setEmail(data.email || user.email || "");
+      setAddress((data as any).address || "");
+      setGender((data as any).gender || "");
+      setNationality((data as any).nationality || "");
     }
     setLoading(false);
   };
@@ -43,7 +56,14 @@ const MemberProfile = () => {
     try {
       const { error } = await supabase
         .from("platform_members")
-        .update({ name, phone, email })
+        .update({
+          name,
+          phone,
+          email,
+          address,
+          gender: gender || null,
+          nationality: nationality || null,
+        } as any)
         .eq("id", memberId);
       if (error) throw error;
       toast.success("資料已更新");
@@ -79,6 +99,27 @@ const MemberProfile = () => {
         <div className="space-y-2">
           <Label>手機</Label>
           <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0912345678" />
+        </div>
+        <div className="space-y-2">
+          <Label>性別 <span className="text-muted-foreground text-xs">（選填）</span></Label>
+          <Select value={gender} onValueChange={setGender}>
+            <SelectTrigger>
+              <SelectValue placeholder="請選擇" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="male">男</SelectItem>
+              <SelectItem value="female">女</SelectItem>
+              <SelectItem value="other">其他</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>國籍 <span className="text-muted-foreground text-xs">（選填）</span></Label>
+          <Input value={nationality} onChange={(e) => setNationality(e.target.value)} placeholder="例如：台灣" />
+        </div>
+        <div className="space-y-2">
+          <Label>地址 <span className="text-muted-foreground text-xs">（選填）</span></Label>
+          <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="請輸入地址" />
         </div>
         <Button onClick={handleSave} disabled={saving} className="bg-[hsl(24,100%,50%)] hover:bg-[hsl(24,100%,45%)] text-white">
           {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
