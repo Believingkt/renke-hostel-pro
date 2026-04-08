@@ -50,8 +50,8 @@ const RoomFilterBar = ({
 }: RoomFilterBarProps) => {
   // Derive available options from data
   const maxPriceInData = useMemo(() => {
-    const prices = roomTypes.map((rt) => rt.date_price ?? rt.base_price);
-    return prices.length > 0 ? Math.max(...prices) : 10000;
+    const prices = roomTypes.map((rt) => rt.date_price ?? rt.base_price).filter((p) => p > 0);
+    return prices.length > 0 ? Math.max(...prices) : 20000;
   }, [roomTypes]);
 
   const capacityOptions = useMemo(() => {
