@@ -18,7 +18,6 @@ import {
   Gift,
   Ticket,
   TrendingUp,
-  Building2,
   Search,
   BedDouble,
 } from "lucide-react";
