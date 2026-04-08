@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { User, Gift, Ticket, ShoppingBag, LogOut, Home } from "lucide-react";
 import portalLogo from "@/assets/lakeze-portal-logo.png";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const navItems = [
   { path: "/member/orders", label: "訂房紀錄", icon: ShoppingBag },
-  { path: "/member/coupons", label: "我的優惠券", icon: Ticket },
+  { path: "/member/coupons", label: "優惠券", icon: Ticket },
   { path: "/member/points", label: "紅利點數", icon: Gift },
   { path: "/member/profile", label: "個人資料", icon: User },
 ];
@@ -16,6 +17,7 @@ const navItems = [
 const MemberLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const isMobile = useIsMobile();
   const [memberName, setMemberName] = useState("");
 
   useEffect(() => {
@@ -63,33 +65,60 @@ const MemberLayout = () => {
         </div>
       </header>
 
-      {/* Navigation Tabs */}
-      <nav className="border-b bg-white">
-        <div className="max-w-4xl mx-auto px-2 sm:px-4 flex gap-0 sm:gap-1 overflow-x-auto scrollbar-none">
-          {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-3 text-sm whitespace-nowrap border-b-2 transition-colors ${
-                  isActive
-                    ? "border-[hsl(24,100%,50%)] text-[hsl(24,100%,50%)] font-medium"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <item.icon className="h-4 w-4 shrink-0" />
-                {item.label}
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
+      {/* Desktop top nav */}
+      {!isMobile && (
+        <nav className="border-b bg-white">
+          <div className="max-w-4xl mx-auto px-4 flex gap-1">
+            {navItems.map((item) => {
+              const isActive = location.pathname === item.path;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`flex items-center gap-1.5 px-4 py-3 text-sm whitespace-nowrap border-b-2 transition-colors ${
+                    isActive
+                      ? "border-[hsl(24,100%,50%)] text-[hsl(24,100%,50%)] font-medium"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <item.icon className="h-4 w-4 shrink-0" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      )}
 
-      {/* Content */}
-      <main className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      {/* Content — add bottom padding on mobile for the tab bar */}
+      <main className={`max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 ${isMobile ? "pb-24" : ""}`}>
         <Outlet />
       </main>
+
+      {/* Mobile bottom tab bar */}
+      {isMobile && (
+        <nav className="fixed bottom-0 inset-x-0 z-50 bg-white border-t border-border safe-area-bottom">
+          <div className="flex justify-around items-center h-16 px-2">
+            {navItems.map((item) => {
+              const isActive = location.pathname === item.path;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-lg transition-colors ${
+                    isActive
+                      ? "text-[hsl(24,100%,50%)]"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  <item.icon className={`h-5 w-5 ${isActive ? "stroke-[2.5]" : ""}`} />
+                  <span className="text-[11px] font-medium leading-tight">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      )}
     </div>
   );
 };
