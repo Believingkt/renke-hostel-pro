@@ -120,11 +120,9 @@ const RoomTypeCard = ({ room, onClick, hasDateFilter, nights }: RoomTypeCardProp
         {/* Price & CTA */}
         <div className="flex items-end justify-between pt-2 border-t border-border/50">
           <div>
-            <span className="text-xs text-muted-foreground">
-              {hasDateFilter ? `${nights} 晚` : "每晚"}
-            </span>
+            <span className="text-xs text-muted-foreground">每晚</span>
             <p className="font-bold text-lg" style={{ color: "hsl(25, 70%, 50%)" }}>
-              NT$ {(hasDateFilter ? displayPrice * nights : displayPrice).toLocaleString()}
+              NT$ {displayPrice.toLocaleString()}
             </p>
           </div>
           <Button
