@@ -99,7 +99,20 @@ const BookingPortal = () => {
 
       if (!accs || !rooms) return;
 
-      const accMap = new Map(accs.map((a) => [a.id, a]));
+      // Build hero photo map (first hero per accommodation)
+      const heroPhotoMap = new Map<string, string>();
+      heroPhotos?.forEach((p) => {
+        if (p.accommodation_id && !heroPhotoMap.has(p.accommodation_id)) {
+          heroPhotoMap.set(p.accommodation_id, p.photo_url);
+        }
+      });
+
+      const accsWithPhotos: AccommodationInfo[] = accs.map((a) => ({
+        ...a,
+        hero_photo_url: heroPhotoMap.get(a.id) || null,
+      }));
+
+      const accMap = new Map(accsWithPhotos.map((a) => [a.id, a]));
 
       // Get first photo per room type
       const photoMap = new Map<string, string>();
@@ -133,7 +146,7 @@ const BookingPortal = () => {
           };
         });
 
-      setAccommodations(accs);
+      setAccommodations(accsWithPhotos);
       setRoomTypes(results);
     } catch (error) {
       console.error("Failed to fetch data:", error);
