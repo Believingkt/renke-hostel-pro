@@ -29,6 +29,8 @@ interface AccommodationInfo {
   region_2: string | null;
   type: string | null;
   address: string | null;
+  country: string | null;
+  hero_photo_url?: string | null;
 }
 
 const BookingPortal = () => {
@@ -74,10 +76,10 @@ const BookingPortal = () => {
   const fetchData = async () => {
     try {
       // Fetch accommodations and room types in parallel
-      const [{ data: accs }, { data: rooms }, { data: roomPhotos }] = await Promise.all([
+      const [{ data: accs }, { data: rooms }, { data: roomPhotos }, { data: heroPhotos }] = await Promise.all([
         supabase
           .from("accommodation_info")
-          .select("id, name, region_1, region_2, type, address")
+          .select("id, name, region_1, region_2, type, address, country")
           .eq("is_active", true)
           .order("display_order", { ascending: true, nullsFirst: false }),
         supabase
@@ -88,11 +90,29 @@ const BookingPortal = () => {
           .from("room_photos")
           .select("room_type_id, photo_url, display_order")
           .order("display_order", { ascending: true }),
+        supabase
+          .from("accommodation_photos")
+          .select("accommodation_id, photo_url, display_order")
+          .eq("photo_type", "hero")
+          .order("display_order", { ascending: true }),
       ]);
 
       if (!accs || !rooms) return;
 
-      const accMap = new Map(accs.map((a) => [a.id, a]));
+      // Build hero photo map (first hero per accommodation)
+      const heroPhotoMap = new Map<string, string>();
+      heroPhotos?.forEach((p) => {
+        if (p.accommodation_id && !heroPhotoMap.has(p.accommodation_id)) {
+          heroPhotoMap.set(p.accommodation_id, p.photo_url);
+        }
+      });
+
+      const accsWithPhotos: AccommodationInfo[] = accs.map((a) => ({
+        ...a,
+        hero_photo_url: heroPhotoMap.get(a.id) || null,
+      }));
+
+      const accMap = new Map(accsWithPhotos.map((a) => [a.id, a]));
 
       // Get first photo per room type
       const photoMap = new Map<string, string>();
@@ -126,7 +146,7 @@ const BookingPortal = () => {
           };
         });
 
-      setAccommodations(accs);
+      setAccommodations(accsWithPhotos);
       setRoomTypes(results);
     } catch (error) {
       console.error("Failed to fetch data:", error);
@@ -432,8 +452,66 @@ const BookingPortal = () => {
         </div>
       </section>
 
+      {/* ── Featured Accommodations ── */}
+      <section className="max-w-7xl mx-auto px-4 pb-8">
+        <h2 className="text-xl font-bold text-foreground mb-4">精選民宿</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {accommodations.map((acc) => {
+            const roomCount = roomTypes.filter((r) => r.accommodation_id === acc.id).length;
+            const minPrice = roomTypes
+              .filter((r) => r.accommodation_id === acc.id)
+              .reduce((min, r) => Math.min(min, r.base_price), Infinity);
+            const location = acc.country === "台灣" || !acc.country
+              ? [acc.region_1, acc.region_2].filter(Boolean).join(" ")
+              : [acc.country, acc.region_1, acc.region_2].filter(Boolean).join(" ");
+            return (
+              <Card
+                key={acc.id}
+                className="group overflow-hidden border-none shadow-sm hover:shadow-lg transition-all cursor-pointer"
+                onClick={() => {
+                  setFilters((prev) => ({ ...prev, selectedAccommodation: acc.id }));
+                  document.getElementById("room-list-section")?.scrollIntoView({ behavior: "smooth" });
+                }}
+              >
+                <div className="aspect-[4/3] overflow-hidden bg-muted">
+                  {acc.hero_photo_url ? (
+                    <img
+                      src={acc.hero_photo_url}
+                      alt={acc.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-secondary">
+                      <BedDouble className="h-10 w-10 text-muted-foreground/40" />
+                    </div>
+                  )}
+                </div>
+                <CardContent className="p-3">
+                  <p className="font-semibold text-foreground text-sm truncate">{acc.name}</p>
+                  {location && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                      <MapPin className="h-3 w-3 shrink-0" />
+                      {location}
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-xs text-muted-foreground">{roomCount} 種房型</span>
+                    {minPrice !== Infinity && (
+                      <span className="text-sm font-bold text-primary">
+                        NT$ {minPrice.toLocaleString()} <span className="text-xs font-normal text-muted-foreground">起</span>
+                      </span>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </section>
+
       {/* ── Filters & Room Type List ── */}
-      <section className="max-w-7xl mx-auto px-4 pb-16">
+      <section id="room-list-section" className="max-w-7xl mx-auto px-4 pb-16">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-foreground">
             {searchQuery
