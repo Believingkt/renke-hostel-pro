@@ -1,26 +1,25 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import bookingHeroBg from "@/assets/booking-hero.jpg";
 import lokezeLogo from "@/assets/lakeze-portal-logo.png";
 import BookingFooter from "@/components/BookingFooter";
+import PortalSearchBar from "@/components/booking-portal/PortalSearchBar";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { format, eachDayOfInterval, addDays } from "date-fns";
 import {
-  Search,
   MapPin,
   Star,
   User,
   LogIn,
-  CalendarDays,
-  Users,
   ChevronRight,
   Gift,
   Ticket,
   TrendingUp,
   Building2,
+  Search,
 } from "lucide-react";
 
 interface AccommodationCard {
@@ -44,6 +43,10 @@ const BookingPortal = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [memberName, setMemberName] = useState("");
+  const [checkIn, setCheckIn] = useState<Date | undefined>();
+  const [checkOut, setCheckOut] = useState<Date | undefined>();
+  const [availableAccIds, setAvailableAccIds] = useState<Set<string> | null>(null);
+  const [searching, setSearching] = useState(false);
 
   useEffect(() => {
     fetchAccommodations();
@@ -112,17 +115,115 @@ const BookingPortal = () => {
     }
   };
 
+  const checkAvailability = useCallback(async () => {
+    if (!checkIn || !checkOut) {
+      // No dates selected — clear availability filter
+      setAvailableAccIds(null);
+      return;
+    }
+
+    setSearching(true);
+    try {
+      // Get all dates from check-in to the day before check-out (stay nights)
+      const stayDates = eachDayOfInterval({
+        start: checkIn,
+        end: addDays(checkOut, -1),
+      }).map((d) => format(d, "yyyy-MM-dd"));
+
+      // Query room_inventory_pricing for all accommodations across all stay dates
+      // We need to join through room_types to get accommodation_id
+      const { data: roomTypes } = await supabase
+        .from("room_types")
+        .select("id, accommodation_id")
+        .in(
+          "accommodation_id",
+          accommodations.map((a) => a.id)
+        );
+
+      if (!roomTypes || roomTypes.length === 0) {
+        setAvailableAccIds(new Set());
+        return;
+      }
+
+      const roomTypeIds = roomTypes.map((rt) => rt.id);
+      const rtToAcc = new Map(roomTypes.map((rt) => [rt.id, rt.accommodation_id]));
+
+      // Query inventory for all room types across the stay dates
+      const { data: inventory } = await supabase
+        .from("room_inventory_pricing")
+        .select("room_type_id, date, available_rooms, is_available")
+        .in("room_type_id", roomTypeIds)
+        .in("date", stayDates);
+
+      // For each accommodation, check if at least one room type has availability on ALL stay dates
+      // Group inventory by accommodation -> room_type -> date
+      const accRoomDateMap = new Map<string, Map<string, Map<string, { available: number; isAvailable: boolean }>>>();
+
+      inventory?.forEach((inv) => {
+        const accId = rtToAcc.get(inv.room_type_id);
+        if (!accId) return;
+
+        if (!accRoomDateMap.has(accId)) accRoomDateMap.set(accId, new Map());
+        const roomMap = accRoomDateMap.get(accId)!;
+
+        if (!roomMap.has(inv.room_type_id)) roomMap.set(inv.room_type_id, new Map());
+        roomMap.get(inv.room_type_id)!.set(inv.date, {
+          available: inv.available_rooms,
+          isAvailable: inv.is_available !== false,
+        });
+      });
+
+      const available = new Set<string>();
+
+      accRoomDateMap.forEach((roomMap, accId) => {
+        // Check if any room type has availability on all stay dates
+        for (const [, dateMap] of roomMap) {
+          const allDatesAvailable = stayDates.every((date) => {
+            const info = dateMap.get(date);
+            return info && info.isAvailable && info.available > 0;
+          });
+          if (allDatesAvailable) {
+            available.add(accId);
+            break; // One available room type is enough
+          }
+        }
+      });
+
+      setAvailableAccIds(available);
+    } catch (error) {
+      console.error("Availability check failed:", error);
+      setAvailableAccIds(null);
+    } finally {
+      setSearching(false);
+    }
+  }, [checkIn, checkOut, accommodations]);
+
+  const handleSearch = useCallback(() => {
+    checkAvailability();
+  }, [checkAvailability]);
+
   const filtered = useMemo(() => {
-    if (!searchQuery) return accommodations;
-    const q = searchQuery.toLowerCase();
-    return accommodations.filter(
-      (acc) =>
-        acc.name.toLowerCase().includes(q) ||
-        acc.address?.toLowerCase().includes(q) ||
-        acc.region_1?.toLowerCase().includes(q) ||
-        acc.region_2?.toLowerCase().includes(q)
-    );
-  }, [accommodations, searchQuery]);
+    let result = accommodations;
+
+    // Text filter
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (acc) =>
+          acc.name.toLowerCase().includes(q) ||
+          acc.address?.toLowerCase().includes(q) ||
+          acc.region_1?.toLowerCase().includes(q) ||
+          acc.region_2?.toLowerCase().includes(q)
+      );
+    }
+
+    // Availability filter
+    if (availableAccIds !== null) {
+      result = result.filter((acc) => availableAccIds.has(acc.id));
+    }
+
+    return result;
+  }, [accommodations, searchQuery, availableAccIds]);
 
   // Group accommodations by region
   const regions = useMemo(() => {
@@ -135,8 +236,21 @@ const BookingPortal = () => {
   }, [accommodations]);
 
   const handleCardClick = (acc: AccommodationCard) => {
-    navigate(`/booking/${acc.id}`);
+    const params = new URLSearchParams();
+    if (checkIn) params.set("checkIn", format(checkIn, "yyyy-MM-dd"));
+    if (checkOut) params.set("checkOut", format(checkOut, "yyyy-MM-dd"));
+    const qs = params.toString();
+    navigate(`/booking/${acc.id}${qs ? `?${qs}` : ""}`);
   };
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setCheckIn(undefined);
+    setCheckOut(undefined);
+    setAvailableAccIds(null);
+  };
+
+  const hasActiveFilters = searchQuery || availableAccIds !== null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -146,10 +260,7 @@ const BookingPortal = () => {
           <Link to="/booking" className="flex items-center gap-2">
             <img src={lokezeLogo} alt="Lakeze 人客多" className="h-24 object-contain" />
           </Link>
-
-          {/* Spacer for flex layout */}
           <div className="hidden md:flex flex-1" />
-
           <div className="flex items-center gap-2">
             {isLoggedIn ? (
               <Button
@@ -179,17 +290,15 @@ const BookingPortal = () => {
       {/* ── Hero Banner with Search ── */}
       <section
         className="relative overflow-hidden bg-cover bg-center"
-        style={{
-          backgroundImage: `url(${bookingHeroBg})`,
-        }}
+        style={{ backgroundImage: `url(${bookingHeroBg})` }}
       >
         <div
           className="absolute inset-0"
           style={{
-            background: "linear-gradient(135deg, hsla(25, 80%, 55%, 0.6) 0%, hsla(30, 90%, 60%, 0.5) 50%, hsla(35, 85%, 58%, 0.6) 100%)",
+            background:
+              "linear-gradient(135deg, hsla(25, 80%, 55%, 0.6) 0%, hsla(30, 90%, 60%, 0.5) 50%, hsla(35, 85%, 58%, 0.6) 100%)",
           }}
         />
-
         <div className="relative max-w-7xl mx-auto px-4 py-12 md:py-20 text-center text-white">
           <h1 className="text-3xl md:text-5xl font-bold mb-3 drop-shadow-sm">
             探索優質民宿
@@ -198,89 +307,17 @@ const BookingPortal = () => {
             精選住宿 | 會員獨享優惠 | 安全付款
           </p>
 
-          {/* Search Card */}
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-white rounded-2xl shadow-xl p-4 md:p-6">
-              <div className="flex flex-col md:flex-row gap-3 md:gap-4 items-stretch md:items-end">
-                {/* Destination */}
-                <div className="flex-1 text-left">
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                    目的地
-                  </label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
-                    <Input
-                      placeholder="城市、地區或民宿名稱"
-                      className="!pl-10 h-10 border-border text-foreground"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                {/* Check-in / Check-out placeholders */}
-                <div className="flex gap-3 flex-1">
-                  <div className="flex-1 text-left">
-                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                      入住日期
-                    </label>
-                    <div className="relative">
-                      <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
-                      <Input
-                        placeholder="選擇日期"
-                        className="!pl-10 h-10 border-border text-foreground"
-                        readOnly
-                      />
-                    </div>
-                  </div>
-                  <div className="flex-1 text-left">
-                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                      退房日期
-                    </label>
-                    <div className="relative">
-                      <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
-                      <Input
-                        placeholder="選擇日期"
-                        className="!pl-10 h-10 border-border text-foreground"
-                        readOnly
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Guests */}
-                <div className="w-full md:w-36 text-left">
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                    房客人數
-                  </label>
-                  <div className="relative">
-                    <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
-                    <Input
-                      placeholder="2 位成人"
-                      className="!pl-10 h-10 border-border text-foreground"
-                      readOnly
-                    />
-                  </div>
-                </div>
-
-                {/* Search Button */}
-                <Button
-                  className="h-10 px-8 rounded-lg text-white font-medium shrink-0"
-                  style={{ background: "hsl(25, 70%, 55%)" }}
-                >
-                  <Search className="h-4 w-4 mr-2" />
-                  搜尋
-                </Button>
-              </div>
-            </div>
-          </div>
+          <PortalSearchBar
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
+            checkIn={checkIn}
+            checkOut={checkOut}
+            onCheckInChange={setCheckIn}
+            onCheckOutChange={setCheckOut}
+            onSearch={handleSearch}
+          />
         </div>
       </section>
-
-      {/* ── Mobile search (visible only on small) ── */}
-      <div className="md:hidden px-4 -mt-4 relative z-10 mb-4">
-        {/* Already handled by hero card */}
-      </div>
 
       {/* ── Promo Cards ── */}
       <section className="max-w-7xl mx-auto px-4 py-8">
@@ -357,12 +394,12 @@ const BookingPortal = () => {
                 </Badge>
               </Button>
             ))}
-            {searchQuery && (
+            {hasActiveFilters && (
               <Button
                 variant="ghost"
                 size="sm"
                 className="rounded-full text-sm text-muted-foreground"
-                onClick={() => setSearchQuery("")}
+                onClick={clearFilters}
               >
                 清除篩選
               </Button>
@@ -375,18 +412,36 @@ const BookingPortal = () => {
       <section className="max-w-7xl mx-auto px-4 pb-16">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-foreground">
-            {searchQuery ? `「${searchQuery}」的搜尋結果` : "推薦住宿"}
+            {searchQuery
+              ? `「${searchQuery}」的搜尋結果`
+              : availableAccIds !== null
+              ? "可訂住宿"
+              : "推薦住宿"}
           </h2>
           <span className="text-sm text-muted-foreground">
-            共 {filtered.length} 家
+            {searching ? "搜尋中..." : `共 ${filtered.length} 家`}
           </span>
         </div>
 
         {filtered.length === 0 ? (
           <div className="text-center py-20 text-muted-foreground">
             <Search className="h-12 w-12 mx-auto mb-4 opacity-30" />
-            <p className="text-lg">沒有找到符合條件的民宿</p>
-            <p className="text-sm mt-1">試試其他關鍵字或清除篩選</p>
+            <p className="text-lg">
+              {availableAccIds !== null
+                ? "所選日期沒有可訂住宿"
+                : "沒有找到符合條件的民宿"}
+            </p>
+            <p className="text-sm mt-1">試試其他關鍵字或日期</p>
+            {hasActiveFilters && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-4"
+                onClick={clearFilters}
+              >
+                清除所有篩選
+              </Button>
+            )}
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -406,8 +461,14 @@ const BookingPortal = () => {
                       loading="lazy"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center" style={{ background: "hsl(25, 60%, 95%)" }}>
-                      <Building2 className="h-12 w-12" style={{ color: "hsl(25, 60%, 75%)" }} />
+                    <div
+                      className="w-full h-full flex items-center justify-center"
+                      style={{ background: "hsl(25, 60%, 95%)" }}
+                    >
+                      <Building2
+                        className="h-12 w-12"
+                        style={{ color: "hsl(25, 60%, 75%)" }}
+                      />
                     </div>
                   )}
                   {acc.type && (
@@ -427,7 +488,10 @@ const BookingPortal = () => {
                       {acc.name}
                     </h3>
                     {acc.star_rating && (
-                      <div className="flex items-center gap-0.5 shrink-0" style={{ color: "hsl(40, 90%, 50%)" }}>
+                      <div
+                        className="flex items-center gap-0.5 shrink-0"
+                        style={{ color: "hsl(40, 90%, 50%)" }}
+                      >
                         <Star className="h-3.5 w-3.5 fill-current" />
                         <span className="text-xs font-medium">{acc.star_rating}</span>
                       </div>
@@ -446,7 +510,10 @@ const BookingPortal = () => {
                     {acc.min_price ? (
                       <div>
                         <span className="text-xs text-muted-foreground">每晚最低</span>
-                        <p className="font-bold text-lg" style={{ color: "hsl(25, 70%, 50%)" }}>
+                        <p
+                          className="font-bold text-lg"
+                          style={{ color: "hsl(25, 70%, 50%)" }}
+                        >
                           NT$ {acc.min_price.toLocaleString()}
                         </p>
                       </div>
