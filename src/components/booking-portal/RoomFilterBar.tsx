@@ -50,8 +50,8 @@ const RoomFilterBar = ({
 }: RoomFilterBarProps) => {
   // Derive available options from data
   const maxPriceInData = useMemo(() => {
-    const prices = roomTypes.map((rt) => rt.date_price ?? rt.base_price);
-    return prices.length > 0 ? Math.max(...prices) : 10000;
+    const prices = roomTypes.map((rt) => rt.date_price ?? rt.base_price).filter((p) => p > 0);
+    return prices.length > 0 ? Math.max(...prices) : 20000;
   }, [roomTypes]);
 
   const capacityOptions = useMemo(() => {
@@ -195,8 +195,8 @@ const RoomFilterBar = ({
           <Slider
             min={0}
             max={maxPriceInData}
-            step={Math.max(100, Math.round(maxPriceInData / 50) * 100)}
-            value={[filters.maxPrice || maxPriceInData]}
+            step={Math.max(100, Math.round(maxPriceInData / 20) * 100) || 500}
+            value={[filters.maxPrice > 0 && filters.maxPrice <= maxPriceInData ? filters.maxPrice : maxPriceInData]}
             onValueChange={([v]) =>
               update({ maxPrice: v >= maxPriceInData ? 0 : v })
             }
