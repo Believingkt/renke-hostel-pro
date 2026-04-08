@@ -159,10 +159,27 @@ const MemberAuth = () => {
     e.preventDefault();
     setLoading(true);
     try {
+      // Use Supabase to generate reset link, then send branded email via Resend
       const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
         redirectTo: `${window.location.origin}/member/reset-password`,
       });
       if (error) throw error;
+
+      // Send branded reset email via Resend (non-blocking)
+      try {
+        await supabase.functions.invoke("send-resend-email", {
+          body: {
+            templateType: "recovery",
+            recipientEmail: forgotEmail,
+            templateData: {
+              confirmationUrl: `${window.location.origin}/member/reset-password`,
+            },
+          },
+        });
+      } catch (emailErr) {
+        console.error("Resend recovery email error (non-blocking):", emailErr);
+      }
+
       setForgotSent(true);
     } catch (error: any) {
       toast.error(error.message || "發送重設信件失敗");
