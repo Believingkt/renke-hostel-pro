@@ -14,7 +14,7 @@ const MobileBottomNav = () => {
 
   return (
     <nav className="fixed bottom-0 inset-x-0 z-50 bg-white border-t border-border md:hidden">
-      <div className="flex justify-around items-center h-16 px-1 pb-[env(safe-area-inset-bottom)]">
+      <div className="flex justify-around items-center h-14 px-1">
         {navItems.map((item) => {
           const isActive =
             item.path === "/booking"
