@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { useAccommodationCache, DEFAULT_SECTIONS_ORDER } from "@/hooks/use-accommodation-cache";
@@ -30,6 +30,7 @@ import { CustomSectionDisplay, SingleCustomSection, CustomSection } from "@/comp
 const BookingAccommodation = () => {
   const { accId } = useParams<{ accId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { setCurrentAccommodationId } = useAccommodation();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [memberName, setMemberName] = useState("");
