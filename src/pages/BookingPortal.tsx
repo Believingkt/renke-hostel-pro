@@ -278,15 +278,6 @@ const BookingPortal = () => {
     return result;
   }, [roomTypes, searchQuery, hasDateFilter, filters]);
 
-  // Group accommodations by region
-  const regions = useMemo(() => {
-    const map = new Map<string, number>();
-    accommodations.forEach((acc) => {
-      const region = acc.region_1 || "其他";
-      map.set(region, (map.get(region) || 0) + 1);
-    });
-    return Array.from(map.entries());
-  }, [accommodations]);
 
   const handleRoomClick = (room: RoomTypeResult) => {
     const params = new URLSearchParams();
