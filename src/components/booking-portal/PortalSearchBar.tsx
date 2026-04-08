@@ -18,6 +18,7 @@ import {
   Minus,
   Plus,
   DoorOpen,
+  Baby,
 } from "lucide-react";
 
 interface PortalSearchBarProps {
@@ -27,8 +28,10 @@ interface PortalSearchBarProps {
   checkOut: Date | undefined;
   onCheckInChange: (d: Date | undefined) => void;
   onCheckOutChange: (d: Date | undefined) => void;
-  guests: number;
-  onGuestsChange: (n: number) => void;
+  adults: number;
+  onAdultsChange: (n: number) => void;
+  children: number;
+  onChildrenChange: (n: number) => void;
   rooms: number;
   onRoomsChange: (n: number) => void;
   onSearch: () => void;
@@ -41,8 +44,10 @@ const PortalSearchBar = ({
   checkOut,
   onCheckInChange,
   onCheckOutChange,
-  guests,
-  onGuestsChange,
+  adults,
+  onAdultsChange,
+  children,
+  onChildrenChange,
   rooms,
   onRoomsChange,
   onSearch,
@@ -177,34 +182,62 @@ const PortalSearchBar = ({
                   className="w-full md:w-auto h-10 justify-start text-left font-normal border-border text-foreground gap-2"
                 >
                   <Users className="h-4 w-4 text-muted-foreground shrink-0" />
-                  {guests} 位 · {rooms} 間
+                  {adults} 大人{children > 0 ? ` · ${children} 兒童` : ""} · {rooms} 間
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-56 p-4" align="start">
+              <PopoverContent className="w-60 p-4" align="start">
                 <div className="space-y-4">
-                  {/* Guests stepper */}
+                  {/* Adults stepper */}
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <span>房客人數</span>
+                    <div>
+                      <p className="text-sm font-medium">大人</p>
+                      <p className="text-sm text-muted-foreground">18 歲以上</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
                         size="icon"
                         className="h-7 w-7 rounded-full"
-                        onClick={() => onGuestsChange(Math.max(1, guests - 1))}
-                        disabled={guests <= 1}
+                        onClick={() => onAdultsChange(Math.max(1, adults - 1))}
+                        disabled={adults <= 1}
                       >
                         <Minus className="h-3 w-3" />
                       </Button>
-                      <span className="w-6 text-center text-sm font-medium">{guests}</span>
+                      <span className="w-6 text-center text-sm font-medium">{adults}</span>
                       <Button
                         variant="outline"
                         size="icon"
                         className="h-7 w-7 rounded-full"
-                        onClick={() => onGuestsChange(Math.min(20, guests + 1))}
-                        disabled={guests >= 20}
+                        onClick={() => onAdultsChange(Math.min(20, adults + 1))}
+                        disabled={adults >= 20}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  {/* Children stepper */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">兒童</p>
+                      <p className="text-sm text-muted-foreground">0–17 歲</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7 rounded-full"
+                        onClick={() => onChildrenChange(Math.max(0, children - 1))}
+                        disabled={children <= 0}
+                      >
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <span className="w-6 text-center text-sm font-medium">{children}</span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7 rounded-full"
+                        onClick={() => onChildrenChange(Math.min(10, children + 1))}
+                        disabled={children >= 10}
                       >
                         <Plus className="h-3 w-3" />
                       </Button>
@@ -212,9 +245,8 @@ const PortalSearchBar = ({
                   </div>
                   {/* Rooms stepper */}
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm">
-                      <DoorOpen className="h-4 w-4 text-muted-foreground" />
-                      <span>房間數</span>
+                    <div>
+                      <p className="text-sm font-medium">房間數</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
