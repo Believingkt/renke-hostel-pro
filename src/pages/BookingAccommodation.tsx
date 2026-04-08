@@ -64,6 +64,21 @@ const BookingAccommodation = () => {
     }
   }, [accId, setCurrentAccommodationId]);
 
+  // If roomId is in search params, redirect to booking flow
+  useEffect(() => {
+    const roomId = searchParams.get("roomId");
+    if (accId && roomId) {
+      const params = new URLSearchParams();
+      params.set("acc", accId);
+      params.set("roomId", roomId);
+      const checkIn = searchParams.get("checkIn");
+      const checkOut = searchParams.get("checkOut");
+      if (checkIn) params.set("checkIn", checkIn);
+      if (checkOut) params.set("checkOut", checkOut);
+      navigate(`/book?${params.toString()}`, { replace: true });
+    }
+  }, [accId, searchParams, navigate]);
+
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { user } } = await supabase.auth.getUser();
