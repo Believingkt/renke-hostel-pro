@@ -383,7 +383,7 @@ const BookingPortal = () => {
         />
         <div className="relative max-w-7xl mx-auto px-3 sm:px-4 py-8 md:py-20 text-center text-white">
           <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-2 sm:mb-3 drop-shadow-sm">
-            人客多優質民宿
+            探索優質民宿
           </h1>
           <p className="text-sm sm:text-base md:text-lg opacity-90 mb-6 sm:mb-8">
             會員獨享優惠 | 安心付款 | 免費取消
