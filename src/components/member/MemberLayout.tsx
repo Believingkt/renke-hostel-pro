@@ -47,7 +47,7 @@ const MemberLayout = () => {
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/booking" className="flex items-center gap-2">
-            <img src={portalLogo} alt="Lakeze 人客多" className="h-8 object-contain" />
+            <img src={portalLogo} alt="Lakeze 人客多" className="h-24 object-contain" />
             <span className="text-sm text-muted-foreground hidden sm:inline">會員中心</span>
           </Link>
           <div className="flex items-center gap-2">
