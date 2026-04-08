@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ShoppingBag, Ticket, Gift, User, Home } from "lucide-react";
 
 const navItems = [
@@ -13,26 +13,21 @@ const MobileBottomNav = () => {
   const location = useLocation();
 
   return (
-    <nav className="mobile-bottom-nav fixed bottom-0 inset-x-0 z-50 border-t border-border bg-background md:hidden">
-      <div
-        className="mobile-bottom-nav-inner flex items-end justify-around px-1"
-        style={{
-          height: "calc(3.5rem + env(safe-area-inset-bottom, 0px))",
-          paddingBottom: "0.25rem",
-        }}
-      >
+    <nav className="fixed bottom-0 inset-x-0 z-50 bg-white border-t border-border md:hidden">
+      <div className="flex justify-around items-center h-16 px-1 pb-[env(safe-area-inset-bottom)]">
         {navItems.map((item) => {
           const isActive =
             item.path === "/booking"
               ? location.pathname === "/booking"
               : location.pathname.startsWith(item.path);
-
           return (
             <Link
               key={item.path}
               to={item.path}
-              className={`flex flex-col items-center gap-0.5 rounded-lg px-2 py-1 transition-colors ${
-                isActive ? "text-primary" : "text-muted-foreground"
+              className={`flex flex-col items-center gap-0.5 py-1 px-2 rounded-lg transition-colors ${
+                isActive
+                  ? "text-[hsl(24,100%,50%)]"
+                  : "text-muted-foreground"
               }`}
             >
               <item.icon className={`h-5 w-5 ${isActive ? "stroke-[2.5]" : ""}`} />
