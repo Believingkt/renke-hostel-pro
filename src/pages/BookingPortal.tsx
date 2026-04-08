@@ -378,7 +378,7 @@ const BookingPortal = () => {
             {searchQuery ? `「${searchQuery}」的搜尋結果` : "推薦住宿"}
           </h2>
           <span className="text-sm text-muted-foreground">
-            共 {filtered.length} 間
+            共 {filtered.length} 家
           </span>
         </div>
 
