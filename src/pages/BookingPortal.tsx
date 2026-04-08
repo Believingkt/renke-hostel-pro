@@ -301,13 +301,23 @@ const BookingPortal = () => {
     setCheckIn(undefined);
     setCheckOut(undefined);
     setHasSearched(false);
+    setFilters({
+      sortBy: "default",
+      minCapacity: 0,
+      maxPrice: 0,
+      selectedAccommodation: "all",
+      selectedRegion: "all",
+    });
     // Reset availability data
     setRoomTypes((prev) =>
       prev.map((rt) => ({ ...rt, available_rooms: null, date_price: null }))
     );
   };
 
-  const hasActiveFilters = searchQuery || hasDateFilter;
+  const hasActiveFilters = searchQuery || hasDateFilter || 
+    filters.sortBy !== "default" || filters.minCapacity > 0 || 
+    filters.maxPrice > 0 || filters.selectedAccommodation !== "all" || 
+    filters.selectedRegion !== "all";
 
   return (
     <div className="min-h-screen bg-background">
