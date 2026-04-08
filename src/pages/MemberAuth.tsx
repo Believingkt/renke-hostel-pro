@@ -111,7 +111,7 @@ const MemberAuth = () => {
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: signupEmail,
         password: signupPassword,
         options: {
@@ -120,7 +120,30 @@ const MemberAuth = () => {
         },
       });
       if (error) throw error;
-      setViewMode("signup-success");
+
+      // Send branded welcome email via Resend
+      try {
+        await supabase.functions.invoke("send-resend-email", {
+          body: {
+            templateType: "signup",
+            recipientEmail: signupEmail,
+            templateData: {
+              confirmationUrl: window.location.origin + "/member/profile",
+            },
+          },
+        });
+      } catch (emailErr) {
+        console.error("Welcome email send error (non-blocking):", emailErr);
+      }
+
+      // Auto-confirm is enabled, so create profile and redirect
+      if (data.user) {
+        await ensureMemberProfile();
+        toast.success("註冊成功！歡迎加入人客多");
+        navigate(redirectTo);
+      } else {
+        setViewMode("signup-success");
+      }
     } catch (error: any) {
       if (error.message?.includes("already registered")) {
         toast.error("此 Email 已註冊，請直接登入");
@@ -136,10 +159,27 @@ const MemberAuth = () => {
     e.preventDefault();
     setLoading(true);
     try {
+      // Use Supabase to generate reset link, then send branded email via Resend
       const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
         redirectTo: `${window.location.origin}/member/reset-password`,
       });
       if (error) throw error;
+
+      // Send branded reset email via Resend (non-blocking)
+      try {
+        await supabase.functions.invoke("send-resend-email", {
+          body: {
+            templateType: "recovery",
+            recipientEmail: forgotEmail,
+            templateData: {
+              confirmationUrl: `${window.location.origin}/member/reset-password`,
+            },
+          },
+        });
+      } catch (emailErr) {
+        console.error("Resend recovery email error (non-blocking):", emailErr);
+      }
+
       setForgotSent(true);
     } catch (error: any) {
       toast.error(error.message || "發送重設信件失敗");
