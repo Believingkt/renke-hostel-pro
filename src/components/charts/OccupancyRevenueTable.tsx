@@ -86,7 +86,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
       const startDate = `${selectedYear - 1}-01-01`;
       const endDate = `${selectedYear}-12-31`;
 
-      const [roomTypesRes, ordersRes, holidaysRes] = await Promise.all([
+      const [roomTypesRes, ordersRes, holidaysRes, orderRoomsRes] = await Promise.all([
         supabase.from('room_types').select('id, name, room_count, is_exclusive_package').eq('accommodation_id', accommodationId),
         supabase.from('orders')
           .select('id, check_in_date, check_out_date, room_type_id, final_price, meal_plan, order_status')
@@ -99,6 +99,9 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
           .eq('accommodation_id', accommodationId)
           .gte('holiday_date', startDate)
           .lte('holiday_date', endDate),
+        supabase.from('order_rooms')
+          .select('order_id, room_type_id, quantity')
+          .limit(10000),
       ]);
 
       if (roomTypesRes.error) throw roomTypesRes.error;
@@ -118,11 +121,19 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         inventoryData = inv || [];
       }
 
+      // Build order_rooms lookup: order_id -> array of { room_type_id, quantity }
+      const orderRoomsMap = new Map<string, { room_type_id: string; quantity: number }[]>();
+      (orderRoomsRes.data || []).forEach(or => {
+        if (!orderRoomsMap.has(or.order_id)) orderRoomsMap.set(or.order_id, []);
+        orderRoomsMap.get(or.order_id)!.push({ room_type_id: or.room_type_id, quantity: or.quantity });
+      });
+
       return {
         roomTypes: roomTypesRes.data || [],
         orders: ordersRes.data || [],
         holidays: holidaysRes.data || [],
         inventoryData,
+        orderRoomsMap,
       };
     },
     enabled: !!accommodationId,
@@ -132,7 +143,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
   const tableData = useMemo(() => {
     if (!data) return null;
 
-    const { roomTypes, orders, holidays, inventoryData } = data;
+    const { roomTypes, orders, holidays, inventoryData, orderRoomsMap } = data;
     const DAILY_ROOM_CAP = 6;
     const totalRoomCount = Math.min(roomTypes.reduce((sum, rt) => sum + (rt.room_count || 0), 0), DAILY_ROOM_CAP);
     const exclusiveRoomTypeIds = new Set(roomTypes.filter(rt => rt.is_exclusive_package).map(rt => rt.id));
