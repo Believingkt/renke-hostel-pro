@@ -293,6 +293,7 @@ const MemberAuth = () => {
             <CardDescription>登入即可享受紅利點數與優惠券</CardDescription>
           </CardHeader>
           <CardContent>
+            {/* Apple & Google OAuth - hidden for now
             <Button
               variant="outline"
               className="w-full mb-2 border-[hsl(24,100%,50%)]/40 hover:bg-[hsl(24,100%,50%)]/10"
@@ -328,6 +329,7 @@ const MemberAuth = () => {
                 <span className="bg-card px-2 text-muted-foreground">或使用 Email</span>
               </div>
             </div>
+            */}
 
             <Tabs defaultValue="login">
               <TabsList className="grid w-full grid-cols-2 bg-[hsl(24,100%,50%)]/10">
