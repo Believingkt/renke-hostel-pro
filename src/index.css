@@ -107,11 +107,11 @@ All colors MUST be HSL.
   }
 
   .mobile-bottom-nav {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
     transform: translateZ(0);
     -webkit-transform: translateZ(0);
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
+    will-change: transform;
   }
 
   .mobile-bottom-nav::after {
@@ -119,8 +119,8 @@ All colors MUST be HSL.
     position: absolute;
     left: 0;
     right: 0;
-    bottom: calc(env(safe-area-inset-bottom, 0px) * -1);
-    height: env(safe-area-inset-bottom, 0px);
+    bottom: 0;
+    height: 1px;
     background: hsl(var(--background));
   }
 

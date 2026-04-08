@@ -14,7 +14,13 @@ const MobileBottomNav = () => {
 
   return (
     <nav className="mobile-bottom-nav fixed bottom-0 inset-x-0 z-50 border-t border-border bg-background md:hidden">
-      <div className="mobile-bottom-nav-inner flex h-14 items-center justify-around px-1">
+      <div
+        className="mobile-bottom-nav-inner flex items-end justify-around px-1"
+        style={{
+          height: "calc(3.5rem + env(safe-area-inset-bottom, 0px))",
+          paddingBottom: "0.25rem",
+        }}
+      >
         {navItems.map((item) => {
           const isActive =
             item.path === "/booking"
