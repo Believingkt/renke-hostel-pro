@@ -19,7 +19,6 @@ import {
   Users,
   Building2,
   MapPin,
-  SlidersHorizontal,
   X,
   DollarSign,
 } from "lucide-react";
@@ -31,8 +30,8 @@ export interface RoomFilters {
   sortBy: SortOption;
   minCapacity: number;
   maxPrice: number;
-  selectedAccommodation: string; // "all" or accommodation id
-  selectedRegion: string; // "all" or region name
+  selectedAccommodation: string;
+  selectedRegion: string;
 }
 
 interface RoomFilterBarProps {
@@ -48,11 +47,17 @@ const RoomFilterBar = ({
   roomTypes,
   accommodations,
 }: RoomFilterBarProps) => {
-  // Derive available options from data
   const maxPriceInData = useMemo(() => {
-    const prices = roomTypes.map((rt) => rt.date_price ?? rt.base_price).filter((p) => p > 0);
+    const prices = roomTypes
+      .map((rt) => rt.date_price ?? rt.base_price)
+      .filter((price) => price > 0);
+
     return prices.length > 0 ? Math.max(...prices) : 20000;
   }, [roomTypes]);
+
+  const sliderStep = useMemo(() => {
+    return Math.max(100, Math.round(maxPriceInData / 20 / 100) * 100);
+  }, [maxPriceInData]);
 
   const capacityOptions = useMemo(() => {
     const caps = new Set(roomTypes.map((rt) => rt.capacity));
@@ -93,7 +98,6 @@ const RoomFilterBar = ({
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      {/* Sort */}
       <Select
         value={filters.sortBy}
         onValueChange={(v) => update({ sortBy: v as SortOption })}
@@ -111,7 +115,6 @@ const RoomFilterBar = ({
         </SelectContent>
       </Select>
 
-      {/* Region */}
       {regions.length > 1 && (
         <Select
           value={filters.selectedRegion}
@@ -132,7 +135,6 @@ const RoomFilterBar = ({
         </Select>
       )}
 
-      {/* Accommodation */}
       {accommodations.length > 1 && (
         <Select
           value={filters.selectedAccommodation}
@@ -153,7 +155,6 @@ const RoomFilterBar = ({
         </Select>
       )}
 
-      {/* Capacity */}
       <Select
         value={filters.minCapacity === 0 ? "all" : String(filters.minCapacity)}
         onValueChange={(v) =>
@@ -174,7 +175,6 @@ const RoomFilterBar = ({
         </SelectContent>
       </Select>
 
-      {/* Price range */}
       <Popover>
         <PopoverTrigger asChild>
           <Button
@@ -195,8 +195,12 @@ const RoomFilterBar = ({
           <Slider
             min={0}
             max={maxPriceInData}
-            step={Math.max(100, Math.round(maxPriceInData / 20) * 100) || 500}
-            value={[filters.maxPrice > 0 && filters.maxPrice <= maxPriceInData ? filters.maxPrice : maxPriceInData]}
+            step={sliderStep}
+            value={[
+              filters.maxPrice > 0 && filters.maxPrice <= maxPriceInData
+                ? filters.maxPrice
+                : maxPriceInData,
+            ]}
             onValueChange={([v]) =>
               update({ maxPrice: v >= maxPriceInData ? 0 : v })
             }
@@ -213,7 +217,6 @@ const RoomFilterBar = ({
         </PopoverContent>
       </Popover>
 
-      {/* Active filter count & reset */}
       {activeFilterCount > 0 && (
         <Button
           variant="ghost"
