@@ -20,7 +20,7 @@ const MemberProfile = () => {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [address, setAddress] = useState("");
+  
   const [gender, setGender] = useState("");
   const [nationality, setNationality] = useState("");
   const [memberId, setMemberId] = useState("");
@@ -44,7 +44,7 @@ const MemberProfile = () => {
       setName(data.name || "");
       setPhone(data.phone || "");
       setEmail(data.email || user.email || "");
-      setAddress((data as any).address || "");
+      
       setGender((data as any).gender || "");
       setNationality((data as any).nationality || "");
     }
@@ -60,7 +60,6 @@ const MemberProfile = () => {
           name,
           phone,
           email,
-          address,
           gender: gender || null,
           nationality: nationality || null,
         } as any)
@@ -116,10 +115,6 @@ const MemberProfile = () => {
         <div className="space-y-2">
           <Label>Email <span className="text-destructive">*</span></Label>
           <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
-        </div>
-        <div className="space-y-2">
-          <Label>地址 <span className="text-muted-foreground text-xs">（選填）</span></Label>
-          <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="請輸入地址" />
         </div>
         <Button onClick={handleSave} disabled={saving} className="bg-[hsl(24,100%,50%)] hover:bg-[hsl(24,100%,45%)] text-white">
           {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
