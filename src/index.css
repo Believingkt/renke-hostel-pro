@@ -106,6 +106,28 @@ All colors MUST be HSL.
     --chart-occupancy-bg: 45 93% 95%;
   }
 
+  .mobile-bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  .mobile-bottom-nav::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(env(safe-area-inset-bottom, 0px) * -1);
+    height: env(safe-area-inset-bottom, 0px);
+    background: hsl(var(--background));
+  }
+
+  .mobile-bottom-nav-inner {
+    min-height: 3.5rem;
+  }
+
   /* 天頌幸福和苑 - 焦糖色與奶油白主題 */
   .theme-warm {
     --background: 36 32% 96%;
