@@ -511,7 +511,7 @@ const BookingPortal = () => {
       </section>
 
       {/* ── Filters & Room Type List ── */}
-      <section className="max-w-7xl mx-auto px-4 pb-16">
+      <section id="room-list-section" className="max-w-7xl mx-auto px-4 pb-16">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-foreground">
             {searchQuery
