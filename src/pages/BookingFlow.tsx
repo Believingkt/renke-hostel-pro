@@ -69,6 +69,7 @@ import { createSanitizedHtml } from "@/utils/sanitizeHtml";
 import { getTapPayPrime } from "@/utils/tappayPrime";
 import { DevAccommodationSwitcher } from "@/components/DevAccommodationSwitcher";
 import AccommodationLogo from "@/components/AccommodationLogo";
+import lokezeLogo from "@/assets/lakeze-portal-logo.png";
 import { getThemeClassByAccommodation } from "@/constants/themes";
 import { useTapPayConfig } from "@/hooks/use-tappay-config";
 
@@ -2464,19 +2465,14 @@ const BookingFlow = () => {
   return (
     <div className={`min-h-screen bg-background ${themeClass}`}>
       {/* Header */}
-      <header className="border-b bg-background/95 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
-            <AccommodationLogo
-              variant="header"
-              accommodationName={accommodationName}
-              logoUrl={accommodationLogo}
-              isLoaded={isAccommodationLoaded}
-            />
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-border">
+        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
+          <Link to="/booking" className="flex items-center gap-2">
+            <img src={lokezeLogo} alt="Lakeze 人客多" className="h-24 object-contain" />
           </Link>
-          <Button variant="ghost" onClick={() => navigate("/")} size="sm">
+          <Button variant="ghost" onClick={() => navigate(-1)} size="sm">
             <ChevronLeft className="h-4 w-4 mr-1" />
-            返回首頁
+            返回
           </Button>
         </div>
       </header>
