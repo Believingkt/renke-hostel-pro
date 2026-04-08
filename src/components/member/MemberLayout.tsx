@@ -45,17 +45,17 @@ const MemberLayout = () => {
     <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b">
-        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between">
           <Link to="/booking" className="flex items-center gap-2">
-            <img src={portalLogo} alt="Lakeze 人客多" className="h-24 object-contain" />
+            <img src={portalLogo} alt="Lakeze 人客多" className="h-16 sm:h-24 object-contain" />
             <span className="text-sm text-muted-foreground hidden sm:inline">會員中心</span>
           </Link>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/booking")} className="gap-1">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/booking")} className="gap-1 px-2 sm:px-3">
               <Home className="h-4 w-4" />
               <span className="hidden sm:inline">訂房</span>
             </Button>
-            <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-1 text-destructive">
+            <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-1 text-destructive px-2 sm:px-3">
               <LogOut className="h-4 w-4" />
               <span className="hidden sm:inline">登出</span>
             </Button>
@@ -65,20 +65,20 @@ const MemberLayout = () => {
 
       {/* Navigation Tabs */}
       <nav className="border-b bg-white">
-        <div className="max-w-4xl mx-auto px-4 flex gap-1 overflow-x-auto">
+        <div className="max-w-4xl mx-auto px-2 sm:px-4 flex gap-0 sm:gap-1 overflow-x-auto scrollbar-none">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-1.5 px-4 py-3 text-sm whitespace-nowrap border-b-2 transition-colors ${
+                className={`flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-3 text-sm whitespace-nowrap border-b-2 transition-colors ${
                   isActive
                     ? "border-[hsl(24,100%,50%)] text-[hsl(24,100%,50%)] font-medium"
                     : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <item.icon className="h-4 w-4" />
+                <item.icon className="h-4 w-4 shrink-0" />
                 {item.label}
               </Link>
             );
@@ -87,7 +87,7 @@ const MemberLayout = () => {
       </nav>
 
       {/* Content */}
-      <main className="max-w-4xl mx-auto px-4 py-6">
+      <main className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <Outlet />
       </main>
     </div>
