@@ -4,6 +4,7 @@ import lokezeLogo from "@/assets/lakeze-portal-logo.png";
 import BookingFooter from "@/components/BookingFooter";
 import PortalSearchBar from "@/components/booking-portal/PortalSearchBar";
 import RoomTypeCard, { type RoomTypeResult } from "@/components/booking-portal/RoomTypeCard";
+import RoomFilterBar, { type RoomFilters, type SortOption } from "@/components/booking-portal/RoomFilterBar";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
