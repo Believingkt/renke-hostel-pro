@@ -200,8 +200,22 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         const checkIn = new Date(order.check_in_date);
         const checkOut = new Date(order.check_out_date);
         const nights = Math.max(1, differenceInDays(checkOut, checkIn));
-        const isExclusive = order.room_type_id ? exclusiveRoomTypeIds.has(order.room_type_id) : false;
-        const roomNightsPerDay = isExclusive ? DAILY_ROOM_CAP : 1;
+
+        // Determine total room quantity from order_rooms, fallback to 1
+        const orderRooms = orderRoomsMap.get(order.id);
+        let roomNightsPerDay: number;
+        if (orderRooms && orderRooms.length > 0) {
+          // Check if any order_room is exclusive
+          const hasExclusive = orderRooms.some(or => exclusiveRoomTypeIds.has(or.room_type_id));
+          if (hasExclusive) {
+            roomNightsPerDay = DAILY_ROOM_CAP;
+          } else {
+            roomNightsPerDay = orderRooms.reduce((sum, or) => sum + (or.quantity || 1), 0);
+          }
+        } else {
+          const isExclusive = order.room_type_id ? exclusiveRoomTypeIds.has(order.room_type_id) : false;
+          roomNightsPerDay = isExclusive ? DAILY_ROOM_CAP : 1;
+        }
 
         // Collect daily prices for proportional revenue split
         const dailyEntries: { dayType: DayType; price: number; dateStr: string }[] = [];
