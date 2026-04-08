@@ -77,8 +77,8 @@ const fetchDashboardData = async (
     endDate = now;
   }
   
-  // Step 1: Fetch room types and orders in parallel
-  const [roomTypesResult, ordersResult] = await Promise.all([
+  // Step 1: Fetch room types, orders, and order_rooms in parallel
+  const [roomTypesResult, ordersResult, orderRoomsResult] = await Promise.all([
     supabase
       .from("room_types")
       .select("id, name, room_count, is_exclusive_package")
@@ -89,7 +89,11 @@ const fetchDashboardData = async (
       .eq("accommodation_id", accommodationId)
       .gte("order_date", startDate.toISOString())
       .lte("order_date", endDate.toISOString())
-      .order("order_date", { ascending: false })
+      .order("order_date", { ascending: false }),
+    supabase
+      .from("order_rooms")
+      .select("order_id, room_type_id, quantity")
+      .limit(10000),
   ]);
   
   if (roomTypesResult.error) throw roomTypesResult.error;
@@ -97,6 +101,18 @@ const fetchDashboardData = async (
   
   const roomTypesData = roomTypesResult.data || [];
   const ordersData = ordersResult.data || [];
+  
+  // Build order_rooms lookup: order_id -> total room quantity
+  const orderRoomsMap = new Map<string, number>();
+  const orderRoomsExclusive = new Map<string, boolean>();
+  const exclusiveSetForLookup = new Set(roomTypesData.filter(rt => rt.is_exclusive_package).map(rt => rt.id));
+  (orderRoomsResult.data || []).forEach(or => {
+    const current = orderRoomsMap.get(or.order_id) || 0;
+    orderRoomsMap.set(or.order_id, current + (or.quantity || 1));
+    if (exclusiveSetForLookup.has(or.room_type_id)) {
+      orderRoomsExclusive.set(or.order_id, true);
+    }
+  });
   
   const isRevenueEligible = (status: string) => status === 'confirmed';
   const totalRoomCount = roomTypesData.reduce((sum, rt) => sum + (rt.room_count || 0), 0);
@@ -141,11 +157,17 @@ const fetchDashboardData = async (
   const exclusiveSet = new Set(roomTypesData.filter(rt => rt.is_exclusive_package).map(rt => rt.id));
   
   const roomNightsByMonth = computeRoomNightsByMonth(
-    confirmedWithDates.map(o => ({
-      check_in_date: o.check_in_date,
-      check_out_date: o.check_out_date,
-      is_exclusive_package: exclusiveSet.has(o.room_type_id),
-    }))
+    confirmedWithDates.map(o => {
+      const orRooms = orderRoomsMap.get(o.id);
+      const orExclusive = orderRoomsExclusive.get(o.id);
+      const isExclusive = orExclusive || exclusiveSet.has(o.room_type_id);
+      return {
+        check_in_date: o.check_in_date,
+        check_out_date: o.check_out_date,
+        is_exclusive_package: isExclusive,
+        room_quantity: isExclusive ? undefined : (orRooms || 1),
+      };
+    })
   );
   const bookingCountByMonth = computeBookingCountByMonth(confirmedWithDates);
   
@@ -408,16 +430,33 @@ const fetchDashboardData = async (
       return checkOut > lastYearMonthStart && checkIn <= lastYearMonthEnd;
     });
     
-    // Helper: count stay nights in a month using day-by-day iteration (matches report logic)
-    // For exclusive packages, each night counts as DAILY_ROOM_CAP rooms
-    const countNightsInMonth = (orders: typeof ordersData, mStart: Date, mKey: string, isExclusive: boolean) => {
+    // Helper: count stay nights in a month using day-by-day iteration
+    // Now accounts for order_rooms quantities
+    const countNightsInMonth = (orders: typeof ordersData, mStart: Date, mKey: string, isExclusive: boolean, roomTypeId?: string) => {
       let nights = 0;
-      const multiplier = isExclusive ? DAILY_ROOM_CAP : 1;
       orders.forEach(order => {
         if (!order.check_in_date || !order.check_out_date) return;
         const checkIn = new Date(order.check_in_date);
         const checkOut = new Date(order.check_out_date);
         const totalN = Math.max(1, Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)));
+        
+        // Determine multiplier from order_rooms or fallback
+        let multiplier: number;
+        if (isExclusive) {
+          multiplier = DAILY_ROOM_CAP;
+        } else {
+          const orRooms = orderRoomsMap.get(order.id);
+          if (orRooms && roomTypeId) {
+            // Get quantity for this specific room type from order_rooms
+            const orderRoomEntries = (orderRoomsResult.data || []).filter(
+              or => or.order_id === order.id && or.room_type_id === roomTypeId
+            );
+            multiplier = orderRoomEntries.reduce((sum, or) => sum + (or.quantity || 1), 0) || 1;
+          } else {
+            multiplier = 1;
+          }
+        }
+        
         for (let i = 0; i < totalN; i++) {
           const day = new Date(checkIn);
           day.setDate(day.getDate() + i);
@@ -434,11 +473,17 @@ const fetchDashboardData = async (
       const roomCount = roomType.room_count || 1;
       const isExclusive = !!roomType.is_exclusive_package;
       
-      const roomOrders = monthOrders.filter(o => o.room_type_id === roomType.id);
-      const totalNights = countNightsInMonth(roomOrders, monthStart, monthKey, isExclusive);
+      // Include orders that have this room type via order_rooms OR via room_type_id
+      const orderIdsWithRoomType = new Set(
+        (orderRoomsResult.data || [])
+          .filter(or => or.room_type_id === roomType.id)
+          .map(or => or.order_id)
+      );
+      const roomOrders = monthOrders.filter(o => o.room_type_id === roomType.id || orderIdsWithRoomType.has(o.id));
+      const totalNights = countNightsInMonth(roomOrders, monthStart, monthKey, isExclusive, roomType.id);
       
-      const lastYearRoomOrders = lastYearMonthOrders.filter(o => o.room_type_id === roomType.id);
-      const lastYearNights = countNightsInMonth(lastYearRoomOrders, lastYearMonthStart, lastYearMonthKey, isExclusive);
+      const lastYearRoomOrders = lastYearMonthOrders.filter(o => o.room_type_id === roomType.id || orderIdsWithRoomType.has(o.id));
+      const lastYearNights = countNightsInMonth(lastYearRoomOrders, lastYearMonthStart, lastYearMonthKey, isExclusive, roomType.id);
       
       const maxPossibleNights = (isExclusive ? DAILY_ROOM_CAP : roomCount) * daysInMonth;
       const occupancyRate = maxPossibleNights > 0 
