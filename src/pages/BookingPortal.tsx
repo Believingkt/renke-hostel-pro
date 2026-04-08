@@ -441,41 +441,7 @@ const BookingPortal = () => {
         </div>
       </section>
 
-      {/* ── Region Quick Links ── */}
-      {regions.length > 1 && (
-        <section className="max-w-7xl mx-auto px-4 pb-6">
-          <h2 className="text-xl font-bold text-foreground mb-4">熱門地區</h2>
-          <div className="flex gap-2 flex-wrap">
-            {regions.map(([region, count]) => (
-              <Button
-                key={region}
-                variant="outline"
-                size="sm"
-                className="rounded-full gap-1 text-sm"
-                onClick={() => setSearchQuery(region)}
-              >
-                <MapPin className="h-3.5 w-3.5" />
-                {region}
-                <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">
-                  {count}
-                </Badge>
-              </Button>
-            ))}
-            {hasActiveFilters && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="rounded-full text-sm text-muted-foreground"
-                onClick={clearFilters}
-              >
-                清除篩選
-              </Button>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* ── Room Type List ── */}
+      {/* ── Filters & Room Type List ── */}
       <section className="max-w-7xl mx-auto px-4 pb-16">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-foreground">
@@ -488,6 +454,16 @@ const BookingPortal = () => {
           <span className="text-sm text-muted-foreground">
             {searching ? "搜尋中..." : `共 ${filtered.length} 間`}
           </span>
+        </div>
+
+        {/* Filter Bar */}
+        <div className="mb-4">
+          <RoomFilterBar
+            filters={filters}
+            onFiltersChange={setFilters}
+            roomTypes={roomTypes}
+            accommodations={accommodations}
+          />
         </div>
 
         {filtered.length === 0 ? (
