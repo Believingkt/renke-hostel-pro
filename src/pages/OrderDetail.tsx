@@ -393,7 +393,7 @@ const OrderDetailPage = () => {
   };
 
   const handleSaveEdit = async () => {
-    if (!order) return;
+    if (!order || isSavingEdit) return;
     setIsSavingEdit(true);
     try {
       const editFinalPriceCalc = editForm.total_price + editForm.addon_total - editForm.discount_amount;
