@@ -450,8 +450,13 @@ const OrderDetailPage = () => {
 
       // Save order_rooms changes if multi-room
       if (editOrderRooms.length > 0) {
-        // Delete existing order_rooms
-        await supabase.from("order_rooms").delete().eq("order_id", order.id);
+        // Delete existing order_rooms first and check result
+        const { error: deleteError } = await supabase
+          .from("order_rooms")
+          .delete()
+          .eq("order_id", order.id);
+        if (deleteError) throw deleteError;
+
         // Insert updated rooms
         const newOrderRooms = editOrderRooms.map(r => ({
           order_id: order.id,
@@ -462,6 +467,13 @@ const OrderDetailPage = () => {
         }));
         const { error: roomsError } = await supabase.from("order_rooms").insert(newOrderRooms);
         if (roomsError) throw roomsError;
+      } else {
+        // If all rooms were removed in edit, also delete from DB
+        const { error: deleteError } = await supabase
+          .from("order_rooms")
+          .delete()
+          .eq("order_id", order.id);
+        if (deleteError) throw deleteError;
       }
 
       // Audit log
