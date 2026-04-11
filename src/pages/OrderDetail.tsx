@@ -350,13 +350,20 @@ const OrderDetailPage = () => {
     if (!code) return;
 
     const timer = setTimeout(async () => {
+      const now = new Date().toISOString();
       const { data } = await supabase
         .from("discount_codes")
-        .select("discount_type, discount_value, is_active")
+        .select("discount_type, discount_value, is_active, valid_from, valid_until")
         .eq("accommodation_id", order.accommodation_id)
         .eq("code", code)
         .eq("is_active", true)
+        .lte("valid_from", now)
         .maybeSingle();
+
+      // Filter out expired codes
+      if (data && data.valid_until && new Date(data.valid_until) < new Date()) {
+        return;
+      }
 
       if (data) {
         let newDiscount = 0;
