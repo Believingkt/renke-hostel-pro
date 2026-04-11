@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req);
+  // corsHeaders defined at top level
 
   // Basic request log for debugging (no sensitive data)
   console.log("[tappay-config]", req.method, req.headers.get("origin") ?? "");
