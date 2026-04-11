@@ -365,7 +365,8 @@ const OrderDetailPage = () => {
         .maybeSingle();
 
       if (!anyMatch) {
-        // Code doesn't exist at all - no error, just don't apply
+        // Code doesn't exist - reset discount
+        setEditForm(f => ({ ...f, discount_amount: 0 }));
         return;
       }
 
