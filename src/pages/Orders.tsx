@@ -347,6 +347,7 @@ const Orders = () => {
   const handleQuickFilter = (filter: QuickFilterType) => {
     const newFilter = filter === quickFilter ? "" : filter;
     setQuickFilter(newFilter);
+    setCurrentPage(1);
     // 清除其他篩選條件
     if (filter !== quickFilter) {
       setStartDate("");
@@ -397,9 +398,14 @@ const Orders = () => {
       params.delete("qf");
       setSearchParams(params, { replace: true });
     }
+    setCurrentPage(1);
     setFilterTrigger(prev => prev + 1);
     syncFiltersToUrl();
   };
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [accommodationId]);
 
   // 處理排序
   const handleSort = (field: keyof Order) => {
@@ -415,9 +421,16 @@ const Orders = () => {
 
   // 計算分頁
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
+  const safeCurrentPage = totalPages > 0 ? Math.min(currentPage, totalPages) : 1;
+  const startIndex = (safeCurrentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
+
+  useEffect(() => {
+    if (currentPage !== safeCurrentPage) {
+      setCurrentPage(safeCurrentPage);
+    }
+  }, [currentPage, safeCurrentPage]);
 
   // 計算快速篩選的數量
   const getQuickFilterCount = (filter: string) => {
@@ -722,9 +735,9 @@ const Orders = () => {
                             {Array.from({ length: totalPages }, (_, i) => i + 1)
                               .filter(page => {
                                 // 顯示第一頁、最後一頁、當前頁及其前後各一頁
-                                return page === 1 || 
-                                       page === totalPages || 
-                                       Math.abs(page - currentPage) <= 1;
+                                 return page === 1 || 
+                                        page === totalPages || 
+                                        Math.abs(page - safeCurrentPage) <= 1;
                               })
                               .map((page, index, array) => (
                                 <PaginationItem key={page}>
@@ -733,8 +746,8 @@ const Orders = () => {
                                     <span className="px-2 md:px-2 text-muted-foreground">...</span>
                                   )}
                                   <PaginationLink
-                                    onClick={() => setCurrentPage(page)}
-                                    isActive={currentPage === page}
+                                     onClick={() => setCurrentPage(page)}
+                                     isActive={safeCurrentPage === page}
                                     className="h-10 touch-manipulation cursor-pointer"
                                   >
                                     {page}
@@ -744,8 +757,8 @@ const Orders = () => {
                             
                             <PaginationItem>
                               <PaginationNext 
-                                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                                className={`h-10 touch-manipulation ${currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
+                                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                 className={`h-10 touch-manipulation ${safeCurrentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
                               >
                                 下一頁
                               </PaginationNext>
