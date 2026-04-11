@@ -47,6 +47,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
   const editDepositAmount = Math.max(0, parseInt(editDepositAmountStr) || 0);
   const editPaidAmount = Math.max(0, parseInt(editPaidAmountStr) || 0);
   const [editReason, setEditReason] = useState("");
+  const [editDiscountCode, setEditDiscountCode] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   // Addon settings & editable addon quantities
@@ -81,6 +82,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
       setEditDepositAmountStr(String(order.deposit_amount ?? 0));
       setEditPaidAmountStr(String(order.paid_amount ?? 0));
       setEditReason("");
+      setEditDiscountCode(order.discount_code || "");
 
       // Fetch existing addon data from the order
       supabase
@@ -174,6 +176,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
           paid_amount: editPaidAmount,
           payment_status: newPaymentStatus,
           custom_addon_details: newCustomAddonDetails as any,
+          discount_code: editDiscountCode.trim() || null,
           meal_plan_details: newMealPlanDetails.length > 0 ? newMealPlanDetails as any : null,
           ...(editReason.trim() ? {
             notes: order.notes
@@ -239,6 +242,16 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
              
               value={editDiscountAmountStr}
               onChange={(e) => setEditDiscountAmountStr(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="list-edit-discount-code">折扣碼</Label>
+            <Input
+              id="list-edit-discount-code"
+              type="text"
+              placeholder="選填"
+              value={editDiscountCode}
+              onChange={(e) => setEditDiscountCode(e.target.value)}
             />
           </div>
 
