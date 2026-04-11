@@ -348,7 +348,11 @@ const OrderDetailPage = () => {
   useEffect(() => {
     if (!isEditing || !order) return;
     const code = editForm.discount_code.trim();
-    if (!code) return;
+    if (!code) {
+      setDiscountCodeError("");
+      setEditForm(f => ({ ...f, discount_amount: 0 }));
+      return;
+    }
 
     const timer = setTimeout(async () => {
       setDiscountCodeError("");
