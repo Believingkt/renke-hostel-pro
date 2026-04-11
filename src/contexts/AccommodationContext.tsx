@@ -118,6 +118,22 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
     return domainMatch?.id || subdomainMatch?.id || null;
   }, []);
 
+  const isCustomDomainContext = useCallback(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    const hostname = window.location.hostname.toLowerCase();
+    const isHQDomain = hostname === "hq.lakeze.com" || hostname === "www.hq.lakeze.com";
+    const isBookingDomain = hostname === "booking.lakeze.com" || hostname === "www.booking.lakeze.com";
+    const isDevOrPreview = hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname.includes("lovableproject.com") ||
+      hostname.includes("lovable.app");
+
+    return !isHQDomain && !isBookingDomain && !isDevOrPreview;
+  }, []);
+
   useEffect(() => {
     loadUserAccommodations(true);
 
@@ -171,6 +187,15 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
       setUserAccommodations(data || []);
 
       if (data && data.length > 0 && forceAutoSelect) {
+        const domainAccommodationId = await resolveDomainAccommodationId(data);
+
+        // 1. 在自訂網域 / 子網域後台中，優先同步到該旅宿，避免舊 accId 覆蓋目前網域
+        if (domainAccommodationId && isCustomDomainContext()) {
+          setCurrentAccommodationId(domainAccommodationId);
+          setIsLoading(false);
+          return;
+        }
+
         // 1. 優先從 URL query 讀取
         const urlAccommodationId = searchParams.get(ACCOMMODATION_ID_PARAM);
         const urlAccommodation = urlAccommodationId
@@ -187,8 +212,7 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
           return;
         }
 
-        // 2. 在自訂網域 / 子網域後台中，優先同步到該旅宿，避免沿用上一間旅宿的快取選擇
-        const domainAccommodationId = await resolveDomainAccommodationId(data);
+        // 2. 若 URL 沒指定，再用網域旅宿作為預設
         if (domainAccommodationId) {
           setCurrentAccommodationId(domainAccommodationId);
           setIsLoading(false);
