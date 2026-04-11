@@ -253,6 +253,7 @@ const OrderDetailPage = () => {
     custom_addon_details: [],
     addon_total: 0,
   });
+  const [discountCodeError, setDiscountCodeError] = useState("");
 
   const startEditing = () => {
     if (!order) return;
@@ -350,31 +351,38 @@ const OrderDetailPage = () => {
     if (!code) return;
 
     const timer = setTimeout(async () => {
-      const now = new Date().toISOString();
-      const { data } = await supabase
+      setDiscountCodeError("");
+      // First check if code exists at all (active or not)
+      const { data: anyMatch } = await supabase
         .from("discount_codes")
         .select("discount_type, discount_value, is_active, valid_from, valid_until")
         .eq("accommodation_id", order.accommodation_id)
         .eq("code", code)
-        .eq("is_active", true)
-        .lte("valid_from", now)
         .maybeSingle();
 
-      // Filter out expired codes
-      if (data && data.valid_until && new Date(data.valid_until) < new Date()) {
+      if (!anyMatch) {
+        // Code doesn't exist at all - no error, just don't apply
         return;
       }
 
-      if (data) {
-        let newDiscount = 0;
-        const base = editForm.total_price + editForm.addon_total;
-        if (data.discount_type === "percentage") {
-          newDiscount = Math.round(base * data.discount_value / 100);
-        } else {
-          newDiscount = Math.min(data.discount_value, base);
-        }
-        setEditForm(f => ({ ...f, discount_amount: newDiscount }));
+      const now = new Date();
+      const isExpired = anyMatch.valid_until && new Date(anyMatch.valid_until) < now;
+      const isNotStarted = anyMatch.valid_from && new Date(anyMatch.valid_from) > now;
+      const isInactive = !anyMatch.is_active;
+
+      if (isExpired || isNotStarted || isInactive) {
+        setDiscountCodeError("此折扣碼已失效");
+        return;
       }
+
+      let newDiscount = 0;
+      const base = editForm.total_price + editForm.addon_total;
+      if (anyMatch.discount_type === "percentage") {
+        newDiscount = Math.round(base * anyMatch.discount_value / 100);
+      } else {
+        newDiscount = Math.min(anyMatch.discount_value, base);
+      }
+      setEditForm(f => ({ ...f, discount_amount: newDiscount }));
     }, 500);
 
     return () => clearTimeout(timer);
@@ -1604,16 +1612,21 @@ const OrderDetailPage = () => {
                 )
               )}
             </div>
-            <div className="flex justify-between items-center gap-2">
-              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">折扣碼</span>
-              {isEditing ? (
-                <Input className="w-[140px] h-8 text-sm text-right" type="text" placeholder="選填" value={editForm.discount_code} onChange={(e) => setEditForm(f => ({ ...f, discount_code: e.target.value }))} />
-              ) : (
-                order.discount_code ? (
-                  <Badge variant="outline" className="text-xs">{order.discount_code}</Badge>
+            <div className="space-y-1">
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">折扣碼</span>
+                {isEditing ? (
+                  <Input className="w-[140px] h-8 text-sm text-right" type="text" placeholder="選填" value={editForm.discount_code} onChange={(e) => { setEditForm(f => ({ ...f, discount_code: e.target.value })); setDiscountCodeError(""); }} />
                 ) : (
-                  <span className="font-medium text-sm md:text-base text-muted-foreground">—</span>
-                )
+                  order.discount_code ? (
+                    <Badge variant="outline" className="text-xs">{order.discount_code}</Badge>
+                  ) : (
+                    <span className="font-medium text-sm md:text-base text-muted-foreground">—</span>
+                  )
+                )}
+              </div>
+              {isEditing && discountCodeError && (
+                <p className="text-xs text-destructive text-right">{discountCodeError}</p>
               )}
             </div>
             {/* 加購明細 - 逐項顯示 */}
