@@ -70,6 +70,54 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
     }
   }, [setSearchParams]);
 
+  const resolveDomainAccommodationId = useCallback(async (
+    availableAccommodations: Array<{ accommodation_id: string; role: string }>
+  ) => {
+    if (typeof window === "undefined" || availableAccommodations.length === 0) {
+      return null;
+    }
+
+    const hostname = window.location.hostname.toLowerCase();
+    const isHQDomain = hostname === "hq.lakeze.com" || hostname === "www.hq.lakeze.com";
+    const isBookingDomain = hostname === "booking.lakeze.com" || hostname === "www.booking.lakeze.com";
+    const isDevOrPreview = hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname.includes("lovableproject.com") ||
+      hostname.includes("lovable.app");
+
+    if (isHQDomain || isBookingDomain || isDevOrPreview) {
+      return null;
+    }
+
+    const normalizedDomain = hostname.startsWith("www.") ? hostname.substring(4) : hostname;
+    const subdomain = hostname.split(".").length > 2 ? hostname.split(".")[0] : null;
+    let queryFilter = `custom_domain.eq.${normalizedDomain},custom_domain.eq.www.${normalizedDomain}`;
+
+    if (subdomain) {
+      queryFilter += `,short_url_alias.eq.${subdomain}`;
+    }
+
+    const allowedAccommodationIds = availableAccommodations.map((acc) => acc.accommodation_id);
+    const { data, error } = await supabase
+      .from("accommodation_info")
+      .select("id, short_url_alias, custom_domain")
+      .in("id", allowedAccommodationIds)
+      .or(queryFilter);
+
+    if (error || !data?.length) {
+      return null;
+    }
+
+    const domainMatch = data.find(
+      (acc) => acc.custom_domain === normalizedDomain || acc.custom_domain === `www.${normalizedDomain}`
+    );
+    const subdomainMatch = subdomain
+      ? data.find((acc) => acc.short_url_alias === subdomain)
+      : null;
+
+    return domainMatch?.id || subdomainMatch?.id || null;
+  }, []);
+
   useEffect(() => {
     loadUserAccommodations(true);
 
@@ -139,14 +187,22 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
           return;
         }
 
-        // 2. 若目前已選擇且仍有權限，不要覆蓋
+        // 2. 在自訂網域 / 子網域後台中，優先同步到該旅宿，避免沿用上一間旅宿的快取選擇
+        const domainAccommodationId = await resolveDomainAccommodationId(data);
+        if (domainAccommodationId) {
+          setCurrentAccommodationId(domainAccommodationId);
+          setIsLoading(false);
+          return;
+        }
+
+        // 3. 若目前已選擇且仍有權限，不要覆蓋
         const currentId = currentAccommodationIdRef.current;
         const currentStillAccessible = currentId
           ? data.some(acc => acc.accommodation_id === currentId)
           : false;
 
         if (!currentStillAccessible) {
-          // 3. 優先使用 localStorage 儲存的選擇
+          // 4. 優先使用 localStorage 儲存的選擇
           let savedAccommodationId: string | null = null;
           try {
             savedAccommodationId = localStorage.getItem(LAST_ACCOMMODATION_KEY);
