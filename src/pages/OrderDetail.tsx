@@ -365,7 +365,8 @@ const OrderDetailPage = () => {
         .maybeSingle();
 
       if (!anyMatch) {
-        // Code doesn't exist - reset discount
+        // Code doesn't exist - show error and reset discount
+        setDiscountCodeError("此折扣碼不存在");
         setEditForm(f => ({ ...f, discount_amount: 0 }));
         return;
       }
