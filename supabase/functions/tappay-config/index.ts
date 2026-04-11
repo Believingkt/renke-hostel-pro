@@ -19,9 +19,9 @@ serve(async (req) => {
   const origin = req.headers.get('origin') || '';
   const isTrustedOrigin =
     !origin || // Allow no-origin (server-to-server)
-    allowedOrigins.includes(origin) ||
     origin.endsWith('.lovable.app') ||
-    origin.endsWith('.lovableproject.com');
+    origin.endsWith('.lovableproject.com') ||
+    origin.includes('lakeze.com');
 
   if (!isTrustedOrigin) {
     console.warn("[tappay-config] Blocked request from untrusted origin:", origin);
