@@ -390,6 +390,13 @@ const Orders = () => {
 
   // 手動觸發篩選查詢
   const handleFilterSubmit = () => {
+    // 提交進階篩選時，清除快速篩選以避免衝突
+    if (quickFilter) {
+      setQuickFilter("");
+      const params = new URLSearchParams(searchParams);
+      params.delete("qf");
+      setSearchParams(params, { replace: true });
+    }
     setFilterTrigger(prev => prev + 1);
     syncFiltersToUrl();
   };
