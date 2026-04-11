@@ -343,6 +343,36 @@ const OrderDetailPage = () => {
     }
   }, [isEditing, editForm.total_price, editForm.addon_total, editForm.discount_amount]);
 
+  // Auto-lookup discount code and apply discount amount
+  useEffect(() => {
+    if (!isEditing || !order) return;
+    const code = editForm.discount_code.trim();
+    if (!code) return;
+
+    const timer = setTimeout(async () => {
+      const { data } = await supabase
+        .from("discount_codes")
+        .select("discount_type, discount_value, is_active")
+        .eq("accommodation_id", order.accommodation_id)
+        .eq("code", code)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (data) {
+        let newDiscount = 0;
+        const base = editForm.total_price + editForm.addon_total;
+        if (data.discount_type === "percentage") {
+          newDiscount = Math.round(base * data.discount_value / 100);
+        } else {
+          newDiscount = Math.min(data.discount_value, base);
+        }
+        setEditForm(f => ({ ...f, discount_amount: newDiscount }));
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [isEditing, editForm.discount_code]);
+
   // Auto-sync total_price when editOrderRooms change
   useEffect(() => {
     if (!isEditing || editOrderRooms.length === 0) return;
