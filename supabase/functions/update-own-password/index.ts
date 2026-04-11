@@ -6,38 +6,10 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// CORS
-const allowedOrigins = [
-  "https://sensan.lovable.app",
-  "https://dmafqwfynatdvnaeovhz.lovableproject.com",
-];
-
-function isAllowedOrigin(origin: string) {
-  if (!origin) return false;
-  if (allowedOrigins.includes(origin)) return true;
-  try {
-    const url = new URL(origin);
-    return (
-      url.hostname.endsWith(".lovable.app") ||
-      url.hostname.endsWith(".lovableproject.com") ||
-      url.hostname.endsWith("lakeze.com") ||
-      url.hostname.endsWith("sensan.com.tw") ||
-      url.hostname === "localhost" ||
-      url.hostname === "127.0.0.1"
-    );
-  } catch {
-    return false;
-  }
-}
-
-function getCorsHeaders(req: Request) {
-  const origin = req.headers.get("origin") || "";
-  const allowOrigin = isAllowedOrigin(origin) ? origin : allowedOrigins[0];
-  return {
-    "Access-Control-Allow-Origin": allowOrigin,
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  };
-}
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 // Rate limiting: 10 attempts per user per 15 minutes
 const userAttemptMap = new Map<string, { count: number; resetAt: number }>();
@@ -125,7 +97,7 @@ interface UpdateOwnPasswordRequest {
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  const corsHeaders = getCorsHeaders(req);
+  
 
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });

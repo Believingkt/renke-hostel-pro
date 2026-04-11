@@ -1,20 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
-// CORS headers - allow lovable domains and custom domains
-function getCorsHeaders(req: Request) {
-  const origin = req.headers.get('origin') || '';
-  // Allow all lovable.app, lovableproject.com, and preview domains
-  const isAllowed = origin.endsWith('.lovable.app') || 
-                    origin.endsWith('.lovableproject.com') ||
-                    origin.includes('lakeze.com') ||
-                    origin.includes('sensan');
-  return {
-    'Access-Control-Allow-Origin': isAllowed ? origin : 'https://sensan.lovable.app',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-  };
-}
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
+// CORS headers - allow lovable domains and custom domains
 // IP-based rate limiting
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT_MAX = 20; // Max 20 requests per window
@@ -46,8 +38,6 @@ const MAX_MESSAGE_LENGTH = 3000;
 const ALLOWED_ROLES = ['user', 'assistant', 'system'];
 
 serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req);
-  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

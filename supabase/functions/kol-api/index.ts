@@ -1,12 +1,11 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
-// Allowed origins for CORS
-const allowedOrigins = [
-  'https://sensan.lovable.app',
-  'https://dmafqwfynatdvnaeovhz.lovableproject.com',
-];
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key, x-platform-key',
+  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+};
 
-// Generate a secure random API key
 function generateApiKey(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   const segments = [];
@@ -18,17 +17,6 @@ function generateApiKey(): string {
     segments.push(segment);
   }
   return `kol_${segments.join('_')}`;
-}
-
-function getCorsHeaders(req: Request) {
-  const origin = req.headers.get('origin') || '';
-  const allowedOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
-  return {
-    'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key, x-platform-key',
-    'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-  };
 }
 
 // Rate limiting: 100 requests per hour per API key
@@ -102,8 +90,6 @@ function recordFailedAttempt(code: string): void {
 }
 
 Deno.serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req);
-  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -683,7 +669,7 @@ Deno.serve(async (req) => {
     const errorMessage = error instanceof Error ? error.message : '未知錯誤';
     return new Response(
       JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

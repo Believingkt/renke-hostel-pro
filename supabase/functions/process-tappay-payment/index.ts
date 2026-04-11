@@ -1,29 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-// Allowed origins for CORS
-const allowedOrigins = [
-  'https://sensan.lovable.app',
-  'https://dmafqwfynatdvnaeovhz.lovableproject.com',
-  'https://sensaninn.lakeze.com',
-  'https://renke-hostel-pro.lovable.app',
-];
-
-function getCorsHeaders(req: Request) {
-  const origin = req.headers.get('origin') || '';
-  const isTrustedLovableOrigin =
-    origin.endsWith('.lovable.app') || origin.endsWith('.lovableproject.com');
-  const allowedOrigin =
-    !origin
-      ? allowedOrigins[0]
-      : allowedOrigins.includes(origin) || isTrustedLovableOrigin
-        ? origin
-        : allowedOrigins[0];
-  return {
-    'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  };
-}
-
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 // Input validation helper
 function validatePaymentInput(data: Record<string, unknown>): { valid: boolean; error?: string } {
@@ -90,8 +70,6 @@ function normalizePhoneE164(phone: string): string {
 }
 
 serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req);
-  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -301,7 +279,7 @@ serve(async (req) => {
       }),
       {
         status: 500,
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
   }
