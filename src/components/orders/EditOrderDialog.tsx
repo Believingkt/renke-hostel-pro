@@ -620,7 +620,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
   if (!order) return null;
 
   const formContent = (
-    <div className="space-y-4 py-4">
+    <div className="space-y-4 py-4 max-md:[&_label]:text-base">
           <div className="space-y-2">
             <Label>訂單編號</Label>
             <Input value={order.order_number} disabled className="h-12 text-base sm:h-10 sm:text-sm" />
@@ -811,11 +811,11 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
                   return (
                     <div key={addon.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm">{addon.addon_type === 'pet' ? '寵物方案' : addon.addon_type === 'meal' ? '餐食方案' : addon.addon_type}</div>
+                        <div className="font-medium text-base sm:text-sm">{addon.addon_type === 'pet' ? '寵物方案' : addon.addon_type === 'meal' ? '餐食方案' : addon.addon_type}</div>
                         {addon.description && (
-                          <div className="text-xs text-muted-foreground truncate">{addon.description}</div>
+                          <div className="text-sm sm:text-xs text-muted-foreground truncate">{addon.description}</div>
                         )}
-                        <div className="text-xs text-primary">
+                        <div className="text-sm sm:text-xs text-primary">
                           NT$ {addon.price_per_unit.toLocaleString()} / {addon.unit_label}
                         </div>
                       </div>
@@ -872,7 +872,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
                 }, 0);
                 return addonSubtotal > 0 ? (
                   <div className="flex justify-between items-center pt-1">
-                    <span className="text-sm font-medium text-muted-foreground">加購小計</span>
+                    <span className="text-base sm:text-sm font-medium text-muted-foreground">加購小計</span>
                     <span className="font-medium">NT$ {addonSubtotal.toLocaleString()}</span>
                   </div>
                 ) : null;
@@ -1140,7 +1140,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
               onChange={(e) => setEditForm({...editForm, notes: e.target.value})}
               rows={4}
               placeholder="輸入訂單備註..."
-              className="text-base sm:text-sm min-h-[120px]"
+              className="text-lg sm:text-sm min-h-[120px]"
             />
           </div>
         </div>
@@ -1253,7 +1253,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent className="max-h-[95vh]">
           <DrawerHeader>
-            <DrawerTitle>編輯訂單</DrawerTitle>
+            <DrawerTitle className="text-2xl">編輯訂單</DrawerTitle>
           </DrawerHeader>
           <div className="overflow-y-auto px-4">
             {formContent}

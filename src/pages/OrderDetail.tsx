@@ -953,7 +953,7 @@ const OrderDetailPage = () => {
           <Button variant="ghost" size="icon" onClick={() => navigate(backTo)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">訂單詳情</h1>
+          <h1 className="text-3xl md:text-3xl font-bold tracking-tight">訂單詳情</h1>
         </div>
         <Card>
           <CardContent className="pt-6">
@@ -1041,7 +1041,7 @@ const OrderDetailPage = () => {
           <Button variant="ghost" size="icon" onClick={() => navigate(backTo)} className="h-9 w-9 md:h-10 md:w-10">
             <ArrowLeft className="h-4 w-4 md:h-5 md:w-5" />
           </Button>
-          <h1 className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tight">訂單詳情</h1>
+          <h1 className="text-3xl md:text-2xl lg:text-3xl font-bold tracking-tight">訂單詳情</h1>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           {isEditing ? (
@@ -1123,24 +1123,24 @@ const OrderDetailPage = () => {
         {/* 訂單基本資訊 */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base md:text-lg">訂單資訊</CardTitle>
+            <CardTitle className="text-lg md:text-lg">訂單資訊</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex justify-between items-center gap-2">
-              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">訂單編號</span>
-              <span className="font-medium text-sm md:text-base text-right break-all">{order.order_number}</span>
+              <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">訂單編號</span>
+              <span className="font-medium text-base md:text-base text-right break-all">{order.order_number}</span>
             </div>
             <Separator />
             <div className="flex justify-between items-center gap-2">
-              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">訂購日期</span>
-              <span className="font-medium text-sm md:text-base text-right">{format(new Date(order.order_date), "yyyy-MM-dd HH:mm")}</span>
+              <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">訂購日期</span>
+              <span className="font-medium text-base md:text-base text-right">{format(new Date(order.order_date), "yyyy-MM-dd HH:mm")}</span>
             </div>
             <Separator />
             <div className="flex justify-between items-center gap-2">
-              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">訂單來源</span>
+              <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">訂單來源</span>
               {isEditing ? (
                 <Select value={editForm.order_source} onValueChange={(v) => setEditForm(f => ({ ...f, order_source: v }))}>
-                  <SelectTrigger className="w-[140px] h-8 text-xs">
+                  <SelectTrigger className="w-[160px] h-10 text-sm md:w-[140px] md:h-8 md:text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1153,10 +1153,10 @@ const OrderDetailPage = () => {
             </div>
             <Separator />
             <div className="flex justify-between items-center gap-2">
-              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">訂單狀態</span>
+              <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">訂單狀態</span>
               {isEditing ? (
                 <Select value={editForm.order_status} onValueChange={(v) => setEditForm(f => ({ ...f, order_status: v }))}>
-                  <SelectTrigger className="w-[140px] h-8 text-xs">
+                  <SelectTrigger className="w-[160px] h-10 text-sm md:w-[140px] md:h-8 md:text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1169,10 +1169,10 @@ const OrderDetailPage = () => {
             </div>
             <Separator />
             <div className="flex justify-between items-center gap-2">
-              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">付款狀態</span>
+              <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">付款狀態</span>
               {isEditing ? (
                 <Select value={editForm.payment_status} onValueChange={(v) => setEditForm(f => ({ ...f, payment_status: v }))}>
-                  <SelectTrigger className="w-[140px] h-8 text-xs">
+                  <SelectTrigger className="w-[160px] h-10 text-sm md:w-[140px] md:h-8 md:text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1197,10 +1197,10 @@ const OrderDetailPage = () => {
               <>
                 <Separator />
                 <div className="flex justify-between items-center gap-2">
-                  <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">訂金付款方式</span>
+                  <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">訂金付款方式</span>
                   {isEditing ? (
                     <Select value={editForm.deposit_payment_method} onValueChange={(v) => setEditForm(f => ({ ...f, deposit_payment_method: v }))}>
-                      <SelectTrigger className="w-[140px] h-8 text-xs">
+                      <SelectTrigger className="w-[160px] h-10 text-sm md:w-[140px] md:h-8 md:text-xs">
                         <SelectValue placeholder="選擇" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1210,7 +1210,7 @@ const OrderDetailPage = () => {
                       </SelectContent>
                     </Select>
                   ) : (
-                    <span className="font-medium text-sm md:text-base">{getPaymentMethodDisplayName(order.deposit_payment_method)}</span>
+                    <span className="font-medium text-base md:text-base">{getPaymentMethodDisplayName(order.deposit_payment_method)}</span>
                   )}
                 </div>
               </>
@@ -1219,10 +1219,10 @@ const OrderDetailPage = () => {
               <>
                 <Separator />
                 <div className="flex justify-between items-center gap-2">
-                  <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">尾款付款方式</span>
+                  <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">尾款付款方式</span>
                   {isEditing ? (
                     <Select value={editForm.balance_payment_method} onValueChange={(v) => setEditForm(f => ({ ...f, balance_payment_method: v }))}>
-                      <SelectTrigger className="w-[140px] h-8 text-xs">
+                      <SelectTrigger className="w-[160px] h-10 text-sm md:w-[140px] md:h-8 md:text-xs">
                         <SelectValue placeholder="選擇" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1232,7 +1232,7 @@ const OrderDetailPage = () => {
                       </SelectContent>
                     </Select>
                   ) : (
-                    <span className="font-medium text-sm md:text-base">{getPaymentMethodDisplayName(order.balance_payment_method)}</span>
+                    <span className="font-medium text-base md:text-base">{getPaymentMethodDisplayName(order.balance_payment_method)}</span>
                   )}
                 </div>
               </>
@@ -1243,50 +1243,50 @@ const OrderDetailPage = () => {
         {/* 訂購人資訊 */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base md:text-lg">訂購人資訊</CardTitle>
+            <CardTitle className="text-lg md:text-lg">訂購人資訊</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex justify-between items-center gap-2">
-              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">姓名</span>
+              <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">姓名</span>
               {isEditing ? (
-                <Input className="w-[200px] h-8 text-sm" value={editForm.guest_name} onChange={(e) => setEditForm(f => ({ ...f, guest_name: e.target.value }))} />
+                <Input className="w-[200px] h-10 text-base md:h-8 md:text-sm" value={editForm.guest_name} onChange={(e) => setEditForm(f => ({ ...f, guest_name: e.target.value }))} />
               ) : (
-                <span className="font-medium text-sm md:text-base">{order.guest_name}</span>
+                <span className="font-medium text-base md:text-base">{order.guest_name}</span>
               )}
             </div>
             <Separator />
             <div className="flex justify-between items-center gap-2">
-              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">電話</span>
+              <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">電話</span>
               {isEditing ? (
-                <Input className="w-[200px] h-8 text-sm" value={editForm.guest_phone} onChange={(e) => setEditForm(f => ({ ...f, guest_phone: e.target.value }))} />
+                <Input className="w-[200px] h-10 text-base md:h-8 md:text-sm" value={editForm.guest_phone} onChange={(e) => setEditForm(f => ({ ...f, guest_phone: e.target.value }))} />
               ) : (
-                <span className="font-medium text-sm md:text-base">{order.guest_phone}</span>
+                <span className="font-medium text-base md:text-base">{order.guest_phone}</span>
               )}
             </div>
             <Separator />
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-2">
-              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">Email</span>
+              <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">Email</span>
               {isEditing ? (
-                <Input className="w-[200px] h-8 text-sm" type="email" value={editForm.guest_email} onChange={(e) => setEditForm(f => ({ ...f, guest_email: e.target.value }))} placeholder="選填" />
+                <Input className="w-[200px] h-10 text-base md:h-8 md:text-sm" type="email" value={editForm.guest_email} onChange={(e) => setEditForm(f => ({ ...f, guest_email: e.target.value }))} placeholder="選填" />
               ) : (
-                <span className="font-medium text-xs md:text-sm break-all sm:text-right">{order.guest_email || "-"}</span>
+                <span className="font-medium text-sm md:text-sm break-all sm:text-right">{order.guest_email || "-"}</span>
               )}
             </div>
             <Separator />
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 sm:gap-2">
-              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">地址</span>
+              <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">地址</span>
               {isEditing ? (
-                <Input className="w-[200px] h-8 text-sm" value={editForm.guest_address} onChange={(e) => setEditForm(f => ({ ...f, guest_address: e.target.value }))} placeholder="選填" />
+                <Input className="w-[200px] h-10 text-base md:h-8 md:text-sm" value={editForm.guest_address} onChange={(e) => setEditForm(f => ({ ...f, guest_address: e.target.value }))} placeholder="選填" />
               ) : (
-                <span className="font-medium text-xs md:text-sm break-words sm:text-right sm:max-w-[60%]">{order.guest_address || "-"}</span>
+                <span className="font-medium text-sm md:text-sm break-words sm:text-right sm:max-w-[60%]">{order.guest_address || "-"}</span>
               )}
             </div>
             <Separator />
             <div className="flex justify-between items-center gap-2">
-              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">性別</span>
+              <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">性別</span>
               {isEditing ? (
                 <Select value={editForm.guest_gender || "none"} onValueChange={(v) => setEditForm(f => ({ ...f, guest_gender: v === "none" ? "" : v }))}>
-                  <SelectTrigger className="w-[200px] h-8 text-xs">
+                  <SelectTrigger className="w-[200px] h-10 text-sm md:h-8 md:text-xs">
                     <SelectValue placeholder="選填" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1297,18 +1297,18 @@ const OrderDetailPage = () => {
                   </SelectContent>
                 </Select>
               ) : (
-                <span className="font-medium text-sm md:text-base">
+                <span className="font-medium text-base md:text-base">
                   {order.guest_gender === "male" ? "男" : order.guest_gender === "female" ? "女" : order.guest_gender === "other" ? "其他" : "-"}
                 </span>
               )}
             </div>
             <Separator />
             <div className="flex justify-between items-center gap-2">
-              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">國籍</span>
+              <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">國籍</span>
               {isEditing ? (
-                <Input className="w-[200px] h-8 text-sm" value={editForm.guest_nationality} onChange={(e) => setEditForm(f => ({ ...f, guest_nationality: e.target.value }))} placeholder="選填" />
+                <Input className="w-[200px] h-10 text-base md:h-8 md:text-sm" value={editForm.guest_nationality} onChange={(e) => setEditForm(f => ({ ...f, guest_nationality: e.target.value }))} placeholder="選填" />
               ) : (
-                <span className="font-medium text-sm md:text-base">{order.guest_nationality || "-"}</span>
+                <span className="font-medium text-base md:text-base">{order.guest_nationality || "-"}</span>
               )}
             </div>
           </CardContent>
@@ -1317,7 +1317,7 @@ const OrderDetailPage = () => {
         {/* 住宿資訊 */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base md:text-lg">住宿資訊</CardTitle>
+            <CardTitle className="text-lg md:text-lg">住宿資訊</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {/* Multi-room details */}
@@ -1325,7 +1325,7 @@ const OrderDetailPage = () => {
               <>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs md:text-sm text-muted-foreground">預訂房間</span>
+                    <span className="text-sm md:text-sm text-muted-foreground">預訂房間</span>
                     {isEditing && (
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="text-xs">
@@ -1484,10 +1484,10 @@ const OrderDetailPage = () => {
             ) : (
               <>
                 <div className="flex justify-between items-center gap-2">
-                  <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">房型</span>
+                  <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">房型</span>
                   {isEditing ? (
                     <Select value={editForm.room_type_id} onValueChange={(v) => setEditForm(f => ({ ...f, room_type_id: v }))}>
-                      <SelectTrigger className="w-[200px] h-8 text-xs">
+                      <SelectTrigger className="w-[200px] h-10 text-sm md:h-8 md:text-xs">
                         <SelectValue placeholder="選擇房型" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1497,43 +1497,43 @@ const OrderDetailPage = () => {
                       </SelectContent>
                     </Select>
                   ) : (
-                    <span className="font-medium text-sm md:text-base text-right">{order.room_types?.name || "-"}</span>
+                    <span className="font-medium text-base md:text-base text-right">{order.room_types?.name || "-"}</span>
                   )}
                 </div>
                 <Separator />
               </>
             )}
             <div className="flex justify-between items-center gap-2">
-              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">入住日期</span>
-              <span className="font-medium text-sm md:text-base">{order.check_in_date}</span>
+              <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">入住日期</span>
+              <span className="font-medium text-base md:text-base">{order.check_in_date}</span>
             </div>
             <Separator />
             <div className="flex justify-between items-center gap-2">
-              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">退房日期</span>
-              <span className="font-medium text-sm md:text-base">{order.check_out_date}</span>
+              <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">退房日期</span>
+              <span className="font-medium text-base md:text-base">{order.check_out_date}</span>
             </div>
             <Separator />
             <div className="flex justify-between items-center gap-2">
-              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">住宿天數</span>
-              <span className="font-medium text-sm md:text-base">{nights} 晚</span>
+              <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">住宿天數</span>
+              <span className="font-medium text-base md:text-base">{nights} 晚</span>
             </div>
             <Separator />
             <div className="flex justify-between items-center gap-2">
-              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">入住人數</span>
+              <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">入住人數</span>
               {isEditing ? (
                 <Input className="w-[100px] h-8 text-sm text-right" type="text" inputMode="numeric" value={editForm.guest_count} onChange={(e) => setEditForm(f => ({ ...f, guest_count: Math.max(1, parseInt(e.target.value) || 1) }))} />
               ) : (
-                <span className="font-medium text-sm md:text-base">{order.guest_count} 人</span>
+                <span className="font-medium text-base md:text-base">{order.guest_count} 人</span>
               )}
             </div>
             {orderRooms.length === 0 && (order.meal_plan || isEditing) && (
               <>
                 <Separator />
                 <div className="flex justify-between items-center gap-2">
-                  <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">專案</span>
+                  <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">專案</span>
                   {isEditing ? (
                     <Select value={editForm.meal_plan} onValueChange={(v) => setEditForm(f => ({ ...f, meal_plan: v }))}>
-                      <SelectTrigger className="w-[200px] h-8 text-xs">
+                      <SelectTrigger className="w-[200px] h-10 text-sm md:h-8 md:text-xs">
                         <SelectValue placeholder="選擇專案" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1543,7 +1543,7 @@ const OrderDetailPage = () => {
                       </SelectContent>
                     </Select>
                   ) : (
-                    <span className="font-medium text-sm md:text-base text-right">{getTemplateDisplayName(order.meal_plan)}</span>
+                    <span className="font-medium text-base md:text-base text-right">{getTemplateDisplayName(order.meal_plan)}</span>
                   )}
                 </div>
               </>
@@ -1554,7 +1554,7 @@ const OrderDetailPage = () => {
         {/* 價格資訊 */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base md:text-lg">價格明細</CardTitle>
+            <CardTitle className="text-lg md:text-lg">價格明細</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {/* Multi-room price breakdown */}
@@ -1562,10 +1562,10 @@ const OrderDetailPage = () => {
               <>
                 {orderRooms.map((or) => (
                   <div key={or.id} className="flex justify-between items-center gap-2">
-                    <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">
+                    <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">
                       {or.room_types?.name || "房型"} × {or.quantity} 間
                     </span>
-                    <span className="font-medium text-sm md:text-base">NT$ {or.room_price.toLocaleString()}</span>
+                    <span className="font-medium text-base md:text-base">NT$ {or.room_price.toLocaleString()}</span>
                   </div>
                 ))}
                 <Separator />
@@ -1577,11 +1577,11 @@ const OrderDetailPage = () => {
                 : order.total_price;
               return (
                 <div className="flex justify-between items-center gap-2">
-                  <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">原始金額</span>
+                  <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">原始金額</span>
                   {isEditing ? (
-                    <Input className="w-[140px] h-8 text-sm text-right" type="text" inputMode="numeric" value={editForm.total_price} onChange={(e) => setEditForm(f => ({ ...f, total_price: Math.max(0, parseInt(e.target.value) || 0) }))} />
+                    <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right" type="text" inputMode="numeric" value={editForm.total_price} onChange={(e) => setEditForm(f => ({ ...f, total_price: Math.max(0, parseInt(e.target.value) || 0) }))} />
                   ) : (
-                    <span className="font-medium text-sm md:text-base">NT$ {displayTotal.toLocaleString()}</span>
+                    <span className="font-medium text-base md:text-base">NT$ {displayTotal.toLocaleString()}</span>
                   )}
                 </div>
               );
@@ -1595,11 +1595,11 @@ const OrderDetailPage = () => {
                 <>
                   <Separator />
                   <div className="flex justify-between items-center gap-2">
-                    <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">加購方案金額</span>
+                    <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">加購方案金額</span>
                     {isEditing ? (
-                      <Input className="w-[140px] h-8 text-sm text-right" type="text" inputMode="numeric" value={editForm.addon_total} onChange={(e) => setEditForm(f => ({ ...f, addon_total: Math.max(0, parseInt(e.target.value) || 0) }))} />
+                      <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right" type="text" inputMode="numeric" value={editForm.addon_total} onChange={(e) => setEditForm(f => ({ ...f, addon_total: Math.max(0, parseInt(e.target.value) || 0) }))} />
                     ) : (
-                      <span className="font-medium text-sm md:text-base">NT$ {addonTotal.toLocaleString()}</span>
+                      <span className="font-medium text-base md:text-base">NT$ {addonTotal.toLocaleString()}</span>
                     )}
                   </div>
                 </>
@@ -1607,27 +1607,27 @@ const OrderDetailPage = () => {
             })()}
             <Separator />
             <div className="flex justify-between items-center gap-2">
-              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">折扣金額</span>
+              <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">折扣金額</span>
               {isEditing ? (
-                <Input className="w-[140px] h-8 text-sm text-right" type="text" inputMode="numeric" value={editForm.discount_amount} onChange={(e) => setEditForm(f => ({ ...f, discount_amount: Math.max(0, parseInt(e.target.value) || 0) }))} />
+                <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right" type="text" inputMode="numeric" value={editForm.discount_amount} onChange={(e) => setEditForm(f => ({ ...f, discount_amount: Math.max(0, parseInt(e.target.value) || 0) }))} />
               ) : (
                 order.discount_amount > 0 ? (
-                  <span className="font-medium text-sm md:text-base text-destructive">- NT$ {order.discount_amount.toLocaleString()}</span>
+                  <span className="font-medium text-base md:text-base text-destructive">- NT$ {order.discount_amount.toLocaleString()}</span>
                 ) : (
-                  <span className="font-medium text-sm md:text-base">NT$ 0</span>
+                  <span className="font-medium text-base md:text-base">NT$ 0</span>
                 )
               )}
             </div>
             <div className="space-y-1">
               <div className="flex justify-between items-center gap-2">
-                <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">折扣碼</span>
+                <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">折扣碼</span>
                 {isEditing ? (
-                  <Input className="w-[140px] h-8 text-sm text-right" type="text" placeholder="選填" value={editForm.discount_code} onChange={(e) => { setEditForm(f => ({ ...f, discount_code: e.target.value })); setDiscountCodeError(""); }} />
+                  <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right" type="text" placeholder="選填" value={editForm.discount_code} onChange={(e) => { setEditForm(f => ({ ...f, discount_code: e.target.value })); setDiscountCodeError(""); }} />
                 ) : (
                   order.discount_code ? (
                     <Badge variant="outline" className="text-xs">{order.discount_code}</Badge>
                   ) : (
-                    <span className="font-medium text-sm md:text-base text-muted-foreground">—</span>
+                    <span className="font-medium text-base md:text-base text-muted-foreground">—</span>
                   )
                 )}
               </div>
@@ -1657,14 +1657,14 @@ const OrderDetailPage = () => {
                   <Separator />
                   {items.map((item, idx) => (
                     <div key={idx} className="flex justify-between items-center gap-2">
-                      <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">{item.label}</span>
-                      <span className="font-medium text-sm md:text-base">NT$ {item.amount.toLocaleString()}</span>
+                      <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">{item.label}</span>
+                      <span className="font-medium text-base md:text-base">NT$ {item.amount.toLocaleString()}</span>
                     </div>
                   ))}
                   {items.length > 1 && (
                     <div className="flex justify-between items-center gap-2 pt-1">
-                      <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">加購小計</span>
-                      <span className="font-medium text-sm md:text-base">NT$ {addonTotal.toLocaleString()}</span>
+                      <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">加購小計</span>
+                      <span className="font-medium text-base md:text-base">NT$ {addonTotal.toLocaleString()}</span>
                     </div>
                   )}
                 </>
@@ -1694,33 +1694,33 @@ const OrderDetailPage = () => {
               return (
                 <>
                   <div className="flex justify-between items-center gap-2">
-                    <span className="text-xs md:text-sm font-semibold">實收金額</span>
-                    <span className={`font-bold text-base md:text-lg ${isEditing && (editForm.total_price + editForm.addon_total - editForm.discount_amount) < 0 ? 'text-destructive' : ''}`}>
+                    <span className="text-sm md:text-sm font-semibold">實收金額</span>
+                    <span className={`font-bold text-lg md:text-lg ${isEditing && (editForm.total_price + editForm.addon_total - editForm.discount_amount) < 0 ? 'text-destructive' : ''}`}>
                       NT$ {isEditing ? (editForm.total_price + editForm.addon_total - editForm.discount_amount).toLocaleString() : effectiveFinalPrice.toLocaleString()}
                     </span>
                   </div>
                   <Separator />
                   <div className="flex justify-between items-center gap-2">
-                    <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">訂金金額</span>
+                    <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">訂金金額</span>
                     {isEditing ? (
-                      <Input className="w-[140px] h-8 text-sm text-right" type="text" inputMode="numeric" value={editForm.deposit_amount} onChange={(e) => setEditForm(f => ({ ...f, deposit_amount: Math.max(0, parseInt(e.target.value) || 0) }))} />
+                      <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right" type="text" inputMode="numeric" value={editForm.deposit_amount} onChange={(e) => setEditForm(f => ({ ...f, deposit_amount: Math.max(0, parseInt(e.target.value) || 0) }))} />
                     ) : (
-                      <span className="font-medium text-sm md:text-base">NT$ {order.deposit_amount.toLocaleString()}</span>
+                      <span className="font-medium text-base md:text-base">NT$ {order.deposit_amount.toLocaleString()}</span>
                     )}
                   </div>
                   <Separator />
                   <div className="flex justify-between items-center gap-2">
-                    <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">已付金額</span>
+                    <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">已付金額</span>
                     {isEditing ? (
-                      <Input className="w-[140px] h-8 text-sm text-right" type="text" inputMode="numeric" value={editForm.paid_amount} onChange={(e) => setEditForm(f => ({ ...f, paid_amount: Math.max(0, parseInt(e.target.value) || 0) }))} />
+                      <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right" type="text" inputMode="numeric" value={editForm.paid_amount} onChange={(e) => setEditForm(f => ({ ...f, paid_amount: Math.max(0, parseInt(e.target.value) || 0) }))} />
                     ) : (
-                      <span className="font-medium text-sm md:text-base text-primary">NT$ {order.paid_amount.toLocaleString()}</span>
+                      <span className="font-medium text-base md:text-base text-primary">NT$ {order.paid_amount.toLocaleString()}</span>
                     )}
                   </div>
                   <Separator />
                   <div className="flex justify-between items-center gap-2">
-                    <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">待付金額</span>
-                    <span className="font-medium text-sm md:text-base text-destructive">
+                    <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">待付金額</span>
+                    <span className="font-medium text-base md:text-base text-destructive">
                       NT$ {isEditing
                         ? ((editForm.total_price + editForm.addon_total - editForm.discount_amount) - editForm.paid_amount).toLocaleString()
                         : (effectiveFinalPrice - order.paid_amount).toLocaleString()
@@ -1737,7 +1737,7 @@ const OrderDetailPage = () => {
       {/* 加購方案 */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base md:text-lg">加購方案</CardTitle>
+          <CardTitle className="text-lg md:text-lg">加購方案</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {isEditing ? (
@@ -1748,10 +1748,10 @@ const OrderDetailPage = () => {
                 return petAddon ? (
                   <div className="space-y-2">
                     <div className="flex justify-between items-center gap-2">
-                      <span className="text-xs md:text-sm font-medium">🐾 {petAddon.description || '寵物方案'}</span>
+                      <span className="text-sm md:text-sm font-medium">🐾 {petAddon.description || '寵物方案'}</span>
                     </div>
                     <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
-                      <span className="text-xs md:text-sm text-muted-foreground">數量（{petAddon.unit_label}）</span>
+                      <span className="text-sm md:text-sm text-muted-foreground">數量（{petAddon.unit_label}）</span>
                       <div className="flex items-center gap-2">
                         <Button type="button" variant="outline" size="icon" className="h-7 w-7" disabled={editForm.pet_count <= 0}
                           onClick={() => {
@@ -1771,11 +1771,11 @@ const OrderDetailPage = () => {
                       </div>
                     </div>
                     <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
-                      <span className="text-xs md:text-sm text-muted-foreground">單價</span>
-                      <span className="text-sm">NT$ {petAddon.price_per_unit.toLocaleString()} / {petAddon.unit_label} / 晚</span>
+                      <span className="text-sm md:text-sm text-muted-foreground">單價</span>
+                      <span className="text-base md:text-sm">NT$ {petAddon.price_per_unit.toLocaleString()} / {petAddon.unit_label} / 晚</span>
                     </div>
                     <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
-                      <span className="text-xs md:text-sm text-muted-foreground">小計</span>
+                      <span className="text-sm md:text-sm text-muted-foreground">小計</span>
                       <span className="font-medium text-sm">NT$ {editForm.pet_plan_price.toLocaleString()}</span>
                     </div>
                     <Separator />
@@ -1783,14 +1783,14 @@ const OrderDetailPage = () => {
                 ) : editForm.pet_count > 0 ? (
                   <div className="space-y-2">
                     <div className="flex justify-between items-center gap-2">
-                      <span className="text-xs md:text-sm font-medium">🐾 寵物方案</span>
+                      <span className="text-sm md:text-sm font-medium">🐾 寵物方案</span>
                     </div>
                     <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
-                      <span className="text-xs md:text-sm text-muted-foreground">數量</span>
+                      <span className="text-sm md:text-sm text-muted-foreground">數量</span>
                       <Input className="w-[100px] h-8 text-sm text-right" type="text" inputMode="numeric" value={editForm.pet_count} onChange={(e) => setEditForm(f => ({ ...f, pet_count: Math.max(0, parseInt(e.target.value) || 0) }))} />
                     </div>
                     <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
-                      <span className="text-xs md:text-sm text-muted-foreground">金額</span>
+                      <span className="text-sm md:text-sm text-muted-foreground">金額</span>
                       <Input className="w-[120px] h-8 text-sm text-right" type="text" inputMode="numeric" value={editForm.pet_plan_price} onChange={(e) => setEditForm(f => ({ ...f, pet_plan_price: Math.max(0, parseInt(e.target.value) || 0) }))} />
                     </div>
                     <Separator />
@@ -1804,11 +1804,11 @@ const OrderDetailPage = () => {
                 return mealAddon ? (
                   <div className="space-y-2">
                     <div className="flex justify-between items-center gap-2">
-                      <span className="text-xs md:text-sm font-medium">🍖 {mealAddon.description || '餐食方案'}</span>
+                      <span className="text-sm md:text-sm font-medium">🍖 {mealAddon.description || '餐食方案'}</span>
                     </div>
                     <div className="pl-2 md:pl-4 space-y-2">
                       {editForm.meal_plan_details.map((detail, index) => (
-                        <div key={index} className="flex items-center gap-2 text-xs md:text-sm">
+                        <div key={index} className="flex items-center gap-2 text-sm md:text-sm">
                           <span className="text-muted-foreground flex-shrink-0 w-[90px]">
                             {format(new Date(detail.date), "yyyy/MM/dd")}
                           </span>
@@ -1882,7 +1882,7 @@ const OrderDetailPage = () => {
                         <>
                           <Separator className="my-2" />
                           <div className="flex justify-between items-center gap-2">
-                            <span className="text-xs md:text-sm text-muted-foreground">小計</span>
+                            <span className="text-sm md:text-sm text-muted-foreground">小計</span>
                             <span className="font-medium text-sm">NT$ {editForm.meal_plan_total.toLocaleString()}</span>
                           </div>
                         </>
@@ -1892,18 +1892,18 @@ const OrderDetailPage = () => {
                 ) : editForm.meal_plan_details.length > 0 ? (
                   <div className="space-y-2">
                     <div className="flex justify-between items-center gap-2">
-                      <span className="text-xs md:text-sm font-medium">🍖 餐食方案</span>
+                      <span className="text-sm md:text-sm font-medium">🍖 餐食方案</span>
                     </div>
                     <div className="pl-2 md:pl-4 space-y-2">
                       {editForm.meal_plan_details.map((detail, index) => (
-                        <div key={index} className="flex items-center gap-2 text-xs md:text-sm">
+                        <div key={index} className="flex items-center gap-2 text-sm md:text-sm">
                           <span className="text-muted-foreground">{format(new Date(detail.date), "yyyy/MM/dd")} - {detail.count} 份</span>
                           <span className="font-medium ml-auto">NT$ {detail.price.toLocaleString()}</span>
                         </div>
                       ))}
                       <Separator className="my-2" />
                       <div className="flex justify-between items-center gap-2">
-                        <span className="text-xs md:text-sm text-muted-foreground">小計</span>
+                        <span className="text-sm md:text-sm text-muted-foreground">小計</span>
                         <span className="font-medium text-sm">NT$ {editForm.meal_plan_total.toLocaleString()}</span>
                       </div>
                     </div>
@@ -1923,10 +1923,10 @@ const OrderDetailPage = () => {
                       {idx > 0 && <Separator />}
                       <div className="space-y-2">
                         <div className="flex justify-between items-center gap-2">
-                          <span className="text-xs md:text-sm font-medium">📦 {addon.addon_type}</span>
+                          <span className="text-sm md:text-sm font-medium">📦 {addon.addon_type}</span>
                         </div>
                         <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
-                          <span className="text-xs md:text-sm text-muted-foreground">數量（{addon.unit_label}）</span>
+                          <span className="text-sm md:text-sm text-muted-foreground">數量（{addon.unit_label}）</span>
                           <div className="flex items-center gap-2">
                             <Button type="button" variant="outline" size="icon" className="h-7 w-7" disabled={count <= 0}
                               onClick={() => {
@@ -1956,11 +1956,11 @@ const OrderDetailPage = () => {
                           </div>
                         </div>
                         <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
-                          <span className="text-xs md:text-sm text-muted-foreground">單價</span>
-                          <span className="text-sm">NT$ {addon.price_per_unit.toLocaleString()} / {addon.unit_label} / 晚</span>
+                          <span className="text-sm md:text-sm text-muted-foreground">單價</span>
+                          <span className="text-base md:text-sm">NT$ {addon.price_per_unit.toLocaleString()} / {addon.unit_label} / 晚</span>
                         </div>
                         <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
-                          <span className="text-xs md:text-sm text-muted-foreground">小計</span>
+                          <span className="text-sm md:text-sm text-muted-foreground">小計</span>
                           <span className="font-medium text-sm">NT$ {total.toLocaleString()}</span>
                         </div>
                       </div>
@@ -1976,8 +1976,8 @@ const OrderDetailPage = () => {
                   <>
                     <Separator />
                     <div className="flex justify-between items-center gap-2 pt-2">
-                      <span className="text-xs md:text-sm font-semibold">加購總計</span>
-                      <span className="font-bold text-base md:text-lg text-primary">
+                      <span className="text-sm md:text-sm font-semibold">加購總計</span>
+                      <span className="font-bold text-lg md:text-lg text-primary">
                         NT$ {grandTotal.toLocaleString()}
                       </span>
                     </div>
@@ -1987,7 +1987,7 @@ const OrderDetailPage = () => {
 
               {editForm.pet_count === 0 && editForm.meal_plan_details.length === 0 && editForm.custom_addon_details.length === 0 && addonSettings.filter(a => a.addon_type !== 'pet' && a.addon_type !== 'meal' && a.addon_type !== 'bbq').length === 0 && addonSettings.length === 0 && (
                 <div className="text-center py-4">
-                  <p className="text-xs md:text-sm text-muted-foreground">無可用的加購方案</p>
+                  <p className="text-sm md:text-sm text-muted-foreground">無可用的加購方案</p>
                 </div>
               )}
             </>
@@ -1999,7 +1999,7 @@ const OrderDetailPage = () => {
                 if (!hasAnyAddon) {
                   return (
                     <div className="text-center py-4 md:py-6">
-                      <p className="text-xs md:text-sm text-muted-foreground">此訂單無加購方案</p>
+                      <p className="text-sm md:text-sm text-muted-foreground">此訂單無加購方案</p>
                     </div>
                   );
                 }
@@ -2011,12 +2011,12 @@ const OrderDetailPage = () => {
                       <>
                         <div className="space-y-2">
                           <div className="flex justify-between items-center gap-2">
-                            <span className="text-xs md:text-sm font-medium">🐾 寵物方案</span>
+                            <span className="text-sm md:text-sm font-medium">🐾 寵物方案</span>
                             <Badge variant="outline" className="text-xs">{order.pet_count} 隻 × {nights} 晚</Badge>
                           </div>
                           <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
-                            <span className="text-xs md:text-sm text-muted-foreground">小計</span>
-                            <span className="font-medium text-sm md:text-base">NT$ {order.pet_plan_price.toLocaleString()}</span>
+                            <span className="text-sm md:text-sm text-muted-foreground">小計</span>
+                            <span className="font-medium text-base md:text-base">NT$ {order.pet_plan_price.toLocaleString()}</span>
                           </div>
                         </div>
                       </>
@@ -2027,11 +2027,11 @@ const OrderDetailPage = () => {
                         {order.pet_count > 0 && <Separator />}
                         <div className="space-y-2">
                           <div className="flex justify-between items-center gap-2">
-                            <span className="text-xs md:text-sm font-medium">🍖 烤肉餐食方案</span>
+                            <span className="text-sm md:text-sm font-medium">🍖 烤肉餐食方案</span>
                           </div>
                           <div className="pl-2 md:pl-4 space-y-2">
                             {order.meal_plan_details.map((detail, index) => (
-                              <div key={index} className="flex justify-between items-center gap-2 text-xs md:text-sm">
+                              <div key={index} className="flex justify-between items-center gap-2 text-sm md:text-sm">
                                 <span className="text-muted-foreground flex-shrink-0">
                                   {format(new Date(detail.date), "yyyy/MM/dd")} - {detail.count} 份
                                 </span>
@@ -2040,8 +2040,8 @@ const OrderDetailPage = () => {
                             ))}
                             <Separator className="my-2" />
                             <div className="flex justify-between items-center gap-2">
-                              <span className="text-xs md:text-sm text-muted-foreground">小計</span>
-                              <span className="font-medium text-sm md:text-base">NT$ {order.meal_plan_total.toLocaleString()}</span>
+                              <span className="text-sm md:text-sm text-muted-foreground">小計</span>
+                              <span className="font-medium text-base md:text-base">NT$ {order.meal_plan_total.toLocaleString()}</span>
                             </div>
                           </div>
                         </div>
@@ -2053,12 +2053,12 @@ const OrderDetailPage = () => {
                         {(idx > 0 || order.pet_count > 0 || order.meal_plan_total > 0) && <Separator />}
                         <div className="space-y-2">
                           <div className="flex justify-between items-center gap-2">
-                            <span className="text-xs md:text-sm font-medium">📦 {addon.addon_type}</span>
+                            <span className="text-sm md:text-sm font-medium">📦 {addon.addon_type}</span>
                             <Badge variant="outline" className="text-xs">{addon.count} {addon.unit_label} × {nights} 晚</Badge>
                           </div>
                           <div className="flex justify-between items-center gap-2 pl-2 md:pl-4">
-                            <span className="text-xs md:text-sm text-muted-foreground">小計</span>
-                            <span className="font-medium text-sm md:text-base">NT$ {addon.total.toLocaleString()}</span>
+                            <span className="text-sm md:text-sm text-muted-foreground">小計</span>
+                            <span className="font-medium text-base md:text-base">NT$ {addon.total.toLocaleString()}</span>
                           </div>
                         </div>
                       </React.Fragment>
@@ -2066,8 +2066,8 @@ const OrderDetailPage = () => {
 
                     <Separator />
                     <div className="flex justify-between items-center gap-2 pt-2">
-                      <span className="text-xs md:text-sm font-semibold">加購總計</span>
-                      <span className="font-bold text-base md:text-lg text-primary">
+                      <span className="text-sm md:text-sm font-semibold">加購總計</span>
+                      <span className="font-bold text-lg md:text-lg text-primary">
                         NT$ {grandTotal.toLocaleString()}
                       </span>
                     </div>
@@ -2082,7 +2082,7 @@ const OrderDetailPage = () => {
       {/* 備註 */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base md:text-lg">訂單備註</CardTitle>
+          <CardTitle className="text-lg md:text-lg">訂單備註</CardTitle>
         </CardHeader>
         <CardContent>
           {isEditing ? (
@@ -2091,13 +2091,13 @@ const OrderDetailPage = () => {
               onChange={(e) => setEditForm(f => ({ ...f, notes: e.target.value }))}
               rows={4}
               placeholder="輸入備註..."
-              className="text-sm"
+              className="text-base md:text-sm"
             />
           ) : (
             order.notes ? (
-              <p className="text-xs md:text-sm whitespace-pre-wrap break-words">{order.notes}</p>
+              <p className="text-sm md:text-sm whitespace-pre-wrap break-words">{order.notes}</p>
             ) : (
-              <p className="text-xs md:text-sm text-muted-foreground text-center py-2">無備註</p>
+              <p className="text-sm md:text-sm text-muted-foreground text-center py-2">無備註</p>
             )
           )}
         </CardContent>
