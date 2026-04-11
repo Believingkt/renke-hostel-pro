@@ -160,6 +160,7 @@ interface EditFormState {
   room_type_id: string;
   total_price: number;
   discount_amount: number;
+  discount_code: string;
   deposit_amount: number;
   paid_amount: number;
   pet_count: number;
@@ -242,6 +243,7 @@ const OrderDetailPage = () => {
     room_type_id: "",
     total_price: 0,
     discount_amount: 0,
+    discount_code: "",
     deposit_amount: 0,
     paid_amount: 0,
     pet_count: 0,
@@ -272,6 +274,7 @@ const OrderDetailPage = () => {
       room_type_id: order.room_type_id || "",
       total_price: order.total_price || 0,
       discount_amount: order.discount_amount || 0,
+      discount_code: order.discount_code || "",
       deposit_amount: order.deposit_amount || 0,
       paid_amount: order.paid_amount || 0,
       pet_count: order.pet_count || 0,
@@ -415,6 +418,7 @@ const OrderDetailPage = () => {
         room_type_id: editForm.room_type_id || null,
         total_price: editForm.total_price,
         discount_amount: editForm.discount_amount,
+        discount_code: editForm.discount_code.trim() || null,
         final_price: editFinalPriceCalc,
         deposit_amount: editForm.deposit_amount,
         paid_amount: editForm.paid_amount,
@@ -1563,12 +1567,18 @@ const OrderDetailPage = () => {
                 )
               )}
             </div>
-            {!isEditing && order.discount_code && (
-              <div className="flex justify-between items-center gap-2">
-                <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">折扣碼</span>
-                <Badge variant="outline" className="text-xs">{order.discount_code}</Badge>
-              </div>
-            )}
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-xs md:text-sm text-muted-foreground flex-shrink-0">折扣碼</span>
+              {isEditing ? (
+                <Input className="w-[140px] h-8 text-sm text-right" type="text" placeholder="選填" value={editForm.discount_code} onChange={(e) => setEditForm(f => ({ ...f, discount_code: e.target.value }))} />
+              ) : (
+                order.discount_code ? (
+                  <Badge variant="outline" className="text-xs">{order.discount_code}</Badge>
+                ) : (
+                  <span className="font-medium text-sm md:text-base text-muted-foreground">—</span>
+                )
+              )}
+            </div>
             {/* 加購明細 - 逐項顯示 */}
             {!isEditing && (() => {
               const customAddons = (order.custom_addon_details as CustomAddonDetail[]) || [];
