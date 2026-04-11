@@ -1,41 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-// Allowed origins for CORS - restrict to known domains only
-const allowedOrigins = [
-  'https://sensan.lovable.app',
-  'https://dmafqwfynatdvnaeovhz.lovableproject.com',
-  'https://sensaninn.lakeze.com',
-  'https://renke-hostel-pro.lovable.app',
-];
-
-function getCorsHeaders(req: Request) {
-  const origin = req.headers.get('origin') || '';
-  const isTrustedLovableOrigin =
-    origin.endsWith('.lovable.app') || origin.endsWith('.lovableproject.com');
-  const allowedOrigin =
-    !origin
-      ? allowedOrigins[0]
-      : allowedOrigins.includes(origin) || isTrustedLovableOrigin
-        ? origin
-        : '';
-  
-  // If origin is not allowed, return empty to block the request
-  if (!allowedOrigin) {
-    return {
-      'Access-Control-Allow-Origin': allowedOrigins[0],
-      'Access-Control-Allow-Headers':
-        'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-    };
-  }
-
-  return {
-    'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Headers':
-      'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-  };
-}
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
