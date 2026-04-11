@@ -127,16 +127,7 @@ export default function ResetPassword() {
   };
 
   if (isValidating) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 p-4">
-        <Card className="w-full max-w-md shadow-xl border-0">
-          <CardContent className="flex items-center justify-center p-8">
-            <Loader2 className="h-8 w-8 animate-spin text-auth-primary" />
-            <span className="ml-3">驗證中...</span>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return null;
   }
 
   if (!token || !isValidToken) {
