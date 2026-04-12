@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { RoomTypeForm } from "@/components/RoomTypeForm";
 import { RoomFacilitiesForm } from "@/components/RoomFacilitiesForm";
-import { PricingTemplateManager } from "@/components/PricingTemplateManager";
+import { PricingTemplateManager, PricingTemplateManagerRef } from "@/components/PricingTemplateManager";
 import { TabsSkeleton } from "@/components/skeletons/TabsSkeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
@@ -147,6 +147,7 @@ const Pricing = () => {
     openAddDialog: () => void;
     openBatchDialog: () => void;
   }>(null);
+  const pricingTemplateRef = useRef<PricingTemplateManagerRef>(null);
   
   const [roomTypes, setRoomTypes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -496,8 +497,14 @@ const Pricing = () => {
           <PageHeader
             title="專案設定"
             icon={DollarSign}
+            action={
+              <Button onClick={() => pricingTemplateRef.current?.openAddDialog()} className="flex items-center gap-2 h-11 sm:h-10 touch-manipulation">
+                <Plus className="h-4 w-4" />
+                新增專案
+              </Button>
+            }
           />
-          <PricingTemplateManager accommodationId={currentAccommodationId || ""} />
+          <PricingTemplateManager ref={pricingTemplateRef} accommodationId={currentAccommodationId || ""} />
         </TabsContent>
 
         <TabsContent value="holidays" className="space-y-4">

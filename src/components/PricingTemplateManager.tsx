@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -99,6 +99,10 @@ interface PricingTemplateManagerProps {
   accommodationId: string;
 }
 
+export interface PricingTemplateManagerRef {
+  openAddDialog: () => void;
+}
+
 const templateSchema = z.object({
   template_name: z.string().trim().min(1, "專案名稱不能為空").max(50, "專案名稱最多50字"),
   description: z.string().trim().max(200, "描述最多200字").optional(),
@@ -110,7 +114,7 @@ const templateSchema = z.object({
   path: ["price"],
 });
 
-export function PricingTemplateManager({ accommodationId }: PricingTemplateManagerProps) {
+export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, PricingTemplateManagerProps>(function PricingTemplateManager({ accommodationId }, ref) {
   const isMobile = useIsMobile();
   const [templates, setTemplates] = useState<PricingTemplate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -232,6 +236,10 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
       console.error('載入套用記錄失敗:', error);
     }
   };
+
+  useImperativeHandle(ref, () => ({
+    openAddDialog: () => handleAddNew(),
+  }));
 
   const handleAddNew = () => {
     setEditingTemplate(null);
@@ -961,15 +969,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
   return (
     <>
       <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-            <Button onClick={handleAddNew} className="flex items-center justify-center gap-2 w-full sm:w-auto h-11 sm:h-10 touch-manipulation">
-              <Plus className="h-4 w-4" />
-              新增專案
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {loading ? (
             <div className="space-y-4 animate-fade-in">
               <Skeleton className="h-16 sm:h-20 w-full rounded-lg" />
@@ -1825,4 +1825,4 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
 
     </>
   );
-}
+});
