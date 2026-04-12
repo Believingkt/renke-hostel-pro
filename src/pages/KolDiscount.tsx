@@ -3567,18 +3567,8 @@ function verifyWebhook(payload, signature, timestamp, secret) {
         </Dialog>
       )}
 
-      {/* Integrated Details Dialog */}
-      {selectedCodeForCommission && (
-        <IntegratedCodeDetailsDialog
-          open={integratedDetailsOpen}
-          onOpenChange={setIntegratedDetailsOpen}
-          discountCodeId={selectedCodeForCommission.id}
-          discountCodeName={selectedCodeForCommission.name}
-          discountCode={selectedCodeForCommission.code}
-          accommodationId={accommodationId || ''}
-          onApiKeyRegenerated={fetchDiscountCodes}
-        />
-      )}
+
+
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
