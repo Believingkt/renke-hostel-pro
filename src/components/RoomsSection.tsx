@@ -194,7 +194,7 @@ const RoomCard = ({ room, isFirstRoom = false, sharedTemplateLabels, sharedHolid
   }
 
   return (
-    <div>
+    <div className="h-full flex flex-col">
     <Card className="group overflow-hidden hover:shadow-xl transition-all duration-300 border-0 shadow-md h-full flex flex-col">
       <div className="relative overflow-hidden">
         <Carousel
