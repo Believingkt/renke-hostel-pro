@@ -144,7 +144,7 @@ const KolDiscount = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [apiDocOpen, setApiDocOpen] = useState(false);
   const [commissionRate, setCommissionRate] = useState("");
-  const [selectedCodeForCommission, setSelectedCodeForCommission] = useState<DiscountCode | null>(null);
+  
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "expired" | "full">("all");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
