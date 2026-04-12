@@ -98,14 +98,19 @@ interface InventoryPricing {
   weekend_3_meals?: number;
 }
 
-const RoomCard = ({ room, isFirstRoom = false, sharedTemplateLabels, sharedHolidays, amenities, inventoryPricing, hasRoomSpecificTemplates }: { 
+interface RoomTemplate {
+  template_name: string;
+  price: number;
+}
+
+const RoomCard = ({ room, isFirstRoom = false, sharedTemplateLabels, sharedHolidays, amenities, inventoryPricing, roomTemplates }: { 
   room: RoomType & { room_photos?: { photo_url: string; display_order: number }[] }, 
   isFirstRoom?: boolean,
   sharedTemplateLabels?: { priceLabel?: string; price2MealsLabel?: string; price3MealsLabel?: string },
   sharedHolidays?: Set<string>,
   amenities?: string[],
   inventoryPricing?: InventoryPricing,
-  hasRoomSpecificTemplates?: boolean,
+  roomTemplates?: RoomTemplate[],
 }) => {
   const databaseImages = room.room_photos?.map(p => p.photo_url) || [];
   const defaultImages = roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard];
@@ -146,28 +151,38 @@ const RoomCard = ({ room, isFirstRoom = false, sharedTemplateLabels, sharedHolid
   // Only show meal plan rows if this room has corresponding templates
   const pricingRows: { label: string; weekday?: number; weekend?: number }[] = [];
   
-  if (pricing.weekday_price != null || pricing.weekend_price != null) {
-    pricingRows.push({
-      label: templateLabels.priceLabel || '純住宿',
-      weekday: pricing.weekday_price,
-      weekend: pricing.weekend_price,
-    });
-  }
-  // Only show 二食 row if this room has a 二食 template (either room-specific or global)
-  if ((pricing.weekday_2_meals != null || pricing.weekend_2_meals != null) && templateLabels.price2MealsLabel) {
-    pricingRows.push({
-      label: templateLabels.price2MealsLabel,
-      weekday: pricing.weekday_2_meals,
-      weekend: pricing.weekend_2_meals,
-    });
-  }
-  // Only show 三食 row if this room has a 三食 template
-  if ((pricing.weekday_3_meals != null || pricing.weekend_3_meals != null) && templateLabels.price3MealsLabel) {
-    pricingRows.push({
-      label: templateLabels.price3MealsLabel,
-      weekday: pricing.weekday_3_meals,
-      weekend: pricing.weekend_3_meals,
-    });
+  // If this room has specific templates, show template prices directly
+  if (roomTemplates && roomTemplates.length > 0) {
+    for (const t of roomTemplates) {
+      pricingRows.push({
+        label: t.template_name,
+        weekday: t.price,
+        weekend: undefined, // template-based: show single price
+      });
+    }
+  } else {
+    // Fallback to inventory-based pricing
+    if (pricing.weekday_price != null || pricing.weekend_price != null) {
+      pricingRows.push({
+        label: templateLabels.priceLabel || '純住宿',
+        weekday: pricing.weekday_price,
+        weekend: pricing.weekend_price,
+      });
+    }
+    if ((pricing.weekday_2_meals != null || pricing.weekend_2_meals != null) && templateLabels.price2MealsLabel) {
+      pricingRows.push({
+        label: templateLabels.price2MealsLabel,
+        weekday: pricing.weekday_2_meals,
+        weekend: pricing.weekend_2_meals,
+      });
+    }
+    if ((pricing.weekday_3_meals != null || pricing.weekend_3_meals != null) && templateLabels.price3MealsLabel) {
+      pricingRows.push({
+        label: templateLabels.price3MealsLabel,
+        weekday: pricing.weekday_3_meals,
+        weekend: pricing.weekend_3_meals,
+      });
+    }
   }
 
   // Room breakdown for exclusive packages
@@ -329,6 +344,7 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
   const [allAmenities, setAllAmenities] = useState<Record<string, string[]>>({});
   const [allInventoryPricing, setAllInventoryPricing] = useState<Record<string, InventoryPricing>>({});
   const [perRoomTemplateLabels, setPerRoomTemplateLabels] = useState<Record<string, { priceLabel?: string; price2MealsLabel?: string; price3MealsLabel?: string }>>({});
+  const [allRoomTemplates, setAllRoomTemplates] = useState<Record<string, RoomTemplate[]>>({});
 
   const accommodationId = roomTypes[0]?.accommodation_id;
   const roomTypeIds = roomTypes.map((r: any) => r.id);
@@ -373,9 +389,9 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
       // Process template labels per room type
       if (!templatesResult.error && templatesResult.data?.length) {
         const perRoomLabels: Record<string, { priceLabel?: string; price2MealsLabel?: string; price3MealsLabel?: string }> = {};
+        const roomTemplatesMap: Record<string, RoomTemplate[]> = {};
         for (const t of templatesResult.data) {
           const name = t.template_name;
-          // Build labels for each room_type_id (and a global fallback with key '_global')
           const keys = t.room_type_id ? [t.room_type_id] : ['_global'];
           for (const key of keys) {
             if (!perRoomLabels[key]) perRoomLabels[key] = {};
@@ -384,11 +400,15 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
             else if (name.includes('二食') && !labels.price2MealsLabel) labels.price2MealsLabel = name;
             else if (!labels.priceLabel) labels.priceLabel = name;
           }
+          // Store templates per room_type_id
+          if (t.room_type_id) {
+            if (!roomTemplatesMap[t.room_type_id]) roomTemplatesMap[t.room_type_id] = [];
+            roomTemplatesMap[t.room_type_id].push({ template_name: t.template_name, price: t.price });
+          }
         }
-        // For shared fallback, use global labels
         setSharedTemplateLabels(perRoomLabels['_global'] || {});
-        // Store per-room labels
         setPerRoomTemplateLabels(perRoomLabels);
+        setAllRoomTemplates(roomTemplatesMap);
       }
 
       // Process holidays
@@ -472,8 +492,6 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
       price2MealsLabel: roomLabels.price2MealsLabel || globalLabels.price2MealsLabel,
       price3MealsLabel: roomLabels.price3MealsLabel || globalLabels.price3MealsLabel,
     };
-    // Check which template types this room actually has
-    const hasRoomSpecificTemplates = !!perRoomTemplateLabels[room.id];
     return (
       <RoomCard
         key={room.id}
@@ -483,7 +501,7 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
         sharedHolidays={sharedHolidays}
         amenities={allAmenities[room.id]}
         inventoryPricing={allInventoryPricing[room.id]}
-        hasRoomSpecificTemplates={hasRoomSpecificTemplates}
+        roomTemplates={allRoomTemplates[room.id]}
       />
     );
   };
