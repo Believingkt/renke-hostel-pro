@@ -98,13 +98,14 @@ interface InventoryPricing {
   weekend_3_meals?: number;
 }
 
-const RoomCard = ({ room, isFirstRoom = false, sharedTemplateLabels, sharedHolidays, amenities, inventoryPricing }: { 
+const RoomCard = ({ room, isFirstRoom = false, sharedTemplateLabels, sharedHolidays, amenities, inventoryPricing, hasRoomSpecificTemplates }: { 
   room: RoomType & { room_photos?: { photo_url: string; display_order: number }[] }, 
   isFirstRoom?: boolean,
   sharedTemplateLabels?: { priceLabel?: string; price2MealsLabel?: string; price3MealsLabel?: string },
   sharedHolidays?: Set<string>,
   amenities?: string[],
   inventoryPricing?: InventoryPricing,
+  hasRoomSpecificTemplates?: boolean,
 }) => {
   const databaseImages = room.room_photos?.map(p => p.photo_url) || [];
   const defaultImages = roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard];
@@ -142,6 +143,7 @@ const RoomCard = ({ room, isFirstRoom = false, sharedTemplateLabels, sharedHolid
   };
 
   // Build pricing display from inventory data
+  // Only show meal plan rows if this room has corresponding templates
   const pricingRows: { label: string; weekday?: number; weekend?: number }[] = [];
   
   if (pricing.weekday_price != null || pricing.weekend_price != null) {
@@ -151,16 +153,18 @@ const RoomCard = ({ room, isFirstRoom = false, sharedTemplateLabels, sharedHolid
       weekend: pricing.weekend_price,
     });
   }
-  if (pricing.weekday_2_meals != null || pricing.weekend_2_meals != null) {
+  // Only show 二食 row if this room has a 二食 template (either room-specific or global)
+  if ((pricing.weekday_2_meals != null || pricing.weekend_2_meals != null) && templateLabels.price2MealsLabel) {
     pricingRows.push({
-      label: templateLabels.price2MealsLabel || '一泊二食',
+      label: templateLabels.price2MealsLabel,
       weekday: pricing.weekday_2_meals,
       weekend: pricing.weekend_2_meals,
     });
   }
-  if (pricing.weekday_3_meals != null || pricing.weekend_3_meals != null) {
+  // Only show 三食 row if this room has a 三食 template
+  if ((pricing.weekday_3_meals != null || pricing.weekend_3_meals != null) && templateLabels.price3MealsLabel) {
     pricingRows.push({
-      label: templateLabels.price3MealsLabel || '一泊三食',
+      label: templateLabels.price3MealsLabel,
       weekday: pricing.weekday_3_meals,
       weekend: pricing.weekend_3_meals,
     });
@@ -324,6 +328,7 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
   // Batch-fetched data for all rooms
   const [allAmenities, setAllAmenities] = useState<Record<string, string[]>>({});
   const [allInventoryPricing, setAllInventoryPricing] = useState<Record<string, InventoryPricing>>({});
+  const [perRoomTemplateLabels, setPerRoomTemplateLabels] = useState<Record<string, { priceLabel?: string; price2MealsLabel?: string; price3MealsLabel?: string }>>({});
 
   const accommodationId = roomTypes[0]?.accommodation_id;
   const roomTypeIds = roomTypes.map((r: any) => r.id);
@@ -341,7 +346,7 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
       const [templatesResult, holidaysResult, amenitiesResult, inventoryResult] = await Promise.all([
         supabase
           .from('pricing_templates')
-          .select('template_name, price, display_order')
+          .select('template_name, price, display_order, room_type_id')
           .eq('accommodation_id', accommodationId)
           .order('display_order', { ascending: true }),
         supabase
@@ -365,17 +370,25 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
           .order('date', { ascending: true }),
       ]);
 
-      // Process template labels
+      // Process template labels per room type
       if (!templatesResult.error && templatesResult.data?.length) {
-        const labels: { priceLabel?: string; price2MealsLabel?: string; price3MealsLabel?: string } = {};
+        const perRoomLabels: Record<string, { priceLabel?: string; price2MealsLabel?: string; price3MealsLabel?: string }> = {};
         for (const t of templatesResult.data) {
           const name = t.template_name;
-          if (name.includes('三食') && !labels.price3MealsLabel) labels.price3MealsLabel = name;
-          else if (name.includes('二食') && !labels.price2MealsLabel) labels.price2MealsLabel = name;
-          else if (!labels.priceLabel) labels.priceLabel = name;
+          // Build labels for each room_type_id (and a global fallback with key '_global')
+          const keys = t.room_type_id ? [t.room_type_id] : ['_global'];
+          for (const key of keys) {
+            if (!perRoomLabels[key]) perRoomLabels[key] = {};
+            const labels = perRoomLabels[key];
+            if (name.includes('三食') && !labels.price3MealsLabel) labels.price3MealsLabel = name;
+            else if (name.includes('二食') && !labels.price2MealsLabel) labels.price2MealsLabel = name;
+            else if (!labels.priceLabel) labels.priceLabel = name;
+          }
         }
-        if (!labels.priceLabel && templatesResult.data.length > 0) labels.priceLabel = templatesResult.data[0].template_name;
-        setSharedTemplateLabels(labels);
+        // For shared fallback, use global labels
+        setSharedTemplateLabels(perRoomLabels['_global'] || {});
+        // Store per-room labels
+        setPerRoomTemplateLabels(perRoomLabels);
       }
 
       // Process holidays
@@ -450,17 +463,30 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
 
   const shouldUseCarousel = displayRooms.length > 4;
 
-  const renderRoomCard = (room: any, index: number) => (
-    <RoomCard
-      key={room.id}
-      room={room}
-      isFirstRoom={index === 0}
-      sharedTemplateLabels={sharedTemplateLabels}
-      sharedHolidays={sharedHolidays}
-      amenities={allAmenities[room.id]}
-      inventoryPricing={allInventoryPricing[room.id]}
-    />
-  );
+  const renderRoomCard = (room: any, index: number) => {
+    // Merge per-room labels: room-specific takes priority, then global fallback
+    const roomLabels = perRoomTemplateLabels[room.id] || {};
+    const globalLabels = perRoomTemplateLabels['_global'] || {};
+    const mergedLabels = {
+      priceLabel: roomLabels.priceLabel || globalLabels.priceLabel || sharedTemplateLabels.priceLabel,
+      price2MealsLabel: roomLabels.price2MealsLabel || globalLabels.price2MealsLabel,
+      price3MealsLabel: roomLabels.price3MealsLabel || globalLabels.price3MealsLabel,
+    };
+    // Check which template types this room actually has
+    const hasRoomSpecificTemplates = !!perRoomTemplateLabels[room.id];
+    return (
+      <RoomCard
+        key={room.id}
+        room={room}
+        isFirstRoom={index === 0}
+        sharedTemplateLabels={mergedLabels}
+        sharedHolidays={sharedHolidays}
+        amenities={allAmenities[room.id]}
+        inventoryPricing={allInventoryPricing[room.id]}
+        hasRoomSpecificTemplates={hasRoomSpecificTemplates}
+      />
+    );
+  };
 
   return (
     <section id="rooms" className="py-12 md:py-16 lg:py-20 bg-secondary/20">
