@@ -389,9 +389,9 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
       // Process template labels per room type
       if (!templatesResult.error && templatesResult.data?.length) {
         const perRoomLabels: Record<string, { priceLabel?: string; price2MealsLabel?: string; price3MealsLabel?: string }> = {};
+        const roomTemplatesMap: Record<string, RoomTemplate[]> = {};
         for (const t of templatesResult.data) {
           const name = t.template_name;
-          // Build labels for each room_type_id (and a global fallback with key '_global')
           const keys = t.room_type_id ? [t.room_type_id] : ['_global'];
           for (const key of keys) {
             if (!perRoomLabels[key]) perRoomLabels[key] = {};
@@ -400,11 +400,15 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
             else if (name.includes('二食') && !labels.price2MealsLabel) labels.price2MealsLabel = name;
             else if (!labels.priceLabel) labels.priceLabel = name;
           }
+          // Store templates per room_type_id
+          if (t.room_type_id) {
+            if (!roomTemplatesMap[t.room_type_id]) roomTemplatesMap[t.room_type_id] = [];
+            roomTemplatesMap[t.room_type_id].push({ template_name: t.template_name, price: t.price });
+          }
         }
-        // For shared fallback, use global labels
         setSharedTemplateLabels(perRoomLabels['_global'] || {});
-        // Store per-room labels
         setPerRoomTemplateLabels(perRoomLabels);
+        setAllRoomTemplates(roomTemplatesMap);
       }
 
       // Process holidays
@@ -488,8 +492,6 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
       price2MealsLabel: roomLabels.price2MealsLabel || globalLabels.price2MealsLabel,
       price3MealsLabel: roomLabels.price3MealsLabel || globalLabels.price3MealsLabel,
     };
-    // Check which template types this room actually has
-    const hasRoomSpecificTemplates = !!perRoomTemplateLabels[room.id];
     return (
       <RoomCard
         key={room.id}
@@ -499,7 +501,7 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
         sharedHolidays={sharedHolidays}
         amenities={allAmenities[room.id]}
         inventoryPricing={allInventoryPricing[room.id]}
-        hasRoomSpecificTemplates={hasRoomSpecificTemplates}
+        roomTemplates={allRoomTemplates[room.id]}
       />
     );
   };
