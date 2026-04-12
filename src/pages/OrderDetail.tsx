@@ -364,39 +364,47 @@ const OrderDetailPage = () => {
 
     const timer = setTimeout(async () => {
       setDiscountCodeError("");
-      // First check if code exists at all (active or not)
-      const { data: anyMatch } = await supabase
-        .from("discount_codes")
-        .select("discount_type, discount_value, is_active, valid_from, valid_until")
-        .eq("accommodation_id", order.accommodation_id)
-        .eq("code", code)
-        .maybeSingle();
-
-      if (!anyMatch) {
-        // Code doesn't exist - show error and reset discount
-        setDiscountCodeError("此折扣碼不存在");
-        setEditForm(f => ({ ...f, discount_amount: 0 }));
-        return;
-      }
-
-      const now = new Date();
-      const isExpired = anyMatch.valid_until && new Date(anyMatch.valid_until) < now;
-      const isNotStarted = anyMatch.valid_from && new Date(anyMatch.valid_from) > now;
-      const isInactive = !anyMatch.is_active;
-
-      if (isExpired || isNotStarted || isInactive) {
-        setDiscountCodeError("此折扣碼已失效");
-        return;
-      }
-
-      let newDiscount = 0;
       const base = editForm.total_price + editForm.addon_total;
-      if (anyMatch.discount_type === "percentage") {
-        newDiscount = Math.round(base * anyMatch.discount_value / 100);
-      } else {
-        newDiscount = Math.min(anyMatch.discount_value, base);
+      // Use the primary room_type_id for validation
+      const roomTypeId = editForm.room_type_id || (editOrderRooms.length > 0 ? editOrderRooms[0].room_type_id : null) || order.room_type_id || null;
+      const checkInDate = order.check_in_date || null;
+
+      try {
+        const { data, error } = await supabase.rpc('validate_discount_code', {
+          p_code: code.toUpperCase(),
+          p_accommodation_id: order.accommodation_id,
+          p_order_amount: base,
+          p_room_type_id: roomTypeId,
+          p_check_in_date: checkInDate
+        });
+
+        if (error) {
+          setDiscountCodeError("驗證折扣碼失敗");
+          return;
+        }
+
+        const result = data?.[0];
+        if (!result || !result.is_valid) {
+          let errorMsg = result?.message || "此折扣碼不存在";
+          if (result?.applicable_room_names && result.applicable_room_names.length > 0) {
+            errorMsg += `（僅適用：${result.applicable_room_names.join('、')}）`;
+          }
+          setDiscountCodeError(errorMsg);
+          setEditForm(f => ({ ...f, discount_amount: 0 }));
+          return;
+        }
+
+        let newDiscount = 0;
+        if (result.discount_type === "percentage") {
+          newDiscount = Math.round(base * result.discount_value / 100);
+        } else {
+          newDiscount = Math.min(result.discount_value, base);
+        }
+        setEditForm(f => ({ ...f, discount_amount: newDiscount }));
+      } catch (err) {
+        console.error("Error validating discount code:", err);
+        setDiscountCodeError("驗證折扣碼失敗");
       }
-      setEditForm(f => ({ ...f, discount_amount: newDiscount }));
     }, 500);
 
     return () => clearTimeout(timer);
