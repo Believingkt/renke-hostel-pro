@@ -229,6 +229,7 @@ const KolDiscountDetail = () => {
           )
         `)
         .eq("discount_code_id", discountCodeId!)
+        .neq("settlement_status", "cancelled")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
