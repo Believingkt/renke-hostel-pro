@@ -512,6 +512,15 @@ const OrderDetailPage = () => {
           .eq("order_id", order.id);
         if (deleteError) throw deleteError;
 
+        // Verify deletion succeeded (RLS may silently block deletes)
+        const { data: remaining } = await supabase
+          .from("order_rooms")
+          .select("id")
+          .eq("order_id", order.id);
+        if (remaining && remaining.length > 0) {
+          throw new Error("無法刪除舊的房間記錄，請確認您有足夠的權限");
+        }
+
         // Insert updated rooms
         const newOrderRooms = editOrderRooms.map(r => ({
           order_id: order.id,
