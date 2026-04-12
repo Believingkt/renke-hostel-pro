@@ -147,6 +147,7 @@ const Pricing = () => {
     openAddDialog: () => void;
     openBatchDialog: () => void;
   }>(null);
+  const pricingTemplateRef = useRef<PricingTemplateManagerRef>(null);
   
   const [roomTypes, setRoomTypes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
