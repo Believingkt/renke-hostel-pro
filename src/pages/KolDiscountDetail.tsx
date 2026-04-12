@@ -100,7 +100,7 @@ interface DiscountCodeInfo {
 const KolDiscountDetail = () => {
   const { discountCodeId } = useParams<{ discountCodeId: string }>();
   const navigate = useNavigate();
-  const { accommodationId } = useAccommodation();
+  const { currentAccommodationId: accommodationId } = useAccommodation();
   const [commissionRecords, setCommissionRecords] = useState<CommissionRecord[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoadingCommission, setIsLoadingCommission] = useState(true);
