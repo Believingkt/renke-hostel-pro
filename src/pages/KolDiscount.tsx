@@ -2481,28 +2481,78 @@ const KolDiscount = () => {
           </div>
 
           {/* Pagination */}
-          {filteredCodes.length > ITEMS_PER_PAGE && (
-            <div className="flex items-center justify-between px-4 py-3 border-t">
-              <p className="text-sm text-muted-foreground">
-                共 {filteredCodes.length} 筆，第 {currentPage} / {totalPages} 頁
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                >
-                  上一頁
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                >
-                  下一頁
-                </Button>
+          {filteredCodes.length > 0 && (
+            <div className="mt-6 p-4 bg-muted/30 rounded-lg">
+              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full lg:w-auto">
+                  <div className="text-sm text-muted-foreground whitespace-nowrap">
+                    顯示 {startIndex + 1} 至 {Math.min(endIndex, filteredCodes.length)} 筆，共 {filteredCodes.length} 筆
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-muted-foreground whitespace-nowrap">每頁顯示</span>
+                    <Select
+                      value={itemsPerPage.toString()}
+                      onValueChange={(value) => {
+                        setItemsPerPage(Number(value));
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <SelectTrigger className="w-24 h-11 sm:h-9 touch-manipulation">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background border-border z-50">
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="20">20</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                {totalPages > 1 && (
+                  <Pagination className="mx-0 w-full lg:w-auto justify-start lg:justify-end">
+                    <PaginationContent className="gap-2 md:gap-1.5 flex-wrap">
+                      <PaginationItem>
+                        <PaginationPrevious 
+                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                          className={`h-10 touch-manipulation ${safeCurrentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
+                        >
+                          上一頁
+                        </PaginationPrevious>
+                      </PaginationItem>
+                      
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter(page => {
+                          return page === 1 || 
+                                 page === totalPages || 
+                                 Math.abs(page - safeCurrentPage) <= 1;
+                        })
+                        .map((page, index, array) => (
+                          <PaginationItem key={page}>
+                            {index > 0 && array[index - 1] !== page - 1 && (
+                              <span className="px-2 text-muted-foreground">...</span>
+                            )}
+                            <PaginationLink
+                              onClick={() => setCurrentPage(page)}
+                              isActive={safeCurrentPage === page}
+                              className="h-10 touch-manipulation cursor-pointer"
+                            >
+                              {page}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ))}
+                      
+                      <PaginationItem>
+                        <PaginationNext 
+                          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                          className={`h-10 touch-manipulation ${safeCurrentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
+                        >
+                          下一頁
+                        </PaginationNext>
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                )}
               </div>
             </div>
           )}
