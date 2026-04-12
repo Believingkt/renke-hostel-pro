@@ -2506,7 +2506,7 @@ const KolDiscount = () => {
                 className="border-0 shadow-none"
               />
             ) : (
-              filteredCodes.map((item) => (
+              paginatedCodes.map((item) => (
                 <Card key={item.id} className="overflow-hidden">
                   <CardContent className="p-4">
                     {/* Header: Name and Status */}
