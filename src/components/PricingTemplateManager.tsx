@@ -1829,4 +1829,4 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
 
     </>
   );
-}
+});
