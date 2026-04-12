@@ -143,6 +143,7 @@ const RoomCard = ({ room, isFirstRoom = false, sharedTemplateLabels, sharedHolid
   };
 
   // Build pricing display from inventory data
+  // Only show meal plan rows if this room has corresponding templates
   const pricingRows: { label: string; weekday?: number; weekend?: number }[] = [];
   
   if (pricing.weekday_price != null || pricing.weekend_price != null) {
@@ -152,16 +153,18 @@ const RoomCard = ({ room, isFirstRoom = false, sharedTemplateLabels, sharedHolid
       weekend: pricing.weekend_price,
     });
   }
-  if (pricing.weekday_2_meals != null || pricing.weekend_2_meals != null) {
+  // Only show 二食 row if this room has a 二食 template (either room-specific or global)
+  if ((pricing.weekday_2_meals != null || pricing.weekend_2_meals != null) && templateLabels.price2MealsLabel) {
     pricingRows.push({
-      label: templateLabels.price2MealsLabel || '一泊二食',
+      label: templateLabels.price2MealsLabel,
       weekday: pricing.weekday_2_meals,
       weekend: pricing.weekend_2_meals,
     });
   }
-  if (pricing.weekday_3_meals != null || pricing.weekend_3_meals != null) {
+  // Only show 三食 row if this room has a 三食 template
+  if ((pricing.weekday_3_meals != null || pricing.weekend_3_meals != null) && templateLabels.price3MealsLabel) {
     pricingRows.push({
-      label: templateLabels.price3MealsLabel || '一泊三食',
+      label: templateLabels.price3MealsLabel,
       weekday: pricing.weekday_3_meals,
       weekend: pricing.weekend_3_meals,
     });
