@@ -202,6 +202,7 @@ const OrderDetailPage = () => {
   const [editOrderRooms, setEditOrderRooms] = useState<EditOrderRoom[]>([]);
   const MAX_TOTAL_ROOMS = 6;
   const [depositRatioRef] = useState<{ current: number }>({ current: 0 });
+  const [originalDiscountCode] = useState<{ current: string }>({ current: "" });
   const getRoomUnitPrice = useCallback((roomPrice: number, quantity: number) => {
     return quantity > 0 ? Math.round(roomPrice / quantity) : roomPrice;
   }, []);
