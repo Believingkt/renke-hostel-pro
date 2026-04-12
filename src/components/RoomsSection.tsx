@@ -459,17 +459,30 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
 
   const shouldUseCarousel = displayRooms.length > 4;
 
-  const renderRoomCard = (room: any, index: number) => (
-    <RoomCard
-      key={room.id}
-      room={room}
-      isFirstRoom={index === 0}
-      sharedTemplateLabels={sharedTemplateLabels}
-      sharedHolidays={sharedHolidays}
-      amenities={allAmenities[room.id]}
-      inventoryPricing={allInventoryPricing[room.id]}
-    />
-  );
+  const renderRoomCard = (room: any, index: number) => {
+    // Merge per-room labels: room-specific takes priority, then global fallback
+    const roomLabels = perRoomTemplateLabels[room.id] || {};
+    const globalLabels = perRoomTemplateLabels['_global'] || {};
+    const mergedLabels = {
+      priceLabel: roomLabels.priceLabel || globalLabels.priceLabel || sharedTemplateLabels.priceLabel,
+      price2MealsLabel: roomLabels.price2MealsLabel || globalLabels.price2MealsLabel,
+      price3MealsLabel: roomLabels.price3MealsLabel || globalLabels.price3MealsLabel,
+    };
+    // Check which template types this room actually has
+    const hasRoomSpecificTemplates = !!perRoomTemplateLabels[room.id];
+    return (
+      <RoomCard
+        key={room.id}
+        room={room}
+        isFirstRoom={index === 0}
+        sharedTemplateLabels={mergedLabels}
+        sharedHolidays={sharedHolidays}
+        amenities={allAmenities[room.id]}
+        inventoryPricing={allInventoryPricing[room.id]}
+        hasRoomSpecificTemplates={hasRoomSpecificTemplates}
+      />
+    );
+  };
 
   return (
     <section id="rooms" className="py-12 md:py-16 lg:py-20 bg-secondary/20">
