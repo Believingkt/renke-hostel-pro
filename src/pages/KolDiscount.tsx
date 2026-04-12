@@ -537,7 +537,7 @@ const KolDiscount = () => {
           discount_value: parseFloat(discountValue),
           usage_limit: parseInt(usageLimit),
           valid_from: validFrom.toISOString(),
-          valid_until: validUntil?.toISOString() || null,
+          valid_until: editingCode.valid_until ? new Date(editingCode.valid_until + "T23:59:59").toISOString() : null,
           min_order_amount: minOrderAmount ? parseInt(minOrderAmount) : 0,
           applicable_room_types: selectedRoomTypes,
           applicable_date_from: applicableDateFrom?.toISOString().split('T')[0] || null,
