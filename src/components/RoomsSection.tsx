@@ -324,6 +324,7 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
   // Batch-fetched data for all rooms
   const [allAmenities, setAllAmenities] = useState<Record<string, string[]>>({});
   const [allInventoryPricing, setAllInventoryPricing] = useState<Record<string, InventoryPricing>>({});
+  const [perRoomTemplateLabels, setPerRoomTemplateLabels] = useState<Record<string, { priceLabel?: string; price2MealsLabel?: string; price3MealsLabel?: string }>>({});
 
   const accommodationId = roomTypes[0]?.accommodation_id;
   const roomTypeIds = roomTypes.map((r: any) => r.id);
