@@ -525,7 +525,7 @@ const KolDiscount = () => {
           name,
           discount_type: discountType,
           discount_value: parseFloat(discountValue),
-          usage_limit: parseInt(usageLimit),
+          usage_limit: editingCode.usage_limit ?? parseInt(usageLimit),
           valid_from: validFrom.toISOString(),
           valid_until: editingCode.valid_until ? new Date(editingCode.valid_until + "T23:59:59").toISOString() : null,
           min_order_amount: minOrderAmount ? parseInt(minOrderAmount) : 0,
@@ -1970,13 +1970,15 @@ const KolDiscount = () => {
                   inputMode="numeric"
                   min="1"
                   value={editingCode?.usage_limit}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    setUsageLimit(e.target.value);
                     setEditingCode(
                       editingCode
-                        ? { ...editingCode, usage_limit: Number(e.target.value) }
+                        ? { ...editingCode, usage_limit: val }
                         : null
-                    )
-                  }
+                    );
+                  }}
                   placeholder="例如：100"
                 />
               </div>
