@@ -90,7 +90,6 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { CommissionRecordsDialog } from "@/components/CommissionRecordsDialog";
-import { IntegratedCodeDetailsDialog } from "@/components/IntegratedCodeDetailsDialog";
 
 interface DiscountCode {
   id: string;
@@ -145,7 +144,6 @@ const KolDiscount = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [apiDocOpen, setApiDocOpen] = useState(false);
   const [commissionRate, setCommissionRate] = useState("");
-  const [integratedDetailsOpen, setIntegratedDetailsOpen] = useState(false);
   const [selectedCodeForCommission, setSelectedCodeForCommission] = useState<DiscountCode | null>(null);
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "expired" | "full">("all");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
@@ -206,14 +204,6 @@ const KolDiscount = () => {
       if (error) throw error;
       const codes = (data || []) as DiscountCode[];
       setDiscountCodes(codes);
-      
-      // Update selectedCodeForCommission if it exists in the new data
-      if (selectedCodeForCommission) {
-        const updatedCode = codes.find(c => c.id === selectedCodeForCommission.id);
-        if (updatedCode) {
-          setSelectedCodeForCommission(updatedCode);
-        }
-      }
     } catch (error) {
       console.error("Error fetching discount codes:", error);
       toast({
