@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { RoomTypeForm } from "@/components/RoomTypeForm";
 import { RoomFacilitiesForm } from "@/components/RoomFacilitiesForm";
-import { PricingTemplateManager } from "@/components/PricingTemplateManager";
+import { PricingTemplateManager, PricingTemplateManagerRef } from "@/components/PricingTemplateManager";
 import { TabsSkeleton } from "@/components/skeletons/TabsSkeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
