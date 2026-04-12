@@ -323,6 +323,7 @@ const OrderDetailPage = () => {
       : (order.total_price || 0);
     const originalFinal = effectiveTotal + ((order.pet_plan_price || 0) + (order.meal_plan_total || 0) + ((order.custom_addon_details as CustomAddonDetail[]) || []).reduce((sum, d) => sum + d.total, 0)) - (order.discount_amount || 0);
     depositRatioRef.current = originalFinal > 0 ? (order.deposit_amount || 0) / originalFinal : 0;
+    originalDiscountCode.current = order.discount_code || "";
     setIsEditing(true);
   };
 
