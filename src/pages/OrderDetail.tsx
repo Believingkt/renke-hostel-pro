@@ -356,6 +356,12 @@ const OrderDetailPage = () => {
       return;
     }
 
+    // If the discount code hasn't changed from the original, preserve the saved discount_amount
+    if (code === originalDiscountCode.current) {
+      setDiscountCodeError("");
+      return;
+    }
+
     const timer = setTimeout(async () => {
       setDiscountCodeError("");
       // First check if code exists at all (active or not)
