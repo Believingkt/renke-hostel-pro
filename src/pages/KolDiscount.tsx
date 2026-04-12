@@ -733,10 +733,13 @@ const KolDiscount = () => {
 
   const filteredCodes = getFilteredDiscountCodes();
 
-  const ITEMS_PER_PAGE = 10;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = Math.max(1, Math.ceil(filteredCodes.length / ITEMS_PER_PAGE));
-  const paginatedCodes = filteredCodes.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(filteredCodes.length / itemsPerPage));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startIndex = (safeCurrentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedCodes = filteredCodes.slice(startIndex, endIndex);
 
   // Reset to page 1 when filter changes
   useEffect(() => {
