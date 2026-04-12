@@ -726,43 +726,39 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         style={style} 
         className="group hover:shadow-md transition-all duration-200 border-border/60 hover:border-primary/30 overflow-hidden"
       >
-        {/* 頂部：拖曳手把 + 標題 + 價格 */}
-        <div className="px-4 pt-4 pb-3 flex items-start gap-2.5">
+        {/* 房型標籤 */}
+        <div className="px-4 pt-3 pb-1 flex items-center gap-2">
           <button
-            className="cursor-grab active:cursor-grabbing touch-none opacity-40 group-hover:opacity-70 transition-opacity mt-1 shrink-0"
+            className="cursor-grab active:cursor-grabbing touch-none opacity-40 group-hover:opacity-70 transition-opacity shrink-0"
             {...attributes}
             {...listeners}
           >
             <GripVertical className="h-4 w-4 text-muted-foreground" />
           </button>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-3">
-              <h4 className="font-bold text-base leading-snug truncate" title={template.template_name}>
-                {template.template_name}
-              </h4>
-              {templatePrice ? (
-                <span className="font-bold text-lg tracking-tight text-primary whitespace-nowrap shrink-0">
-                  NT$ {templatePrice.toLocaleString()}
-                </span>
-              ) : (
-                <span className="text-sm text-muted-foreground whitespace-nowrap shrink-0">未設定價格</span>
-              )}
-            </div>
-            {template.description && template.description !== template.template_name && (
-              <p className="text-sm text-muted-foreground mt-1 line-clamp-2 leading-relaxed">{template.description}</p>
-            )}
+          <div className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-muted/60 text-xs font-medium text-muted-foreground">
+            {template.room_type_id
+              ? (roomTypes.find(r => r.id === template.room_type_id)?.name || '未知房型')
+              : '所有房型'}
           </div>
         </div>
 
-        {/* 房型標籤 */}
-        <div className="px-4 pb-3">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/60 text-xs font-medium text-muted-foreground">
-            <span>
-              {template.room_type_id
-                ? (roomTypes.find(r => r.id === template.room_type_id)?.name || '未知房型')
-                : '所有房型'}
-            </span>
+        {/* 標題 + 價格 */}
+        <div className="px-4 pt-1 pb-3">
+          <div className="flex items-start justify-between gap-3 ml-6">
+            <h4 className="font-bold text-base leading-snug truncate" title={template.template_name}>
+              {template.template_name}
+            </h4>
+            {templatePrice ? (
+              <span className="font-bold text-lg tracking-tight text-primary whitespace-nowrap shrink-0">
+                NT$ {templatePrice.toLocaleString()}
+              </span>
+            ) : (
+              <span className="text-sm text-muted-foreground whitespace-nowrap shrink-0">未設定價格</span>
+            )}
           </div>
+          {template.description && template.description !== template.template_name && (
+            <p className="text-sm text-muted-foreground mt-1 ml-6 line-clamp-2 leading-relaxed">{template.description}</p>
+          )}
         </div>
 
         {/* 分隔線 */}
