@@ -964,10 +964,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="space-y-1">
-              <CardTitle>專案模板</CardTitle>
-              <CardDescription>
-                建立並管理可重複使用的專案模板
-              </CardDescription>
+              <CardTitle>專案管理</CardTitle>
             </div>
             <Button onClick={handleAddNew} className="flex items-center justify-center gap-2 w-full sm:w-auto h-11 sm:h-10 touch-manipulation">
               <Plus className="h-4 w-4" />
