@@ -100,7 +100,7 @@ interface PricingTemplateManagerProps {
 }
 
 const templateSchema = z.object({
-  template_name: z.string().trim().min(1, "專案模板名稱不能為空").max(50, "專案模板名稱最多50字"),
+  template_name: z.string().trim().min(1, "專案名稱不能為空").max(50, "專案名稱最多50字"),
   description: z.string().trim().max(200, "描述最多200字").optional(),
   price: z.number().int().min(0, "價格不能為負數").nullable(),
 }).refine((data) => {
@@ -866,14 +866,11 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
     return (
       <Card>
         <CardHeader>
-          <CardTitle>{editingTemplate ? '編輯' : '新增'}專案模板</CardTitle>
-          <CardDescription>
-            建立可重複使用的專案模板，快速套用到不同房型
-          </CardDescription>
+          <CardTitle>{editingTemplate ? '編輯' : '新增'}專案</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="template_name">專案模板名稱 *</Label>
+            <Label htmlFor="template_name">專案名稱 *</Label>
             <Input
               id="template_name"
               value={formData.template_name}
@@ -974,7 +971,7 @@ export function PricingTemplateManager({ accommodationId }: PricingTemplateManag
             </div>
             <Button onClick={handleAddNew} className="flex items-center justify-center gap-2 w-full sm:w-auto h-11 sm:h-10 touch-manipulation">
               <Plus className="h-4 w-4" />
-              新增專案模板
+              新增專案
             </Button>
           </div>
         </CardHeader>
