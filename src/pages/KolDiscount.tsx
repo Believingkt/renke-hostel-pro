@@ -322,6 +322,9 @@ const KolDiscount = () => {
     const apiKey = generateApiKey();
 
     try {
+      // Capture room types before any state reset
+      const roomTypesToSave = selectedRoomTypes.length > 0 ? [...selectedRoomTypes] : [];
+      console.log("[DEBUG] selectedRoomTypes at save:", JSON.stringify(roomTypesToSave));
       // Insert discount code WITHOUT sensitive fields
       const { data: newCode, error } = await supabase.from("discount_codes").insert({
         accommodation_id: accommodationId,
@@ -333,7 +336,7 @@ const KolDiscount = () => {
         valid_from: validFrom.toISOString(),
         valid_until: validUntil?.toISOString() || null,
         min_order_amount: minOrderAmount ? parseInt(minOrderAmount) : 0,
-        applicable_room_types: selectedRoomTypes,
+        applicable_room_types: roomTypesToSave,
         applicable_date_from: applicableDateFrom?.toISOString().split('T')[0] || null,
         applicable_date_to: applicableDateTo?.toISOString().split('T')[0] || null,
         commission_rate: commissionRate ? parseFloat(commissionRate) : 0,
