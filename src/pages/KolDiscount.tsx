@@ -725,6 +725,16 @@ const KolDiscount = () => {
 
   const filteredCodes = getFilteredDiscountCodes();
 
+  const ITEMS_PER_PAGE = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(filteredCodes.length / ITEMS_PER_PAGE));
+  const paginatedCodes = filteredCodes.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  // Reset to page 1 when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterStatus]);
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -2446,10 +2456,10 @@ const KolDiscount = () => {
                     onDragEnd={handleDragEnd}
                   >
                     <SortableContext
-                      items={filteredCodes.map(code => code.id)}
+                      items={paginatedCodes.map(code => code.id)}
                       strategy={verticalListSortingStrategy}
                     >
-                      {filteredCodes.map((item) => (
+                      {paginatedCodes.map((item) => (
                         <SortableRow key={item.id} item={item} />
                       ))}
                     </SortableContext>
@@ -2458,6 +2468,33 @@ const KolDiscount = () => {
               </TableBody>
             </Table>
           </div>
+
+          {/* Pagination */}
+          {filteredCodes.length > ITEMS_PER_PAGE && (
+            <div className="flex items-center justify-between px-4 py-3 border-t">
+              <p className="text-sm text-muted-foreground">
+                共 {filteredCodes.length} 筆，第 {currentPage} / {totalPages} 頁
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  上一頁
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  下一頁
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* Mobile card view */}
           <div className="md:hidden space-y-4 p-4">
@@ -2469,7 +2506,7 @@ const KolDiscount = () => {
                 className="border-0 shadow-none"
               />
             ) : (
-              filteredCodes.map((item) => (
+              paginatedCodes.map((item) => (
                 <Card key={item.id} className="overflow-hidden">
                   <CardContent className="p-4">
                     {/* Header: Name and Status */}
@@ -2618,6 +2655,32 @@ const KolDiscount = () => {
                   </CardContent>
                 </Card>
               ))
+            )}
+            {/* Mobile Pagination */}
+            {filteredCodes.length > ITEMS_PER_PAGE && (
+              <div className="flex items-center justify-between pt-2">
+                <p className="text-sm text-muted-foreground">
+                  {currentPage} / {totalPages} 頁
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    上一頁
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    下一頁
+                  </Button>
+                </div>
+              </div>
             )}
           </div>
         </>
