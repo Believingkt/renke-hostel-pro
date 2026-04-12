@@ -733,7 +733,7 @@ const KolDiscount = () => {
 
   const filteredCodes = getFilteredDiscountCodes();
 
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
   const [currentPage, setCurrentPage] = useState(1);
   const totalPages = Math.max(1, Math.ceil(filteredCodes.length / itemsPerPage));
   const safeCurrentPage = Math.min(currentPage, totalPages);
