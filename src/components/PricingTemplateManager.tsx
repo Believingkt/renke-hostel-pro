@@ -724,54 +724,54 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       <Card 
         ref={setNodeRef} 
         style={style} 
-        className="group hover:shadow-lg transition-all duration-200 border-border/60 hover:border-primary/30 overflow-hidden"
+        className="group hover:shadow-md transition-all duration-200 border-border/60 hover:border-primary/30 overflow-hidden"
       >
-        {/* 頂部標題橫幅 */}
-        <div className="bg-muted/50 px-4 py-2.5 flex items-center gap-2 border-b border-border/40">
-          {/* 拖曳手把 */}
+        {/* 頂部：拖曳手把 + 標題 + 價格 */}
+        <div className="px-4 pt-4 pb-3 flex items-start gap-2.5">
           <button
-            className="cursor-grab active:cursor-grabbing touch-none opacity-40 group-hover:opacity-70 transition-opacity"
+            className="cursor-grab active:cursor-grabbing touch-none opacity-40 group-hover:opacity-70 transition-opacity mt-1 shrink-0"
             {...attributes}
             {...listeners}
           >
             <GripVertical className="h-4 w-4 text-muted-foreground" />
           </button>
           <div className="flex-1 min-w-0">
-            <h4 className="font-semibold text-base leading-tight truncate" title={template.template_name}>
-              {template.template_name}
-            </h4>
+            <div className="flex items-start justify-between gap-3">
+              <h4 className="font-bold text-base leading-snug truncate" title={template.template_name}>
+                {template.template_name}
+              </h4>
+              {templatePrice ? (
+                <span className="font-bold text-lg tracking-tight text-primary whitespace-nowrap shrink-0">
+                  NT$ {templatePrice.toLocaleString()}
+                </span>
+              ) : (
+                <span className="text-sm text-muted-foreground whitespace-nowrap shrink-0">未設定價格</span>
+              )}
+            </div>
             {template.description && template.description !== template.template_name && (
-              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{template.description}</p>
+              <p className="text-sm text-muted-foreground mt-1 line-clamp-2 leading-relaxed">{template.description}</p>
             )}
           </div>
         </div>
-        
-        {/* 價格與房型區塊 */}
-        <div className="bg-background px-4 py-3 space-y-1.5 border-b border-border/40">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground">價格</span>
-            {templatePrice ? (
-              <span className="font-bold text-lg tracking-tight text-primary">
-                NT$ {templatePrice.toLocaleString()}
-              </span>
-            ) : (
-              <span className="text-muted-foreground font-medium">未設定</span>
-            )}
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground">對應房型</span>
-            <span className="text-sm font-medium">
+
+        {/* 房型標籤 */}
+        <div className="px-4 pb-3">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/60 text-xs font-medium text-muted-foreground">
+            <span>
               {template.room_type_id
                 ? (roomTypes.find(r => r.id === template.room_type_id)?.name || '未知房型')
-                : '不限'}
+                : '所有房型'}
             </span>
           </div>
         </div>
+
+        {/* 分隔線 */}
+        <div className="border-t border-border/40" />
         
-        <CardContent className="p-4">
+        <CardContent className="p-3">
           {/* 套用記錄 */}
           {hasApplications && (
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-3 py-2 px-2.5 bg-muted/30 rounded-md">
+            <div className="flex items-center justify-between text-xs text-muted-foreground mb-2.5 py-1.5 px-2.5 bg-muted/30 rounded-md">
               <div className="flex items-center gap-1.5">
                 <Clock className="h-3 w-3" />
                 <span>
