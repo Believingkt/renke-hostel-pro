@@ -895,10 +895,7 @@ const KolDiscount = () => {
               variant="ghost"
               size="icon"
               className="h-9 w-9 touch-manipulation"
-              onClick={() => {
-                setSelectedCodeForCommission(item);
-                setIntegratedDetailsOpen(true);
-              }}
+              onClick={() => navigate(`/admin/discount-codes/${item.id}/detail`)}
               title="查看詳情"
             >
               <Eye className="h-4 w-4" />
@@ -2581,10 +2578,7 @@ const KolDiscount = () => {
                           variant="ghost"
                           size="sm"
                           className="h-11 text-xs touch-manipulation"
-                          onClick={() => {
-                            setSelectedCodeForCommission(item);
-                            setIntegratedDetailsOpen(true);
-                          }}
+                          onClick={() => navigate(`/admin/discount-codes/${item.id}/detail`)}
                         >
                           <Eye className="h-3.5 w-3.5 mr-1" />
                           查看詳情
