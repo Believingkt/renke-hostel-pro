@@ -746,20 +746,27 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
           </div>
         </div>
         
-        {/* 價格區塊 */}
-        {templatePrice ? (
-          <div className="bg-background px-4 py-3 flex items-center justify-between border-b border-border/40">
+        {/* 價格與房型區塊 */}
+        <div className="bg-background px-4 py-3 space-y-1.5 border-b border-border/40">
+          <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-muted-foreground">價格</span>
-            <span className="font-bold text-lg tracking-tight text-primary">
-              NT$ {templatePrice.toLocaleString()}
+            {templatePrice ? (
+              <span className="font-bold text-lg tracking-tight text-primary">
+                NT$ {templatePrice.toLocaleString()}
+              </span>
+            ) : (
+              <span className="text-muted-foreground font-medium">未設定</span>
+            )}
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-muted-foreground">對應房型</span>
+            <span className="text-sm font-medium">
+              {template.room_type_id
+                ? (roomTypes.find(r => r.id === template.room_type_id)?.name || '未知房型')
+                : '不限'}
             </span>
           </div>
-        ) : (
-          <div className="bg-background px-4 py-3 flex items-center justify-between border-b border-border/40">
-            <span className="text-sm font-medium text-muted-foreground">價格</span>
-            <span className="text-muted-foreground font-medium">未設定</span>
-          </div>
-        )}
+        </div>
         
         <CardContent className="p-4">
           {/* 套用記錄 */}
