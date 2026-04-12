@@ -237,6 +237,10 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     }
   };
 
+  useImperativeHandle(ref, () => ({
+    openAddDialog: () => handleAddNew(),
+  }));
+
   const handleAddNew = () => {
     setEditingTemplate(null);
     setFormData({
@@ -965,15 +969,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
   return (
     <>
       <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-            <Button onClick={handleAddNew} className="flex items-center justify-center gap-2 w-full sm:w-auto h-11 sm:h-10 touch-manipulation">
-              <Plus className="h-4 w-4" />
-              新增專案
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {loading ? (
             <div className="space-y-4 animate-fade-in">
               <Skeleton className="h-16 sm:h-20 w-full rounded-lg" />
