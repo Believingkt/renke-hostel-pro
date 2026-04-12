@@ -99,6 +99,10 @@ interface PricingTemplateManagerProps {
   accommodationId: string;
 }
 
+export interface PricingTemplateManagerRef {
+  openAddDialog: () => void;
+}
+
 const templateSchema = z.object({
   template_name: z.string().trim().min(1, "專案名稱不能為空").max(50, "專案名稱最多50字"),
   description: z.string().trim().max(200, "描述最多200字").optional(),
@@ -110,7 +114,7 @@ const templateSchema = z.object({
   path: ["price"],
 });
 
-export function PricingTemplateManager({ accommodationId }: PricingTemplateManagerProps) {
+export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, PricingTemplateManagerProps>(function PricingTemplateManager({ accommodationId }, ref) {
   const isMobile = useIsMobile();
   const [templates, setTemplates] = useState<PricingTemplate[]>([]);
   const [loading, setLoading] = useState(true);
