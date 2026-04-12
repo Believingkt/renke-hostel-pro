@@ -2656,6 +2656,32 @@ const KolDiscount = () => {
                 </Card>
               ))
             )}
+            {/* Mobile Pagination */}
+            {filteredCodes.length > ITEMS_PER_PAGE && (
+              <div className="flex items-center justify-between pt-2">
+                <p className="text-sm text-muted-foreground">
+                  {currentPage} / {totalPages} 頁
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    上一頁
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    下一頁
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </>
 
