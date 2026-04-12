@@ -98,14 +98,19 @@ interface InventoryPricing {
   weekend_3_meals?: number;
 }
 
-const RoomCard = ({ room, isFirstRoom = false, sharedTemplateLabels, sharedHolidays, amenities, inventoryPricing, hasRoomSpecificTemplates }: { 
+interface RoomTemplate {
+  template_name: string;
+  price: number;
+}
+
+const RoomCard = ({ room, isFirstRoom = false, sharedTemplateLabels, sharedHolidays, amenities, inventoryPricing, roomTemplates }: { 
   room: RoomType & { room_photos?: { photo_url: string; display_order: number }[] }, 
   isFirstRoom?: boolean,
   sharedTemplateLabels?: { priceLabel?: string; price2MealsLabel?: string; price3MealsLabel?: string },
   sharedHolidays?: Set<string>,
   amenities?: string[],
   inventoryPricing?: InventoryPricing,
-  hasRoomSpecificTemplates?: boolean,
+  roomTemplates?: RoomTemplate[],
 }) => {
   const databaseImages = room.room_photos?.map(p => p.photo_url) || [];
   const defaultImages = roomImages[room.name] || [roomStandard, roomStandard, roomStandard, roomStandard, roomStandard];
