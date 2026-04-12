@@ -497,8 +497,14 @@ const Pricing = () => {
           <PageHeader
             title="專案設定"
             icon={DollarSign}
+            action={
+              <Button onClick={() => pricingTemplateRef.current?.openAddDialog()} className="flex items-center gap-2 h-11 sm:h-10 touch-manipulation">
+                <Plus className="h-4 w-4" />
+                新增專案
+              </Button>
+            }
           />
-          <PricingTemplateManager accommodationId={currentAccommodationId || ""} />
+          <PricingTemplateManager ref={pricingTemplateRef} accommodationId={currentAccommodationId || ""} />
         </TabsContent>
 
         <TabsContent value="holidays" className="space-y-4">
