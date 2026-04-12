@@ -62,6 +62,7 @@ const RoomPriceCalendar = lazy(() => import("./pages/RoomPriceCalendar"));
 const Accounts = lazy(() => import("./pages/Accounts"));
 const KolDiscount = lazy(() => import("./pages/KolDiscount"));
 const DiscountCodeOrders = lazy(() => import("./pages/DiscountCodeOrders"));
+const KolDiscountDetail = lazy(() => import("./pages/KolDiscountDetail"));
 const UserRoles = lazy(() => import("./pages/UserRoles"));
 const Headquarters = lazy(() => import("./pages/Headquarters"));
 const Customers = lazy(() => import("./pages/Customers"));
@@ -290,6 +291,14 @@ function App() {
                   element={
                     <Suspense fallback={<TableSkeleton rows={8} columns={7} />}>
                       <KolDiscount />
+                    </Suspense>
+                  } 
+                />
+                <Route 
+                  path="/admin/discount-codes/:discountCodeId/detail" 
+                  element={
+                    <Suspense fallback={<TableSkeleton rows={8} columns={7} />}>
+                      <KolDiscountDetail />
                     </Suspense>
                   } 
                 />
