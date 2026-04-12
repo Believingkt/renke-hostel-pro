@@ -341,7 +341,7 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
       const [templatesResult, holidaysResult, amenitiesResult, inventoryResult] = await Promise.all([
         supabase
           .from('pricing_templates')
-          .select('template_name, price, display_order')
+          .select('template_name, price, display_order, room_type_id')
           .eq('accommodation_id', accommodationId)
           .order('display_order', { ascending: true }),
         supabase
@@ -365,17 +365,25 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
           .order('date', { ascending: true }),
       ]);
 
-      // Process template labels
+      // Process template labels per room type
       if (!templatesResult.error && templatesResult.data?.length) {
-        const labels: { priceLabel?: string; price2MealsLabel?: string; price3MealsLabel?: string } = {};
+        const perRoomLabels: Record<string, { priceLabel?: string; price2MealsLabel?: string; price3MealsLabel?: string }> = {};
         for (const t of templatesResult.data) {
           const name = t.template_name;
-          if (name.includes('三食') && !labels.price3MealsLabel) labels.price3MealsLabel = name;
-          else if (name.includes('二食') && !labels.price2MealsLabel) labels.price2MealsLabel = name;
-          else if (!labels.priceLabel) labels.priceLabel = name;
+          // Build labels for each room_type_id (and a global fallback with key '_global')
+          const keys = t.room_type_id ? [t.room_type_id] : ['_global'];
+          for (const key of keys) {
+            if (!perRoomLabels[key]) perRoomLabels[key] = {};
+            const labels = perRoomLabels[key];
+            if (name.includes('三食') && !labels.price3MealsLabel) labels.price3MealsLabel = name;
+            else if (name.includes('二食') && !labels.price2MealsLabel) labels.price2MealsLabel = name;
+            else if (!labels.priceLabel) labels.priceLabel = name;
+          }
         }
-        if (!labels.priceLabel && templatesResult.data.length > 0) labels.priceLabel = templatesResult.data[0].template_name;
-        setSharedTemplateLabels(labels);
+        // For shared fallback, use global labels
+        setSharedTemplateLabels(perRoomLabels['_global'] || {});
+        // Store per-room labels
+        setPerRoomTemplateLabels(perRoomLabels);
       }
 
       // Process holidays
