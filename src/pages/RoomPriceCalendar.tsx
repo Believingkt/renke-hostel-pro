@@ -39,6 +39,8 @@ interface PricingTemplate {
   price: number | null;
   weekday_price: number | null;
   weekend_price: number | null;
+  room_type_id: string | null;
+  available_rooms: number | null;
 }
 
 interface InventoryData {
@@ -120,7 +122,7 @@ export default function RoomPriceCalendar() {
           .order('display_order', { ascending: true }),
         supabase
           .from('pricing_templates')
-          .select('id, template_name, project_name, price, weekday_price, weekend_price')
+          .select('id, template_name, project_name, price, weekday_price, weekend_price, room_type_id, available_rooms')
           .eq('accommodation_id', currentAccommodationId)
           .order('display_order', { ascending: true }),
         supabase
@@ -586,47 +588,17 @@ function RoomTypeRows({
   onCellClick,
   showCategoryHeader = false,
 }: RoomTypeRowsProps) {
-  // 若該房型在當月完全沒有庫存價格資料，則隱藏所有專案列
-  const hasAnyInventoryData = useMemo(() => {
-    return monthDays.some(day => {
-      const dateStr = format(day, 'yyyy-MM-dd');
-      const cellData = getCellData(roomType.id, dateStr);
-      return cellData?.price != null;
-    });
-  }, [monthDays, roomType.id, getCellData]);
-
-  // 收集該房型在當月的所有 notes 值，用於判斷哪些模板已被套用
-  const appliedTemplateNames = useMemo(() => {
-    const names = new Set<string>();
-    let hasAnyNotes = false;
-    monthDays.forEach(day => {
-      const dateStr = format(day, 'yyyy-MM-dd');
-      const key = `${roomType.id}_${dateStr}`;
-      const cellData = inventory.get(key);
-      if (cellData?.notes) {
-        hasAnyNotes = true;
-        names.add(cellData.notes);
-      }
-    });
-    // null 表示沒有 notes 記錄（舊資料）
-    return hasAnyNotes ? names : null;
-  }, [monthDays, roomType.id, inventory]);
-
-  // 過濾模板：
-  // 只顯示 notes 中出現的模板名稱；無 notes 記錄時不顯示模板列
+  // 過濾模板：按 room_type_id 匹配房型，或為通用模板（無 room_type_id）
   const visibleTemplates = useMemo(() => {
-    if (!hasAnyInventoryData) return [];
-    if (appliedTemplateNames === null) return [];
-    // Deduplicate by display name to avoid showing multiple rows with the same name
-    const seen = new Set<string>();
     return templates.filter(t => {
-      const name = t.project_name || t.template_name;
-      if (!appliedTemplateNames.has(name)) return false;
-      if (seen.has(name)) return false;
-      seen.add(name);
-      return true;
+      // 模板綁定了特定房型
+      if (t.room_type_id) return t.room_type_id === roomType.id;
+      // 通用模板（未綁定房型）：透過名稱匹配
+      const templateName = (t.project_name || t.template_name).replace(/\s+/g, '');
+      const normalizedRoomName = roomType.name.replace(/\s+/g, '');
+      return templateName.includes(normalizedRoomName);
     });
-  }, [hasAnyInventoryData, templates, appliedTemplateNames]);
+  }, [templates, roomType.id, roomType.name]);
 
   return (
     <>
@@ -706,10 +678,11 @@ function RoomTypeRows({
             const isWeekend = dayType === 'weekend' || dayType === 'holiday';
             const cellData = getCellData(roomType.id, dateStr);
 
-            // 只顯示實際套用過的庫存價格，不使用模板價格作為預設值
-            // 關閉販售時，價格欄位顯示為空白
+            // 直接從專案設定取得平日/假日價格
             const isUnavailable = cellData?.is_available === false;
-            const price = cellData?.price;
+            const price = isWeekend
+              ? (template.weekend_price ?? template.weekday_price)
+              : (template.weekday_price ?? template.weekend_price);
 
             return (
               <td
@@ -719,7 +692,6 @@ function RoomTypeRows({
                   isWeekend && "bg-orange-50/50 hover:bg-orange-100/50",
                   dayType === 'holiday' && "bg-red-50/50 hover:bg-red-100/50",
                   !isWeekend && "hover:bg-muted/50",
-                  // 關閉販售：在價格列做淡化提示（仍可點擊編輯以重新開啟）
                   isUnavailable && "opacity-60",
                 )}
                 onClick={() => onCellClick(roomType, template, dateStr, price || undefined, cellData?.available_rooms)}
