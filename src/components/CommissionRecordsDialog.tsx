@@ -359,12 +359,12 @@ export const CommissionRecordsDialog = ({
                     <TableHead>訂單編號</TableHead>
                     <TableHead>客人姓名</TableHead>
                     <TableHead>入住日期</TableHead>
-                    <TableHead className="text-right">訂單金額</TableHead>
-                    <TableHead className="text-right">折扣金額</TableHead>
-                    <TableHead className="text-right">佣金率</TableHead>
-                    <TableHead className="text-right">佣金金額</TableHead>
+                    <TableHead>訂單金額</TableHead>
+                    <TableHead>折扣金額</TableHead>
+                    <TableHead>佣金率</TableHead>
+                    <TableHead>佣金金額</TableHead>
                     <TableHead>結算狀態</TableHead>
-                    <TableHead className="text-center w-[140px]">操作</TableHead>
+                    <TableHead className="w-[140px]">操作</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
