@@ -80,6 +80,23 @@ export default function RoomPriceCalendar() {
   // 篩選器狀態
   const [selectedRoomTypeId, setSelectedRoomTypeId] = useState<string>('all');
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('all');
+
+  // 當房型變更時重設專案篩選
+  const handleRoomTypeChange = (value: string) => {
+    setSelectedRoomTypeId(value);
+    setSelectedTemplateId('all');
+  };
+
+  // 該房型可選的專案
+  const availableTemplatesForRoom = useMemo(() => {
+    if (selectedRoomTypeId === 'all') return [];
+    return templates.filter(t => {
+      if (t.room_type_id) return t.room_type_id === selectedRoomTypeId;
+      // 通用模板：名稱不含任何房型名稱
+      const normalizedName = (t.project_name || t.template_name).replace(/\s+/g, '');
+      return !roomTypes.some(r => normalizedName.includes(r.name.replace(/\s+/g, '')));
+    });
+  }, [selectedRoomTypeId, templates, roomTypes]);
   
   // 編輯對話框狀態
   const [editDialogOpen, setEditDialogOpen] = useState(false);
