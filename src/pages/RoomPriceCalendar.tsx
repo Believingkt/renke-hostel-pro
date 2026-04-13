@@ -39,6 +39,8 @@ interface PricingTemplate {
   price: number | null;
   weekday_price: number | null;
   weekend_price: number | null;
+  room_type_id: string | null;
+  available_rooms: number | null;
 }
 
 interface InventoryData {
@@ -120,7 +122,7 @@ export default function RoomPriceCalendar() {
           .order('display_order', { ascending: true }),
         supabase
           .from('pricing_templates')
-          .select('id, template_name, project_name, price, weekday_price, weekend_price')
+          .select('id, template_name, project_name, price, weekday_price, weekend_price, room_type_id, available_rooms')
           .eq('accommodation_id', currentAccommodationId)
           .order('display_order', { ascending: true }),
         supabase
