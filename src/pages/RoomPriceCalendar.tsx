@@ -410,7 +410,7 @@ export default function RoomPriceCalendar() {
             {/* 房型篩選 */}
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground whitespace-nowrap">選擇房型</span>
-              <Select value={selectedRoomTypeId} onValueChange={setSelectedRoomTypeId}>
+              <Select value={selectedRoomTypeId} onValueChange={handleRoomTypeChange}>
                 <SelectTrigger className="w-[180px] bg-background">
                   <SelectValue placeholder="全部房型" />
                 </SelectTrigger>
@@ -423,23 +423,25 @@ export default function RoomPriceCalendar() {
               </Select>
             </div>
 
-            {/* 專案篩選 */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground whitespace-nowrap">選擇專案</span>
-              <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
-                <SelectTrigger className="w-[180px] bg-background">
-                  <SelectValue placeholder="全部專案" />
-                </SelectTrigger>
-                <SelectContent className="bg-background border z-50">
-                  <SelectItem value="all">全部專案</SelectItem>
-                  {templates.map(t => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.project_name || t.template_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* 專案篩選 - 僅在選擇特定房型後顯示 */}
+            {selectedRoomTypeId !== 'all' && availableTemplatesForRoom.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground whitespace-nowrap">選擇專案</span>
+                <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+                  <SelectTrigger className="w-[180px] bg-background">
+                    <SelectValue placeholder="全部專案" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border z-50">
+                    <SelectItem value="all">全部專案</SelectItem>
+                    {availableTemplatesForRoom.map(t => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.project_name || t.template_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* 月份選擇器 */}
             <div className="flex items-center gap-2 ml-auto">
