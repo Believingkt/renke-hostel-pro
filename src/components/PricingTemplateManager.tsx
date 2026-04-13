@@ -253,9 +253,9 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
 
     try {
       // Clear foreign key references in order_rooms first
-      await supabase
+      await (supabase
         .from('order_rooms')
-        .update({ template_id: null, template_name: null })
+        .update({ template_id: null, template_name: null }) as any)
         .eq('template_id', deletingTemplate.id);
 
       // Also clear room_inventory_pricing references
