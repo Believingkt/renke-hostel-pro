@@ -1647,7 +1647,7 @@ const OrderDetailPage = () => {
               <div className="flex justify-between items-center gap-2">
                 <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">折扣碼</span>
                 {isEditing ? (
-                  <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right" type="text" placeholder="選填" value={editForm.discount_code} onChange={(e) => { setEditForm(f => ({ ...f, discount_code: e.target.value })); setDiscountCodeError(""); }} />
+                  <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right uppercase" type="text" placeholder="選填" value={editForm.discount_code} onChange={(e) => { setEditForm(f => ({ ...f, discount_code: e.target.value.toUpperCase() })); setDiscountCodeError(""); }} />
                 ) : (
                   order.discount_code ? (
                     <Badge variant="outline" className="text-xs">{order.discount_code}</Badge>
