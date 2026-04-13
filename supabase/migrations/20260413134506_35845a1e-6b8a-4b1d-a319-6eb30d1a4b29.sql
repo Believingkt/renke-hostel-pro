@@ -1,0 +1,1 @@
+ALTER TABLE public.pricing_templates ADD COLUMN IF NOT EXISTS available_rooms integer NOT NULL DEFAULT 1;

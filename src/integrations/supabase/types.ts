@@ -2015,6 +2015,7 @@ export type Database = {
       pricing_templates: {
         Row: {
           accommodation_id: string
+          available_rooms: number
           created_at: string
           description: string | null
           display_order: number | null
@@ -2032,6 +2033,7 @@ export type Database = {
         }
         Insert: {
           accommodation_id: string
+          available_rooms?: number
           created_at?: string
           description?: string | null
           display_order?: number | null
@@ -2049,6 +2051,7 @@ export type Database = {
         }
         Update: {
           accommodation_id?: string
+          available_rooms?: number
           created_at?: string
           description?: string | null
           display_order?: number | null
