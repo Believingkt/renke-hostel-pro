@@ -473,31 +473,30 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
           </div>
 
           {/* 平日價格 */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="weekday_price">平日價格 *</Label>
-              <Input
-                id="weekday_price"
-                type="number"
-                min="0"
-                value={formData.weekday_price ?? ""}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  weekday_price: e.target.value ? parseInt(e.target.value) : null
-                })}
-                placeholder="請輸入平日價格"
-                className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
-                inputMode="numeric"
-              />
-              <p className="text-xs text-muted-foreground">週日至週五的價格</p>
-              {errors.weekday_price && (
-                <p className="text-sm text-destructive">{errors.weekday_price}</p>
-              )}
-            </div>
+          {/* 平日與假日價格（擇一必填） */}
+          <div className="space-y-2">
+            <Label>價格設定 <span className="text-xs text-muted-foreground font-normal">（擇一必填）</span></Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="weekday_price" className="text-sm font-normal text-muted-foreground">平日價格</Label>
+                <Input
+                  id="weekday_price"
+                  type="number"
+                  min="0"
+                  value={formData.weekday_price ?? ""}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    weekday_price: e.target.value ? parseInt(e.target.value) : null
+                  })}
+                  placeholder="請輸入平日價格"
+                  className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
+                  inputMode="numeric"
+                />
+                <p className="text-xs text-muted-foreground">週日至週五的價格</p>
+              </div>
 
-            {/* 假日價格 */}
-            <div className="space-y-2">
-              <Label htmlFor="weekend_price">假日價格 *</Label>
+              <div className="space-y-2">
+                <Label htmlFor="weekend_price" className="text-sm font-normal text-muted-foreground">假日價格</Label>
               <Input
                 id="weekend_price"
                 type="number"
