@@ -259,8 +259,8 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         .eq('template_id', deletingTemplate.id);
 
       // Also clear room_inventory_pricing references
-      await supabase
-        .from('room_inventory_pricing')
+      await (supabase
+        .from('room_inventory_pricing') as any)
         .delete()
         .eq('template_id', deletingTemplate.id);
 
