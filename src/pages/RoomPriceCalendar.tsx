@@ -588,47 +588,17 @@ function RoomTypeRows({
   onCellClick,
   showCategoryHeader = false,
 }: RoomTypeRowsProps) {
-  // 若該房型在當月完全沒有庫存價格資料，則隱藏所有專案列
-  const hasAnyInventoryData = useMemo(() => {
-    return monthDays.some(day => {
-      const dateStr = format(day, 'yyyy-MM-dd');
-      const cellData = getCellData(roomType.id, dateStr);
-      return cellData?.price != null;
-    });
-  }, [monthDays, roomType.id, getCellData]);
-
-  // 收集該房型在當月的所有 notes 值，用於判斷哪些模板已被套用
-  const appliedTemplateNames = useMemo(() => {
-    const names = new Set<string>();
-    let hasAnyNotes = false;
-    monthDays.forEach(day => {
-      const dateStr = format(day, 'yyyy-MM-dd');
-      const key = `${roomType.id}_${dateStr}`;
-      const cellData = inventory.get(key);
-      if (cellData?.notes) {
-        hasAnyNotes = true;
-        names.add(cellData.notes);
-      }
-    });
-    // null 表示沒有 notes 記錄（舊資料）
-    return hasAnyNotes ? names : null;
-  }, [monthDays, roomType.id, inventory]);
-
-  // 過濾模板：
-  // 只顯示 notes 中出現的模板名稱；無 notes 記錄時不顯示模板列
+  // 過濾模板：按 room_type_id 匹配房型，或為通用模板（無 room_type_id）
   const visibleTemplates = useMemo(() => {
-    if (!hasAnyInventoryData) return [];
-    if (appliedTemplateNames === null) return [];
-    // Deduplicate by display name to avoid showing multiple rows with the same name
-    const seen = new Set<string>();
     return templates.filter(t => {
-      const name = t.project_name || t.template_name;
-      if (!appliedTemplateNames.has(name)) return false;
-      if (seen.has(name)) return false;
-      seen.add(name);
-      return true;
+      // 模板綁定了特定房型
+      if (t.room_type_id) return t.room_type_id === roomType.id;
+      // 通用模板（未綁定房型）：透過名稱匹配
+      const templateName = (t.project_name || t.template_name).replace(/\s+/g, '');
+      const normalizedRoomName = roomType.name.replace(/\s+/g, '');
+      return templateName.includes(normalizedRoomName);
     });
-  }, [hasAnyInventoryData, templates, appliedTemplateNames]);
+  }, [templates, roomType.id, roomType.name]);
 
   return (
     <>
