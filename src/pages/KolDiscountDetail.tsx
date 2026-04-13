@@ -573,36 +573,36 @@ const KolDiscountDetail = () => {
           ) : (
             <>
               <div className="hidden md:block overflow-x-auto">
-                <Table>
+                <Table className="table-fixed min-w-[1100px]">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>訂單編號</TableHead>
-                      <TableHead>客人姓名</TableHead>
-                      <TableHead>房型</TableHead>
-                      <TableHead>入住日期</TableHead>
-                      <TableHead>退房日期</TableHead>
-                      <TableHead className="text-right">原價</TableHead>
-                      <TableHead className="text-right">折扣</TableHead>
-                      <TableHead className="text-right">實付</TableHead>
-                      <TableHead>狀態</TableHead>
+                      <TableHead className="w-[11%] whitespace-nowrap">訂單編號</TableHead>
+                      <TableHead className="w-[10%] whitespace-nowrap">客人姓名</TableHead>
+                      <TableHead className="w-[14%] whitespace-nowrap">房型</TableHead>
+                      <TableHead className="w-[11%] whitespace-nowrap">入住日期</TableHead>
+                      <TableHead className="w-[11%] whitespace-nowrap">退房日期</TableHead>
+                      <TableHead className="w-[13%] whitespace-nowrap">原價</TableHead>
+                      <TableHead className="w-[13%] whitespace-nowrap">折扣</TableHead>
+                      <TableHead className="w-[13%] whitespace-nowrap">實付</TableHead>
+                      <TableHead className="w-[8%] whitespace-nowrap">狀態</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {orders.map((order) => (
                       <TableRow key={order.id}>
-                        <TableCell className="font-mono">{order.order_number}</TableCell>
-                        <TableCell>{order.guest_name}</TableCell>
-                        <TableCell>{order.room_types?.name || "-"}</TableCell>
-                        <TableCell>{format(new Date(order.check_in_date), "yyyy/MM/dd")}</TableCell>
-                        <TableCell>{format(new Date(order.check_out_date), "yyyy/MM/dd")}</TableCell>
-                        <TableCell>NT$ {order.total_price.toLocaleString()}</TableCell>
-                        <TableCell className="text-orange-600">
+                        <TableCell className="font-mono whitespace-nowrap">{order.order_number}</TableCell>
+                        <TableCell className="whitespace-nowrap">{order.guest_name}</TableCell>
+                        <TableCell className="whitespace-nowrap">{order.room_types?.name || "-"}</TableCell>
+                        <TableCell className="whitespace-nowrap">{format(new Date(order.check_in_date), "yyyy/MM/dd")}</TableCell>
+                        <TableCell className="whitespace-nowrap">{format(new Date(order.check_out_date), "yyyy/MM/dd")}</TableCell>
+                        <TableCell className="whitespace-nowrap tabular-nums">NT$ {order.total_price.toLocaleString()}</TableCell>
+                        <TableCell className="text-orange-600 whitespace-nowrap tabular-nums">
                           -NT$ {order.discount_amount.toLocaleString()}
                         </TableCell>
-                        <TableCell className="font-semibold">
+                        <TableCell className="font-semibold whitespace-nowrap tabular-nums">
                           NT$ {order.final_price.toLocaleString()}
                         </TableCell>
-                        <TableCell>{getOrderStatusBadge(order.order_status)}</TableCell>
+                        <TableCell className="whitespace-nowrap">{getOrderStatusBadge(order.order_status)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
