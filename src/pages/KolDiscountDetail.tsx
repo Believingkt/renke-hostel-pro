@@ -750,40 +750,40 @@ const KolDiscountDetail = () => {
           ) : (
             <>
               <div className="hidden md:block overflow-x-auto">
-                <Table>
+                <Table className="table-fixed min-w-[1180px]">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>訂單編號</TableHead>
-                      <TableHead>客人姓名</TableHead>
-                      <TableHead>入住日期</TableHead>
-                      <TableHead className="text-right">訂單金額</TableHead>
-                      <TableHead className="text-right">折扣金額</TableHead>
-                      <TableHead className="text-right">佣金率</TableHead>
-                      <TableHead className="text-right">佣金金額</TableHead>
-                      <TableHead>結算狀態</TableHead>
-                      <TableHead className="text-center">操作</TableHead>
+                      <TableHead className="w-[12%] whitespace-nowrap">訂單編號</TableHead>
+                      <TableHead className="w-[12%] whitespace-nowrap">客人姓名</TableHead>
+                      <TableHead className="w-[12%] whitespace-nowrap">入住日期</TableHead>
+                      <TableHead className="w-[14%] whitespace-nowrap">訂單金額</TableHead>
+                      <TableHead className="w-[14%] whitespace-nowrap">折扣金額</TableHead>
+                      <TableHead className="w-[8%] whitespace-nowrap">佣金率</TableHead>
+                      <TableHead className="w-[14%] whitespace-nowrap">佣金金額</TableHead>
+                      <TableHead className="w-[10%] whitespace-nowrap">結算狀態</TableHead>
+                      <TableHead className="w-[140px] whitespace-nowrap">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredRecords.map((record) => (
                       <TableRow key={record.id}>
-                        <TableCell className="font-mono">
+                        <TableCell className="font-mono whitespace-nowrap">
                           {record.orders?.order_number || "-"}
                         </TableCell>
-                        <TableCell>{record.orders?.guest_name || "-"}</TableCell>
-                        <TableCell>
+                        <TableCell className="whitespace-nowrap">{record.orders?.guest_name || "-"}</TableCell>
+                        <TableCell className="whitespace-nowrap">
                           {record.orders?.check_in_date
                             ? format(new Date(record.orders.check_in_date), "yyyy/MM/dd")
                             : "-"}
                         </TableCell>
-                        <TableCell>NT$ {record.order_total.toLocaleString()}</TableCell>
-                        <TableCell>NT$ {record.discount_amount.toLocaleString()}</TableCell>
-                        <TableCell>{record.commission_rate}%</TableCell>
-                        <TableCell className="font-semibold">
+                        <TableCell className="whitespace-nowrap tabular-nums">NT$ {record.order_total.toLocaleString()}</TableCell>
+                        <TableCell className="whitespace-nowrap tabular-nums">NT$ {record.discount_amount.toLocaleString()}</TableCell>
+                        <TableCell className="whitespace-nowrap tabular-nums">{record.commission_rate}%</TableCell>
+                        <TableCell className="font-semibold whitespace-nowrap tabular-nums">
                           NT$ {record.commission_amount.toLocaleString()}
                         </TableCell>
-                        <TableCell>{getStatusBadge(record.settlement_status)}</TableCell>
-                        <TableCell>
+                        <TableCell className="whitespace-nowrap">{getStatusBadge(record.settlement_status)}</TableCell>
+                        <TableCell className="w-[140px] whitespace-nowrap">
                           <Select
                             value={record.settlement_status}
                             onValueChange={(value) =>
