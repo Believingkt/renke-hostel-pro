@@ -472,7 +472,6 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
             )}
           </div>
 
-          {/* 平日價格 */}
           {/* 平日與假日價格（擇一必填） */}
           <div className="space-y-2">
             <Label>價格設定 <span className="text-xs text-muted-foreground font-normal">（擇一必填）</span></Label>
@@ -497,24 +496,25 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
 
               <div className="space-y-2">
                 <Label htmlFor="weekend_price" className="text-sm font-normal text-muted-foreground">假日價格</Label>
-              <Input
-                id="weekend_price"
-                type="number"
-                min="0"
-                value={formData.weekend_price ?? ""}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  weekend_price: e.target.value ? parseInt(e.target.value) : null
-                })}
-                placeholder="請輸入假日價格"
-                className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
-                inputMode="numeric"
-              />
-              <p className="text-xs text-muted-foreground">週六及國定假日的價格</p>
-              {errors.weekend_price && (
-                <p className="text-sm text-destructive">{errors.weekend_price}</p>
-              )}
+                <Input
+                  id="weekend_price"
+                  type="number"
+                  min="0"
+                  value={formData.weekend_price ?? ""}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    weekend_price: e.target.value ? parseInt(e.target.value) : null
+                  })}
+                  placeholder="請輸入假日價格"
+                  className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
+                  inputMode="numeric"
+                />
+                <p className="text-xs text-muted-foreground">週六及國定假日的價格</p>
+              </div>
             </div>
+            {(errors.weekday_price || errors.weekend_price) && (
+              <p className="text-sm text-destructive">{errors.weekday_price || errors.weekend_price}</p>
+            )}
           </div>
 
           {/* 庫存量 */}
