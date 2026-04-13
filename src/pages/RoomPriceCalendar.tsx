@@ -678,10 +678,11 @@ function RoomTypeRows({
             const isWeekend = dayType === 'weekend' || dayType === 'holiday';
             const cellData = getCellData(roomType.id, dateStr);
 
-            // 只顯示實際套用過的庫存價格，不使用模板價格作為預設值
-            // 關閉販售時，價格欄位顯示為空白
+            // 直接從專案設定取得平日/假日價格
             const isUnavailable = cellData?.is_available === false;
-            const price = cellData?.price;
+            const price = isWeekend
+              ? (template.weekend_price ?? template.weekday_price)
+              : (template.weekday_price ?? template.weekend_price);
 
             return (
               <td
@@ -691,7 +692,6 @@ function RoomTypeRows({
                   isWeekend && "bg-orange-50/50 hover:bg-orange-100/50",
                   dayType === 'holiday' && "bg-red-50/50 hover:bg-red-100/50",
                   !isWeekend && "hover:bg-muted/50",
-                  // 關閉販售：在價格列做淡化提示（仍可點擊編輯以重新開啟）
                   isUnavailable && "opacity-60",
                 )}
                 onClick={() => onCellClick(roomType, template, dateStr, price || undefined, cellData?.available_rooms)}
