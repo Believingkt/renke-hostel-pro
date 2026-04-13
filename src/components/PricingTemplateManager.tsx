@@ -252,6 +252,18 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     if (!deletingTemplate) return;
 
     try {
+      // Clear foreign key references in order_rooms first
+      await (supabase
+        .from('order_rooms')
+        .update({ template_id: null, template_name: null }) as any)
+        .eq('template_id', deletingTemplate.id);
+
+      // Also clear room_inventory_pricing references
+      await (supabase
+        .from('room_inventory_pricing') as any)
+        .delete()
+        .eq('template_id', deletingTemplate.id);
+
       const { error } = await supabase
         .from('pricing_templates')
         .delete()
