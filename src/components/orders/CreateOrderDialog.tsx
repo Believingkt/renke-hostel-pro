@@ -652,7 +652,14 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         balance_payment_method: form.balance_payment_method || null,
         deposit_amount: depositAmount,
         paid_amount: paidAmount,
-        notes: form.notes.trim() || null,
+        notes: (() => {
+          let note = form.notes.trim();
+          if (bookingMode === 'exclusive' && (exclusiveDoubleRooms > 0 || exclusiveQuadRooms > 0)) {
+            const roomDetail = `【包區房間配置】雙人房 ${exclusiveDoubleRooms} 間、四人房 ${exclusiveQuadRooms} 間`;
+            note = note ? `${roomDetail}\n${note}` : roomDetail;
+          }
+          return note || null;
+        })(),
         total_price: totals.roomTotal + totals.addonTotal,
         discount_amount: totals.discount,
         final_price: totals.final,
