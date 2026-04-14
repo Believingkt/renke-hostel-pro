@@ -749,7 +749,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                           )}
                                         </div>
                                       </TooltipTrigger>
-                                      <TooltipContent className="text-base whitespace-pre-line max-w-xs">
+                                      <TooltipContent className="text-sm whitespace-pre-line max-w-xs">
                                         {tooltipText}
                                       </TooltipContent>
                                     </Tooltip>
