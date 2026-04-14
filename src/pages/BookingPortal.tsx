@@ -384,7 +384,7 @@ const BookingPortal = () => {
             探索優質包棟民宿
           </h1>
           <p className="text-sm sm:text-base md:text-lg opacity-90 mb-6 sm:mb-8">
-            會員獨享優惠 | 安心付款 | 免費取消
+            會員優惠  |  安心付款  |  免費取消
           </p>
 
           <PortalSearchBar
