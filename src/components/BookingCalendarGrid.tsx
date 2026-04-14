@@ -33,6 +33,7 @@ interface Order {
   order_status: string;
   order_source: string;
   room_type_id: string;
+  notes: string | null;
 }
 
 interface OrderRoom {
@@ -44,7 +45,7 @@ interface OrderRoom {
 
 // A virtual entry representing one room slot on the calendar
 interface CalendarEntry {
-  id: string; // unique key for rendering
+  id: string;
   orderId: string;
   order_number: string;
   guest_name: string;
@@ -54,6 +55,7 @@ interface CalendarEntry {
   order_status: string;
   order_source: string;
   room_type_id: string;
+  notes: string | null;
 }
 
 interface PublicHoliday {
@@ -179,7 +181,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
           .order("display_order"),
         supabase
           .from("orders")
-          .select("id, order_number, guest_name, guest_phone, check_in_date, check_out_date, order_status, order_source, room_type_id")
+          .select("id, order_number, guest_name, guest_phone, check_in_date, check_out_date, order_status, order_source, room_type_id, notes")
           .eq("accommodation_id", accommodationId)
           .in("order_status", ["hold", "pending", "confirmed", "checked_in"])
           .gte("check_out_date", startStr)
@@ -237,6 +239,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                 order_status: order.order_status,
                 order_source: order.order_source,
                 room_type_id: room.room_type_id,
+                notes: order.notes,
               });
             }
           }
@@ -253,6 +256,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
             order_status: order.order_status,
             order_source: order.order_source,
             room_type_id: order.room_type_id,
+            notes: order.notes,
           });
         }
       }
@@ -723,7 +727,14 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                       width: `${widthPercent}%`,
                                     }}
                                     onClick={() => navigate(`/admin/orders/${entry.orderId}`, { state: { from: '/admin/room-inventory' } })}
-                                    title={`${entry.guest_name} | ${entry.check_in_date} ~ ${entry.check_out_date} | ${getSourceLabel(entry.order_source)}`}
+                                    title={(() => {
+                                      let tip = `${entry.guest_name} | ${entry.check_in_date} ~ ${entry.check_out_date} | ${getSourceLabel(entry.order_source)}`;
+                                      if (entry.notes) {
+                                        const match = entry.notes.match(/【包區房間配置】(.+)/);
+                                        if (match) tip += `\n${match[0]}`;
+                                      }
+                                      return tip;
+                                    })()}
                                   >
                                     <span className="shrink-0">{SOURCE_ICONS[entry.order_source] || "📋"}</span>
                                     <span className="font-medium truncate">{entry.guest_name}</span>
