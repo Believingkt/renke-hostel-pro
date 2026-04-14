@@ -587,45 +587,6 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                 {/* Expanded: show order rows */}
                 {isExpanded && (
                   <>
-                    {/* Unassigned orders row */}
-                    <div className="flex border-b">
-                      <div
-                        className="shrink-0 border-r p-2 pl-8 text-sm text-muted-foreground sticky left-0 bg-card z-20"
-                        style={{ width: LEFT_COL_WIDTH, minWidth: LEFT_COL_WIDTH }}
-                      >
-                        待排房
-                      </div>
-                      <div className="flex flex-1 relative" style={{ minHeight: 40 }}>
-                        {dates.map((date, i) => {
-                          const dateStr = dateStrings[i];
-                          const holiday = holidays.get(dateStr);
-                          const isHoliday = holiday && (holiday.holiday_type === "holiday" || holiday.holiday_type === "compensatory_day_off");
-                          const isSatSun = isWeekend(date);
-                          const isRedDay = (isSatSun || isHoliday) && holiday?.holiday_type !== "work_on_weekend";
-                          const blockedByExclusive = isBlockedByExclusive(roomType.id, dateStr);
-                          return (
-                            <div
-                              key={dateStr}
-                              className={cn(
-                                "flex-1 border-r last:border-r-0",
-                                isRedDay && "bg-destructive/5",
-                                isToday(date) && "bg-primary/5",
-                              )}
-                              style={{
-                                minWidth: DAY_COL_MIN_WIDTH,
-                                ...(blockedByExclusive
-                                  ? {
-                                      backgroundColor: "hsl(var(--muted) / 0.28)",
-                                      backgroundImage:
-                                        "repeating-linear-gradient(-45deg, transparent, transparent 6px, hsl(var(--border) / 0.8) 6px, hsl(var(--border) / 0.8) 8px)",
-                                    }
-                                  : {}),
-                              }}
-                            />
-                          );
-                        })}
-                      </div>
-                    </div>
 
                     {/* Individual booking rows - group orders into "rooms" */}
                     {(() => {
