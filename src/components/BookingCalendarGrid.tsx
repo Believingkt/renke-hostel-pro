@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface BookingCalendarGridProps {
   accommodationId: string;
@@ -705,45 +706,54 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                 const isClippedLeft = checkInDate < dateStrings[0];
                                 const isClippedRight = checkOutDate > format(addDays(parseISO(dateStrings[dateStrings.length - 1]), 1), "yyyy-MM-dd");
 
+                                const tooltipText = (() => {
+                                  let tip = `${entry.guest_name} | ${entry.check_in_date} ~ ${entry.check_out_date} | ${getSourceLabel(entry.order_source)}`;
+                                  if (entry.notes) {
+                                    const match = entry.notes.match(/【包區房間配置】(.+)/);
+                                    if (match) tip += `\n${match[0]}`;
+                                  }
+                                  return tip;
+                                })();
+
                                 return (
-                                  <div
-                                    key={entry.id}
-                                    className={cn(
-                                      "absolute top-1 bottom-1 z-[5] cursor-pointer",
-                                      entry.order_status === 'hold'
-                                        ? "border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200"
-                                        : entry.order_status === 'confirmed'
-                                          ? "border border-emerald-300 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200"
-                                          : entry.order_status === 'checked_in'
-                                            ? "border border-violet-300 bg-violet-100 dark:bg-violet-900/30 text-violet-800 dark:text-violet-200"
-                                            : "border border-amber-300 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200",
-                                      "rounded-md flex items-center px-2 gap-1 text-xs overflow-hidden",
-                                      "hover:brightness-95 transition-all",
-                                      isClippedLeft && "rounded-l-none border-l-0",
-                                      isClippedRight && "rounded-r-none border-r-0",
-                                    )}
-                                    style={{
-                                      left: `${leftPercent}%`,
-                                      width: `${widthPercent}%`,
-                                    }}
-                                    onClick={() => navigate(`/admin/orders/${entry.orderId}`, { state: { from: '/admin/room-inventory' } })}
-                                    title={(() => {
-                                      let tip = `${entry.guest_name} | ${entry.check_in_date} ~ ${entry.check_out_date} | ${getSourceLabel(entry.order_source)}`;
-                                      if (entry.notes) {
-                                        const match = entry.notes.match(/【包區房間配置】(.+)/);
-                                        if (match) tip += `\n${match[0]}`;
-                                      }
-                                      return tip;
-                                    })()}
-                                  >
-                                    <span className="shrink-0">{SOURCE_ICONS[entry.order_source] || "📋"}</span>
-                                    <span className="font-medium truncate">{entry.guest_name}</span>
-                                    {span >= 2 && entry.order_source !== 'website' && entry.order_source !== 'manual' && (
-                                      <span className="text-muted-foreground truncate hidden sm:inline">
-                                        {getSourceLabel(entry.order_source)}
-                                      </span>
-                                    )}
-                                  </div>
+                                  <TooltipProvider key={entry.id} delayDuration={100}>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <div
+                                          className={cn(
+                                            "absolute top-1 bottom-1 z-[5] cursor-pointer",
+                                            entry.order_status === 'hold'
+                                              ? "border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200"
+                                              : entry.order_status === 'confirmed'
+                                                ? "border border-emerald-300 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200"
+                                                : entry.order_status === 'checked_in'
+                                                  ? "border border-violet-300 bg-violet-100 dark:bg-violet-900/30 text-violet-800 dark:text-violet-200"
+                                                  : "border border-amber-300 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200",
+                                            "rounded-md flex items-center px-2 gap-1 text-xs overflow-hidden",
+                                            "hover:brightness-95 transition-all",
+                                            isClippedLeft && "rounded-l-none border-l-0",
+                                            isClippedRight && "rounded-r-none border-r-0",
+                                          )}
+                                          style={{
+                                            left: `${leftPercent}%`,
+                                            width: `${widthPercent}%`,
+                                          }}
+                                          onClick={() => navigate(`/admin/orders/${entry.orderId}`, { state: { from: '/admin/room-inventory' } })}
+                                        >
+                                          <span className="shrink-0">{SOURCE_ICONS[entry.order_source] || "📋"}</span>
+                                          <span className="font-medium truncate">{entry.guest_name}</span>
+                                          {span >= 2 && entry.order_source !== 'website' && entry.order_source !== 'manual' && (
+                                            <span className="text-muted-foreground truncate hidden sm:inline">
+                                              {getSourceLabel(entry.order_source)}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="text-base whitespace-pre-line max-w-xs">
+                                        {tooltipText}
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 );
                               })}
                             </div>
