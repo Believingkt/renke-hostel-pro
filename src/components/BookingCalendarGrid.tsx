@@ -437,7 +437,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
           <div
             ref={headerScrollRef}
             onScroll={() => syncHorizontalScroll("header")}
-            className="overflow-x-auto overflow-y-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="overflow-x-auto overflow-y-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [overscroll-behavior-x:contain]"
           >
             <div style={{ minWidth: GRID_MIN_WIDTH }}>
               <div className="flex border-b bg-card">
@@ -502,7 +502,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
         <div
           ref={bodyScrollRef}
           onScroll={() => syncHorizontalScroll("body")}
-          className="overflow-x-auto overflow-y-visible"
+          className="overflow-x-auto overflow-y-visible [overscroll-behavior-x:contain]"
         >
           <div style={{ minWidth: GRID_MIN_WIDTH }}>
             {/* Room type rows */}
