@@ -727,7 +727,14 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                       width: `${widthPercent}%`,
                                     }}
                                     onClick={() => navigate(`/admin/orders/${entry.orderId}`, { state: { from: '/admin/room-inventory' } })}
-                                    title={`${entry.guest_name} | ${entry.check_in_date} ~ ${entry.check_out_date} | ${getSourceLabel(entry.order_source)}`}
+                                    title={(() => {
+                                      let tip = `${entry.guest_name} | ${entry.check_in_date} ~ ${entry.check_out_date} | ${getSourceLabel(entry.order_source)}`;
+                                      if (entry.notes) {
+                                        const match = entry.notes.match(/【包區房間配置】(.+)/);
+                                        if (match) tip += `\n${match[0]}`;
+                                      }
+                                      return tip;
+                                    })()}
                                   >
                                     <span className="shrink-0">{SOURCE_ICONS[entry.order_source] || "📋"}</span>
                                     <span className="font-medium truncate">{entry.guest_name}</span>
