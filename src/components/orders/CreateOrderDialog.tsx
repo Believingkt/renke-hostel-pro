@@ -113,6 +113,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   
   // Booking mode: "exclusive" (包區) or "normal" (非包區) or "" (not yet selected)
   const [bookingMode, setBookingMode] = useState<"" | "exclusive" | "normal">("");
+  const [exclusiveDoubleRooms, setExclusiveDoubleRooms] = useState(0);
+  const [exclusiveQuadRooms, setExclusiveQuadRooms] = useState(0);
 
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [filteredTemplates, setFilteredTemplates] = useState<PricingTemplate[]>([]);
@@ -171,6 +173,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       setFilteredTemplates([]);
       setRoomSelections([]);
       setBookingMode("");
+      setExclusiveDoubleRooms(0);
+      setExclusiveQuadRooms(0);
     }
   }, [open, initialData]);
 
@@ -648,7 +652,14 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         balance_payment_method: form.balance_payment_method || null,
         deposit_amount: depositAmount,
         paid_amount: paidAmount,
-        notes: form.notes.trim() || null,
+        notes: (() => {
+          let note = form.notes.trim();
+          if (bookingMode === 'exclusive' && (exclusiveDoubleRooms > 0 || exclusiveQuadRooms > 0)) {
+            const roomDetail = `【包區房間配置】雙人房 ${exclusiveDoubleRooms} 間、四人房 ${exclusiveQuadRooms} 間`;
+            note = note ? `${roomDetail}\n${note}` : roomDetail;
+          }
+          return note || null;
+        })(),
         total_price: totals.roomTotal + totals.addonTotal,
         discount_amount: totals.discount,
         final_price: totals.final,
@@ -1097,8 +1108,36 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                     )}
                   </div>
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">雙人房間數</Label>
+                    <Select value={String(exclusiveDoubleRooms)} onValueChange={(v) => setExclusiveDoubleRooms(Number(v))}>
+                      <SelectTrigger className="h-10 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[0, 1, 2, 3].map(n => (
+                          <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">四人房間數</Label>
+                    <Select value={String(exclusiveQuadRooms)} onValueChange={(v) => setExclusiveQuadRooms(Number(v))}>
+                      <SelectTrigger className="h-10 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[0, 1, 2, 3].map(n => (
+                          <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
                 <div className="text-xs text-muted-foreground">
-                  包區已鎖定 {MAX_TOTAL_ROOMS} 間房
+                  包區已鎖定 {MAX_TOTAL_ROOMS} 間房（雙人房 {exclusiveDoubleRooms} 間、四人房 {exclusiveQuadRooms} 間）
                 </div>
                 {roomSelections[0]?.roomPrice > 0 && (
                   <div className="text-xs text-right text-muted-foreground">
