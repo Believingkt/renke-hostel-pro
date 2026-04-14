@@ -173,6 +173,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       setFilteredTemplates([]);
       setRoomSelections([]);
       setBookingMode("");
+      setExclusiveDoubleRooms(0);
+      setExclusiveQuadRooms(0);
     }
   }, [open, initialData]);
 
@@ -1099,8 +1101,36 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                     )}
                   </div>
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">雙人房間數</Label>
+                    <Select value={String(exclusiveDoubleRooms)} onValueChange={(v) => setExclusiveDoubleRooms(Number(v))}>
+                      <SelectTrigger className="h-10 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[0, 1, 2, 3].map(n => (
+                          <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">四人房間數</Label>
+                    <Select value={String(exclusiveQuadRooms)} onValueChange={(v) => setExclusiveQuadRooms(Number(v))}>
+                      <SelectTrigger className="h-10 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[0, 1, 2, 3].map(n => (
+                          <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
                 <div className="text-xs text-muted-foreground">
-                  包區已鎖定 {MAX_TOTAL_ROOMS} 間房
+                  包區已鎖定 {MAX_TOTAL_ROOMS} 間房（雙人房 {exclusiveDoubleRooms} 間、四人房 {exclusiveQuadRooms} 間）
                 </div>
                 {roomSelections[0]?.roomPrice > 0 && (
                   <div className="text-xs text-right text-muted-foreground">
