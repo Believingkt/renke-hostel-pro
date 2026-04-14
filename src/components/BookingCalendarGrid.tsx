@@ -707,7 +707,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                 const isClippedRight = checkOutDate > format(addDays(parseISO(dateStrings[dateStrings.length - 1]), 1), "yyyy-MM-dd");
 
                                 const tooltipText = (() => {
-                                  let tip = `${entry.guest_name} | ${entry.check_in_date} ~ ${entry.check_out_date} | ${getSourceLabel(entry.order_source)}`;
+                                  let tip = `${entry.guest_name} | ${getSourceLabel(entry.order_source)}`;
                                   if (entry.notes) {
                                     const match = entry.notes.match(/【包區房間配置】(.+)/);
                                     if (match) tip += `\n${match[0]}`;
