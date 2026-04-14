@@ -340,9 +340,33 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
   const goPrev = () => setStartDate(prev => subDays(prev, dayCount));
   const goNext = () => setStartDate(prev => addDays(prev, dayCount));
 
-  // Column width
+  // Column width – responsive: measure container and distribute evenly
   const LEFT_COL_WIDTH = 200;
-  const DAY_COL_MIN_WIDTH = dayCount <= 7 ? 160 : dayCount <= 15 ? 100 : 70;
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const DAY_COL_MIN_WIDTH = (() => {
+    if (containerWidth > 0) {
+      const available = containerWidth - LEFT_COL_WIDTH;
+      const natural = Math.floor(available / dayCount);
+      // Floor: never go below 48px per cell
+      return Math.max(natural, 48);
+    }
+    // Fallback before measurement
+    return dayCount <= 7 ? 120 : dayCount <= 15 ? 80 : 48;
+  })();
   const GRID_MIN_WIDTH = LEFT_COL_WIDTH + DAY_COL_MIN_WIDTH * dayCount;
 
   const syncHorizontalScroll = (source: "header" | "body") => {
@@ -432,7 +456,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
       </div>
 
       {/* Grid */}
-      <div className="border rounded-lg bg-card relative">
+      <div ref={containerRef} className="border rounded-lg bg-card relative">
         <div className="sticky top-0 z-40 border-b bg-card shadow-sm">
           <div
             ref={headerScrollRef}
