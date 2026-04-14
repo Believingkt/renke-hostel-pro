@@ -113,6 +113,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   
   // Booking mode: "exclusive" (包區) or "normal" (非包區) or "" (not yet selected)
   const [bookingMode, setBookingMode] = useState<"" | "exclusive" | "normal">("");
+  const [exclusiveDoubleRooms, setExclusiveDoubleRooms] = useState(0);
+  const [exclusiveQuadRooms, setExclusiveQuadRooms] = useState(0);
 
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [filteredTemplates, setFilteredTemplates] = useState<PricingTemplate[]>([]);
