@@ -1600,6 +1600,9 @@ const OrderDetailPage = () => {
               const displayTotal = orderRooms.length > 0
                 ? orderRooms.reduce((sum, r) => sum + r.room_price, 0)
                 : order.total_price;
+              // 編輯模式始終顯示；檢視模式下僅在無 orderRooms 或多房型時顯示原始金額
+              const showInViewMode = orderRooms.length !== 1;
+              if (!isEditing && !showInViewMode) return null;
               return (
                 <div className="flex justify-between items-center gap-2">
                   <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">原始金額</span>
