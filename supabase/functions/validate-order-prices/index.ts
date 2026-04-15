@@ -235,13 +235,14 @@ serve(async (req) => {
     const calculatedTotalPrice = calculatedRoomTotal + calculatedPetPrice + calculatedMealPlanTotal + calculatedCustomAddonTotal;
 
     // Validate discount code if provided
+    // Discount applies only to room total, NOT addons
     let calculatedDiscount = 0;
     if (discountCode) {
       const { data: discountResult, error: discountError } = await supabase
         .rpc("validate_discount_code", {
           p_accommodation_id: accommodationId,
           p_code: discountCode,
-          p_order_amount: calculatedTotalPrice,
+          p_order_amount: calculatedRoomTotal,
           p_room_type_id: roomTypeId,
           p_check_in_date: checkInDate
         });
@@ -252,9 +253,9 @@ serve(async (req) => {
       } else if (discountResult && discountResult[0]?.is_valid) {
         const discountInfo = discountResult[0];
         if (discountInfo.discount_type === "percentage") {
-          calculatedDiscount = Math.round(calculatedTotalPrice * (discountInfo.discount_value / 100));
+          calculatedDiscount = Math.round(calculatedRoomTotal * (discountInfo.discount_value / 100));
         } else if (discountInfo.discount_type === "fixed") {
-          calculatedDiscount = Math.min(discountInfo.discount_value, calculatedTotalPrice);
+          calculatedDiscount = Math.min(discountInfo.discount_value, calculatedRoomTotal);
         }
       } else if (discountResult && discountResult[0] && !discountResult[0].is_valid) {
         errors.push(`Discount code invalid: ${discountResult[0].message || "Unknown error"}`);
