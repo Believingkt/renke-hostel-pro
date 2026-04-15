@@ -1611,6 +1611,37 @@ const OrderDetailPage = () => {
                 </div>
               );
             })()}
+            {/* 折扣金額與折扣碼 */}
+            <Separator />
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">折扣金額</span>
+              {isEditing ? (
+                <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right" type="text" inputMode="numeric" value={editForm.discount_amount} onChange={(e) => setEditForm(f => ({ ...f, discount_amount: Math.max(0, parseInt(e.target.value) || 0) }))} />
+              ) : (
+                order.discount_amount > 0 ? (
+                  <span className="font-medium text-base md:text-base text-destructive">- NT$ {order.discount_amount.toLocaleString()}</span>
+                ) : (
+                  <span className="font-medium text-base md:text-base">NT$ 0</span>
+                )
+              )}
+            </div>
+            <div className="space-y-1">
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">折扣碼</span>
+                {isEditing ? (
+                  <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right uppercase" type="text" placeholder="選填" value={editForm.discount_code} onChange={(e) => { setEditForm(f => ({ ...f, discount_code: e.target.value.toUpperCase() })); setDiscountCodeError(""); }} />
+                ) : (
+                  order.discount_code ? (
+                    <Badge variant="outline" className="text-xs">{order.discount_code}</Badge>
+                  ) : (
+                    <span className="font-medium text-base md:text-base text-muted-foreground">—</span>
+                  )
+                )}
+              </div>
+              {isEditing && discountCodeError && (
+                <p className="text-xs text-destructive text-right">{discountCodeError}</p>
+              )}
+            </div>
             {/* 加購方案金額 - 編輯模式顯示匯總輸入框 */}
             {isEditing && (() => {
               return (
@@ -1658,36 +1689,6 @@ const OrderDetailPage = () => {
                 </>
               );
             })()}
-            <Separator />
-            <div className="flex justify-between items-center gap-2">
-              <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">折扣金額</span>
-              {isEditing ? (
-                <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right" type="text" inputMode="numeric" value={editForm.discount_amount} onChange={(e) => setEditForm(f => ({ ...f, discount_amount: Math.max(0, parseInt(e.target.value) || 0) }))} />
-              ) : (
-                order.discount_amount > 0 ? (
-                  <span className="font-medium text-base md:text-base text-destructive">- NT$ {order.discount_amount.toLocaleString()}</span>
-                ) : (
-                  <span className="font-medium text-base md:text-base">NT$ 0</span>
-                )
-              )}
-            </div>
-            <div className="space-y-1">
-              <div className="flex justify-between items-center gap-2">
-                <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">折扣碼</span>
-                {isEditing ? (
-                  <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right uppercase" type="text" placeholder="選填" value={editForm.discount_code} onChange={(e) => { setEditForm(f => ({ ...f, discount_code: e.target.value.toUpperCase() })); setDiscountCodeError(""); }} />
-                ) : (
-                  order.discount_code ? (
-                    <Badge variant="outline" className="text-xs">{order.discount_code}</Badge>
-                  ) : (
-                    <span className="font-medium text-base md:text-base text-muted-foreground">—</span>
-                  )
-                )}
-              </div>
-              {isEditing && discountCodeError && (
-                <p className="text-xs text-destructive text-right">{discountCodeError}</p>
-              )}
-            </div>
             <Separator />
             {/* 實收金額 = total_price - discount + addon（若 addon 未含在 total_price 內） */}
             {(() => {
