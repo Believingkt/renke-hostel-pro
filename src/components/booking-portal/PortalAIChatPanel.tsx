@@ -194,7 +194,18 @@ const PortalAIChatPanel = () => {
             {messages.map((msg, i) => (
               <div key={i} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                 {msg.role === "assistant" && (
-                  <img src={assistantAvatar} alt="小安" className="h-7 w-7 shrink-0 mt-0.5 rounded-full object-cover cursor-pointer hover:ring-2 hover:ring-[hsl(25,70%,50%)]/40 transition-all" loading="eager" fetchPriority="high" decoding="sync" onClick={() => setShowAvatar(true)} />
+                  <div className="flex flex-col items-center shrink-0 gap-1">
+                    <img src={assistantAvatar} alt="小安" className="h-7 w-7 rounded-full object-cover cursor-pointer hover:ring-2 hover:ring-[hsl(25,70%,50%)]/40 transition-all" loading="eager" fetchPriority="high" decoding="sync" onClick={() => setShowAvatar(true)} />
+                    {msg.content && msg.content !== "..." && (
+                      <button
+                        onClick={() => playTTS(msg.content, i)}
+                        className="text-muted-foreground hover:text-[hsl(25,70%,50%)] transition-colors"
+                        title={playingMessageIndex === i ? "停止播放" : "語音播放"}
+                      >
+                        {playingMessageIndex === i ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+                      </button>
+                    )}
+                  </div>
                 )}
                 <div className={`max-w-[80%] ${msg.role === "user" ? "order-first" : ""}`}>
                   <div
@@ -238,18 +249,6 @@ const PortalAIChatPanel = () => {
                       msg.content
                     )}
                   </div>
-
-                  {/* TTS Button */}
-                  {msg.role === "assistant" && msg.content && msg.content !== "..." && (
-                    <button
-                      onClick={() => playTTS(msg.content, i)}
-                      className="mt-1 text-xs flex items-center gap-1 text-muted-foreground hover:text-[hsl(25,70%,50%)] transition-colors"
-                      title={playingMessageIndex === i ? "停止播放" : "語音播放"}
-                    >
-                      {playingMessageIndex === i ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
-                      <span>{playingMessageIndex === i ? "停止" : "播放"}</span>
-                    </button>
-                  )}
                   {msg.role === "assistant" && msg.quickReplies && msg.quickReplies.length > 0 && i === messages.length - 1 && (
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {msg.quickReplies.map((qr, qi) => (
