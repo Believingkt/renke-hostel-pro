@@ -277,6 +277,28 @@ const PortalAIChatPanel = () => {
             disabled={isLoading}
           />
           <Button
+            variant="ghost"
+            size="icon"
+            className={`h-10 w-10 shrink-0 rounded-lg transition-all ${
+              isRecording
+                ? "bg-red-500 text-white hover:bg-red-600 animate-pulse"
+                : isTranscribing
+                ? "bg-muted text-muted-foreground"
+                : "text-muted-foreground hover:text-white hover:bg-[hsl(25,70%,50%)]"
+            }`}
+            onClick={handleMicToggle}
+            disabled={isLoading || isTranscribing}
+            title={isRecording ? "停止錄音" : isTranscribing ? "辨識中..." : "語音輸入"}
+          >
+            {isTranscribing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : isRecording ? (
+              <MicOff className="h-4 w-4" />
+            ) : (
+              <Mic className="h-4 w-4" />
+            )}
+          </Button>
+          <Button
             size="icon"
             className="h-10 w-10 rounded-lg shrink-0"
             style={{ background: "hsl(25, 70%, 55%)" }}
