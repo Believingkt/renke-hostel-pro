@@ -70,18 +70,7 @@ const PortalSearchBar = ({
   const destinationSet = searchQuery.trim().length > 0;
   const dateGateActive = !destinationSet;
 
-  const handleDateTriggerClick = (e: React.MouseEvent) => {
-    if (dateGateActive) {
-      e.preventDefault();
-      e.stopPropagation();
-      onDestinationRequired?.();
-      toast({
-        title: "請先輸入目的地",
-        description: "請輸入城市、地區或民宿名稱後再選擇日期",
-        variant: "destructive",
-      });
-    }
-  };
+  // Gating now happens in Popover's onOpenChange (more reliable than onClick).
 
   const isDateUnavailable = (date: Date) => {
     if (!availableDateSet) return false;
@@ -208,11 +197,11 @@ const PortalSearchBar = ({
             <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
               入住日期
             </label>
-            <Popover open={checkInOpen && !dateGateActive} onOpenChange={(o) => !dateGateActive && setCheckInOpen(o)}>
+            <Popover open={checkInOpen} onOpenChange={(o) => { if (o && dateGateActive) { onDestinationRequired?.(); toast({ title: "請先輸入目的地", description: "請輸入城市、地區或民宿名稱後再選擇日期", variant: "destructive" }); return; } setCheckInOpen(o); }}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  onClick={handleDateTriggerClick}
+                  
                   className={cn(
                     "w-full h-10 justify-start text-left font-normal border-border",
                     checkIn ? "text-foreground" : "text-muted-foreground",
@@ -233,7 +222,7 @@ const PortalSearchBar = ({
                   selected={checkIn}
                   onSelect={handleCheckInSelect}
                   disabled={checkInDisabled}
-                  initialFocus
+                  
                   className={cn("p-3 pointer-events-auto")}
                 />
                 {availableDateSet && (
@@ -250,11 +239,11 @@ const PortalSearchBar = ({
             <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
               退房日期
             </label>
-            <Popover open={checkOutOpen && !dateGateActive} onOpenChange={(o) => !dateGateActive && setCheckOutOpen(o)}>
+            <Popover open={checkOutOpen} onOpenChange={(o) => { if (o && dateGateActive) { onDestinationRequired?.(); toast({ title: "請先輸入目的地", description: "請輸入城市、地區或民宿名稱後再選擇日期", variant: "destructive" }); return; } setCheckOutOpen(o); }}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  onClick={handleDateTriggerClick}
+                  
                   className={cn(
                     "w-full h-10 justify-start text-left font-normal border-border",
                     checkOut ? "text-foreground" : "text-muted-foreground",
@@ -272,7 +261,7 @@ const PortalSearchBar = ({
                   onSelect={handleCheckOutSelect}
                   disabled={checkOutDisabled}
                   defaultMonth={checkIn || today}
-                  initialFocus
+                  
                   className={cn("p-3 pointer-events-auto")}
                 />
                 {availableDateSet && (
@@ -332,11 +321,11 @@ const PortalSearchBar = ({
 
           {/* Dates row */}
           <div className="flex gap-2">
-            <Popover open={checkInOpen && !dateGateActive} onOpenChange={(o) => !dateGateActive && setCheckInOpen(o)}>
+            <Popover open={checkInOpen} onOpenChange={(o) => { if (o && dateGateActive) { onDestinationRequired?.(); toast({ title: "請先輸入目的地", description: "請輸入城市、地區或民宿名稱後再選擇日期", variant: "destructive" }); return; } setCheckInOpen(o); }}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  onClick={handleDateTriggerClick}
+                  
                   className={cn(
                     "flex-1 h-11 justify-start text-left font-normal border-border text-base",
                     checkIn ? "text-foreground" : "text-muted-foreground",
@@ -357,7 +346,7 @@ const PortalSearchBar = ({
                   selected={checkIn}
                   onSelect={handleCheckInSelect}
                   disabled={checkInDisabled}
-                  initialFocus
+                  
                   className={cn("p-3 pointer-events-auto")}
                 />
                 {availableDateSet && (
@@ -368,11 +357,11 @@ const PortalSearchBar = ({
               </PopoverContent>
             </Popover>
 
-            <Popover open={checkOutOpen && !dateGateActive} onOpenChange={(o) => !dateGateActive && setCheckOutOpen(o)}>
+            <Popover open={checkOutOpen} onOpenChange={(o) => { if (o && dateGateActive) { onDestinationRequired?.(); toast({ title: "請先輸入目的地", description: "請輸入城市、地區或民宿名稱後再選擇日期", variant: "destructive" }); return; } setCheckOutOpen(o); }}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  onClick={handleDateTriggerClick}
+                  
                   className={cn(
                     "flex-1 h-11 justify-start text-left font-normal border-border text-base",
                     checkOut ? "text-foreground" : "text-muted-foreground",
@@ -390,7 +379,7 @@ const PortalSearchBar = ({
                   onSelect={handleCheckOutSelect}
                   disabled={checkOutDisabled}
                   defaultMonth={checkIn || today}
-                  initialFocus
+                  
                   className={cn("p-3 pointer-events-auto")}
                 />
                 {availableDateSet && (
