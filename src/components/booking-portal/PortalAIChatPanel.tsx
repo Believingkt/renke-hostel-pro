@@ -171,7 +171,7 @@ const PortalAIChatPanel = () => {
 
   return (
     <div className="max-w-4xl mx-auto px-1 sm:px-0">
-      <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl overflow-hidden" style={{ height: "420px" }}>
+      <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl overflow-hidden flex flex-col" style={{ height: "calc(100dvh - 56px - 140px)", minHeight: "320px", maxHeight: "700px" }}>
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-[hsl(25,70%,50%)] to-[hsl(30,80%,55%)]">
           <div className="flex items-center gap-2">
@@ -196,7 +196,7 @@ const PortalAIChatPanel = () => {
         </div>
 
         {/* Messages */}
-        <ScrollArea ref={scrollRef} className="flex-1" style={{ height: "calc(420px - 52px - 56px)" }}>
+        <ScrollArea ref={scrollRef} className="flex-1 min-h-0">
           <div className="p-3 space-y-3">
             {messages.map((msg, i) => (
               <div key={i} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
