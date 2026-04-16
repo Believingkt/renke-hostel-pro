@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "@/hooks/use-toast";
 import { format, eachDayOfInterval, addDays } from "date-fns";
 import {
   MapPin,
@@ -60,6 +61,7 @@ const BookingPortal = () => {
     selectedRegion: "all",
   });
   const [availableDateSet, setAvailableDateSet] = useState<Set<string> | null>(null);
+  const [availableDatesByRoomType, setAvailableDatesByRoomType] = useState<Map<string, Set<string>>>(new Map());
   const [loadingAvailability, setLoadingAvailability] = useState(false);
 
   useEffect(() => {
@@ -189,6 +191,7 @@ const BookingPortal = () => {
     const q = searchQuery.trim();
     if (!q || matchedRoomTypeIds.length === 0) {
       setAvailableDateSet(null);
+      setAvailableDatesByRoomType(new Map());
       return;
     }
 
@@ -228,16 +231,22 @@ const BookingPortal = () => {
 
         if (cancelled) return;
         const set = new Set<string>();
+        const roomTypeDateMap = new Map<string, Set<string>>();
         allRows.forEach((row) => {
           if (row.is_available !== false && (row.available_rooms ?? 0) > 0) {
             set.add(row.date);
+            const existingDates = roomTypeDateMap.get(row.room_type_id) ?? new Set<string>();
+            existingDates.add(row.date);
+            roomTypeDateMap.set(row.room_type_id, existingDates);
           }
         });
         // If no inventory data at all, allow all dates (don't block)
         if (allRows.length === 0) {
           setAvailableDateSet(null);
+          setAvailableDatesByRoomType(new Map());
         } else {
           setAvailableDateSet(set);
+          setAvailableDatesByRoomType(roomTypeDateMap);
         }
 
         // Clear selected dates that are no longer available
@@ -250,7 +259,10 @@ const BookingPortal = () => {
         }
       } catch (e) {
         console.error("Failed to load availability index:", e);
-        if (!cancelled) setAvailableDateSet(null);
+        if (!cancelled) {
+          setAvailableDateSet(null);
+          setAvailableDatesByRoomType(new Map());
+        }
       } finally {
         if (!cancelled) setLoadingAvailability(false);
       }
@@ -264,10 +276,33 @@ const BookingPortal = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, matchedRoomTypeIds.join(",")]);
 
+  const isStayRangeAvailable = useCallback((start: Date, endExclusive: Date) => {
+    if (endExclusive <= start) return false;
+    if (availableDateSet === null) return true;
+
+    const stayDates = eachDayOfInterval({
+      start,
+      end: addDays(endExclusive, -1),
+    }).map((date) => format(date, "yyyy-MM-dd"));
+
+    return Array.from(availableDatesByRoomType.values()).some((dateSet) =>
+      stayDates.every((date) => dateSet.has(date))
+    );
+  }, [availableDateSet, availableDatesByRoomType]);
+
   const handleSearch = useCallback(async () => {
     setHasSearched(true);
 
     if (!checkIn || !checkOut) return;
+
+    if (!isStayRangeAvailable(checkIn, checkOut)) {
+      toast({
+        title: "所選日期目前無法預訂",
+        description: "請改選連續有空房的入住與退房日期",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setSearching(true);
     try {
@@ -336,7 +371,7 @@ const BookingPortal = () => {
     } finally {
       setSearching(false);
     }
-  }, [checkIn, checkOut, roomTypes]);
+  }, [checkIn, checkOut, isStayRangeAvailable, roomTypes]);
 
   const hasDateFilter = !!(checkIn && checkOut && hasSearched);
 
@@ -538,6 +573,7 @@ const BookingPortal = () => {
                   onRoomsChange={setRooms}
                   onSearch={handleSearch}
                   availableDateSet={availableDateSet}
+                  isStayRangeAvailable={isStayRangeAvailable}
                   isLoadingAvailability={loadingAvailability}
                 />
               )}
