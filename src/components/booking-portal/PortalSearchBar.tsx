@@ -201,7 +201,7 @@ const PortalSearchBar = ({
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  onClick={handleDateTriggerClick}
+                  
                   className={cn(
                     "w-full h-10 justify-start text-left font-normal border-border",
                     checkIn ? "text-foreground" : "text-muted-foreground",
@@ -243,7 +243,7 @@ const PortalSearchBar = ({
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  onClick={handleDateTriggerClick}
+                  
                   className={cn(
                     "w-full h-10 justify-start text-left font-normal border-border",
                     checkOut ? "text-foreground" : "text-muted-foreground",
@@ -325,7 +325,7 @@ const PortalSearchBar = ({
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  onClick={handleDateTriggerClick}
+                  
                   className={cn(
                     "flex-1 h-11 justify-start text-left font-normal border-border text-base",
                     checkIn ? "text-foreground" : "text-muted-foreground",
@@ -361,7 +361,7 @@ const PortalSearchBar = ({
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  onClick={handleDateTriggerClick}
+                  
                   className={cn(
                     "flex-1 h-11 justify-start text-left font-normal border-border text-base",
                     checkOut ? "text-foreground" : "text-muted-foreground",
