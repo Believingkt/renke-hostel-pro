@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useVoiceChat } from "@/hooks/use-voice-chat";
 import assistantAvatar from "@/assets/assistant-avatar-xiaoan.png?inline";
 import ReactMarkdown from "react-markdown";
+import { parseRoomListings, ChatRoomCard } from "./ChatRoomCard";
 
 interface Message {
   role: "user" | "assistant";
@@ -204,9 +205,35 @@ const PortalAIChatPanel = () => {
                     }`}
                   >
                     {msg.role === "assistant" ? (
-                      <div className="prose prose-base max-w-none [&>p]:my-0.5 [&>ul]:my-1 [&>ol]:my-1">
-                        <ReactMarkdown>{msg.content || "..."}</ReactMarkdown>
-                      </div>
+                      (() => {
+                        const parsed = msg.content ? parseRoomListings(msg.content) : null;
+                        if (parsed) {
+                          return (
+                            <div>
+                              {parsed.beforeText && (
+                                <div className="prose prose-base max-w-none [&>p]:my-0.5 mb-2">
+                                  <ReactMarkdown>{parsed.beforeText}</ReactMarkdown>
+                                </div>
+                              )}
+                              <div className="grid gap-2 mt-1">
+                                {parsed.rooms.map((room, ri) => (
+                                  <ChatRoomCard key={ri} room={room} />
+                                ))}
+                              </div>
+                              {parsed.afterText && (
+                                <div className="prose prose-base max-w-none [&>p]:my-0.5 mt-2">
+                                  <ReactMarkdown>{parsed.afterText}</ReactMarkdown>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+                        return (
+                          <div className="prose prose-base max-w-none [&>p]:my-0.5 [&>ul]:my-1 [&>ol]:my-1">
+                            <ReactMarkdown>{msg.content || "..."}</ReactMarkdown>
+                          </div>
+                        );
+                      })()
                     ) : (
                       msg.content
                     )}
