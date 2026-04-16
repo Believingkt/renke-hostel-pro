@@ -235,7 +235,16 @@ const PortalAIChatPanel = () => {
         </ScrollArea>
 
         {/* Input */}
-        <div className="border-t border-border px-3 py-2 flex gap-2 bg-white">
+        <div className="border-t border-border px-3 py-2 flex gap-2 bg-white items-center">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 shrink-0 text-muted-foreground hover:text-foreground"
+            onClick={handleReset}
+            title="重新開始"
+          >
+            <RotateCcw className="h-4 w-4" />
+          </Button>
           <Input
             placeholder="輸入訊息..."
             className="flex-1 !min-h-[40px] !h-10 text-sm border-border"
