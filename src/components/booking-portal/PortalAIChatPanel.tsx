@@ -264,6 +264,18 @@ const PortalAIChatPanel = () => {
           </Button>
         </div>
       </div>
+
+      <Dialog open={showAvatar} onOpenChange={setShowAvatar}>
+        <DialogContent className="sm:max-w-xs p-2 bg-white rounded-2xl">
+          <div className="flex flex-col items-center gap-3 py-4">
+            <img src={assistantAvatar} alt="AI 管家 小安" className="w-48 h-48 rounded-full object-cover shadow-lg" />
+            <div className="text-center">
+              <p className="font-semibold text-lg text-foreground">AI 管家 小安</p>
+              <p className="text-sm text-muted-foreground">為您搜尋全平台最佳民宿</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
