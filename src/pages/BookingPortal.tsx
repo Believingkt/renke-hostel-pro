@@ -59,6 +59,8 @@ const BookingPortal = () => {
     selectedAccommodation: "all",
     selectedRegion: "all",
   });
+  const [availableDateSet, setAvailableDateSet] = useState<Set<string> | null>(null);
+  const [loadingAvailability, setLoadingAvailability] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -166,6 +168,79 @@ const BookingPortal = () => {
     if (!checkIn || !checkOut) return 0;
     return Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
   }, [checkIn, checkOut]);
+
+  // Room types matching the destination text query
+  const matchedRoomTypeIds = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [];
+    return roomTypes
+      .filter(
+        (rt) =>
+          rt.name.toLowerCase().includes(q) ||
+          rt.accommodation_name.toLowerCase().includes(q) ||
+          rt.accommodation_region_1?.toLowerCase().includes(q) ||
+          rt.accommodation_region_2?.toLowerCase().includes(q)
+      )
+      .map((rt) => rt.id);
+  }, [searchQuery, roomTypes]);
+
+  // Fetch available dates (next 180 days) for matched room types
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (!q || matchedRoomTypeIds.length === 0) {
+      setAvailableDateSet(null);
+      return;
+    }
+
+    let cancelled = false;
+    const run = async () => {
+      setLoadingAvailability(true);
+      try {
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        const end = addDays(start, 180);
+        const startStr = format(start, "yyyy-MM-dd");
+        const endStr = format(end, "yyyy-MM-dd");
+
+        const { data } = await supabase
+          .from("room_inventory_pricing")
+          .select("date, available_rooms, is_available, room_type_id")
+          .in("room_type_id", matchedRoomTypeIds)
+          .gte("date", startStr)
+          .lte("date", endStr);
+
+        if (cancelled) return;
+        const set = new Set<string>();
+        data?.forEach((row) => {
+          if (row.is_available !== false && (row.available_rooms ?? 0) > 0) {
+            set.add(row.date);
+          }
+        });
+        setAvailableDateSet(set);
+
+        // Clear selected dates that are no longer available
+        if (checkIn && !set.has(format(checkIn, "yyyy-MM-dd"))) {
+          setCheckIn(undefined);
+          setCheckOut(undefined);
+        } else if (checkOut) {
+          const prev = format(addDays(checkOut, -1), "yyyy-MM-dd");
+          if (!set.has(prev)) setCheckOut(undefined);
+        }
+      } catch (e) {
+        console.error("Failed to load availability index:", e);
+        if (!cancelled) setAvailableDateSet(null);
+      } finally {
+        if (!cancelled) setLoadingAvailability(false);
+      }
+    };
+
+    const t = setTimeout(run, 300); // debounce typing
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, matchedRoomTypeIds.join(",")]);
 
   const handleSearch = useCallback(async () => {
     setHasSearched(true);
@@ -440,6 +515,8 @@ const BookingPortal = () => {
                   rooms={rooms}
                   onRoomsChange={setRooms}
                   onSearch={handleSearch}
+                  availableDateSet={availableDateSet}
+                  isLoadingAvailability={loadingAvailability}
                 />
               )}
             </div>
