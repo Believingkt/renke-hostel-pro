@@ -2614,7 +2614,7 @@ const BookingFlow = () => {
         <>
           {/* Progress Indicator */}
           <div className="border-b bg-card">
-            <div className="container mx-auto px-4 py-6">
+            <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
               <div className="flex items-center justify-between max-w-4xl mx-auto">
                 {stepIndicators.map((step, index) => {
                   const Icon = step.icon;
@@ -2625,7 +2625,7 @@ const BookingFlow = () => {
                     <div key={step.key} className="flex items-center flex-1">
                       <div className="flex flex-col items-center flex-1">
                         <div
-                          className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors ${
+                          className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 transition-colors ${
                             isCompleted
                               ? "bg-primary border-primary text-primary-foreground"
                               : isActive
@@ -2633,7 +2633,7 @@ const BookingFlow = () => {
                               : "border-muted text-muted-foreground"
                           }`}
                         >
-                          <Icon className="h-5 w-5" />
+                          <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                         </div>
                         <span
                           className={`mt-2 text-xs font-medium hidden sm:block ${
@@ -2658,8 +2658,8 @@ const BookingFlow = () => {
           </div>
 
           {/* Main Content */}
-          <div className="container mx-auto px-4 py-8">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-[2fr_1fr] gap-8">
+          <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-[2fr_1fr] gap-4 sm:gap-8">
           {/* Left: Form Content */}
           <div className="w-full">
             <Card>
@@ -2822,7 +2822,7 @@ const BookingFlow = () => {
                       >
                         <div className="grid md:grid-cols-[3fr_2fr] gap-0 h-full">
                           {/* 左側圖片 - 占60% */}
-                          <div className="relative bg-muted min-h-[400px] md:min-h-full overflow-hidden">
+                          <div className="relative bg-muted min-h-[240px] sm:min-h-[320px] md:min-h-full overflow-hidden">
                             <Carousel 
                               className="w-full h-full"
                               opts={{ loop: true }}
@@ -4297,7 +4297,7 @@ const BookingFlow = () => {
             </Card>
 
             {/* Navigation Buttons */}
-            <div className="flex gap-4 mt-6">
+            <div className="flex gap-3 sm:gap-4 mt-4 sm:mt-6 sticky bottom-0 bg-background py-3 sm:py-0 sm:static -mx-3 px-3 sm:mx-0 sm:px-0 border-t sm:border-t-0 z-10">
               {currentStep !== "dates" && (
                 <Button
                   variant="outline"
