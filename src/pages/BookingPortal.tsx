@@ -386,25 +386,55 @@ const BookingPortal = () => {
           <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-2 sm:mb-3 drop-shadow-sm">
             探索優質包棟民宿
           </h1>
-          <p className="text-sm sm:text-base md:text-lg opacity-90 mb-6 sm:mb-8">
+          <p className="text-sm sm:text-base md:text-lg opacity-90 mb-4 sm:mb-6">
             會員優惠  |  安心付款  |  免費取消
           </p>
 
-          <PortalSearchBar
-            searchQuery={searchQuery}
-            onSearchQueryChange={setSearchQuery}
-            checkIn={checkIn}
-            checkOut={checkOut}
-            onCheckInChange={setCheckIn}
-            onCheckOutChange={setCheckOut}
-            adults={adults}
-            onAdultsChange={setAdults}
-            children={children}
-            onChildrenChange={setChildren}
-            rooms={rooms}
-            onRoomsChange={setRooms}
-            onSearch={handleSearch}
-          />
+          {/* Mode Toggle */}
+          <div className="flex items-center justify-center gap-1 mb-4 sm:mb-6">
+            <button
+              onClick={() => setHeroMode("search")}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                heroMode === "search"
+                  ? "bg-white text-[hsl(25,70%,45%)] shadow-md"
+                  : "bg-white/20 text-white hover:bg-white/30"
+              }`}
+            >
+              <Search className="h-4 w-4" />
+              搜尋房型
+            </button>
+            <button
+              onClick={() => setHeroMode("ai")}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                heroMode === "ai"
+                  ? "bg-white text-[hsl(25,70%,45%)] shadow-md"
+                  : "bg-white/20 text-white hover:bg-white/30"
+              }`}
+            >
+              <MessageCircle className="h-4 w-4" />
+              AI 管家
+            </button>
+          </div>
+
+          {heroMode === "search" ? (
+            <PortalSearchBar
+              searchQuery={searchQuery}
+              onSearchQueryChange={setSearchQuery}
+              checkIn={checkIn}
+              checkOut={checkOut}
+              onCheckInChange={setCheckIn}
+              onCheckOutChange={setCheckOut}
+              adults={adults}
+              onAdultsChange={setAdults}
+              children={children}
+              onChildrenChange={setChildren}
+              rooms={rooms}
+              onRoomsChange={setRooms}
+              onSearch={handleSearch}
+            />
+          ) : (
+            <PortalAIChatPanel />
+          )}
         </div>
       </section>
 
