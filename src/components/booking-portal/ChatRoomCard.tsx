@@ -10,7 +10,7 @@ interface RoomInfo {
 
 const parseRoomListings = (text: string): { rooms: RoomInfo[]; beforeText: string; afterText: string } | null => {
   const lines = text.split("\n");
-  const roomPattern = /🏠\s*(.+?)\s*[-–]\s*(.+?)\s*[（(]\s*(\d+\s*人)\s*[）)]\s*💰\s*(NT\$\s*[\d,]+\/晚)\s*📐\s*(.+?坪)/;
+  const roomPattern = /🏠\s*(.+?)\s*[-–]\s*(.+?)\s*[（(]\s*(\d+\s*人)\s*[）)]\s*[　\s]*💰\s*(NT\$\s*[\d,]+(?:\s*[~～]\s*[\d,]+)?\/晚)\s*[　\s]*📐\s*(.+?坪)/;
   
   const rooms: RoomInfo[] = [];
   const beforeLines: string[] = [];
