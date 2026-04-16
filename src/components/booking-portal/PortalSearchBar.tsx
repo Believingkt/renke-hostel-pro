@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { format, addDays } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -66,12 +66,37 @@ const PortalSearchBar = ({
 }: PortalSearchBarProps) => {
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [checkOutOpen, setCheckOutOpen] = useState(false);
+  const desktopDestinationInputRef = useRef<HTMLInputElement>(null);
+  const mobileDestinationInputRef = useRef<HTMLInputElement>(null);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const destinationSet = searchQuery.trim().length > 0;
-  const dateGateActive = !destinationSet;
+  const getDestinationValue = () => {
+    const mobileValue = mobileDestinationInputRef.current?.value?.trim();
+    const desktopValue = desktopDestinationInputRef.current?.value?.trim();
+    return mobileValue || desktopValue || searchQuery.trim();
+  };
+
+  const shouldBlockDateSelection = () => getDestinationValue().length === 0;
+  const dateGateActive = shouldBlockDateSelection();
+
+  const handleDatePopoverOpenChange = (
+    nextOpen: boolean,
+    setOpen: (open: boolean) => void
+  ) => {
+    if (nextOpen && shouldBlockDateSelection()) {
+      onDestinationRequired?.();
+      toast({
+        title: "請先輸入目的地",
+        description: "請輸入城市、地區或民宿名稱後再選擇日期",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setOpen(nextOpen);
+  };
 
   // Gating now happens in Popover's onOpenChange (more reliable than onClick).
 
@@ -191,6 +216,7 @@ const PortalSearchBar = ({
             <div className="relative">
               <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
               <Input
+                ref={desktopDestinationInputRef}
                 placeholder="城市、地區或民宿名稱"
                 className="!pl-10 h-10 border-border text-foreground"
                 value={searchQuery}
@@ -205,7 +231,7 @@ const PortalSearchBar = ({
             <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
               入住日期
             </label>
-            <Popover open={checkInOpen} onOpenChange={(o) => { if (o && dateGateActive) { onDestinationRequired?.(); toast({ title: "請先輸入目的地", description: "請輸入城市、地區或民宿名稱後再選擇日期", variant: "destructive" }); return; } setCheckInOpen(o); }}>
+            <Popover open={checkInOpen} onOpenChange={(o) => handleDatePopoverOpenChange(o, setCheckInOpen)}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -247,7 +273,7 @@ const PortalSearchBar = ({
             <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
               退房日期
             </label>
-            <Popover open={checkOutOpen} onOpenChange={(o) => { if (o && dateGateActive) { onDestinationRequired?.(); toast({ title: "請先輸入目的地", description: "請輸入城市、地區或民宿名稱後再選擇日期", variant: "destructive" }); return; } setCheckOutOpen(o); }}>
+            <Popover open={checkOutOpen} onOpenChange={(o) => handleDatePopoverOpenChange(o, setCheckOutOpen)}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -319,6 +345,7 @@ const PortalSearchBar = ({
           <div className="relative">
             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
             <Input
+              ref={mobileDestinationInputRef}
               placeholder="城市、地區或民宿名稱（必填）"
               className="!pl-10 h-11 border-border text-foreground text-base"
               value={searchQuery}
@@ -329,7 +356,7 @@ const PortalSearchBar = ({
 
           {/* Dates row */}
           <div className="flex gap-2">
-            <Popover open={checkInOpen} onOpenChange={(o) => { if (o && dateGateActive) { onDestinationRequired?.(); toast({ title: "請先輸入目的地", description: "請輸入城市、地區或民宿名稱後再選擇日期", variant: "destructive" }); return; } setCheckInOpen(o); }}>
+            <Popover open={checkInOpen} onOpenChange={(o) => handleDatePopoverOpenChange(o, setCheckInOpen)}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -365,7 +392,7 @@ const PortalSearchBar = ({
               </PopoverContent>
             </Popover>
 
-            <Popover open={checkOutOpen} onOpenChange={(o) => { if (o && dateGateActive) { onDestinationRequired?.(); toast({ title: "請先輸入目的地", description: "請輸入城市、地區或民宿名稱後再選擇日期", variant: "destructive" }); return; } setCheckOutOpen(o); }}>
+            <Popover open={checkOutOpen} onOpenChange={(o) => handleDatePopoverOpenChange(o, setCheckOutOpen)}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
