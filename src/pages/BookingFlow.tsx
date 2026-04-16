@@ -1480,6 +1480,32 @@ const BookingFlow = () => {
         });
         return;
       }
+
+      // 等待可用性檢查完成後，預先判斷是否有可預訂的房型
+      if (isCheckingAvailability) {
+        toast({
+          title: "正在檢查房型可用性",
+          description: "請稍候，系統正在確認可預訂房型...",
+        });
+        return;
+      }
+
+      // 如果可用性資料已載入，檢查是否有任何可訂房型
+      if (roomTypes.length > 0 && Object.keys(roomAvailability).length > 0) {
+        const hasAvailable = roomTypes.some(room => {
+          const avail = roomAvailability[room.id];
+          if (!avail) return false;
+          return !avail.isBlocked && !avail.hasMissingPricing && !avail.hasNoAvailability;
+        });
+        if (!hasAvailable) {
+          toast({
+            title: "所選日期無可預訂房型",
+            description: "您選擇的日期目前沒有可預訂的房型，請嘗試其他日期。",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
     }
 
     if (currentStep === "room") {
