@@ -59,6 +59,8 @@ const BookingPortal = () => {
     selectedAccommodation: "all",
     selectedRegion: "all",
   });
+  const [availableDateSet, setAvailableDateSet] = useState<Set<string> | null>(null);
+  const [loadingAvailability, setLoadingAvailability] = useState(false);
 
   useEffect(() => {
     fetchData();
