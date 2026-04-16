@@ -222,7 +222,7 @@ const PortalSearchBar = ({
                   selected={checkIn}
                   onSelect={handleCheckInSelect}
                   disabled={checkInDisabled}
-                  initialFocus
+                  
                   className={cn("p-3 pointer-events-auto")}
                 />
                 {availableDateSet && (
@@ -261,7 +261,7 @@ const PortalSearchBar = ({
                   onSelect={handleCheckOutSelect}
                   disabled={checkOutDisabled}
                   defaultMonth={checkIn || today}
-                  initialFocus
+                  
                   className={cn("p-3 pointer-events-auto")}
                 />
                 {availableDateSet && (
@@ -346,7 +346,7 @@ const PortalSearchBar = ({
                   selected={checkIn}
                   onSelect={handleCheckInSelect}
                   disabled={checkInDisabled}
-                  initialFocus
+                  
                   className={cn("p-3 pointer-events-auto")}
                 />
                 {availableDateSet && (
@@ -379,7 +379,7 @@ const PortalSearchBar = ({
                   onSelect={handleCheckOutSelect}
                   disabled={checkOutDisabled}
                   defaultMonth={checkIn || today}
-                  initialFocus
+                  
                   className={cn("p-3 pointer-events-auto")}
                 />
                 {availableDateSet && (
