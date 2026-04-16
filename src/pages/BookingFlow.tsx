@@ -2664,7 +2664,7 @@ const BookingFlow = () => {
           <div className="w-full">
             <Card>
               <CardHeader>
-                <CardTitle className="text-2xl">
+                <CardTitle className="text-xl sm:text-2xl">
                   {currentStep === "room" && "選擇房型"}
                   {currentStep === "dates" && "選擇入住日期"}
                   {currentStep === "addons" && "加購方案"}
@@ -2861,9 +2861,9 @@ const BookingFlow = () => {
                           </div>
                           
                           {/* 右側內容 */}
-                          <CardContent className="p-6 flex flex-col justify-between">
-                            <div className="mb-4">
-                              <h3 className="text-xl font-bold mb-3">{room.name}</h3>
+                          <CardContent className="p-4 sm:p-6 flex flex-col justify-between">
+                            <div className="mb-3 sm:mb-4">
+                              <h3 className="text-lg sm:text-xl font-bold mb-2 sm:mb-3">{room.name}</h3>
                               
                               <div className="space-y-3 mb-4">
                                 {(room.room_count || room.quad_room_count || room.double_room_count) && (
