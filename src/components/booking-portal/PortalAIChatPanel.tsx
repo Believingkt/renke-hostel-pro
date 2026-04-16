@@ -220,7 +220,7 @@ const PortalAIChatPanel = () => {
 
             {isLoading && messages[messages.length - 1]?.role === "user" && (
               <div className="flex gap-2 justify-start">
-                <img src={assistantAvatar} alt="小安" className="h-7 w-7 shrink-0 mt-0.5 rounded-full object-cover" loading="eager" fetchPriority="high" decoding="sync" />
+                <img src={assistantAvatar} alt="小安" className="h-7 w-7 shrink-0 mt-0.5 rounded-full object-cover cursor-pointer hover:ring-2 hover:ring-[hsl(25,70%,50%)]/40 transition-all" loading="eager" fetchPriority="high" decoding="sync" onClick={() => setShowAvatar(true)} />
                 <div className="bg-gray-100 rounded-2xl rounded-bl-md px-3 py-2">
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 </div>
