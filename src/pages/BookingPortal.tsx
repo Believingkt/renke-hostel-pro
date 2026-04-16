@@ -228,12 +228,17 @@ const BookingPortal = () => {
 
         if (cancelled) return;
         const set = new Set<string>();
-        data?.forEach((row) => {
+        allRows.forEach((row) => {
           if (row.is_available !== false && (row.available_rooms ?? 0) > 0) {
             set.add(row.date);
           }
         });
-        setAvailableDateSet(set);
+        // If no inventory data at all, allow all dates (don't block)
+        if (allRows.length === 0) {
+          setAvailableDateSet(null);
+        } else {
+          setAvailableDateSet(set);
+        }
 
         // Clear selected dates that are no longer available
         if (checkIn && !set.has(format(checkIn, "yyyy-MM-dd"))) {
