@@ -382,7 +382,7 @@ const BookingPortal = () => {
               "linear-gradient(135deg, hsla(25, 80%, 55%, 0.6) 0%, hsla(30, 90%, 60%, 0.5) 50%, hsla(35, 85%, 58%, 0.6) 100%)",
           }}
         />
-        <div className={`relative max-w-7xl mx-auto px-3 sm:px-4 text-center text-white ${heroMode === "ai" ? "py-4 md:py-6" : "py-8 md:py-20"}`}>
+        <div className={`relative max-w-7xl mx-auto px-3 sm:px-4 text-center text-white transition-all duration-300 ease-in-out ${heroMode === "ai" ? "py-4 md:py-6" : "py-8 md:py-20"}`}>
           <h1 className={`font-bold drop-shadow-sm ${heroMode === "ai" ? "text-xl sm:text-2xl md:text-4xl mb-1 sm:mb-2" : "text-2xl sm:text-3xl md:text-5xl mb-2 sm:mb-3"}`}>
             探索優質包棟民宿
           </h1>
@@ -416,25 +416,44 @@ const BookingPortal = () => {
             </button>
           </div>
 
-          {heroMode === "search" ? (
-            <PortalSearchBar
-              searchQuery={searchQuery}
-              onSearchQueryChange={setSearchQuery}
-              checkIn={checkIn}
-              checkOut={checkOut}
-              onCheckInChange={setCheckIn}
-              onCheckOutChange={setCheckOut}
-              adults={adults}
-              onAdultsChange={setAdults}
-              children={children}
-              onChildrenChange={setChildren}
-              rooms={rooms}
-              onRoomsChange={setRooms}
-              onSearch={handleSearch}
-            />
-          ) : (
-            <PortalAIChatPanel />
-          )}
+          <div className="relative">
+            <div
+              key="search"
+              className={`transition-all duration-300 ease-in-out ${
+                heroMode === "search"
+                  ? "opacity-100 translate-y-0"
+                  : "opacity-0 translate-y-2 pointer-events-none absolute inset-0"
+              }`}
+            >
+              {heroMode === "search" && (
+                <PortalSearchBar
+                  searchQuery={searchQuery}
+                  onSearchQueryChange={setSearchQuery}
+                  checkIn={checkIn}
+                  checkOut={checkOut}
+                  onCheckInChange={setCheckIn}
+                  onCheckOutChange={setCheckOut}
+                  adults={adults}
+                  onAdultsChange={setAdults}
+                  children={children}
+                  onChildrenChange={setChildren}
+                  rooms={rooms}
+                  onRoomsChange={setRooms}
+                  onSearch={handleSearch}
+                />
+              )}
+            </div>
+            <div
+              key="ai"
+              className={`transition-all duration-300 ease-in-out ${
+                heroMode === "ai"
+                  ? "opacity-100 translate-y-0"
+                  : "opacity-0 translate-y-2 pointer-events-none absolute inset-0"
+              }`}
+            >
+              {heroMode === "ai" && <PortalAIChatPanel />}
+            </div>
+          </div>
         </div>
       </section>
 
