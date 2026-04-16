@@ -1,12 +1,15 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Loader2, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import assistantAvatar from "@/assets/assistant-avatar-xiaoan.png";
 import ReactMarkdown from "react-markdown";
+
+// Preload avatar image immediately at module level
+const avatarPreload = new Image();
+avatarPreload.src = assistantAvatar;
 
 interface Message {
   role: "user" | "assistant";
@@ -179,10 +182,7 @@ const PortalAIChatPanel = () => {
             {messages.map((msg, i) => (
               <div key={i} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                 {msg.role === "assistant" && (
-                  <Avatar className="h-7 w-7 shrink-0 mt-0.5">
-                    <AvatarImage src={assistantAvatar} alt="小安" />
-                    <AvatarFallback className="bg-primary/10 text-xs">AI</AvatarFallback>
-                  </Avatar>
+                  <img src={assistantAvatar} alt="小安" className="h-7 w-7 shrink-0 mt-0.5 rounded-full object-cover" loading="eager" />
                 )}
                 <div className={`max-w-[80%] ${msg.role === "user" ? "order-first" : ""}`}>
                   <div
@@ -222,10 +222,7 @@ const PortalAIChatPanel = () => {
 
             {isLoading && messages[messages.length - 1]?.role === "user" && (
               <div className="flex gap-2 justify-start">
-                <Avatar className="h-7 w-7 shrink-0 mt-0.5">
-                  <AvatarImage src={assistantAvatar} alt="小安" />
-                  <AvatarFallback className="bg-primary/10 text-xs">AI</AvatarFallback>
-                </Avatar>
+                <img src={assistantAvatar} alt="小安" className="h-7 w-7 shrink-0 mt-0.5 rounded-full object-cover" loading="eager" />
                 <div className="bg-gray-100 rounded-2xl rounded-bl-md px-3 py-2">
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 </div>
