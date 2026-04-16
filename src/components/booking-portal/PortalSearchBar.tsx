@@ -70,18 +70,7 @@ const PortalSearchBar = ({
   const destinationSet = searchQuery.trim().length > 0;
   const dateGateActive = !destinationSet;
 
-  const handleDateTriggerClick = (e: React.MouseEvent) => {
-    if (dateGateActive) {
-      e.preventDefault();
-      e.stopPropagation();
-      onDestinationRequired?.();
-      toast({
-        title: "請先輸入目的地",
-        description: "請輸入城市、地區或民宿名稱後再選擇日期",
-        variant: "destructive",
-      });
-    }
-  };
+  // Gating now happens in Popover's onOpenChange (more reliable than onClick).
 
   const isDateUnavailable = (date: Date) => {
     if (!availableDateSet) return false;
