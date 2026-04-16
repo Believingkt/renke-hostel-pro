@@ -234,7 +234,7 @@ const PortalAIChatPanel = () => {
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-10 shrink-0 text-muted-foreground hover:text-foreground"
+            className="h-10 w-10 shrink-0 text-muted-foreground hover:text-white hover:bg-[hsl(25,70%,50%)]"
             onClick={handleReset}
             title="重新開始"
           >
