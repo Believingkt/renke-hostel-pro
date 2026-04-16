@@ -180,7 +180,7 @@ const PortalAIChatPanel = () => {
             {messages.map((msg, i) => (
               <div key={i} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                 {msg.role === "assistant" && (
-                  <img src={assistantAvatar} alt="小安" className="h-7 w-7 shrink-0 mt-0.5 rounded-full object-cover" loading="eager" fetchPriority="high" decoding="sync" />
+                  <img src={assistantAvatar} alt="小安" className="h-7 w-7 shrink-0 mt-0.5 rounded-full object-cover cursor-pointer hover:ring-2 hover:ring-[hsl(25,70%,50%)]/40 transition-all" loading="eager" fetchPriority="high" decoding="sync" onClick={() => setShowAvatar(true)} />
                 )}
                 <div className={`max-w-[80%] ${msg.role === "user" ? "order-first" : ""}`}>
                   <div
