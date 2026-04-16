@@ -18,6 +18,7 @@ interface Message {
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/portal-ai-chat`;
 
 const PortalAIChatPanel = () => {
+  const [showAvatar, setShowAvatar] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
