@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Send, Loader2, RotateCcw } from "lucide-react";
+import { Send, Loader2, RotateCcw, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useVoiceChat } from "@/hooks/use-voice-chat";
 import assistantAvatar from "@/assets/assistant-avatar-xiaoan.png?inline";
 import ReactMarkdown from "react-markdown";
 
@@ -31,6 +32,7 @@ const PortalAIChatPanel = () => {
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { isRecording, isTranscribing, playingMessageIndex, startRecording, stopRecording, playTTS } = useVoiceChat();
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -170,6 +172,17 @@ const PortalAIChatPanel = () => {
     setInput("");
   };
 
+  const handleMicToggle = async () => {
+    if (isRecording) {
+      const text = await stopRecording();
+      if (text) {
+        sendMessage(text);
+      }
+    } else {
+      await startRecording();
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-1 sm:px-0 text-left">
       <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl overflow-hidden flex flex-col" style={{ height: "calc(100dvh - 56px - 140px - 64px)", minHeight: "280px", maxHeight: "700px" }}>
@@ -199,7 +212,17 @@ const PortalAIChatPanel = () => {
                     )}
                   </div>
 
-                  {/* Quick Replies */}
+                  {/* TTS Button */}
+                  {msg.role === "assistant" && msg.content && msg.content !== "..." && (
+                    <button
+                      onClick={() => playTTS(msg.content, i)}
+                      className="mt-1 text-xs flex items-center gap-1 text-muted-foreground hover:text-[hsl(25,70%,50%)] transition-colors"
+                      title={playingMessageIndex === i ? "停止播放" : "語音播放"}
+                    >
+                      {playingMessageIndex === i ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+                      <span>{playingMessageIndex === i ? "停止" : "播放"}</span>
+                    </button>
+                  )}
                   {msg.role === "assistant" && msg.quickReplies && msg.quickReplies.length > 0 && i === messages.length - 1 && (
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {msg.quickReplies.map((qr, qi) => (
@@ -253,6 +276,28 @@ const PortalAIChatPanel = () => {
             }}
             disabled={isLoading}
           />
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`h-10 w-10 shrink-0 rounded-lg transition-all ${
+              isRecording
+                ? "bg-red-500 text-white hover:bg-red-600 animate-pulse"
+                : isTranscribing
+                ? "bg-muted text-muted-foreground"
+                : "text-muted-foreground hover:text-white hover:bg-[hsl(25,70%,50%)]"
+            }`}
+            onClick={handleMicToggle}
+            disabled={isLoading || isTranscribing}
+            title={isRecording ? "停止錄音" : isTranscribing ? "辨識中..." : "語音輸入"}
+          >
+            {isTranscribing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : isRecording ? (
+              <MicOff className="h-4 w-4" />
+            ) : (
+              <Mic className="h-4 w-4" />
+            )}
+          </Button>
           <Button
             size="icon"
             className="h-10 w-10 rounded-lg shrink-0"
