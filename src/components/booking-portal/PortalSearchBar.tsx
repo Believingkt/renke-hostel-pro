@@ -37,6 +37,8 @@ interface PortalSearchBarProps {
   onSearch: () => void;
   /** Set of YYYY-MM-DD dates that have available rooms for the destination */
   availableDateSet?: Set<string> | null;
+  /** Validates whether a stay range has at least one bookable room type for every night */
+  isStayRangeAvailable?: (start: Date, endExclusive: Date) => boolean;
   /** Whether the availability index is being prepared */
   isLoadingAvailability?: boolean;
   /** Called when user opens a date picker without a destination set */
@@ -58,6 +60,7 @@ const PortalSearchBar = ({
   onRoomsChange,
   onSearch,
   availableDateSet,
+  isStayRangeAvailable,
   isLoadingAvailability,
   onDestinationRequired,
 }: PortalSearchBarProps) => {
@@ -106,8 +109,13 @@ const PortalSearchBar = ({
   const checkOutDisabled = (date: Date) => {
     const minDate = checkIn ? addDays(checkIn, 1) : addDays(today, 1);
     if (date < minDate) return true;
-    // For checkout, the previous night must be available
     if (!availableDateSet) return false;
+
+    if (checkIn && isStayRangeAvailable) {
+      return !isStayRangeAvailable(checkIn, date);
+    }
+
+    // Without a selected check-in date yet, at least require the previous night to be available.
     const prevNight = addDays(date, -1);
     return !availableDateSet.has(format(prevNight, "yyyy-MM-dd"));
   };
@@ -266,7 +274,7 @@ const PortalSearchBar = ({
                 />
                 {availableDateSet && (
                   <p className="text-xs text-muted-foreground px-3 pb-2">
-                    僅可選擇前一晚有空房的日期
+                    僅可選擇連續有空房的退房日期
                   </p>
                 )}
               </PopoverContent>
@@ -384,7 +392,7 @@ const PortalSearchBar = ({
                 />
                 {availableDateSet && (
                   <p className="text-xs text-muted-foreground px-3 pb-2">
-                    僅可選擇前一晚有空房的日期
+                    僅可選擇連續有空房的退房日期
                   </p>
                 )}
               </PopoverContent>
