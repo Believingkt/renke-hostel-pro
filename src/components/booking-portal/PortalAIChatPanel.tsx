@@ -174,15 +174,9 @@ const PortalAIChatPanel = () => {
       <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl overflow-hidden flex flex-col" style={{ height: "calc(100dvh - 56px - 140px - 64px)", minHeight: "280px", maxHeight: "700px" }}>
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-[hsl(25,70%,50%)] to-[hsl(30,80%,55%)]">
-          <div className="flex items-center gap-2">
-            <Avatar className="h-8 w-8 border-2 border-white/30">
-              <AvatarImage src={assistantAvatar} alt="小安" />
-              <AvatarFallback className="bg-white/20 text-white text-xs">AI</AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="text-white font-medium text-sm">AI 管家 小安</p>
-              <p className="text-white/70 text-xs">為您搜尋全平台最佳房源</p>
-            </div>
+          <div>
+            <p className="text-white font-medium text-sm">AI 管家 小安</p>
+            <p className="text-white/70 text-xs">為您搜尋全平台最佳民宿</p>
           </div>
           <Button
             variant="ghost"
