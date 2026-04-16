@@ -368,7 +368,7 @@ const PortalSearchBar = ({
               </PopoverContent>
             </Popover>
 
-            <Popover open={checkOutOpen && !dateGateActive} onOpenChange={(o) => !dateGateActive && setCheckOutOpen(o)}>
+            <Popover open={checkOutOpen} onOpenChange={(o) => { if (o && dateGateActive) { onDestinationRequired?.(); toast({ title: "請先輸入目的地", description: "請輸入城市、地區或民宿名稱後再選擇日期", variant: "destructive" }); return; } setCheckOutOpen(o); }}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
