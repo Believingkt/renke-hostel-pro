@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useVoiceChat } from "@/hooks/use-voice-chat";
 import assistantAvatar from "@/assets/assistant-avatar-xiaoan.png?inline";
 import ReactMarkdown from "react-markdown";
+import { parseRoomListings, ChatRoomCard } from "./ChatRoomCard";
 
 interface Message {
   role: "user" | "assistant";
