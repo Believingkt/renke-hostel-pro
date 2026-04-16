@@ -172,6 +172,17 @@ const PortalAIChatPanel = () => {
     setInput("");
   };
 
+  const handleMicToggle = async () => {
+    if (isRecording) {
+      const text = await stopRecording();
+      if (text) {
+        sendMessage(text);
+      }
+    } else {
+      await startRecording();
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-1 sm:px-0 text-left">
       <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl overflow-hidden flex flex-col" style={{ height: "calc(100dvh - 56px - 140px - 64px)", minHeight: "280px", maxHeight: "700px" }}>
