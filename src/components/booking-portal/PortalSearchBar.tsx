@@ -321,7 +321,7 @@ const PortalSearchBar = ({
 
           {/* Dates row */}
           <div className="flex gap-2">
-            <Popover open={checkInOpen} onOpenChange={(o) => { if (o && dateGateActive) { onDestinationRequired?.(); toast({ title: "請先輸入目的地", description: "請輸入城市、地區或民宿名稱後再選擇日期", variant: "destructive" }); return; } setCheckInOpen(o); }}>
+            <Popover open={checkInOpen} onOpenChange={(o) => { console.log('[PortalSearchBar mobile] checkIn onOpenChange', { o, dateGateActive, searchQuery }); if (o && dateGateActive) { onDestinationRequired?.(); toast({ title: "請先輸入目的地", description: "請輸入城市、地區或民宿名稱後再選擇日期", variant: "destructive" }); return; } setCheckInOpen(o); }}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
