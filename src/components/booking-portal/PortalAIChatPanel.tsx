@@ -32,6 +32,7 @@ const PortalAIChatPanel = () => {
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { isRecording, isTranscribing, playingMessageIndex, startRecording, stopRecording, playTTS } = useVoiceChat();
 
   const scrollToBottom = () => {
     setTimeout(() => {
