@@ -2614,7 +2614,7 @@ const BookingFlow = () => {
         <>
           {/* Progress Indicator */}
           <div className="border-b bg-card">
-            <div className="container mx-auto px-4 py-6">
+            <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
               <div className="flex items-center justify-between max-w-4xl mx-auto">
                 {stepIndicators.map((step, index) => {
                   const Icon = step.icon;
@@ -2625,7 +2625,7 @@ const BookingFlow = () => {
                     <div key={step.key} className="flex items-center flex-1">
                       <div className="flex flex-col items-center flex-1">
                         <div
-                          className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors ${
+                          className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 transition-colors ${
                             isCompleted
                               ? "bg-primary border-primary text-primary-foreground"
                               : isActive
@@ -2633,7 +2633,7 @@ const BookingFlow = () => {
                               : "border-muted text-muted-foreground"
                           }`}
                         >
-                          <Icon className="h-5 w-5" />
+                          <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                         </div>
                         <span
                           className={`mt-2 text-xs font-medium hidden sm:block ${
@@ -2658,13 +2658,13 @@ const BookingFlow = () => {
           </div>
 
           {/* Main Content */}
-          <div className="container mx-auto px-4 py-8">
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-[2fr_1fr] gap-8">
+          <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
+        <div className="max-w-7xl mx-auto grid lg:grid-cols-[2fr_1fr] gap-4 sm:gap-8">
           {/* Left: Form Content */}
           <div className="w-full">
             <Card>
               <CardHeader>
-                <CardTitle className="text-2xl">
+                <CardTitle className="text-xl sm:text-2xl">
                   {currentStep === "room" && "選擇房型"}
                   {currentStep === "dates" && "選擇入住日期"}
                   {currentStep === "addons" && "加購方案"}
@@ -2822,7 +2822,7 @@ const BookingFlow = () => {
                       >
                         <div className="grid md:grid-cols-[3fr_2fr] gap-0 h-full">
                           {/* 左側圖片 - 占60% */}
-                          <div className="relative bg-muted min-h-[400px] md:min-h-full overflow-hidden">
+                          <div className="relative bg-muted min-h-[240px] sm:min-h-[320px] md:min-h-full overflow-hidden">
                             <Carousel 
                               className="w-full h-full"
                               opts={{ loop: true }}
@@ -2861,9 +2861,9 @@ const BookingFlow = () => {
                           </div>
                           
                           {/* 右側內容 */}
-                          <CardContent className="p-6 flex flex-col justify-between">
-                            <div className="mb-4">
-                              <h3 className="text-xl font-bold mb-3">{room.name}</h3>
+                          <CardContent className="p-4 sm:p-6 flex flex-col justify-between">
+                            <div className="mb-3 sm:mb-4">
+                              <h3 className="text-lg sm:text-xl font-bold mb-2 sm:mb-3">{room.name}</h3>
                               
                               <div className="space-y-3 mb-4">
                                 {(room.room_count || room.quad_room_count || room.double_room_count) && (
@@ -3259,24 +3259,25 @@ const BookingFlow = () => {
                     {/* 寵物方案 */}
                     {petPlanSettings.enabled && (
                     <Card className="border-2">
-                      <CardHeader className="pb-4">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-xl font-bold flex items-center gap-2">
+                      <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
+                        <div className="flex items-start justify-between gap-2">
+                          <CardTitle className="text-base sm:text-xl font-bold flex items-center gap-2">
                             🐾 寵物方案
                           </CardTitle>
                           <Button
                             variant="outline"
                             size="sm"
+                            className="shrink-0 text-xs"
                             onClick={() => setIsPetPolicyDialogOpen(true)}
                           >
                             詳細內容
                           </Button>
                         </div>
-                        <p className="text-sm text-muted-foreground mt-2">
+                        <p className="text-xs sm:text-sm text-muted-foreground mt-1.5">
                           每隻 NT$ {petPlanSettings.pricePerUnit} / 每晚・上限 {petPlanSettings.maxQuantity} 隻
                         </p>
                       </CardHeader>
-                      <CardContent className="space-y-4">
+                      <CardContent className="space-y-4 px-4 sm:px-6">
                         {petCount === 0 ? (
                           <Button
                             onClick={() => setPetCount(1)}
@@ -3340,24 +3341,25 @@ const BookingFlow = () => {
                     {/* 餐食方案 */}
                     {mealPlanSettings.enabled && (
                     <Card className="border-2">
-                      <CardHeader className="pb-4">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-xl font-bold flex items-center gap-2">
+                      <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
+                        <div className="flex items-start justify-between gap-2">
+                          <CardTitle className="text-base sm:text-xl font-bold flex items-center gap-2">
                             🍖 餐食方案
                           </CardTitle>
                           <Button
                             variant="outline"
                             size="sm"
+                            className="shrink-0 text-xs"
                             onClick={() => setIsBbqDetailsDialogOpen(true)}
                           >
                             詳細內容
                           </Button>
                         </div>
-                        <p className="text-sm text-muted-foreground mt-2">
+                        <p className="text-xs sm:text-sm text-muted-foreground mt-1.5">
                           每人 NT$ {mealPlanSettings.pricePerUnit} / 每日・平日 {mealPlanSettings.weekdayMinQuantity} 人起・假日 {mealPlanSettings.weekendMinQuantity} 人起・上限 {mealPlanSettings.maxQuantity} 人
                         </p>
                       </CardHeader>
-                      <CardContent className="space-y-4">
+                      <CardContent className="space-y-4 px-4 sm:px-6">
                         {!isBbqMealsExpanded ? (
                           <Button
                             onClick={() => {
@@ -3516,15 +3518,16 @@ const BookingFlow = () => {
                       const nights = calculateNights();
                       return (
                         <Card key={addon.addon_type} className="border-2">
-                          <CardHeader className="pb-4">
-                            <div className="flex items-center justify-between">
-                              <CardTitle className="text-xl font-bold flex items-center gap-2">
+                          <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
+                            <div className="flex items-start justify-between gap-2">
+                              <CardTitle className="text-base sm:text-xl font-bold flex items-center gap-2 leading-snug">
                                 🛏️ {addon.description || addon.addon_type}
                               </CardTitle>
                               {addon.detailed_description && (
                                 <Button
                                   variant="outline"
                                   size="sm"
+                                  className="shrink-0 text-xs"
                                   onClick={() => {
                                     toast({
                                       title: addon.description || addon.addon_type,
@@ -3536,11 +3539,11 @@ const BookingFlow = () => {
                                 </Button>
                               )}
                             </div>
-                            <p className="text-sm text-muted-foreground mt-2">
+                            <p className="text-xs sm:text-sm text-muted-foreground mt-1.5">
                               每{addon.unit_label} NT$ {addon.price_per_unit.toLocaleString()} / 每晚・上限 {addon.max_quantity} {addon.unit_label}
                             </p>
                           </CardHeader>
-                          <CardContent className="space-y-4">
+                          <CardContent className="space-y-4 px-4 sm:px-6">
                             {count === 0 ? (
                               <Button
                                 onClick={() => setCustomAddonCounts(prev => ({ ...prev, [addon.addon_type]: 1 }))}
@@ -3548,8 +3551,8 @@ const BookingFlow = () => {
                                 size="lg"
                                 className="w-full h-12"
                               >
-                                <ShoppingBag className="mr-2 h-5 w-5" />
-                                加購{addon.description || addon.addon_type}
+                                <ShoppingBag className="mr-2 h-5 w-5 shrink-0" />
+                                <span className="truncate">加購{addon.description || addon.addon_type}</span>
                               </Button>
                             ) : (
                               <div className="space-y-4">
@@ -4294,7 +4297,7 @@ const BookingFlow = () => {
             </Card>
 
             {/* Navigation Buttons */}
-            <div className="flex gap-4 mt-6">
+            <div className="flex gap-3 sm:gap-4 mt-4 sm:mt-6 sticky bottom-0 bg-background py-3 sm:py-0 sm:static -mx-3 px-3 sm:mx-0 sm:px-0 border-t sm:border-t-0 z-10">
               {currentStep !== "dates" && (
                 <Button
                   variant="outline"
