@@ -208,7 +208,7 @@ const PortalAIChatPanel = () => {
                 )}
                 <div className={`max-w-[80%] ${msg.role === "user" ? "order-first" : ""}`}>
                   <div
-                    className={`rounded-2xl px-3 py-2 text-sm leading-relaxed ${
+                    className={`rounded-2xl px-3 py-2 text-[15px] leading-relaxed ${
                       msg.role === "user"
                         ? "bg-[hsl(25,70%,50%)] text-white rounded-br-md"
                         : "bg-gray-100 text-foreground rounded-bl-md"
