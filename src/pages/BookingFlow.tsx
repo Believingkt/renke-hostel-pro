@@ -3516,15 +3516,16 @@ const BookingFlow = () => {
                       const nights = calculateNights();
                       return (
                         <Card key={addon.addon_type} className="border-2">
-                          <CardHeader className="pb-4">
-                            <div className="flex items-center justify-between">
-                              <CardTitle className="text-xl font-bold flex items-center gap-2">
+                          <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
+                            <div className="flex items-start justify-between gap-2">
+                              <CardTitle className="text-base sm:text-xl font-bold flex items-center gap-2 leading-snug">
                                 🛏️ {addon.description || addon.addon_type}
                               </CardTitle>
                               {addon.detailed_description && (
                                 <Button
                                   variant="outline"
                                   size="sm"
+                                  className="shrink-0 text-xs"
                                   onClick={() => {
                                     toast({
                                       title: addon.description || addon.addon_type,
@@ -3536,11 +3537,11 @@ const BookingFlow = () => {
                                 </Button>
                               )}
                             </div>
-                            <p className="text-sm text-muted-foreground mt-2">
+                            <p className="text-xs sm:text-sm text-muted-foreground mt-1.5">
                               每{addon.unit_label} NT$ {addon.price_per_unit.toLocaleString()} / 每晚・上限 {addon.max_quantity} {addon.unit_label}
                             </p>
                           </CardHeader>
-                          <CardContent className="space-y-4">
+                          <CardContent className="space-y-4 px-4 sm:px-6">
                             {count === 0 ? (
                               <Button
                                 onClick={() => setCustomAddonCounts(prev => ({ ...prev, [addon.addon_type]: 1 }))}
@@ -3548,8 +3549,8 @@ const BookingFlow = () => {
                                 size="lg"
                                 className="w-full h-12"
                               >
-                                <ShoppingBag className="mr-2 h-5 w-5" />
-                                加購{addon.description || addon.addon_type}
+                                <ShoppingBag className="mr-2 h-5 w-5 shrink-0" />
+                                <span className="truncate">加購{addon.description || addon.addon_type}</span>
                               </Button>
                             ) : (
                               <div className="space-y-4">
