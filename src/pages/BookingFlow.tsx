@@ -3636,38 +3636,38 @@ const BookingFlow = () => {
                     {/* 加購總計 */}
                     {((petPlanSettings.enabled && petCount > 0) || (mealPlanSettings.enabled && Object.values(bbqMealsByDate).some(count => count > 0)) || Object.values(customAddonCounts).some(c => c > 0)) && (
                       <Card className="bg-primary/5 border-2 border-primary/30">
-                        <CardContent className="p-6">
-                          <div className="space-y-3">
-                            <p className="text-lg font-bold">加購方案總計</p>
+                        <CardContent className="p-4 sm:p-6">
+                          <div className="space-y-2 sm:space-y-3">
+                            <p className="text-base sm:text-lg font-bold">加購方案總計</p>
                             {petCount > 0 && (
-                              <div className="flex justify-between text-base">
-                                <span className="text-muted-foreground">
-                                  🐾 寵物方案 × {petCount} × {calculateNights()} 晚
+                              <div className="flex justify-between text-xs sm:text-base gap-2">
+                                <span className="text-muted-foreground min-w-0 truncate">
+                                  🐾 寵物 × {petCount} × {calculateNights()} 晚
                                 </span>
-                                <span className="font-semibold">NT$ {(petCount * petPlanSettings.pricePerUnit * calculateNights()).toLocaleString()}</span>
+                                <span className="font-semibold shrink-0">NT$ {(petCount * petPlanSettings.pricePerUnit * calculateNights()).toLocaleString()}</span>
                               </div>
                             )}
                             {Object.entries(bbqMealsByDate).filter(([_, count]) => count > 0).map(([dateStr, count]) => (
-                              <div key={dateStr} className="flex justify-between text-base">
-                                <span className="text-muted-foreground">
-                                  🍖 {format(new Date(dateStr), "MM/dd")} 餐食方案 × {count} 人
+                              <div key={dateStr} className="flex justify-between text-xs sm:text-base gap-2">
+                                <span className="text-muted-foreground min-w-0 truncate">
+                                  🍖 {format(new Date(dateStr), "MM/dd")} 餐食 × {count} 人
                                 </span>
-                                <span className="font-semibold">NT$ {(count * mealPlanSettings.pricePerUnit).toLocaleString()}</span>
+                                <span className="font-semibold shrink-0">NT$ {(count * mealPlanSettings.pricePerUnit).toLocaleString()}</span>
                               </div>
                             ))}
                             {Object.entries(customAddonCounts).filter(([_, count]) => count > 0).map(([type, count]) => {
                               const setting = customAddonSettings.find(s => s.addon_type === type);
                               return (
-                                <div key={type} className="flex justify-between text-base">
-                                  <span className="text-muted-foreground">
+                                <div key={type} className="flex justify-between text-xs sm:text-base gap-2">
+                                  <span className="text-muted-foreground min-w-0 truncate">
                                     🛏️ {setting?.description || type} × {count} × {calculateNights()} 晚
                                   </span>
-                                  <span className="font-semibold">NT$ {(count * (setting?.price_per_unit || 0) * calculateNights()).toLocaleString()}</span>
+                                  <span className="font-semibold shrink-0">NT$ {(count * (setting?.price_per_unit || 0) * calculateNights()).toLocaleString()}</span>
                                 </div>
                               );
                             })}
-                            <Separator className="my-3" />
-                            <div className="flex justify-between text-xl">
+                            <Separator className="my-2 sm:my-3" />
+                            <div className="flex justify-between text-lg sm:text-xl">
                               <span className="font-bold">總計</span>
                               <span className="font-bold text-primary">NT$ {calculateAddonsTotal().toLocaleString()}</span>
                             </div>
