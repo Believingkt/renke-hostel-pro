@@ -85,17 +85,25 @@ const PortalSearchBar = ({
     nextOpen: boolean,
     setOpen: (open: boolean) => void
   ) => {
-    if (nextOpen && shouldBlockDateSelection()) {
-      onDestinationRequired?.();
-      toast({
-        title: "請先輸入目的地",
-        description: "請輸入城市、地區或民宿名稱後再選擇日期",
-        variant: "destructive",
-      });
+    if (!nextOpen) {
+      setOpen(false);
       return;
     }
 
-    setOpen(nextOpen);
+    requestAnimationFrame(() => {
+      if (shouldBlockDateSelection()) {
+        onDestinationRequired?.();
+        toast({
+          title: "請先輸入目的地",
+          description: "請輸入城市、地區或民宿名稱後再選擇日期",
+          variant: "destructive",
+        });
+        setOpen(false);
+        return;
+      }
+
+      setOpen(true);
+    });
   };
 
   // Gating now happens in Popover's onOpenChange (more reliable than onClick).
