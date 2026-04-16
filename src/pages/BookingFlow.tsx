@@ -3259,24 +3259,25 @@ const BookingFlow = () => {
                     {/* 寵物方案 */}
                     {petPlanSettings.enabled && (
                     <Card className="border-2">
-                      <CardHeader className="pb-4">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-xl font-bold flex items-center gap-2">
+                      <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
+                        <div className="flex items-start justify-between gap-2">
+                          <CardTitle className="text-base sm:text-xl font-bold flex items-center gap-2">
                             🐾 寵物方案
                           </CardTitle>
                           <Button
                             variant="outline"
                             size="sm"
+                            className="shrink-0 text-xs"
                             onClick={() => setIsPetPolicyDialogOpen(true)}
                           >
                             詳細內容
                           </Button>
                         </div>
-                        <p className="text-sm text-muted-foreground mt-2">
+                        <p className="text-xs sm:text-sm text-muted-foreground mt-1.5">
                           每隻 NT$ {petPlanSettings.pricePerUnit} / 每晚・上限 {petPlanSettings.maxQuantity} 隻
                         </p>
                       </CardHeader>
-                      <CardContent className="space-y-4">
+                      <CardContent className="space-y-4 px-4 sm:px-6">
                         {petCount === 0 ? (
                           <Button
                             onClick={() => setPetCount(1)}
