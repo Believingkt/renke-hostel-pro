@@ -171,7 +171,7 @@ const PortalAIChatPanel = () => {
 
   return (
     <div className="max-w-4xl mx-auto px-1 sm:px-0">
-      <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl overflow-hidden flex flex-col" style={{ height: "calc(100dvh - 56px - 140px)", minHeight: "320px", maxHeight: "700px" }}>
+      <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl overflow-hidden flex flex-col" style={{ height: "calc(100dvh - 56px - 140px - 64px)", minHeight: "280px", maxHeight: "700px" }}>
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-[hsl(25,70%,50%)] to-[hsl(30,80%,55%)]">
           <div className="flex items-center gap-2">
