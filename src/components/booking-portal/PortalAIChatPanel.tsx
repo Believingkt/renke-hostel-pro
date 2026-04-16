@@ -199,10 +199,11 @@ const PortalAIChatPanel = () => {
                     {msg.content && msg.content !== "..." && (
                       <button
                         onClick={() => playTTS(msg.content, i)}
-                        className="text-muted-foreground hover:text-[hsl(25,70%,50%)] transition-colors"
+                        className="flex flex-col items-center text-muted-foreground hover:text-[hsl(25,70%,50%)] transition-colors"
                         title={playingMessageIndex === i ? "停止播放" : "語音播放"}
                       >
                         {playingMessageIndex === i ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+                        <span className="text-[10px] leading-tight">{playingMessageIndex === i ? "停止" : "播放"}</span>
                       </button>
                     )}
                   </div>
