@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Send, Loader2, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import assistantAvatar from "@/assets/assistant-avatar-xiaoan.png?inline";
@@ -17,6 +18,7 @@ interface Message {
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/portal-ai-chat`;
 
 const PortalAIChatPanel = () => {
+  const [showAvatar, setShowAvatar] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -178,7 +180,7 @@ const PortalAIChatPanel = () => {
             {messages.map((msg, i) => (
               <div key={i} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                 {msg.role === "assistant" && (
-                  <img src={assistantAvatar} alt="小安" className="h-7 w-7 shrink-0 mt-0.5 rounded-full object-cover" loading="eager" fetchPriority="high" decoding="sync" />
+                  <img src={assistantAvatar} alt="小安" className="h-7 w-7 shrink-0 mt-0.5 rounded-full object-cover cursor-pointer hover:ring-2 hover:ring-[hsl(25,70%,50%)]/40 transition-all" loading="eager" fetchPriority="high" decoding="sync" onClick={() => setShowAvatar(true)} />
                 )}
                 <div className={`max-w-[80%] ${msg.role === "user" ? "order-first" : ""}`}>
                   <div
@@ -218,7 +220,7 @@ const PortalAIChatPanel = () => {
 
             {isLoading && messages[messages.length - 1]?.role === "user" && (
               <div className="flex gap-2 justify-start">
-                <img src={assistantAvatar} alt="小安" className="h-7 w-7 shrink-0 mt-0.5 rounded-full object-cover" loading="eager" fetchPriority="high" decoding="sync" />
+                <img src={assistantAvatar} alt="小安" className="h-7 w-7 shrink-0 mt-0.5 rounded-full object-cover cursor-pointer hover:ring-2 hover:ring-[hsl(25,70%,50%)]/40 transition-all" loading="eager" fetchPriority="high" decoding="sync" onClick={() => setShowAvatar(true)} />
                 <div className="bg-gray-100 rounded-2xl rounded-bl-md px-3 py-2">
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 </div>
@@ -262,6 +264,18 @@ const PortalAIChatPanel = () => {
           </Button>
         </div>
       </div>
+
+      <Dialog open={showAvatar} onOpenChange={setShowAvatar}>
+        <DialogContent className="sm:max-w-xs p-2 bg-white rounded-2xl">
+          <div className="flex flex-col items-center gap-3 py-4">
+            <img src={assistantAvatar} alt="AI 管家 小安" className="w-48 h-48 rounded-full object-cover shadow-lg" />
+            <div className="text-center">
+              <p className="font-semibold text-lg text-foreground">AI 管家 小安</p>
+              <p className="text-sm text-muted-foreground">為您搜尋全平台最佳民宿</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
