@@ -215,7 +215,7 @@ const PortalAIChatPanel = () => {
                     }`}
                   >
                     {msg.role === "assistant" ? (
-                      <div className="prose prose-sm max-w-none [&>p]:my-0.5 [&>ul]:my-1 [&>ol]:my-1">
+                      <div className="prose prose-base max-w-none [&>p]:my-0.5 [&>ul]:my-1 [&>ol]:my-1">
                         <ReactMarkdown>{msg.content || "..."}</ReactMarkdown>
                       </div>
                     ) : (
