@@ -3341,24 +3341,25 @@ const BookingFlow = () => {
                     {/* 餐食方案 */}
                     {mealPlanSettings.enabled && (
                     <Card className="border-2">
-                      <CardHeader className="pb-4">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-xl font-bold flex items-center gap-2">
+                      <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
+                        <div className="flex items-start justify-between gap-2">
+                          <CardTitle className="text-base sm:text-xl font-bold flex items-center gap-2">
                             🍖 餐食方案
                           </CardTitle>
                           <Button
                             variant="outline"
                             size="sm"
+                            className="shrink-0 text-xs"
                             onClick={() => setIsBbqDetailsDialogOpen(true)}
                           >
                             詳細內容
                           </Button>
                         </div>
-                        <p className="text-sm text-muted-foreground mt-2">
+                        <p className="text-xs sm:text-sm text-muted-foreground mt-1.5">
                           每人 NT$ {mealPlanSettings.pricePerUnit} / 每日・平日 {mealPlanSettings.weekdayMinQuantity} 人起・假日 {mealPlanSettings.weekendMinQuantity} 人起・上限 {mealPlanSettings.maxQuantity} 人
                         </p>
                       </CardHeader>
-                      <CardContent className="space-y-4">
+                      <CardContent className="space-y-4 px-4 sm:px-6">
                         {!isBbqMealsExpanded ? (
                           <Button
                             onClick={() => {
