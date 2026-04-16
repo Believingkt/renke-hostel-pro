@@ -3285,9 +3285,9 @@ const BookingFlow = () => {
                     {/* 寵物方案 */}
                     {petPlanSettings.enabled && (
                     <Card className="border-2">
-                      <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
+                      <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6">
                         <div className="flex items-start justify-between gap-2">
-                          <CardTitle className="text-base sm:text-xl font-bold flex items-center gap-2">
+                          <CardTitle className="text-sm sm:text-xl font-bold leading-snug">
                             🐾 寵物方案
                           </CardTitle>
                           <Button
@@ -3299,11 +3299,11 @@ const BookingFlow = () => {
                             詳細內容
                           </Button>
                         </div>
-                        <p className="text-xs sm:text-sm text-muted-foreground mt-1.5">
+                        <p className="text-xs text-muted-foreground mt-1.5">
                           每隻 NT$ {petPlanSettings.pricePerUnit} / 每晚・上限 {petPlanSettings.maxQuantity} 隻
                         </p>
                       </CardHeader>
-                      <CardContent className="space-y-4 px-4 sm:px-6">
+                      <CardContent className="space-y-4 px-3 sm:px-6">
                         {petCount === 0 ? (
                           <Button
                             onClick={() => setPetCount(1)}
@@ -3367,9 +3367,9 @@ const BookingFlow = () => {
                     {/* 餐食方案 */}
                     {mealPlanSettings.enabled && (
                     <Card className="border-2">
-                      <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
+                      <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6">
                         <div className="flex items-start justify-between gap-2">
-                          <CardTitle className="text-base sm:text-xl font-bold flex items-center gap-2">
+                          <CardTitle className="text-sm sm:text-xl font-bold leading-snug">
                             🍖 餐食方案
                           </CardTitle>
                           <Button
@@ -3381,11 +3381,11 @@ const BookingFlow = () => {
                             詳細內容
                           </Button>
                         </div>
-                        <p className="text-xs sm:text-sm text-muted-foreground mt-1.5">
+                        <p className="text-xs text-muted-foreground mt-1.5">
                           每人 NT$ {mealPlanSettings.pricePerUnit} / 每日・平日 {mealPlanSettings.weekdayMinQuantity} 人起・假日 {mealPlanSettings.weekendMinQuantity} 人起・上限 {mealPlanSettings.maxQuantity} 人
                         </p>
                       </CardHeader>
-                      <CardContent className="space-y-4 px-4 sm:px-6">
+                      <CardContent className="space-y-4 px-3 sm:px-6">
                         {!isBbqMealsExpanded ? (
                           <Button
                             onClick={() => {
@@ -3544,9 +3544,9 @@ const BookingFlow = () => {
                       const nights = calculateNights();
                       return (
                         <Card key={addon.addon_type} className="border-2">
-                          <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
+                          <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6">
                             <div className="flex items-start justify-between gap-2">
-                              <CardTitle className="text-base sm:text-xl font-bold flex items-center gap-2 leading-snug">
+                              <CardTitle className="text-sm sm:text-xl font-bold leading-snug break-words">
                                 🛏️ {addon.description || addon.addon_type}
                               </CardTitle>
                               {addon.detailed_description && (
@@ -3565,11 +3565,11 @@ const BookingFlow = () => {
                                 </Button>
                               )}
                             </div>
-                            <p className="text-xs sm:text-sm text-muted-foreground mt-1.5">
+                            <p className="text-xs text-muted-foreground mt-1.5">
                               每{addon.unit_label} NT$ {addon.price_per_unit.toLocaleString()} / 每晚・上限 {addon.max_quantity} {addon.unit_label}
                             </p>
                           </CardHeader>
-                          <CardContent className="space-y-4 px-4 sm:px-6">
+                          <CardContent className="space-y-4 px-3 sm:px-6">
                             {count === 0 ? (
                               <Button
                                 onClick={() => setCustomAddonCounts(prev => ({ ...prev, [addon.addon_type]: 1 }))}
@@ -3578,18 +3578,18 @@ const BookingFlow = () => {
                                 className="w-full h-12"
                               >
                                 <ShoppingBag className="mr-2 h-5 w-5 shrink-0" />
-                                <span className="truncate">加購{addon.description || addon.addon_type}</span>
+                                <span className="truncate">加購此方案</span>
                               </Button>
                             ) : (
                               <div className="space-y-4">
-                                <div className="flex items-center justify-between bg-muted/50 rounded-lg p-4">
-                                  <div>
-                                    <p className="font-semibold">數量</p>
-                                    <p className="text-sm text-muted-foreground">
+                                <div className="flex items-center justify-between bg-muted/50 rounded-lg p-3 sm:p-4 gap-2">
+                                  <div className="min-w-0">
+                                    <p className="font-semibold text-sm sm:text-base">數量</p>
+                                    <p className="text-xs sm:text-sm text-muted-foreground break-words">
                                       {count} {addon.unit_label} × NT$ {addon.price_per_unit.toLocaleString()} × {nights} 晚
                                     </p>
                                   </div>
-                                  <div className="flex items-center gap-3">
+                                  <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                                     <Button
                                       onClick={() => {
                                         const newCount = count - 1;
@@ -3605,7 +3605,7 @@ const BookingFlow = () => {
                                       }}
                                       variant="outline"
                                       size="icon"
-                                      className="h-10 w-10 rounded-lg"
+                                      className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg"
                                     >
                                       -
                                     </Button>
@@ -3615,14 +3615,14 @@ const BookingFlow = () => {
                                       disabled={count >= addon.max_quantity}
                                       variant="outline"
                                       size="icon"
-                                      className="h-10 w-10 rounded-lg"
+                                      className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg"
                                     >
                                       +
                                     </Button>
                                   </div>
                                 </div>
-                                <div className="bg-primary/10 border border-primary/20 p-4 rounded-lg text-center">
-                                  <p className="font-bold text-base">
+                                <div className="bg-primary/10 border border-primary/20 p-3 sm:p-4 rounded-lg text-center">
+                                  <p className="font-bold text-sm sm:text-base">
                                     小計：NT$ {(count * addon.price_per_unit * nights).toLocaleString()}
                                   </p>
                                 </div>
@@ -3636,38 +3636,38 @@ const BookingFlow = () => {
                     {/* 加購總計 */}
                     {((petPlanSettings.enabled && petCount > 0) || (mealPlanSettings.enabled && Object.values(bbqMealsByDate).some(count => count > 0)) || Object.values(customAddonCounts).some(c => c > 0)) && (
                       <Card className="bg-primary/5 border-2 border-primary/30">
-                        <CardContent className="p-6">
-                          <div className="space-y-3">
-                            <p className="text-lg font-bold">加購方案總計</p>
+                        <CardContent className="p-4 sm:p-6">
+                          <div className="space-y-2 sm:space-y-3">
+                            <p className="text-base sm:text-lg font-bold">加購方案總計</p>
                             {petCount > 0 && (
-                              <div className="flex justify-between text-base">
-                                <span className="text-muted-foreground">
-                                  🐾 寵物方案 × {petCount} × {calculateNights()} 晚
+                              <div className="flex justify-between text-xs sm:text-base gap-2">
+                                <span className="text-muted-foreground min-w-0 truncate">
+                                  🐾 寵物 × {petCount} × {calculateNights()} 晚
                                 </span>
-                                <span className="font-semibold">NT$ {(petCount * petPlanSettings.pricePerUnit * calculateNights()).toLocaleString()}</span>
+                                <span className="font-semibold shrink-0">NT$ {(petCount * petPlanSettings.pricePerUnit * calculateNights()).toLocaleString()}</span>
                               </div>
                             )}
                             {Object.entries(bbqMealsByDate).filter(([_, count]) => count > 0).map(([dateStr, count]) => (
-                              <div key={dateStr} className="flex justify-between text-base">
-                                <span className="text-muted-foreground">
-                                  🍖 {format(new Date(dateStr), "MM/dd")} 餐食方案 × {count} 人
+                              <div key={dateStr} className="flex justify-between text-xs sm:text-base gap-2">
+                                <span className="text-muted-foreground min-w-0 truncate">
+                                  🍖 {format(new Date(dateStr), "MM/dd")} 餐食 × {count} 人
                                 </span>
-                                <span className="font-semibold">NT$ {(count * mealPlanSettings.pricePerUnit).toLocaleString()}</span>
+                                <span className="font-semibold shrink-0">NT$ {(count * mealPlanSettings.pricePerUnit).toLocaleString()}</span>
                               </div>
                             ))}
                             {Object.entries(customAddonCounts).filter(([_, count]) => count > 0).map(([type, count]) => {
                               const setting = customAddonSettings.find(s => s.addon_type === type);
                               return (
-                                <div key={type} className="flex justify-between text-base">
-                                  <span className="text-muted-foreground">
+                                <div key={type} className="flex justify-between text-xs sm:text-base gap-2">
+                                  <span className="text-muted-foreground min-w-0 truncate">
                                     🛏️ {setting?.description || type} × {count} × {calculateNights()} 晚
                                   </span>
-                                  <span className="font-semibold">NT$ {(count * (setting?.price_per_unit || 0) * calculateNights()).toLocaleString()}</span>
+                                  <span className="font-semibold shrink-0">NT$ {(count * (setting?.price_per_unit || 0) * calculateNights()).toLocaleString()}</span>
                                 </div>
                               );
                             })}
-                            <Separator className="my-3" />
-                            <div className="flex justify-between text-xl">
+                            <Separator className="my-2 sm:my-3" />
+                            <div className="flex justify-between text-lg sm:text-xl">
                               <span className="font-bold">總計</span>
                               <span className="font-bold text-primary">NT$ {calculateAddonsTotal().toLocaleString()}</span>
                             </div>
