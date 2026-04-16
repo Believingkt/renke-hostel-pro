@@ -202,21 +202,43 @@ const BookingPortal = () => {
         const startStr = format(start, "yyyy-MM-dd");
         const endStr = format(end, "yyyy-MM-dd");
 
-        const { data } = await supabase
-          .from("room_inventory_pricing")
-          .select("date, available_rooms, is_available, room_type_id")
-          .in("room_type_id", matchedRoomTypeIds)
-          .gte("date", startStr)
-          .lte("date", endStr);
+        // Fetch all rows — default limit is 1000 which may truncate results
+        // for many room types × 180 days. Paginate to get everything.
+        let allRows: { date: string; available_rooms: number | null; is_available: boolean | null; room_type_id: string }[] = [];
+        const PAGE = 1000;
+        let from = 0;
+        let hasMore = true;
+        while (hasMore) {
+          const { data: page } = await supabase
+            .from("room_inventory_pricing")
+            .select("date, available_rooms, is_available, room_type_id")
+            .in("room_type_id", matchedRoomTypeIds)
+            .gte("date", startStr)
+            .lte("date", endStr)
+            .range(from, from + PAGE - 1);
+          if (cancelled) return;
+          if (page && page.length > 0) {
+            allRows = allRows.concat(page);
+            from += PAGE;
+            hasMore = page.length === PAGE;
+          } else {
+            hasMore = false;
+          }
+        }
 
         if (cancelled) return;
         const set = new Set<string>();
-        data?.forEach((row) => {
+        allRows.forEach((row) => {
           if (row.is_available !== false && (row.available_rooms ?? 0) > 0) {
             set.add(row.date);
           }
         });
-        setAvailableDateSet(set);
+        // If no inventory data at all, allow all dates (don't block)
+        if (allRows.length === 0) {
+          setAvailableDateSet(null);
+        } else {
+          setAvailableDateSet(set);
+        }
 
         // Clear selected dates that are no longer available
         if (checkIn && !set.has(format(checkIn, "yyyy-MM-dd"))) {
