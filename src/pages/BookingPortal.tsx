@@ -515,6 +515,8 @@ const BookingPortal = () => {
                   rooms={rooms}
                   onRoomsChange={setRooms}
                   onSearch={handleSearch}
+                  availableDateSet={availableDateSet}
+                  isLoadingAvailability={loadingAvailability}
                 />
               )}
             </div>
