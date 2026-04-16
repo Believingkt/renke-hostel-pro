@@ -382,7 +382,7 @@ const BookingPortal = () => {
               "linear-gradient(135deg, hsla(25, 80%, 55%, 0.6) 0%, hsla(30, 90%, 60%, 0.5) 50%, hsla(35, 85%, 58%, 0.6) 100%)",
           }}
         />
-        <div className={`relative max-w-7xl mx-auto px-3 sm:px-4 text-center text-white ${heroMode === "ai" ? "py-4 md:py-6" : "py-8 md:py-20"}`}>
+        <div className={`relative max-w-7xl mx-auto px-3 sm:px-4 text-center text-white transition-all duration-300 ease-in-out ${heroMode === "ai" ? "py-4 md:py-6" : "py-8 md:py-20"}`}>
           <h1 className={`font-bold drop-shadow-sm ${heroMode === "ai" ? "text-xl sm:text-2xl md:text-4xl mb-1 sm:mb-2" : "text-2xl sm:text-3xl md:text-5xl mb-2 sm:mb-3"}`}>
             探索優質包棟民宿
           </h1>
