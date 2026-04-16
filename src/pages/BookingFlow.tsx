@@ -3544,9 +3544,9 @@ const BookingFlow = () => {
                       const nights = calculateNights();
                       return (
                         <Card key={addon.addon_type} className="border-2">
-                          <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
+                          <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6">
                             <div className="flex items-start justify-between gap-2">
-                              <CardTitle className="text-base sm:text-xl font-bold flex items-center gap-2 leading-snug">
+                              <CardTitle className="text-sm sm:text-xl font-bold leading-snug break-words">
                                 🛏️ {addon.description || addon.addon_type}
                               </CardTitle>
                               {addon.detailed_description && (
@@ -3565,11 +3565,11 @@ const BookingFlow = () => {
                                 </Button>
                               )}
                             </div>
-                            <p className="text-xs sm:text-sm text-muted-foreground mt-1.5">
+                            <p className="text-xs text-muted-foreground mt-1.5">
                               每{addon.unit_label} NT$ {addon.price_per_unit.toLocaleString()} / 每晚・上限 {addon.max_quantity} {addon.unit_label}
                             </p>
                           </CardHeader>
-                          <CardContent className="space-y-4 px-4 sm:px-6">
+                          <CardContent className="space-y-4 px-3 sm:px-6">
                             {count === 0 ? (
                               <Button
                                 onClick={() => setCustomAddonCounts(prev => ({ ...prev, [addon.addon_type]: 1 }))}
@@ -3578,18 +3578,18 @@ const BookingFlow = () => {
                                 className="w-full h-12"
                               >
                                 <ShoppingBag className="mr-2 h-5 w-5 shrink-0" />
-                                <span className="truncate">加購{addon.description || addon.addon_type}</span>
+                                <span className="truncate">加購此方案</span>
                               </Button>
                             ) : (
                               <div className="space-y-4">
-                                <div className="flex items-center justify-between bg-muted/50 rounded-lg p-4">
-                                  <div>
-                                    <p className="font-semibold">數量</p>
-                                    <p className="text-sm text-muted-foreground">
+                                <div className="flex items-center justify-between bg-muted/50 rounded-lg p-3 sm:p-4 gap-2">
+                                  <div className="min-w-0">
+                                    <p className="font-semibold text-sm sm:text-base">數量</p>
+                                    <p className="text-xs sm:text-sm text-muted-foreground break-words">
                                       {count} {addon.unit_label} × NT$ {addon.price_per_unit.toLocaleString()} × {nights} 晚
                                     </p>
                                   </div>
-                                  <div className="flex items-center gap-3">
+                                  <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                                     <Button
                                       onClick={() => {
                                         const newCount = count - 1;
@@ -3605,7 +3605,7 @@ const BookingFlow = () => {
                                       }}
                                       variant="outline"
                                       size="icon"
-                                      className="h-10 w-10 rounded-lg"
+                                      className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg"
                                     >
                                       -
                                     </Button>
@@ -3615,14 +3615,14 @@ const BookingFlow = () => {
                                       disabled={count >= addon.max_quantity}
                                       variant="outline"
                                       size="icon"
-                                      className="h-10 w-10 rounded-lg"
+                                      className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg"
                                     >
                                       +
                                     </Button>
                                   </div>
                                 </div>
-                                <div className="bg-primary/10 border border-primary/20 p-4 rounded-lg text-center">
-                                  <p className="font-bold text-base">
+                                <div className="bg-primary/10 border border-primary/20 p-3 sm:p-4 rounded-lg text-center">
+                                  <p className="font-bold text-sm sm:text-base">
                                     小計：NT$ {(count * addon.price_per_unit * nights).toLocaleString()}
                                   </p>
                                 </div>
