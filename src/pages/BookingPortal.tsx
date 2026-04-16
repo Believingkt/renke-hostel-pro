@@ -416,25 +416,44 @@ const BookingPortal = () => {
             </button>
           </div>
 
-          {heroMode === "search" ? (
-            <PortalSearchBar
-              searchQuery={searchQuery}
-              onSearchQueryChange={setSearchQuery}
-              checkIn={checkIn}
-              checkOut={checkOut}
-              onCheckInChange={setCheckIn}
-              onCheckOutChange={setCheckOut}
-              adults={adults}
-              onAdultsChange={setAdults}
-              children={children}
-              onChildrenChange={setChildren}
-              rooms={rooms}
-              onRoomsChange={setRooms}
-              onSearch={handleSearch}
-            />
-          ) : (
-            <PortalAIChatPanel />
-          )}
+          <div className="relative">
+            <div
+              key="search"
+              className={`transition-all duration-300 ease-in-out ${
+                heroMode === "search"
+                  ? "opacity-100 translate-y-0"
+                  : "opacity-0 translate-y-2 pointer-events-none absolute inset-0"
+              }`}
+            >
+              {heroMode === "search" && (
+                <PortalSearchBar
+                  searchQuery={searchQuery}
+                  onSearchQueryChange={setSearchQuery}
+                  checkIn={checkIn}
+                  checkOut={checkOut}
+                  onCheckInChange={setCheckIn}
+                  onCheckOutChange={setCheckOut}
+                  adults={adults}
+                  onAdultsChange={setAdults}
+                  children={children}
+                  onChildrenChange={setChildren}
+                  rooms={rooms}
+                  onRoomsChange={setRooms}
+                  onSearch={handleSearch}
+                />
+              )}
+            </div>
+            <div
+              key="ai"
+              className={`transition-all duration-300 ease-in-out ${
+                heroMode === "ai"
+                  ? "opacity-100 translate-y-0"
+                  : "opacity-0 translate-y-2 pointer-events-none absolute inset-0"
+              }`}
+            >
+              {heroMode === "ai" && <PortalAIChatPanel />}
+            </div>
+          </div>
         </div>
       </section>
 
