@@ -22,7 +22,7 @@ const PortalAIChatPanel = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "您好！我是小安，人客多訂房平台的 AI 管家 😊\n我可以幫您搜尋所有合作民宿的房型、查詢空房與價格，並直接完成訂房！\n有什麼需要嗎？",
+      content: "您好！我是小安，人客多訂房平台的 AI 管家 😊\n我可以幫您搜尋所有合作民宿的房型、查詢空房與價格，並直接完成訂房！\n請告訴我您的需求。",
       timestamp: new Date(),
       quickReplies: ["查看所有民宿", "幫我推薦房型", "查詢空房"],
     },
@@ -162,7 +162,7 @@ const PortalAIChatPanel = () => {
     setMessages([
       {
         role: "assistant",
-        content: "您好！我是小安，人客多訂房平台的 AI 管家 😊\n有什麼需要嗎？",
+        content: "您好！我是小安，人客多訂房平台的 AI 管家 😊\n請告訴我您的需求。",
         timestamp: new Date(),
         quickReplies: ["查看所有民宿", "幫我推薦房型", "查詢空房"],
       },
