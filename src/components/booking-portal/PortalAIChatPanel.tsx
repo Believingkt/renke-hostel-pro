@@ -1,12 +1,15 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Loader2, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import assistantAvatar from "@/assets/assistant-avatar-xiaoan.png";
 import ReactMarkdown from "react-markdown";
+
+// Preload avatar image immediately at module level
+const avatarPreload = new Image();
+avatarPreload.src = assistantAvatar;
 
 interface Message {
   role: "user" | "assistant";
