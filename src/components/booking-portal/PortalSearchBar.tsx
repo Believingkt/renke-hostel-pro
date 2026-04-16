@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 import {
   Search,
   MapPin,
@@ -17,8 +18,7 @@ import {
   Users,
   Minus,
   Plus,
-  DoorOpen,
-  Baby,
+  Loader2,
 } from "lucide-react";
 
 interface PortalSearchBarProps {
@@ -35,6 +35,12 @@ interface PortalSearchBarProps {
   rooms: number;
   onRoomsChange: (n: number) => void;
   onSearch: () => void;
+  /** Set of YYYY-MM-DD dates that have available rooms for the destination */
+  availableDateSet?: Set<string> | null;
+  /** Whether the availability index is being prepared */
+  isLoadingAvailability?: boolean;
+  /** Called when user opens a date picker without a destination set */
+  onDestinationRequired?: () => void;
 }
 
 const PortalSearchBar = ({
@@ -51,6 +57,9 @@ const PortalSearchBar = ({
   rooms,
   onRoomsChange,
   onSearch,
+  availableDateSet,
+  isLoadingAvailability,
+  onDestinationRequired,
 }: PortalSearchBarProps) => {
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [checkOutOpen, setCheckOutOpen] = useState(false);
@@ -58,15 +67,35 @@ const PortalSearchBar = ({
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  const destinationSet = searchQuery.trim().length > 0;
+  const dateGateActive = !destinationSet;
+
+  const handleDateTriggerClick = (e: React.MouseEvent) => {
+    if (dateGateActive) {
+      e.preventDefault();
+      e.stopPropagation();
+      onDestinationRequired?.();
+      toast({
+        title: "請先輸入目的地",
+        description: "請輸入城市、地區或民宿名稱後再選擇日期",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const isDateUnavailable = (date: Date) => {
+    if (!availableDateSet) return false;
+    const key = format(date, "yyyy-MM-dd");
+    return !availableDateSet.has(key);
+  };
+
   const handleCheckInSelect = (date: Date | undefined) => {
     onCheckInChange(date);
     setCheckInOpen(false);
     if (date) {
-      // Auto-clear checkout if it's before or equal to new check-in
       if (checkOut && checkOut <= date) {
         onCheckOutChange(undefined);
       }
-      // Auto-open checkout picker
       setTimeout(() => setCheckOutOpen(true), 200);
     }
   };
@@ -78,6 +107,20 @@ const PortalSearchBar = ({
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") onSearch();
+  };
+
+  const checkInDisabled = (date: Date) => {
+    if (date < today) return true;
+    return isDateUnavailable(date);
+  };
+
+  const checkOutDisabled = (date: Date) => {
+    const minDate = checkIn ? addDays(checkIn, 1) : addDays(today, 1);
+    if (date < minDate) return true;
+    // For checkout, the previous night must be available
+    if (!availableDateSet) return false;
+    const prevNight = addDays(date, -1);
+    return !availableDateSet.has(format(prevNight, "yyyy-MM-dd"));
   };
 
   const renderGuestPicker = () => (
@@ -129,6 +172,15 @@ const PortalSearchBar = ({
     </div>
   );
 
+  const dateButtonDisabledClass = dateGateActive
+    ? "opacity-60 cursor-not-allowed"
+    : "";
+
+  const renderDateLabel = (date: Date | undefined, fallback: string) => {
+    if (date) return format(date, "M/d (EEE)", { locale: zhTW });
+    return fallback;
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-1 sm:px-0">
       <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl p-3 sm:p-4 md:p-6">
@@ -137,7 +189,7 @@ const PortalSearchBar = ({
           {/* Destination */}
           <div className="flex-1 text-left">
             <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
-              目的地
+              目的地 <span className="text-destructive">*</span>
             </label>
             <div className="relative">
               <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
@@ -156,17 +208,23 @@ const PortalSearchBar = ({
             <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
               入住日期
             </label>
-            <Popover open={checkInOpen} onOpenChange={setCheckInOpen}>
+            <Popover open={checkInOpen && !dateGateActive} onOpenChange={(o) => !dateGateActive && setCheckInOpen(o)}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
+                  onClick={handleDateTriggerClick}
                   className={cn(
                     "w-full h-10 justify-start text-left font-normal border-border",
-                    checkIn ? "text-foreground" : "text-muted-foreground"
+                    checkIn ? "text-foreground" : "text-muted-foreground",
+                    dateButtonDisabledClass
                   )}
                 >
-                  <CalendarDays className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
-                  {checkIn ? format(checkIn, "M/d (EEE)", { locale: zhTW }) : "選擇日期"}
+                  {isLoadingAvailability ? (
+                    <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+                  ) : (
+                    <CalendarDays className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                  )}
+                  {renderDateLabel(checkIn, "選擇日期")}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -174,10 +232,15 @@ const PortalSearchBar = ({
                   mode="single"
                   selected={checkIn}
                   onSelect={handleCheckInSelect}
-                  disabled={(date) => date < today}
+                  disabled={checkInDisabled}
                   initialFocus
                   className={cn("p-3 pointer-events-auto")}
                 />
+                {availableDateSet && (
+                  <p className="text-xs text-muted-foreground px-3 pb-2">
+                    僅可選擇有空房的日期
+                  </p>
+                )}
               </PopoverContent>
             </Popover>
           </div>
@@ -187,17 +250,19 @@ const PortalSearchBar = ({
             <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
               退房日期
             </label>
-            <Popover open={checkOutOpen} onOpenChange={setCheckOutOpen}>
+            <Popover open={checkOutOpen && !dateGateActive} onOpenChange={(o) => !dateGateActive && setCheckOutOpen(o)}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
+                  onClick={handleDateTriggerClick}
                   className={cn(
                     "w-full h-10 justify-start text-left font-normal border-border",
-                    checkOut ? "text-foreground" : "text-muted-foreground"
+                    checkOut ? "text-foreground" : "text-muted-foreground",
+                    dateButtonDisabledClass
                   )}
                 >
                   <CalendarDays className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
-                  {checkOut ? format(checkOut, "M/d (EEE)", { locale: zhTW }) : "選擇日期"}
+                  {renderDateLabel(checkOut, "選擇日期")}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -205,13 +270,16 @@ const PortalSearchBar = ({
                   mode="single"
                   selected={checkOut}
                   onSelect={handleCheckOutSelect}
-                  disabled={(date) =>
-                    date < (checkIn ? addDays(checkIn, 1) : addDays(today, 1))
-                  }
+                  disabled={checkOutDisabled}
                   defaultMonth={checkIn || today}
                   initialFocus
                   className={cn("p-3 pointer-events-auto")}
                 />
+                {availableDateSet && (
+                  <p className="text-xs text-muted-foreground px-3 pb-2">
+                    僅可選擇前一晚有空房的日期
+                  </p>
+                )}
               </PopoverContent>
             </Popover>
           </div>
@@ -254,7 +322,7 @@ const PortalSearchBar = ({
           <div className="relative">
             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
             <Input
-              placeholder="城市、地區或民宿名稱"
+              placeholder="城市、地區或民宿名稱（必填）"
               className="!pl-10 h-11 border-border text-foreground text-base"
               value={searchQuery}
               onChange={(e) => onSearchQueryChange(e.target.value)}
@@ -264,17 +332,23 @@ const PortalSearchBar = ({
 
           {/* Dates row */}
           <div className="flex gap-2">
-            <Popover open={checkInOpen} onOpenChange={setCheckInOpen}>
+            <Popover open={checkInOpen && !dateGateActive} onOpenChange={(o) => !dateGateActive && setCheckInOpen(o)}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
+                  onClick={handleDateTriggerClick}
                   className={cn(
                     "flex-1 h-11 justify-start text-left font-normal border-border text-base",
-                    checkIn ? "text-foreground" : "text-muted-foreground"
+                    checkIn ? "text-foreground" : "text-muted-foreground",
+                    dateButtonDisabledClass
                   )}
                 >
-                  <CalendarDays className="mr-1.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                  {checkIn ? format(checkIn, "M/d (EEE)", { locale: zhTW }) : "入住日期"}
+                  {isLoadingAvailability ? (
+                    <Loader2 className="mr-1.5 h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+                  ) : (
+                    <CalendarDays className="mr-1.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                  )}
+                  {renderDateLabel(checkIn, "入住日期")}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="center">
@@ -282,24 +356,31 @@ const PortalSearchBar = ({
                   mode="single"
                   selected={checkIn}
                   onSelect={handleCheckInSelect}
-                  disabled={(date) => date < today}
+                  disabled={checkInDisabled}
                   initialFocus
                   className={cn("p-3 pointer-events-auto")}
                 />
+                {availableDateSet && (
+                  <p className="text-xs text-muted-foreground px-3 pb-2">
+                    僅可選擇有空房的日期
+                  </p>
+                )}
               </PopoverContent>
             </Popover>
 
-            <Popover open={checkOutOpen} onOpenChange={setCheckOutOpen}>
+            <Popover open={checkOutOpen && !dateGateActive} onOpenChange={(o) => !dateGateActive && setCheckOutOpen(o)}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
+                  onClick={handleDateTriggerClick}
                   className={cn(
                     "flex-1 h-11 justify-start text-left font-normal border-border text-base",
-                    checkOut ? "text-foreground" : "text-muted-foreground"
+                    checkOut ? "text-foreground" : "text-muted-foreground",
+                    dateButtonDisabledClass
                   )}
                 >
                   <CalendarDays className="mr-1.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                  {checkOut ? format(checkOut, "M/d (EEE)", { locale: zhTW }) : "退房日期"}
+                  {renderDateLabel(checkOut, "退房日期")}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="center">
@@ -307,13 +388,16 @@ const PortalSearchBar = ({
                   mode="single"
                   selected={checkOut}
                   onSelect={handleCheckOutSelect}
-                  disabled={(date) =>
-                    date < (checkIn ? addDays(checkIn, 1) : addDays(today, 1))
-                  }
+                  disabled={checkOutDisabled}
                   defaultMonth={checkIn || today}
                   initialFocus
                   className={cn("p-3 pointer-events-auto")}
                 />
+                {availableDateSet && (
+                  <p className="text-xs text-muted-foreground px-3 pb-2">
+                    僅可選擇前一晚有空房的日期
+                  </p>
+                )}
               </PopoverContent>
             </Popover>
           </div>
