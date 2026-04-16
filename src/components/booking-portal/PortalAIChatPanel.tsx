@@ -172,22 +172,6 @@ const PortalAIChatPanel = () => {
   return (
     <div className="max-w-4xl mx-auto px-1 sm:px-0 text-left">
       <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl overflow-hidden flex flex-col" style={{ height: "calc(100dvh - 56px - 140px - 64px)", minHeight: "280px", maxHeight: "700px" }}>
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-[hsl(25,70%,50%)] to-[hsl(30,80%,55%)]">
-          <div>
-            <p className="text-white font-medium text-sm">AI 管家 小安</p>
-            <p className="text-white/70 text-xs">為您搜尋全平台最佳民宿</p>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-white/80 hover:text-white hover:bg-white/10"
-            onClick={handleReset}
-            title="重新開始"
-          >
-            <RotateCcw className="h-4 w-4" />
-          </Button>
-        </div>
 
         {/* Messages */}
         <ScrollArea ref={scrollRef} className="flex-1 min-h-0">
@@ -251,7 +235,16 @@ const PortalAIChatPanel = () => {
         </ScrollArea>
 
         {/* Input */}
-        <div className="border-t border-border px-3 py-2 flex gap-2 bg-white">
+        <div className="border-t border-border px-3 py-2 flex gap-2 bg-white items-center">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 shrink-0 text-muted-foreground hover:text-foreground"
+            onClick={handleReset}
+            title="重新開始"
+          >
+            <RotateCcw className="h-4 w-4" />
+          </Button>
           <Input
             placeholder="輸入訊息..."
             className="flex-1 !min-h-[40px] !h-10 text-sm border-border"
