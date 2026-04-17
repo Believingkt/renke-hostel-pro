@@ -434,7 +434,7 @@ const MemberOrders = () => {
               <Search className="h-5 w-5" />
               認領歷史訂單
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-left">
               輸入您過去的訂單編號與訂房姓名，即可將該訂單綁定到您的會員帳號
             </DialogDescription>
           </DialogHeader>
