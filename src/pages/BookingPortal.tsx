@@ -663,10 +663,7 @@ const BookingPortal = () => {
               <Card
                 key={acc.id}
                 className="group overflow-hidden border-none shadow-sm hover:shadow-lg transition-all cursor-pointer"
-                onClick={() => {
-                  setFilters((prev) => ({ ...prev, selectedAccommodation: acc.id }));
-                  document.getElementById("room-list-section")?.scrollIntoView({ behavior: "smooth" });
-                }}
+                onClick={() => navigate(`/booking/${acc.id}`)}
               >
                 <div className="aspect-[4/3] overflow-hidden bg-muted">
                   {acc.hero_photo_url ? (
