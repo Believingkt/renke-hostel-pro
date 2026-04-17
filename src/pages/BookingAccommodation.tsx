@@ -157,7 +157,7 @@ const BookingAccommodation = () => {
               <span className="hidden sm:inline">返回</span>
             </Button>
             <Link to="/booking" className="flex items-center gap-2">
-              <img src={lokezeLogo} alt="Lakeze 人客多" className="h-24 object-contain" />
+              <img src={lokezeLogo} alt="Lakeze 人客多" className="h-10 object-contain" />
             </Link>
           </div>
 
