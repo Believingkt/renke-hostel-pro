@@ -18,6 +18,7 @@ export function BookingDomainRedirect({ children }: { children: ReactNode }) {
     // 允許的路徑前綴（booking 相關 + 會員 + 付款等）
     const allowedPrefixes = [
       "/booking",
+      "/book",
       "/member",
       "/order-search",
       "/order-payment",
