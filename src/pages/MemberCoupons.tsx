@@ -15,6 +15,8 @@ interface Coupon {
   valid_from: string;
   valid_until: string | null;
   accommodation_name?: string;
+  is_distributed?: boolean;
+  distribution_note?: string | null;
 }
 
 const MemberCoupons = () => {
@@ -27,20 +29,58 @@ const MemberCoupons = () => {
 
   const loadCoupons = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+
+      // 1) Public active coupons
+      const publicRes = await supabase
         .from("platform_coupons")
         .select("*, accommodation_info(name)")
         .eq("is_active", true)
         .gte("valid_until", new Date().toISOString())
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      setCoupons(
-        (data || []).map((c: any) => ({
-          ...c,
-          accommodation_name: c.accommodation_info?.name || null,
-        }))
-      );
+      const publicCoupons: Coupon[] = (publicRes.data || []).map((c: any) => ({
+        ...c,
+        accommodation_name: c.accommodation_info?.name || null,
+        is_distributed: false,
+      }));
+
+      // 2) Distributed coupons (member-specific)
+      let distributedCoupons: Coupon[] = [];
+      if (user) {
+        const { data: member } = await supabase
+          .from("platform_members")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (member) {
+          const { data: dists } = await supabase
+            .from("member_coupon_distributions")
+            .select("distribution_note, is_used, platform_coupons(*, accommodation_info(name))")
+            .eq("member_id", member.id)
+            .eq("is_used", false);
+
+          distributedCoupons = (dists || [])
+            .filter((d: any) => d.platform_coupons?.is_active)
+            .map((d: any) => ({
+              ...d.platform_coupons,
+              accommodation_name: d.platform_coupons?.accommodation_info?.name || null,
+              is_distributed: true,
+              distribution_note: d.distribution_note,
+            }));
+        }
+      }
+
+      // Merge — distributed first, dedupe by id
+      const seen = new Set<string>();
+      const merged: Coupon[] = [];
+      for (const c of [...distributedCoupons, ...publicCoupons]) {
+        if (seen.has(c.id)) continue;
+        seen.add(c.id);
+        merged.push(c);
+      }
+      setCoupons(merged);
     } catch (error) {
       console.error("Failed to load coupons:", error);
     } finally {
@@ -83,9 +123,16 @@ const MemberCoupons = () => {
                         {coupon.code}
                       </p>
                     </div>
-                    <Badge variant="secondary" className="text-xs">
-                      {coupon.scope === "platform" ? "全平台" : coupon.accommodation_name || "指定民宿"}
-                    </Badge>
+                    <div className="flex flex-col items-end gap-1">
+                      {coupon.is_distributed && (
+                        <Badge className="text-[10px] bg-[hsl(24,100%,50%)] hover:bg-[hsl(24,100%,50%)]">
+                          專屬發送
+                        </Badge>
+                      )}
+                      <Badge variant="secondary" className="text-xs">
+                        {coupon.scope === "platform" ? "全平台" : coupon.accommodation_name || "指定民宿"}
+                      </Badge>
+                    </div>
                   </div>
                   <div className="mt-3 text-xs text-muted-foreground space-y-1">
                     {coupon.min_order_amount > 0 && (

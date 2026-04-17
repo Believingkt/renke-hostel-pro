@@ -1185,6 +1185,54 @@ export type Database = {
         }
         Relationships: []
       }
+      member_coupon_distributions: {
+        Row: {
+          coupon_id: string
+          created_at: string
+          distributed_by: string | null
+          distribution_note: string | null
+          id: string
+          is_used: boolean
+          member_id: string
+          used_at: string | null
+        }
+        Insert: {
+          coupon_id: string
+          created_at?: string
+          distributed_by?: string | null
+          distribution_note?: string | null
+          id?: string
+          is_used?: boolean
+          member_id: string
+          used_at?: string | null
+        }
+        Update: {
+          coupon_id?: string
+          created_at?: string
+          distributed_by?: string | null
+          distribution_note?: string | null
+          id?: string
+          is_used?: boolean
+          member_id?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_coupon_distributions_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "platform_coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_coupon_distributions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "platform_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       member_point_transactions: {
         Row: {
           accommodation_id: string | null
