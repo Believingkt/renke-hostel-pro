@@ -366,6 +366,12 @@ export const CouponManagement = forwardRef<CouponManagementRef>((_, ref) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <CouponDistributeDialog
+        open={distributeOpen}
+        onOpenChange={setDistributeOpen}
+        coupon={distributingCoupon}
+      />
     </div>
   );
 });
