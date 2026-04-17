@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { format, addDays } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -78,8 +78,11 @@ const PortalSearchBar = ({
     return mobileValue || desktopValue || searchQuery.trim();
   };
 
-  const shouldBlockDateSelection = () => getDestinationValue().length === 0;
-  const dateGateActive = shouldBlockDateSelection();
+  const hasDestination = useMemo(
+    () => getDestinationValue().length > 0 || searchQuery.trim().length > 0,
+    [searchQuery]
+  );
+  const dateGateActive = !hasDestination;
 
   const handleDatePopoverOpenChange = (
     nextOpen: boolean,
@@ -91,17 +94,6 @@ const PortalSearchBar = ({
     }
 
     requestAnimationFrame(() => {
-      if (shouldBlockDateSelection()) {
-        onDestinationRequired?.();
-        toast({
-          title: "請先輸入目的地",
-          description: "請輸入城市、地區或民宿名稱後再選擇日期",
-          variant: "destructive",
-        });
-        setOpen(false);
-        return;
-      }
-
       setOpen(true);
     });
   };
@@ -136,12 +128,14 @@ const PortalSearchBar = ({
 
   const checkInDisabled = (date: Date) => {
     if (date < today) return true;
+    if (!hasDestination) return true;
     return isDateUnavailable(date);
   };
 
   const checkOutDisabled = (date: Date) => {
     const minDate = checkIn ? addDays(checkIn, 1) : addDays(today, 1);
     if (date < minDate) return true;
+    if (!hasDestination) return true;
     if (!availableDateSet) return false;
 
     if (checkIn && isStayRangeAvailable) {
@@ -211,6 +205,32 @@ const PortalSearchBar = ({
     return fallback;
   };
 
+  const renderDestinationRequiredHint = () => (
+    <div className="w-[280px] p-4 text-sm">
+      <p className="font-medium text-foreground">請先輸入目的地</p>
+      <p className="mt-1 text-muted-foreground">
+        先輸入城市、地區或民宿名稱，系統才會顯示可預訂日期。
+      </p>
+      <Button
+        type="button"
+        variant="outline"
+        className="mt-3 w-full"
+        onClick={() => {
+          onDestinationRequired?.();
+          toast({
+            title: "請先輸入目的地",
+            description: "請輸入城市、地區或民宿名稱後再選擇日期",
+            variant: "destructive",
+          });
+          mobileDestinationInputRef.current?.focus();
+          desktopDestinationInputRef.current?.focus();
+        }}
+      >
+        返回輸入目的地
+      </Button>
+    </div>
+  );
+
   return (
     <div className="max-w-4xl mx-auto px-1 sm:px-0">
       <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl p-3 sm:p-4 md:p-6">
@@ -259,18 +279,23 @@ const PortalSearchBar = ({
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={checkIn}
-                  onSelect={handleCheckInSelect}
-                  disabled={checkInDisabled}
-                  
-                  className={cn("p-3 pointer-events-auto")}
-                />
-                {availableDateSet && (
-                  <p className="text-xs text-muted-foreground px-3 pb-2">
-                    僅可選擇有空房的日期
-                  </p>
+                {hasDestination ? (
+                  <>
+                    <Calendar
+                      mode="single"
+                      selected={checkIn}
+                      onSelect={handleCheckInSelect}
+                      disabled={checkInDisabled}
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                    {availableDateSet && (
+                      <p className="text-xs text-muted-foreground px-3 pb-2">
+                        僅可選擇有空房的日期
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  renderDestinationRequiredHint()
                 )}
               </PopoverContent>
             </Popover>
@@ -297,19 +322,24 @@ const PortalSearchBar = ({
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={checkOut}
-                  onSelect={handleCheckOutSelect}
-                  disabled={checkOutDisabled}
-                  defaultMonth={checkIn || today}
-                  
-                  className={cn("p-3 pointer-events-auto")}
-                />
-                {availableDateSet && (
-                  <p className="text-xs text-muted-foreground px-3 pb-2">
-                    僅可選擇連續有空房的退房日期
-                  </p>
+                {hasDestination ? (
+                  <>
+                    <Calendar
+                      mode="single"
+                      selected={checkOut}
+                      onSelect={handleCheckOutSelect}
+                      disabled={checkOutDisabled}
+                      defaultMonth={checkIn || today}
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                    {availableDateSet && (
+                      <p className="text-xs text-muted-foreground px-3 pb-2">
+                        僅可選擇連續有空房的退房日期
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  renderDestinationRequiredHint()
                 )}
               </PopoverContent>
             </Popover>
@@ -384,18 +414,23 @@ const PortalSearchBar = ({
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="center">
-                <Calendar
-                  mode="single"
-                  selected={checkIn}
-                  onSelect={handleCheckInSelect}
-                  disabled={checkInDisabled}
-                  
-                  className={cn("p-3 pointer-events-auto")}
-                />
-                {availableDateSet && (
-                  <p className="text-xs text-muted-foreground px-3 pb-2">
-                    僅可選擇有空房的日期
-                  </p>
+                {hasDestination ? (
+                  <>
+                    <Calendar
+                      mode="single"
+                      selected={checkIn}
+                      onSelect={handleCheckInSelect}
+                      disabled={checkInDisabled}
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                    {availableDateSet && (
+                      <p className="text-xs text-muted-foreground px-3 pb-2">
+                        僅可選擇有空房的日期
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  renderDestinationRequiredHint()
                 )}
               </PopoverContent>
             </Popover>
@@ -416,19 +451,24 @@ const PortalSearchBar = ({
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="center">
-                <Calendar
-                  mode="single"
-                  selected={checkOut}
-                  onSelect={handleCheckOutSelect}
-                  disabled={checkOutDisabled}
-                  defaultMonth={checkIn || today}
-                  
-                  className={cn("p-3 pointer-events-auto")}
-                />
-                {availableDateSet && (
-                  <p className="text-xs text-muted-foreground px-3 pb-2">
-                    僅可選擇連續有空房的退房日期
-                  </p>
+                {hasDestination ? (
+                  <>
+                    <Calendar
+                      mode="single"
+                      selected={checkOut}
+                      onSelect={handleCheckOutSelect}
+                      disabled={checkOutDisabled}
+                      defaultMonth={checkIn || today}
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                    {availableDateSet && (
+                      <p className="text-xs text-muted-foreground px-3 pb-2">
+                        僅可選擇連續有空房的退房日期
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  renderDestinationRequiredHint()
                 )}
               </PopoverContent>
             </Popover>
