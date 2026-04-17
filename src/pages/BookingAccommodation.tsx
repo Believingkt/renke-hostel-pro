@@ -25,6 +25,7 @@ import ReviewsSection from "@/components/ReviewsSection";
 import FaqSection from "@/components/FaqSection";
 import Footer from "@/components/Footer";
 import BookingFooter from "@/components/BookingFooter";
+import MobileBottomNav from "@/components/member/MobileBottomNav";
 import { CustomSectionDisplay, SingleCustomSection, CustomSection } from "@/components/CustomSectionDisplay";
 
 const BookingAccommodation = () => {
@@ -267,6 +268,7 @@ const BookingAccommodation = () => {
       </main>
 
       <BookingFooter />
+      <MobileBottomNav />
     </div>
   );
 };
