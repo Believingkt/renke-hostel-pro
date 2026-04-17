@@ -268,6 +268,7 @@ const BookingAccommodation = () => {
       </main>
 
       <BookingFooter />
+      <MobileBottomNav />
     </div>
   );
 };
