@@ -51,6 +51,31 @@ export function useSubdomain() {
       const isHQDomain = hostname === 'hq.lakeze.com' || hostname === 'www.hq.lakeze.com';
       const isBookingDomain = hostname === 'booking.lakeze.com' || hostname === 'www.booking.lakeze.com';
       if (isHQDomain || isBookingDomain) {
+        // Booking 門戶網域：允許透過 ?acc= 指定民宿（跨民宿訂房流程使用）
+        if (isBookingDomain) {
+          const urlParams = new URLSearchParams(window.location.search);
+          const accParam = urlParams.get('acc');
+          if (accParam) {
+            const { data: aliasData } = await supabase
+              .from('accommodation_info')
+              .select('id, short_url_alias, theme_preset')
+              .eq('short_url_alias', accParam)
+              .maybeSingle();
+            if (aliasData) {
+              finishSuccess(aliasData);
+              return;
+            }
+            const { data: idData } = await supabase
+              .from('accommodation_info')
+              .select('id, short_url_alias, theme_preset')
+              .eq('id', accParam)
+              .maybeSingle();
+            if (idData) {
+              finishSuccess(idData);
+              return;
+            }
+          }
+        }
         // 這些網域不需要載入住宿資料，直接結束
         setIsLoading(false);
         return;

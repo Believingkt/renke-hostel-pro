@@ -821,12 +821,22 @@ const HeroSection = ({
               </div>
 
               {/* 搜尋按鈕 */}
-              <Link to="/book" className="block">
-                <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-sm md:text-base h-11 md:h-14 font-medium rounded-lg transition-all" style={{ boxShadow: '0 4px 14px -3px hsl(25, 76%, 50% / 0.4)' }} onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 8px 20px -3px hsl(25, 76%, 50% / 0.5)')} onMouseLeave={e => (e.currentTarget.style.boxShadow = '0 4px 14px -3px hsl(25, 76%, 50% / 0.4)')}>
-                  <Search className="mr-2 h-5 w-5" />
-                  搜尋空房
-                </Button>
-              </Link>
+              {(() => {
+                const params = new URLSearchParams();
+                if (currentAccommodationId) params.set("acc", currentAccommodationId);
+                if (checkInDate) params.set("checkIn", format(checkInDate, "yyyy-MM-dd"));
+                if (checkOutDate) params.set("checkOut", format(checkOutDate, "yyyy-MM-dd"));
+                const qs = params.toString();
+                const href = qs ? `/book?${qs}` : "/book";
+                return (
+                  <Link to={href} className="block">
+                    <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-sm md:text-base h-11 md:h-14 font-medium rounded-lg transition-all" style={{ boxShadow: '0 4px 14px -3px hsl(25, 76%, 50% / 0.4)' }} onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 8px 20px -3px hsl(25, 76%, 50% / 0.5)')} onMouseLeave={e => (e.currentTarget.style.boxShadow = '0 4px 14px -3px hsl(25, 76%, 50% / 0.4)')}>
+                      <Search className="mr-2 h-5 w-5" />
+                      搜尋空房
+                    </Button>
+                  </Link>
+                );
+              })()}
           </CardContent>
         </Card>
         </div>
