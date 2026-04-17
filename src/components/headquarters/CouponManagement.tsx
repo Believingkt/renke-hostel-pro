@@ -20,9 +20,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Loader2, Search, Plus, Pencil, Trash2, Ticket } from "lucide-react";
+import { Loader2, Search, Plus, Pencil, Trash2, Ticket, Send } from "lucide-react";
 import { format } from "date-fns";
 import { EmptyState } from "@/components/EmptyState";
+import { CouponDistributeDialog } from "./CouponDistributeDialog";
 
 interface Coupon {
   id: string;
@@ -60,6 +61,8 @@ export const CouponManagement = forwardRef<CouponManagementRef>((_, ref) => {
   const [saving, setSaving] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [distributeOpen, setDistributeOpen] = useState(false);
+  const [distributingCoupon, setDistributingCoupon] = useState<{ id: string; code: string } | null>(null);
 
   // Form state
   const [code, setCode] = useState("");
@@ -232,6 +235,17 @@ export const CouponManagement = forwardRef<CouponManagementRef>((_, ref) => {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="發送優惠券"
+                          onClick={() => {
+                            setDistributingCoupon({ id: coupon.id, code: coupon.code });
+                            setDistributeOpen(true);
+                          }}
+                        >
+                          <Send className="h-4 w-4 text-primary" />
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={() => openEditDialog(coupon)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
