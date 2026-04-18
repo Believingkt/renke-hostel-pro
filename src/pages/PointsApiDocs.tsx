@@ -121,7 +121,7 @@ const PointsApiDocs = () => {
     {
       method: "POST",
       path: "/orders",
-      desc: "建立點數訂房訂單。點數先折抵總價，剩餘金額的 30% 為訂金，需透過刷卡支付。",
+      desc: "建立點數訂房訂單。點數先折抵總價，剩餘金額需以信用卡一次付清全額（已不再收取訂金）。",
       body: `{
   "accommodation_id": "uuid",
   "room_type_id": "uuid",
@@ -146,18 +146,18 @@ const PointsApiDocs = () => {
     "points_used": 5000,
     "points_discount": 5000,
     "remaining_after_points": 7000,
-    "deposit_amount": 2100,
+    "amount_due_by_card": 7000,        // 需以信用卡支付的全額（無訂金）
     "requires_card_payment": true,
-    "payment_status": "unpaid",
-    "order_status": "pending",
+    "payment_status": "unpaid",        // 若點數完全覆蓋則為 "paid"
+    "order_status": "pending",         // 若點數完全覆蓋則為 "confirmed"
     "payment_method": "points_and_card"
   }
 }`,
     },
     {
       method: "POST",
-      path: "/orders/:id/pay-deposit",
-      desc: "使用信用卡支付訂金。需先透過 TapPay SDK 取得 prime token。",
+      path: "/orders/:id/pay",
+      desc: "使用信用卡支付剩餘全額。需先透過 TapPay SDK 取得 prime token。（舊路徑 /orders/:id/pay-deposit 仍可使用，行為相同 — 一律收取剩餘全額。）",
       body: `{
   "prime": "tappay_prime_token",
   "cardholder": {
@@ -173,8 +173,8 @@ const PointsApiDocs = () => {
   "success": true,
   "requires_3d_secure": false,
   "rec_trade_id": "D20260501...",
-  "deposit_amount": 2100,
-  "message": "訂金付款成功"
+  "amount": 7000,
+  "message": "付款成功"
 }
 
 // 需要3D驗證：
@@ -182,7 +182,7 @@ const PointsApiDocs = () => {
   "success": true,
   "requires_3d_secure": true,
   "payment_url": "https://...",
-  "deposit_amount": 2100,
+  "amount": 7000,
   "message": "需要進行 3D 驗證"
 }`,
     },
