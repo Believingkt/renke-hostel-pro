@@ -76,6 +76,7 @@ const MemberOrders = () => {
   const [claimOpen, setClaimOpen] = useState(false);
   const [claimOrderNumber, setClaimOrderNumber] = useState("");
   const [claimGuestName, setClaimGuestName] = useState("");
+  const [claimPhoneLast4, setClaimPhoneLast4] = useState("");
   const [claiming, setClaiming] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -204,8 +205,9 @@ const MemberOrders = () => {
   };
 
   const handleClaim = async () => {
-    if (!claimOrderNumber.trim() || !claimGuestName.trim()) {
-      toast.error("請填寫訂單編號與訂房姓名");
+    const last4 = claimPhoneLast4.replace(/\D/g, "");
+    if (!claimOrderNumber.trim() || !claimGuestName.trim() || last4.length !== 4) {
+      toast.error("請填寫訂單編號、訂房姓名與聯絡電話末4碼");
       return;
     }
     setClaiming(true);
@@ -214,6 +216,7 @@ const MemberOrders = () => {
         body: {
           order_number: claimOrderNumber.trim(),
           guest_name: claimGuestName.trim(),
+          phone_last4: last4,
         },
       });
       if (error || data?.error) {
@@ -225,6 +228,7 @@ const MemberOrders = () => {
       setClaimOpen(false);
       setClaimOrderNumber("");
       setClaimGuestName("");
+      setClaimPhoneLast4("");
       setLoading(true);
       await loadOrders();
     } catch {
@@ -435,7 +439,7 @@ const MemberOrders = () => {
               認領歷史訂單
             </DialogTitle>
             <DialogDescription className="text-left">
-              輸入您過去的訂單編號與訂房姓名，即可將該訂單綁定到您的會員帳號
+              輸入您過去的訂單編號、訂房姓名與聯絡電話末4碼，即可將該訂單綁定到您的會員帳號
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-2">
@@ -456,6 +460,19 @@ const MemberOrders = () => {
                 placeholder="請輸入當時填寫的姓名"
                 value={claimGuestName}
                 onChange={(e) => setClaimGuestName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>聯絡電話末4碼</Label>
+              <Input
+                inputMode="numeric"
+                maxLength={4}
+                placeholder="例如：1234"
+                value={claimPhoneLast4}
+                onChange={(e) =>
+                  setClaimPhoneLast4(e.target.value.replace(/\D/g, "").slice(0, 4))
+                }
+                className="font-mono tracking-widest"
               />
             </div>
             <Button
