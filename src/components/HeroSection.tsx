@@ -828,11 +828,11 @@ const HeroSection = ({
               {/* 搜尋按鈕 — A5：跳頁前先用 zod 驗證日期 */}
               {(() => {
                 const validation = validateDateRange(checkInDate, checkOutDate);
-                const disabled = !validation.ok;
-                const errorMessage = validation.ok ? null : validation.error;
+                const disabled = validation.ok === false;
+                const errorMessage = validation.ok === false ? validation.error : null;
                 const handleSearch = () => {
                   const v = validateDateRange(checkInDate, checkOutDate);
-                  if (!v.ok) {
+                  if (v.ok === false) {
                     toast({
                       title: "請完成日期選擇",
                       description: v.error,
