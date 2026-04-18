@@ -73,13 +73,6 @@ export function AliasResolver() {
     }
   }
 
-  if (status === "loading") {
-    return <FrontendSkeleton />;
-  }
-
-  if (status === "notfound") {
-    return <Navigate to="/booking" replace />;
-  }
 
   return <Outlet />;
 }
