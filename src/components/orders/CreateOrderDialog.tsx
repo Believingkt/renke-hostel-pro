@@ -1654,8 +1654,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="!max-w-none w-screen h-screen sm:h-screen p-0 gap-0 rounded-none border-0 flex flex-col bg-background sm:rounded-none translate-x-0 translate-y-0 left-0 top-0 data-[state=open]:slide-in-from-bottom-0 data-[state=closed]:slide-out-to-bottom-0"
-        style={{ transform: "none", left: 0, top: 0 }}
+        className="!max-w-none !w-screen !h-screen !p-0 !gap-0 !rounded-none !border-0 !left-0 !top-0 !translate-x-0 !translate-y-0 flex flex-col bg-background"
       >
         <DialogHeader className="px-6 py-4 border-b shrink-0">
           <DialogTitle className="text-2xl">新增訂單</DialogTitle>
