@@ -11,6 +11,9 @@ import { format, isSaturday, addMonths, startOfMonth, endOfMonth, formatISO } fr
 import { zhTW } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useAccommodation } from "@/contexts/AccommodationContext";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { validateDateRange } from "@/lib/schemas/booking";
 import { supabase } from "@/integrations/supabase/client";
 import { OptimizedImage } from "@/components/OptimizedImage";
 import { generateBlurDataURLs } from "@/utils/imageBlurHelper";
@@ -820,21 +823,47 @@ const HeroSection = ({
                 </Popover>
               </div>
 
-              {/* 搜尋按鈕 */}
+              {/* 搜尋按鈕 — A5：跳頁前先用 zod 驗證日期 */}
               {(() => {
-                const params = new URLSearchParams();
-                if (currentAccommodationId) params.set("acc", currentAccommodationId);
-                if (checkInDate) params.set("checkIn", format(checkInDate, "yyyy-MM-dd"));
-                if (checkOutDate) params.set("checkOut", format(checkOutDate, "yyyy-MM-dd"));
-                const qs = params.toString();
-                const href = qs ? `/book?${qs}` : "/book";
+                const validation = validateDateRange(checkInDate, checkOutDate);
+                const disabled = !validation.ok;
+                const handleSearch = () => {
+                  const v = validateDateRange(checkInDate, checkOutDate);
+                  if (!v.ok) {
+                    toast({
+                      title: "請完成日期選擇",
+                      description: v.error,
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  const params = new URLSearchParams();
+                  if (currentAccommodationId) params.set("acc", currentAccommodationId);
+                  if (checkInDate) params.set("checkIn", format(checkInDate, "yyyy-MM-dd"));
+                  if (checkOutDate) params.set("checkOut", format(checkOutDate, "yyyy-MM-dd"));
+                  const qs = params.toString();
+                  navigate(qs ? `/book?${qs}` : "/book");
+                };
                 return (
-                  <Link to={href} className="block">
-                    <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-sm md:text-base h-11 md:h-14 font-medium rounded-lg transition-all" style={{ boxShadow: '0 4px 14px -3px hsl(25, 76%, 50% / 0.4)' }} onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 8px 20px -3px hsl(25, 76%, 50% / 0.5)')} onMouseLeave={e => (e.currentTarget.style.boxShadow = '0 4px 14px -3px hsl(25, 76%, 50% / 0.4)')}>
+                  <div>
+                    <Button
+                      type="button"
+                      onClick={handleSearch}
+                      disabled={disabled}
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-sm md:text-base h-11 md:h-14 font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={!disabled ? { boxShadow: '0 4px 14px -3px hsl(25, 76%, 50% / 0.4)' } : undefined}
+                      onMouseEnter={e => { if (!disabled) e.currentTarget.style.boxShadow = '0 8px 20px -3px hsl(25, 76%, 50% / 0.5)'; }}
+                      onMouseLeave={e => { if (!disabled) e.currentTarget.style.boxShadow = '0 4px 14px -3px hsl(25, 76%, 50% / 0.4)'; }}
+                    >
                       <Search className="mr-2 h-5 w-5" />
                       搜尋空房
                     </Button>
-                  </Link>
+                    {disabled && (
+                      <p className="mt-2 text-xs text-destructive text-center">
+                        {validation.error}
+                      </p>
+                    )}
+                  </div>
                 );
               })()}
           </CardContent>
