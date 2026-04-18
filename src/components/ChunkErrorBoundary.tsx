@@ -78,7 +78,8 @@ export class ChunkErrorBoundary extends Component<Props, State> {
       return;
     }
 
-    // 已嘗試過一次仍失敗：停止自動 reload，讓使用者手動操作
+    // 已嘗試過一次仍失敗：回報並停止自動 reload
+    void reportError("chunk_load_failure", error.message ?? "(no message)");
     this.setState({ hasError: true, errorMessage: error.message });
   }
 
