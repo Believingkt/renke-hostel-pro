@@ -21,7 +21,7 @@ export async function reportFrontendError(
   input: FrontendErrorInput,
 ): Promise<void> {
   try {
-    await supabase.from("error_logs").insert({
+    await (supabase.from("error_logs") as any).insert({
       source: "frontend",
       category: input.category,
       step: input.step ?? null,
