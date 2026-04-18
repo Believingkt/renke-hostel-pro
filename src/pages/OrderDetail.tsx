@@ -477,10 +477,9 @@ const OrderDetailPage = () => {
       const editFinalPriceCalc = editForm.total_price + editForm.addon_total - editForm.discount_amount;
 
       // If any edited room is an exclusive package, regenerate the [包區房間配置] note line
-      const hasExclusivePackage = editOrderRooms.some(r => {
-        const rt = roomTypes.find(t => t.id === r.room_type_id);
-        return rt?.is_exclusive_package;
-      });
+      const hasExclusivePackage =
+        editOrderRooms.some(r => roomTypes.find(t => t.id === r.room_type_id)?.is_exclusive_package) ||
+        !!roomTypes.find(t => t.id === editForm.room_type_id)?.is_exclusive_package;
       let finalNotes = editForm.notes.trim();
       // Strip any existing 包區房間配置 line first
       finalNotes = finalNotes
@@ -1581,6 +1580,39 @@ const OrderDetailPage = () => {
                     <span className="font-medium text-base md:text-base text-right">{order.room_types?.name || "-"}</span>
                   )}
                 </div>
+                {isEditing && roomTypes.find(rt => rt.id === editForm.room_type_id)?.is_exclusive_package && (
+                  <>
+                    <Separator />
+                    <div className="p-3 rounded-lg border border-dashed bg-muted/20 space-y-2">
+                      <div className="text-sm font-medium">包區房間配置</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">雙人房間數</Label>
+                          <Select value={String(editExclusiveDoubleRooms)} onValueChange={(v) => setEditExclusiveDoubleRooms(Number(v))}>
+                            <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {[0, 1, 2, 3].map(n => (
+                                <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">四人房間數</Label>
+                          <Select value={String(editExclusiveQuadRooms)} onValueChange={(v) => setEditExclusiveQuadRooms(Number(v))}>
+                            <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {[0, 1, 2, 3].map(n => (
+                                <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">將以備註形式儲存：雙人房 {editExclusiveDoubleRooms} 間、四人房 {editExclusiveQuadRooms} 間</p>
+                    </div>
+                  </>
+                )}
                 <Separator />
               </>
             )}
