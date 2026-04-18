@@ -123,14 +123,18 @@ Deno.serve(async (req) => {
 
     const isSuccess = record.record_status === 0 || record.record_status === 1;
 
-    // Step 3: 僅回傳最小必要欄位，不含 auth_code / bank_transaction_id
+    // Step 3: 回傳必要欄位（recTradeId/authCode 為下游 complete-3ds-booking 所需）
+    // 已綁定我方訂單，且 rec_trade_id 是用戶自己傳入的，不算新增資訊洩漏
     return new Response(
       JSON.stringify({
         success: true,
         paymentSuccess: isSuccess,
-        orderNumber: matchedOrder.order_number, // 用我方訂單編號取代 TapPay 回傳
+        recTradeId: record.rec_trade_id,
+        bankTransactionId: record.bank_transaction_id,
+        orderNumber: matchedOrder.order_number,
         amount: record.amount,
         status: record.record_status,
+        authCode: record.auth_code,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
