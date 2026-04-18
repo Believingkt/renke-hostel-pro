@@ -108,3 +108,8 @@ verify_jwt = false
 [functions.accommodation-api]
 verify_jwt = false
 
+[functions.health-check]
+verify_jwt = false
+
+[functions.report-frontend-error]
+verify_jwt = false

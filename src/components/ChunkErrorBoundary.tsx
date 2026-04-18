@@ -1,4 +1,5 @@
 import { Component, ReactNode } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Props {
   children: ReactNode;
@@ -7,6 +8,21 @@ interface Props {
 interface State {
   hasError: boolean;
   errorMessage?: string;
+}
+
+async function reportError(errorType: string, errorMessage: string) {
+  try {
+    await supabase.functions.invoke('report-frontend-error', {
+      body: {
+        errorType,
+        errorMessage,
+        url: typeof window !== 'undefined' ? window.location.href : '',
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+      },
+    });
+  } catch {
+    // 回報失敗就忽略，避免無窮迴圈
+  }
 }
 
 export class ChunkErrorBoundary extends Component<Props, State> {
@@ -62,7 +78,8 @@ export class ChunkErrorBoundary extends Component<Props, State> {
       return;
     }
 
-    // 已嘗試過一次仍失敗：停止自動 reload，讓使用者手動操作
+    // 已嘗試過一次仍失敗：回報並停止自動 reload
+    void reportError("chunk_load_failure", error.message ?? "(no message)");
     this.setState({ hasError: true, errorMessage: error.message });
   }
 
