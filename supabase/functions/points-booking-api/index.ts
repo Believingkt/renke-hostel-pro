@@ -531,16 +531,17 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
     }
   }
 
-  // --- New flow: points deduct from total, remaining × 30% = deposit ---
+  // --- Full payment flow: points deduct from total, remaining must be paid in full by card ---
   // Points discount cannot exceed total price
   const pointsDiscount = Math.min(pointsCurrency, totalPrice);
   const remainingAfterPoints = totalPrice - pointsDiscount;
-  // Deposit = 30% of remaining amount (rounded up)
-  const depositAmount = Math.ceil(remainingAfterPoints * 0.3);
-  const finalPrice = totalPrice; // final_price is still the full price
+  // Deposit removed — full remaining amount must be paid by card
+  const depositAmount = 0;
+  const amountDueByCard = remainingAfterPoints;
+  const finalPrice = totalPrice;
 
   // Determine payment status
-  // If no deposit needed (fully covered by points), mark as paid
+  // If fully covered by points, mark as paid; otherwise unpaid until card payment completes
   const isFullyPaidByPoints = remainingAfterPoints === 0;
   const paymentStatus = isFullyPaidByPoints ? "paid" : "unpaid";
   const orderStatus = isFullyPaidByPoints ? "confirmed" : "pending";
@@ -616,8 +617,7 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
       total_price: totalPrice,
       points_discount: pointsDiscount,
       remaining_after_points: remainingAfterPoints,
-      deposit_amount: depositAmount,
-      deposit_rate: 0.3,
+      amount_due_by_card: amountDueByCard,
       payment_method: paymentMethod,
       rate: partner.point_to_currency_rate,
     },
@@ -649,7 +649,7 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
         guestCount: guest_count,
         mealPlan: selectedTemplate.template_name || "純住宿",
         finalPrice: totalPrice,
-        depositAmount: depositAmount,
+        depositAmount: 0,
         paymentMethod: paymentMethod,
       }),
     }).catch((e) => console.error("Booking confirmation email error:", e));
@@ -669,7 +669,7 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
         total_price: totalPrice,
         points_discount: pointsDiscount,
         remaining_after_points: remainingAfterPoints,
-        deposit_amount: depositAmount,
+        amount_due_by_card: amountDueByCard,
         requires_card_payment: !isFullyPaidByPoints,
       }),
     }).catch((e) => console.error("Webhook error:", e));
@@ -681,7 +681,7 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
       points_used: points_amount,
       points_discount: pointsDiscount,
       remaining_after_points: remainingAfterPoints,
-      deposit_amount: depositAmount,
+      amount_due_by_card: amountDueByCard,
       requires_card_payment: !isFullyPaidByPoints,
       payment_method: paymentMethod,
     },
