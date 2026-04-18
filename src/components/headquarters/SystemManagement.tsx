@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { maskEmail, maskPhone, maskName } from "@/utils/maskSensitive";
 import type { Json } from "@/integrations/supabase/types";
 import { HQSystemSkeleton } from "@/components/skeletons/HQSkeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -485,7 +486,11 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <div className="text-sm font-medium">{log.entity_name || "-"}</div>
+                            <div className="text-sm font-medium">
+                              {log.entity_type === "customer" || log.entity_type === "user" || log.entity_type === "user_role"
+                                ? maskName(log.entity_name) || "-"
+                                : log.entity_name || "-"}
+                            </div>
                             <div className="text-xs text-muted-foreground">{log.entity_type}</div>
                           </TableCell>
                           <TableCell>
@@ -497,7 +502,9 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
                           <TableCell>
                             <div className="flex items-center gap-1">
                               <User className="h-3 w-3 text-muted-foreground" />
-                              <span className="text-sm truncate max-w-[120px]">{log.user_email || "系統"}</span>
+                              <span className="text-sm truncate max-w-[160px]" title={log.user_email || "系統"}>
+                                {log.user_email ? maskEmail(log.user_email) : "系統"}
+                              </span>
                             </div>
                           </TableCell>
                         </TableRow>
