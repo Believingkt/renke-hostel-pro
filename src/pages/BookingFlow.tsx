@@ -1900,13 +1900,30 @@ const BookingFlow = () => {
       // 處理客戶資料（創建或更新）
       let customerId: string | null = null;
       try {
-        // 先查詢是否已有此客戶（使用 email 或 phone）
-        const { data: existingCustomer } = await supabase
-          .from("customers")
-          .select("id, visit_count")
-          .eq("accommodation_id", accommodationId)
-          .or(`email.eq.${guestInfo.email || ''},phone.eq.${guestInfo.phone}`)
-          .maybeSingle();
+        // A3 修正：改為顯式查詢，避免 .or() 字串拼接被使用者輸入破壞
+        // 先用 email 查（若有），找不到再用 phone 查
+        let existingCustomer: { id: string; visit_count: number | null } | null = null;
+
+        const trimmedEmail = (guestInfo.email || "").trim();
+        if (trimmedEmail) {
+          const { data: byEmail } = await supabase
+            .from("customers")
+            .select("id, visit_count")
+            .eq("accommodation_id", accommodationId)
+            .eq("email", trimmedEmail)
+            .maybeSingle();
+          existingCustomer = byEmail ?? null;
+        }
+
+        if (!existingCustomer && guestInfo.phone) {
+          const { data: byPhone } = await supabase
+            .from("customers")
+            .select("id, visit_count")
+            .eq("accommodation_id", accommodationId)
+            .eq("phone", guestInfo.phone.trim())
+            .maybeSingle();
+          existingCustomer = byPhone ?? null;
+        }
 
         if (existingCustomer) {
           // 更新現有客戶資料
@@ -2009,9 +2026,15 @@ const BookingFlow = () => {
           return;
         }
       } catch (validationErr) {
+        // A4 修正：價格驗證服務發生例外時一律拒絕，避免攻擊者操縱前端金額
         console.error("Price validation exception:", validationErr);
-        // Continue with order if validation service is unavailable but log the error
-        // This is a fallback to prevent blocking orders if the validation service fails
+        toast({
+          title: "價格驗證服務暫時無法使用",
+          description: "為保障您的權益，目前無法送出訂單，請稍後再試或聯繫客服。",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
       }
 
       // 檢查包棟互斥邏輯（使用資料庫欄位而非硬編碼名稱）
