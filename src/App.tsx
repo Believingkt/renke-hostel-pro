@@ -12,6 +12,7 @@ import { PageTransition } from "@/components/PageTransition";
 import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
 import { HQDomainRedirect } from "@/components/HQDomainRedirect";
 import { BookingDomainRedirect } from "@/components/BookingDomainRedirect";
+import { AliasResolver } from "@/components/AliasResolver";
 
 const { Suspense, lazy } = React;
 
