@@ -577,11 +577,14 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
       const effectiveTotal = manualTotalPriceStr !== null ? Math.max(0, parseInt(manualTotalPriceStr) || 0) : calculatedPrice.total;
       const effectiveDiscount = manualDiscountStr !== null ? Math.max(0, parseInt(manualDiscountStr) || 0) : calculatedPrice.discount;
       const totalFinal = Math.max(0, effectiveTotal - effectiveDiscount + addonTotal);
-      const depositAmount = Math.round(totalFinal * 0.3);
+      const depositAmount = useDeposit ? Math.round(totalFinal * (depositPct / 100)) : 0;
       
       // Determine payment_status based on deposit_paid and balance_paid
       let payment_status = "unpaid";
-      if (editForm.deposit_paid && editForm.balance_paid) {
+      if (!useDeposit) {
+        // No deposit flow: only consider balance_paid
+        payment_status = editForm.balance_paid ? "paid" : "unpaid";
+      } else if (editForm.deposit_paid && editForm.balance_paid) {
         payment_status = "paid";
       } else if (editForm.deposit_paid) {
         payment_status = "deposit_paid";
