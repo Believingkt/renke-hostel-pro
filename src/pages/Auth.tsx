@@ -17,6 +17,22 @@ const AUTH_REMEMBER_EMAIL_KEY = "auth_remember_email";
 export default function Auth() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  // 若目前 URL 含 alias 前綴（如 /traveldays/auth），登入後導向同 alias 之 /admin
+  const getAdminPath = () => {
+    const segments = window.location.pathname.split("/").filter(Boolean);
+    const RESERVED = new Set([
+      "admin", "auth", "hq", "hq-auth", "headquarters", "booking", "book",
+      "member", "ai-booking", "order-search", "profile", "payment-test",
+      "kol-api-docs", "points-api-docs", "pay", "payment-result",
+      "reset-password", "change-password", "og-preview", "__cb",
+    ]);
+    if (segments.length > 0 && !RESERVED.has(segments[0])) {
+      return `/${segments[0]}/admin`;
+    }
+    return "/admin";
+  };
+
   const [isLoading, setIsLoading] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
