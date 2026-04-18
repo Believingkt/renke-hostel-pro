@@ -1,9 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { buildCorsHeaders } from "../_shared/cors.ts";
 
 // Normalize Chinese/English names: trim, collapse whitespace, lowercase, remove common punctuation
 function normalizeName(name: string): string {
@@ -52,6 +48,7 @@ async function logAttempt(
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }

@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Loader2, KeyRound, LogIn, Eye, EyeOff, Mail } from "lucide-react";
 import lokezeLogo from "@/assets/lokeze-logo-auth.png";
 import { getPasswordIssues } from "@/utils/passwordPolicy";
+import { useLoginThrottle } from "@/hooks/use-login-throttle";
 
 const AUTH_REMEMBER_EMAIL_KEY = "auth_remember_email";
 
@@ -47,6 +48,7 @@ export default function Auth() {
   const [isForgotPasswordMode, setIsForgotPasswordMode] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  const throttle = useLoginThrottle(`admin:${loginEmail.toLowerCase().trim()}`);
 
   const handleAuthenticatedSession = useCallback(async (session: Session, showInviteToast = false) => {
     const metadataNeedsChange = session.user.user_metadata?.force_password_change === true;
@@ -130,6 +132,10 @@ export default function Auth() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (throttle.isLocked) {
+      toast.error(`登入嘗試次數過多，請於 ${throttle.remainingSeconds} 秒後再試`);
+      return;
+    }
     setIsLoading(true);
 
     try {
@@ -139,12 +145,19 @@ export default function Auth() {
       });
 
       if (error) {
+        const result = throttle.recordFailure();
         if (error.message.includes("Invalid login credentials")) {
-          toast.error("帳號或密碼錯誤");
+          if (result.locked) {
+            toast.error("登入嘗試次數過多，已暫時鎖定 5 分鐘");
+          } else {
+            const left = 5 - result.attempts;
+            toast.error(`帳號或密碼錯誤${left > 0 ? `（剩餘 ${left} 次嘗試）` : ""}`);
+          }
         } else {
           toast.error(error.message);
         }
       } else {
+        throttle.recordSuccess();
         if (rememberMe) {
           localStorage.setItem(AUTH_REMEMBER_EMAIL_KEY, loginEmail);
         } else {
@@ -337,17 +350,17 @@ export default function Auth() {
               <div className="space-y-2">
                 <Label htmlFor="new-password">設定密碼</Label>
                 <p className="text-xs text-muted-foreground">
-                  至少 8 個字元，需包含大寫字母、小寫字母及數字（避免常見密碼）
+                  至少 12 個字元，需包含大寫字母、小寫字母及數字（避免常見密碼）
                 </p>
                 <div className="relative">
                   <Input
                     id="new-password"
                     type={showNewPassword ? "text" : "password"}
-                    placeholder="至少 8 個字元"
+                    placeholder="至少 12 個字元"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     required
-                    minLength={8}
+                    minLength={12}
                     className="pr-10"
                   />
                   <Button
@@ -375,7 +388,7 @@ export default function Auth() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
-                    minLength={8}
+                    minLength={12}
                     className="pr-10"
                   />
                   <Button

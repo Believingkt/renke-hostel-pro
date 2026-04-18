@@ -1,15 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.0";
 import { isLeakedPassword } from "../_shared/hibp.ts";
+import { buildCorsHeaders } from "../_shared/cors.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 // Rate limiting: 10 attempts per user per 15 minutes
 const userAttemptMap = new Map<string, { count: number; resetAt: number }>();
@@ -58,7 +54,7 @@ function validatePasswordStrength(
   password: string,
   email?: string
 ): { valid: boolean; message: string } {
-  if (password.length < 8) return { valid: false, message: "密碼長度至少需要 8 個字元" };
+  if (password.length < 12) return { valid: false, message: "密碼長度至少需要 12 個字元" };
   if (!/[A-Z]/.test(password)) return { valid: false, message: "密碼需包含至少一個大寫字母" };
   if (!/[a-z]/.test(password)) return { valid: false, message: "密碼需包含至少一個小寫字母" };
   if (!/[0-9]/.test(password)) return { valid: false, message: "密碼需包含至少一個數字" };
@@ -97,7 +93,7 @@ interface UpdateOwnPasswordRequest {
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  
+  const corsHeaders = buildCorsHeaders(req);
 
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });

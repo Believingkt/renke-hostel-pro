@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import { Mail, Lock, User, Phone, Loader2, ArrowLeft, CheckCircle, MapPin, Globe, Users } from "lucide-react";
 import { getPasswordIssues } from "@/utils/passwordPolicy";
+import { useLoginThrottle } from "@/hooks/use-login-throttle";
 
 type ViewMode = "auth" | "forgot-password" | "signup-success";
 
@@ -39,6 +40,7 @@ const MemberAuth = () => {
   const [signupAddress, setSignupAddress] = useState("");
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotSent, setForgotSent] = useState(false);
+  const throttle = useLoginThrottle(`member:${loginEmail.toLowerCase().trim()}`);
 
   // 監聯 auth 狀態，已登入且有會員資料時自動跳轉
   useEffect(() => {
@@ -60,6 +62,10 @@ const MemberAuth = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (throttle.isLocked) {
+      toast.error(`登入嘗試次數過多，請於 ${throttle.remainingSeconds} 秒後再試`);
+      return;
+    }
     setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -67,15 +73,22 @@ const MemberAuth = () => {
         password: loginPassword,
       });
       if (error) throw error;
-      
+
+      throttle.recordSuccess();
       await ensureMemberProfile();
       toast.success("登入成功");
       navigate(redirectTo);
     } catch (error: any) {
+      const result = throttle.recordFailure();
       if (error.message?.includes("Email not confirmed")) {
         toast.error("Email 尚未驗證，請先查收驗證信件");
       } else if (error.message?.includes("Invalid login")) {
-        toast.error("Email 或密碼錯誤");
+        if (result.locked) {
+          toast.error("登入嘗試次數過多，已暫時鎖定 5 分鐘");
+        } else {
+          const left = 5 - result.attempts;
+          toast.error(`Email 或密碼錯誤${left > 0 ? `（剩餘 ${left} 次嘗試）` : ""}`);
+        }
       } else {
         toast.error(error.message || "登入失敗");
       }
