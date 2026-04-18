@@ -316,6 +316,11 @@ Deno.serve(async (req) => {
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Unknown error";
     console.error("[create-paid-order] Unexpected error:", error);
+    await reportBackendError({
+      functionName: "create-paid-order",
+      category: "unhandled_exception",
+      errorMessage: msg,
+    });
     return jsonResponse({ success: false, message: "伺服器錯誤", error: msg }, 500);
   }
 });
