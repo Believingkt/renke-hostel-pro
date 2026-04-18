@@ -144,8 +144,15 @@ serve(async (req) => {
       },
     ];
 
+    // 工具白名單 — 任何不在此清單的呼叫一律拒絕
+    const ALLOWED_TOOLS = new Set(['get_available_rooms', 'check_discount_code', 'create_booking']);
+
     // Tool handler
     const handleToolCall = async (toolName: string, args: any) => {
+      if (!ALLOWED_TOOLS.has(toolName)) {
+        console.warn(`[portal-ai-chat] Blocked unknown tool: ${toolName}`);
+        return { error: "未知的工具" };
+      }
       console.log(`Portal tool: ${toolName}`, args);
 
       if (toolName === "get_available_rooms") {
