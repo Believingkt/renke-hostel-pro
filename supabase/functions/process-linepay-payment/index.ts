@@ -70,6 +70,7 @@ function validateLinePayInput(data: Record<string, unknown>): { valid: boolean; 
 }
 
 serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req);
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });

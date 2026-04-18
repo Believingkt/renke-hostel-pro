@@ -103,8 +103,8 @@ interface UpdatePasswordRequest {
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  // corsHeaders already defined at module level
-  
+  const corsHeaders = buildCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
