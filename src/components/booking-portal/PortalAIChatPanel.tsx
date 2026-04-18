@@ -292,7 +292,7 @@ const PortalAIChatPanel = () => {
           </Button>
           <Input
             placeholder="輸入訊息..."
-            className="flex-1 !min-h-[40px] !h-10 text-sm border-border"
+            className="flex-1 !min-h-[40px] !h-10 text-sm border-border text-black placeholder:text-black/50"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
