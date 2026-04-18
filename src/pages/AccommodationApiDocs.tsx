@@ -140,9 +140,14 @@ export default function AccommodationApiDocs() {
     { "category": "bathroom", "amenity_name": "淋浴" }
   ],
 
-  "photos": [                       // 選填，房型圖片
+  "photos": [                       // 選填，房型圖片（兩種方式擇一）
+    // 方式 1：直接提供已公開的圖片 URL
     { "photo_url": "https://...", "display_order": 0 },
-    { "photo_url": "https://...", "display_order": 1 }
+    // 方式 2：base64 上傳（系統存入內建儲存空間並產生公開 URL）
+    {
+      "photo_base64": "data:image/jpeg;base64,/9j/4AAQSkZJRg...",
+      "display_order": 1
+    }
   ]
 }`}</Code>
                 </div>
