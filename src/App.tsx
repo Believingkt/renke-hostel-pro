@@ -141,6 +141,18 @@ function App() {
                     <Route path="payment-test" element={
                       <Suspense fallback={<FrontendSkeleton />}><PaymentTest /></Suspense>
                     } />
+                    <Route path="api-docs" element={
+                      <Suspense fallback={<FrontendSkeleton />}><ApiDocsHub /></Suspense>
+                    } />
+                    <Route path="api-docs/kol" element={
+                      <Suspense fallback={<FrontendSkeleton />}><KolApiDocs /></Suspense>
+                    } />
+                    <Route path="api-docs/points" element={
+                      <Suspense fallback={<FrontendSkeleton />}><PointsApiDocs /></Suspense>
+                    } />
+                    <Route path="api-docs/accommodation" element={
+                      <Suspense fallback={<FrontendSkeleton />}><AccommodationApiDocs /></Suspense>
+                    } />
                     <Route path="kol-api-docs" element={
                       <Suspense fallback={<FrontendSkeleton />}><KolApiDocs /></Suspense>
                     } />
