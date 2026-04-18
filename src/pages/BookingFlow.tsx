@@ -940,31 +940,27 @@ const BookingFlow = () => {
             }
           }
 
-        // 並行檢查所有房型的互斥邏輯（只需檢查第一天，因為是包區預訂）
-        const blockCheckPromises = roomTypes.map(async (room) => {
-          // 只檢查入住日期的互斥狀態
-          const { data: availabilityData, error: availabilityError } = await supabase
-            .rpc('get_adjusted_room_inventory', {
-              p_room_type_id: room.id,
-              p_date: checkInDateStr,
-              p_accommodation_id: accommodationId
-            });
+        // 互斥邏輯檢查（合併 N 次 RPC → 單次查詢）
+        // 一次抓出該日是否有「包棟房型」被預訂；若有，標記其他綁定包棟的房型為 blocked
+        const { data: exclusiveBooking } = await supabase
+          .rpc('check_exclusive_room_booking', {
+            p_accommodation_id: accommodationId,
+            p_date: checkInDateStr,
+          });
 
-          return {
-            roomId: room.id,
-            isBlocked: !availabilityError && availabilityData && availabilityData[0]?.is_blocked,
-            blockedByRoomName: availabilityData?.[0]?.blocked_by_room_name || '',
-            adjustedAvailable: availabilityData?.[0]?.available_rooms
-          };
-        });
+        const hasExclusiveBooking = exclusiveBooking?.[0]?.has_booking === true;
+        const bookedRoomTypeId = exclusiveBooking?.[0]?.booked_room_type_id || null;
+        const bookedRoomTypeName = exclusiveBooking?.[0]?.booked_room_type_name || '';
 
-        const blockResults = await Promise.all(blockCheckPromises);
         const blockIndex: Record<string, { isBlocked: boolean; blockedByRoomName: string; adjustedAvailable: number | null }> = {};
-        for (const result of blockResults) {
-          blockIndex[result.roomId] = {
-            isBlocked: result.isBlocked || false,
-            blockedByRoomName: result.blockedByRoomName,
-            adjustedAvailable: result.adjustedAvailable
+        for (const room of roomTypes) {
+          const isExclusiveOrBound = room.is_exclusive_package === true || room.is_bound_to_exclusive === true;
+          // 該房型被視為 blocked 的條件：今日已存在「另一個」包棟訂單，且當前房型屬於互斥群組
+          const isBlocked = hasExclusiveBooking && isExclusiveOrBound && bookedRoomTypeId !== room.id;
+          blockIndex[room.id] = {
+            isBlocked,
+            blockedByRoomName: isBlocked ? bookedRoomTypeName : '',
+            adjustedAvailable: null, // 詳細扣減量由 pricingIndex.available_rooms 處理
           };
         }
 
