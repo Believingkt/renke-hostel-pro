@@ -147,15 +147,67 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Optional: photos
+        // Optional: photos (accept either photo_url OR photo_base64)
         if (Array.isArray(body.photos) && body.photos.length > 0) {
-          const photoRows = body.photos
-            .filter((p: any) => p && p.photo_url)
-            .map((p: any, idx: number) => ({
-              room_type_id: roomType.id,
-              photo_url: String(p.photo_url),
-              display_order: p.display_order ?? idx,
-            }));
+          const MAX_BYTES = 10 * 1024 * 1024; // 10MB
+          const allowedMime = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+          const photoRows: Array<{ room_type_id: string; photo_url: string; display_order: number }> = [];
+
+          for (let idx = 0; idx < body.photos.length; idx++) {
+            const p = body.photos[idx];
+            if (!p) continue;
+            const order = p.display_order ?? idx;
+
+            // Case 1: direct URL provided
+            if (p.photo_url) {
+              photoRows.push({
+                room_type_id: roomType.id,
+                photo_url: String(p.photo_url),
+                display_order: order,
+              });
+              continue;
+            }
+
+            // Case 2: base64 upload
+            if (p.photo_base64) {
+              const raw = String(p.photo_base64);
+              const match = raw.match(/^data:([\w/+.-]+);base64,(.+)$/);
+              const mime = match ? match[1].toLowerCase() : (p.mime_type || "image/jpeg").toLowerCase();
+              const b64 = match ? match[2] : raw;
+
+              if (!allowedMime.includes(mime)) {
+                return jsonResponse({ error: `Photo #${idx}: unsupported mime ${mime}. Allowed: ${allowedMime.join(", ")}` }, 400);
+              }
+
+              let bytes: Uint8Array;
+              try {
+                const bin = atob(b64.replace(/\s/g, ""));
+                bytes = new Uint8Array(bin.length);
+                for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+              } catch {
+                return jsonResponse({ error: `Photo #${idx}: invalid base64` }, 400);
+              }
+              if (bytes.byteLength > MAX_BYTES) {
+                return jsonResponse({ error: `Photo #${idx}: file exceeds 10MB` }, 400);
+              }
+
+              const ext = mime.split("/")[1]?.replace("jpeg", "jpg") || "jpg";
+              const filename = `${accommodationId}/${roomType.id}/${crypto.randomUUID()}.${ext}`;
+              const { error: upErr } = await supabase.storage
+                .from("room-photos")
+                .upload(filename, bytes, { contentType: mime, upsert: false });
+              if (upErr) {
+                return jsonResponse({ error: `Photo #${idx} upload failed: ${upErr.message}` }, 500);
+              }
+              const { data: pub } = supabase.storage.from("room-photos").getPublicUrl(filename);
+              photoRows.push({
+                room_type_id: roomType.id,
+                photo_url: pub.publicUrl,
+                display_order: order,
+              });
+            }
+          }
+
           if (photoRows.length) {
             const { error: phErr } = await supabase.from("room_photos").insert(photoRows);
             if (phErr) return jsonResponse({ error: `Room created, photos failed: ${phErr.message}` }, 500);
