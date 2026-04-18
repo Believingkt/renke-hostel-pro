@@ -49,6 +49,7 @@ const OgImagePreview = lazy(() => import("./pages/OgImagePreview"));
 const KolApiDocs = lazy(() => import("./pages/KolApiDocs"));
 const PointsApiDocs = lazy(() => import("./pages/PointsApiDocs"));
 const AccommodationApiDocs = lazy(() => import("./pages/AccommodationApiDocs"));
+const ApiDocsHub = lazy(() => import("./pages/ApiDocsHub"));
 const ChangePassword = lazy(() => import("./pages/ChangePassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
