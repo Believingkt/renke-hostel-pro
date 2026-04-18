@@ -313,14 +313,21 @@ const BookingFlow = () => {
 
   // Prime 只能在卡片欄位仍在 DOM 時產生；為了避免「確認頁」欄位卸載導致 getPrime 失敗，
   // 我們會在付款步驟先取得 prime，並帶到 confirm 步驟使用。
+  // TapPay Prime 90 秒後過期，這裡用 80 秒作為安全閾值
+  const PRIME_TTL_MS = 80 * 1000;
   const [tappayPrime, setTappayPrime] = useState<string | null>(null);
+  const [tappayPrimeIssuedAt, setTappayPrimeIssuedAt] = useState<number | null>(null);
   const [isPreparingPrime, setIsPreparingPrime] = useState(false);
+
+  const isPrimeExpired = () =>
+    tappayPrimeIssuedAt === null || Date.now() - tappayPrimeIssuedAt > PRIME_TTL_MS;
 
   const [showTestCards, setShowTestCards] = useState(false);
 
   useEffect(() => {
     // 切換付款方式時，清掉先前的 prime / 卡片狀態，避免用到過期或不相符的授權
     setTappayPrime(null);
+    setTappayPrimeIssuedAt(null);
     setCardValid(false);
   }, [paymentMethod]);
 
@@ -940,31 +947,27 @@ const BookingFlow = () => {
             }
           }
 
-        // 並行檢查所有房型的互斥邏輯（只需檢查第一天，因為是包區預訂）
-        const blockCheckPromises = roomTypes.map(async (room) => {
-          // 只檢查入住日期的互斥狀態
-          const { data: availabilityData, error: availabilityError } = await supabase
-            .rpc('get_adjusted_room_inventory', {
-              p_room_type_id: room.id,
-              p_date: checkInDateStr,
-              p_accommodation_id: accommodationId
-            });
+        // 互斥邏輯檢查（合併 N 次 RPC → 單次查詢）
+        // 一次抓出該日是否有「包棟房型」被預訂；若有，標記其他綁定包棟的房型為 blocked
+        const { data: exclusiveBooking } = await supabase
+          .rpc('check_exclusive_room_booking', {
+            p_accommodation_id: accommodationId,
+            p_date: checkInDateStr,
+          });
 
-          return {
-            roomId: room.id,
-            isBlocked: !availabilityError && availabilityData && availabilityData[0]?.is_blocked,
-            blockedByRoomName: availabilityData?.[0]?.blocked_by_room_name || '',
-            adjustedAvailable: availabilityData?.[0]?.available_rooms
-          };
-        });
+        const hasExclusiveBooking = exclusiveBooking?.[0]?.has_booking === true;
+        const bookedRoomTypeId = exclusiveBooking?.[0]?.booked_room_type_id || null;
+        const bookedRoomTypeName = exclusiveBooking?.[0]?.booked_room_type_name || '';
 
-        const blockResults = await Promise.all(blockCheckPromises);
         const blockIndex: Record<string, { isBlocked: boolean; blockedByRoomName: string; adjustedAvailable: number | null }> = {};
-        for (const result of blockResults) {
-          blockIndex[result.roomId] = {
-            isBlocked: result.isBlocked || false,
-            blockedByRoomName: result.blockedByRoomName,
-            adjustedAvailable: result.adjustedAvailable
+        for (const room of roomTypes) {
+          const isExclusiveOrBound = room.is_exclusive_package === true || room.is_bound_to_exclusive === true;
+          // 該房型被視為 blocked 的條件：今日已存在「另一個」包棟訂單，且當前房型屬於互斥群組
+          const isBlocked = hasExclusiveBooking && isExclusiveOrBound && bookedRoomTypeId !== room.id;
+          blockIndex[room.id] = {
+            isBlocked,
+            blockedByRoomName: isBlocked ? bookedRoomTypeName : '',
+            adjustedAvailable: null, // 詳細扣減量由 pricingIndex.available_rooms 處理
           };
         }
 
@@ -1175,6 +1178,7 @@ const BookingFlow = () => {
           setCardValid(update.canGetPrime);
           // 卡片內容一變動，就視為需要重新取得 prime
           setTappayPrime(null);
+          setTappayPrimeIssuedAt(null);
         });
       } catch (error) {
         console.error('TapPay card setup error:', error);
@@ -1645,11 +1649,13 @@ const BookingFlow = () => {
         return;
       }
 
-      if (!tappayPrime) {
+      // 若 prime 已過期或尚未取得，重新請 SDK 產生
+      if (!tappayPrime || isPrimeExpired()) {
         setIsPreparingPrime(true);
         try {
           const prime = await getTapPayPrime();
           setTappayPrime(prime);
+          setTappayPrimeIssuedAt(Date.now());
           console.log('[TapPay][Booking] Prime prepared for confirm step');
         } catch (err: any) {
           const msg = err?.message || '取得付款授權失敗，請重新輸入信用卡資訊後再試';
@@ -1666,6 +1672,7 @@ const BookingFlow = () => {
     } else if (currentStep === "payment") {
       // 非信用卡付款，確保不會誤用舊 prime
       setTappayPrime(null);
+      setTappayPrimeIssuedAt(null);
     }
 
     // 切換到下一步 - 如果沒有加購方案則跳過 addons 步驟
@@ -2077,18 +2084,21 @@ const BookingFlow = () => {
           console.log('Processing TapPay payment...');
 
           const prime = tappayPrime;
-          if (!prime) {
+          if (!prime || isPrimeExpired()) {
             toast({
-              title: "請回到付款步驟",
-              description: "付款授權尚未建立或已失效，請重新輸入信用卡資訊後再試",
+              title: "付款授權已過期",
+              description: "TapPay 授權有效期 90 秒已逾時，請回到付款步驟重新輸入信用卡資訊",
               variant: "destructive",
             });
+            setTappayPrime(null);
+            setTappayPrimeIssuedAt(null);
             setCurrentStep("payment");
             setIsSubmitting(false);
             return;
           }
 
           setTappayPrime(null);
+          setTappayPrimeIssuedAt(null);
 
           // Idempotency key：每次提交產生一次，存於 ref 以便重試時保持相同
           const idempotencyKey =
