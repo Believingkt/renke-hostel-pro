@@ -350,17 +350,17 @@ export default function Auth() {
               <div className="space-y-2">
                 <Label htmlFor="new-password">設定密碼</Label>
                 <p className="text-xs text-muted-foreground">
-                  至少 12 個字元，需包含大寫字母、小寫字母及數字（避免常見密碼）
+                  至少 8 個字元，需包含大寫字母、小寫字母及數字（避免常見密碼）
                 </p>
                 <div className="relative">
                   <Input
                     id="new-password"
                     type={showNewPassword ? "text" : "password"}
-                    placeholder="至少 12 個字元"
+                    placeholder="至少 8 個字元"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     required
-                    minLength={12}
+                    minLength={8}
                     className="pr-10"
                   />
                   <Button
@@ -388,7 +388,7 @@ export default function Auth() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
-                    minLength={12}
+                    minLength={8}
                     className="pr-10"
                   />
                   <Button
