@@ -84,319 +84,188 @@ function App() {
           <NetworkIndicator />
           <PageTransition>
             <ChunkErrorBoundary>
-              <Routes>
-                <Route element={<ConditionalLayout />}>
-                {/* 平台入口 & 會員頁面 */}
-                <Route path="/booking" element={
-                  <Suspense fallback={null}>
-                    <BookingPortal />
-                  </Suspense>
-                } />
-                <Route path="/booking/:accId" element={
-                  <Suspense fallback={<FrontendSkeleton />}>
-                    <BookingAccommodation />
-                  </Suspense>
-                } />
-                <Route path="/member/auth" element={
-                  <Suspense fallback={<FrontendSkeleton />}>
-                    <MemberAuth />
-                  </Suspense>
-                } />
-                <Route path="/member" element={
-                  <Suspense fallback={<FrontendSkeleton />}>
-                    <MemberLayout />
-                  </Suspense>
-                }>
-                  <Route path="profile" element={
-                    <Suspense fallback={<FrontendSkeleton />}><MemberProfile /></Suspense>
-                  } />
-                  <Route path="points" element={
-                    <Suspense fallback={<FrontendSkeleton />}><MemberPoints /></Suspense>
-                  } />
-                  <Route path="coupons" element={
-                    <Suspense fallback={<FrontendSkeleton />}><MemberCoupons /></Suspense>
-                  } />
-                  <Route path="orders" element={
-                    <Suspense fallback={<FrontendSkeleton />}><MemberOrders /></Suspense>
-                  } />
-                </Route>
-                <Route path="/member/reset-password" element={
-                  <Suspense fallback={<FrontendSkeleton />}>
-                    <MemberResetPassword />
-                  </Suspense>
-                } />
+              {(() => {
+                // 共用子路由：可掛在根層或 /:alias/* 之下
+                const sharedRoutes = (
+                  <>
+                    {/* 平台入口 & 會員頁面 */}
+                    <Route path="booking" element={
+                      <Suspense fallback={null}><BookingPortal /></Suspense>
+                    } />
+                    <Route path="booking/:accId" element={
+                      <Suspense fallback={<FrontendSkeleton />}><BookingAccommodation /></Suspense>
+                    } />
+                    <Route path="member/auth" element={
+                      <Suspense fallback={<FrontendSkeleton />}><MemberAuth /></Suspense>
+                    } />
+                    <Route path="member" element={
+                      <Suspense fallback={<FrontendSkeleton />}><MemberLayout /></Suspense>
+                    }>
+                      <Route path="profile" element={
+                        <Suspense fallback={<FrontendSkeleton />}><MemberProfile /></Suspense>
+                      } />
+                      <Route path="points" element={
+                        <Suspense fallback={<FrontendSkeleton />}><MemberPoints /></Suspense>
+                      } />
+                      <Route path="coupons" element={
+                        <Suspense fallback={<FrontendSkeleton />}><MemberCoupons /></Suspense>
+                      } />
+                      <Route path="orders" element={
+                        <Suspense fallback={<FrontendSkeleton />}><MemberOrders /></Suspense>
+                      } />
+                    </Route>
+                    <Route path="member/reset-password" element={
+                      <Suspense fallback={<FrontendSkeleton />}><MemberResetPassword /></Suspense>
+                    } />
 
-                {/* 前台頁面 */}
-                <Route path="/__cb/:ts" element={<Index />} />
-                <Route path="/" element={<Index />} />
-                <Route path="/book" element={
-                  <Suspense fallback={<FrontendSkeleton />}>
-                    <BookingFlow />
-                  </Suspense>
-                } />
-                <Route path="/book/linepay-confirm" element={
-                  <Suspense fallback={<FrontendSkeleton />}>
-                    <LinePayConfirm />
-                  </Suspense>
-                } />
-                <Route path="/ai-booking" element={
-                  <Suspense fallback={<FrontendSkeleton />}>
-                    <AIBooking />
-                  </Suspense>
-                } />
-                <Route path="/order-search" element={
-                  <Suspense fallback={<FrontendSkeleton />}>
-                    <OrderSearch />
-                  </Suspense>
-                } />
-                <Route path="/profile" element={
-                  <Suspense fallback={<FrontendSkeleton />}>
-                    <Profile />
-                  </Suspense>
-                } />
-                <Route path="/payment-test" element={
-                  <Suspense fallback={<FrontendSkeleton />}>
-                    <PaymentTest />
-                  </Suspense>
-                } />
-                <Route path="/kol-api-docs" element={
-                  <Suspense fallback={<FrontendSkeleton />}>
-                    <KolApiDocs />
-                  </Suspense>
-                } />
-                <Route path="/points-api-docs" element={
-                  <Suspense fallback={<FrontendSkeleton />}>
-                    <PointsApiDocs />
-                  </Suspense>
-                } />
-                <Route path="/pay" element={
-                  <Suspense fallback={<FrontendSkeleton />}>
-                    <PublicPayment />
-                  </Suspense>
-                } />
-                <Route path="/pay/order" element={
-                  <Suspense fallback={<FrontendSkeleton />}>
-                    <OrderPayment />
-                  </Suspense>
-                } />
-                <Route path="/payment-result" element={
-                  <Suspense fallback={<FrontendSkeleton />}>
-                    <PaymentResult />
-                  </Suspense>
-                } />
-                
-                {/* Auth 頁面 */}
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/hq-auth" element={<HQAuth />} />
-                <Route path="/reset-password" element={
-                  <Suspense fallback={<FrontendSkeleton />}>
-                    <ResetPassword />
-                  </Suspense>
-                } />
-                <Route path="/change-password" element={
-                  <Suspense fallback={<FrontendSkeleton />}>
-                    <ChangePassword />
-                  </Suspense>
-                } />
-                <Route path="/admin/change-password" element={
-                  <Suspense fallback={<FrontendSkeleton />}>
-                    <ChangePassword />
-                  </Suspense>
-                } />
-                <Route path="/headquarters/change-password" element={
-                  <Suspense fallback={<FrontendSkeleton />}>
-                    <ChangePassword />
-                  </Suspense>
-                } />
-                <Route path="/hq" element={
-                  <Suspense fallback={<DashboardSkeleton />}>
-                    <Headquarters />
-                  </Suspense>
-                } />
-                
-                {/* 後台管理頁面 */}
-                <Route 
-                  path="/admin" 
-                  element={
-                    <Suspense fallback={<DashboardSkeleton />}>
-                      <Dashboard />
-                    </Suspense>
-                  } 
-                />
-                <Route 
-                  path="/admin/website-content" 
-                  element={
-                    <Suspense fallback={<FormSkeleton fields={12} hasImage={true} />}>
-                      <WebsiteContent />
-                    </Suspense>
-                  } 
-                />
-                <Route 
-                  path="/admin/faq" 
-                  element={
-                    <Suspense fallback={<FormSkeleton fields={3} />}>
-                      <Faq />
-                    </Suspense>
-                  } 
-                />
-                <Route 
-                  path="/admin/orders" 
-                  element={
-                    <Suspense fallback={<TableSkeleton rows={10} columns={8} />}>
-                      <Orders />
-                    </Suspense>
-                  } 
-                />
-                <Route 
-                  path="/admin/orders/:orderId" 
-                  element={
-                    <Suspense fallback={<DetailSkeleton sections={4} />}>
-                      <OrderDetail />
-                    </Suspense>
-                  } 
-                />
-                <Route 
-                  path="/admin/pricing" 
-                  element={
-                    <Suspense fallback={<FormSkeleton fields={8} />}>
-                      <Pricing />
-                    </Suspense>
-                  } 
-                />
-                <Route 
-                  path="/admin/room-inventory" 
-                  element={
-                    <Suspense fallback={<FormSkeleton fields={6} />}>
-                      <RoomInventory />
-                    </Suspense>
-                  } 
-                />
-                <Route 
-                  path="/admin/room-price-calendar" 
-                  element={
-                    <Suspense fallback={<TableSkeleton rows={8} columns={15} />}>
-                      <RoomPriceCalendar />
-                    </Suspense>
-                  } 
-                />
-                <Route 
-                  path="/admin/accounts" 
-                  element={
-                    <Suspense fallback={<FormSkeleton fields={4} />}>
-                      <Accounts />
-                    </Suspense>
-                  } 
-                />
-                <Route 
-                  path="/admin/discount-codes" 
-                  element={
-                    <Suspense fallback={<TableSkeleton rows={8} columns={7} />}>
-                      <KolDiscount />
-                    </Suspense>
-                  } 
-                />
-                <Route 
-                  path="/admin/discount-codes/:discountCodeId/detail" 
-                  element={
-                    <Suspense fallback={<TableSkeleton rows={8} columns={7} />}>
-                      <KolDiscountDetail />
-                    </Suspense>
-                  } 
-                />
-                <Route 
-                  path="/admin/discount-codes/:discountCode/orders" 
-                  element={
-                    <Suspense fallback={<TableSkeleton rows={10} columns={7} />}>
-                      <DiscountCodeOrders />
-                    </Suspense>
-                  } 
-                />
-                <Route 
-                  path="/admin/user-roles" 
-                  element={
-                    <Suspense fallback={<TableSkeleton rows={8} columns={4} />}>
-                      <UserRoles />
-                    </Suspense>
-                  } 
-                />
-                <Route 
-                  path="/admin/customers" 
-                  element={
-                    <Suspense fallback={<TableSkeleton rows={10} columns={6} />}>
-                      <Customers />
-                    </Suspense>
-                  } 
-                />
-                <Route 
-                  path="/admin/customers/:customerId/orders" 
-                  element={
-                    <Suspense fallback={<TableSkeleton rows={10} columns={7} />}>
-                      <CustomerOrders />
-                    </Suspense>
-                  } 
-                />
-                <Route 
-                  path="/admin/notifications" 
-                  element={
-                    <Suspense fallback={<TableSkeleton rows={8} columns={4} showFilters={false} />}>
-                      <Notifications />
-                    </Suspense>
-                  } 
-                />
-                <Route 
-                  path="/admin/public-holidays" 
-                  element={
-                    <Suspense fallback={<FormSkeleton fields={2} />}>
-                      <PublicHolidays />
-                    </Suspense>
-                  } 
-                />
-                <Route 
-                  path="/admin/backup" 
-                  element={
-                    <Suspense fallback={<FormSkeleton fields={5} />}>
-                      <DataBackup />
-                    </Suspense>
-                  } 
-                />
-                <Route 
-                  path="/admin/settlement" 
-                  element={
-                    <Suspense fallback={<TableSkeleton rows={8} columns={6} />}>
-                      <Settlement />
-                    </Suspense>
-                  } 
-                />
-                <Route 
-                  path="/admin/email-test" 
-                  element={
-                    <Suspense fallback={<DashboardSkeleton />}>
-                      <EmailTest />
-                    </Suspense>
-                  } 
-                />
-                <Route 
-                  path="/admin/analytics" 
-                  element={
-                    <Suspense fallback={<DashboardSkeleton />}>
-                      <Analytics />
-                    </Suspense>
-                  } 
-                />
-                
-                {/* 其他頁面 */}
-                <Route path="/og-preview" element={
-                  <Suspense fallback={<FrontendSkeleton />}>
-                    <OgImagePreview />
-                  </Suspense>
-                } />
-                <Route path="*" element={
-                  <Suspense fallback={<FrontendSkeleton />}>
-                    <NotFound />
-                  </Suspense>
-                } />
-                </Route>
-              </Routes>
+                    {/* 前台頁面 */}
+                    <Route path="__cb/:ts" element={<Index />} />
+                    <Route index element={<Index />} />
+                    <Route path="book" element={
+                      <Suspense fallback={<FrontendSkeleton />}><BookingFlow /></Suspense>
+                    } />
+                    <Route path="book/linepay-confirm" element={
+                      <Suspense fallback={<FrontendSkeleton />}><LinePayConfirm /></Suspense>
+                    } />
+                    <Route path="ai-booking" element={
+                      <Suspense fallback={<FrontendSkeleton />}><AIBooking /></Suspense>
+                    } />
+                    <Route path="order-search" element={
+                      <Suspense fallback={<FrontendSkeleton />}><OrderSearch /></Suspense>
+                    } />
+                    <Route path="profile" element={
+                      <Suspense fallback={<FrontendSkeleton />}><Profile /></Suspense>
+                    } />
+                    <Route path="payment-test" element={
+                      <Suspense fallback={<FrontendSkeleton />}><PaymentTest /></Suspense>
+                    } />
+                    <Route path="kol-api-docs" element={
+                      <Suspense fallback={<FrontendSkeleton />}><KolApiDocs /></Suspense>
+                    } />
+                    <Route path="points-api-docs" element={
+                      <Suspense fallback={<FrontendSkeleton />}><PointsApiDocs /></Suspense>
+                    } />
+                    <Route path="pay" element={
+                      <Suspense fallback={<FrontendSkeleton />}><PublicPayment /></Suspense>
+                    } />
+                    <Route path="pay/order" element={
+                      <Suspense fallback={<FrontendSkeleton />}><OrderPayment /></Suspense>
+                    } />
+                    <Route path="payment-result" element={
+                      <Suspense fallback={<FrontendSkeleton />}><PaymentResult /></Suspense>
+                    } />
+
+                    {/* Auth 頁面 */}
+                    <Route path="auth" element={<Auth />} />
+                    <Route path="reset-password" element={
+                      <Suspense fallback={<FrontendSkeleton />}><ResetPassword /></Suspense>
+                    } />
+                    <Route path="change-password" element={
+                      <Suspense fallback={<FrontendSkeleton />}><ChangePassword /></Suspense>
+                    } />
+                    <Route path="admin/change-password" element={
+                      <Suspense fallback={<FrontendSkeleton />}><ChangePassword /></Suspense>
+                    } />
+
+                    {/* 後台管理頁面 */}
+                    <Route path="admin" element={
+                      <Suspense fallback={<DashboardSkeleton />}><Dashboard /></Suspense>
+                    } />
+                    <Route path="admin/website-content" element={
+                      <Suspense fallback={<FormSkeleton fields={12} hasImage={true} />}><WebsiteContent /></Suspense>
+                    } />
+                    <Route path="admin/faq" element={
+                      <Suspense fallback={<FormSkeleton fields={3} />}><Faq /></Suspense>
+                    } />
+                    <Route path="admin/orders" element={
+                      <Suspense fallback={<TableSkeleton rows={10} columns={8} />}><Orders /></Suspense>
+                    } />
+                    <Route path="admin/orders/:orderId" element={
+                      <Suspense fallback={<DetailSkeleton sections={4} />}><OrderDetail /></Suspense>
+                    } />
+                    <Route path="admin/pricing" element={
+                      <Suspense fallback={<FormSkeleton fields={8} />}><Pricing /></Suspense>
+                    } />
+                    <Route path="admin/room-inventory" element={
+                      <Suspense fallback={<FormSkeleton fields={6} />}><RoomInventory /></Suspense>
+                    } />
+                    <Route path="admin/room-price-calendar" element={
+                      <Suspense fallback={<TableSkeleton rows={8} columns={15} />}><RoomPriceCalendar /></Suspense>
+                    } />
+                    <Route path="admin/accounts" element={
+                      <Suspense fallback={<FormSkeleton fields={4} />}><Accounts /></Suspense>
+                    } />
+                    <Route path="admin/discount-codes" element={
+                      <Suspense fallback={<TableSkeleton rows={8} columns={7} />}><KolDiscount /></Suspense>
+                    } />
+                    <Route path="admin/discount-codes/:discountCodeId/detail" element={
+                      <Suspense fallback={<TableSkeleton rows={8} columns={7} />}><KolDiscountDetail /></Suspense>
+                    } />
+                    <Route path="admin/discount-codes/:discountCode/orders" element={
+                      <Suspense fallback={<TableSkeleton rows={10} columns={7} />}><DiscountCodeOrders /></Suspense>
+                    } />
+                    <Route path="admin/user-roles" element={
+                      <Suspense fallback={<TableSkeleton rows={8} columns={4} />}><UserRoles /></Suspense>
+                    } />
+                    <Route path="admin/customers" element={
+                      <Suspense fallback={<TableSkeleton rows={10} columns={6} />}><Customers /></Suspense>
+                    } />
+                    <Route path="admin/customers/:customerId/orders" element={
+                      <Suspense fallback={<TableSkeleton rows={10} columns={7} />}><CustomerOrders /></Suspense>
+                    } />
+                    <Route path="admin/notifications" element={
+                      <Suspense fallback={<TableSkeleton rows={8} columns={4} showFilters={false} />}><Notifications /></Suspense>
+                    } />
+                    <Route path="admin/public-holidays" element={
+                      <Suspense fallback={<FormSkeleton fields={2} />}><PublicHolidays /></Suspense>
+                    } />
+                    <Route path="admin/backup" element={
+                      <Suspense fallback={<FormSkeleton fields={5} />}><DataBackup /></Suspense>
+                    } />
+                    <Route path="admin/settlement" element={
+                      <Suspense fallback={<TableSkeleton rows={8} columns={6} />}><Settlement /></Suspense>
+                    } />
+                    <Route path="admin/email-test" element={
+                      <Suspense fallback={<DashboardSkeleton />}><EmailTest /></Suspense>
+                    } />
+                    <Route path="admin/analytics" element={
+                      <Suspense fallback={<DashboardSkeleton />}><Analytics /></Suspense>
+                    } />
+
+                    {/* 其他頁面 */}
+                    <Route path="og-preview" element={
+                      <Suspense fallback={<FrontendSkeleton />}><OgImagePreview /></Suspense>
+                    } />
+                  </>
+                );
+
+                return (
+                  <Routes>
+                    <Route element={<ConditionalLayout />}>
+                      {/* 根層路由（向下相容） */}
+                      {sharedRoutes}
+
+                      {/* HQ 與 headquarters 路由（不放入 alias 樹下） */}
+                      <Route path="/hq-auth" element={<HQAuth />} />
+                      <Route path="/hq" element={
+                        <Suspense fallback={<DashboardSkeleton />}><Headquarters /></Suspense>
+                      } />
+                      <Route path="/headquarters/change-password" element={
+                        <Suspense fallback={<FrontendSkeleton />}><ChangePassword /></Suspense>
+                      } />
+
+                      {/* /:alias/* — booking.lakeze.com/{alias}/admin 等使用 */}
+                      <Route path="/:alias" element={<AliasResolver />}>
+                        {sharedRoutes}
+                      </Route>
+
+                      <Route path="*" element={
+                        <Suspense fallback={<FrontendSkeleton />}><NotFound /></Suspense>
+                      } />
+                    </Route>
+                  </Routes>
+                );
+              })()}
             </ChunkErrorBoundary>
           </PageTransition>
         </BookingDomainRedirect>
