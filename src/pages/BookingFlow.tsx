@@ -2243,7 +2243,6 @@ const BookingFlow = () => {
             step: "tappay_charge",
             errorMessage: error instanceof Error ? error.message : String(error),
             accommodationId,
-            idempotencyKey,
             context: { paymentMethod, errorType: errorInfo?.type },
           });
           setLastPaymentError(errorInfo);
