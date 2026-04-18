@@ -14,7 +14,9 @@ const BOOKING_DOMAINS = ["booking.lakeze.com", "www.booking.lakeze.com"];
  */
 export function AliasResolver() {
   const { alias } = useParams<{ alias: string }>();
+  const location = useLocation();
   const [status, setStatus] = useState<"loading" | "ready" | "notfound">("loading");
+  const [resolvedId, setResolvedId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
