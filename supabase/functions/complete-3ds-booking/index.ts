@@ -215,14 +215,32 @@ Deno.serve(async (req) => {
         }
         console.log("[complete-3ds-booking] Price validation passed");
       } else {
-        // If validation service is down, log but allow order to proceed
-        // to avoid blocking legitimate payments that already completed 3DS
+        // Fail-closed: validation service unavailable → reject booking.
+        // 付款已被 TapPay 扣款，但訂單未建立。需要人工/自動退款處理。
         const respText = await validateResponse.text();
-        console.error("[complete-3ds-booking] Price validation service error:", validateResponse.status, respText);
+        console.error("[complete-3ds-booking] Price validation service error (fail-closed):", validateResponse.status, respText);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: "訂單驗證服務暫時無法使用，您的付款將自動退款。請稍後再試或聯絡客服。",
+            code: "VALIDATION_SERVICE_UNAVAILABLE",
+            recTradeId: body.recTradeId,
+          }),
+          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
     } catch (validationError) {
-      // Non-fatal: if validation service is unreachable, log and continue
-      console.error("[complete-3ds-booking] Price validation call failed (non-fatal):", validationError);
+      // Fail-closed: 驗證服務無法呼叫 → 拒單
+      console.error("[complete-3ds-booking] Price validation call failed (fail-closed):", validationError);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: "訂單驗證服務暫時無法使用，您的付款將自動退款。請稍後再試或聯絡客服。",
+          code: "VALIDATION_SERVICE_UNREACHABLE",
+          recTradeId: body.recTradeId,
+        }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Prepare order notes
