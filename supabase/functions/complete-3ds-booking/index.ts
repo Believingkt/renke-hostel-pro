@@ -156,8 +156,8 @@ Deno.serve(async (req) => {
     }
 
     // === Server-side price validation ===
+    // 訂金已移除：所有訂單一律以扣除折扣後的全額（finalPrice）收取
     const totalPrice = body.totalPrice || body.finalPrice;
-    const depositAmount = body.depositAmount || body.finalPrice;
     const totalGuests = body.totalGuests || 2;
 
     try {
@@ -243,11 +243,11 @@ Deno.serve(async (req) => {
         discount_code: body.discountCode || null,
         discount_amount: body.discountAmount || 0,
         final_price: body.finalPrice,
-        deposit_amount: depositAmount,
+        deposit_amount: 0,
         deposit_payment_method: "credit_card_3ds",
         balance_payment_method: null,
-        payment_status: "deposit_paid",
-        paid_amount: verifiedAmount, // Use TapPay-verified amount
+        payment_status: "paid",
+        paid_amount: verifiedAmount, // Use TapPay-verified amount (= finalPrice)
         order_status: "pending",
         notes: orderNotes,
         pet_count: body.petCount || 0,
