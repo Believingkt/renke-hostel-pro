@@ -46,6 +46,7 @@ export function AliasResolver() {
       } catch {
         /* silent */
       }
+      setResolvedId(data.id);
       setStatus("ready");
     })();
 
@@ -53,6 +54,24 @@ export function AliasResolver() {
       cancelled = true;
     };
   }, [alias]);
+
+  if (status === "loading") {
+    return <FrontendSkeleton />;
+  }
+
+  if (status === "notfound") {
+    return <Navigate to="/booking" replace />;
+  }
+
+  // 在 booking.lakeze.com 網域且路徑為 /{alias} 根路徑時，
+  // 改顯示帶人客多導航的住宿頁（/booking/{accId}）
+  if (resolvedId && typeof window !== "undefined") {
+    const hostname = window.location.hostname.toLowerCase();
+    const segments = location.pathname.split("/").filter(Boolean);
+    if (BOOKING_DOMAINS.includes(hostname) && segments.length === 1) {
+      return <Navigate to={`/booking/${resolvedId}${location.search}`} replace />;
+    }
+  }
 
   if (status === "loading") {
     return <FrontendSkeleton />;
