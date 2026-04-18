@@ -18,11 +18,27 @@ const isDev = import.meta.env.DEV;
 
 export function ConditionalLayout() {
   const location = useLocation();
-  const isFrontendPage = location.pathname === "/" || location.pathname.startsWith("/__cb/");
-  const isAdminPage = location.pathname.startsWith("/admin");
-  const isHQPage = location.pathname.startsWith("/hq") && location.pathname !== "/hq-auth";
-  const isAuthPage = location.pathname === "/auth";
-  const isHQAuthPage = location.pathname === "/hq-auth";
+
+  // 將 /:alias/<rest> 視同 /<rest>，以支援 booking.lakeze.com/{alias}/admin 等路徑
+  const RESERVED = new Set([
+    "admin", "auth", "hq", "hq-auth", "headquarters", "booking", "book",
+    "member", "ai-booking", "order-search", "profile", "payment-test",
+    "kol-api-docs", "points-api-docs", "pay", "payment-result",
+    "reset-password", "change-password", "og-preview", "__cb",
+  ]);
+  const segments = location.pathname.split("/").filter(Boolean);
+  const hasAliasPrefix = segments.length > 0 && !RESERVED.has(segments[0]);
+  const normalizedPath = hasAliasPrefix
+    ? "/" + segments.slice(1).join("/")
+    : location.pathname;
+
+  const isFrontendPage =
+    normalizedPath === "/" || normalizedPath === "" || normalizedPath.startsWith("/__cb/");
+  const isAdminPage = normalizedPath.startsWith("/admin");
+  const isHQPage = normalizedPath.startsWith("/hq") && normalizedPath !== "/hq-auth";
+  const isAuthPage = normalizedPath === "/auth";
+  const isHQAuthPage = normalizedPath === "/hq-auth";
+
   
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
