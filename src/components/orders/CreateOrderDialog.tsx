@@ -1447,16 +1447,16 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               <span className="text-muted-foreground">房價小計</span>
               <span>NT$ {totals.roomTotal.toLocaleString()}</span>
             </div>
-            {totals.addonTotal > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">加購小計</span>
-                <span>NT$ {totals.addonTotal.toLocaleString()}</span>
-              </div>
-            )}
             {totals.discount > 0 && (
               <div className="flex justify-between text-sm text-primary">
                 <span>折扣</span>
                 <span>- NT$ {totals.discount.toLocaleString()}</span>
+              </div>
+            )}
+            {totals.addonTotal > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">加購小計</span>
+                <span>NT$ {totals.addonTotal.toLocaleString()}</span>
               </div>
             )}
             <div className="flex justify-between font-semibold text-lg pt-2 border-t">
