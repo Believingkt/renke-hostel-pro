@@ -203,7 +203,7 @@ export default function AccommodationApiDocs() {
             <h2 className="text-lg font-semibold mb-3">注意事項</h2>
             <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-5">
               <li>金鑰僅綁定單一民宿，無法跨民宿操作。</li>
-              <li>圖片需自行上傳至公開可存取的 URL（如 CDN、物件儲存）。</li>
+              <li>圖片可選擇提供公開 URL，或以 base64 直接上傳（單張上限 10MB，支援 jpeg/png/webp/gif）。</li>
               <li>建立後若需設定每日房價與庫存，請至「房價月曆」管理。</li>
               <li>請勿將 API Key 提交至公開程式碼倉庫或暴露於前端。</li>
             </ul>
