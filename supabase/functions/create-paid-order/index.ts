@@ -14,10 +14,7 @@ import {
 import { validateOrderPrices } from "../_shared/orderPriceValidation.ts";
 import { reportBackendError } from "../_shared/errorReporter.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { buildCorsHeaders } from "../_shared/cors.ts";
 
 interface RequestBody {
   idempotencyKey: string;
