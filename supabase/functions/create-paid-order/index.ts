@@ -12,6 +12,7 @@ import {
   mapTapPayErrorToUserMessage,
 } from "../_shared/tappay.ts";
 import { validateOrderPrices } from "../_shared/orderPriceValidation.ts";
+import { reportBackendError } from "../_shared/errorReporter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
