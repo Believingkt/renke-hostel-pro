@@ -221,9 +221,15 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
     setUploading(true);
     try {
       const uploadedUrls: string[] = [];
-      
+      const { validateImageUpload } = await import("@/utils/imageUploadValidation");
+
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
+        const validation = await validateImageUpload(file);
+        if (validation.ok === false) {
+          toast.error(`${file.name}：${validation.reason}`);
+          continue;
+        }
         const fileExt = file.name.split('.').pop();
         const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
         // RLS 政策要求路徑格式為 accommodation_id/filename
@@ -231,7 +237,7 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
 
         const { error } = await supabase.storage
           .from('room-photos')
-          .upload(filePath, file);
+          .upload(filePath, file, { contentType: validation.mime });
 
         if (error) throw error;
 
@@ -242,8 +248,10 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         uploadedUrls.push(publicUrl);
       }
 
-      setPhotoUrls([...photoUrls, ...uploadedUrls]);
-      toast.success(`已上傳 ${uploadedUrls.length} 張照片`);
+      if (uploadedUrls.length > 0) {
+        setPhotoUrls([...photoUrls, ...uploadedUrls]);
+        toast.success(`已上傳 ${uploadedUrls.length} 張照片`);
+      }
     } catch (error: any) {
       toast.error("上傳失敗：" + error.message);
     } finally {

@@ -255,6 +255,13 @@ export const CustomSectionsManager = ({
   };
 
   const handleImageUpload = async (sectionId: string, file: File, type: 'desktop' | 'mobile') => {
+    const { validateImageUpload } = await import("@/utils/imageUploadValidation");
+    const validation = await validateImageUpload(file);
+    if (validation.ok === false) {
+      toast.error(`上傳失敗：${validation.reason}`);
+      return;
+    }
+
     setIsUploading(true);
     setUploadingId(sectionId);
     setUploadType(type);
