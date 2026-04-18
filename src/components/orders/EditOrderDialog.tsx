@@ -82,6 +82,8 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
   const { currentAccommodationId } = useAccommodation();
   const [isSaving, setIsSaving] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [useDeposit, setUseDeposit] = useState(true);
+  const [depositPct, setDepositPct] = useState(30);
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmAction, setConfirmAction] = useState<"cancel" | "delete" | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
@@ -160,6 +162,16 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
 
       if (!templatesResult.error && templatesResult.data) {
         setPricingTemplates(templatesResult.data);
+      }
+
+      const { data: bs } = await supabase
+        .from("booking_settings")
+        .select("use_deposit, deposit_percentage")
+        .eq("accommodation_id", currentAccommodationId)
+        .maybeSingle();
+      if (bs) {
+        setUseDeposit(bs.use_deposit !== false);
+        setDepositPct(bs.deposit_percentage ?? 30);
       }
     };
 
@@ -565,11 +577,14 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
       const effectiveTotal = manualTotalPriceStr !== null ? Math.max(0, parseInt(manualTotalPriceStr) || 0) : calculatedPrice.total;
       const effectiveDiscount = manualDiscountStr !== null ? Math.max(0, parseInt(manualDiscountStr) || 0) : calculatedPrice.discount;
       const totalFinal = Math.max(0, effectiveTotal - effectiveDiscount + addonTotal);
-      const depositAmount = Math.round(totalFinal * 0.3);
+      const depositAmount = useDeposit ? Math.round(totalFinal * (depositPct / 100)) : 0;
       
       // Determine payment_status based on deposit_paid and balance_paid
       let payment_status = "unpaid";
-      if (editForm.deposit_paid && editForm.balance_paid) {
+      if (!useDeposit) {
+        // No deposit flow: only consider balance_paid
+        payment_status = editForm.balance_paid ? "paid" : "unpaid";
+      } else if (editForm.deposit_paid && editForm.balance_paid) {
         payment_status = "paid";
       } else if (editForm.deposit_paid) {
         payment_status = "deposit_paid";
@@ -936,7 +951,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
             const effectiveTotal = manualTotalPriceStr !== null ? Math.max(0, parseInt(manualTotalPriceStr) || 0) : calculatedPrice.total;
             const effectiveDiscount = manualDiscountStr !== null ? Math.max(0, parseInt(manualDiscountStr) || 0) : calculatedPrice.discount;
             const totalFinal = Math.max(0, effectiveTotal - effectiveDiscount + addonTotal);
-            const depositAmount = Math.round(totalFinal * 0.3);
+            const depositAmount = useDeposit ? Math.round(totalFinal * (depositPct / 100)) : 0;
             const balanceAmount = totalFinal - depositAmount;
             
             return (
@@ -979,18 +994,20 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
               
               {/* Deposit and Balance Display */}
               <div className="space-y-2 pt-2">
+                {useDeposit && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">訂金 ({depositPct}%)</span>
+                    <span className={cn(
+                      "font-medium",
+                      editForm.deposit_paid && "line-through text-muted-foreground"
+                    )}>
+                      NT$ {depositAmount.toLocaleString()}
+                      {editForm.deposit_paid && <span className="ml-2 text-primary no-underline">已付</span>}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">訂金 (30%)</span>
-                  <span className={cn(
-                    "font-medium",
-                    editForm.deposit_paid && "line-through text-muted-foreground"
-                  )}>
-                    NT$ {depositAmount.toLocaleString()}
-                    {editForm.deposit_paid && <span className="ml-2 text-primary no-underline">已付</span>}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">尾款 (70%)</span>
+                  <span className="text-sm text-muted-foreground">{useDeposit ? `尾款 (${100 - depositPct}%)` : "應付金額"}</span>
                   <span className={cn(
                     "font-medium",
                     editForm.balance_paid && "line-through text-muted-foreground"
@@ -1049,33 +1066,34 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
             </Select>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>訂金支付狀態</Label>
-              <Select 
-                value={editForm.deposit_paid ? "paid" : "unpaid"} 
-                onValueChange={(value) => {
-                  const isPaid = value === "paid";
-                  setEditForm({
-                    ...editForm, 
-                    deposit_paid: isPaid,
-                    // If deposit is not paid, balance cannot be paid
-                    balance_paid: isPaid ? editForm.balance_paid : false
-                  });
-                }}
-              >
-                <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unpaid">未付款</SelectItem>
-                  <SelectItem value="paid">已付款</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className={cn("grid grid-cols-1 gap-4", useDeposit && "sm:grid-cols-2")}>
+            {useDeposit && (
+              <div className="space-y-2">
+                <Label>訂金支付狀態</Label>
+                <Select 
+                  value={editForm.deposit_paid ? "paid" : "unpaid"} 
+                  onValueChange={(value) => {
+                    const isPaid = value === "paid";
+                    setEditForm({
+                      ...editForm, 
+                      deposit_paid: isPaid,
+                      balance_paid: isPaid ? editForm.balance_paid : false
+                    });
+                  }}
+                >
+                  <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unpaid">未付款</SelectItem>
+                    <SelectItem value="paid">已付款</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-2">
-              <Label>尾款支付狀態</Label>
+              <Label>{useDeposit ? "尾款支付狀態" : "付款狀態"}</Label>
               <Select 
                 value={editForm.balance_paid ? "paid" : "unpaid"} 
                 onValueChange={(value) => {
@@ -1083,7 +1101,6 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
                   setEditForm({
                     ...editForm, 
                     balance_paid: isPaid,
-                    // If balance is paid, deposit must also be paid
                     deposit_paid: isPaid ? true : editForm.deposit_paid
                   });
                 }}
@@ -1099,25 +1116,27 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>訂金付款方式</Label>
-              <Select value={editForm.deposit_payment_method} onValueChange={(value) => setEditForm({...editForm, deposit_payment_method: value})}>
-                <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
-                  <SelectValue placeholder="選擇付款方式" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="credit_card">信用卡</SelectItem>
-                  <SelectItem value="line_pay">LINE Pay</SelectItem>
-                  <SelectItem value="bank_transfer">轉帳匯款</SelectItem>
-                  <SelectItem value="cash">現金</SelectItem>
-                  <SelectItem value="monthly">月結</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className={cn("grid grid-cols-1 gap-4", useDeposit && "sm:grid-cols-2")}>
+            {useDeposit && (
+              <div className="space-y-2">
+                <Label>訂金付款方式</Label>
+                <Select value={editForm.deposit_payment_method} onValueChange={(value) => setEditForm({...editForm, deposit_payment_method: value})}>
+                  <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+                    <SelectValue placeholder="選擇付款方式" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="credit_card">信用卡</SelectItem>
+                    <SelectItem value="line_pay">LINE Pay</SelectItem>
+                    <SelectItem value="bank_transfer">轉帳匯款</SelectItem>
+                    <SelectItem value="cash">現金</SelectItem>
+                    <SelectItem value="monthly">月結</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-2">
-              <Label>尾款付款方式</Label>
+              <Label>{useDeposit ? "尾款付款方式" : "付款方式"}</Label>
               <Select value={editForm.balance_payment_method} onValueChange={(value) => setEditForm({...editForm, balance_payment_method: value})}>
                 <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
                   <SelectValue placeholder="選擇付款方式" />

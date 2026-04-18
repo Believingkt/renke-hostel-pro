@@ -81,6 +81,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const { currentAccommodationId } = useAccommodation();
   const { logAction } = useAuditLog();
   const [isSaving, setIsSaving] = useState(false);
+  const [useDeposit, setUseDeposit] = useState(true);
+  const [depositPct, setDepositPct] = useState(30);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   
   const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
@@ -224,6 +226,16 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       }
       if (!templatesResult.error && templatesResult.data) {
         setPricingTemplates(templatesResult.data);
+      }
+
+      const { data: bs } = await supabase
+        .from("booking_settings")
+        .select("use_deposit, deposit_percentage")
+        .eq("accommodation_id", currentAccommodationId)
+        .maybeSingle();
+      if (bs) {
+        setUseDeposit(bs.use_deposit !== false);
+        setDepositPct(bs.deposit_percentage ?? 30);
       }
     };
 
@@ -616,12 +628,17 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     setIsSaving(true);
     try {
       const totals = getTotals();
-      const depositAmount = Math.round(totals.final * 0.3);
+      const depositAmount = useDeposit ? Math.round(totals.final * (depositPct / 100)) : 0;
       const balanceAmount = totals.final - depositAmount;
 
       let paymentStatus = "unpaid";
       let paidAmount = 0;
-      if (form.deposit_paid && form.balance_paid) {
+      if (!useDeposit) {
+        if (form.balance_paid) {
+          paymentStatus = "paid";
+          paidAmount = totals.final;
+        }
+      } else if (form.deposit_paid && form.balance_paid) {
         paymentStatus = "paid";
         paidAmount = totals.final;
       } else if (form.deposit_paid) {
@@ -1414,7 +1431,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
       {/* Price Summary */}
       {(() => {
-        const depositAmount = Math.round(totals.final * 0.3);
+        const depositAmount = useDeposit ? Math.round(totals.final * (depositPct / 100)) : 0;
         const balanceAmount = totals.final - depositAmount;
         
         return (
@@ -1446,17 +1463,19 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               <span>總金額</span>
               <span className="text-primary">NT$ {totals.final.toLocaleString()}</span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className={cn("text-muted-foreground", form.deposit_paid && "line-through")}>
-                訂金 (30%)
-              </span>
-              <span className={cn(form.deposit_paid && "line-through text-muted-foreground")}>
-                NT$ {depositAmount.toLocaleString()}
-              </span>
-            </div>
+            {useDeposit && (
+              <div className="flex justify-between text-sm">
+                <span className={cn("text-muted-foreground", form.deposit_paid && "line-through")}>
+                  訂金 ({depositPct}%)
+                </span>
+                <span className={cn(form.deposit_paid && "line-through text-muted-foreground")}>
+                  NT$ {depositAmount.toLocaleString()}
+                </span>
+              </div>
+            )}
             <div className="flex justify-between text-sm">
               <span className={cn("text-muted-foreground", form.balance_paid && "line-through")}>
-                尾款 (70%)
+                {useDeposit ? `尾款 (${100 - depositPct}%)` : "應付金額"}
               </span>
               <span className={cn(form.balance_paid && "line-through text-muted-foreground")}>
                 NT$ {balanceAmount.toLocaleString()}
@@ -1529,25 +1548,27 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>訂金支付狀態</Label>
-          <Select 
-            value={form.deposit_paid ? "paid" : "unpaid"} 
-            onValueChange={(value) => setForm({...form, deposit_paid: value === "paid"})}
-          >
-            <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="unpaid">未付款</SelectItem>
-              <SelectItem value="paid">已付款</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      <div className={cn("grid grid-cols-1 gap-4", useDeposit && "sm:grid-cols-2")}>
+        {useDeposit && (
+          <div className="space-y-2">
+            <Label>訂金支付狀態</Label>
+            <Select 
+              value={form.deposit_paid ? "paid" : "unpaid"} 
+              onValueChange={(value) => setForm({...form, deposit_paid: value === "paid"})}
+            >
+              <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unpaid">未付款</SelectItem>
+                <SelectItem value="paid">已付款</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <div className="space-y-2">
-          <Label>尾款支付狀態</Label>
+          <Label>{useDeposit ? "尾款支付狀態" : "付款狀態"}</Label>
           <Select 
             value={form.balance_paid ? "paid" : "unpaid"} 
             onValueChange={(value) => setForm({...form, balance_paid: value === "paid"})}
@@ -1563,25 +1584,27 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>訂金付款方式</Label>
-          <Select value={form.deposit_payment_method} onValueChange={(value) => setForm({...form, deposit_payment_method: value})}>
-            <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
-              <SelectValue placeholder="選擇付款方式" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="credit_card">信用卡</SelectItem>
-              <SelectItem value="line_pay">LINE Pay</SelectItem>
-              <SelectItem value="bank_transfer">轉帳匯款</SelectItem>
-              <SelectItem value="cash">現金</SelectItem>
-              <SelectItem value="monthly">月結</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      <div className={cn("grid grid-cols-1 gap-4", useDeposit && "sm:grid-cols-2")}>
+        {useDeposit && (
+          <div className="space-y-2">
+            <Label>訂金付款方式</Label>
+            <Select value={form.deposit_payment_method} onValueChange={(value) => setForm({...form, deposit_payment_method: value})}>
+              <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+                <SelectValue placeholder="選擇付款方式" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="credit_card">信用卡</SelectItem>
+                <SelectItem value="line_pay">LINE Pay</SelectItem>
+                <SelectItem value="bank_transfer">轉帳匯款</SelectItem>
+                <SelectItem value="cash">現金</SelectItem>
+                <SelectItem value="monthly">月結</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <div className="space-y-2">
-          <Label>尾款付款方式</Label>
+          <Label>{useDeposit ? "尾款付款方式" : "付款方式"}</Label>
           <Select value={form.balance_payment_method} onValueChange={(value) => setForm({...form, balance_payment_method: value})}>
             <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
               <SelectValue placeholder="選擇付款方式" />
