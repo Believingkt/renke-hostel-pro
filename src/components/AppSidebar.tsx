@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { PreloadLink } from "@/components/PreloadLink";
+import { useAliasPrefix } from "@/hooks/use-alias-prefix";
 import {
   Sidebar,
   SidebarContent,
@@ -106,6 +107,7 @@ const menuItems = [
 export function AppSidebar() {
   const { open, setOpenMobile, isMobile } = useSidebar();
   const location = useLocation();
+  const { withPrefix, prefix } = useAliasPrefix();
 
   const handleLinkClick = () => {
     if (isMobile) {
@@ -115,19 +117,21 @@ export function AppSidebar() {
 
   const isActiveRoute = (url: string) => {
     const pathname = location.pathname;
-    const urlPath = url.split('?')[0];
+    const urlPath = withPrefix(url.split('?')[0]);
     return pathname === urlPath;
   };
 
   const isActiveSubItem = (url: string) => {
-    return location.pathname + location.search === url;
+    const [path, search] = url.split('?');
+    const fullUrl = withPrefix(path) + (search ? `?${search}` : '');
+    return location.pathname + location.search === fullUrl;
   };
 
   return (
     <Sidebar collapsible="icon" className="admin-theme border-r transition-all duration-300">
       <SidebarHeader className="border-b px-6 py-4 transition-all duration-300">
         <PreloadLink 
-          to="/admin" 
+          to={withPrefix("/admin")} 
           onClick={handleLinkClick}
           className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity duration-200"
         >
@@ -163,7 +167,10 @@ export function AppSidebar() {
                           >
                             <SidebarMenuSubButton asChild className="h-10 px-4 pl-8 hover:bg-sidebar-accent/50 hover:translate-x-1 transition-all duration-200">
                               <PreloadLink 
-                                to={subItem.url}
+                                to={(() => {
+                                  const [p, s] = subItem.url.split('?');
+                                  return withPrefix(p) + (s ? `?${s}` : '');
+                                })()}
                                 onClick={handleLinkClick}
                                 className={isActiveSubItem(subItem.url) ? "bg-sidebar-accent" : ""}
                               >
@@ -179,7 +186,7 @@ export function AppSidebar() {
                   ) : (
                     <SidebarMenuButton asChild isActive={isActiveRoute(item.url)} className="h-12 py-3 text-base transition-all duration-200 hover:scale-[1.02]">
                       <PreloadLink 
-                        to={item.url}
+                        to={withPrefix(item.url)}
                         onClick={handleLinkClick}
                       >
                         <item.icon className="h-5 w-5 transition-all duration-200 group-hover:scale-110" />
