@@ -112,6 +112,7 @@ interface RoomTypeOption {
   id: string;
   name: string;
   base_price: number;
+  is_exclusive_package?: boolean;
 }
 
 interface OrderRoom {
