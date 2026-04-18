@@ -81,6 +81,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const { currentAccommodationId } = useAccommodation();
   const { logAction } = useAuditLog();
   const [isSaving, setIsSaving] = useState(false);
+  const [useDeposit, setUseDeposit] = useState(true);
+  const [depositPct, setDepositPct] = useState(30);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   
   const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
@@ -224,6 +226,16 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       }
       if (!templatesResult.error && templatesResult.data) {
         setPricingTemplates(templatesResult.data);
+      }
+
+      const { data: bs } = await supabase
+        .from("booking_settings")
+        .select("use_deposit, deposit_percentage")
+        .eq("accommodation_id", currentAccommodationId)
+        .maybeSingle();
+      if (bs) {
+        setUseDeposit(bs.use_deposit !== false);
+        setDepositPct(bs.deposit_percentage ?? 30);
       }
     };
 
