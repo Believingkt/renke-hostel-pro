@@ -95,6 +95,19 @@ serve(async (req) => {
 
     if (deleteError) {
       console.error("Error deleting user:", deleteError);
+      // Audit failed deletion
+      await supabaseAdmin.from("audit_logs").insert({
+        user_id: user.id,
+        user_email: user.email,
+        action_category: "user_management",
+        action_type: "delete_user_failed",
+        entity_type: "user",
+        entity_id: targetUser.id,
+        entity_name: email,
+        ip_address: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+        user_agent: req.headers.get("user-agent") ?? null,
+        details: { reason: deleteError.message },
+      });
       return new Response(
         JSON.stringify({ success: false, error: `刪除用戶失敗: ${deleteError.message}` }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -102,6 +115,20 @@ serve(async (req) => {
     }
 
     console.log(`Successfully deleted user ${email}`);
+
+    // Audit successful deletion
+    await supabaseAdmin.from("audit_logs").insert({
+      user_id: user.id,
+      user_email: user.email,
+      action_category: "user_management",
+      action_type: "delete_user",
+      entity_type: "user",
+      entity_id: targetUser.id,
+      entity_name: email,
+      ip_address: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+      user_agent: req.headers.get("user-agent") ?? null,
+      details: { deleted_email: email },
+    });
 
     return new Response(
       JSON.stringify({

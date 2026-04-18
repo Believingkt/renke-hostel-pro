@@ -270,6 +270,25 @@ serve(async (req) => {
       throw new Error("建立使用者角色失敗");
     }
 
+    // Audit log: role granted / user created
+    await supabaseAdmin.from("audit_logs").insert({
+      user_id: userId,
+      accommodation_id: accommodationId,
+      action_category: "user_management",
+      action_type: isNewUser ? "create_user_with_role" : "grant_role_to_existing_user",
+      entity_type: "user_role",
+      entity_id: targetUserId,
+      entity_name: email,
+      ip_address: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+      user_agent: req.headers.get("user-agent") ?? null,
+      details: {
+        granted_role: role,
+        accommodation_name: accommodation.name,
+        invited_email: email,
+        invited_name: name,
+      },
+    });
+
     // Send email notification
     try {
       const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
