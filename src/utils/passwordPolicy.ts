@@ -9,7 +9,7 @@ export type PasswordPolicyOptions = {
 };
 
 const DEFAULT_OPTIONS: Required<Omit<PasswordPolicyOptions, "email">> = {
-  minLength: 12,
+  minLength: 8,
   requireUpper: true,
   requireLower: true,
   requireNumber: true,

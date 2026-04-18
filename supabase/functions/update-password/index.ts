@@ -54,8 +54,8 @@ function validatePasswordStrength(
   password: string,
   email?: string
 ): { valid: boolean; message: string } {
-  if (password.length < 12) {
-    return { valid: false, message: "密碼長度至少需要 12 個字元" };
+  if (password.length < 8) {
+    return { valid: false, message: "密碼長度至少需要 8 個字元" };
   }
 
   if (!/[A-Z]/.test(password)) {
