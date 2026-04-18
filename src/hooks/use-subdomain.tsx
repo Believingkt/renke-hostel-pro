@@ -51,8 +51,32 @@ export function useSubdomain() {
       const isHQDomain = hostname === 'hq.lakeze.com' || hostname === 'www.hq.lakeze.com';
       const isBookingDomain = hostname === 'booking.lakeze.com' || hostname === 'www.booking.lakeze.com';
       if (isHQDomain || isBookingDomain) {
-        // Booking 門戶網域：允許透過 ?acc= 指定民宿（跨民宿訂房流程使用）
         if (isBookingDomain) {
+          // 1. 路徑首段為 alias（/{alias} 或 /{alias}/admin）
+          const pathSegments = window.location.pathname.split('/').filter(Boolean);
+          const reservedFirst = new Set([
+            'booking', 'book', 'member', 'order-search', 'order-payment',
+            'payment', 'payment-result', 'linepay', 'public-payment',
+            'ai-booking', 'auth', 'hq', 'hq-auth', 'headquarters', 'admin',
+            'pay', 'profile', 'reset-password', 'change-password',
+            'kol-api-docs', 'points-api-docs', 'og-preview', 'payment-test', '__cb',
+          ]);
+          const pathAlias = pathSegments[0] && !reservedFirst.has(pathSegments[0])
+            ? pathSegments[0] : null;
+
+          if (pathAlias) {
+            const { data: aliasData } = await supabase
+              .from('accommodation_info')
+              .select('id, short_url_alias, theme_preset')
+              .eq('short_url_alias', pathAlias)
+              .maybeSingle();
+            if (aliasData) {
+              finishSuccess(aliasData);
+              return;
+            }
+          }
+
+          // 2. 退回 ?acc= 查詢參數（跨民宿訂房流程使用）
           const urlParams = new URLSearchParams(window.location.search);
           const accParam = urlParams.get('acc');
           if (accParam) {

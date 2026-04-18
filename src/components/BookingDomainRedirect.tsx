@@ -3,9 +3,38 @@ import { useNavigate, useLocation } from "react-router-dom";
 
 const BOOKING_DOMAINS = ["booking.lakeze.com", "www.booking.lakeze.com"];
 
+// 第一層路徑為已知保留字時，視為非 alias 路徑
+const RESERVED_FIRST_SEGMENTS = new Set([
+  "booking",
+  "book",
+  "member",
+  "order-search",
+  "order-payment",
+  "payment",
+  "payment-result",
+  "linepay",
+  "public-payment",
+  "ai-booking",
+  "auth",
+  "hq",
+  "hq-auth",
+  "headquarters",
+  "admin",
+  "pay",
+  "profile",
+  "reset-password",
+  "change-password",
+  "kol-api-docs",
+  "points-api-docs",
+  "og-preview",
+  "payment-test",
+  "__cb",
+]);
+
 /**
  * 偵測是否為 booking.lakeze.com 網域
  * 若是且在根路徑，自動重導向至 /booking
+ * 第一層路徑若為 alias（如 /traveldays、/traveldays/admin），則允許通過。
  */
 export function BookingDomainRedirect({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
@@ -15,7 +44,12 @@ export function BookingDomainRedirect({ children }: { children: ReactNode }) {
     const hostname = window.location.hostname.toLowerCase();
     if (!BOOKING_DOMAINS.includes(hostname)) return;
 
-    // 允許的路徑前綴（booking 相關 + 會員 + 付款等）
+    const segments = location.pathname.split("/").filter(Boolean);
+    if (segments.length > 0 && !RESERVED_FIRST_SEGMENTS.has(segments[0])) {
+      // 視為 alias 路徑，交給 AliasResolver 處理
+      return;
+    }
+
     const allowedPrefixes = [
       "/booking",
       "/book",
@@ -28,7 +62,7 @@ export function BookingDomainRedirect({ children }: { children: ReactNode }) {
       "/ai-booking",
     ];
 
-    const isAllowed = allowedPrefixes.some(p => location.pathname.startsWith(p));
+    const isAllowed = allowedPrefixes.some((p) => location.pathname.startsWith(p));
 
     if (!isAllowed) {
       navigate(`/booking${location.search}`, { replace: true });
