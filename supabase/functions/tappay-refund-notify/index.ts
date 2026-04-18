@@ -45,6 +45,34 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
+    // ===== Webhook auth: shared secret in header =====
+    // TapPay 後台對此 notify URL 設一個固定 query/header 驗證碼，作為基本驗證層。
+    // 我們同時支援兩種：
+    //   1) 自訂 header `x-webhook-secret`（推薦，需在 TapPay 後台設定可帶 header 時）
+    //   2) URL query `?secret=xxx`（多數 webhook 後台都支援）
+    const expectedSecret = Deno.env.get('TAPPAY_WEBHOOK_SECRET');
+    if (expectedSecret) {
+      const headerSecret = req.headers.get('x-webhook-secret');
+      const url = new URL(req.url);
+      const querySecret = url.searchParams.get('secret');
+      const provided = headerSecret || querySecret || '';
+      // Constant-time compare
+      const a = new TextEncoder().encode(provided);
+      const b = new TextEncoder().encode(expectedSecret);
+      let mismatch = a.length !== b.length ? 1 : 0;
+      const len = Math.min(a.length, b.length);
+      for (let i = 0; i < len; i++) mismatch |= a[i] ^ b[i];
+      if (mismatch !== 0) {
+        console.warn('[tappay-refund-notify] Invalid webhook secret');
+        return new Response(JSON.stringify({ status: 'unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      console.warn('[tappay-refund-notify] TAPPAY_WEBHOOK_SECRET not set — webhook is unauthenticated');
+    }
+
     const body: TapPayRefundNotifyPayload = await req.json();
     
     console.log('[tappay-refund-notify] Webhook received:', {
