@@ -76,6 +76,7 @@ import AccommodationLogo from "@/components/AccommodationLogo";
 import lokezeLogo from "@/assets/lakeze-portal-logo.png";
 import { getThemeClassByAccommodation } from "@/constants/themes";
 import { useTapPayConfig } from "@/hooks/use-tappay-config";
+import { reportFrontendError } from "@/utils/errorReporter";
 
 // TapPay SDK 類型定義 - 使用 interface merging 避免重複宣告錯誤
 interface TPDirectSDK {
@@ -2208,6 +2209,18 @@ const BookingFlow = () => {
 
           if (opError || !opResult?.success) {
             console.error('Order creation after charge failed:', opError, opResult);
+            reportFrontendError({
+              category: "booking_flow",
+              step: "create_paid_order_post_charge",
+              errorMessage: opResult?.message || opError?.message || "create-paid-order failed",
+              accommodationId,
+              idempotencyKey,
+              context: {
+                recTradeId: paymentTransactionId,
+                finalPrice,
+                paymentMethod,
+              },
+            });
             toast({
               title: '訂單建立失敗',
               description: opResult?.message || '請聯繫客服協助處理',
@@ -2225,6 +2238,13 @@ const BookingFlow = () => {
         } catch (error) {
           console.error('Payment error:', error);
           const errorInfo = classifyPaymentError(error);
+          reportFrontendError({
+            category: "payment",
+            step: "tappay_charge",
+            errorMessage: error instanceof Error ? error.message : String(error),
+            accommodationId,
+            context: { paymentMethod, errorType: errorInfo?.type },
+          });
           setLastPaymentError(errorInfo);
           setPaymentFailed(true);
           setShowRetryDialog(true);

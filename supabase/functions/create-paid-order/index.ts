@@ -12,6 +12,7 @@ import {
   mapTapPayErrorToUserMessage,
 } from "../_shared/tappay.ts";
 import { validateOrderPrices } from "../_shared/orderPriceValidation.ts";
+import { reportBackendError } from "../_shared/errorReporter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -176,6 +177,16 @@ Deno.serve(async (req) => {
 
       if (charge.status !== 0) {
         const { userMessage, suggestion } = mapTapPayErrorToUserMessage(charge.status, charge.msg);
+        await reportBackendError({
+          functionName: "create-paid-order",
+          category: "tappay_charge",
+          step: "charge_by_prime",
+          errorMessage: charge.msg ?? userMessage,
+          errorCode: charge.status,
+          accommodationId: body.accommodationId,
+          idempotencyKey: body.idempotencyKey,
+          context: { recTradeId: charge.rec_trade_id, finalPrice: body.finalPrice },
+        });
         return jsonResponse({
           success: false,
           message: userMessage,
@@ -248,6 +259,16 @@ Deno.serve(async (req) => {
 
       console.error("[create-paid-order] Order insert failed AFTER charge:", orderError);
       const refunded = await refundTapPay(partnerKey, recTradeId, body.finalPrice);
+      await reportBackendError({
+        functionName: "create-paid-order",
+        category: "order_insert",
+        step: "post_charge_insert",
+        errorMessage: orderError.message,
+        errorCode: orderError.code,
+        accommodationId: body.accommodationId,
+        idempotencyKey: body.idempotencyKey,
+        context: { recTradeId, refunded, finalPrice: body.finalPrice },
+      });
       return jsonResponse(
         {
           success: false,
@@ -295,6 +316,11 @@ Deno.serve(async (req) => {
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Unknown error";
     console.error("[create-paid-order] Unexpected error:", error);
+    await reportBackendError({
+      functionName: "create-paid-order",
+      category: "unhandled_exception",
+      errorMessage: msg,
+    });
     return jsonResponse({ success: false, message: "伺服器錯誤", error: msg }, 500);
   }
 });

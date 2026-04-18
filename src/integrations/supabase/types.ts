@@ -1111,6 +1111,65 @@ export type Database = {
           },
         ]
       }
+      error_logs: {
+        Row: {
+          accommodation_id: string | null
+          category: string
+          context: Json | null
+          created_at: string
+          error_code: string | null
+          error_message: string
+          function_name: string | null
+          id: string
+          idempotency_key: string | null
+          source: string
+          step: string | null
+          url: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          accommodation_id?: string | null
+          category: string
+          context?: Json | null
+          created_at?: string
+          error_code?: string | null
+          error_message: string
+          function_name?: string | null
+          id?: string
+          idempotency_key?: string | null
+          source: string
+          step?: string | null
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          accommodation_id?: string | null
+          category?: string
+          context?: Json | null
+          created_at?: string
+          error_code?: string | null
+          error_message?: string
+          function_name?: string | null
+          id?: string
+          idempotency_key?: string | null
+          source?: string
+          step?: string | null
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "error_logs_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       external_hotel_mappings: {
         Row: {
           accommodation_id: string
@@ -2821,6 +2880,7 @@ export type Database = {
           table_name: string
         }[]
       }
+      cleanup_old_error_logs: { Args: never; Returns: undefined }
       generate_order_number: { Args: never; Returns: string }
       get_adjusted_room_inventory: {
         Args: {
