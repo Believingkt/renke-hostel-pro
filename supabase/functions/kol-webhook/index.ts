@@ -33,13 +33,6 @@ function generateSignature(payload: string, secret: string): string {
   return hmac.digest('hex');
 }
 
-// Generate cryptographically secure nonce (Wave 6-C: anti-replay)
-function generateNonce(): string {
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
-}
-
 // Send webhook notification
 async function sendWebhook(
   webhookUrl: string, 
@@ -48,19 +41,15 @@ async function sendWebhook(
 ): Promise<{ success: boolean; statusCode?: number; error?: string }> {
   try {
     const payloadString = JSON.stringify(payload);
-    const nonce = generateNonce();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'X-Webhook-Event': payload.event,
       'X-Webhook-Timestamp': payload.timestamp,
-      'X-Webhook-Nonce': nonce,
     };
     
-    // Wave 6-C: HMAC signature now binds timestamp + nonce + body to prevent replay attacks.
-    // Receivers should verify timestamp freshness (e.g. ±5 min) and reject duplicate nonces.
+    // Add HMAC signature if secret is configured
     if (webhookSecret) {
-      const signedPayload = `${payload.timestamp}.${nonce}.${payloadString}`;
-      const signature = generateSignature(signedPayload, webhookSecret);
+      const signature = generateSignature(payloadString, webhookSecret);
       headers['X-Webhook-Signature'] = `sha256=${signature}`;
     }
     

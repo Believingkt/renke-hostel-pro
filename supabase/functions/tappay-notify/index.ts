@@ -88,35 +88,6 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    // ===== Webhook auth: shared secret REQUIRED (Wave 6-C) =====
-    // Aligns with tappay-refund-notify: TAPPAY_WEBHOOK_SECRET must be configured.
-    const expectedSecret = Deno.env.get('TAPPAY_WEBHOOK_SECRET');
-    if (!expectedSecret) {
-      console.error('[tappay-notify] TAPPAY_WEBHOOK_SECRET not configured — refusing request');
-      return new Response(JSON.stringify({ status: 'unavailable' }), {
-        status: 503,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    {
-      const headerSecret = req.headers.get('x-webhook-secret');
-      const url = new URL(req.url);
-      const querySecret = url.searchParams.get('secret');
-      const provided = headerSecret || querySecret || '';
-      const a = new TextEncoder().encode(provided);
-      const b = new TextEncoder().encode(expectedSecret);
-      let mismatch = a.length !== b.length ? 1 : 0;
-      const len = Math.min(a.length, b.length);
-      for (let i = 0; i < len; i++) mismatch |= a[i] ^ b[i];
-      if (mismatch !== 0) {
-        console.warn('[tappay-notify] Invalid webhook secret');
-        return new Response(JSON.stringify({ status: 'unauthorized' }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-    }
-
     const body: TapPayNotifyPayload = await req.json();
     
     console.log('[tappay-notify] Webhook received:', {

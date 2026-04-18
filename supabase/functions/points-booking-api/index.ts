@@ -703,22 +703,12 @@ async function handlePayRemaining(supabase: any, partner: Partner, orderId: stri
     return jsonResponse({ error: "Invalid prime token" }, 400);
   }
 
-  // Wave 6-C: Verify partner ownership via point_transactions.partner_id (strict)
-  // instead of fragile order_source LIKE prefix match.
-  const { data: ptxn, error: ptxnError } = await supabase
-    .from("point_transactions")
-    .select("order_id, partner_id")
-    .eq("order_id", orderId)
-    .eq("partner_id", partner.id)
-    .maybeSingle();
-
-  if (ptxnError) throw ptxnError;
-  if (!ptxn) return jsonResponse({ error: "Order not found" }, 404);
-
+  // Get order and verify it belongs to this partner
   const { data: order, error } = await supabase
     .from("orders")
     .select("id, order_number, order_status, payment_status, final_price, total_price, paid_amount, order_source, accommodation_id")
     .eq("id", orderId)
+    .like("order_source", `points_${partner.platform_code}%`)
     .maybeSingle();
 
   if (error) throw error;
