@@ -1066,33 +1066,34 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
             </Select>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>訂金支付狀態</Label>
-              <Select 
-                value={editForm.deposit_paid ? "paid" : "unpaid"} 
-                onValueChange={(value) => {
-                  const isPaid = value === "paid";
-                  setEditForm({
-                    ...editForm, 
-                    deposit_paid: isPaid,
-                    // If deposit is not paid, balance cannot be paid
-                    balance_paid: isPaid ? editForm.balance_paid : false
-                  });
-                }}
-              >
-                <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unpaid">未付款</SelectItem>
-                  <SelectItem value="paid">已付款</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className={cn("grid grid-cols-1 gap-4", useDeposit && "sm:grid-cols-2")}>
+            {useDeposit && (
+              <div className="space-y-2">
+                <Label>訂金支付狀態</Label>
+                <Select 
+                  value={editForm.deposit_paid ? "paid" : "unpaid"} 
+                  onValueChange={(value) => {
+                    const isPaid = value === "paid";
+                    setEditForm({
+                      ...editForm, 
+                      deposit_paid: isPaid,
+                      balance_paid: isPaid ? editForm.balance_paid : false
+                    });
+                  }}
+                >
+                  <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unpaid">未付款</SelectItem>
+                    <SelectItem value="paid">已付款</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-2">
-              <Label>尾款支付狀態</Label>
+              <Label>{useDeposit ? "尾款支付狀態" : "付款狀態"}</Label>
               <Select 
                 value={editForm.balance_paid ? "paid" : "unpaid"} 
                 onValueChange={(value) => {
@@ -1100,7 +1101,6 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
                   setEditForm({
                     ...editForm, 
                     balance_paid: isPaid,
-                    // If balance is paid, deposit must also be paid
                     deposit_paid: isPaid ? true : editForm.deposit_paid
                   });
                 }}
@@ -1116,25 +1116,27 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>訂金付款方式</Label>
-              <Select value={editForm.deposit_payment_method} onValueChange={(value) => setEditForm({...editForm, deposit_payment_method: value})}>
-                <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
-                  <SelectValue placeholder="選擇付款方式" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="credit_card">信用卡</SelectItem>
-                  <SelectItem value="line_pay">LINE Pay</SelectItem>
-                  <SelectItem value="bank_transfer">轉帳匯款</SelectItem>
-                  <SelectItem value="cash">現金</SelectItem>
-                  <SelectItem value="monthly">月結</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className={cn("grid grid-cols-1 gap-4", useDeposit && "sm:grid-cols-2")}>
+            {useDeposit && (
+              <div className="space-y-2">
+                <Label>訂金付款方式</Label>
+                <Select value={editForm.deposit_payment_method} onValueChange={(value) => setEditForm({...editForm, deposit_payment_method: value})}>
+                  <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+                    <SelectValue placeholder="選擇付款方式" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="credit_card">信用卡</SelectItem>
+                    <SelectItem value="line_pay">LINE Pay</SelectItem>
+                    <SelectItem value="bank_transfer">轉帳匯款</SelectItem>
+                    <SelectItem value="cash">現金</SelectItem>
+                    <SelectItem value="monthly">月結</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-2">
-              <Label>尾款付款方式</Label>
+              <Label>{useDeposit ? "尾款付款方式" : "付款方式"}</Label>
               <Select value={editForm.balance_payment_method} onValueChange={(value) => setEditForm({...editForm, balance_payment_method: value})}>
                 <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
                   <SelectValue placeholder="選擇付款方式" />
