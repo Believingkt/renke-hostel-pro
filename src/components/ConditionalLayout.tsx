@@ -157,8 +157,11 @@ export function ConditionalLayout() {
     );
   }
 
+  // 帶 alias 前綴時，相關導航需保留前綴
+  const aliasPrefix = hasAliasPrefix ? `/${segments[0]}` : "";
+
   if (isAdminPage && !session && !loading) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to={`${aliasPrefix}/auth`} replace />;
   }
 
   if (isHQPage && !session && !loading) {
@@ -177,11 +180,11 @@ export function ConditionalLayout() {
         </TooltipProvider>
       );
     }
-    return <Navigate to="/admin" replace />;
+    return <Navigate to={`${aliasPrefix}/admin`} replace />;
   }
   
   if (isAdminPage && session && needsPasswordChange && !loading) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to={`${aliasPrefix}/auth`} replace />;
   }
   
   if (isHQPage && session && needsPasswordChange && !loading) {
