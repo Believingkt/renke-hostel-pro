@@ -226,7 +226,7 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const validation = await validateImageUpload(file);
-        if (!validation.ok) {
+        if (validation.ok === false) {
           toast.error(`${file.name}：${validation.reason}`);
           continue;
         }
