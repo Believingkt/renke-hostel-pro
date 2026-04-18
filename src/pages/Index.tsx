@@ -74,7 +74,7 @@ const Index = () => {
   const loadingThemeClass = cachedTheme ? getThemeClass(cachedTheme) : '';
   
   if ((!urlAccId && subdomainLoading) || isLoading) {
-    return <FrontendSkeleton themeClass={loadingThemeClass} />;
+    return <div className={`min-h-screen ${loadingThemeClass}`} />;
   }
 
   if (subdomainError) {
