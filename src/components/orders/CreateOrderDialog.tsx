@@ -516,7 +516,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       }
     };
     checkInventory();
-  }, [form.check_in_date, form.check_out_date, roomSelections.length, currentAccommodationId, roomTypes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.check_in_date, form.check_out_date, roomSelectionsKey, currentAccommodationId, roomTypes]);
 
   const handleApplyDiscount = async () => {
     if (!discountCode.trim() || !currentAccommodationId) {
