@@ -744,7 +744,7 @@ const OrderDetailPage = () => {
         if (orderData.accommodation_id) {
           const { data: rtData } = await supabase
             .from("room_types")
-            .select("id, name, base_price")
+            .select("id, name, base_price, is_exclusive_package")
             .eq("accommodation_id", orderData.accommodation_id)
             .order("display_order", { ascending: true });
           if (rtData) setRoomTypes(rtData);
