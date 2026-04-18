@@ -694,9 +694,9 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
   }, 201);
 }
 
-// ========== Pay Deposit with TapPay ==========
+// ========== Pay Remaining Amount with TapPay (full payment) ==========
 
-async function handlePayDeposit(supabase: any, partner: Partner, orderId: string, body: any) {
+async function handlePayRemaining(supabase: any, partner: Partner, orderId: string, body: any) {
   const { prime, cardholder, frontend_redirect_url, backend_notify_url } = body;
 
   if (!prime || typeof prime !== "string" || prime.length < 10) {
@@ -706,7 +706,7 @@ async function handlePayDeposit(supabase: any, partner: Partner, orderId: string
   // Get order and verify it belongs to this partner
   const { data: order, error } = await supabase
     .from("orders")
-    .select("id, order_number, order_status, payment_status, deposit_amount, final_price, total_price, paid_amount, order_source, accommodation_id")
+    .select("id, order_number, order_status, payment_status, final_price, total_price, paid_amount, order_source, accommodation_id")
     .eq("id", orderId)
     .like("order_source", `points_${partner.platform_code}%`)
     .maybeSingle();
@@ -721,12 +721,12 @@ async function handlePayDeposit(supabase: any, partner: Partner, orderId: string
     return jsonResponse({ error: "Order is cancelled" }, 400);
   }
 
-  const depositAmount = order.deposit_amount || 0;
-  if (depositAmount <= 0) {
-    return jsonResponse({ error: "No deposit required for this order" }, 400);
+  // Charge the full remaining amount = final_price - already paid (covered by points)
+  const amountDue = (order.final_price || 0) - (order.paid_amount || 0);
+  if (amountDue <= 0) {
+    return jsonResponse({ error: "No outstanding amount for this order" }, 400);
   }
 
-  // Get TapPay credentials
   const partnerKey = Deno.env.get("TAPPAY_PARTNER_KEY");
   const merchantId = Deno.env.get("TAPPAY_MERCHANT_ID");
   if (!partnerKey || !merchantId) {
@@ -734,11 +734,9 @@ async function handlePayDeposit(supabase: any, partner: Partner, orderId: string
     return jsonResponse({ error: "Payment system not configured" }, 500);
   }
 
-  // Normalize phone
   const phone = cardholder?.phoneNumber || cardholder?.phone_number || "";
   const phoneE164 = normalizePhoneE164(phone);
 
-  // Build TapPay request
   const envRaw = Deno.env.get("TAPPAY_ENV");
   const env = envRaw === "sandbox" ? "sandbox" : "production";
   const endpoint = env === "sandbox"
@@ -752,9 +750,9 @@ async function handlePayDeposit(supabase: any, partner: Partner, orderId: string
     prime,
     partner_key: partnerKey,
     merchant_id: merchantId,
-    amount: depositAmount,
+    amount: amountDue,
     currency: "TWD",
-    details: `點數訂房訂金 - ${order.order_number}`,
+    details: `點數訂房尾款 - ${order.order_number}`,
     order_number: order.order_number,
     cardholder: {
       phone_number: phoneE164,
@@ -772,7 +770,7 @@ async function handlePayDeposit(supabase: any, partner: Partner, orderId: string
     };
   }
 
-  console.log("Processing deposit payment:", { orderId, depositAmount, env });
+  console.log("Processing full payment:", { orderId, amountDue, env });
 
   const tappayResponse = await fetch(endpoint, {
     method: "POST",
@@ -785,50 +783,47 @@ async function handlePayDeposit(supabase: any, partner: Partner, orderId: string
 
   const result = await tappayResponse.json();
 
-  console.log("TapPay deposit response:", {
+  console.log("TapPay payment response:", {
     status: result.status,
     msg: result.msg,
     orderId,
-    depositAmount,
+    amountDue,
     hasPaymentUrl: !!result.payment_url,
   });
 
   if (result.status === 0) {
-    // Check if 3D Secure redirect is required
     if (result.payment_url) {
       return jsonResponse({
         success: true,
         requires_3d_secure: true,
         payment_url: result.payment_url,
         rec_trade_id: result.rec_trade_id,
-        deposit_amount: depositAmount,
+        amount: amountDue,
         message: "需要進行 3D 驗證",
       });
     }
 
-    // Direct success (no 3D)
-    // Update order status
+    // Direct success — mark order as fully paid
     await supabase
       .from("orders")
       .update({
-        payment_status: "deposit_paid",
-        deposit_payment_method: "credit_card",
-        paid_amount: (order.paid_amount || 0) + depositAmount,
+        payment_status: "paid",
+        payment_method: "credit_card",
+        paid_amount: (order.paid_amount || 0) + amountDue,
         order_status: "confirmed",
         confirmed_at: new Date().toISOString(),
       })
       .eq("id", orderId);
 
-    // Webhook
     if (partner.webhook_url) {
       fetch(partner.webhook_url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          event: "deposit.paid",
+          event: "order.paid",
           order_id: orderId,
           order_number: order.order_number,
-          deposit_amount: depositAmount,
+          amount: amountDue,
           rec_trade_id: result.rec_trade_id,
         }),
       }).catch((e) => console.error("Webhook error:", e));
@@ -839,11 +834,10 @@ async function handlePayDeposit(supabase: any, partner: Partner, orderId: string
       requires_3d_secure: false,
       rec_trade_id: result.rec_trade_id,
       bank_transaction_id: result.bank_transaction_id,
-      deposit_amount: depositAmount,
-      message: "訂金付款成功",
+      amount: amountDue,
+      message: "付款成功",
     });
   } else {
-    // Payment failed
     let userMessage = "付款失敗";
     let suggestion = "請檢查卡片資訊或聯繫發卡銀行";
 
