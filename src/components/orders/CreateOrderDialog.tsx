@@ -585,9 +585,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     }, 0);
     // Use roomSelections prices directly to avoid stale roomPrice state
     const actualRoomTotal = roomSelections.reduce((sum, sel) => sum + sel.roomPrice, 0);
+    const discount = calculateDiscount(actualRoomTotal);
     const subtotal = actualRoomTotal + addonTotal;
-    const discount = calculateDiscount(subtotal);
-    const final_ = Math.max(0, subtotal - discount);
+    const final_ = Math.max(0, actualRoomTotal - discount + addonTotal);
     return { roomTotal: actualRoomTotal, addonTotal, subtotal, discount, final: final_ };
   };
 
