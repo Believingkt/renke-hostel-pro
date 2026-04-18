@@ -1320,10 +1320,8 @@ const BookingFlow = () => {
     return Math.max(0, calculateTotal() + calculateAddonsTotal() - calculateDiscount());
   };
 
-  const calculateDeposit = () => {
-    if (!bookingSettings?.use_deposit) return 0;
-    return Math.round(calculateFinalTotal() * (bookingSettings.deposit_percentage / 100));
-  };
+  // 訂金功能已移除：所有訂單一律以扣除折扣後的全額計算
+  const calculateDeposit = () => 0;
 
   const handleApplyDiscount = async (code?: string) => {
     const codeToApply = code || discountCode;
@@ -2082,7 +2080,7 @@ const BookingFlow = () => {
             {
               body: {
                 prime,
-                amount: (bookingSettings?.use_deposit && depositAmount > 0) ? depositAmount : finalPrice,
+                amount: finalPrice, // 一律收取全額（扣除折扣後）
                 orderId: `TEMP-${Date.now()}`, // 臨時訂單 ID
                 cardholder: {
                   phoneNumber: guestInfo.phone,
@@ -2333,11 +2331,11 @@ const BookingFlow = () => {
           discount_code: appliedDiscount ? appliedDiscount.code : null,
           discount_amount: discountAmount,
           final_price: finalPrice,
-          deposit_amount: depositAmount,
+          deposit_amount: 0,
           deposit_payment_method: (paymentMethod === '信用卡' || paymentMethod === 'LINE Pay') ? (paymentMethod === '信用卡' ? 'credit_card' : 'line_pay') : null,
           balance_payment_method: null,
-          payment_status: paymentTransactionId ? "deposit_paid" : "unpaid",
-          paid_amount: paymentTransactionId ? depositAmount : 0,
+          payment_status: paymentTransactionId ? "paid" : "unpaid",
+          paid_amount: paymentTransactionId ? finalPrice : 0,
           order_status: "pending",
           notes: orderNotes || null,
           pet_count: petCount,
@@ -2595,14 +2593,7 @@ const BookingFlow = () => {
                       </span>
                     </div>
                     
-                    {bookingSettings?.use_deposit && (
-                      <div className="flex justify-between items-center py-2 px-4 bg-muted/50 rounded-lg">
-                        <span className="text-muted-foreground">訂金金額</span>
-                        <span className="font-medium">
-                          NT$ {successOrderData.deposit_amount?.toLocaleString()}
-                        </span>
-                      </div>
-                    )}
+                    {/* 訂金欄位已移除 */}
                   </div>
                 </div>
 
@@ -3995,11 +3986,7 @@ const BookingFlow = () => {
                                     }`}>
                                       {method}
                                     </span>
-                                    {(method === '信用卡' || method === 'LINE Pay') && bookingSettings?.use_deposit && (
-                                      <p className="text-xs text-muted-foreground mt-0.5">
-                                        線上付款訂金 NT$ {Math.round(calculateFinalTotal() * (bookingSettings.deposit_percentage / 100)).toLocaleString()}
-                                      </p>
-                                    )}
+                                    {/* 訂金提示已移除：線上付款一律收全額 */}
                                   </div>
                                   {paymentMethod === method && (
                                     <CheckCircle className="h-5 w-5 text-primary ml-auto" />
@@ -4091,25 +4078,7 @@ const BookingFlow = () => {
                       </CardContent>
                     </Card>
 
-                    {/* 訂金說明 */}
-                    {bookingSettings?.use_deposit && (
-                      <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-                        <div className="flex gap-3">
-                          <div className="bg-primary/20 rounded-full p-2 h-fit">
-                            <CreditCard className="h-5 w-5 text-primary" />
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-sm font-semibold text-foreground">
-                              訂金說明
-                            </p>
-                            <p className="text-xs text-muted-foreground leading-relaxed">
-                              訂房時需支付 <span className="font-semibold text-primary">{bookingSettings.deposit_percentage}%</span> 訂金，
-                              剩餘款項請於入住當天支付
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                    {/* 訂金說明已移除：所有訂單一律收取全額 */}
 
                     {/* 提示資訊 */}
                     {paymentMethod && (
@@ -4511,22 +4480,13 @@ const BookingFlow = () => {
                             NT$ {calculateFinalTotal().toLocaleString()}
                           </span>
                         </div>
-                        {bookingSettings?.use_deposit && calculateDeposit() > 0 && (
+                        {false && (
                           <>
                             <Separator />
                             <div className="bg-primary/5 p-3 rounded-lg">
                               <div className="flex justify-between items-center mb-1">
                                 <span className="text-sm font-medium">需支付訂金</span>
-                                <Badge variant="secondary">
-                                  {bookingSettings.deposit_percentage}%
-                                </Badge>
                               </div>
-                              <p className="text-xl font-bold text-primary">
-                                NT$ {calculateDeposit().toLocaleString()}
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                剩餘款項請於入住時支付
-                              </p>
                             </div>
                           </>
                         )}
