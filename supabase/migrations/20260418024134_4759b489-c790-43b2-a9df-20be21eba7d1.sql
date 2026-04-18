@@ -1,0 +1,1 @@
+UPDATE public.accommodation_info SET custom_domain = NULL WHERE custom_domain ILIKE '%booking.lakeze.com%';
