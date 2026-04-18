@@ -73,7 +73,7 @@ export default function Auth() {
       }
 
       setIsInviteMode(false);
-      navigate("/admin");
+      navigate(getAdminPath());
     } catch (error) {
       console.error("Error resolving auth destination:", error);
 
@@ -83,7 +83,7 @@ export default function Auth() {
         return;
       }
 
-      navigate("/admin");
+      navigate(getAdminPath());
     }
   }, [navigate]);
 
@@ -255,7 +255,7 @@ export default function Auth() {
       
       // Navigate to admin after short delay
       setTimeout(() => {
-        navigate("/admin");
+        navigate(getAdminPath());
       }, 1000);
     } catch (error: any) {
       if (import.meta.env.DEV) {
