@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import { useParams, Outlet, Navigate } from "react-router-dom";
+import { useParams, Outlet, Navigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { FrontendSkeleton } from "@/components/skeletons/FrontendSkeleton";
+
+const BOOKING_DOMAINS = ["booking.lakeze.com", "www.booking.lakeze.com"];
 
 /**
  * AliasResolver
