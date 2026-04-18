@@ -1505,6 +1505,7 @@ export type Database = {
           guest_nationality: string | null
           guest_phone: string
           id: string
+          idempotency_key: string | null
           meal_plan: string | null
           meal_plan_details: Json | null
           meal_plan_total: number | null
@@ -1550,6 +1551,7 @@ export type Database = {
           guest_nationality?: string | null
           guest_phone: string
           id?: string
+          idempotency_key?: string | null
           meal_plan?: string | null
           meal_plan_details?: Json | null
           meal_plan_total?: number | null
@@ -1595,6 +1597,7 @@ export type Database = {
           guest_nationality?: string | null
           guest_phone?: string
           id?: string
+          idempotency_key?: string | null
           meal_plan?: string | null
           meal_plan_details?: Json | null
           meal_plan_total?: number | null
