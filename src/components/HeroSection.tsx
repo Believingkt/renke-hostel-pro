@@ -93,6 +93,8 @@ const HeroSection = ({
   compact = false,
 }: HeroSectionProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const isIndividualBookingPage = /^\/booking\/[^/]+$/.test(location.pathname);
   const useCompactHero = compact || isIndividualBookingPage;
   const { checkInDate, setCheckInDate, checkOutDate, setCheckOutDate, guests, setGuests, currentAccommodationId } = useAccommodation();
@@ -827,6 +829,7 @@ const HeroSection = ({
               {(() => {
                 const validation = validateDateRange(checkInDate, checkOutDate);
                 const disabled = !validation.ok;
+                const errorMessage = validation.ok ? null : validation.error;
                 const handleSearch = () => {
                   const v = validateDateRange(checkInDate, checkOutDate);
                   if (!v.ok) {
@@ -858,9 +861,9 @@ const HeroSection = ({
                       <Search className="mr-2 h-5 w-5" />
                       搜尋空房
                     </Button>
-                    {disabled && (
+                    {errorMessage && (
                       <p className="mt-2 text-xs text-destructive text-center">
-                        {validation.error}
+                        {errorMessage}
                       </p>
                     )}
                   </div>
