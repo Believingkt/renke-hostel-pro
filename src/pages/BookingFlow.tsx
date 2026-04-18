@@ -1178,6 +1178,7 @@ const BookingFlow = () => {
           setCardValid(update.canGetPrime);
           // 卡片內容一變動，就視為需要重新取得 prime
           setTappayPrime(null);
+          setTappayPrimeIssuedAt(null);
         });
       } catch (error) {
         console.error('TapPay card setup error:', error);
@@ -1648,11 +1649,13 @@ const BookingFlow = () => {
         return;
       }
 
-      if (!tappayPrime) {
+      // 若 prime 已過期或尚未取得，重新請 SDK 產生
+      if (!tappayPrime || isPrimeExpired()) {
         setIsPreparingPrime(true);
         try {
           const prime = await getTapPayPrime();
           setTappayPrime(prime);
+          setTappayPrimeIssuedAt(Date.now());
           console.log('[TapPay][Booking] Prime prepared for confirm step');
         } catch (err: any) {
           const msg = err?.message || '取得付款授權失敗，請重新輸入信用卡資訊後再試';
@@ -1669,6 +1672,7 @@ const BookingFlow = () => {
     } else if (currentStep === "payment") {
       // 非信用卡付款，確保不會誤用舊 prime
       setTappayPrime(null);
+      setTappayPrimeIssuedAt(null);
     }
 
     // 切換到下一步 - 如果沒有加購方案則跳過 addons 步驟
@@ -2080,18 +2084,21 @@ const BookingFlow = () => {
           console.log('Processing TapPay payment...');
 
           const prime = tappayPrime;
-          if (!prime) {
+          if (!prime || isPrimeExpired()) {
             toast({
-              title: "請回到付款步驟",
-              description: "付款授權尚未建立或已失效，請重新輸入信用卡資訊後再試",
+              title: "付款授權已過期",
+              description: "TapPay 授權有效期 90 秒已逾時，請回到付款步驟重新輸入信用卡資訊",
               variant: "destructive",
             });
+            setTappayPrime(null);
+            setTappayPrimeIssuedAt(null);
             setCurrentStep("payment");
             setIsSubmitting(false);
             return;
           }
 
           setTappayPrime(null);
+          setTappayPrimeIssuedAt(null);
 
           // Idempotency key：每次提交產生一次，存於 ref 以便重試時保持相同
           const idempotencyKey =
