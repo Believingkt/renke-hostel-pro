@@ -2195,15 +2195,9 @@ const BookingFlow = () => {
             {
               body: {
                 idempotencyKey,
-                // 非 3DS 已扣款，但為了避免雙刷，create-paid-order 內含 idempotency 檢查
-                // 這裡走「直接 insert + 已扣款」分支：傳遞既有 recTradeId 讓後端略過再扣
-                _alreadyChargedRecTradeId: paymentTransactionId, // reserved，目前 create-paid-order 不使用
-                prime, // 已用，但 create-paid-order 在 idempotency 命中時不會再扣
-                cardholder: {
-                  name: guestInfo.name,
-                  email: guestInfo.email || '',
-                  phoneNumber: guestInfo.phone,
-                },
+                // Post-charge mode: TapPay 已透過 process-tappay-payment 完成扣款，
+                // 此呼叫只負責「以 idempotency_key 建單；失敗則自動退刷」
+                alreadyChargedRecTradeId: paymentTransactionId,
                 accommodationId,
                 selectedRoom: { id: selectedRoom.id, name: selectedRoom.name },
                 checkInDate: checkInDateStr,
