@@ -1651,35 +1651,23 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     </>
   );
 
-  if (isMobile) {
-    return (
-      <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="max-h-[90vh]">
-          <DrawerHeader>
-            <DrawerTitle>新增訂單</DrawerTitle>
-          </DrawerHeader>
-          <ScrollArea className="flex-1 px-4 overflow-y-auto">
-            {formContent}
-          </ScrollArea>
-          <DrawerFooter className="flex-row justify-end gap-2 border-t pt-4">
-            {footerButtons}
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
-    );
-  }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] flex flex-col overflow-visible">
-        <DialogHeader>
-          <DialogTitle>新增訂單</DialogTitle>
+      <DialogContent
+        className="!max-w-none !w-screen !h-screen !p-0 !gap-0 !rounded-none !border-0 !left-0 !top-0 !translate-x-0 !translate-y-0 flex flex-col bg-background"
+      >
+        <DialogHeader className="px-6 py-4 border-b shrink-0">
+          <DialogTitle className="text-2xl">新增訂單</DialogTitle>
         </DialogHeader>
-        <div className="flex-1 overflow-y-auto px-1 -mx-1 py-1">
-          {formContent}
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-4xl mx-auto px-6 py-6">
+            {formContent}
+          </div>
         </div>
-        <DialogFooter className="border-t pt-4">
-          {footerButtons}
+        <DialogFooter className="px-6 py-4 border-t shrink-0 bg-background">
+          <div className="max-w-4xl mx-auto w-full flex justify-end gap-2">
+            {footerButtons}
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
