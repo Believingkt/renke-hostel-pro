@@ -85,7 +85,32 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
       hostname.includes("lovableproject.com") ||
       hostname.includes("lovable.app");
 
-    if (isHQDomain || isBookingDomain || isDevOrPreview) {
+    // ===== Booking 網域：解析路徑首段為 alias =====
+    if (isBookingDomain) {
+      const pathSegments = window.location.pathname.split("/").filter(Boolean);
+      const reservedFirst = new Set([
+        "booking", "book", "member", "order-search", "order-payment",
+        "payment", "payment-result", "linepay", "public-payment",
+        "ai-booking", "auth", "hq", "hq-auth", "headquarters", "admin",
+        "pay", "profile", "reset-password", "change-password",
+        "kol-api-docs", "points-api-docs", "og-preview", "payment-test", "__cb",
+      ]);
+      const pathAlias = pathSegments[0] && !reservedFirst.has(pathSegments[0])
+        ? pathSegments[0] : null;
+      if (!pathAlias) return null;
+
+      const allowedAccommodationIds = availableAccommodations.map((acc) => acc.accommodation_id);
+      const { data, error } = await supabase
+        .from("accommodation_info")
+        .select("id, short_url_alias")
+        .in("id", allowedAccommodationIds)
+        .eq("short_url_alias", pathAlias)
+        .maybeSingle();
+      if (error || !data) return null;
+      return data.id;
+    }
+
+    if (isHQDomain || isDevOrPreview) {
       return null;
     }
 
@@ -131,7 +156,20 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
       hostname.includes("lovableproject.com") ||
       hostname.includes("lovable.app");
 
-    return !isHQDomain && !isBookingDomain && !isDevOrPreview;
+    // Booking 網域帶有 alias 路徑時也視為「自訂網域 context」
+    if (isBookingDomain) {
+      const pathSegments = window.location.pathname.split("/").filter(Boolean);
+      const reservedFirst = new Set([
+        "booking", "book", "member", "order-search", "order-payment",
+        "payment", "payment-result", "linepay", "public-payment",
+        "ai-booking", "auth", "hq", "hq-auth", "headquarters", "admin",
+        "pay", "profile", "reset-password", "change-password",
+        "kol-api-docs", "points-api-docs", "og-preview", "payment-test", "__cb",
+      ]);
+      return Boolean(pathSegments[0] && !reservedFirst.has(pathSegments[0]));
+    }
+
+    return !isHQDomain && !isDevOrPreview;
   }, []);
 
   useEffect(() => {
