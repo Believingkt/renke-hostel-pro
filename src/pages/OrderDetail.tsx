@@ -477,10 +477,9 @@ const OrderDetailPage = () => {
       const editFinalPriceCalc = editForm.total_price + editForm.addon_total - editForm.discount_amount;
 
       // If any edited room is an exclusive package, regenerate the [包區房間配置] note line
-      const hasExclusivePackage = editOrderRooms.some(r => {
-        const rt = roomTypes.find(t => t.id === r.room_type_id);
-        return rt?.is_exclusive_package;
-      });
+      const hasExclusivePackage =
+        editOrderRooms.some(r => roomTypes.find(t => t.id === r.room_type_id)?.is_exclusive_package) ||
+        !!roomTypes.find(t => t.id === editForm.room_type_id)?.is_exclusive_package;
       let finalNotes = editForm.notes.trim();
       // Strip any existing 包區房間配置 line first
       finalNotes = finalNotes
