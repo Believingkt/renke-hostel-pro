@@ -1,6 +1,8 @@
 // create-paid-order
-// Atomically: charge TapPay (non-3DS) -> create order with idempotency_key.
-// If TapPay succeeds but order insert fails, immediately refund (best-effort).
+// Two modes:
+//   1) Charge mode: receive prime + cardholder, charge TapPay (non-3DS), then create order.
+//   2) Post-charge mode: receive alreadyChargedRecTradeId (already charged via process-tappay-payment),
+//      create order; if insert fails, refund the recTradeId.
 // Idempotency: returns existing order if same idempotency_key already exists.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -11,14 +13,14 @@ const corsHeaders = {
 };
 
 interface RequestBody {
-  // Idempotency
   idempotencyKey: string;
 
-  // TapPay
-  prime: string;
-  cardholder: { name: string; email: string; phoneNumber: string };
+  // Either provide for mode 1 (charge):
+  prime?: string;
+  cardholder?: { name: string; email: string; phoneNumber: string };
+  // Or provide for mode 2 (post-charge):
+  alreadyChargedRecTradeId?: string;
 
-  // Booking
   accommodationId: string;
   selectedRoom: { id: string; name: string };
   checkInDate: string;
@@ -65,11 +67,7 @@ async function refundTapPay(partnerKey: string, recTradeId: string, amount: numb
     const resp = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": partnerKey },
-      body: JSON.stringify({
-        partner_key: partnerKey,
-        rec_trade_id: recTradeId,
-        amount,
-      }),
+      body: JSON.stringify({ partner_key: partnerKey, rec_trade_id: recTradeId, amount }),
     });
     const result = await resp.json();
     console.error("[create-paid-order] Refund attempt result:", { status: result.status, msg: result.msg });
@@ -90,10 +88,9 @@ Deno.serve(async (req) => {
   try {
     const body = (await req.json()) as RequestBody;
 
-    // === Basic validation ===
+    // Basic validation
     if (
       !body.idempotencyKey ||
-      !body.prime ||
       !body.accommodationId ||
       !body.selectedRoom?.id ||
       !body.checkInDate ||
@@ -115,22 +112,25 @@ Deno.serve(async (req) => {
       );
     }
 
-    // === Idempotency: return existing order if any ===
+    const isPostCharge = !!body.alreadyChargedRecTradeId;
+    if (!isPostCharge && (!body.prime || !body.cardholder)) {
+      return new Response(
+        JSON.stringify({ success: false, message: "缺少付款資訊" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Idempotency check
     const { data: existing } = await supabase
       .from("orders")
-      .select("id, order_number, final_price")
+      .select("id, order_number, final_price, check_in_date, check_out_date")
       .eq("idempotency_key", body.idempotencyKey)
       .maybeSingle();
 
     if (existing) {
       console.log("[create-paid-order] Idempotent hit:", existing.order_number);
       return new Response(
-        JSON.stringify({
-          success: true,
-          alreadyExists: true,
-          order: existing,
-          message: "訂單已存在",
-        }),
+        JSON.stringify({ success: true, alreadyExists: true, order: existing }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
     const totalPrice = body.totalPrice ?? body.finalPrice;
     const totalGuests = body.totalGuests ?? 2;
 
-    // === Server-side price validation ===
+    // Server-side price validation
     try {
       const validateResp = await fetch(`${supabaseUrl}/functions/v1/validate-order-prices`, {
         method: "POST",
@@ -166,33 +166,42 @@ Deno.serve(async (req) => {
       if (!validateResp.ok) {
         const text = await validateResp.text();
         console.error("[create-paid-order] Price validation service error:", validateResp.status, text);
-        return new Response(
-          JSON.stringify({ success: false, message: "價格驗證服務暫時無法使用，請稍後再試" }),
-          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      const validation = await validateResp.json();
-      if (!validation.isValid) {
-        console.error("[create-paid-order] Price validation failed:", validation.errors);
-        return new Response(
-          JSON.stringify({
-            success: false,
-            message: "價格驗證失敗，請重新預訂",
-            errors: validation.errors,
-          }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        // In post-charge mode, we MUST still create the order (charge already happened);
+        // log only and proceed
+        if (!isPostCharge) {
+          return new Response(
+            JSON.stringify({ success: false, message: "價格驗證服務暫時無法使用，請稍後再試" }),
+            { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      } else {
+        const validation = await validateResp.json();
+        if (!validation.isValid) {
+          console.error("[create-paid-order] Price validation failed:", validation.errors);
+          if (!isPostCharge) {
+            return new Response(
+              JSON.stringify({
+                success: false,
+                message: "價格驗證失敗，請重新預訂",
+                errors: validation.errors,
+              }),
+              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          // post-charge: log but continue (we'll still create the order; admin can investigate)
+          console.error("[create-paid-order] Post-charge price mismatch — proceeding to create order anyway");
+        }
       }
     } catch (e) {
       console.error("[create-paid-order] Price validation threw:", e);
-      return new Response(
-        JSON.stringify({ success: false, message: "價格驗證失敗，請稍後再試" }),
-        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      if (!isPostCharge) {
+        return new Response(
+          JSON.stringify({ success: false, message: "價格驗證失敗，請稍後再試" }),
+          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
-    // === Charge TapPay (no 3DS path) ===
     const partnerKey = Deno.env.get("TAPPAY_PARTNER_KEY");
     const merchantId = Deno.env.get("TAPPAY_MERCHANT_ID");
     if (!partnerKey || !merchantId) {
@@ -202,68 +211,76 @@ Deno.serve(async (req) => {
       );
     }
 
-    const env = Deno.env.get("TAPPAY_ENV") === "sandbox" ? "sandbox" : "production";
-    const endpoint =
-      env === "sandbox"
-        ? "https://sandbox.tappaysdk.com/tpc/payment/pay-by-prime"
-        : "https://prod.tappaysdk.com/tpc/payment/pay-by-prime";
+    let recTradeId: string;
+    let authCode: string | undefined;
 
-    const phoneE164 = normalizePhoneE164(body.cardholder.phoneNumber);
+    if (isPostCharge) {
+      recTradeId = body.alreadyChargedRecTradeId!;
+      console.log("[create-paid-order] Post-charge mode, recTradeId:", recTradeId);
+    } else {
+      // Charge mode: pay-by-prime (no 3DS)
+      const env = Deno.env.get("TAPPAY_ENV") === "sandbox" ? "sandbox" : "production";
+      const endpoint =
+        env === "sandbox"
+          ? "https://sandbox.tappaysdk.com/tpc/payment/pay-by-prime"
+          : "https://prod.tappaysdk.com/tpc/payment/pay-by-prime";
 
-    const tappayResp = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": partnerKey },
-      body: JSON.stringify({
-        prime: body.prime,
-        partner_key: partnerKey,
-        merchant_id: merchantId,
-        amount: body.finalPrice,
-        currency: "TWD",
-        details: `${body.selectedRoom.name} - ${body.checkInDate} 至 ${body.checkOutDate}`,
-        order_number: body.idempotencyKey.substring(0, 50),
-        cardholder: {
-          phone_number: phoneE164,
-          name: body.cardholder.name,
-          email: body.cardholder.email,
-        },
-        remember: false,
-        three_domain_secure: false,
-      }),
-    });
+      const phoneE164 = normalizePhoneE164(body.cardholder!.phoneNumber);
 
-    const tappayResult = await tappayResp.json();
-    console.log("[create-paid-order] TapPay result:", {
-      status: tappayResult.status,
-      recTradeId: tappayResult.rec_trade_id,
-    });
-
-    if (tappayResult.status !== 0) {
-      // Map common errors
-      let userMessage = tappayResult.msg || "付款失敗";
-      let suggestion = "請檢查卡片資訊或聯繫發卡銀行";
-      switch (tappayResult.status) {
-        case 3: userMessage = "卡片資訊錯誤"; suggestion = "請檢查卡號、有效期限和安全碼"; break;
-        case 10: userMessage = "授權失敗"; suggestion = "卡片餘額不足或超過信用額度"; break;
-        case 924: userMessage = "3D 驗證失敗"; break;
-        case 925: userMessage = "交易被拒絕"; suggestion = "請聯繫發卡銀行確認卡片狀態"; break;
-        case 10023: userMessage = "銀行端回覆錯誤"; suggestion = "請稍後重試或更換卡片"; break;
-      }
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: userMessage,
-          suggestion,
-          errorCode: tappayResult.status,
-          technicalMessage: tappayResult.msg,
+      const tappayResp = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-api-key": partnerKey },
+        body: JSON.stringify({
+          prime: body.prime,
+          partner_key: partnerKey,
+          merchant_id: merchantId,
+          amount: body.finalPrice,
+          currency: "TWD",
+          details: `${body.selectedRoom.name} - ${body.checkInDate} 至 ${body.checkOutDate}`,
+          order_number: body.idempotencyKey.substring(0, 50),
+          cardholder: {
+            phone_number: phoneE164,
+            name: body.cardholder!.name,
+            email: body.cardholder!.email,
+          },
+          remember: false,
+          three_domain_secure: false,
         }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      });
+
+      const tappayResult = await tappayResp.json();
+      console.log("[create-paid-order] TapPay result:", {
+        status: tappayResult.status,
+        recTradeId: tappayResult.rec_trade_id,
+      });
+
+      if (tappayResult.status !== 0) {
+        let userMessage = tappayResult.msg || "付款失敗";
+        let suggestion = "請檢查卡片資訊或聯繫發卡銀行";
+        switch (tappayResult.status) {
+          case 3: userMessage = "卡片資訊錯誤"; suggestion = "請檢查卡號、有效期限和安全碼"; break;
+          case 10: userMessage = "授權失敗"; suggestion = "卡片餘額不足或超過信用額度"; break;
+          case 924: userMessage = "3D 驗證失敗"; break;
+          case 925: userMessage = "交易被拒絕"; suggestion = "請聯繫發卡銀行確認卡片狀態"; break;
+          case 10023: userMessage = "銀行端回覆錯誤"; suggestion = "請稍後重試或更換卡片"; break;
+        }
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: userMessage,
+            suggestion,
+            errorCode: tappayResult.status,
+            technicalMessage: tappayResult.msg,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      recTradeId = tappayResult.rec_trade_id;
+      authCode = tappayResult.auth_code;
     }
 
-    const recTradeId = tappayResult.rec_trade_id as string;
-    const authCode = tappayResult.auth_code as string | undefined;
-
-    // === Create order ===
+    // Create order
     let orderNotes = `[TapPay 交易: ${recTradeId}]`;
     if (authCode) orderNotes += ` [授權碼: ${authCode}]`;
     if (body.guestInfo.notes) orderNotes += ` ${body.guestInfo.notes}`;
@@ -307,7 +324,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (orderError) {
-      // Race: another concurrent request may have inserted with same idempotency_key
+      // Race resolution via idempotency_key
       if (orderError.code === "23505") {
         const { data: dup } = await supabase
           .from("orders")
@@ -315,7 +332,7 @@ Deno.serve(async (req) => {
           .eq("idempotency_key", body.idempotencyKey)
           .maybeSingle();
         if (dup) {
-          console.log("[create-paid-order] Race resolved via idempotency_key:", dup.order_number);
+          console.log("[create-paid-order] Race resolved:", dup.order_number);
           return new Response(
             JSON.stringify({ success: true, alreadyExists: true, order: dup }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -323,15 +340,14 @@ Deno.serve(async (req) => {
         }
       }
 
-      console.error("[create-paid-order] Order insert failed AFTER charge succeeded:", orderError);
-      // Best-effort refund
+      console.error("[create-paid-order] Order insert failed AFTER charge:", orderError);
       const refunded = await refundTapPay(partnerKey, recTradeId, body.finalPrice);
       return new Response(
         JSON.stringify({
           success: false,
           message: refunded
             ? "建立訂單失敗，已自動退刷，請稍後再試"
-            : "建立訂單失敗，且自動退刷未成功，請聯繫客服並提供交易編號：" + recTradeId,
+            : `建立訂單失敗，且自動退刷未成功，請聯繫客服並提供交易編號：${recTradeId}`,
           error: orderError.message,
           recTradeId,
           refunded,
@@ -342,7 +358,6 @@ Deno.serve(async (req) => {
 
     console.log("[create-paid-order] Order created:", orderData.order_number);
 
-    // KOL webhook (non-fatal)
     if (body.discountCode) {
       try {
         await fetch(`${supabaseUrl}/functions/v1/kol-webhook`, {
