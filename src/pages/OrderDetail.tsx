@@ -475,6 +475,24 @@ const OrderDetailPage = () => {
     setIsSavingEdit(true);
     try {
       const editFinalPriceCalc = editForm.total_price + editForm.addon_total - editForm.discount_amount;
+
+      // If any edited room is an exclusive package, regenerate the [包區房間配置] note line
+      const hasExclusivePackage = editOrderRooms.some(r => {
+        const rt = roomTypes.find(t => t.id === r.room_type_id);
+        return rt?.is_exclusive_package;
+      });
+      let finalNotes = editForm.notes.trim();
+      // Strip any existing 包區房間配置 line first
+      finalNotes = finalNotes
+        .split("\n")
+        .filter(line => !/^【包區房間配置】/.test(line.trim()))
+        .join("\n")
+        .trim();
+      if (hasExclusivePackage && (editExclusiveDoubleRooms > 0 || editExclusiveQuadRooms > 0)) {
+        const pkgLine = `【包區房間配置】雙人房 ${editExclusiveDoubleRooms} 間、四人房 ${editExclusiveQuadRooms} 間`;
+        finalNotes = finalNotes ? `${pkgLine}\n${finalNotes}` : pkgLine;
+      }
+
       const updateData: Record<string, any> = {
         guest_name: editForm.guest_name.trim(),
         guest_phone: editForm.guest_phone.trim(),
@@ -489,7 +507,7 @@ const OrderDetailPage = () => {
         deposit_payment_method: editForm.deposit_payment_method === "none" ? null : editForm.deposit_payment_method,
         balance_payment_method: editForm.balance_payment_method === "none" ? null : editForm.balance_payment_method,
         meal_plan: editForm.meal_plan === "none" ? null : editForm.meal_plan,
-        notes: editForm.notes.trim() || null,
+        notes: finalNotes || null,
         room_type_id: editForm.room_type_id || null,
         total_price: editForm.total_price,
         discount_amount: editForm.discount_amount,
