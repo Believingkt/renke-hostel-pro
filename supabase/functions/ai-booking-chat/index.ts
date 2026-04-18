@@ -408,8 +408,15 @@ serve(async (req) => {
       return lines.join('\n');
     };
 
+    // 工具白名單 — 任何不在此清單的呼叫一律拒絕（防止 prompt-injected 工具調用）
+    const ALLOWED_TOOLS = new Set(['get_available_rooms', 'check_discount_code', 'search_external_rooms', 'create_booking']);
+
     // 處理工具調用
     const handleToolCall = async (toolName: string, args: any) => {
+      if (!ALLOWED_TOOLS.has(toolName)) {
+        console.warn(`[ai-booking-chat] Blocked unknown tool: ${toolName}`);
+        return { error: "未知的工具" };
+      }
       console.log(`執行工具: ${toolName}`, args);
 
       if (toolName === "get_available_rooms") {

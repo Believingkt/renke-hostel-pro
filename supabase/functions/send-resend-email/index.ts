@@ -203,6 +203,54 @@ function renderTemplate(type: TemplateType, data: Record<string, any>): { subjec
   }
 }
 
+// ── Security Hardening ─────────────────────────────────────
+
+// IP-based rate limiting (in-memory, per-instance)
+const ipRateMap = new Map<string, { count: number; resetTime: number }>();
+const IP_RATE_MAX = 5;
+const IP_RATE_WINDOW = 60 * 1000;
+
+function checkIpRate(ip: string): boolean {
+  const now = Date.now();
+  const rec = ipRateMap.get(ip);
+  if (!rec || now > rec.resetTime) {
+    ipRateMap.set(ip, { count: 1, resetTime: now + IP_RATE_WINDOW });
+    return true;
+  }
+  if (rec.count >= IP_RATE_MAX) return false;
+  rec.count++;
+  return true;
+}
+
+const ALLOWED_TEMPLATE_TYPES = new Set<TemplateType>([
+  "signup", "recovery", "magiclink", "invite", "email_change", "reauthentication", "booking_confirmation"
+]);
+
+// Whitelist of allowed redirect domains in confirmationUrl (anti-phishing)
+const ALLOWED_URL_HOSTS = new Set<string>([
+  "lakeze.com",
+  "renke-hostel-pro.lovable.app",
+  "id-preview--8d9d267e-a00c-4a5b-82fc-c8e538340567.lovable.app",
+  "dmafqwfynatdvnaeovhz.supabase.co",
+]);
+
+function isAllowedUrl(rawUrl: unknown): boolean {
+  if (typeof rawUrl !== "string" || rawUrl.length === 0 || rawUrl.length > 2000) return false;
+  try {
+    const u = new URL(rawUrl);
+    if (u.protocol !== "https:" && u.protocol !== "http:") return false;
+    const host = u.hostname.toLowerCase();
+    for (const allowed of ALLOWED_URL_HOSTS) {
+      if (host === allowed || host.endsWith(`.${allowed}`)) return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 // ── Main Handler ───────────────────────────────────────────
 
 Deno.serve(async (req) => {
@@ -211,15 +259,32 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // 1. IP rate limit
+    const clientIP = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+                     req.headers.get("cf-connecting-ip") ||
+                     "unknown";
+    if (!checkIpRate(`resend-email:${clientIP}`)) {
+      console.warn(`[send-resend-email] Rate limit exceeded for IP: ${clientIP}`);
+      return new Response(
+        JSON.stringify({ error: "請求過於頻繁，請稍後再試" }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY_1");
     if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY_1 is not configured");
 
-    const body = await req.json();
-    const { templateType, recipientEmail, templateData } = body;
+    const body = await req.json().catch(() => ({}));
+    const { templateType, recipientEmail, templateData } = body as {
+      templateType?: string;
+      recipientEmail?: string;
+      templateData?: Record<string, unknown>;
+    };
 
+    // 2. Required fields
     if (!templateType || !recipientEmail) {
       return new Response(
         JSON.stringify({ error: "templateType and recipientEmail are required" }),
@@ -227,7 +292,36 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { subject, html } = renderTemplate(templateType, templateData || {});
+    // 3. Template whitelist
+    if (!ALLOWED_TEMPLATE_TYPES.has(templateType as TemplateType)) {
+      console.warn(`[send-resend-email] Blocked unknown templateType: ${templateType}`);
+      return new Response(
+        JSON.stringify({ error: "Invalid templateType" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // 4. Recipient email format
+    if (typeof recipientEmail !== "string" || recipientEmail.length > 255 || !EMAIL_REGEX.test(recipientEmail)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid recipientEmail" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // 5. URL domain whitelist (anti-phishing) – reject any non-whitelisted confirmationUrl
+    if (templateData && typeof templateData === "object") {
+      const url = (templateData as Record<string, unknown>).confirmationUrl;
+      if (url !== undefined && !isAllowedUrl(url)) {
+        console.warn(`[send-resend-email] Blocked confirmationUrl: ${String(url).slice(0, 200)}`);
+        return new Response(
+          JSON.stringify({ error: "confirmationUrl domain is not allowed" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    const { subject, html } = renderTemplate(templateType as TemplateType, templateData || {});
 
     const response = await fetch(`${GATEWAY_URL}/emails`, {
       method: "POST",
