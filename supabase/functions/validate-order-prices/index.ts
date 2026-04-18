@@ -265,8 +265,8 @@ serve(async (req) => {
     // Calculate final price
     const calculatedFinalPrice = calculatedTotalPrice - calculatedDiscount;
 
-    // Validation tolerances (allow for small rounding differences)
-    const priceTolerance = 10; // Allow 10 currency units difference for rounding
+    // Validation tolerances (tightened from 10 → 2 currency units for rounding only)
+    const priceTolerance = 2;
 
     // Compare client prices with server-calculated prices
     const totalPriceDiff = Math.abs(totalPrice - calculatedTotalPrice);
@@ -285,6 +285,34 @@ serve(async (req) => {
 
     if (finalPriceDiff > priceTolerance) {
       errors.push(`Final price mismatch: client=${finalPrice}, server=${calculatedFinalPrice}`);
+    }
+
+    if (mealPlanDiff > priceTolerance) {
+      errors.push(`Meal plan total mismatch: client=${mealPlanTotal}, server=${calculatedMealPlanTotal}`);
+    }
+
+    if (petPriceDiff > priceTolerance) {
+      errors.push(`Pet plan price mismatch: client=${petPlanPrice}, server=${calculatedPetPrice}`);
+    }
+
+    // Strict per-line validation for custom addons (each line must match line.count * line.price_per_unit * nights)
+    if (customAddonDetails && Array.isArray(customAddonDetails)) {
+      for (const addon of customAddonDetails) {
+        if (
+          typeof addon.count !== "number" ||
+          typeof addon.price_per_unit !== "number" ||
+          typeof addon.total !== "number"
+        ) {
+          errors.push(`Invalid custom addon line: ${JSON.stringify(addon)}`);
+          continue;
+        }
+        const expected = addon.count * addon.price_per_unit * nights;
+        if (Math.abs(addon.total - expected) > priceTolerance) {
+          errors.push(
+            `Custom addon total mismatch (${addon.addon_type}): client=${addon.total}, expected=${expected}`,
+          );
+        }
+      }
     }
 
     // Log validation for auditing
