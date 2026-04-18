@@ -201,6 +201,8 @@ const OrderDetailPage = () => {
   const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
   const [orderRooms, setOrderRooms] = useState<OrderRoom[]>([]);
   const [editOrderRooms, setEditOrderRooms] = useState<EditOrderRoom[]>([]);
+  const [editExclusiveDoubleRooms, setEditExclusiveDoubleRooms] = useState(0);
+  const [editExclusiveQuadRooms, setEditExclusiveQuadRooms] = useState(0);
   const MAX_TOTAL_ROOMS = 6;
   const [depositRatioRef] = useState<{ current: number }>({ current: 0 });
   const [originalDiscountCode] = useState<{ current: string }>({ current: "" });
