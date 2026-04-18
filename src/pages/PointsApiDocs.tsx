@@ -121,7 +121,7 @@ const PointsApiDocs = () => {
     {
       method: "POST",
       path: "/orders",
-      desc: "建立點數訂房訂單。點數先折抵總價，剩餘金額的 30% 為訂金，需透過刷卡支付。",
+      desc: "建立點數訂房訂單。點數先折抵總價，剩餘金額需以信用卡一次付清全額（已不再收取訂金）。",
       body: `{
   "accommodation_id": "uuid",
   "room_type_id": "uuid",
@@ -146,18 +146,18 @@ const PointsApiDocs = () => {
     "points_used": 5000,
     "points_discount": 5000,
     "remaining_after_points": 7000,
-    "deposit_amount": 2100,
+    "amount_due_by_card": 7000,        // 需以信用卡支付的全額（無訂金）
     "requires_card_payment": true,
-    "payment_status": "unpaid",
-    "order_status": "pending",
+    "payment_status": "unpaid",        // 若點數完全覆蓋則為 "paid"
+    "order_status": "pending",         // 若點數完全覆蓋則為 "confirmed"
     "payment_method": "points_and_card"
   }
 }`,
     },
     {
       method: "POST",
-      path: "/orders/:id/pay-deposit",
-      desc: "使用信用卡支付訂金。需先透過 TapPay SDK 取得 prime token。",
+      path: "/orders/:id/pay",
+      desc: "使用信用卡支付剩餘全額。需先透過 TapPay SDK 取得 prime token。（舊路徑 /orders/:id/pay-deposit 仍可使用，行為相同 — 一律收取剩餘全額。）",
       body: `{
   "prime": "tappay_prime_token",
   "cardholder": {
@@ -173,8 +173,8 @@ const PointsApiDocs = () => {
   "success": true,
   "requires_3d_secure": false,
   "rec_trade_id": "D20260501...",
-  "deposit_amount": 2100,
-  "message": "訂金付款成功"
+  "amount": 7000,
+  "message": "付款成功"
 }
 
 // 需要3D驗證：
@@ -182,7 +182,7 @@ const PointsApiDocs = () => {
   "success": true,
   "requires_3d_secure": true,
   "payment_url": "https://...",
-  "deposit_amount": 2100,
+  "amount": 7000,
   "message": "需要進行 3D 驗證"
 }`,
     },
@@ -208,10 +208,11 @@ const PointsApiDocs = () => {
     "accommodation_name": "森山寫照精品民宿",
     "room_type_name": "豪華雙人房",
     "total_price": 12000,
+    "final_price": 12000,
     "points_discount": 5000,
     "remaining_after_points": 7000,
-    "deposit_amount": 2100,
-    "payment_status": "deposit_paid",
+    "paid_amount": 12000,
+    "payment_status": "paid",
     "order_status": "confirmed",
     "point_transaction": {
       "points_amount": 5000,
@@ -270,7 +271,7 @@ const PointsApiDocs = () => {
               </CardTitle>
               <CardDescription>
                 提供給會員點數平台串接，允許用戶使用點數（1 點 = 1 元）折抵訂房總價，
-                剩餘金額的 30% 作為訂金，透過信用卡（TapPay）支付。
+                剩餘全額透過信用卡（TapPay）一次付清（已不再收取訂金）。
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -289,8 +290,8 @@ const PointsApiDocs = () => {
                 <div className="flex items-start gap-2">
                   <CreditCard className="h-5 w-5 text-primary mt-0.5" />
                   <div>
-                    <p className="font-medium text-sm">點數 + 刷卡</p>
-                    <p className="text-xs text-muted-foreground">點數折抵後，訂金刷卡支付</p>
+                    <p className="font-medium text-sm">點數 + 刷卡全額</p>
+                    <p className="text-xs text-muted-foreground">點數折抵後，剩餘以信用卡付清</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
@@ -346,7 +347,7 @@ Content-Type: application/json`}</pre>
                 </li>
                 <li className="flex gap-3">
                   <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">3</span>
-                  <span><strong>建立訂單</strong> — POST /orders 使用點數折抵，取得 deposit_amount</span>
+                  <span><strong>建立訂單</strong> — POST /orders 使用點數折抵，取得 amount_due_by_card（需刷卡的全額）</span>
                 </li>
                 <li className="flex gap-3">
                   <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">4</span>
@@ -358,11 +359,11 @@ Content-Type: application/json`}</pre>
                 </li>
                 <li className="flex gap-3">
                   <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">6</span>
-                  <span><strong>支付訂金</strong> — POST /orders/:id/pay-deposit 以 prime 支付訂金</span>
+                  <span><strong>支付全額</strong> — POST /orders/:id/pay 以 prime 一次支付剩餘全額</span>
                 </li>
                 <li className="flex gap-3">
                   <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">7</span>
-                  <span><strong>完成</strong> — 訂金付款成功後，訂單自動確認</span>
+                  <span><strong>完成</strong> — 付款成功後，訂單自動標記為已付清並確認</span>
                 </li>
               </ol>
             </CardContent>
@@ -381,8 +382,7 @@ Content-Type: application/json`}</pre>
                 <p><strong>1.</strong> 訂房總價 = 專案定價 × 晚數（若專案價格為 0 則改用庫存每日定價加總）</p>
                 <p><strong>2.</strong> 點數折抵 = 使用點數 × 兌換比率（預設 1:1）</p>
                 <p><strong>3.</strong> 剩餘金額 = 訂房總價 - 點數折抵</p>
-                <p><strong>4.</strong> 訂金 = 剩餘金額 × 30%（無條件進位）</p>
-                <p><strong>5.</strong> 訂金透過信用卡（TapPay）支付</p>
+                <p><strong>4.</strong> 剩餘金額需以信用卡（TapPay）一次付清全額（不再收取訂金）</p>
               </div>
               <div className="bg-muted p-4 rounded text-sm space-y-2">
                 <p className="font-medium mb-1">⚡ 平假日規則</p>
@@ -397,10 +397,10 @@ Content-Type: application/json`}</pre>
                 <p>訂房總價：NT$ 12,000</p>
                 <p>使用 5,000 點 → 折抵 NT$ 5,000</p>
                 <p>剩餘金額：NT$ 7,000</p>
-                <p>訂金 = 7,000 × 30% = NT$ 2,100（刷卡支付）</p>
+                <p>需刷卡全額 = NT$ 7,000（一次付清）</p>
               </div>
               <p className="text-xs text-muted-foreground">
-                ※ 若點數完全覆蓋總價，則無需刷卡，訂單直接確認。
+                ※ 若點數完全覆蓋總價，則無需刷卡，訂單直接標記為已付清並確認。
               </p>
             </CardContent>
           </Card>
