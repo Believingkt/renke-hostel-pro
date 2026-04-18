@@ -1,4 +1,5 @@
 import { Component, ReactNode } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Props {
   children: ReactNode;
@@ -7,6 +8,21 @@ interface Props {
 interface State {
   hasError: boolean;
   errorMessage?: string;
+}
+
+async function reportError(errorType: string, errorMessage: string) {
+  try {
+    await supabase.functions.invoke('report-frontend-error', {
+      body: {
+        errorType,
+        errorMessage,
+        url: typeof window !== 'undefined' ? window.location.href : '',
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+      },
+    });
+  } catch {
+    // 回報失敗就忽略，避免無窮迴圈
+  }
 }
 
 export class ChunkErrorBoundary extends Component<Props, State> {
