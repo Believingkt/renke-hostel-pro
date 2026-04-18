@@ -2762,8 +2762,6 @@ export type Database = {
           applicable_date_to: string | null
           applicable_room_types: Json | null
           code: string | null
-          commission_rate: number | null
-          created_at: string | null
           discount_type: string | null
           discount_value: number | null
           display_order: number | null
@@ -2771,9 +2769,6 @@ export type Database = {
           is_active: boolean | null
           min_order_amount: number | null
           name: string | null
-          updated_at: string | null
-          usage_limit: number | null
-          used_count: number | null
           valid_from: string | null
           valid_until: string | null
         }
@@ -2783,8 +2778,6 @@ export type Database = {
           applicable_date_to?: string | null
           applicable_room_types?: Json | null
           code?: string | null
-          commission_rate?: number | null
-          created_at?: string | null
           discount_type?: string | null
           discount_value?: number | null
           display_order?: number | null
@@ -2792,9 +2785,6 @@ export type Database = {
           is_active?: boolean | null
           min_order_amount?: number | null
           name?: string | null
-          updated_at?: string | null
-          usage_limit?: number | null
-          used_count?: number | null
           valid_from?: string | null
           valid_until?: string | null
         }
@@ -2804,8 +2794,6 @@ export type Database = {
           applicable_date_to?: string | null
           applicable_room_types?: Json | null
           code?: string | null
-          commission_rate?: number | null
-          created_at?: string | null
           discount_type?: string | null
           discount_value?: number | null
           display_order?: number | null
@@ -2813,9 +2801,6 @@ export type Database = {
           is_active?: boolean | null
           min_order_amount?: number | null
           name?: string | null
-          updated_at?: string | null
-          usage_limit?: number | null
-          used_count?: number | null
           valid_from?: string | null
           valid_until?: string | null
         }
