@@ -96,6 +96,53 @@ export type Database = {
           },
         ]
       }
+      accommodation_api_keys: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodation_api_keys_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accommodation_facilities: {
         Row: {
           accommodation_id: string | null
@@ -2907,6 +2954,13 @@ export type Database = {
           coupon_value: number
           is_valid: boolean
           message: string
+        }[]
+      }
+      verify_accommodation_api_key: {
+        Args: { p_key_hash: string }
+        Returns: {
+          accommodation_id: string
+          key_id: string
         }[]
       }
     }

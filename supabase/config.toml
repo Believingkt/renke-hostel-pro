@@ -105,3 +105,6 @@ verify_jwt = false
 [functions.search-external-rooms]
 verify_jwt = false
 
+[functions.accommodation-api]
+verify_jwt = false
+

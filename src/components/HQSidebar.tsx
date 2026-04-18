@@ -51,7 +51,17 @@ const menuItems = [
   { title: "會員管理", url: "/hq?tab=members", icon: UserCheck, tab: "members" },
   { title: "優惠券管理", url: "/hq?tab=coupons", icon: Ticket, tab: "coupons" },
   { title: "點數規則", url: "/hq?tab=point-rules", icon: Gift, tab: "point-rules" },
-  { title: "系統管理", url: "/hq?tab=system&section=settings", icon: Settings, tab: "system" },
+  {
+    title: "系統管理",
+    url: "/hq?tab=system&section=settings",
+    icon: Settings,
+    tab: "system",
+    subItems: [
+      { title: "系統設定", url: "/hq?tab=system&section=settings", icon: Settings },
+      { title: "操作日誌", url: "/hq?tab=system&section=logs", icon: FileText },
+      { title: "民宿 API Keys", url: "/hq?tab=system&section=api-keys", icon: FileText },
+    ]
+  },
 ];
 
 export function HQSidebar() {

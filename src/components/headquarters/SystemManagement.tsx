@@ -30,6 +30,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import { AccommodationApiKeysManagement } from "@/components/headquarters/AccommodationApiKeysManagement";
 import { 
   ScrollText,
   Database,
@@ -598,6 +599,11 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
             </CardContent>
           </Card>
 
+        </TabsContent>
+
+        {/* API Keys Tab */}
+        <TabsContent value="api-keys" className="space-y-4">
+          <AccommodationApiKeysManagement />
         </TabsContent>
       </Tabs>
     </div>
