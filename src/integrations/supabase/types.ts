@@ -480,6 +480,54 @@ export type Database = {
         }
         Relationships: []
       }
+      alert_recipients: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email: string
+          id: string
+          is_active: boolean
+          notify_frontend_error: boolean
+          notify_health_check: boolean
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email: string
+          id?: string
+          is_active?: boolean
+          notify_frontend_error?: boolean
+          notify_health_check?: boolean
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          id?: string
+          is_active?: boolean
+          notify_frontend_error?: boolean
+          notify_health_check?: boolean
+        }
+        Relationships: []
+      }
+      alert_throttle: {
+        Row: {
+          alert_key: string
+          id: string
+          last_sent_at: string
+        }
+        Insert: {
+          alert_key: string
+          id?: string
+          last_sent_at?: string
+        }
+        Update: {
+          alert_key?: string
+          id?: string
+          last_sent_at?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           accommodation_id: string | null
@@ -1254,6 +1302,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      frontend_error_reports: {
+        Row: {
+          alert_sent: boolean
+          context: Json | null
+          created_at: string
+          error_message: string
+          error_type: string
+          id: string
+          url: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          alert_sent?: boolean
+          context?: Json | null
+          created_at?: string
+          error_message: string
+          error_type: string
+          id?: string
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          alert_sent?: boolean
+          context?: Json | null
+          created_at?: string
+          error_message?: string
+          error_type?: string
+          id?: string
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       location_info: {
         Row: {
@@ -2688,6 +2772,42 @@ export type Database = {
           },
         ]
       }
+      system_health_logs: {
+        Row: {
+          alert_sent: boolean
+          checked_at: string
+          error_message: string | null
+          id: string
+          is_healthy: boolean
+          response_time_ms: number | null
+          status_code: number | null
+          target_label: string | null
+          target_url: string
+        }
+        Insert: {
+          alert_sent?: boolean
+          checked_at?: string
+          error_message?: string | null
+          id?: string
+          is_healthy: boolean
+          response_time_ms?: number | null
+          status_code?: number | null
+          target_label?: string | null
+          target_url: string
+        }
+        Update: {
+          alert_sent?: boolean
+          checked_at?: string
+          error_message?: string | null
+          id?: string
+          is_healthy?: boolean
+          response_time_ms?: number | null
+          status_code?: number | null
+          target_label?: string | null
+          target_url?: string
+        }
+        Relationships: []
+      }
       system_settings: {
         Row: {
           created_at: string
@@ -2866,6 +2986,7 @@ export type Database = {
         }[]
       }
       cleanup_old_error_logs: { Args: never; Returns: undefined }
+      cleanup_old_monitoring_logs: { Args: never; Returns: undefined }
       generate_order_number: { Args: never; Returns: string }
       get_adjusted_room_inventory: {
         Args: {
