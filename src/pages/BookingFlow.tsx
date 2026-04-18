@@ -313,14 +313,21 @@ const BookingFlow = () => {
 
   // Prime 只能在卡片欄位仍在 DOM 時產生；為了避免「確認頁」欄位卸載導致 getPrime 失敗，
   // 我們會在付款步驟先取得 prime，並帶到 confirm 步驟使用。
+  // TapPay Prime 90 秒後過期，這裡用 80 秒作為安全閾值
+  const PRIME_TTL_MS = 80 * 1000;
   const [tappayPrime, setTappayPrime] = useState<string | null>(null);
+  const [tappayPrimeIssuedAt, setTappayPrimeIssuedAt] = useState<number | null>(null);
   const [isPreparingPrime, setIsPreparingPrime] = useState(false);
+
+  const isPrimeExpired = () =>
+    tappayPrimeIssuedAt === null || Date.now() - tappayPrimeIssuedAt > PRIME_TTL_MS;
 
   const [showTestCards, setShowTestCards] = useState(false);
 
   useEffect(() => {
     // 切換付款方式時，清掉先前的 prime / 卡片狀態，避免用到過期或不相符的授權
     setTappayPrime(null);
+    setTappayPrimeIssuedAt(null);
     setCardValid(false);
   }, [paymentMethod]);
 
