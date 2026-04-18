@@ -45,13 +45,18 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    // ===== Webhook auth: shared secret in header =====
-    // TapPay 後台對此 notify URL 設一個固定 query/header 驗證碼，作為基本驗證層。
-    // 我們同時支援兩種：
-    //   1) 自訂 header `x-webhook-secret`（推薦，需在 TapPay 後台設定可帶 header 時）
-    //   2) URL query `?secret=xxx`（多數 webhook 後台都支援）
+    // ===== Webhook auth: shared secret REQUIRED =====
+    // Wave 6-A 安全強化：移除「未設定 secret 即放行」的回退路徑。
+    // TAPPAY_WEBHOOK_SECRET 必須設定，否則直接 503。
     const expectedSecret = Deno.env.get('TAPPAY_WEBHOOK_SECRET');
-    if (expectedSecret) {
+    if (!expectedSecret) {
+      console.error('[tappay-refund-notify] TAPPAY_WEBHOOK_SECRET not configured — refusing request');
+      return new Response(JSON.stringify({ status: 'unavailable' }), {
+        status: 503,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    {
       const headerSecret = req.headers.get('x-webhook-secret');
       const url = new URL(req.url);
       const querySecret = url.searchParams.get('secret');
@@ -69,8 +74,6 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-    } else {
-      console.warn('[tappay-refund-notify] TAPPAY_WEBHOOK_SECRET not set — webhook is unauthenticated');
     }
 
     const body: TapPayRefundNotifyPayload = await req.json();
