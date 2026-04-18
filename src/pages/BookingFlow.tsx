@@ -2387,60 +2387,71 @@ const BookingFlow = () => {
         }
       }
 
-      // 準備訂單備註（如果有交易 ID，加入備註）
-      let orderNotes = guestInfo.notes || "";
-      if (paymentTransactionId) {
-        orderNotes = `[TapPay 交易 ID: ${paymentTransactionId}]${orderNotes ? ` ${orderNotes}` : ''}`;
-      }
-      const { data: orderData, error: orderError } = await supabase
-        .from("orders")
-        .insert([{
-          accommodation_id: accommodationId,
-          room_type_id: selectedRoom.id,
-           customer_id: customerId,
-           member_id: loggedInMember?.id || null,
-           order_number: "", // 由資料庫 trigger 自動生成
-          guest_name: guestInfo.name,
-          guest_phone: guestInfo.phone,
-          guest_email: guestInfo.email || null,
-          guest_address: guestInfo.address || null,
-          check_in_date: checkInDateStr,
-          check_out_date: checkOutDateStr,
-          guest_count: totalGuests,
-          meal_plan: selectedMealPlan, // 使用 "2_meals" 或 "3_meals"
-          total_price: totalPrice,
-          discount_code: appliedDiscount ? appliedDiscount.code : null,
-          discount_amount: discountAmount,
-          final_price: finalPrice,
-          deposit_amount: 0,
-          deposit_payment_method: (paymentMethod === '信用卡' || paymentMethod === 'LINE Pay') ? (paymentMethod === '信用卡' ? 'credit_card' : 'line_pay') : null,
-          balance_payment_method: null,
-          payment_status: paymentTransactionId ? "paid" : "unpaid",
-          paid_amount: paymentTransactionId ? finalPrice : 0,
-          order_status: "pending",
-          notes: orderNotes || null,
-          pet_count: petCount,
-          pet_plan_price: petPlanPrice,
-          meal_plan_details: mealPlanDetailsData,
-          meal_plan_total: mealPlanTotalPrice,
-          custom_addon_details: Object.entries(customAddonCounts).filter(([_, count]) => count > 0).length > 0
-            ? Object.entries(customAddonCounts).filter(([_, count]) => count > 0).map(([type, count]) => {
-                const setting = customAddonSettings.find(s => s.addon_type === type);
-                return {
-                  addon_type: type,
-                  count,
-                  price_per_unit: setting?.price_per_unit || 0,
-                  total: count * (setting?.price_per_unit || 0) * calculateNights(),
-                  unit_label: setting?.unit_label || '',
-                };
-              })
-            : null,
-        }])
-        .select()
-        .single();
+      // 信用卡（非 3DS）路徑：訂單已由 create-paid-order 建立，跳過下方 insert
+      let orderData: any;
+      if (paidOrderResult) {
+        orderData = {
+          id: paidOrderResult.id,
+          order_number: paidOrderResult.order_number,
+          final_price: paidOrderResult.final_price,
+        };
+      } else {
+        // 準備訂單備註（如果有交易 ID，加入備註）
+        let orderNotes = guestInfo.notes || "";
+        if (paymentTransactionId) {
+          orderNotes = `[TapPay 交易 ID: ${paymentTransactionId}]${orderNotes ? ` ${orderNotes}` : ''}`;
+        }
+        const { data: insertedOrder, error: orderError } = await supabase
+          .from("orders")
+          .insert([{
+            accommodation_id: accommodationId,
+            room_type_id: selectedRoom.id,
+             customer_id: customerId,
+             member_id: loggedInMember?.id || null,
+             order_number: "", // 由資料庫 trigger 自動生成
+            guest_name: guestInfo.name,
+            guest_phone: guestInfo.phone,
+            guest_email: guestInfo.email || null,
+            guest_address: guestInfo.address || null,
+            check_in_date: checkInDateStr,
+            check_out_date: checkOutDateStr,
+            guest_count: totalGuests,
+            meal_plan: selectedMealPlan,
+            total_price: totalPrice,
+            discount_code: appliedDiscount ? appliedDiscount.code : null,
+            discount_amount: discountAmount,
+            final_price: finalPrice,
+            deposit_amount: 0,
+            deposit_payment_method: (paymentMethod === '信用卡' || paymentMethod === 'LINE Pay') ? (paymentMethod === '信用卡' ? 'credit_card' : 'line_pay') : null,
+            balance_payment_method: null,
+            payment_status: paymentTransactionId ? "paid" : "unpaid",
+            paid_amount: paymentTransactionId ? finalPrice : 0,
+            order_status: "pending",
+            notes: orderNotes || null,
+            pet_count: petCount,
+            pet_plan_price: petPlanPrice,
+            meal_plan_details: mealPlanDetailsData,
+            meal_plan_total: mealPlanTotalPrice,
+            custom_addon_details: Object.entries(customAddonCounts).filter(([_, count]) => count > 0).length > 0
+              ? Object.entries(customAddonCounts).filter(([_, count]) => count > 0).map(([type, count]) => {
+                  const setting = customAddonSettings.find(s => s.addon_type === type);
+                  return {
+                    addon_type: type,
+                    count,
+                    price_per_unit: setting?.price_per_unit || 0,
+                    total: count * (setting?.price_per_unit || 0) * calculateNights(),
+                    unit_label: setting?.unit_label || '',
+                  };
+                })
+              : null,
+          }])
+          .select()
+          .single();
 
-      if (orderError) {
-        throw orderError;
+        if (orderError) {
+          throw orderError;
+        }
+        orderData = insertedOrder;
       }
 
       // 觸發 KOL Webhook（如果使用了折扣碼）
