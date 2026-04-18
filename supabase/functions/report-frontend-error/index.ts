@@ -74,7 +74,7 @@ async function sendAlertEmail(
   } catch {
     return false;
   }
-});
+}
 
 function escapeHtml(s: string): string {
   return s
