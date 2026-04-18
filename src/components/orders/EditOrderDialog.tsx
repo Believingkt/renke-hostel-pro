@@ -82,6 +82,8 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
   const { currentAccommodationId } = useAccommodation();
   const [isSaving, setIsSaving] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [useDeposit, setUseDeposit] = useState(true);
+  const [depositPct, setDepositPct] = useState(30);
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmAction, setConfirmAction] = useState<"cancel" | "delete" | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
@@ -160,6 +162,16 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
 
       if (!templatesResult.error && templatesResult.data) {
         setPricingTemplates(templatesResult.data);
+      }
+
+      const { data: bs } = await supabase
+        .from("booking_settings")
+        .select("use_deposit, deposit_percentage")
+        .eq("accommodation_id", currentAccommodationId)
+        .maybeSingle();
+      if (bs) {
+        setUseDeposit(bs.use_deposit !== false);
+        setDepositPct(bs.deposit_percentage ?? 30);
       }
     };
 
