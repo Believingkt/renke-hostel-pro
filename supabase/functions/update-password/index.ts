@@ -58,8 +58,8 @@ function validatePasswordStrength(
   password: string,
   email?: string
 ): { valid: boolean; message: string } {
-  if (password.length < 8) {
-    return { valid: false, message: "密碼長度至少需要 8 個字元" };
+  if (password.length < 12) {
+    return { valid: false, message: "密碼長度至少需要 12 個字元" };
   }
 
   if (!/[A-Z]/.test(password)) {
@@ -187,7 +187,18 @@ const handler = async (req: Request): Promise<Response> => {
     }
     console.log("Password validation passed");
 
-    // HIBP leaked password check disabled per business decision
+    // HIBP leaked password protection (fail-open on network issues)
+    try {
+      const leaked = await isLeakedPassword(newPassword);
+      if (leaked) {
+        return new Response(
+          JSON.stringify({ error: "此密碼曾出現在已外洩的密碼清單中，請更換為其他密碼" }),
+          { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+    } catch (e) {
+      console.warn("Leaked password check failed (continuing):", e);
+    }
 
     const { error: updateError } = await supabase.auth.admin.updateUserById(
       tokenData.user_id,
