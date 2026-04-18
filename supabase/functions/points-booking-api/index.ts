@@ -87,10 +87,16 @@ Deno.serve(async (req) => {
       return await handleGetOrder(supabase, partner, route[1]);
     }
 
-    // POST /orders/:id/pay-deposit
-    if (req.method === "POST" && route[0] === "orders" && route[1] && route[2] === "pay-deposit") {
+    // POST /orders/:id/pay  (full payment of remaining amount)
+    // POST /orders/:id/pay-deposit  (legacy alias — now also charges full remaining amount)
+    if (
+      req.method === "POST" &&
+      route[0] === "orders" &&
+      route[1] &&
+      (route[2] === "pay" || route[2] === "pay-deposit")
+    ) {
       const body = await req.json();
-      return await handlePayDeposit(supabase, partner, route[1], body);
+      return await handlePayRemaining(supabase, partner, route[1], body);
     }
 
     // POST /orders/:id/cancel
@@ -111,7 +117,7 @@ Deno.serve(async (req) => {
       "POST /availability",
       "POST /orders",
       "GET /orders/:id",
-      "POST /orders/:id/pay-deposit",
+      "POST /orders/:id/pay",
       "POST /orders/:id/cancel",
       "GET /tappay-config",
     ]}, 404);
