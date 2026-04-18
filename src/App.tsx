@@ -48,6 +48,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const OgImagePreview = lazy(() => import("./pages/OgImagePreview"));
 const KolApiDocs = lazy(() => import("./pages/KolApiDocs"));
 const PointsApiDocs = lazy(() => import("./pages/PointsApiDocs"));
+const AccommodationApiDocs = lazy(() => import("./pages/AccommodationApiDocs"));
 const ChangePassword = lazy(() => import("./pages/ChangePassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
@@ -144,6 +145,9 @@ function App() {
                     } />
                     <Route path="points-api-docs" element={
                       <Suspense fallback={<FrontendSkeleton />}><PointsApiDocs /></Suspense>
+                    } />
+                    <Route path="accommodation-api-docs" element={
+                      <Suspense fallback={<FrontendSkeleton />}><AccommodationApiDocs /></Suspense>
                     } />
                     <Route path="pay" element={
                       <Suspense fallback={<FrontendSkeleton />}><PublicPayment /></Suspense>
