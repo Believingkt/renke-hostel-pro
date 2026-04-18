@@ -2068,14 +2068,14 @@ const BookingFlow = () => {
 
       // 處理在線支付（信用卡或 LINE Pay）
       let paymentTransactionId = null;
-      
+      let paidOrderResult: { id: string; order_number: string; final_price: number } | null = null;
+
       if (paymentMethod === '信用卡') {
         setIsProcessingPayment(true);
-        
+
         try {
           console.log('Processing TapPay payment...');
 
-          // confirm 步驟會卸載 TapPay 欄位，因此 prime 需在 payment 步驟先取得
           const prime = tappayPrime;
           if (!prime) {
             toast({
@@ -2088,23 +2088,36 @@ const BookingFlow = () => {
             return;
           }
 
-          // prime 為一次性 token，立即清除避免重用
           setTappayPrime(null);
-          console.log('Using prepared prime token');
 
-          // 呼叫後端處理支付
-          // Build 3D Secure redirect URLs
+          // Idempotency key：每次提交產生一次，存於 ref 以便重試時保持相同
+          const idempotencyKey =
+            (window.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+
+          // 先嘗試走 3DS 流程（如不需 3DS，後端會直接付款並建單）
+          // 為簡化邏輯：先呼叫 process-tappay-payment 取得是否需要 3DS。
+          // 若需要 3DS → 走 sessionStorage + complete-3ds-booking（已支援 idempotency_key）
+          // 若不需要 3DS → 改呼叫 create-paid-order 一次完成扣款 + 建單（含失敗退刷）
           const baseUrl = window.location.origin;
           const frontendRedirectUrl = `${baseUrl}/payment-result?source=booking`;
           const backendNotifyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/tappay-notify`;
+
+          // 為了同時支援 3DS 與非 3DS，我們先呼叫 process-tappay-payment（會自動帶 3DS）
+          // 但對非 3DS 的情境，後端已經完成扣款，因此須立即建單；建單失敗時須退刷
+          // 為避免複雜度，這裡採用「create-paid-order」單一入口（只走非 3DS）；
+          // 而 3DS 仍由 process-tappay-payment 啟動，因為 prime 一旦消費就不能重用
+          //
+          // 流程：先呼叫 process-tappay-payment（會 enable 3DS）
+          //   - requires3DSecure = true → 跳轉，3DS 完成後 complete-3ds-booking 建單
+          //   - requires3DSecure = false → 此時款項已扣，立即用 idempotency_key 建單；失敗則退刷
 
           const { data: paymentResult, error: paymentError } = await supabase.functions.invoke(
             'process-tappay-payment',
             {
               body: {
                 prime,
-                amount: finalPrice, // 一律收取全額（扣除折扣後）
-                orderId: `TEMP-${Date.now()}`, // 臨時訂單 ID
+                amount: finalPrice,
+                orderId: idempotencyKey.substring(0, 50),
                 cardholder: {
                   phoneNumber: guestInfo.phone,
                   name: guestInfo.name,
@@ -2117,20 +2130,16 @@ const BookingFlow = () => {
             }
           );
 
-          if (paymentError) {
-            throw paymentError;
-          }
+          if (paymentError) throw paymentError;
 
           if (!paymentResult.success) {
-            // 使用後端提供的詳細錯誤訊息
             const errorInfo = {
               type: 'card' as const,
               message: paymentResult.message || '付款失敗',
               suggestion: paymentResult.suggestion || '請檢查卡片資訊或聯繫發卡銀行',
               errorCode: paymentResult.errorCode,
-              technicalMessage: paymentResult.technicalMessage
+              technicalMessage: paymentResult.technicalMessage,
             };
-            
             console.error('TapPay payment failed:', errorInfo);
             setLastPaymentError(errorInfo);
             setPaymentFailed(true);
@@ -2140,11 +2149,10 @@ const BookingFlow = () => {
             return;
           }
 
-          // Check if 3D Secure redirect is required
+          // === 3DS 路徑 ===
           if (paymentResult.requires3DSecure && paymentResult.paymentUrl) {
             console.log('[TapPay][Booking] Redirecting to 3D Secure...');
-            
-            // Store pending booking data in sessionStorage for recovery after 3DS
+
             const pendingBookingData = {
               accommodationId,
               selectedRoom: { id: selectedRoom.id, name: selectedRoom.name },
@@ -2157,45 +2165,95 @@ const BookingFlow = () => {
               petCount,
               petPlanPrice,
               finalPrice,
+              totalPrice,
               nights,
-              discountCode,
+              discountCode: appliedDiscount?.code,
               discountAmount,
-              source: 'booking'
+              totalGuests,
+              customerId,
+              memberId: loggedInMember?.id || null,
+              idempotencyKey, // 3DS 完成後 complete-3ds-booking 用此鍵防重複
+              source: 'booking',
             };
             sessionStorage.setItem('pending_booking_3ds', JSON.stringify(pendingBookingData));
-            
+
             toast({
               title: "跳轉 3D 驗證",
               description: "即將跳轉至銀行驗證頁面，完成驗證後將自動建立訂單...",
             });
-            
-            // Redirect to 3D Secure page
+
             window.location.href = paymentResult.paymentUrl;
             return;
           }
 
+          // === 非 3DS 路徑：款項已扣，立即建單；失敗則退刷 ===
           paymentTransactionId = paymentResult.transactionId;
-          console.log('Payment successful:', paymentTransactionId);
-          
-          toast({
-            title: "付款成功",
-            description: "正在建立訂單...",
-          });
+          console.log('Payment successful (no 3DS), creating order with idempotency...');
+
+          const { data: opResult, error: opError } = await supabase.functions.invoke(
+            'create-paid-order',
+            {
+              body: {
+                idempotencyKey,
+                // Post-charge mode: TapPay 已透過 process-tappay-payment 完成扣款，
+                // 此呼叫只負責「以 idempotency_key 建單；失敗則自動退刷」
+                alreadyChargedRecTradeId: paymentTransactionId,
+                accommodationId,
+                selectedRoom: { id: selectedRoom.id, name: selectedRoom.name },
+                checkInDate: checkInDateStr,
+                checkOutDate: checkOutDateStr,
+                guestInfo,
+                mealPlan: selectedMealPlan,
+                mealPlanDetails: mealPlanDetailsData,
+                mealPlanTotal: mealPlanTotalPrice,
+                petCount,
+                petPlanPrice,
+                finalPrice,
+                totalPrice,
+                discountCode: appliedDiscount?.code || null,
+                discountAmount,
+                totalGuests,
+                customerId,
+                memberId: loggedInMember?.id || null,
+                customAddonDetails: Object.entries(customAddonCounts).filter(([_, c]) => c > 0).length > 0
+                  ? Object.entries(customAddonCounts).filter(([_, c]) => c > 0).map(([type, count]) => {
+                      const setting = customAddonSettings.find(s => s.addon_type === type);
+                      return {
+                        addon_type: type,
+                        count,
+                        price_per_unit: setting?.price_per_unit || 0,
+                        total: count * (setting?.price_per_unit || 0) * calculateNights(),
+                        unit_label: setting?.unit_label || '',
+                      };
+                    })
+                  : null,
+                nights,
+              },
+            }
+          );
+
+          if (opError || !opResult?.success) {
+            console.error('Order creation after charge failed:', opError, opResult);
+            toast({
+              title: '訂單建立失敗',
+              description: opResult?.message || '請聯繫客服協助處理',
+              variant: 'destructive',
+            });
+            setIsProcessingPayment(false);
+            setIsSubmitting(false);
+            return;
+          }
+
+          paidOrderResult = opResult.order;
+          console.log('Order created:', paidOrderResult?.order_number);
+
+          toast({ title: "付款成功", description: "正在完成訂單..." });
         } catch (error) {
           console.error('Payment error:', error);
-          
           const errorInfo = classifyPaymentError(error);
           setLastPaymentError(errorInfo);
           setPaymentFailed(true);
-          
-          // 根據錯誤類型決定是否顯示重試對話框
-          if (errorInfo.type === 'network' && paymentRetryCount < MAX_RETRY_ATTEMPTS) {
-            setShowRetryDialog(true);
-          } else {
-            // 顯示錯誤對話框而不是 toast
-            setShowRetryDialog(true);
-          }
-          
+          setShowRetryDialog(true);
           setIsProcessingPayment(false);
           setIsSubmitting(false);
           return;
@@ -2329,60 +2387,71 @@ const BookingFlow = () => {
         }
       }
 
-      // 準備訂單備註（如果有交易 ID，加入備註）
-      let orderNotes = guestInfo.notes || "";
-      if (paymentTransactionId) {
-        orderNotes = `[TapPay 交易 ID: ${paymentTransactionId}]${orderNotes ? ` ${orderNotes}` : ''}`;
-      }
-      const { data: orderData, error: orderError } = await supabase
-        .from("orders")
-        .insert([{
-          accommodation_id: accommodationId,
-          room_type_id: selectedRoom.id,
-           customer_id: customerId,
-           member_id: loggedInMember?.id || null,
-           order_number: "", // 由資料庫 trigger 自動生成
-          guest_name: guestInfo.name,
-          guest_phone: guestInfo.phone,
-          guest_email: guestInfo.email || null,
-          guest_address: guestInfo.address || null,
-          check_in_date: checkInDateStr,
-          check_out_date: checkOutDateStr,
-          guest_count: totalGuests,
-          meal_plan: selectedMealPlan, // 使用 "2_meals" 或 "3_meals"
-          total_price: totalPrice,
-          discount_code: appliedDiscount ? appliedDiscount.code : null,
-          discount_amount: discountAmount,
-          final_price: finalPrice,
-          deposit_amount: 0,
-          deposit_payment_method: (paymentMethod === '信用卡' || paymentMethod === 'LINE Pay') ? (paymentMethod === '信用卡' ? 'credit_card' : 'line_pay') : null,
-          balance_payment_method: null,
-          payment_status: paymentTransactionId ? "paid" : "unpaid",
-          paid_amount: paymentTransactionId ? finalPrice : 0,
-          order_status: "pending",
-          notes: orderNotes || null,
-          pet_count: petCount,
-          pet_plan_price: petPlanPrice,
-          meal_plan_details: mealPlanDetailsData,
-          meal_plan_total: mealPlanTotalPrice,
-          custom_addon_details: Object.entries(customAddonCounts).filter(([_, count]) => count > 0).length > 0
-            ? Object.entries(customAddonCounts).filter(([_, count]) => count > 0).map(([type, count]) => {
-                const setting = customAddonSettings.find(s => s.addon_type === type);
-                return {
-                  addon_type: type,
-                  count,
-                  price_per_unit: setting?.price_per_unit || 0,
-                  total: count * (setting?.price_per_unit || 0) * calculateNights(),
-                  unit_label: setting?.unit_label || '',
-                };
-              })
-            : null,
-        }])
-        .select()
-        .single();
+      // 信用卡（非 3DS）路徑：訂單已由 create-paid-order 建立，跳過下方 insert
+      let orderData: any;
+      if (paidOrderResult) {
+        orderData = {
+          id: paidOrderResult.id,
+          order_number: paidOrderResult.order_number,
+          final_price: paidOrderResult.final_price,
+        };
+      } else {
+        // 準備訂單備註（如果有交易 ID，加入備註）
+        let orderNotes = guestInfo.notes || "";
+        if (paymentTransactionId) {
+          orderNotes = `[TapPay 交易 ID: ${paymentTransactionId}]${orderNotes ? ` ${orderNotes}` : ''}`;
+        }
+        const { data: insertedOrder, error: orderError } = await supabase
+          .from("orders")
+          .insert([{
+            accommodation_id: accommodationId,
+            room_type_id: selectedRoom.id,
+             customer_id: customerId,
+             member_id: loggedInMember?.id || null,
+             order_number: "", // 由資料庫 trigger 自動生成
+            guest_name: guestInfo.name,
+            guest_phone: guestInfo.phone,
+            guest_email: guestInfo.email || null,
+            guest_address: guestInfo.address || null,
+            check_in_date: checkInDateStr,
+            check_out_date: checkOutDateStr,
+            guest_count: totalGuests,
+            meal_plan: selectedMealPlan,
+            total_price: totalPrice,
+            discount_code: appliedDiscount ? appliedDiscount.code : null,
+            discount_amount: discountAmount,
+            final_price: finalPrice,
+            deposit_amount: 0,
+            deposit_payment_method: (paymentMethod === '信用卡' || paymentMethod === 'LINE Pay') ? (paymentMethod === '信用卡' ? 'credit_card' : 'line_pay') : null,
+            balance_payment_method: null,
+            payment_status: paymentTransactionId ? "paid" : "unpaid",
+            paid_amount: paymentTransactionId ? finalPrice : 0,
+            order_status: "pending",
+            notes: orderNotes || null,
+            pet_count: petCount,
+            pet_plan_price: petPlanPrice,
+            meal_plan_details: mealPlanDetailsData,
+            meal_plan_total: mealPlanTotalPrice,
+            custom_addon_details: Object.entries(customAddonCounts).filter(([_, count]) => count > 0).length > 0
+              ? Object.entries(customAddonCounts).filter(([_, count]) => count > 0).map(([type, count]) => {
+                  const setting = customAddonSettings.find(s => s.addon_type === type);
+                  return {
+                    addon_type: type,
+                    count,
+                    price_per_unit: setting?.price_per_unit || 0,
+                    total: count * (setting?.price_per_unit || 0) * calculateNights(),
+                    unit_label: setting?.unit_label || '',
+                  };
+                })
+              : null,
+          }])
+          .select()
+          .single();
 
-      if (orderError) {
-        throw orderError;
+        if (orderError) {
+          throw orderError;
+        }
+        orderData = insertedOrder;
       }
 
       // 觸發 KOL Webhook（如果使用了折扣碼）
