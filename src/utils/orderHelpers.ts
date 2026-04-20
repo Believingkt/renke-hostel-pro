@@ -60,6 +60,7 @@ export const getOrderSourceConfig = (source: string) => {
     kol: { label: "KOL互惠", className: "bg-pink-100 text-pink-700 border-pink-200" },
     points_starchain: { label: "星鏈會員", className: "bg-amber-100 text-amber-700 border-amber-200" },
     official_use: { label: "公務使用", className: "bg-slate-100 text-slate-700 border-slate-200" },
+    franchise_diff: { label: "加盟價差", className: "bg-rose-100 text-rose-700 border-rose-200" },
   };
   return sourceMap[source] || { label: source || "官網訂房", className: "bg-muted text-muted-foreground border-border" };
 };
