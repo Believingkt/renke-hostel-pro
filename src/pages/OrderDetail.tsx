@@ -508,11 +508,7 @@ const OrderDetailPage = () => {
         meal_plan: editForm.meal_plan === "none" ? null : editForm.meal_plan,
         notes: finalNotes || null,
         room_type_id: editForm.room_type_id || null,
-        total_price: editForm.total_price,
-        discount_amount: editForm.discount_amount,
         discount_code: editForm.discount_code.trim() || null,
-        final_price: editFinalPriceCalc,
-        deposit_amount: editForm.deposit_amount,
         paid_amount: editForm.paid_amount,
         pet_count: editForm.pet_count,
         pet_plan_price: editForm.pet_plan_price,
@@ -520,6 +516,36 @@ const OrderDetailPage = () => {
         meal_plan_total: editForm.meal_plan_total,
         custom_addon_details: editForm.custom_addon_details.length > 0 ? editForm.custom_addon_details : null,
       };
+
+      // Financial fields are immutable after payment (DB trigger).
+      // Only include them if the order is not yet paid OR the value actually changed.
+      const isPaidOrDeposit = order.payment_status === "deposit_paid" || order.payment_status === "paid";
+      const addIfChanged = (key: string, newVal: number, oldVal: number | null | undefined) => {
+        if (!isPaidOrDeposit || Number(newVal) !== Number(oldVal ?? 0)) {
+          updateData[key] = newVal;
+        }
+      };
+      addIfChanged("total_price", editForm.total_price, order.total_price);
+      addIfChanged("discount_amount", editForm.discount_amount, order.discount_amount);
+      addIfChanged("final_price", editFinalPriceCalc, order.final_price);
+      addIfChanged("deposit_amount", editForm.deposit_amount, order.deposit_amount);
+
+      if (isPaidOrDeposit) {
+        const blocked: string[] = [];
+        if (Number(editForm.total_price) !== Number(order.total_price ?? 0)) blocked.push("總金額");
+        if (Number(editForm.discount_amount) !== Number(order.discount_amount ?? 0)) blocked.push("折扣金額");
+        if (Number(editFinalPriceCalc) !== Number(order.final_price ?? 0)) blocked.push("應付總額");
+        if (Number(editForm.deposit_amount) !== Number(order.deposit_amount ?? 0)) blocked.push("訂金");
+        if (blocked.length > 0) {
+          toast({
+            title: "已付款訂單無法修改金額",
+            description: `${blocked.join("、")} 無法在已付款後變更，請改用退款或新增訂單方式處理。`,
+            variant: "destructive",
+          });
+          setIsSavingEdit(false);
+          return;
+        }
+      }
 
       // Handle status timestamp updates
       if (editForm.order_status !== order.order_status) {
@@ -604,9 +630,10 @@ const OrderDetailPage = () => {
       toast({ title: "儲存成功", description: "訂單已更新" });
       setIsEditing(false);
       fetchOrder();
-    } catch (error) {
+    } catch (error: any) {
       console.error("儲存失敗:", error);
-      toast({ title: "儲存失敗", description: "無法更新訂單，請稍後再試", variant: "destructive" });
+      const msg = error?.message || error?.error_description || "請稍後再試";
+      toast({ title: "儲存失敗", description: msg, variant: "destructive" });
     } finally {
       setIsSavingEdit(false);
     }
