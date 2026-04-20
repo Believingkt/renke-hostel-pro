@@ -630,9 +630,10 @@ const OrderDetailPage = () => {
       toast({ title: "儲存成功", description: "訂單已更新" });
       setIsEditing(false);
       fetchOrder();
-    } catch (error) {
+    } catch (error: any) {
       console.error("儲存失敗:", error);
-      toast({ title: "儲存失敗", description: "無法更新訂單，請稍後再試", variant: "destructive" });
+      const msg = error?.message || error?.error_description || "請稍後再試";
+      toast({ title: "儲存失敗", description: msg, variant: "destructive" });
     } finally {
       setIsSavingEdit(false);
     }
