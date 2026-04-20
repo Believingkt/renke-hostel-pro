@@ -27,6 +27,7 @@ const ORDER_SOURCES = [
   { value: "kol", label: "KOL互惠" },
   { value: "points_starchain", label: "星鏈會員" },
   { value: "official_use", label: "公務使用" },
+  { value: "franchise_diff", label: "加盟價差" },
 ];
 
 export function OrderSourceDialog({ order, open, onOpenChange, onSuccess }: OrderSourceDialogProps) {

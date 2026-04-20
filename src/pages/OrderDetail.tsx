@@ -918,6 +918,7 @@ const OrderDetailPage = () => {
       kol: { label: "KOL互惠", className: "bg-pink-100 text-pink-700 border-pink-200", icon: Globe },
       points_starchain: { label: "星鏈會員", className: "bg-amber-100 text-amber-700 border-amber-200", icon: Globe },
       official_use: { label: "公務使用", className: "bg-slate-100 text-slate-700 border-slate-200", icon: Globe },
+      franchise_diff: { label: "加盟價差", className: "bg-rose-100 text-rose-700 border-rose-200", icon: Globe },
     };
     const config = sourceMap[source] || { label: source || "官網訂房", className: "bg-muted text-muted-foreground border-border", icon: Globe };
     const Icon = config.icon;
@@ -1065,6 +1066,7 @@ const OrderDetailPage = () => {
     { value: "kol", label: "KOL互惠" },
     { value: "points_starchain", label: "星鏈會員" },
     { value: "official_use", label: "公務使用" },
+    { value: "franchise_diff", label: "加盟價差" },
   ];
 
   const orderStatusOptions = [
