@@ -1529,6 +1529,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                <SelectItem value="kol">KOL互惠</SelectItem>
                 <SelectItem value="points_starchain">星鏈會員</SelectItem>
                 <SelectItem value="official_use">公務使用</SelectItem>
+                <SelectItem value="franchise_diff">加盟價差</SelectItem>
             </SelectContent>
           </Select>
         </div>

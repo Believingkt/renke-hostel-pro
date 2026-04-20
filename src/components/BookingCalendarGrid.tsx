@@ -85,6 +85,7 @@ const SOURCE_ICONS: Record<string, string> = {
   kol: "💗",
   points_starchain: "⭐",
   official_use: "🏛️",
+  franchise_diff: "🤝",
 };
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -98,6 +99,7 @@ const SOURCE_LABELS: Record<string, string> = {
    kol: "KOL互惠",
    points_starchain: "星鏈會員",
    official_use: "公務使用",
+   franchise_diff: "加盟價差",
 };
 
 const getSourceLabel = (source: string, paymentMethod?: string) => {

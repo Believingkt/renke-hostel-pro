@@ -158,6 +158,7 @@ export function OrderFilters({
              <option value="kol">KOL互惠</option>
              <option value="points_starchain">星鏈會員</option>
              <option value="official_use">公務使用</option>
+             <option value="franchise_diff">加盟價差</option>
           </select>
         </div>
 
