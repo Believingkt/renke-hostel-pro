@@ -217,7 +217,6 @@ export default function OrderPayment() {
           },
           details: `訂單 ${orderNumber} 付款`,
           frontendRedirectUrl: `${window.location.origin}/payment-result?order_number=${orderNumber}&amount=${amount}&source=link`,
-          backendNotifyUrl: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/tappay-notify`,
         },
       });
 

@@ -153,7 +153,6 @@ export function InlineChatPayment({
 
       const baseUrl = window.location.origin;
       const frontendRedirectUrl = `${baseUrl}/payment-result?source=ai-booking`;
-      const backendNotifyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/tappay-notify`;
 
       const { data: paymentResult, error } = await supabase.functions.invoke('process-tappay-payment', {
         body: {
@@ -169,7 +168,6 @@ export function InlineChatPayment({
             ? `${roomName} - ${checkInDate} 至 ${checkOutDate}`
             : `訂單 ${orderNumber}`,
           frontendRedirectUrl,
-          backendNotifyUrl,
         },
       });
 

@@ -2075,7 +2075,6 @@ const BookingFlow = () => {
           // 若不需要 3DS → 改呼叫 create-paid-order 一次完成扣款 + 建單（含失敗退刷）
           const baseUrl = window.location.origin;
           const frontendRedirectUrl = `${baseUrl}/payment-result?source=booking`;
-          const backendNotifyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/tappay-notify`;
 
           // 為了同時支援 3DS 與非 3DS，我們先呼叫 process-tappay-payment（會自動帶 3DS）
           // 但對非 3DS 的情境，後端已經完成扣款，因此須立即建單；建單失敗時須退刷
@@ -2100,7 +2099,6 @@ const BookingFlow = () => {
                 },
                 details: `${selectedRoom.name} - ${checkInDateStr} 至 ${checkOutDateStr}`,
                 frontendRedirectUrl,
-                backendNotifyUrl,
               },
             }
           );
