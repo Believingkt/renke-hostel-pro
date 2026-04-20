@@ -533,14 +533,16 @@ const OrderDetailPage = () => {
       };
       addIfChanged("total_price", editForm.total_price, order.total_price);
       addIfChanged("discount_amount", editForm.discount_amount, order.discount_amount);
-      addIfChanged("final_price", editFinalPriceCalc, order.final_price);
       addIfChanged("deposit_amount", editForm.deposit_amount, order.deposit_amount);
+      // final_price may legitimately change when addons are added/removed on a paid order.
+      // Always include it so the total reflects current addons; the DB trigger allows this
+      // as long as core financial fields (total_price/discount/deposit) are unchanged.
+      addIfChanged("final_price", editFinalPriceCalc, order.final_price);
 
       if (isPaidOrDeposit) {
         const blocked: string[] = [];
-        if (Number(editForm.total_price) !== Number(order.total_price ?? 0)) blocked.push("總金額");
+        if (Number(editForm.total_price) !== Number(order.total_price ?? 0)) blocked.push("房費金額");
         if (Number(editForm.discount_amount) !== Number(order.discount_amount ?? 0)) blocked.push("折扣金額");
-        if (Number(editFinalPriceCalc) !== Number(order.final_price ?? 0)) blocked.push("應付總額");
         if (Number(editForm.deposit_amount) !== Number(order.deposit_amount ?? 0)) blocked.push("訂金");
         if (blocked.length > 0) {
           toast({
