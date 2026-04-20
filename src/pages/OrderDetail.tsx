@@ -358,14 +358,20 @@ const OrderDetailPage = () => {
   useEffect(() => {
     if (!isEditing || !order) return;
     const code = editForm.discount_code.trim();
+    const originalCode = (originalDiscountCode.current || "").trim();
+
     if (!code) {
       setDiscountCodeError("");
-      setEditForm(f => ({ ...f, discount_amount: 0 }));
+      // Only clear discount if the user explicitly removed an existing code.
+      // If the order never had a code (manual discount), preserve the amount.
+      if (originalCode) {
+        setEditForm(f => ({ ...f, discount_amount: 0 }));
+      }
       return;
     }
 
     // If the discount code hasn't changed from the original, preserve the saved discount_amount
-    if (code === originalDiscountCode.current) {
+    if (code === originalCode) {
       setDiscountCodeError("");
       return;
     }
