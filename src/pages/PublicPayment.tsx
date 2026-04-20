@@ -150,7 +150,6 @@ export default function PublicPayment() {
       // Build redirect URLs for 3D Secure
       const baseUrl = window.location.origin;
       const frontendRedirectUrl = `${baseUrl}/payment-result`;
-      const backendNotifyUrl = `https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/tappay-notify`;
 
       // Normalize phone to E.164 format
       const phoneE164 = orderInfo.customerPhone.startsWith('+') 
@@ -174,7 +173,6 @@ export default function PublicPayment() {
             },
             details: orderInfo.description,
             frontendRedirectUrl,
-            backendNotifyUrl,
           },
         }
       );

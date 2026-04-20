@@ -168,7 +168,6 @@ export function InlineChatPayment({
             ? `${roomName} - ${checkInDate} 至 ${checkOutDate}`
             : `訂單 ${orderNumber}`,
           frontendRedirectUrl,
-          backendNotifyUrl,
         },
       });
 
