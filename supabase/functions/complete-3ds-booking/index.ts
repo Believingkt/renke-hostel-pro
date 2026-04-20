@@ -215,32 +215,13 @@ Deno.serve(async (req) => {
         }
         console.log("[complete-3ds-booking] Price validation passed");
       } else {
-        // Fail-closed: validation service unavailable → reject booking.
-        // 付款已被 TapPay 扣款，但訂單未建立。需要人工/自動退款處理。
+        // Fail-open：驗證服務暫時不可用時放行建單（因 TapPay 已扣款，避免訂單未建立的客訴）
         const respText = await validateResponse.text();
-        console.error("[complete-3ds-booking] Price validation service error (fail-closed):", validateResponse.status, respText);
-        return new Response(
-          JSON.stringify({
-            success: false,
-            message: "訂單驗證服務暫時無法使用，您的付款將自動退款。請稍後再試或聯絡客服。",
-            code: "VALIDATION_SERVICE_UNAVAILABLE",
-            recTradeId: body.recTradeId,
-          }),
-          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        console.warn("[complete-3ds-booking] Price validation service unavailable (fail-open):", validateResponse.status, respText);
       }
     } catch (validationError) {
-      // Fail-closed: 驗證服務無法呼叫 → 拒單
-      console.error("[complete-3ds-booking] Price validation call failed (fail-closed):", validationError);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: "訂單驗證服務暫時無法使用，您的付款將自動退款。請稍後再試或聯絡客服。",
-          code: "VALIDATION_SERVICE_UNREACHABLE",
-          recTradeId: body.recTradeId,
-        }),
-        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      // Fail-open：驗證服務無法呼叫時放行建單
+      console.warn("[complete-3ds-booking] Price validation call failed (fail-open):", validationError);
     }
 
     // Prepare order notes
