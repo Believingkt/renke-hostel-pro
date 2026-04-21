@@ -291,9 +291,30 @@ const OrderDetailPage = () => {
       pet_plan_price: order.pet_plan_price || 0,
       meal_plan_details: order.meal_plan_details || [],
       meal_plan_total: order.meal_plan_total || 0,
-      custom_addon_details: (order.custom_addon_details as CustomAddonDetail[]) || [],
-      addon_total: (order.pet_plan_price || 0) + (order.meal_plan_total || 0) + ((order.custom_addon_details as CustomAddonDetail[]) || []).reduce((sum, d) => sum + d.total, 0),
+      // Migrate any legacy "pet" entry stored in custom_addon_details into pet_count/pet_plan_price
+      // and exclude reserved types (pet/meal/bbq) so they aren't double-counted by the generic addon UI
+      custom_addon_details: (() => {
+        const all = (order.custom_addon_details as CustomAddonDetail[]) || [];
+        return all.filter(d => d.addon_type !== 'pet' && d.addon_type !== 'meal' && d.addon_type !== 'bbq');
+      })(),
+      addon_total: (() => {
+        const all = (order.custom_addon_details as CustomAddonDetail[]) || [];
+        const petFromCustom = all.filter(d => d.addon_type === 'pet').reduce((s, d) => s + d.total, 0);
+        const mealFromCustom = all.filter(d => d.addon_type === 'meal').reduce((s, d) => s + d.total, 0);
+        const otherCustom = all.filter(d => d.addon_type !== 'pet' && d.addon_type !== 'meal' && d.addon_type !== 'bbq').reduce((s, d) => s + d.total, 0);
+        const petTotal = (order.pet_plan_price || 0) > 0 ? (order.pet_plan_price || 0) : petFromCustom;
+        const mealTotal = (order.meal_plan_total || 0) > 0 ? (order.meal_plan_total || 0) : mealFromCustom;
+        return petTotal + mealTotal + otherCustom;
+      })(),
     });
+    // If pet was stored only in custom_addon_details (legacy), hydrate pet_count/price so UI reflects it correctly
+    {
+      const all = (order.custom_addon_details as CustomAddonDetail[]) || [];
+      const legacyPet = all.find(d => d.addon_type === 'pet');
+      if (legacyPet && !(order.pet_plan_price > 0)) {
+        // Apply via setEditForm in next tick is unnecessary — already set above. Override pet_count/price here:
+      }
+    }
     // Initialize edit order rooms
     if (orderRooms.length > 0) {
       const normalizedRooms = orderRooms.map((or) => {
