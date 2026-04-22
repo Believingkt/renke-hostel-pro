@@ -5,8 +5,9 @@ import BookingFooter from "@/components/BookingFooter";
 import MobileBottomNav from "@/components/member/MobileBottomNav";
 import PortalSearchBar from "@/components/booking-portal/PortalSearchBar";
 import PortalAIChatPanel from "@/components/booking-portal/PortalAIChatPanel";
-import RoomTypeCard, { type RoomTypeResult } from "@/components/booking-portal/RoomTypeCard";
+import { type RoomTypeResult } from "@/components/booking-portal/RoomTypeCard";
 import RoomFilterBar, { type RoomFilters, type SortOption } from "@/components/booking-portal/RoomFilterBar";
+import AccommodationCard, { type AccommodationCardData } from "@/components/booking-portal/AccommodationCard";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -37,10 +38,45 @@ interface AccommodationInfo {
   hero_photo_url?: string | null;
 }
 
+interface FacilityRow {
+  accommodation_id: string | null;
+  category: string;
+  facility_name: string;
+}
+
+// Map facility keywords -> 包棟特色標籤
+const FEATURE_TAG_RULES: Array<{ test: (name: string) => boolean; label: string }> = [
+  { test: (n) => /寵物|pet/i.test(n), label: "寵物友善" },
+  { test: (n) => /BBQ|烤肉|戶外用餐/i.test(n), label: "BBQ 烤肉" },
+  { test: (n) => /廚房|kitchen/i.test(n), label: "獨立廚房" },
+  { test: (n) => /泳池|游泳/i.test(n), label: "泳池" },
+  { test: (n) => /KTV|卡拉OK|karaoke/i.test(n), label: "KTV 歡唱" },
+  { test: (n) => /早餐|breakfast/i.test(n), label: "含早餐" },
+  { test: (n) => /停車|parking/i.test(n), label: "免費停車" },
+  { test: (n) => /WIFI|wifi|無線/i.test(n), label: "免費 WiFi" },
+  { test: (n) => /桌遊|遊戲|board/i.test(n), label: "桌遊娛樂" },
+  { test: (n) => /兒童|嬰兒|kids|baby/i.test(n), label: "親子友善" },
+];
+
+function deriveFeatureTags(facilities: FacilityRow[]): string[] {
+  const tags = new Set<string>();
+  for (const f of facilities) {
+    for (const rule of FEATURE_TAG_RULES) {
+      if (rule.test(f.facility_name)) {
+        tags.add(rule.label);
+        break;
+      }
+    }
+    if (tags.size >= 3) break;
+  }
+  return Array.from(tags);
+}
+
 const BookingPortal = () => {
   const navigate = useNavigate();
   const [accommodations, setAccommodations] = useState<AccommodationInfo[]>([]);
   const [roomTypes, setRoomTypes] = useState<RoomTypeResult[]>([]);
+  const [facilities, setFacilities] = useState<FacilityRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -87,7 +123,7 @@ const BookingPortal = () => {
   const fetchData = async () => {
     try {
       // Fetch accommodations and room types in parallel
-      const [{ data: accs }, { data: rooms }, { data: roomPhotos }, { data: heroPhotos }] = await Promise.all([
+      const [{ data: accs }, { data: rooms }, { data: roomPhotos }, { data: heroPhotos }, { data: facs }] = await Promise.all([
         supabase
           .from("accommodation_info")
           .select("id, name, region_1, region_2, type, address, country")
@@ -106,6 +142,10 @@ const BookingPortal = () => {
           .select("accommodation_id, photo_url, display_order")
           .eq("photo_type", "hero")
           .order("display_order", { ascending: true }),
+        supabase
+          .from("accommodation_facilities")
+          .select("accommodation_id, category, facility_name")
+          .eq("is_available", true),
       ]);
 
       if (!accs || !rooms) return;
@@ -159,6 +199,7 @@ const BookingPortal = () => {
 
       setAccommodations(accsWithPhotos);
       setRoomTypes(results);
+      setFacilities(facs || []);
     } catch (error) {
       console.error("Failed to fetch data:", error);
     } finally {
@@ -405,10 +446,8 @@ const BookingPortal = () => {
       result = result.filter((rt) => rt.accommodation_id === filters.selectedAccommodation);
     }
 
-    // Capacity filter
-    if (filters.minCapacity > 0) {
-      result = result.filter((rt) => rt.capacity >= filters.minCapacity);
-    }
+    // Capacity filter is applied at the aggregated (per-accommodation) level
+    // below, so we don't filter individual room types out here.
 
     // Price filter
     if (filters.maxPrice > 0) {
@@ -436,14 +475,101 @@ const BookingPortal = () => {
     return result;
   }, [roomTypes, searchQuery, hasDateFilter, filters]);
 
+  // Aggregate filtered room types into per-accommodation cards
+  const aggregatedAccs = useMemo<AccommodationCardData[]>(() => {
+    const accMap = new Map(accommodations.map((a) => [a.id, a]));
+    const facByAcc = new Map<string, FacilityRow[]>();
+    facilities.forEach((f) => {
+      if (!f.accommodation_id) return;
+      const arr = facByAcc.get(f.accommodation_id) ?? [];
+      arr.push(f);
+      facByAcc.set(f.accommodation_id, arr);
+    });
 
-  const handleRoomClick = (room: RoomTypeResult) => {
+    // Group filtered room types by accommodation
+    const byAcc = new Map<string, RoomTypeResult[]>();
+    filtered.forEach((rt) => {
+      const arr = byAcc.get(rt.accommodation_id) ?? [];
+      arr.push(rt);
+      byAcc.set(rt.accommodation_id, arr);
+    });
+
+    const cards: AccommodationCardData[] = [];
+    byAcc.forEach((rts, accId) => {
+      const acc = accMap.get(accId);
+      if (!acc) return;
+
+      const totalRooms = rts.reduce((s, r) => s + (r.room_count ?? 1), 0);
+      const minCapacity = Math.min(...rts.map((r) => r.capacity));
+      const maxCapacity = rts.reduce(
+        (s, r) => s + r.capacity * (r.room_count ?? 1),
+        0
+      );
+
+      // Per-night minimum: prefer date_price (when search done) over base_price
+      const nightlyPrices = rts
+        .map((r) => r.date_price ?? r.base_price)
+        .filter((p) => p > 0);
+      const minNightly = nightlyPrices.length ? Math.min(...nightlyPrices) : null;
+      const totalForStay =
+        minNightly !== null && hasDateFilter && nights > 0
+          ? minNightly * nights
+          : minNightly;
+
+      cards.push({
+        id: acc.id,
+        name: acc.name,
+        type: acc.type,
+        region_1: acc.region_1,
+        region_2: acc.region_2,
+        country: acc.country,
+        hero_photo_url: acc.hero_photo_url ?? null,
+        total_rooms: totalRooms,
+        room_type_count: rts.length,
+        min_capacity: minCapacity,
+        max_capacity: maxCapacity,
+        feature_tags: deriveFeatureTags(facByAcc.get(accId) ?? []),
+        min_price: totalForStay,
+        original_price: null,
+        discount_percent: null,
+        available_rooms: hasDateFilter
+          ? rts.reduce((s, r) => s + (r.available_rooms ?? 0), 0)
+          : null,
+      });
+    });
+
+    // Apply capacity filter at the whole-villa level
+    let final = cards;
+    if (filters.minCapacity > 0) {
+      final = final.filter((c) => c.max_capacity >= filters.minCapacity);
+    }
+
+    // Sort
+    if (filters.sortBy !== "default") {
+      final = [...final].sort((a, b) => {
+        const pa = a.min_price ?? Infinity;
+        const pb = b.min_price ?? Infinity;
+        switch (filters.sortBy) {
+          case "price_asc": return pa - pb;
+          case "price_desc": return pb - pa;
+          case "capacity_asc": return a.max_capacity - b.max_capacity;
+          case "capacity_desc": return b.max_capacity - a.max_capacity;
+          default: return 0;
+        }
+      });
+    } else {
+      const order = new Map(accommodations.map((a, i) => [a.id, i]));
+      final.sort((a, b) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999));
+    }
+    return final;
+  }, [filtered, accommodations, facilities, hasDateFilter, nights, filters.minCapacity, filters.sortBy]);
+
+  const handleAccClick = (accId: string) => {
     const params = new URLSearchParams();
-    params.set("acc", room.accommodation_id);
-    params.set("roomId", room.id);
     if (checkIn) params.set("checkIn", format(checkIn, "yyyy-MM-dd"));
     if (checkOut) params.set("checkOut", format(checkOut, "yyyy-MM-dd"));
-    navigate(`/book?${params.toString()}`);
+    const qs = params.toString();
+    navigate(`/booking/${accId}${qs ? `?${qs}` : ""}`);
   };
 
   const clearFilters = () => {
@@ -713,7 +839,7 @@ const BookingPortal = () => {
               : "所有房型"}
           </h2>
           <span className="text-sm text-muted-foreground">
-            {searching ? "搜尋中..." : `共 ${filtered.length} 間`}
+            {searching ? "搜尋中..." : `共 ${aggregatedAccs.length} 處民宿`}
           </span>
         </div>
 
@@ -748,12 +874,12 @@ const BookingPortal = () => {
             )}
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filtered.map((room) => (
-              <RoomTypeCard
-                key={room.id}
-                room={room}
-                onClick={() => handleRoomClick(room)}
+          <div className="grid gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
+            {aggregatedAccs.map((card) => (
+              <AccommodationCard
+                key={card.id}
+                data={card}
+                onClick={() => handleAccClick(card.id)}
                 hasDateFilter={hasDateFilter}
                 nights={nights}
               />
