@@ -514,16 +514,32 @@ const BookingPortal = () => {
     });
 
     const cards: AccommodationCardData[] = [];
+    // 「包棟方案」(如「12 人包區」) 為虛擬人數方案，不計入實際房間數
+    const isVillaPlan = (r: RoomTypeResult) =>
+      /包棟|包區|whole|villa/i.test(r.name) || r.capacity >= 8;
     byAcc.forEach((rts, accId) => {
       const acc = accMap.get(accId);
       if (!acc) return;
 
-      const totalRooms = rts.reduce((s, r) => s + (r.room_count ?? 1), 0);
-      const minCapacity = Math.min(...rts.map((r) => r.capacity));
-      const maxCapacity = rts.reduce(
+      const realRooms = rts.filter((r) => !isVillaPlan(r));
+      const villaPlans = rts.filter((r) => isVillaPlan(r));
+      const baseRooms = realRooms.length > 0 ? realRooms : rts;
+
+      const totalRooms = baseRooms.reduce((s, r) => s + (r.room_count ?? 1), 0);
+      // 最少人數 = 真實房間數（一間至少容納 1 人 = 包棟最低人數的概念）
+      // 退回房型最小 capacity 若無真實房型
+      const minCapacity = realRooms.length > 0
+        ? totalRooms
+        : Math.min(...rts.map((r) => r.capacity));
+      // 最多人數 = 包棟方案最大 capacity，或所有真實房 capacity 加總
+      const maxFromVilla = villaPlans.length > 0
+        ? Math.max(...villaPlans.map((r) => r.capacity))
+        : 0;
+      const maxFromReal = realRooms.reduce(
         (s, r) => s + r.capacity * (r.room_count ?? 1),
         0
       );
+      const maxCapacity = Math.max(maxFromVilla, maxFromReal);
 
       // Per-night minimum: prefer date_price (when search done) over base_price
       const nightlyPrices = rts
@@ -534,6 +550,12 @@ const BookingPortal = () => {
         minNightly !== null && hasDateFilter && nights > 0
           ? minNightly * nights
           : minNightly;
+
+      // 製造「原價→折扣→售價」效果（預設 15%；無 min_price 則略過）
+      const discountPercent = totalForStay && totalForStay > 0 ? 15 : null;
+      const originalPrice = totalForStay && discountPercent
+        ? Math.round(totalForStay / (1 - discountPercent / 100) / 10) * 10
+        : null;
 
       cards.push({
         id: acc.id,
@@ -550,8 +572,8 @@ const BookingPortal = () => {
         extra_bed_count: extraBedByAcc.get(accId) || 0,
         feature_tags: deriveFeatureTags(facByAcc.get(accId) ?? []),
         min_price: totalForStay,
-        original_price: null,
-        discount_percent: null,
+        original_price: originalPrice,
+        discount_percent: discountPercent,
         available_rooms: hasDateFilter
           ? rts.reduce((s, r) => s + (r.available_rooms ?? 0), 0)
           : null,
