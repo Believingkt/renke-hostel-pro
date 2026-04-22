@@ -446,10 +446,8 @@ const BookingPortal = () => {
       result = result.filter((rt) => rt.accommodation_id === filters.selectedAccommodation);
     }
 
-    // Capacity filter
-    if (filters.minCapacity > 0) {
-      result = result.filter((rt) => rt.capacity >= filters.minCapacity);
-    }
+    // Capacity filter is applied at the aggregated (per-accommodation) level
+    // below, so we don't filter individual room types out here.
 
     // Price filter
     if (filters.maxPrice > 0) {
