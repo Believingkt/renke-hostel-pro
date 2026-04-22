@@ -76,6 +76,7 @@ const BookingPortal = () => {
   const navigate = useNavigate();
   const [accommodations, setAccommodations] = useState<AccommodationInfo[]>([]);
   const [roomTypes, setRoomTypes] = useState<RoomTypeResult[]>([]);
+  const [facilities, setFacilities] = useState<FacilityRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -122,7 +123,30 @@ const BookingPortal = () => {
   const fetchData = async () => {
     try {
       // Fetch accommodations and room types in parallel
-      const [{ data: accs }, { data: rooms }, { data: roomPhotos }, { data: heroPhotos }] = await Promise.all([
+      const [{ data: accs }, { data: rooms }, { data: roomPhotos }, { data: heroPhotos }, { data: facs }] = await Promise.all([
+        supabase
+          .from("accommodation_info")
+          .select("id, name, region_1, region_2, type, address, country")
+          .eq("is_active", true)
+          .order("display_order", { ascending: true, nullsFirst: false }),
+        supabase
+          .from("room_types")
+          .select("id, name, description, base_price, capacity, size_sqm, room_count, accommodation_id, display_order")
+          .order("display_order", { ascending: true }),
+        supabase
+          .from("room_photos")
+          .select("room_type_id, photo_url, display_order")
+          .order("display_order", { ascending: true }),
+        supabase
+          .from("accommodation_photos")
+          .select("accommodation_id, photo_url, display_order")
+          .eq("photo_type", "hero")
+          .order("display_order", { ascending: true }),
+        supabase
+          .from("accommodation_facilities")
+          .select("accommodation_id, category, facility_name")
+          .eq("is_available", true),
+      ]);
         supabase
           .from("accommodation_info")
           .select("id, name, region_1, region_2, type, address, country")
@@ -194,6 +218,7 @@ const BookingPortal = () => {
 
       setAccommodations(accsWithPhotos);
       setRoomTypes(results);
+      setFacilities(facs || []);
     } catch (error) {
       console.error("Failed to fetch data:", error);
     } finally {
