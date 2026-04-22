@@ -538,11 +538,31 @@ const BookingPortal = () => {
       });
     });
 
-    // Preserve accommodation display order
-    const order = new Map(accommodations.map((a, i) => [a.id, i]));
-    cards.sort((a, b) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999));
-    return cards;
-  }, [filtered, accommodations, facilities, hasDateFilter, nights]);
+    // Apply capacity filter at the whole-villa level
+    let final = cards;
+    if (filters.minCapacity > 0) {
+      final = final.filter((c) => c.max_capacity >= filters.minCapacity);
+    }
+
+    // Sort
+    if (filters.sortBy !== "default") {
+      final = [...final].sort((a, b) => {
+        const pa = a.min_price ?? Infinity;
+        const pb = b.min_price ?? Infinity;
+        switch (filters.sortBy) {
+          case "price_asc": return pa - pb;
+          case "price_desc": return pb - pa;
+          case "capacity_asc": return a.max_capacity - b.max_capacity;
+          case "capacity_desc": return b.max_capacity - a.max_capacity;
+          default: return 0;
+        }
+      });
+    } else {
+      const order = new Map(accommodations.map((a, i) => [a.id, i]));
+      final.sort((a, b) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999));
+    }
+    return final;
+  }, [filtered, accommodations, facilities, hasDateFilter, nights, filters.minCapacity, filters.sortBy]);
 
   const handleAccClick = (accId: string) => {
     const params = new URLSearchParams();
