@@ -789,7 +789,7 @@ const BookingPortal = () => {
               <Card
                 key={acc.id}
                 className="group overflow-hidden border-none shadow-sm hover:shadow-lg transition-all cursor-pointer"
-                onClick={() => navigate(`/booking/${acc.id}`)}
+                onClick={() => navigate(`/booking/villa/${acc.id}`)}
               >
                 <div className="aspect-[4/3] overflow-hidden bg-muted">
                   {acc.hero_photo_url ? (
