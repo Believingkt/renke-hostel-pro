@@ -126,6 +126,18 @@ const AccommodationCard = ({ data, onClick, hasDateFilter, nights }: Props) => {
                   可住 <span className="font-semibold">{data.min_capacity}~{data.max_capacity}</span> 人
                 </>
               )}
+              {data.extra_bed_count > 0 && (
+                <span
+                  className="ml-1 inline-flex items-center text-[10px] font-bold px-1 py-px rounded leading-none"
+                  style={{
+                    background: "hsl(25, 70%, 92%)",
+                    color: "hsl(25, 70%, 35%)",
+                  }}
+                  title={`可加床 ${data.extra_bed_count} 人`}
+                >
+                  +{data.extra_bed_count}
+                </span>
+              )}
             </span>
           </div>
 
