@@ -205,6 +205,20 @@ const BookingPortal = () => {
       setAccommodations(accsWithPhotos);
       setRoomTypes(results);
       setFacilities(facs || []);
+
+      // Aggregate extra-bed capacity per accommodation from addon_settings.
+      // Heuristic: any enabled addon whose addon_type or unit_label indicates a bed/extra person.
+      const bedRegex = /床|加人|bed|person|人/i;
+      const bedMap = new Map<string, number>();
+      (addons || []).forEach((a: any) => {
+        if (!a.accommodation_id) return;
+        const label = `${a.addon_type ?? ""} ${a.unit_label ?? ""}`;
+        if (!bedRegex.test(label)) return;
+        const max = Number(a.max_quantity) || 0;
+        if (max <= 0) return;
+        bedMap.set(a.accommodation_id, (bedMap.get(a.accommodation_id) || 0) + max);
+      });
+      setExtraBedByAcc(bedMap);
     } catch (error) {
       console.error("Failed to fetch data:", error);
     } finally {
