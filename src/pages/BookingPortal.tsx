@@ -477,14 +477,81 @@ const BookingPortal = () => {
     return result;
   }, [roomTypes, searchQuery, hasDateFilter, filters]);
 
+  // Aggregate filtered room types into per-accommodation cards
+  const aggregatedAccs = useMemo<AccommodationCardData[]>(() => {
+    const accMap = new Map(accommodations.map((a) => [a.id, a]));
+    const facByAcc = new Map<string, FacilityRow[]>();
+    facilities.forEach((f) => {
+      if (!f.accommodation_id) return;
+      const arr = facByAcc.get(f.accommodation_id) ?? [];
+      arr.push(f);
+      facByAcc.set(f.accommodation_id, arr);
+    });
 
-  const handleRoomClick = (room: RoomTypeResult) => {
+    // Group filtered room types by accommodation
+    const byAcc = new Map<string, RoomTypeResult[]>();
+    filtered.forEach((rt) => {
+      const arr = byAcc.get(rt.accommodation_id) ?? [];
+      arr.push(rt);
+      byAcc.set(rt.accommodation_id, arr);
+    });
+
+    const cards: AccommodationCardData[] = [];
+    byAcc.forEach((rts, accId) => {
+      const acc = accMap.get(accId);
+      if (!acc) return;
+
+      const totalRooms = rts.reduce((s, r) => s + (r.room_count ?? 1), 0);
+      const minCapacity = Math.min(...rts.map((r) => r.capacity));
+      const maxCapacity = rts.reduce(
+        (s, r) => s + r.capacity * (r.room_count ?? 1),
+        0
+      );
+
+      // Per-night minimum: prefer date_price (when search done) over base_price
+      const nightlyPrices = rts
+        .map((r) => r.date_price ?? r.base_price)
+        .filter((p) => p > 0);
+      const minNightly = nightlyPrices.length ? Math.min(...nightlyPrices) : null;
+      const totalForStay =
+        minNightly !== null && hasDateFilter && nights > 0
+          ? minNightly * nights
+          : minNightly;
+
+      cards.push({
+        id: acc.id,
+        name: acc.name,
+        type: acc.type,
+        region_1: acc.region_1,
+        region_2: acc.region_2,
+        country: acc.country,
+        hero_photo_url: acc.hero_photo_url ?? null,
+        total_rooms: totalRooms,
+        room_type_count: rts.length,
+        min_capacity: minCapacity,
+        max_capacity: maxCapacity,
+        feature_tags: deriveFeatureTags(facByAcc.get(accId) ?? []),
+        min_price: totalForStay,
+        original_price: null,
+        discount_percent: null,
+        available_rooms: hasDateFilter
+          ? rts.reduce((s, r) => s + (r.available_rooms ?? 0), 0)
+          : null,
+      });
+    });
+
+    // Preserve accommodation display order
+    const order = new Map(accommodations.map((a, i) => [a.id, i]));
+    cards.sort((a, b) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999));
+    return cards;
+  }, [filtered, accommodations, facilities, hasDateFilter, nights]);
+
+  const handleAccClick = (accId: string) => {
     const params = new URLSearchParams();
-    params.set("acc", room.accommodation_id);
-    params.set("roomId", room.id);
     if (checkIn) params.set("checkIn", format(checkIn, "yyyy-MM-dd"));
     if (checkOut) params.set("checkOut", format(checkOut, "yyyy-MM-dd"));
-    navigate(`/book?${params.toString()}`);
+    const qs = params.toString();
+    navigate(`/booking/${accId}${qs ? `?${qs}` : ""}`);
   };
 
   const clearFilters = () => {
@@ -789,12 +856,12 @@ const BookingPortal = () => {
             )}
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filtered.map((room) => (
-              <RoomTypeCard
-                key={room.id}
-                room={room}
-                onClick={() => handleRoomClick(room)}
+          <div className="grid gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
+            {aggregatedAccs.map((card) => (
+              <AccommodationCard
+                key={card.id}
+                data={card}
+                onClick={() => handleAccClick(card.id)}
                 hasDateFilter={hasDateFilter}
                 nights={nights}
               />
