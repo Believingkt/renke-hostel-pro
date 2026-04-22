@@ -547,6 +547,7 @@ const BookingPortal = () => {
         room_type_count: rts.length,
         min_capacity: minCapacity,
         max_capacity: maxCapacity,
+        extra_bed_count: extraBedByAcc.get(accId) || 0,
         feature_tags: deriveFeatureTags(facByAcc.get(accId) ?? []),
         min_price: totalForStay,
         original_price: null,
