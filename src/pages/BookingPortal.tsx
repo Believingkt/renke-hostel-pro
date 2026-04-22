@@ -569,7 +569,7 @@ const BookingPortal = () => {
     if (checkIn) params.set("checkIn", format(checkIn, "yyyy-MM-dd"));
     if (checkOut) params.set("checkOut", format(checkOut, "yyyy-MM-dd"));
     const qs = params.toString();
-    navigate(`/booking/${accId}${qs ? `?${qs}` : ""}`);
+    navigate(`/booking/villa/${accId}${qs ? `?${qs}` : ""}`);
   };
 
   const clearFilters = () => {
@@ -789,7 +789,7 @@ const BookingPortal = () => {
               <Card
                 key={acc.id}
                 className="group overflow-hidden border-none shadow-sm hover:shadow-lg transition-all cursor-pointer"
-                onClick={() => navigate(`/booking/${acc.id}`)}
+                onClick={() => navigate(`/booking/villa/${acc.id}`)}
               >
                 <div className="aspect-[4/3] overflow-hidden bg-muted">
                   {acc.hero_photo_url ? (
