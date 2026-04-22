@@ -1,6 +1,10 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Users,
   ChevronRight,
@@ -14,8 +18,12 @@ import {
   UtensilsCrossed,
   Sparkles,
   BedDouble,
+  CalendarDays,
+  Lock,
+  Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 interface RoomType {
   id: string;
@@ -39,21 +47,21 @@ interface Props {
   roomTypes: RoomType[];
   onSelect: (option: CapacityOption, subPlanKey?: string) => void;
   nights: number;
+  /** 用戶在搜尋條選的入住日期；用來自動判定時段 */
+  checkIn?: Date | null;
 }
 
 type PricingTier = "weekday" | "friday_sunday" | "weekend";
 
-/** 各時段的人數階梯定價（依照森山寫照 DM 實際定價） */
 interface TierPrice {
   guestCount: number;
   original: number;
   sale: number;
   roomAllocation: string;
-  isFewPeople?: boolean; // 少人包區（僅平日）
+  isFewPeople?: boolean;
 }
 
 const PRICING_TABLE: Record<PricingTier, TierPrice[]> = {
-  // 週一 ~ 週四：少人包區早鳥 + 標準包區
   weekday: [
     { guestCount: 6, original: 18000, sale: 14999, roomAllocation: "雙人房 3 間", isFewPeople: true },
     { guestCount: 8, original: 24000, sale: 19999, roomAllocation: "雙人房 1 間 · 四人房 2 間", isFewPeople: true },
@@ -62,14 +70,12 @@ const PRICING_TABLE: Record<PricingTier, TierPrice[]> = {
     { guestCount: 16, original: 57000, sale: 42750, roomAllocation: "雙人房 2 間 · 四人房 3 間" },
     { guestCount: 18, original: 60000, sale: 45000, roomAllocation: "雙人房 3 間 · 四人房 3 間" },
   ],
-  // 週五、週日：標準平日包區
   friday_sunday: [
     { guestCount: 12, original: 47000, sale: 35250, roomAllocation: "四人房 3 間" },
     { guestCount: 14, original: 54000, sale: 40500, roomAllocation: "雙人房 1 間 · 四人房 3 間" },
     { guestCount: 16, original: 57000, sale: 42750, roomAllocation: "雙人房 2 間 · 四人房 3 間" },
     { guestCount: 18, original: 60000, sale: 45000, roomAllocation: "雙人房 3 間 · 四人房 3 間" },
   ],
-  // 週六、國定假日
   weekend: [
     { guestCount: 12, original: 58000, sale: 43500, roomAllocation: "四人房 3 間" },
     { guestCount: 14, original: 66000, sale: 49500, roomAllocation: "雙人房 1 間 · 四人房 3 間" },
@@ -78,7 +84,6 @@ const PRICING_TABLE: Record<PricingTier, TierPrice[]> = {
   ],
 };
 
-/** 一泊二食包含的 6 項體驗（從 DM 文案抽出） */
 const PLAN_INCLUDES = [
   { icon: <Ticket className="h-3.5 w-3.5" />, label: "星夢森林劇場門票" },
   { icon: <Camera className="h-3.5 w-3.5" />, label: "寫照體驗（棚拍）" },
@@ -88,30 +93,39 @@ const PLAN_INCLUDES = [
   { icon: <UtensilsCrossed className="h-3.5 w-3.5" />, label: "精緻早餐" },
 ];
 
-const TIER_LABELS: Record<PricingTier, { short: string; full: string; hint: string }> = {
-  weekday: { short: "平日", full: "週一 ~ 週四", hint: "含少人包區早鳥優惠" },
-  friday_sunday: { short: "週五日", full: "週五、週日", hint: "標準包區方案" },
-  weekend: { short: "假日", full: "週六、國定假日", hint: "假日包區方案" },
+const TIER_LABELS: Record<PricingTier, { short: string; full: string; hint: string; emoji: string }> = {
+  weekday: { short: "平日", full: "週一 ~ 週四", hint: "含少人包區早鳥優惠", emoji: "💼" },
+  friday_sunday: { short: "旺日", full: "週五、週日", hint: "標準包區方案", emoji: "✨" },
+  weekend: { short: "假日", full: "週六、國定假日", hint: "假日包區方案", emoji: "🎉" },
 };
 
-/** 自動依入住日推測時段 */
-function detectInitialTier(): PricingTier {
-  const day = new Date().getDay(); // 0=Sun, 6=Sat
-  if (day === 6) return "weekend";
-  if (day === 5 || day === 0) return "friday_sunday";
-  return "weekday";
+function detectTierByDate(date: Date | null | undefined): PricingTier {
+  if (!date) {
+    const day = new Date().getDay();
+    if (day === 6) return "weekend";
+    if (day === 5 || day === 0) return "friday_sunday";
+    return "weekday";
+  }
+  const day = date.getDay();
+  if (day === 6) return "weekend"; // 週六
+  if (day === 5 || day === 0) return "friday_sunday"; // 週五/週日
+  return "weekday"; // 週一~四
 }
 
-const CapacityPriceLadder = ({ roomTypes, onSelect, nights }: Props) => {
-  const [activeTier, setActiveTier] = useState<PricingTier>(detectInitialTier());
+const CapacityPriceLadder = ({ roomTypes, onSelect, nights, checkIn }: Props) => {
+  const [activeTier, setActiveTier] = useState<PricingTier>(() => detectTierByDate(checkIn));
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [showIncludes, setShowIncludes] = useState(false);
+  const [otherTierOpen, setOtherTierOpen] = useState(false);
 
-  /** 把預設定價對應到實際的 roomTypes（找不到就用第一個） */
+  // 入住日變動時自動切到對應時段
+  useEffect(() => {
+    setActiveTier(detectTierByDate(checkIn));
+  }, [checkIn]);
+
   const fallbackRoomType = roomTypes[0];
 
   const buildOption = (tier: TierPrice, isRecommended: boolean): CapacityOption => {
-    // 嘗試對應到實際 roomType（依容量），否則用 fallback
     const matched =
       roomTypes.find((rt) => rt.capacity === tier.guestCount) ||
       roomTypes.find((rt) => rt.capacity >= tier.guestCount) ||
@@ -137,7 +151,6 @@ const CapacityPriceLadder = ({ roomTypes, onSelect, nights }: Props) => {
   const fewPeopleTiers = currentTiers.filter((t) => t.isFewPeople);
   const standardTiers = currentTiers.filter((t) => !t.isFewPeople);
 
-  // 推薦：標準方案中每人單價最低者
   const recommendedGuestCount = useMemo(() => {
     if (standardTiers.length === 0) return null;
     return standardTiers.reduce((best, cur) =>
@@ -154,40 +167,91 @@ const CapacityPriceLadder = ({ roomTypes, onSelect, nights }: Props) => {
   }
 
   const safeNights = Math.max(1, nights);
+  const tierLabel = TIER_LABELS[activeTier];
+  const otherTiers = (Object.keys(TIER_LABELS) as PricingTier[]).filter((t) => t !== activeTier);
+
+  // 平日的少人包區，在旺日/假日要顯示為「禁用態」說明
+  const showDisabledFewPeopleNote = activeTier !== "weekday";
 
   return (
     <div className="space-y-3 px-4">
-      {/* ── 時段切換 Tabs ── */}
-      <Tabs value={activeTier} onValueChange={(v) => { setActiveTier(v as PricingTier); setExpandedKey(null); }}>
-        <TabsList className="grid grid-cols-3 w-full h-auto p-1 bg-muted/60">
-          {(Object.keys(TIER_LABELS) as PricingTier[]).map((tier) => (
-            <TabsTrigger
-              key={tier}
-              value={tier}
-              className="flex flex-col gap-0.5 py-1.5 px-1 data-[state=active]:bg-background data-[state=active]:shadow-sm"
-            >
-              <span className="text-[12px] font-semibold leading-tight">{TIER_LABELS[tier].short}</span>
-              <span className="text-[9px] text-muted-foreground leading-tight">{TIER_LABELS[tier].full}</span>
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      {/* ── 當前時段橫條（自動判定） ── */}
+      <div
+        className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg border"
+        style={{
+          background: "hsl(25, 70%, 97%)",
+          borderColor: "hsl(25, 70%, 88%)",
+        }}
+      >
+        <div
+          className="shrink-0 w-9 h-9 rounded-md flex items-center justify-center text-base"
+          style={{ background: "hsl(25, 70%, 92%)" }}
+          aria-hidden
+        >
+          {tierLabel.emoji}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[13px] font-bold text-foreground">{tierLabel.short}方案</span>
+            <span className="text-[10px] text-muted-foreground">{tierLabel.full}</span>
+          </div>
+          <p className="text-[11px] mt-0.5" style={{ color: "hsl(25, 70%, 35%)" }}>
+            {checkIn ? (
+              <>
+                <CalendarDays className="inline h-3 w-3 mr-0.5 -mt-0.5" />
+                {format(checkIn, "MM/dd")}（{["日", "一", "二", "三", "四", "五", "六"][checkIn.getDay()]}）入住 · {tierLabel.hint}
+              </>
+            ) : (
+              <>依今日推算 · {tierLabel.hint}</>
+            )}
+          </p>
+        </div>
 
-        {(Object.keys(TIER_LABELS) as PricingTier[]).map((tier) => (
-          <TabsContent key={tier} value={tier} className="mt-2.5 space-y-2.5">
-            {/* 時段提示 */}
-            <div
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium"
-              style={{
-                background: "hsl(25, 70%, 96%)",
-                color: "hsl(25, 70%, 35%)",
-              }}
+        {/* 其他時段查價 Popover */}
+        <Popover open={otherTierOpen} onOpenChange={setOtherTierOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="shrink-0 text-[11px] font-medium underline decoration-dotted underline-offset-2"
+              style={{ color: "hsl(25, 70%, 40%)" }}
             >
-              <Sparkles className="h-3 w-3" />
-              {TIER_LABELS[tier].hint}
+              其他時段查價
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-64 p-0">
+            <div className="px-3 py-2 border-b border-border/50">
+              <p className="text-[12px] font-semibold text-foreground">切換查看其他時段</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                建議改入住日期以套用對應方案
+              </p>
             </div>
-          </TabsContent>
-        ))}
-      </Tabs>
+            <div className="p-1">
+              {otherTiers.map((t) => {
+                const lbl = TIER_LABELS[t];
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => {
+                      setActiveTier(t);
+                      setExpandedKey(null);
+                      setOtherTierOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-2.5 py-2 rounded-md hover:bg-muted/60 text-left"
+                  >
+                    <span className="text-base" aria-hidden>{lbl.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-medium text-foreground">{lbl.short}方案</p>
+                      <p className="text-[10px] text-muted-foreground">{lbl.full}</p>
+                    </div>
+                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
+                );
+              })}
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
 
       {/* ── 一泊二食 包含內容（折疊） ── */}
       <Card className="overflow-hidden border-border/60">
@@ -227,7 +291,7 @@ const CapacityPriceLadder = ({ roomTypes, onSelect, nights }: Props) => {
         )}
       </Card>
 
-      {/* ── 少人包區（僅平日顯示） ── */}
+      {/* ── 少人包區（平日才開放） ── */}
       {activeTier === "weekday" && fewPeopleTiers.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center gap-1.5 px-1">
@@ -265,19 +329,49 @@ const CapacityPriceLadder = ({ roomTypes, onSelect, nights }: Props) => {
         </div>
       )}
 
+      {/* ── 旺日/假日：顯示「少人包區」禁用提示 ── */}
+      {showDisabledFewPeopleNote && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5 px-1">
+            <span
+              className="text-[10px] font-bold px-1.5 py-0.5 rounded text-muted-foreground bg-muted"
+            >
+              不開放
+            </span>
+            <p className="text-[12px] font-semibold text-muted-foreground">少人包區（6 / 8 人）</p>
+          </div>
+
+          <Card className="overflow-hidden border-dashed border-border/70 bg-muted/20">
+            <div className="px-3.5 py-3 flex items-center gap-3">
+              <div className="shrink-0 w-10 h-10 rounded-lg flex items-center justify-center bg-muted/50">
+                <Lock className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-medium text-foreground">
+                  {tierLabel.short}不開放 6 / 8 人小包區
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">
+                  少人包區僅限週一~週四入住。若想使用，請改選平日日期。
+                </p>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
       {/* ── 標準包區方案 ── */}
       <div className="space-y-2">
-        {(activeTier === "weekday" && fewPeopleTiers.length > 0) && (
-          <div className="flex items-center gap-1.5 px-1 pt-1">
-            <span
-              className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-              style={{ background: "hsl(25, 70%, 92%)", color: "hsl(25, 70%, 35%)" }}
-            >
-              一泊二食
-            </span>
-            <p className="text-[12px] font-semibold text-foreground">標準包區方案</p>
-          </div>
-        )}
+        <div className="flex items-center gap-1.5 px-1 pt-1">
+          <span
+            className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+            style={{ background: "hsl(25, 70%, 92%)", color: "hsl(25, 70%, 35%)" }}
+          >
+            一泊二食
+          </span>
+          <p className="text-[12px] font-semibold text-foreground">
+            {tierLabel.short}標準包區方案
+          </p>
+        </div>
 
         {standardTiers.map((tier) => {
           const isRecommended = tier.guestCount === recommendedGuestCount;
@@ -303,11 +397,18 @@ const CapacityPriceLadder = ({ roomTypes, onSelect, nights }: Props) => {
           );
         })}
       </div>
+
+      {/* ── 底部提示 ── */}
+      <div className="flex items-start gap-1.5 px-1 pt-1 pb-2">
+        <Info className="h-3 w-3 mt-0.5 shrink-0 text-muted-foreground" />
+        <p className="text-[10px] text-muted-foreground leading-relaxed">
+          價格依入住日期所屬時段自動套用。週六與國定假日為假日價，週五、週日為旺日價，週一至週四為平日價。
+        </p>
+      </div>
     </div>
   );
 };
 
-/** 單張價格卡（共用） */
 interface PriceCardProps {
   opt: CapacityOption;
   tier: TierPrice;
@@ -323,7 +424,6 @@ interface PriceCardProps {
 const PriceCard = ({ opt, tier, saved, nights, safeNights, accent, onSelect, isExpanded, onToggle }: PriceCardProps) => {
   const perPerson = Math.round(opt.totalPrice / opt.guestCount / safeNights);
 
-  // 配色：少人包區用紅（特惠），標準包區用橘（品牌色）
   const accentColor = accent === "few" ? "hsl(0, 75%, 50%)" : "hsl(25, 70%, 50%)";
   const accentBgLight = accent === "few" ? "hsl(0, 75%, 96%)" : "hsl(25, 70%, 96%)";
   const accentBgMid = accent === "few" ? "hsl(0, 75%, 90%)" : "hsl(25, 70%, 90%)";
@@ -346,7 +446,6 @@ const PriceCard = ({ opt, tier, saved, nights, safeNights, accent, onSelect, isE
         onClick={() => onSelect(opt)}
         className="w-full text-left p-3.5 flex items-center gap-3 hover:bg-muted/30 transition-colors"
       >
-        {/* 人數圖示 */}
         <div
           className="shrink-0 w-14 h-14 rounded-xl flex flex-col items-center justify-center"
           style={{
@@ -360,7 +459,6 @@ const PriceCard = ({ opt, tier, saved, nights, safeNights, accent, onSelect, isE
           <span className="text-[9px] mt-0.5" style={{ color: accentText }}>人</span>
         </div>
 
-        {/* 中間資訊 */}
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-sm text-foreground">
             {opt.guestCount} 人包區
@@ -373,7 +471,6 @@ const PriceCard = ({ opt, tier, saved, nights, safeNights, accent, onSelect, isE
           </p>
         </div>
 
-        {/* 價格區 */}
         <div className="text-right shrink-0">
           <div className="flex items-center justify-end gap-1 mb-0.5">
             <span className="text-[10px] line-through text-muted-foreground">
@@ -407,7 +504,6 @@ const PriceCard = ({ opt, tier, saved, nights, safeNights, accent, onSelect, isE
         </div>
       </button>
 
-      {/* 房型分配明細（可選展開） */}
       <button
         type="button"
         onClick={(e) => {
