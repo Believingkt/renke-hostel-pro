@@ -19,6 +19,8 @@ export interface AccommodationCardData {
   min_capacity: number;
   /** 最多可住人數（sum of capacity × room_count） */
   max_capacity: number;
+  /** 額外可加床/加人數（取自 addon_settings） */
+  extra_bed_count: number;
   /** 包棟特色標籤（最多 3 個） */
   feature_tags: string[];
   /** 每晚最低總價（含日期過濾時為實際區間最低，否則為 base_price 最低） */
