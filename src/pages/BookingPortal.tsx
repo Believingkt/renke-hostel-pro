@@ -147,25 +147,6 @@ const BookingPortal = () => {
           .select("accommodation_id, category, facility_name")
           .eq("is_available", true),
       ]);
-        supabase
-          .from("accommodation_info")
-          .select("id, name, region_1, region_2, type, address, country")
-          .eq("is_active", true)
-          .order("display_order", { ascending: true, nullsFirst: false }),
-        supabase
-          .from("room_types")
-          .select("id, name, description, base_price, capacity, size_sqm, room_count, accommodation_id, display_order")
-          .order("display_order", { ascending: true }),
-        supabase
-          .from("room_photos")
-          .select("room_type_id, photo_url, display_order")
-          .order("display_order", { ascending: true }),
-        supabase
-          .from("accommodation_photos")
-          .select("accommodation_id, photo_url, display_order")
-          .eq("photo_type", "hero")
-          .order("display_order", { ascending: true }),
-      ]);
 
       if (!accs || !rooms) return;
 
