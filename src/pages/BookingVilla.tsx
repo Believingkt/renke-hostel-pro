@@ -151,10 +151,11 @@ const BookingVilla = () => {
     );
   }
 
-  const handleSelectOption = (opt: CapacityOption) => {
+  const handleSelectOption = (opt: CapacityOption, subPlanKey?: string) => {
     const params = new URLSearchParams();
     params.set("acc", info.id);
     params.set("roomId", opt.roomTypeId);
+    if (subPlanKey) params.set("plan", subPlanKey);
     if (checkInStr) params.set("checkIn", checkInStr);
     if (checkOutStr) params.set("checkOut", checkOutStr);
     navigate(`/book?${params.toString()}`);
