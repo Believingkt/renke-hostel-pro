@@ -38,6 +38,40 @@ interface AccommodationInfo {
   hero_photo_url?: string | null;
 }
 
+interface FacilityRow {
+  accommodation_id: string | null;
+  category: string;
+  facility_name: string;
+}
+
+// Map facility keywords -> 包棟特色標籤
+const FEATURE_TAG_RULES: Array<{ test: (name: string) => boolean; label: string }> = [
+  { test: (n) => /寵物|pet/i.test(n), label: "寵物友善" },
+  { test: (n) => /BBQ|烤肉|戶外用餐/i.test(n), label: "BBQ 烤肉" },
+  { test: (n) => /廚房|kitchen/i.test(n), label: "獨立廚房" },
+  { test: (n) => /泳池|游泳/i.test(n), label: "泳池" },
+  { test: (n) => /KTV|卡拉OK|karaoke/i.test(n), label: "KTV 歡唱" },
+  { test: (n) => /早餐|breakfast/i.test(n), label: "含早餐" },
+  { test: (n) => /停車|parking/i.test(n), label: "免費停車" },
+  { test: (n) => /WIFI|wifi|無線/i.test(n), label: "免費 WiFi" },
+  { test: (n) => /桌遊|遊戲|board/i.test(n), label: "桌遊娛樂" },
+  { test: (n) => /兒童|嬰兒|kids|baby/i.test(n), label: "親子友善" },
+];
+
+function deriveFeatureTags(facilities: FacilityRow[]): string[] {
+  const tags = new Set<string>();
+  for (const f of facilities) {
+    for (const rule of FEATURE_TAG_RULES) {
+      if (rule.test(f.facility_name)) {
+        tags.add(rule.label);
+        break;
+      }
+    }
+    if (tags.size >= 3) break;
+  }
+  return Array.from(tags);
+}
+
 const BookingPortal = () => {
   const navigate = useNavigate();
   const [accommodations, setAccommodations] = useState<AccommodationInfo[]>([]);
