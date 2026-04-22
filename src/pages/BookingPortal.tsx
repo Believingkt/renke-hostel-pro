@@ -77,6 +77,7 @@ const BookingPortal = () => {
   const [accommodations, setAccommodations] = useState<AccommodationInfo[]>([]);
   const [roomTypes, setRoomTypes] = useState<RoomTypeResult[]>([]);
   const [facilities, setFacilities] = useState<FacilityRow[]>([]);
+  const [extraBedByAcc, setExtraBedByAcc] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -123,7 +124,7 @@ const BookingPortal = () => {
   const fetchData = async () => {
     try {
       // Fetch accommodations and room types in parallel
-      const [{ data: accs }, { data: rooms }, { data: roomPhotos }, { data: heroPhotos }, { data: facs }] = await Promise.all([
+      const [{ data: accs }, { data: rooms }, { data: roomPhotos }, { data: heroPhotos }, { data: facs }, { data: addons }] = await Promise.all([
         supabase
           .from("accommodation_info")
           .select("id, name, region_1, region_2, type, address, country")
@@ -146,6 +147,10 @@ const BookingPortal = () => {
           .from("accommodation_facilities")
           .select("accommodation_id, category, facility_name")
           .eq("is_available", true),
+        supabase
+          .from("addon_settings")
+          .select("accommodation_id, addon_type, unit_label, max_quantity, enabled")
+          .eq("enabled", true),
       ]);
 
       if (!accs || !rooms) return;
@@ -200,6 +205,20 @@ const BookingPortal = () => {
       setAccommodations(accsWithPhotos);
       setRoomTypes(results);
       setFacilities(facs || []);
+
+      // Aggregate extra-bed capacity per accommodation from addon_settings.
+      // Heuristic: any enabled addon whose addon_type or unit_label indicates a bed/extra person.
+      const bedRegex = /床|加人|bed|person|人/i;
+      const bedMap = new Map<string, number>();
+      (addons || []).forEach((a: any) => {
+        if (!a.accommodation_id) return;
+        const label = `${a.addon_type ?? ""} ${a.unit_label ?? ""}`;
+        if (!bedRegex.test(label)) return;
+        const max = Number(a.max_quantity) || 0;
+        if (max <= 0) return;
+        bedMap.set(a.accommodation_id, (bedMap.get(a.accommodation_id) || 0) + max);
+      });
+      setExtraBedByAcc(bedMap);
     } catch (error) {
       console.error("Failed to fetch data:", error);
     } finally {
@@ -528,6 +547,7 @@ const BookingPortal = () => {
         room_type_count: rts.length,
         min_capacity: minCapacity,
         max_capacity: maxCapacity,
+        extra_bed_count: extraBedByAcc.get(accId) || 0,
         feature_tags: deriveFeatureTags(facByAcc.get(accId) ?? []),
         min_price: totalForStay,
         original_price: null,
@@ -562,7 +582,7 @@ const BookingPortal = () => {
       final.sort((a, b) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999));
     }
     return final;
-  }, [filtered, accommodations, facilities, hasDateFilter, nights, filters.minCapacity, filters.sortBy]);
+  }, [filtered, accommodations, facilities, extraBedByAcc, hasDateFilter, nights, filters.minCapacity, filters.sortBy]);
 
   const handleAccClick = (accId: string) => {
     const params = new URLSearchParams();

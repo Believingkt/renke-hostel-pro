@@ -19,6 +19,8 @@ export interface AccommodationCardData {
   min_capacity: number;
   /** 最多可住人數（sum of capacity × room_count） */
   max_capacity: number;
+  /** 額外可加床/加人數（取自 addon_settings） */
+  extra_bed_count: number;
   /** 包棟特色標籤（最多 3 個） */
   feature_tags: string[];
   /** 每晚最低總價（含日期過濾時為實際區間最低，否則為 base_price 最低） */
@@ -123,6 +125,18 @@ const AccommodationCard = ({ data, onClick, hasDateFilter, nights }: Props) => {
                 <>
                   可住 <span className="font-semibold">{data.min_capacity}~{data.max_capacity}</span> 人
                 </>
+              )}
+              {data.extra_bed_count > 0 && (
+                <span
+                  className="ml-1 inline-flex items-center text-[10px] font-bold px-1 py-px rounded leading-none"
+                  style={{
+                    background: "hsl(25, 70%, 92%)",
+                    color: "hsl(25, 70%, 35%)",
+                  }}
+                  title={`可加床 ${data.extra_bed_count} 人`}
+                >
+                  +{data.extra_bed_count}
+                </span>
               )}
             </span>
           </div>
