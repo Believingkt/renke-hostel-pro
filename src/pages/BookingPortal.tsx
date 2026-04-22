@@ -821,7 +821,7 @@ const BookingPortal = () => {
               : "所有房型"}
           </h2>
           <span className="text-sm text-muted-foreground">
-            {searching ? "搜尋中..." : `共 ${filtered.length} 間`}
+            {searching ? "搜尋中..." : `共 ${aggregatedAccs.length} 處民宿`}
           </span>
         </div>
 
