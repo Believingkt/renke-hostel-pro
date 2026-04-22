@@ -124,7 +124,7 @@ const BookingPortal = () => {
   const fetchData = async () => {
     try {
       // Fetch accommodations and room types in parallel
-      const [{ data: accs }, { data: rooms }, { data: roomPhotos }, { data: heroPhotos }, { data: facs }] = await Promise.all([
+      const [{ data: accs }, { data: rooms }, { data: roomPhotos }, { data: heroPhotos }, { data: facs }, { data: addons }] = await Promise.all([
         supabase
           .from("accommodation_info")
           .select("id, name, region_1, region_2, type, address, country")
@@ -147,6 +147,10 @@ const BookingPortal = () => {
           .from("accommodation_facilities")
           .select("accommodation_id, category, facility_name")
           .eq("is_available", true),
+        supabase
+          .from("addon_settings")
+          .select("accommodation_id, addon_type, unit_label, max_quantity, enabled")
+          .eq("enabled", true),
       ]);
 
       if (!accs || !rooms) return;
