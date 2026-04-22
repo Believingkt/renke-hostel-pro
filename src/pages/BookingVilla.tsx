@@ -106,20 +106,40 @@ const BookingVilla = () => {
     }));
   }, [heroPhotos, galleryPhotos]);
 
-  // Aggregate capacity stats from room types
+  // Aggregate capacity stats from room types.
+  // 「包棟方案」(如「12 人包區」) 為虛擬人數方案，不應計入實際房間數。
   const villaStats = useMemo(() => {
     const rts = secondaryData?.roomTypes || [];
     if (rts.length === 0) return null;
-    const totalRooms = rts.reduce(
-      (s, r) => s + (r.room_count ?? 1),
-      0
-    );
-    const minCapacity = Math.min(...rts.map((r: any) => r.capacity));
-    const maxCapacity = rts.reduce(
+    const isVillaPlan = (r: any) =>
+      /包棟|包區|whole|villa/i.test(r.name) || r.capacity >= 8;
+
+    const realRooms = rts.filter((r: any) => !isVillaPlan(r));
+    const villaPlans = rts.filter((r: any) => isVillaPlan(r));
+
+    // 真實房間數（雙人房×3 + 四人房×3 = 6）
+    const totalRooms = realRooms.length > 0
+      ? realRooms.reduce((s: number, r: any) => s + (r.room_count ?? 1), 0)
+      : rts.reduce((s: number, r: any) => s + (r.room_count ?? 1), 0);
+
+    // 最少人數：取自真實房間的最小 capacity（如雙人房 = 2，但包棟通常從最小房型一間起算）
+    // 此處使用「真實房間數」作為最少包棟人數（每間 1 人保底），或最小房型 capacity，取較大者
+    const minRealCapacity = realRooms.length > 0
+      ? Math.min(...realRooms.map((r: any) => r.capacity))
+      : Math.min(...rts.map((r: any) => r.capacity));
+    const minCapacity = realRooms.length > 0 ? totalRooms : minRealCapacity;
+
+    // 最大人數：包棟方案的最大 capacity，或所有真實房間 capacity 加總
+    const maxFromVilla = villaPlans.length > 0
+      ? Math.max(...villaPlans.map((r: any) => r.capacity))
+      : 0;
+    const maxFromReal = realRooms.reduce(
       (s: number, r: any) => s + r.capacity * (r.room_count ?? 1),
       0
     );
-    const totalSize = rts.reduce(
+    const maxCapacity = Math.max(maxFromVilla, maxFromReal);
+
+    const totalSize = realRooms.reduce(
       (s: number, r: any) => s + (r.size_sqm || 0) * (r.room_count ?? 1),
       0
     );
