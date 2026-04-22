@@ -360,6 +360,7 @@ const BookingVilla = () => {
             roomTypes={secondaryData?.roomTypes || []}
             onSelect={handleSelectOption}
             nights={nights}
+            checkIn={checkIn}
           />
         </section>
 
