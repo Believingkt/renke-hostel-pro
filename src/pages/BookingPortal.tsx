@@ -569,7 +569,7 @@ const BookingPortal = () => {
     if (checkIn) params.set("checkIn", format(checkIn, "yyyy-MM-dd"));
     if (checkOut) params.set("checkOut", format(checkOut, "yyyy-MM-dd"));
     const qs = params.toString();
-    navigate(`/booking/${accId}${qs ? `?${qs}` : ""}`);
+    navigate(`/booking/villa/${accId}${qs ? `?${qs}` : ""}`);
   };
 
   const clearFilters = () => {
