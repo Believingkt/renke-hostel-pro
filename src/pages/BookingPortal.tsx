@@ -77,6 +77,7 @@ const BookingPortal = () => {
   const [accommodations, setAccommodations] = useState<AccommodationInfo[]>([]);
   const [roomTypes, setRoomTypes] = useState<RoomTypeResult[]>([]);
   const [facilities, setFacilities] = useState<FacilityRow[]>([]);
+  const [extraBedByAcc, setExtraBedByAcc] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
