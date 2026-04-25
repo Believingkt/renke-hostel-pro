@@ -14,6 +14,85 @@ import {
 import { ChartContainer } from "@/components/ui/chart";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
+type SeriesKey = "接單" | "住宿" | "營收";
+
+const SERIES_COLORS: Record<SeriesKey, string> = {
+  接單: "hsl(25, 90%, 55%)",
+  住宿: "hsl(210, 75%, 55%)",
+  營收: "hsl(var(--muted-foreground))",
+};
+
+interface TrendsTooltipProps {
+  active?: boolean;
+  payload?: any[];
+  label?: string;
+  visibility: Record<SeriesKey, boolean>;
+  baselineSource: BookingTrendsChartProps['baselineSource'];
+}
+
+const TrendsTooltip = ({ active, payload, label, visibility, baselineSource }: TrendsTooltipProps) => {
+  if (!active || !payload || payload.length === 0) return null;
+  const datum = payload[0]?.payload as BookingTrendsChartDatum | undefined;
+  if (!datum) return null;
+
+  const baselineLabelText =
+    baselineSource === 'lastYear' ? '去年月均'
+    : baselineSource === 'recent3Months' ? '近3個月月均'
+    : '基準線';
+
+  return (
+    <div className="bg-popover/95 backdrop-blur-sm border border-border rounded-lg shadow-lg p-3 min-w-[200px] text-sm">
+      <div className="flex items-center justify-between mb-2 pb-2 border-b border-border">
+        <span className="font-semibold text-foreground">{label}</span>
+        {datum.isFuture && (
+          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">未來</span>
+        )}
+      </div>
+      <div className="space-y-1.5">
+        {visibility.接單 && (
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: SERIES_COLORS.接單 }} />
+              <span className="text-muted-foreground">接單</span>
+            </div>
+            <span className="font-semibold text-foreground">{datum.接單} 筆</span>
+          </div>
+        )}
+        {visibility.住宿 && (
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: SERIES_COLORS.住宿 }} />
+              <span className="text-muted-foreground">住宿</span>
+            </div>
+            <span className="font-semibold text-foreground">{datum.住宿} 筆</span>
+          </div>
+        )}
+        {visibility.營收 && (
+          <div className="flex items-center justify-between gap-4 pt-1.5 border-t border-border/60">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: SERIES_COLORS.營收 }} />
+              <span className="text-muted-foreground">接單金額</span>
+            </div>
+            <span className="font-semibold text-foreground">NT$ {datum.營收.toLocaleString()}</span>
+          </div>
+        )}
+        {datum.接單 > 0 && visibility.營收 && (
+          <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground">
+            <span>平均單價</span>
+            <span>NT$ {Math.round(datum.營收 / datum.接單).toLocaleString()}</span>
+          </div>
+        )}
+        {datum.baseline > 0 && (visibility.接單 || visibility.住宿) && (
+          <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground pt-1.5 border-t border-border/60">
+            <span>{baselineLabelText}</span>
+            <span>{datum.baseline.toFixed(1)} 筆</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export interface BookingTrendsChartDatum {
   month: string;
   接單: number;
@@ -45,6 +124,16 @@ export const BookingTrendsChart = ({
   const hasData = data.some(d => (d.接單 || 0) > 0 || (d.住宿 || 0) > 0 || (d.營收 || 0) > 0);
   const baseline = data[0]?.baseline ?? 0;
 
+  const [visibility, setVisibility] = useState<Record<SeriesKey, boolean>>({
+    接單: true,
+    住宿: true,
+    營收: showRevenue,
+  });
+
+  const toggle = (key: SeriesKey) => {
+    setVisibility(v => ({ ...v, [key]: !v[key] }));
+  };
+
   if (!hasData) {
     return (
       <div className="flex items-center justify-center h-[260px] text-muted-foreground">
@@ -57,9 +146,9 @@ export const BookingTrendsChart = ({
   }
 
   const chartConfig = {
-    接單: { label: "接單", color: "hsl(25, 90%, 55%)" },
-    住宿: { label: "住宿", color: "hsl(210, 75%, 55%)" },
-    營收: { label: "營收", color: "hsl(var(--muted-foreground))" },
+    接單: { label: "接單", color: SERIES_COLORS.接單 },
+    住宿: { label: "住宿", color: SERIES_COLORS.住宿 },
+    營收: { label: "營收", color: SERIES_COLORS.營收 },
   } as const;
 
   const formatRevenue = (v: number) => {
@@ -102,31 +191,37 @@ export const BookingTrendsChart = ({
             )}
             <Tooltip
               cursor={{ stroke: 'hsl(var(--muted))', strokeWidth: 1, strokeDasharray: '3 3' }}
-              contentStyle={{
-                backgroundColor: 'hsl(var(--popover))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: 8,
-                fontSize: 12,
-              }}
-              formatter={(value: number, name: string) => {
-                if (name === '營收') return [`NT$ ${value.toLocaleString()}`, name];
-                return [`${value} 筆`, name];
-              }}
+              content={<TrendsTooltip visibility={visibility} baselineSource={baselineSource} />}
             />
             <Legend
-              wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
+              wrapperStyle={{ fontSize: 11, paddingTop: 4, cursor: 'pointer' }}
               iconType="circle"
+              onClick={(e: any) => {
+                const key = e?.dataKey as SeriesKey | undefined;
+                if (key && key in visibility) toggle(key);
+              }}
+              formatter={(value: string) => {
+                const key = value as SeriesKey;
+                const active = visibility[key];
+                return (
+                  <span style={{ color: active ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))', opacity: active ? 1 : 0.5 }}>
+                    {value}
+                  </span>
+                );
+              }}
             />
             {showRevenue && (
               <Bar
                 yAxisId="right"
                 dataKey="營收"
+                name="營收"
                 fill="hsl(var(--muted-foreground)/0.18)"
                 radius={[4, 4, 0, 0]}
                 barSize={14}
+                hide={!visibility.營收}
               />
             )}
-            {baseline > 0 && (
+            {baseline > 0 && (visibility.接單 || visibility.住宿) && (
               <ReferenceLine
                 yAxisId="left"
                 y={baseline}
@@ -144,8 +239,10 @@ export const BookingTrendsChart = ({
               yAxisId="left"
               type="monotone"
               dataKey="接單"
-              stroke="hsl(25, 90%, 55%)"
+              name="接單"
+              stroke={SERIES_COLORS.接單}
               strokeWidth={2.5}
+              hide={!visibility.接單}
               dot={(props: any) => {
                 const { cx, cy, payload, index } = props;
                 return (
@@ -155,7 +252,7 @@ export const BookingTrendsChart = ({
                     cy={cy}
                     r={4}
                     fill="hsl(var(--background))"
-                    stroke="hsl(25, 90%, 55%)"
+                    stroke={SERIES_COLORS.接單}
                     strokeWidth={2}
                     opacity={payload.isFuture ? 0.3 : 1}
                     style={{ cursor: 'pointer' }}
@@ -170,8 +267,10 @@ export const BookingTrendsChart = ({
               yAxisId="left"
               type="monotone"
               dataKey="住宿"
-              stroke="hsl(210, 75%, 55%)"
+              name="住宿"
+              stroke={SERIES_COLORS.住宿}
               strokeWidth={2.5}
+              hide={!visibility.住宿}
               dot={(props: any) => {
                 const { cx, cy, payload, index } = props;
                 return (
@@ -181,7 +280,7 @@ export const BookingTrendsChart = ({
                     cy={cy}
                     r={4}
                     fill="hsl(var(--background))"
-                    stroke="hsl(210, 75%, 55%)"
+                    stroke={SERIES_COLORS.住宿}
                     strokeWidth={2}
                     opacity={payload.isFuture ? 0.3 : 1}
                     style={{ cursor: 'pointer' }}
