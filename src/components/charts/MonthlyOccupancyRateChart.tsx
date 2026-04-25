@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
 import { ChartContainer } from "@/components/ui/chart";
-import { Button } from "@/components/ui/button";
-import { DollarSign } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface MonthlyOccupancyRateChartProps {
   data: Array<{
