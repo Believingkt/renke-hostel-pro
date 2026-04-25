@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
+import { ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import { ChartContainer } from "@/components/ui/chart";
-import { cn } from "@/lib/utils";
 
 interface MonthlyOccupancyRateChartProps {
   data: Array<{
@@ -102,54 +101,30 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
     revenue: { label: "營收", color: COLORS.revenue },
   };
 
-  const legendItems: Array<{ key: SeriesKey; label: string; color: string; shape: "line" | "bar" }> = [
-    { key: "thisYear", label: "今年", color: COLORS.thisYear, shape: "line" },
-    { key: "lastYear", label: "去年", color: COLORS.lastYear, shape: "line" },
-    { key: "revenue", label: "營收", color: COLORS.revenue, shape: "bar" },
-  ];
+  const dataKeyToSeries: Record<string, SeriesKey> = {
+    occupancyRate: "thisYear",
+    lastYearOccupancyRate: "lastYear",
+    revenue: "revenue",
+  };
 
   return (
     <div className="animate-fade-in">
-      <div className="flex flex-wrap justify-end gap-1.5 mb-2">
-        {legendItems.map(item => {
-          const active = visible[item.key];
-          return (
-            <button
-              key={item.key}
-              type="button"
-              onClick={() => toggle(item.key)}
-              className={cn(
-                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs transition-colors",
-                active
-                  ? "bg-secondary border-border text-foreground"
-                  : "bg-transparent border-border/60 text-muted-foreground line-through opacity-60 hover:opacity-100"
-              )}
-              aria-pressed={active}
-            >
-              <span
-                className={cn("inline-block", item.shape === "bar" ? "w-2.5 h-2.5 rounded-sm" : "w-2.5 h-2.5 rounded-full")}
-                style={{ backgroundColor: item.color }}
-              />
-              {item.label}
-            </button>
-          );
-        })}
-      </div>
-      <ChartContainer config={chartConfig} className="h-[180px] sm:h-[220px] md:h-[260px] w-full">
+      <ChartContainer config={chartConfig} className="h-[200px] sm:h-[240px] md:h-[280px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={data} margin={{ top: 10, right: visible.revenue ? 12 : 10, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" vertical={false} />
+          <ComposedChart data={data} margin={{ top: 10, right: visible.revenue ? 12 : 8, left: -8, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-muted/50" vertical={false} />
             <XAxis
               dataKey="month"
-              tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+              tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
               axisLine={false}
               tickLine={false}
+              height={28}
             />
             <YAxis
               yAxisId="left"
-              width={45}
+              width={40}
               tickFormatter={(value) => `${value}%`}
-              tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+              tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
               axisLine={false}
               tickLine={false}
               domain={[0, 100]}
@@ -169,38 +144,54 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
               content={<OccTooltip showRevenue={visible.revenue} />}
               cursor={{ stroke: 'hsl(var(--muted))', strokeWidth: 1, strokeDasharray: '3 3' }}
             />
-            {visible.revenue && (
-              <Bar
-                yAxisId="right"
-                dataKey="revenue"
-                name="營收"
-                fill="hsl(210, 80%, 55%, 0.25)"
-                radius={[4, 4, 0, 0]}
-                barSize={14}
-              />
-            )}
-            {visible.lastYear && (
-              <Line
-                yAxisId="left"
-                type="monotone"
-                dataKey="lastYearOccupancyRate"
-                stroke={COLORS.lastYear}
-                strokeWidth={2}
-                dot={{ r: 5, fill: "hsl(var(--background))", stroke: COLORS.lastYear, strokeWidth: 2 }}
-                activeDot={{ r: 7 }}
-              />
-            )}
-            {visible.thisYear && (
-              <Line
-                yAxisId="left"
-                type="monotone"
-                dataKey="occupancyRate"
-                stroke={COLORS.thisYear}
-                strokeWidth={2.5}
-                dot={{ r: 5, fill: "hsl(var(--background))", stroke: COLORS.thisYear, strokeWidth: 2 }}
-                activeDot={{ r: 7 }}
-              />
-            )}
+            <Legend
+              wrapperStyle={{ fontSize: 11, paddingTop: 4, cursor: 'pointer' }}
+              iconType="circle"
+              onClick={(e: any) => {
+                const key = dataKeyToSeries[e?.dataKey as string];
+                if (key) toggle(key);
+              }}
+              formatter={(value: string, entry: any) => {
+                const key = dataKeyToSeries[entry?.dataKey as string];
+                const active = key ? visible[key] : true;
+                return (
+                  <span style={{ color: active ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))', opacity: active ? 1 : 0.5 }}>
+                    {value}
+                  </span>
+                );
+              }}
+            />
+            <Bar
+              yAxisId="right"
+              dataKey="revenue"
+              name="營收"
+              fill="hsl(210, 80%, 55%, 0.25)"
+              radius={[4, 4, 0, 0]}
+              barSize={14}
+              hide={!visible.revenue}
+            />
+            <Line
+              yAxisId="left"
+              type="monotone"
+              dataKey="lastYearOccupancyRate"
+              name="去年"
+              stroke={COLORS.lastYear}
+              strokeWidth={2}
+              dot={{ r: 4, fill: "hsl(var(--background))", stroke: COLORS.lastYear, strokeWidth: 2 }}
+              activeDot={{ r: 6 }}
+              hide={!visible.lastYear}
+            />
+            <Line
+              yAxisId="left"
+              type="monotone"
+              dataKey="occupancyRate"
+              name="今年"
+              stroke={COLORS.thisYear}
+              strokeWidth={2.5}
+              dot={{ r: 4, fill: "hsl(var(--background))", stroke: COLORS.thisYear, strokeWidth: 2 }}
+              activeDot={{ r: 6 }}
+              hide={!visible.thisYear}
+            />
           </ComposedChart>
         </ResponsiveContainer>
       </ChartContainer>
