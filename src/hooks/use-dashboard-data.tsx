@@ -567,7 +567,7 @@ const fetchDashboardData = async (
       month: monthLabel,
       接單: bookingPlacedByMonth.get(monthKey) || 0,
       住宿: bookingCountByMonth.get(monthKey) || 0,
-      營收: Math.round(revenueByMonth.get(monthKey) || 0),
+      營收: Math.round(revenueByOrderMonth.get(monthKey) || 0),
       baseline: 0,
       isFuture,
     });
