@@ -619,6 +619,7 @@ const fetchDashboardData = async (
     bookingTrendsBaselineSource: baselineSource,
     occupancyData,
     monthlyOccupancyRate,
+    monthlyAveragePrice,
   };
 };
 
