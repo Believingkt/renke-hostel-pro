@@ -374,11 +374,30 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       let totalPrice = 0;
       const updatedSelections = [...roomSelections];
 
+      const isWeekendDate = (d: Date) => {
+        if (d.getDay() === 6) return true;
+        return publicHolidays.includes(format(d, "yyyy-MM-dd"));
+      };
+
       for (const sel of updatedSelections) {
         const template = pricingTemplates.find(t => t.id === sel.template_id);
         let selPrice = 0;
 
-        if (template && template.price != null && template.price > 0) {
+        const hasTemplateWeekdayWeekend = template
+          && ((template.weekday_price != null && template.weekday_price > 0)
+            || (template.weekend_price != null && template.weekend_price > 0));
+
+        if (hasTemplateWeekdayWeekend) {
+          const weekdayPrice = template!.weekday_price ?? template!.price ?? 0;
+          const weekendPrice = template!.weekend_price ?? template!.price ?? weekdayPrice;
+          let perRoom = 0;
+          for (let i = 0; i < nights; i++) {
+            const d = new Date(start);
+            d.setDate(start.getDate() + i);
+            perRoom += isWeekendDate(d) ? weekendPrice : weekdayPrice;
+          }
+          selPrice = perRoom * sel.quantity;
+        } else if (template && template.price != null && template.price > 0) {
           selPrice = template.price * nights * sel.quantity;
         } else {
           let priceColumn = 'price';
