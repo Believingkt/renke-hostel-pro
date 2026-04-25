@@ -124,6 +124,16 @@ export const BookingTrendsChart = ({
   const hasData = data.some(d => (d.接單 || 0) > 0 || (d.住宿 || 0) > 0 || (d.營收 || 0) > 0);
   const baseline = data[0]?.baseline ?? 0;
 
+  const [visibility, setVisibility] = useState<Record<SeriesKey, boolean>>({
+    接單: true,
+    住宿: true,
+    營收: showRevenue,
+  });
+
+  const toggle = (key: SeriesKey) => {
+    setVisibility(v => ({ ...v, [key]: !v[key] }));
+  };
+
   if (!hasData) {
     return (
       <div className="flex items-center justify-center h-[260px] text-muted-foreground">
@@ -136,78 +146,15 @@ export const BookingTrendsChart = ({
   }
 
   const chartConfig = {
-    接單: { label: "接單", color: "hsl(25, 90%, 55%)" },
-    住宿: { label: "住宿", color: "hsl(210, 75%, 55%)" },
-    營收: { label: "營收", color: "hsl(var(--muted-foreground))" },
+    接單: { label: "接單", color: SERIES_COLORS.接單 },
+    住宿: { label: "住宿", color: SERIES_COLORS.住宿 },
+    營收: { label: "營收", color: SERIES_COLORS.營收 },
   } as const;
 
   const formatRevenue = (v: number) => {
     if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
     if (v >= 1_000) return `${Math.round(v / 1000)}k`;
     return `${v}`;
-  };
-
-  return (
-    <>
-      <ChartContainer config={chartConfig} className="h-[220px] sm:h-[260px] md:h-[300px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={data} margin={{ top: 10, right: showRevenue ? 12 : 8, left: -8, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted/50" vertical={false} />
-            <XAxis
-              dataKey="month"
-              tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-              axisLine={false}
-              tickLine={false}
-              height={28}
-            />
-            <YAxis
-              yAxisId="left"
-              width={36}
-              tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-              axisLine={false}
-              tickLine={false}
-              allowDecimals={false}
-            />
-            {showRevenue && (
-              <YAxis
-                yAxisId="right"
-                orientation="right"
-                width={42}
-                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                axisLine={false}
-                tickLine={false}
-                tickFormatter={formatRevenue}
-              />
-            )}
-            <Tooltip
-              cursor={{ stroke: 'hsl(var(--muted))', strokeWidth: 1, strokeDasharray: '3 3' }}
-              contentStyle={{
-                backgroundColor: 'hsl(var(--popover))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: 8,
-                fontSize: 12,
-              }}
-              formatter={(value: number, name: string) => {
-                if (name === '營收') return [`NT$ ${value.toLocaleString()}`, name];
-                return [`${value} 筆`, name];
-              }}
-            />
-            <Legend
-              wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
-              iconType="circle"
-            />
-            {showRevenue && (
-              <Bar
-                yAxisId="right"
-                dataKey="營收"
-  const [visibility, setVisibility] = useState<Record<SeriesKey, boolean>>({
-    接單: true,
-    住宿: true,
-    營收: showRevenue,
-  });
-
-  const toggle = (key: SeriesKey) => {
-    setVisibility(v => ({ ...v, [key]: !v[key] }));
   };
 
   return (
