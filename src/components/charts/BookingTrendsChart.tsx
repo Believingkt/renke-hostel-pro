@@ -98,6 +98,7 @@ export interface BookingTrendsChartDatum {
   接單: number;
   住宿: number;
   營收: number;
+  接單金額: number;
   baseline: number;
   isFuture?: boolean;
 }

@@ -35,6 +35,7 @@ export interface BookingTrendsPoint {
   接單: number;
   住宿: number;
   營收: number;
+  接單金額: number;
   baseline: number;
   isFuture?: boolean;
 }
@@ -568,6 +569,7 @@ const fetchDashboardData = async (
       接單: bookingPlacedByMonth.get(monthKey) || 0,
       住宿: bookingCountByMonth.get(monthKey) || 0,
       營收: Math.round(revenueByMonth.get(monthKey) || 0),
+      接單金額: Math.round(revenueByOrderMonth.get(monthKey) || 0),
       baseline: 0,
       isFuture,
     });
