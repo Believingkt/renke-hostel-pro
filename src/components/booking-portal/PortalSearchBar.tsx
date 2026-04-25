@@ -78,11 +78,9 @@ const PortalSearchBar = ({
     return mobileValue || desktopValue || searchQuery.trim();
   };
 
-  const hasDestination = useMemo(
-    () => getDestinationValue().length > 0 || searchQuery.trim().length > 0,
-    [searchQuery]
-  );
-  const dateGateActive = !hasDestination;
+  // Destination is now optional — never gate the date pickers.
+  const hasDestination = true;
+  const dateGateActive = false;
 
   const handleDatePopoverOpenChange = (
     nextOpen: boolean,
@@ -128,14 +126,12 @@ const PortalSearchBar = ({
 
   const checkInDisabled = (date: Date) => {
     if (date < today) return true;
-    if (!hasDestination) return true;
     return isDateUnavailable(date);
   };
 
   const checkOutDisabled = (date: Date) => {
     const minDate = checkIn ? addDays(checkIn, 1) : addDays(today, 1);
     if (date < minDate) return true;
-    if (!hasDestination) return true;
     if (!availableDateSet) return false;
 
     if (checkIn && isStayRangeAvailable) {
@@ -236,10 +232,10 @@ const PortalSearchBar = ({
       <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl p-3 sm:p-4 md:p-6">
         {/* Desktop: horizontal row */}
         <div className="hidden md:flex gap-4 items-end">
-          {/* Destination */}
+          {/* Destination (optional) */}
           <div className="flex-1 text-left">
             <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
-              目的地 <span className="text-destructive">*</span>
+              目的地 <span className="text-muted-foreground/70 text-xs">（選填）</span>
             </label>
             <div className="relative">
               <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
@@ -384,7 +380,7 @@ const PortalSearchBar = ({
             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
             <Input
               ref={mobileDestinationInputRef}
-              placeholder="城市、地區或民宿名稱（必填）"
+              placeholder="城市、地區或民宿名稱（選填）"
               className="!pl-10 h-11 border-border text-foreground text-base"
               value={searchQuery}
               onChange={(e) => onSearchQueryChange(e.target.value)}

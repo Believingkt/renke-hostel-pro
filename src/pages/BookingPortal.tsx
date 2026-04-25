@@ -82,14 +82,25 @@ const BookingPortal = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [memberName, setMemberName] = useState("");
-  const [checkIn, setCheckIn] = useState<Date | undefined>();
-  const [checkOut, setCheckOut] = useState<Date | undefined>();
+  const tomorrow = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + 1);
+    return d;
+  }, []);
+  const dayAfterTomorrow = useMemo(() => {
+    const d = new Date(tomorrow);
+    d.setDate(d.getDate() + 1);
+    return d;
+  }, [tomorrow]);
+  const [checkIn, setCheckIn] = useState<Date | undefined>(tomorrow);
+  const [checkOut, setCheckOut] = useState<Date | undefined>(dayAfterTomorrow);
   const [searching, setSearching] = useState(false);
-  const [adults, setAdults] = useState(2);
+  const [adults, setAdults] = useState(12);
   const [children, setChildren] = useState(0);
-  const [rooms, setRooms] = useState(1);
+  const [rooms, setRooms] = useState(6);
   const [hasSearched, setHasSearched] = useState(false);
-  const [heroMode, setHeroMode] = useState<"search" | "ai">("search");
+  const [heroMode, setHeroMode] = useState<"search" | "ai">("ai");
   const [filters, setFilters] = useState<RoomFilters>({
     sortBy: "default",
     minCapacity: 0,
