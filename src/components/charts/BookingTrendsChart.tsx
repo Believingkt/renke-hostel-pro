@@ -71,7 +71,7 @@ const TrendsTooltip = ({ active, payload, label, visibility, baselineSource }: T
           <div className="flex items-center justify-between gap-4 pt-1.5 border-t border-border/60">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: SERIES_COLORS.營收 }} />
-              <span className="text-muted-foreground">接單金額</span>
+              <span className="text-muted-foreground">營收（按住宿日分攤）</span>
             </div>
             <span className="font-semibold text-foreground">NT$ {datum.營收.toLocaleString()}</span>
           </div>
