@@ -322,6 +322,27 @@ const Dashboard = () => {
         )}
       </div>
 
+      {/* 圖表顯示切換 */}
+      {!isLoading && (
+        <div className="flex flex-wrap items-center gap-2 px-2 md:px-0">
+          <span className="text-xs text-muted-foreground mr-1">顯示圖表：</span>
+          {(Object.keys(CHART_LABELS) as ChartKey[]).map((key) => {
+            const active = chartVisibility[key];
+            return (
+              <Button
+                key={key}
+                variant={active ? "secondary" : "outline"}
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => toggleChart(key)}
+              >
+                {CHART_LABELS[key]}
+              </Button>
+            );
+          })}
+        </div>
+      )}
+
       {/* 圖表區域 - 手機垂直堆疊，平板以上 2x2 排列 */}
       <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 px-2 md:px-0">
         {isLoading ? (
@@ -334,6 +355,7 @@ const Dashboard = () => {
         ) : (
           <>
             {/* 接單 & 住宿趨勢 */}
+            {chartVisibility.trends && (
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-2">
@@ -358,8 +380,10 @@ const Dashboard = () => {
                 />
               </CardContent>
             </Card>
+            )}
 
             {/* 營收統計 */}
+            {chartVisibility.revenue && (
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-2">
@@ -383,8 +407,10 @@ const Dashboard = () => {
                 />
               </CardContent>
             </Card>
+            )}
 
             {/* 住房率 */}
+            {chartVisibility.occupancy && (
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-2">
@@ -392,7 +418,7 @@ const Dashboard = () => {
                     <CardTitle className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
                       住房率
                     </CardTitle>
-                    <p className="text-sm text-muted-foreground font-medium">每月入住率統計</p>
+                    <p className="text-sm text-muted-foreground font-medium">每月入住率統計，可疊加當月營收</p>
                   </div>
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
                     <Hotel className="h-4 w-4 text-emerald-600" />
@@ -403,8 +429,10 @@ const Dashboard = () => {
                 <MonthlyOccupancyRateChart data={monthlyOccupancyRate} />
               </CardContent>
             </Card>
+            )}
 
             {/* 平均房價 */}
+            {chartVisibility.avgPrice && (
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-2">
@@ -423,6 +451,7 @@ const Dashboard = () => {
                 <MonthlyAveragePriceChart data={monthlyAveragePrice} />
               </CardContent>
             </Card>
+            )}
           </>
         )}
       </div>
