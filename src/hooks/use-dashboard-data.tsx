@@ -192,7 +192,14 @@ const fetchDashboardData = async (
     }
     ordersByMonth.get(monthKey)!.push(order);
   });
-  
+
+  // Bookings placed by month (based on order_date), only revenue-eligible orders
+  const bookingPlacedByMonth = new Map<string, number>();
+  ordersData.forEach(order => {
+    if (!isRevenueEligible(order.order_status)) return;
+    const monthKey = format(new Date(order.order_date), 'yyyy-MM');
+    bookingPlacedByMonth.set(monthKey, (bookingPlacedByMonth.get(monthKey) || 0) + 1);
+  });
   // Stats cards
   const currentMonthStart = startOfMonth(now);
   const lastMonthStart = startOfMonth(subMonths(now, 1));
