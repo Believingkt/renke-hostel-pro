@@ -163,7 +163,7 @@ const PortalSearchBar = ({
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium">兒童</p>
-          <p className="text-sm text-muted-foreground">0–17 歲</p>
+          <p className="text-sm text-muted-foreground">0–6 歲</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" className="h-7 w-7 rounded-full" onClick={() => onChildrenChange(Math.max(0, children - 1))} disabled={children <= 0}>
@@ -247,6 +247,18 @@ const PortalSearchBar = ({
                 onChange={(e) => onSearchQueryChange(e.target.value)}
                 onKeyDown={handleKeyDown}
               />
+            </div>
+            <div className="flex flex-wrap gap-1.5 mt-1.5">
+              {["宜蘭", "南投", "苗栗"].map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => onSearchQueryChange(s)}
+                  className="text-xs px-2.5 py-0.5 rounded-full border border-[hsl(25,70%,55%)]/30 text-[hsl(25,70%,45%)] hover:bg-[hsl(25,70%,55%)]/10 transition-colors"
+                >
+                  {s}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -376,16 +388,30 @@ const PortalSearchBar = ({
         {/* Mobile: compact stacked layout */}
         <div className="flex md:hidden flex-col gap-2.5">
           {/* Destination */}
-          <div className="relative">
-            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
-            <Input
-              ref={mobileDestinationInputRef}
-              placeholder="城市、地區或民宿名稱（選填）"
-              className="!pl-10 h-11 border-border text-foreground text-base"
-              value={searchQuery}
-              onChange={(e) => onSearchQueryChange(e.target.value)}
-              onKeyDown={handleKeyDown}
-            />
+          <div>
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
+              <Input
+                ref={mobileDestinationInputRef}
+                placeholder="城市、地區或民宿名稱（選填）"
+                className="!pl-10 h-11 border-border text-foreground text-base"
+                value={searchQuery}
+                onChange={(e) => onSearchQueryChange(e.target.value)}
+                onKeyDown={handleKeyDown}
+              />
+            </div>
+            <div className="flex flex-wrap gap-1.5 mt-1.5">
+              {["宜蘭", "南投", "苗栗"].map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => onSearchQueryChange(s)}
+                  className="text-xs px-2.5 py-1 rounded-full border border-[hsl(25,70%,55%)]/30 text-[hsl(25,70%,45%)] hover:bg-[hsl(25,70%,55%)]/10 transition-colors"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Dates row */}
