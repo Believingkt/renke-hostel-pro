@@ -1,21 +1,81 @@
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
-import { ChartContainer, ChartTooltip, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
-import { CustomChartTooltip } from "./CustomChartTooltip";
+import { useState } from "react";
+import { ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
+import { ChartContainer } from "@/components/ui/chart";
+import { Button } from "@/components/ui/button";
+import { DollarSign } from "lucide-react";
 
 interface MonthlyOccupancyRateChartProps {
   data: Array<{
     month: string;
     occupancyRate: number;
     lastYearOccupancyRate?: number;
+    revenue?: number;
     isFuture?: boolean;
   }>;
 }
 
+const COLORS = {
+  thisYear: "hsl(142, 80%, 40%)",
+  lastYear: "hsl(0, 0%, 60%)",
+  revenue: "hsl(210, 80%, 55%)",
+};
+
+const formatRevenue = (v: number) => {
+  if (!v) return "0";
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000) return `${Math.round(v / 1000)}k`;
+  return `${v}`;
+};
+
+interface OccTooltipProps {
+  active?: boolean;
+  payload?: any[];
+  label?: string;
+  showRevenue: boolean;
+}
+
+const OccTooltip = ({ active, payload, label, showRevenue }: OccTooltipProps) => {
+  if (!active || !payload || payload.length === 0) return null;
+  const datum = payload[0]?.payload;
+  if (!datum) return null;
+  return (
+    <div className="bg-popover/95 backdrop-blur-sm border border-border rounded-lg shadow-lg p-3 min-w-[180px] text-sm">
+      <div className="font-semibold text-foreground mb-2 pb-2 border-b border-border">{label}</div>
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS.thisYear }} />
+            <span className="text-muted-foreground">今年</span>
+          </div>
+          <span className="font-semibold text-foreground">{datum.occupancyRate}%</span>
+        </div>
+        {datum.lastYearOccupancyRate !== undefined && (
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS.lastYear }} />
+              <span className="text-muted-foreground">去年</span>
+            </div>
+            <span className="font-semibold text-foreground">{datum.lastYearOccupancyRate}%</span>
+          </div>
+        )}
+        {showRevenue && datum.revenue !== undefined && (
+          <div className="flex items-center justify-between gap-4 pt-1.5 border-t border-border/60">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: COLORS.revenue }} />
+              <span className="text-muted-foreground">營收</span>
+            </div>
+            <span className="font-semibold text-foreground">NT$ {Number(datum.revenue).toLocaleString()}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartProps) => {
-  // 檢查是否有實際數據
+  const [showRevenue, setShowRevenue] = useState(false);
   const hasRealData = data.some(d => d.occupancyRate > 0);
 
-  // 如果沒有實際數據，顯示空狀態
   if (!hasRealData) {
     return (
       <div className="flex items-center justify-center h-[180px] sm:h-[220px] md:h-[260px] text-muted-foreground">
@@ -28,147 +88,87 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
   }
 
   const chartConfig = {
-    lastYearOccupancyRate: {
-      label: "去年",
-      color: "hsl(0, 0%, 60%)",
-    },
-    occupancyRate: {
-      label: "今年",
-      color: "hsl(142, 80%, 40%)",
-    },
+    occupancyRate: { label: "今年", color: COLORS.thisYear },
+    lastYearOccupancyRate: { label: "去年", color: COLORS.lastYear },
+    revenue: { label: "營收", color: COLORS.revenue },
   };
 
   return (
     <div className="animate-fade-in">
+      <div className="flex justify-end mb-2">
+        <Button
+          variant={showRevenue ? "secondary" : "outline"}
+          size="sm"
+          className="h-7 text-xs gap-1"
+          onClick={() => setShowRevenue(v => !v)}
+        >
+          <DollarSign className="h-3 w-3" />
+          {showRevenue ? "隱藏營收" : "顯示營收"}
+        </Button>
+      </div>
       <ChartContainer config={chartConfig} className="h-[180px] sm:h-[220px] md:h-[260px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart 
-            data={data}
-            margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-          >
-            <CartesianGrid 
-              strokeDasharray="3 3" 
-              className="stroke-muted/30" 
-              vertical={false}
-            />
-            <XAxis 
+          <ComposedChart data={data} margin={{ top: 10, right: showRevenue ? 12 : 10, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" vertical={false} />
+            <XAxis
               dataKey="month"
-              className="text-xs"
               tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
+              yAxisId="left"
               width={45}
               tickFormatter={(value) => `${value}%`}
-              className="text-xs"
               tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
               axisLine={false}
               tickLine={false}
               domain={[0, 100]}
             />
-            <ChartTooltip 
-              content={
-                <CustomChartTooltip 
-                  valueFormatter={(value: number) => `${value}%`}
-                  comparisonMode="lastYear"
-                  chartConfig={chartConfig}
-                />
-              }
-              cursor={{ 
-                stroke: 'hsl(var(--muted))', 
-                strokeWidth: 1,
-                strokeDasharray: '3 3'
-              }}
-              animationDuration={200}
-              animationEasing="ease-out"
+            {showRevenue && (
+              <YAxis
+                yAxisId="right"
+                orientation="right"
+                width={42}
+                tickFormatter={formatRevenue}
+                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                axisLine={false}
+                tickLine={false}
+              />
+            )}
+            <Tooltip
+              content={<OccTooltip showRevenue={showRevenue} />}
+              cursor={{ stroke: 'hsl(var(--muted))', strokeWidth: 1, strokeDasharray: '3 3' }}
             />
-            <ChartLegend content={<ChartLegendContent />} />
-            
-            {/* 去年同期 - 實線 */}
+            {showRevenue && (
+              <Bar
+                yAxisId="right"
+                dataKey="revenue"
+                name="營收"
+                fill="hsl(210, 80%, 55%, 0.25)"
+                radius={[4, 4, 0, 0]}
+                barSize={14}
+              />
+            )}
             <Line
+              yAxisId="left"
               type="monotone"
               dataKey="lastYearOccupancyRate"
-              stroke="hsl(0, 0%, 60%)"
+              stroke={COLORS.lastYear}
               strokeWidth={2}
-              dot={(props: any) => {
-                const { cx, cy } = props;
-                return (
-                  <circle
-                    cx={cx}
-                    cy={cy}
-                    r={6}
-                    fill="hsl(0, 0%, 100%)"
-                    fillOpacity={1}
-                    stroke="hsl(0, 0%, 60%)"
-                    strokeWidth={2}
-                    className="hover:scale-125 transition-transform duration-200"
-                  />
-                );
-              }}
-              activeDot={(props: any) => {
-                const { cx, cy } = props;
-                return (
-                  <circle
-                    cx={cx}
-                    cy={cy}
-                    r={9}
-                    fill="hsl(0, 0%, 100%)"
-                    fillOpacity={1}
-                    stroke="hsl(0, 0%, 60%)"
-                    strokeWidth={2}
-                    className="animate-scale-in"
-                  />
-                );
-              }}
-              animationDuration={2000}
-              animationBegin={0}
-              isAnimationActive={true}
-              animationEasing="ease-in-out"
+              dot={{ r: 5, fill: "hsl(var(--background))", stroke: COLORS.lastYear, strokeWidth: 2 }}
+              activeDot={{ r: 7 }}
             />
-            
-            {/* 今年 - 實線 */}
             <Line
+              yAxisId="left"
               type="monotone"
               dataKey="occupancyRate"
-              stroke="hsl(142, 80%, 40%)"
-              strokeWidth={2}
-              dot={(props: any) => {
-                const { cx, cy } = props;
-                return (
-                  <circle
-                    cx={cx}
-                    cy={cy}
-                    r={6}
-                    fill="hsl(0, 0%, 100%)"
-                    fillOpacity={1}
-                    stroke="hsl(142, 80%, 40%)"
-                    strokeWidth={2}
-                    className="hover:scale-125 transition-transform duration-200"
-                  />
-                );
-              }}
-              activeDot={(props: any) => {
-                const { cx, cy } = props;
-                return (
-                  <circle
-                    cx={cx}
-                    cy={cy}
-                    r={9}
-                    fill="hsl(0, 0%, 100%)"
-                    fillOpacity={1}
-                    stroke="hsl(142, 80%, 40%)"
-                    strokeWidth={2}
-                    className="animate-scale-in"
-                  />
-                );
-              }}
-              animationDuration={2000}
-              animationBegin={0}
-              isAnimationActive={true}
-              animationEasing="ease-in-out"
+              stroke={COLORS.thisYear}
+              strokeWidth={2.5}
+              dot={{ r: 5, fill: "hsl(var(--background))", stroke: COLORS.thisYear, strokeWidth: 2 }}
+              activeDot={{ r: 7 }}
             />
-          </LineChart>
+          </ComposedChart>
         </ResponsiveContainer>
       </ChartContainer>
     </div>
