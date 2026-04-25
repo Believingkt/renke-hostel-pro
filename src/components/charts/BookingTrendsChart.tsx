@@ -58,6 +58,18 @@ const TrendsTooltip = ({ active, payload, label, visibility, baselineSource }: T
             <span className="font-semibold text-foreground">{datum.接單} 筆</span>
           </div>
         )}
+        {visibility.接單 && datum.接單 > 0 && (
+          <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground pl-4">
+            <span>接單金額</span>
+            <span>NT$ {datum.接單金額.toLocaleString()}</span>
+          </div>
+        )}
+        {visibility.接單 && datum.接單 > 0 && (
+          <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground pl-4">
+            <span>平均單價</span>
+            <span>NT$ {Math.round(datum.接單金額 / datum.接單).toLocaleString()}</span>
+          </div>
+        )}
         {visibility.住宿 && (
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
@@ -74,12 +86,6 @@ const TrendsTooltip = ({ active, payload, label, visibility, baselineSource }: T
               <span className="text-muted-foreground">營收（按住宿日分攤）</span>
             </div>
             <span className="font-semibold text-foreground">NT$ {datum.營收.toLocaleString()}</span>
-          </div>
-        )}
-        {datum.接單 > 0 && visibility.營收 && (
-          <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground">
-            <span>平均單價</span>
-            <span>NT$ {Math.round(datum.營收 / datum.接單).toLocaleString()}</span>
           </div>
         )}
         {datum.baseline > 0 && (visibility.接單 || visibility.住宿) && (
