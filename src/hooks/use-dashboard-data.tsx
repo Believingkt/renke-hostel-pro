@@ -30,6 +30,15 @@ interface ChartData {
   isFuture?: boolean;
 }
 
+export interface BookingTrendsPoint {
+  month: string;
+  接單: number;
+  住宿: number;
+  營收: number;
+  baseline: number;
+  isFuture?: boolean;
+}
+
 interface OccupancyData {
   month: string;
   [roomTypeName: string]: number | string;
