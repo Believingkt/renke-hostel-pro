@@ -14,6 +14,85 @@ import {
 import { ChartContainer } from "@/components/ui/chart";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
+type SeriesKey = "接單" | "住宿" | "營收";
+
+const SERIES_COLORS: Record<SeriesKey, string> = {
+  接單: "hsl(25, 90%, 55%)",
+  住宿: "hsl(210, 75%, 55%)",
+  營收: "hsl(var(--muted-foreground))",
+};
+
+interface TrendsTooltipProps {
+  active?: boolean;
+  payload?: any[];
+  label?: string;
+  visibility: Record<SeriesKey, boolean>;
+  baselineSource: BookingTrendsChartProps['baselineSource'];
+}
+
+const TrendsTooltip = ({ active, payload, label, visibility, baselineSource }: TrendsTooltipProps) => {
+  if (!active || !payload || payload.length === 0) return null;
+  const datum = payload[0]?.payload as BookingTrendsChartDatum | undefined;
+  if (!datum) return null;
+
+  const baselineLabelText =
+    baselineSource === 'lastYear' ? '去年月均'
+    : baselineSource === 'recent3Months' ? '近3個月月均'
+    : '基準線';
+
+  return (
+    <div className="bg-popover/95 backdrop-blur-sm border border-border rounded-lg shadow-lg p-3 min-w-[200px] text-sm">
+      <div className="flex items-center justify-between mb-2 pb-2 border-b border-border">
+        <span className="font-semibold text-foreground">{label}</span>
+        {datum.isFuture && (
+          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">未來</span>
+        )}
+      </div>
+      <div className="space-y-1.5">
+        {visibility.接單 && (
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: SERIES_COLORS.接單 }} />
+              <span className="text-muted-foreground">接單</span>
+            </div>
+            <span className="font-semibold text-foreground">{datum.接單} 筆</span>
+          </div>
+        )}
+        {visibility.住宿 && (
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: SERIES_COLORS.住宿 }} />
+              <span className="text-muted-foreground">住宿</span>
+            </div>
+            <span className="font-semibold text-foreground">{datum.住宿} 筆</span>
+          </div>
+        )}
+        {visibility.營收 && (
+          <div className="flex items-center justify-between gap-4 pt-1.5 border-t border-border/60">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: SERIES_COLORS.營收 }} />
+              <span className="text-muted-foreground">接單金額</span>
+            </div>
+            <span className="font-semibold text-foreground">NT$ {datum.營收.toLocaleString()}</span>
+          </div>
+        )}
+        {datum.接單 > 0 && visibility.營收 && (
+          <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground">
+            <span>平均單價</span>
+            <span>NT$ {Math.round(datum.營收 / datum.接單).toLocaleString()}</span>
+          </div>
+        )}
+        {datum.baseline > 0 && (visibility.接單 || visibility.住宿) && (
+          <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground pt-1.5 border-t border-border/60">
+            <span>{baselineLabelText}</span>
+            <span>{datum.baseline.toFixed(1)} 筆</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export interface BookingTrendsChartDatum {
   month: string;
   接單: number;
