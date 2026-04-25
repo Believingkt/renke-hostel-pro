@@ -33,6 +33,15 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
+type ChartKey = 'trends' | 'revenue' | 'occupancy' | 'avgPrice';
+const CHART_LABELS: Record<ChartKey, string> = {
+  trends: '接單 & 住宿趨勢',
+  revenue: '營收統計',
+  occupancy: '住房率',
+  avgPrice: '平均房價',
+};
+const VISIBILITY_KEY = 'dashboard-chart-visibility';
+
 const Dashboard = () => {
   const { currentAccommodationId: accommodationId } = useAccommodation();
   const isMobile = useIsMobile();
@@ -40,6 +49,21 @@ const Dashboard = () => {
   const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [chartVisibility, setChartVisibility] = useState<Record<ChartKey, boolean>>(() => {
+    try {
+      const raw = localStorage.getItem(VISIBILITY_KEY);
+      if (raw) return { trends: true, revenue: true, occupancy: true, avgPrice: true, ...JSON.parse(raw) };
+    } catch {}
+    return { trends: true, revenue: true, occupancy: true, avgPrice: true };
+  });
+
+  const toggleChart = (key: ChartKey) => {
+    setChartVisibility(prev => {
+      const next = { ...prev, [key]: !prev[key] };
+      try { localStorage.setItem(VISIBILITY_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
   
   // 使用 React Query hook 獲取儀表板資料
   const { 
