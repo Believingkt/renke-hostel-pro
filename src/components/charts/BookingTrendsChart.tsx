@@ -200,12 +200,81 @@ export const BookingTrendsChart = ({
               <Bar
                 yAxisId="right"
                 dataKey="營收"
+  const [visibility, setVisibility] = useState<Record<SeriesKey, boolean>>({
+    接單: true,
+    住宿: true,
+    營收: showRevenue,
+  });
+
+  const toggle = (key: SeriesKey) => {
+    setVisibility(v => ({ ...v, [key]: !v[key] }));
+  };
+
+  return (
+    <>
+      <ChartContainer config={chartConfig} className="h-[220px] sm:h-[260px] md:h-[300px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={data} margin={{ top: 10, right: showRevenue ? 12 : 8, left: -8, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-muted/50" vertical={false} />
+            <XAxis
+              dataKey="month"
+              tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+              axisLine={false}
+              tickLine={false}
+              height={28}
+            />
+            <YAxis
+              yAxisId="left"
+              width={36}
+              tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+              axisLine={false}
+              tickLine={false}
+              allowDecimals={false}
+            />
+            {showRevenue && (
+              <YAxis
+                yAxisId="right"
+                orientation="right"
+                width={42}
+                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={formatRevenue}
+              />
+            )}
+            <Tooltip
+              cursor={{ stroke: 'hsl(var(--muted))', strokeWidth: 1, strokeDasharray: '3 3' }}
+              content={<TrendsTooltip visibility={visibility} baselineSource={baselineSource} />}
+            />
+            <Legend
+              wrapperStyle={{ fontSize: 11, paddingTop: 4, cursor: 'pointer' }}
+              iconType="circle"
+              onClick={(e: any) => {
+                const key = e?.dataKey as SeriesKey | undefined;
+                if (key && key in visibility) toggle(key);
+              }}
+              formatter={(value: string) => {
+                const key = value as SeriesKey;
+                const active = visibility[key];
+                return (
+                  <span style={{ color: active ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))', opacity: active ? 1 : 0.5 }}>
+                    {value}
+                  </span>
+                );
+              }}
+            />
+            {showRevenue && (
+              <Bar
+                yAxisId="right"
+                dataKey="營收"
+                name="營收"
                 fill="hsl(var(--muted-foreground)/0.18)"
                 radius={[4, 4, 0, 0]}
                 barSize={14}
+                hide={!visibility.營收}
               />
             )}
-            {baseline > 0 && (
+            {baseline > 0 && (visibility.接單 || visibility.住宿) && (
               <ReferenceLine
                 yAxisId="left"
                 y={baseline}
@@ -223,8 +292,10 @@ export const BookingTrendsChart = ({
               yAxisId="left"
               type="monotone"
               dataKey="接單"
-              stroke="hsl(25, 90%, 55%)"
+              name="接單"
+              stroke={SERIES_COLORS.接單}
               strokeWidth={2.5}
+              hide={!visibility.接單}
               dot={(props: any) => {
                 const { cx, cy, payload, index } = props;
                 return (
@@ -234,7 +305,7 @@ export const BookingTrendsChart = ({
                     cy={cy}
                     r={4}
                     fill="hsl(var(--background))"
-                    stroke="hsl(25, 90%, 55%)"
+                    stroke={SERIES_COLORS.接單}
                     strokeWidth={2}
                     opacity={payload.isFuture ? 0.3 : 1}
                     style={{ cursor: 'pointer' }}
@@ -249,8 +320,10 @@ export const BookingTrendsChart = ({
               yAxisId="left"
               type="monotone"
               dataKey="住宿"
-              stroke="hsl(210, 75%, 55%)"
+              name="住宿"
+              stroke={SERIES_COLORS.住宿}
               strokeWidth={2.5}
+              hide={!visibility.住宿}
               dot={(props: any) => {
                 const { cx, cy, payload, index } = props;
                 return (
@@ -260,7 +333,7 @@ export const BookingTrendsChart = ({
                     cy={cy}
                     r={4}
                     fill="hsl(var(--background))"
-                    stroke="hsl(210, 75%, 55%)"
+                    stroke={SERIES_COLORS.住宿}
                     strokeWidth={2}
                     opacity={payload.isFuture ? 0.3 : 1}
                     style={{ cursor: 'pointer' }}
