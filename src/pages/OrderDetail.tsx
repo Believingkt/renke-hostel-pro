@@ -1750,9 +1750,10 @@ const OrderDetailPage = () => {
               </>
             )}
             {(() => {
-              const displayTotal = orderRooms.length > 0
-                ? orderRooms.reduce((sum, r) => sum + r.room_price, 0)
-                : order.total_price;
+              const savedRoomsTotal = orderRooms.reduce((sum, r) => sum + r.room_price, 0);
+              const displayTotal = orderRooms.length === 1 && order.total_price > 0 && savedRoomsTotal !== order.total_price
+                ? order.total_price
+                : (orderRooms.length > 0 ? savedRoomsTotal : order.total_price);
               // 編輯模式始終顯示；檢視模式下僅在無 orderRooms 或多房型時顯示原始金額
               const showInViewMode = orderRooms.length !== 1;
               if (!isEditing && !showInViewMode) return null;
