@@ -1733,14 +1733,20 @@ const OrderDetailPage = () => {
             {/* Multi-room price breakdown */}
             {orderRooms.length > 0 && !isEditing && (
               <>
-                {orderRooms.map((or) => (
-                  <div key={or.id} className="flex justify-between items-center gap-2">
-                    <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">
-                      {or.room_types?.name || "房型"} × {or.quantity} 間
-                    </span>
-                    <span className="font-medium text-base md:text-base">NT$ {or.room_price.toLocaleString()}</span>
-                  </div>
-                ))}
+                {orderRooms.map((or) => {
+                  const savedRoomsTotal = orderRooms.reduce((sum, r) => sum + r.room_price, 0);
+                  const displayRoomPrice = orderRooms.length === 1 && order.total_price > 0 && savedRoomsTotal !== order.total_price
+                    ? order.total_price
+                    : or.room_price;
+                  return (
+                    <div key={or.id} className="flex justify-between items-center gap-2">
+                      <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">
+                        {or.room_types?.name || "房型"} × {or.quantity} 間
+                      </span>
+                      <span className="font-medium text-base md:text-base">NT$ {displayRoomPrice.toLocaleString()}</span>
+                    </div>
+                  );
+                })}
               </>
             )}
             {(() => {
