@@ -552,6 +552,55 @@ const fetchDashboardData = async (
     occupancyData.push(monthDataPoint);
   }
   
+  // Build Booking Trends data: 接單 (by order_date) vs 住宿 (by stay date) per month for selectedYear
+  const trendsYear = selectedYear || now.getFullYear();
+  const bookingTrendsRaw: BookingTrendsPoint[] = [];
+  for (let month = 0; month < 12; month++) {
+    const monthDate = new Date(trendsYear, month, 1);
+    const monthKey = format(monthDate, 'yyyy-MM');
+    const monthLabel = format(monthDate, 'MM月');
+    const isFuture = trendsYear === now.getFullYear() && month > now.getMonth();
+    bookingTrendsRaw.push({
+      month: monthLabel,
+      接單: bookingPlacedByMonth.get(monthKey) || 0,
+      住宿: bookingCountByMonth.get(monthKey) || 0,
+      營收: Math.round(revenueByMonth.get(monthKey) || 0),
+      baseline: 0,
+      isFuture,
+    });
+  }
+
+  // Baseline: prefer last full year average of 接單; fallback to last 3 months (with data) average
+  let baselineSource: 'lastYear' | 'recent3Months' | 'none' = 'none';
+  let baseline = 0;
+  const lastYearKeys: string[] = [];
+  for (let m = 0; m < 12; m++) {
+    lastYearKeys.push(format(new Date(trendsYear - 1, m, 1), 'yyyy-MM'));
+  }
+  const lastYearValues = lastYearKeys.map(k => bookingPlacedByMonth.get(k) || 0);
+  const lastYearTotal = lastYearValues.reduce((a, b) => a + b, 0);
+  if (lastYearTotal > 0) {
+    baseline = lastYearTotal / 12;
+    baselineSource = 'lastYear';
+  } else {
+    // Fallback: average of last 3 completed months with data (relative to "now")
+    const recentMonthKeys: string[] = [];
+    for (let i = 1; i <= 3; i++) {
+      recentMonthKeys.push(format(subMonths(now, i), 'yyyy-MM'));
+    }
+    const recentValues = recentMonthKeys
+      .map(k => bookingPlacedByMonth.get(k) || 0)
+      .filter(v => v > 0);
+    if (recentValues.length > 0) {
+      baseline = recentValues.reduce((a, b) => a + b, 0) / recentValues.length;
+      baselineSource = 'recent3Months';
+    }
+  }
+  const bookingTrendsData = bookingTrendsRaw.map(p => ({
+    ...p,
+    baseline: Math.round(baseline * 10) / 10,
+  }));
+
   const finalStats = {
     totalRooms: DAILY_ROOM_CAP,
     monthlyBookings: Number.isFinite(monthlyBookingCount) ? monthlyBookingCount : 0,
@@ -566,9 +615,10 @@ const fetchDashboardData = async (
     stats: finalStats,
     revenueData,
     bookingData,
+    bookingTrendsData,
+    bookingTrendsBaselineSource: baselineSource,
     occupancyData,
     monthlyOccupancyRate,
-    monthlyAveragePrice,
   };
 };
 
