@@ -51,6 +51,7 @@ interface MonthlyMetrics {
   lastYearOccupancyRate?: number;
   averagePrice: number;
   lastYearAveragePrice?: number;
+  revenue?: number;
   isFuture?: boolean;
 }
 
@@ -533,6 +534,7 @@ const fetchDashboardData = async (
       occupancyRate: Math.min(100, overallOccupancyRate),
       lastYearOccupancyRate: Math.min(100, lastYearOverallOccupancyRate),
       averagePrice: 0,
+      revenue: Math.round(revenueByMonth.get(monthKey) || 0),
       isFuture: isFutureMonth,
     });
     
