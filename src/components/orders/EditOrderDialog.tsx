@@ -334,7 +334,21 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
     const selectedTemplate = pricingTemplates.find(t => t.id === selectedTemplateId)
       || filteredTemplates.find(t => t.id === selectedTemplateId);
 
-    if (selectedTemplate && selectedTemplate.price != null && selectedTemplate.price > 0) {
+    const hasTemplateWeekdayWeekend = selectedTemplate
+      && ((selectedTemplate.weekday_price != null && selectedTemplate.weekday_price > 0)
+        || (selectedTemplate.weekend_price != null && selectedTemplate.weekend_price > 0));
+
+    if (hasTemplateWeekdayWeekend) {
+      // Use template weekday/weekend prices per night
+      const start = new Date(editForm.check_in_date);
+      const weekdayPrice = selectedTemplate!.weekday_price ?? selectedTemplate!.price ?? 0;
+      const weekendPrice = selectedTemplate!.weekend_price ?? selectedTemplate!.price ?? weekdayPrice;
+      for (let i = 0; i < nights; i++) {
+        const currentDate = new Date(start);
+        currentDate.setDate(start.getDate() + i);
+        total += isWeekend(currentDate) ? weekendPrice : weekdayPrice;
+      }
+    } else if (selectedTemplate && selectedTemplate.price != null && selectedTemplate.price > 0) {
       total = selectedTemplate.price * nights;
     } else {
       // Fallback: sum inventory prices based on template meal type
