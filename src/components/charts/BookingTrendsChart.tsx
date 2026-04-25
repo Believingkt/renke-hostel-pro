@@ -319,7 +319,7 @@ export const BookingTrendsChart = ({
                 </div>
               </div>
               <div className="pt-3 border-t">
-                <p className="text-sm text-muted-foreground">當月接單金額</p>
+                <p className="text-sm text-muted-foreground">當月營收（按住宿日分攤）</p>
                 <p className="text-xl font-semibold">NT$ {selected.營收.toLocaleString()}</p>
               </div>
               {selected.baseline > 0 && (
