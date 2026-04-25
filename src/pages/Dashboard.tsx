@@ -23,6 +23,7 @@ import { RevenueChart } from "@/components/charts/RevenueChart";
 import { BookingTrendsChart } from "@/components/charts/BookingTrendsChart";
 import { MonthlyOccupancyRateChart } from "@/components/charts/MonthlyOccupancyRateChart";
 import { MonthlyAveragePriceChart } from "@/components/charts/MonthlyAveragePriceChart";
+import { ChartErrorBoundary } from "@/components/charts/ChartErrorBoundary";
 import { PageHeader } from "@/components/PageHeader";
 import {
   Breadcrumb,
@@ -426,7 +427,9 @@ const Dashboard = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <MonthlyOccupancyRateChart data={monthlyOccupancyRate} />
+                <ChartErrorBoundary>
+                  <MonthlyOccupancyRateChart data={monthlyOccupancyRate} />
+                </ChartErrorBoundary>
               </CardContent>
             </Card>
             )}
