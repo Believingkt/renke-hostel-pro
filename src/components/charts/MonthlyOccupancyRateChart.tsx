@@ -129,17 +129,16 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
               tickLine={false}
               domain={[0, 100]}
             />
-            {visible.revenue && (
-              <YAxis
-                yAxisId="right"
-                orientation="right"
-                width={42}
-                tickFormatter={formatRevenue}
-                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                axisLine={false}
-                tickLine={false}
-              />
-            )}
+            <YAxis
+              yAxisId="right"
+              orientation="right"
+              width={visible.revenue ? 42 : 0}
+              tickFormatter={formatRevenue}
+              tick={visible.revenue ? { fontSize: 10, fill: 'hsl(var(--muted-foreground))' } : false}
+              axisLine={false}
+              tickLine={false}
+              hide={!visible.revenue}
+            />
             <Tooltip
               content={<OccTooltip showRevenue={visible.revenue} />}
               cursor={{ stroke: 'hsl(var(--muted))', strokeWidth: 1, strokeDasharray: '3 3' }}
