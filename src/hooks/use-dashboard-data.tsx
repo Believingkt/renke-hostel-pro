@@ -57,6 +57,8 @@ interface DashboardData {
   stats: DashboardStats;
   revenueData: ChartData[];
   bookingData: ChartData[];
+  bookingTrendsData: BookingTrendsPoint[];
+  bookingTrendsBaselineSource: 'lastYear' | 'recent3Months' | 'none';
   occupancyData: OccupancyData[];
   monthlyOccupancyRate: MonthlyMetrics[];
   monthlyAveragePrice: MonthlyMetrics[];
