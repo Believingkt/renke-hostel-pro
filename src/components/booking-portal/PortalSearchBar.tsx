@@ -163,7 +163,7 @@ const PortalSearchBar = ({
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium">兒童</p>
-          <p className="text-sm text-muted-foreground">0–17 歲</p>
+          <p className="text-sm text-muted-foreground">0–6 歲</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" className="h-7 w-7 rounded-full" onClick={() => onChildrenChange(Math.max(0, children - 1))} disabled={children <= 0}>
