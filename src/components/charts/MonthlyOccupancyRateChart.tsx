@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
+import { ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import { ChartContainer } from "@/components/ui/chart";
-import { cn } from "@/lib/utils";
 
 interface MonthlyOccupancyRateChartProps {
   data: Array<{
