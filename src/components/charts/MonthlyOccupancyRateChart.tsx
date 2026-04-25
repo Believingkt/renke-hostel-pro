@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
 import { ChartContainer } from "@/components/ui/chart";
-import { Button } from "@/components/ui/button";
-import { DollarSign } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface MonthlyOccupancyRateChartProps {
   data: Array<{
@@ -72,8 +71,18 @@ const OccTooltip = ({ active, payload, label, showRevenue }: OccTooltipProps) =>
   );
 };
 
+type SeriesKey = "thisYear" | "lastYear" | "revenue";
+
 export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartProps) => {
-  const [showRevenue, setShowRevenue] = useState(false);
+  const [visible, setVisible] = useState<Record<SeriesKey, boolean>>({
+    thisYear: true,
+    lastYear: true,
+    revenue: false,
+  });
+
+  const toggle = (key: SeriesKey) =>
+    setVisible(v => ({ ...v, [key]: !v[key] }));
+
   const hasRealData = data.some(d => d.occupancyRate > 0);
 
   if (!hasRealData) {
@@ -93,22 +102,42 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
     revenue: { label: "營收", color: COLORS.revenue },
   };
 
+  const legendItems: Array<{ key: SeriesKey; label: string; color: string; shape: "line" | "bar" }> = [
+    { key: "thisYear", label: "今年", color: COLORS.thisYear, shape: "line" },
+    { key: "lastYear", label: "去年", color: COLORS.lastYear, shape: "line" },
+    { key: "revenue", label: "營收", color: COLORS.revenue, shape: "bar" },
+  ];
+
   return (
     <div className="animate-fade-in">
-      <div className="flex justify-end mb-2">
-        <Button
-          variant={showRevenue ? "secondary" : "outline"}
-          size="sm"
-          className="h-7 text-xs gap-1"
-          onClick={() => setShowRevenue(v => !v)}
-        >
-          <DollarSign className="h-3 w-3" />
-          {showRevenue ? "隱藏營收" : "顯示營收"}
-        </Button>
+      <div className="flex flex-wrap justify-end gap-1.5 mb-2">
+        {legendItems.map(item => {
+          const active = visible[item.key];
+          return (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => toggle(item.key)}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs transition-colors",
+                active
+                  ? "bg-secondary border-border text-foreground"
+                  : "bg-transparent border-border/60 text-muted-foreground line-through opacity-60 hover:opacity-100"
+              )}
+              aria-pressed={active}
+            >
+              <span
+                className={cn("inline-block", item.shape === "bar" ? "w-2.5 h-2.5 rounded-sm" : "w-2.5 h-2.5 rounded-full")}
+                style={{ backgroundColor: item.color }}
+              />
+              {item.label}
+            </button>
+          );
+        })}
       </div>
       <ChartContainer config={chartConfig} className="h-[180px] sm:h-[220px] md:h-[260px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={data} margin={{ top: 10, right: showRevenue ? 12 : 10, left: 0, bottom: 0 }}>
+          <ComposedChart data={data} margin={{ top: 10, right: visible.revenue ? 12 : 10, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" vertical={false} />
             <XAxis
               dataKey="month"
@@ -125,7 +154,7 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
               tickLine={false}
               domain={[0, 100]}
             />
-            {showRevenue && (
+            {visible.revenue && (
               <YAxis
                 yAxisId="right"
                 orientation="right"
@@ -137,10 +166,10 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
               />
             )}
             <Tooltip
-              content={<OccTooltip showRevenue={showRevenue} />}
+              content={<OccTooltip showRevenue={visible.revenue} />}
               cursor={{ stroke: 'hsl(var(--muted))', strokeWidth: 1, strokeDasharray: '3 3' }}
             />
-            {showRevenue && (
+            {visible.revenue && (
               <Bar
                 yAxisId="right"
                 dataKey="revenue"
@@ -150,24 +179,28 @@ export const MonthlyOccupancyRateChart = ({ data }: MonthlyOccupancyRateChartPro
                 barSize={14}
               />
             )}
-            <Line
-              yAxisId="left"
-              type="monotone"
-              dataKey="lastYearOccupancyRate"
-              stroke={COLORS.lastYear}
-              strokeWidth={2}
-              dot={{ r: 5, fill: "hsl(var(--background))", stroke: COLORS.lastYear, strokeWidth: 2 }}
-              activeDot={{ r: 7 }}
-            />
-            <Line
-              yAxisId="left"
-              type="monotone"
-              dataKey="occupancyRate"
-              stroke={COLORS.thisYear}
-              strokeWidth={2.5}
-              dot={{ r: 5, fill: "hsl(var(--background))", stroke: COLORS.thisYear, strokeWidth: 2 }}
-              activeDot={{ r: 7 }}
-            />
+            {visible.lastYear && (
+              <Line
+                yAxisId="left"
+                type="monotone"
+                dataKey="lastYearOccupancyRate"
+                stroke={COLORS.lastYear}
+                strokeWidth={2}
+                dot={{ r: 5, fill: "hsl(var(--background))", stroke: COLORS.lastYear, strokeWidth: 2 }}
+                activeDot={{ r: 7 }}
+              />
+            )}
+            {visible.thisYear && (
+              <Line
+                yAxisId="left"
+                type="monotone"
+                dataKey="occupancyRate"
+                stroke={COLORS.thisYear}
+                strokeWidth={2.5}
+                dot={{ r: 5, fill: "hsl(var(--background))", stroke: COLORS.thisYear, strokeWidth: 2 }}
+                activeDot={{ r: 7 }}
+              />
+            )}
           </ComposedChart>
         </ResponsiveContainer>
       </ChartContainer>
