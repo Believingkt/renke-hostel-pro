@@ -1854,10 +1854,10 @@ const OrderDetailPage = () => {
             {(() => {
               const customAddons = (order.custom_addon_details as CustomAddonDetail[]) || [];
               const addonTotal = order.pet_plan_price + order.meal_plan_total + customAddons.reduce((sum, d) => sum + d.total, 0);
-              // Use order_rooms total if available, otherwise fallback to stored total_price
-              const effectiveTotalPrice = orderRooms.length > 0
-                ? orderRooms.reduce((sum, r) => sum + r.room_price, 0)
-                : order.total_price;
+              const savedRoomsTotal = orderRooms.reduce((sum, r) => sum + r.room_price, 0);
+              const effectiveTotalPrice = orderRooms.length === 1 && order.total_price > 0 && savedRoomsTotal !== order.total_price
+                ? order.total_price
+                : (orderRooms.length > 0 ? savedRoomsTotal : order.total_price);
               // 判斷 total_price 是否已包含加購
               const storedFinalWithoutAddon = effectiveTotalPrice - order.discount_amount;
               const addonAlreadyIncluded = addonTotal > 0 && Math.abs(order.final_price - (storedFinalWithoutAddon + addonTotal)) < 10;
