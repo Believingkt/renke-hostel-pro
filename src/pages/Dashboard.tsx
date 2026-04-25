@@ -309,15 +309,17 @@ const Dashboard = () => {
           </>
         ) : (
           <>
-            {/* 訂單趨勢 */}
+            {/* 接單 & 住宿趨勢 */}
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="space-y-1">
                     <CardTitle className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-                      訂單趨勢
+                      接單 & 住宿趨勢
                     </CardTitle>
-                    <p className="text-sm text-muted-foreground font-medium">每月總訂單數</p>
+                    <p className="text-sm text-muted-foreground font-medium">
+                      接單以成交日期、住宿以入住日期計算，並疊加當月營收
+                    </p>
                   </div>
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10">
                     <Calendar className="h-4 w-4 text-blue-600" />
@@ -326,10 +328,9 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 <BookingTrendsChart 
-                  key="booking-lastYear-standard"
-                  data={finalBookingData}
-                  comparisonMode="lastYear"
-                  isCustomRange={false}
+                  data={dashboardData?.bookingTrendsData || []}
+                  baselineSource={dashboardData?.bookingTrendsBaselineSource || 'none'}
+                  showRevenue
                 />
               </CardContent>
             </Card>

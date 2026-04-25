@@ -1,241 +1,234 @@
 import { useState } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
-import { ChartContainer, ChartTooltip, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
+import {
+  ComposedChart,
+  Line,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer,
+  ReferenceLine,
+  Tooltip,
+  Legend,
+} from "recharts";
+import { ChartContainer } from "@/components/ui/chart";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { CustomChartTooltip } from "./CustomChartTooltip";
 
-interface BookingTrendsChartProps {
-  data: Array<{
-    month: string;
-    今年?: number;
-    去年?: number;
-    本月?: number;
-    上月?: number;
-    本期?: number;
-    isFuture?: boolean;
-  }>;
-  comparisonMode: 'lastYear' | 'lastMonth';
-  isCustomRange?: boolean;
+export interface BookingTrendsChartDatum {
+  month: string;
+  接單: number;
+  住宿: number;
+  營收: number;
+  baseline: number;
+  isFuture?: boolean;
 }
 
-export const BookingTrendsChart = ({ data, comparisonMode, isCustomRange }: BookingTrendsChartProps) => {
-  const [selectedData, setSelectedData] = useState<any>(null);
-  
-  // 根據比較模式決定顯示的資料欄位
-  const categories = isCustomRange 
-    ? ['本期']
-    : comparisonMode === 'lastYear' 
-      ? ['去年', '今年'] 
-      : ['本月', '上月'];
+interface BookingTrendsChartProps {
+  data: BookingTrendsChartDatum[];
+  baselineSource: 'lastYear' | 'recent3Months' | 'none';
+  showRevenue?: boolean;
+}
 
-  // 檢查是否有實際數據
-  const hasRealData = data.some(d => 
-    categories.some(cat => (d[cat as keyof typeof d] as number || 0) > 0)
-  );
+const baselineLabel = (source: BookingTrendsChartProps['baselineSource']) => {
+  if (source === 'lastYear') return '去年月均';
+  if (source === 'recent3Months') return '近 3 個月月均';
+  return '基準線';
+};
 
-  // 如果沒有實際數據，顯示空狀態
-  if (!hasRealData) {
+export const BookingTrendsChart = ({
+  data,
+  baselineSource,
+  showRevenue = true,
+}: BookingTrendsChartProps) => {
+  const [selected, setSelected] = useState<BookingTrendsChartDatum | null>(null);
+
+  const hasData = data.some(d => (d.接單 || 0) > 0 || (d.住宿 || 0) > 0 || (d.營收 || 0) > 0);
+  const baseline = data[0]?.baseline ?? 0;
+
+  if (!hasData) {
     return (
-      <div className="flex items-center justify-center h-[320px] text-muted-foreground">
+      <div className="flex items-center justify-center h-[260px] text-muted-foreground">
         <div className="text-center">
-          <p className="text-sm">暫無訂單數據</p>
-          <p className="text-xs mt-1">請新增訂單後查看統計</p>
+          <p className="text-sm">暫無訂單資料</p>
+          <p className="text-xs mt-1">建立訂單後將顯示接單與住宿趨勢</p>
         </div>
       </div>
     );
   }
 
-  const chartConfig = isCustomRange ? {
-    本期: {
-      label: "本期",
-      color: "hsl(var(--chart-booking-primary))",
-    },
-  } : comparisonMode === 'lastYear' ? {
-    去年: {
-      label: "去年",
-      color: "hsl(0, 0%, 60%)",
-    },
-    今年: {
-      label: "今年",
-      color: "hsl(25, 90%, 60%)",
-    },
-  } : {
-    上月: {
-      label: "上月",
-      color: "hsl(var(--chart-booking-secondary))",
-    },
-    本月: {
-      label: "本月",
-      color: "hsl(var(--chart-booking-primary))",
-    },
-  };
+  const chartConfig = {
+    接單: { label: "接單", color: "hsl(25, 90%, 55%)" },
+    住宿: { label: "住宿", color: "hsl(210, 75%, 55%)" },
+    營收: { label: "營收", color: "hsl(var(--muted-foreground))" },
+  } as const;
 
-  const handleDotClick = (data: any) => {
-    setSelectedData(data);
+  const formatRevenue = (v: number) => {
+    if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+    if (v >= 1_000) return `${Math.round(v / 1000)}k`;
+    return `${v}`;
   };
 
   return (
     <>
-      <div key={`booking-chart-${comparisonMode}`}>
-        <ChartContainer config={chartConfig} className="h-[180px] sm:h-[220px] md:h-[260px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart 
-              data={data} 
-              margin={{ 
-                top: 5, 
-                right: 10, 
-                left: -5, 
-                bottom: 5 
+      <ChartContainer config={chartConfig} className="h-[220px] sm:h-[260px] md:h-[300px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={data} margin={{ top: 10, right: showRevenue ? 12 : 8, left: -8, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-muted/50" vertical={false} />
+            <XAxis
+              dataKey="month"
+              tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+              axisLine={false}
+              tickLine={false}
+              height={28}
+            />
+            <YAxis
+              yAxisId="left"
+              width={36}
+              tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+              axisLine={false}
+              tickLine={false}
+              allowDecimals={false}
+            />
+            {showRevenue && (
+              <YAxis
+                yAxisId="right"
+                orientation="right"
+                width={42}
+                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={formatRevenue}
+              />
+            )}
+            <Tooltip
+              cursor={{ stroke: 'hsl(var(--muted))', strokeWidth: 1, strokeDasharray: '3 3' }}
+              contentStyle={{
+                backgroundColor: 'hsl(var(--popover))',
+                border: '1px solid hsl(var(--border))',
+                borderRadius: 8,
+                fontSize: 12,
               }}
-            >
-              <defs>
-                {categories.map((category, index) => {
-                  const color = index === 0 ? "hsl(0, 0%, 60%)" : "hsl(25, 90%, 60%)";
-                  return (
-                    <linearGradient key={`gradient-${category}`} id={`gradient-${category}`} x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={color} stopOpacity={0.1}/>
-                      <stop offset="95%" stopColor={color} stopOpacity={0}/>
-                    </linearGradient>
-                  );
-                })}
-              </defs>
-              <CartesianGrid 
-                strokeDasharray="3 3" 
-                className="stroke-muted/50" 
-                vertical={false}
+              formatter={(value: number, name: string) => {
+                if (name === '營收') return [`NT$ ${value.toLocaleString()}`, name];
+                return [`${value} 筆`, name];
+              }}
+            />
+            <Legend
+              wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
+              iconType="circle"
+            />
+            {showRevenue && (
+              <Bar
+                yAxisId="right"
+                dataKey="營收"
+                fill="hsl(var(--muted-foreground)/0.18)"
+                radius={[4, 4, 0, 0]}
+                barSize={14}
               />
-              <XAxis 
-                dataKey="month" 
-                className="text-[9px] sm:text-[10px]"
-                tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }}
-                height={30}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis 
-                width={40}
-                tickFormatter={(value) => `${value}`}
-                className="text-[9px] sm:text-[10px]"
-                tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <ChartTooltip 
-                content={
-                  <CustomChartTooltip 
-                    valueFormatter={(value: number) => `${value} 筆`}
-                    comparisonMode={comparisonMode}
-                    isCustomRange={isCustomRange}
-                  />
-                }
-                cursor={{ 
-                  stroke: 'hsl(var(--muted))', 
-                  strokeWidth: 1,
-                  strokeDasharray: '3 3'
+            )}
+            {baseline > 0 && (
+              <ReferenceLine
+                yAxisId="left"
+                y={baseline}
+                stroke="hsl(var(--muted-foreground))"
+                strokeDasharray="4 4"
+                label={{
+                  value: `${baselineLabel(baselineSource)} ${baseline.toFixed(1)} 筆`,
+                  position: 'insideTopRight',
+                  fill: 'hsl(var(--muted-foreground))',
+                  fontSize: 10,
                 }}
-                animationDuration={200}
-                animationEasing="ease-out"
               />
-              {!isCustomRange && <ChartLegend content={<ChartLegendContent />} />}
-              {categories.map((category, index) => (
-                <Line
-                  key={category}
-                  type="monotone"
-                  dataKey={category}
-                  stroke={index === 0 ? "hsl(0, 0%, 60%)" : "hsl(25, 90%, 60%)"}
-                  strokeWidth={2}
-                  fill={`url(#gradient-${category})`}
-                  dot={(props: any) => {
-                    const { cx, cy, payload } = props;
-                    return (
-                    <circle
-                      cx={cx}
-                      cy={cy}
-                      r={6}
-                      fill="hsl(var(--background))"
-                      stroke={index === 0 ? "hsl(0, 0%, 60%)" : "hsl(25, 90%, 60%)"}
-                      strokeWidth={2}
-                      opacity={payload.isFuture ? 0.3 : 1}
-                      style={{ cursor: 'pointer', touchAction: 'none' }}
-                      className="hover:scale-125 transition-transform duration-200"
-                      onClick={() => handleDotClick(payload)}
-                    />
-                    );
-                  }}
-                  activeDot={(props: any) => {
-                    const { cx, cy, payload } = props;
-                    return (
-                      <g>
-                        <circle
-                          cx={cx}
-                          cy={cy}
-                          r={13}
-                          fill={index === 0 ? "hsl(var(--chart-booking-secondary))" : "hsl(var(--chart-booking-primary))"}
-                          opacity={0.1}
-                          className="animate-scale-in"
-                        />
-                        <circle
-                          cx={cx}
-                          cy={cy}
-                          r={9}
-                          fill="hsl(var(--background))"
-                          stroke={index === 0 ? "hsl(0, 0%, 60%)" : "hsl(25, 90%, 60%)"}
-                          strokeWidth={2}
-                          opacity={payload.isFuture ? 0.3 : 1}
-                          style={{ cursor: 'pointer', touchAction: 'none' }}
-                          onClick={() => handleDotClick(payload)}
-                          className="animate-scale-in"
-                        />
-                      </g>
-                    );
-                  }}
-                  connectNulls
-                  animationDuration={2000}
-                  animationBegin={0}
-                  isAnimationActive={true}
-                  animationEasing="ease-in-out"
-                />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
-        </ChartContainer>
-      </div>
+            )}
+            <Line
+              yAxisId="left"
+              type="monotone"
+              dataKey="接單"
+              stroke="hsl(25, 90%, 55%)"
+              strokeWidth={2.5}
+              dot={(props: any) => {
+                const { cx, cy, payload, index } = props;
+                return (
+                  <circle
+                    key={`dot-接單-${index}`}
+                    cx={cx}
+                    cy={cy}
+                    r={4}
+                    fill="hsl(var(--background))"
+                    stroke="hsl(25, 90%, 55%)"
+                    strokeWidth={2}
+                    opacity={payload.isFuture ? 0.3 : 1}
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => setSelected(payload)}
+                  />
+                );
+              }}
+              activeDot={{ r: 6 }}
+              connectNulls
+            />
+            <Line
+              yAxisId="left"
+              type="monotone"
+              dataKey="住宿"
+              stroke="hsl(210, 75%, 55%)"
+              strokeWidth={2.5}
+              dot={(props: any) => {
+                const { cx, cy, payload, index } = props;
+                return (
+                  <circle
+                    key={`dot-住宿-${index}`}
+                    cx={cx}
+                    cy={cy}
+                    r={4}
+                    fill="hsl(var(--background))"
+                    stroke="hsl(210, 75%, 55%)"
+                    strokeWidth={2}
+                    opacity={payload.isFuture ? 0.3 : 1}
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => setSelected(payload)}
+                  />
+                );
+              }}
+              activeDot={{ r: 6 }}
+              connectNulls
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </ChartContainer>
 
-
-      <Dialog open={!!selectedData} onOpenChange={() => setSelectedData(null)}>
+      <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>訂單詳情</DialogTitle>
+            <DialogTitle>{selected?.month} 趨勢明細</DialogTitle>
           </DialogHeader>
-          {selectedData && (
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground">月份</p>
-                <p className="text-lg font-semibold">{selectedData.month}</p>
-              </div>
+          {selected && (
+            <div className="space-y-3">
               <div className="grid grid-cols-2 gap-4">
-                {categories.map((category) => (
-                  <div key={category}>
-                    <p className="text-sm text-muted-foreground">{category}</p>
-                    <p className="text-lg font-semibold">
-                      {selectedData[category] || 0} 筆
-                    </p>
-                  </div>
-                ))}
+                <div>
+                  <p className="text-sm text-muted-foreground">接單筆數</p>
+                  <p className="text-2xl font-semibold" style={{ color: 'hsl(25, 90%, 55%)' }}>
+                    {selected.接單} 筆
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">以成交日期統計</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">住宿筆數</p>
+                  <p className="text-2xl font-semibold" style={{ color: 'hsl(210, 75%, 55%)' }}>
+                    {selected.住宿} 筆
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">以入住日期統計</p>
+                </div>
               </div>
-              {!isCustomRange && categories.length === 2 && (
-                <div className="pt-4 border-t">
-                  <p className="text-sm text-muted-foreground">差異</p>
-                  <p className={`text-lg font-semibold ${
-                    (selectedData[categories[1]] || 0) >= (selectedData[categories[0]] || 0) 
-                      ? 'text-primary' 
-                      : 'text-red-600'
-                  }`}>
-                    {((selectedData[categories[1]] || 0) - (selectedData[categories[0]] || 0)) >= 0 ? '+' : ''}
-                    {(selectedData[categories[1]] || 0) - (selectedData[categories[0]] || 0)} 筆
-                    {selectedData[categories[0]] > 0 && 
-                      ` (${(((selectedData[categories[1]] || 0) / selectedData[categories[0]] - 1) * 100).toFixed(1)}%)`
-                    }
+              <div className="pt-3 border-t">
+                <p className="text-sm text-muted-foreground">當月營收</p>
+                <p className="text-xl font-semibold">NT$ {selected.營收.toLocaleString()}</p>
+              </div>
+              {selected.baseline > 0 && (
+                <div className="pt-3 border-t">
+                  <p className="text-sm text-muted-foreground">{baselineLabel(baselineSource)}</p>
+                  <p className="text-base font-medium">{selected.baseline.toFixed(1)} 筆</p>
+                  <p className={`text-xs mt-1 ${selected.接單 >= selected.baseline ? 'text-emerald-600' : 'text-red-500'}`}>
+                    本月接單 {selected.接單 >= selected.baseline ? '高於' : '低於'}基準 {Math.abs(selected.接單 - selected.baseline).toFixed(1)} 筆
                   </p>
                 </div>
               )}
