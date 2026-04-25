@@ -132,7 +132,6 @@ interface EditOrderRoom {
   unit_price: number;
   template_name: string | null;
 }
-
 interface AddonSetting {
   id: string;
   addon_type: string;
