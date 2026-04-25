@@ -24,9 +24,9 @@ const PortalAIChatPanel = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "您好！我是小安，人客多訂房平台的 AI 管家 😊\n我可以幫您搜尋所有合作民宿的房型、查詢空房與價格，並直接完成訂房！\n請告訴我您的需求。",
+      content: "您好！我是小安，人客多訂房平台的 AI 管家 😊\n\n直接用「說的」最快！點擊下方 🎤 麥克風，告訴我您的需求，例如：\n「我想下週末訂宜蘭可以烤肉的包棟，12 個人」\n我會立即為您搜尋並完成訂房 ✨",
       timestamp: new Date(),
-      quickReplies: ["查看所有民宿", "幫我推薦房型", "查詢空房"],
+      quickReplies: ["🎤 我想用語音", "查看所有民宿", "幫我推薦包棟", "查詢空房"],
     },
   ]);
   const [input, setInput] = useState("");
@@ -165,9 +165,9 @@ const PortalAIChatPanel = () => {
     setMessages([
       {
         role: "assistant",
-        content: "您好！我是小安，人客多訂房平台的 AI 管家 😊\n請告訴我您的需求。",
+        content: "您好！我是小安，人客多訂房平台的 AI 管家 😊\n\n直接用「說的」最快！點擊下方 🎤 麥克風，告訴我您的需求，例如：\n「我想下週末訂宜蘭可以烤肉的包棟，12 個人」\n我會立即為您搜尋並完成訂房 ✨",
         timestamp: new Date(),
-        quickReplies: ["查看所有民宿", "幫我推薦房型", "查詢空房"],
+        quickReplies: ["🎤 我想用語音", "查看所有民宿", "幫我推薦包棟", "查詢空房"],
       },
     ]);
     setInput("");
@@ -279,6 +279,36 @@ const PortalAIChatPanel = () => {
           </div>
         </ScrollArea>
 
+        {/* Voice CTA banner */}
+        <div className="border-t border-border bg-gradient-to-r from-[hsl(25,80%,97%)] to-[hsl(35,85%,96%)] px-3 py-2 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-base">🎤</span>
+            <p className="text-xs sm:text-sm text-foreground/80 truncate">
+              <span className="font-semibold text-[hsl(25,70%,45%)]">用說的更快！</span>
+              <span className="hidden sm:inline"> 點麥克風，告訴小安您的需求</span>
+            </p>
+          </div>
+          <button
+            onClick={handleMicToggle}
+            disabled={isLoading || isTranscribing}
+            className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all shadow-sm ${
+              isRecording
+                ? "bg-red-500 text-white animate-pulse"
+                : "bg-[hsl(25,70%,55%)] text-white hover:bg-[hsl(25,70%,48%)] hover:shadow-md"
+            } disabled:opacity-50`}
+            title={isRecording ? "停止錄音" : "開始說話"}
+          >
+            {isTranscribing ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : isRecording ? (
+              <MicOff className="h-3.5 w-3.5" />
+            ) : (
+              <Mic className="h-3.5 w-3.5" />
+            )}
+            {isRecording ? "停止" : isTranscribing ? "辨識中" : "開始說話"}
+          </button>
+        </div>
+
         {/* Input */}
         <div className="border-t border-border px-3 py-2 flex gap-2 bg-white items-center">
           <Button
@@ -291,7 +321,7 @@ const PortalAIChatPanel = () => {
             <RotateCcw className="h-4 w-4" />
           </Button>
           <Input
-            placeholder="輸入訊息..."
+            placeholder="或直接輸入文字訊息..."
             className="flex-1 !min-h-[40px] !h-10 text-sm border-border text-black placeholder:text-black/50"
             value={input}
             onChange={(e) => setInput(e.target.value)}
