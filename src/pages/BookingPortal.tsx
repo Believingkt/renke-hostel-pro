@@ -723,7 +723,7 @@ const BookingPortal = () => {
               }`}
             >
               <MessageCircle className="h-4 w-4" />
-              AI 管家
+              AI 找房間
             </button>
           </div>
 
