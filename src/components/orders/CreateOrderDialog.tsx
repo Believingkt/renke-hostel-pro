@@ -431,7 +431,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
     calcPrices();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.check_in_date, form.check_out_date, roomSelectionsKey, currentAccommodationId, pricingTemplates]);
+  }, [form.check_in_date, form.check_out_date, roomSelectionsKey, currentAccommodationId, pricingTemplates, publicHolidays]);
 
   // Handle customer name search
   const handleNameChange = useCallback((value: string) => {
