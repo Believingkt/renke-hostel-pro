@@ -58,6 +58,18 @@ const TrendsTooltip = ({ active, payload, label, visibility, baselineSource }: T
             <span className="font-semibold text-foreground">{datum.接單} 筆</span>
           </div>
         )}
+        {visibility.接單 && datum.接單 > 0 && (
+          <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground pl-4">
+            <span>接單金額</span>
+            <span>NT$ {datum.接單金額.toLocaleString()}</span>
+          </div>
+        )}
+        {visibility.接單 && datum.接單 > 0 && (
+          <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground pl-4">
+            <span>平均單價</span>
+            <span>NT$ {Math.round(datum.接單金額 / datum.接單).toLocaleString()}</span>
+          </div>
+        )}
         {visibility.住宿 && (
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
@@ -76,12 +88,6 @@ const TrendsTooltip = ({ active, payload, label, visibility, baselineSource }: T
             <span className="font-semibold text-foreground">NT$ {datum.營收.toLocaleString()}</span>
           </div>
         )}
-        {datum.接單 > 0 && visibility.營收 && (
-          <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground">
-            <span>平均單價</span>
-            <span>NT$ {Math.round(datum.營收 / datum.接單).toLocaleString()}</span>
-          </div>
-        )}
         {datum.baseline > 0 && (visibility.接單 || visibility.住宿) && (
           <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground pt-1.5 border-t border-border/60">
             <span>{baselineLabelText}</span>
@@ -98,6 +104,7 @@ export interface BookingTrendsChartDatum {
   接單: number;
   住宿: number;
   營收: number;
+  接單金額: number;
   baseline: number;
   isFuture?: boolean;
 }
@@ -318,9 +325,15 @@ export const BookingTrendsChart = ({
                   <p className="text-xs text-muted-foreground mt-1">以入住日期統計</p>
                 </div>
               </div>
-              <div className="pt-3 border-t">
-                <p className="text-sm text-muted-foreground">當月營收（按住宿日分攤）</p>
-                <p className="text-xl font-semibold">NT$ {selected.營收.toLocaleString()}</p>
+              <div className="pt-3 border-t space-y-2">
+                <div>
+                  <p className="text-sm text-muted-foreground">當月接單金額（按成交日期）</p>
+                  <p className="text-xl font-semibold">NT$ {selected.接單金額.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">當月營收（按住宿日分攤）</p>
+                  <p className="text-xl font-semibold">NT$ {selected.營收.toLocaleString()}</p>
+                </div>
               </div>
               {selected.baseline > 0 && (
                 <div className="pt-3 border-t">
