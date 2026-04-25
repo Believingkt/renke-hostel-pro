@@ -195,10 +195,13 @@ const fetchDashboardData = async (
 
   // Bookings placed by month (based on order_date), only revenue-eligible orders
   const bookingPlacedByMonth = new Map<string, number>();
+  // Revenue grouped by order_date (transaction month) — 接單金額 = 該月成交訂單總額
+  const revenueByOrderMonth = new Map<string, number>();
   ordersData.forEach(order => {
     if (!isRevenueEligible(order.order_status)) return;
     const monthKey = format(new Date(order.order_date), 'yyyy-MM');
     bookingPlacedByMonth.set(monthKey, (bookingPlacedByMonth.get(monthKey) || 0) + 1);
+    revenueByOrderMonth.set(monthKey, (revenueByOrderMonth.get(monthKey) || 0) + (order.final_price || 0));
   });
   // Stats cards
   const currentMonthStart = startOfMonth(now);
@@ -564,7 +567,7 @@ const fetchDashboardData = async (
       month: monthLabel,
       接單: bookingPlacedByMonth.get(monthKey) || 0,
       住宿: bookingCountByMonth.get(monthKey) || 0,
-      營收: Math.round(revenueByMonth.get(monthKey) || 0),
+      營收: Math.round(revenueByOrderMonth.get(monthKey) || 0),
       baseline: 0,
       isFuture,
     });
