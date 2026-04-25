@@ -132,7 +132,6 @@ interface EditOrderRoom {
   unit_price: number;
   template_name: string | null;
 }
-
 interface AddonSetting {
   id: string;
   addon_type: string;
@@ -315,11 +314,14 @@ const OrderDetailPage = () => {
     });
     // Initialize edit order rooms
     if (orderRooms.length > 0) {
+      const savedRoomsTotal = orderRooms.reduce((sum, r) => sum + r.room_price, 0);
+      const shouldUseOrderTotalForSingleRoom = orderRooms.length === 1 && Number(order.total_price || 0) > 0 && savedRoomsTotal !== Number(order.total_price || 0);
       const normalizedRooms = orderRooms.map((or) => {
-        const currentUnitPrice = getRoomUnitPrice(or.room_price, or.quantity);
+        const correctedRoomPrice = shouldUseOrderTotalForSingleRoom ? Number(order.total_price || 0) : or.room_price;
+        const currentUnitPrice = getRoomUnitPrice(correctedRoomPrice, or.quantity);
         const sameTypeUnitPrices = orderRooms
           .filter((room) => room.room_type_id === or.room_type_id)
-          .map((room) => getRoomUnitPrice(room.room_price, room.quantity))
+          .map((room) => getRoomUnitPrice(shouldUseOrderTotalForSingleRoom ? Number(order.total_price || 0) : room.room_price, room.quantity))
           .filter((price) => price > 0);
         const roomTypeBasePrice = roomTypes.find((roomType) => roomType.id === or.room_type_id)?.base_price ?? 0;
         const resolvedUnitPrice = Math.min(
@@ -331,23 +333,25 @@ const OrderDetailPage = () => {
           id: or.id,
           room_type_id: or.room_type_id,
           quantity: or.quantity,
-          room_price: unitPrice * or.quantity,
-          unit_price: unitPrice,
+          room_price: shouldUseOrderTotalForSingleRoom ? correctedRoomPrice : unitPrice * or.quantity,
+          unit_price: shouldUseOrderTotalForSingleRoom ? currentUnitPrice : unitPrice,
           template_name: or.template_name,
         };
       });
 
       setEditOrderRooms(normalizedRooms);
-      // Use order_rooms total as the real total_price for editing
-      const roomsTotal = normalizedRooms.reduce((sum, r) => sum + r.room_price, 0);
+      const roomsTotal = shouldUseOrderTotalForSingleRoom
+        ? Number(order.total_price || 0)
+        : normalizedRooms.reduce((sum, r) => sum + r.room_price, 0);
       setEditForm(f => ({ ...f, total_price: roomsTotal }));
     } else {
       setEditOrderRooms([]);
     }
     // Store deposit ratio based on original final price
-    const effectiveTotal = orderRooms.length > 0
-      ? orderRooms.reduce((sum, r) => sum + r.room_price, 0)
-      : (order.total_price || 0);
+    const savedRoomsTotalForRatio = orderRooms.reduce((sum, r) => sum + r.room_price, 0);
+    const effectiveTotal = orderRooms.length === 1 && Number(order.total_price || 0) > 0 && savedRoomsTotalForRatio !== Number(order.total_price || 0)
+      ? Number(order.total_price || 0)
+      : (orderRooms.length > 0 ? savedRoomsTotalForRatio : (order.total_price || 0));
     const originalFinal = effectiveTotal + ((order.pet_plan_price || 0) + (order.meal_plan_total || 0) + ((order.custom_addon_details as CustomAddonDetail[]) || []).reduce((sum, d) => sum + d.total, 0)) - (order.discount_amount || 0);
     depositRatioRef.current = originalFinal > 0 ? (order.deposit_amount || 0) / originalFinal : 0;
     originalDiscountCode.current = order.discount_code || "";
@@ -1587,28 +1591,34 @@ const OrderDetailPage = () => {
                     </>
                   ) : (
                     <>
-                      {orderRooms.map((or) => (
-                        <div key={or.id} className="p-2.5 rounded-lg border bg-muted/30 space-y-1">
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium">
-                              {or.room_types?.name || "未知房型"}
-                            </span>
-                            <Badge variant="outline" className="text-xs">
-                              {or.quantity} 間
-                            </Badge>
+                      {orderRooms.map((or) => {
+                        const savedRoomsTotal = orderRooms.reduce((sum, r) => sum + r.room_price, 0);
+                        const displayRoomPrice = orderRooms.length === 1 && order.total_price > 0 && savedRoomsTotal !== order.total_price
+                          ? order.total_price
+                          : or.room_price;
+                        return (
+                          <div key={or.id} className="p-2.5 rounded-lg border bg-muted/30 space-y-1">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-medium">
+                                {or.room_types?.name || "未知房型"}
+                              </span>
+                              <Badge variant="outline" className="text-xs">
+                                {or.quantity} 間
+                              </Badge>
+                            </div>
+                            {or.template_name && (
+                              <div className="text-xs text-muted-foreground">
+                                專案：{or.template_name}
+                              </div>
+                            )}
+                            {displayRoomPrice > 0 && (
+                              <div className="text-xs text-muted-foreground text-right">
+                                NT$ {displayRoomPrice.toLocaleString()}
+                              </div>
+                            )}
                           </div>
-                          {or.template_name && (
-                            <div className="text-xs text-muted-foreground">
-                              專案：{or.template_name}
-                            </div>
-                          )}
-                          {or.room_price > 0 && (
-                            <div className="text-xs text-muted-foreground text-right">
-                              NT$ {or.room_price.toLocaleString()}
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                       <div className="text-xs text-right text-muted-foreground">
                         共 {orderRooms.reduce((sum, r) => sum + r.quantity, 0)} 間房
                       </div>
@@ -1729,20 +1739,27 @@ const OrderDetailPage = () => {
             {/* Multi-room price breakdown */}
             {orderRooms.length > 0 && !isEditing && (
               <>
-                {orderRooms.map((or) => (
-                  <div key={or.id} className="flex justify-between items-center gap-2">
-                    <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">
-                      {or.room_types?.name || "房型"} × {or.quantity} 間
-                    </span>
-                    <span className="font-medium text-base md:text-base">NT$ {or.room_price.toLocaleString()}</span>
-                  </div>
-                ))}
+                {orderRooms.map((or) => {
+                  const savedRoomsTotal = orderRooms.reduce((sum, r) => sum + r.room_price, 0);
+                  const displayRoomPrice = orderRooms.length === 1 && order.total_price > 0 && savedRoomsTotal !== order.total_price
+                    ? order.total_price
+                    : or.room_price;
+                  return (
+                    <div key={or.id} className="flex justify-between items-center gap-2">
+                      <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">
+                        {or.room_types?.name || "房型"} × {or.quantity} 間
+                      </span>
+                      <span className="font-medium text-base md:text-base">NT$ {displayRoomPrice.toLocaleString()}</span>
+                    </div>
+                  );
+                })}
               </>
             )}
             {(() => {
-              const displayTotal = orderRooms.length > 0
-                ? orderRooms.reduce((sum, r) => sum + r.room_price, 0)
-                : order.total_price;
+              const savedRoomsTotal = orderRooms.reduce((sum, r) => sum + r.room_price, 0);
+              const displayTotal = orderRooms.length === 1 && order.total_price > 0 && savedRoomsTotal !== order.total_price
+                ? order.total_price
+                : (orderRooms.length > 0 ? savedRoomsTotal : order.total_price);
               // 編輯模式始終顯示；檢視模式下僅在無 orderRooms 或多房型時顯示原始金額
               const showInViewMode = orderRooms.length !== 1;
               if (!isEditing && !showInViewMode) return null;
@@ -1843,10 +1860,10 @@ const OrderDetailPage = () => {
             {(() => {
               const customAddons = (order.custom_addon_details as CustomAddonDetail[]) || [];
               const addonTotal = order.pet_plan_price + order.meal_plan_total + customAddons.reduce((sum, d) => sum + d.total, 0);
-              // Use order_rooms total if available, otherwise fallback to stored total_price
-              const effectiveTotalPrice = orderRooms.length > 0
-                ? orderRooms.reduce((sum, r) => sum + r.room_price, 0)
-                : order.total_price;
+              const savedRoomsTotal = orderRooms.reduce((sum, r) => sum + r.room_price, 0);
+              const effectiveTotalPrice = orderRooms.length === 1 && order.total_price > 0 && savedRoomsTotal !== order.total_price
+                ? order.total_price
+                : (orderRooms.length > 0 ? savedRoomsTotal : order.total_price);
               // 判斷 total_price 是否已包含加購
               const storedFinalWithoutAddon = effectiveTotalPrice - order.discount_amount;
               const addonAlreadyIncluded = addonTotal > 0 && Math.abs(order.final_price - (storedFinalWithoutAddon + addonTotal)) < 10;
