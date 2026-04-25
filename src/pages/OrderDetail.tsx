@@ -1591,28 +1591,34 @@ const OrderDetailPage = () => {
                     </>
                   ) : (
                     <>
-                      {orderRooms.map((or) => (
-                        <div key={or.id} className="p-2.5 rounded-lg border bg-muted/30 space-y-1">
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium">
-                              {or.room_types?.name || "未知房型"}
-                            </span>
-                            <Badge variant="outline" className="text-xs">
-                              {or.quantity} 間
-                            </Badge>
+                      {orderRooms.map((or) => {
+                        const savedRoomsTotal = orderRooms.reduce((sum, r) => sum + r.room_price, 0);
+                        const displayRoomPrice = orderRooms.length === 1 && order.total_price > 0 && savedRoomsTotal !== order.total_price
+                          ? order.total_price
+                          : or.room_price;
+                        return (
+                          <div key={or.id} className="p-2.5 rounded-lg border bg-muted/30 space-y-1">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-medium">
+                                {or.room_types?.name || "未知房型"}
+                              </span>
+                              <Badge variant="outline" className="text-xs">
+                                {or.quantity} 間
+                              </Badge>
+                            </div>
+                            {or.template_name && (
+                              <div className="text-xs text-muted-foreground">
+                                專案：{or.template_name}
+                              </div>
+                            )}
+                            {displayRoomPrice > 0 && (
+                              <div className="text-xs text-muted-foreground text-right">
+                                NT$ {displayRoomPrice.toLocaleString()}
+                              </div>
+                            )}
                           </div>
-                          {or.template_name && (
-                            <div className="text-xs text-muted-foreground">
-                              專案：{or.template_name}
-                            </div>
-                          )}
-                          {or.room_price > 0 && (
-                            <div className="text-xs text-muted-foreground text-right">
-                              NT$ {or.room_price.toLocaleString()}
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                       <div className="text-xs text-right text-muted-foreground">
                         共 {orderRooms.reduce((sum, r) => sum + r.quantity, 0)} 間房
                       </div>
