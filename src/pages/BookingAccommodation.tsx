@@ -74,8 +74,14 @@ const BookingAccommodation = () => {
       params.set("roomId", roomId);
       const checkIn = searchParams.get("checkIn");
       const checkOut = searchParams.get("checkOut");
+      const adults = searchParams.get("adults");
+      const children = searchParams.get("children");
+      const rooms = searchParams.get("rooms");
       if (checkIn) params.set("checkIn", checkIn);
       if (checkOut) params.set("checkOut", checkOut);
+      if (adults) params.set("adults", adults);
+      if (children) params.set("children", children);
+      if (rooms) params.set("rooms", rooms);
       navigate(`/book?${params.toString()}`, { replace: true });
     }
   }, [accId, searchParams, navigate]);
