@@ -563,10 +563,12 @@ const BookingFlow = () => {
     }
   }, [selectedRoom, allPricingTemplates]);
 
-  // Read checkIn/checkOut from URL params and set in context
+  // Read checkIn/checkOut/adults/children from URL params and set in context
   useEffect(() => {
     const ciParam = searchParams.get("checkIn");
     const coParam = searchParams.get("checkOut");
+    const adultsParam = searchParams.get("adults");
+    const childrenParam = searchParams.get("children");
     if (ciParam && !checkInDate) {
       const d = new Date(ciParam + "T00:00:00");
       if (!isNaN(d.getTime())) setCheckInDate(d);
@@ -574,6 +576,13 @@ const BookingFlow = () => {
     if (coParam && !checkOutDate) {
       const d = new Date(coParam + "T00:00:00");
       if (!isNaN(d.getTime())) setCheckOutDate(d);
+    }
+    if (adultsParam || childrenParam) {
+      const a = adultsParam ? parseInt(adultsParam, 10) : contextGuests.adults;
+      const c = childrenParam ? parseInt(childrenParam, 10) : contextGuests.children;
+      if (!isNaN(a) && !isNaN(c) && (a !== contextGuests.adults || c !== contextGuests.children)) {
+        setGuests({ adults: a, children: c });
+      }
     }
   }, [searchParams]);
 
