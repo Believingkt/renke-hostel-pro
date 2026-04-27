@@ -2,12 +2,17 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { Send, Loader2, RotateCcw, Mic, Volume2, VolumeX, Sparkles, Calendar, Users, MapPin, BedDouble, Minus, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useVoiceChat } from "@/hooks/use-voice-chat";
 import assistantAvatar from "@/assets/assistant-avatar-xiaoan.png?inline";
 import ReactMarkdown from "react-markdown";
 import { parseRoomListings, ChatRoomCard } from "./ChatRoomCard";
+import { format, addDays } from "date-fns";
+import { zhTW } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 interface Message {
   role: "user" | "assistant";
@@ -43,6 +48,10 @@ const PortalAIChatPanel = () => {
   const [showWelcome, setShowWelcome] = useState(true);
   const [defaultGuests, setDefaultGuests] = useState(14);
   const [defaultRooms, setDefaultRooms] = useState(6);
+  const [checkIn, setCheckIn] = useState<Date>(smartDefault.date);
+  const [checkOut, setCheckOut] = useState<Date>(addDays(smartDefault.date, 1));
+  const [checkInOpen, setCheckInOpen] = useState(false);
+  const [checkOutOpen, setCheckOutOpen] = useState(false);
   const focusRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { isRecording, isTranscribing, playingMessageIndex, startRecording, stopRecording, playTTS, stopPlayback } = useVoiceChat();
@@ -254,9 +263,74 @@ const PortalAIChatPanel = () => {
                   <Sparkles className="h-3.5 w-3.5 text-[hsl(25,70%,50%)]" />
                   <span className="text-[11px] font-semibold text-[hsl(25,70%,45%)] uppercase tracking-wide">幫您預設好了</span>
                 </div>
-                <div className="flex items-center gap-3 text-sm font-semibold text-foreground mb-3">
-                  <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5 text-muted-foreground" />{smartDefault.dateLabel}</span>
-                  <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5 text-muted-foreground" />宜蘭</span>
+                <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-3">
+                  <MapPin className="h-3.5 w-3.5" />宜蘭
+                </div>
+
+                {/* Date pickers */}
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <Popover open={checkInOpen} onOpenChange={setCheckInOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-auto py-2 px-3 flex flex-col items-start gap-0.5 bg-[hsl(25,60%,97%)] border-[hsl(25,40%,88%)] hover:bg-white"
+                      >
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />入住
+                        </span>
+                        <span className="text-sm font-semibold text-foreground">
+                          {format(checkIn, "M/d (EEE)", { locale: zhTW })}
+                        </span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarPicker
+                        mode="single"
+                        selected={checkIn}
+                        onSelect={(d) => {
+                          if (!d) return;
+                          setCheckIn(d);
+                          if (checkOut <= d) setCheckOut(addDays(d, 1));
+                          setCheckInOpen(false);
+                          setTimeout(() => setCheckOutOpen(true), 150);
+                        }}
+                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+
+                  <Popover open={checkOutOpen} onOpenChange={setCheckOutOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-auto py-2 px-3 flex flex-col items-start gap-0.5 bg-[hsl(25,60%,97%)] border-[hsl(25,40%,88%)] hover:bg-white"
+                      >
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />退房
+                        </span>
+                        <span className="text-sm font-semibold text-foreground">
+                          {format(checkOut, "M/d (EEE)", { locale: zhTW })}
+                        </span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarPicker
+                        mode="single"
+                        selected={checkOut}
+                        onSelect={(d) => {
+                          if (!d) return;
+                          setCheckOut(d);
+                          setCheckOutOpen(false);
+                        }}
+                        disabled={(date) => date <= checkIn}
+                        defaultMonth={checkIn}
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 {/* Adjustable rows */}
@@ -323,7 +397,12 @@ const PortalAIChatPanel = () => {
                   type="button"
                   className="w-full h-10 rounded-xl text-white font-medium"
                   style={{ background: "hsl(25, 70%, 55%)" }}
-                  onClick={() => sendMessage(`我要訂 ${smartDefault.dateLabel} · ${defaultGuests} 人 · ${defaultRooms} 間房 · 宜蘭`)}
+                  onClick={() => {
+                    const nights = Math.max(1, Math.round((checkOut.getTime() - checkIn.getTime()) / 86400000));
+                    sendMessage(
+                      `我要訂 ${format(checkIn, "M/d", { locale: zhTW })} 入住、${format(checkOut, "M/d", { locale: zhTW })} 退房（共 ${nights} 晚） · ${defaultGuests} 人 · ${defaultRooms} 間房 · 宜蘭`
+                    );
+                  }}
                   disabled={isLoading}
                 >
                   一鍵開始找房 →
