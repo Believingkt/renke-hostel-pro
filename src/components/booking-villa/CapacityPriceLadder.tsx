@@ -21,6 +21,8 @@ import {
   CalendarDays,
   Lock,
   Info,
+  Plus,
+  TrendingDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -377,6 +379,21 @@ const CapacityPriceLadder = ({ roomTypes, onSelect, nights, checkIn }: Props) =>
           const isRecommended = tier.guestCount === recommendedGuestCount;
           const opt = buildOption(tier, isRecommended);
           const saved = opt.originalPrice - opt.totalPrice;
+          // 找一個更小人數的方案做對照（同 tier 內找最小的人數方案）
+          const smallerTier = currentTiers.find(
+            (t) => t.guestCount < tier.guestCount
+          );
+          const smallerPerPerson = smallerTier
+            ? Math.round(smallerTier.sale / smallerTier.guestCount)
+            : null;
+          // 假日差價：同人數的 weekend 方案 sale - 當前 tier sale
+          const weekendSame = PRICING_TABLE.weekend.find(
+            (t) => t.guestCount === tier.guestCount
+          );
+          const holidayDiff =
+            activeTier !== "weekend" && weekendSame
+              ? weekendSame.sale - tier.sale
+              : 0;
           return (
             <PriceCard
               key={`std-${tier.guestCount}`}
@@ -393,6 +410,9 @@ const CapacityPriceLadder = ({ roomTypes, onSelect, nights, checkIn }: Props) =>
                   expandedKey === `std-${tier.guestCount}` ? null : `std-${tier.guestCount}`
                 )
               }
+              smallerPerPerson={smallerPerPerson}
+              smallerGuestCount={smallerTier?.guestCount ?? null}
+              holidayDiff={holidayDiff}
             />
           );
         })}
@@ -419,9 +439,25 @@ interface PriceCardProps {
   onSelect: (option: CapacityOption, subPlanKey?: string) => void;
   isExpanded: boolean;
   onToggle: () => void;
+  smallerPerPerson?: number | null;
+  smallerGuestCount?: number | null;
+  holidayDiff?: number;
 }
 
-const PriceCard = ({ opt, tier, saved, nights, safeNights, accent, onSelect, isExpanded, onToggle }: PriceCardProps) => {
+const PriceCard = ({
+  opt,
+  tier,
+  saved,
+  nights,
+  safeNights,
+  accent,
+  onSelect,
+  isExpanded,
+  onToggle,
+  smallerPerPerson = null,
+  smallerGuestCount = null,
+  holidayDiff = 0,
+}: PriceCardProps) => {
   const perPerson = Math.round(opt.totalPrice / opt.guestCount / safeNights);
 
   const accentColor = accent === "few" ? "hsl(0, 75%, 50%)" : "hsl(25, 70%, 50%)";
@@ -503,6 +539,54 @@ const PriceCard = ({ opt, tier, saved, nights, safeNights, accent, onSelect, isE
           </span>
         </div>
       </button>
+
+      {/* ── 站內比價列：含內容 / 加購 / 對照少人方案 ── */}
+      {accent === "standard" && (
+        <div
+          className="border-t border-border/50 px-3 py-2 space-y-1.5"
+          style={{ background: "hsl(140, 25%, 97%)" }}
+        >
+          {smallerPerPerson && smallerGuestCount && smallerPerPerson > Math.round(opt.totalPrice / opt.guestCount / safeNights) && (
+            <div className="flex items-center gap-1.5">
+              <TrendingDown className="h-3 w-3 shrink-0" style={{ color: "hsl(0, 75%, 45%)" }} />
+              <p className="text-[10.5px] leading-tight text-foreground">
+                每人僅
+                <span className="font-bold mx-0.5" style={{ color: "hsl(0, 75%, 45%)" }}>
+                  NT${Math.round(opt.totalPrice / opt.guestCount / safeNights).toLocaleString()}
+                </span>
+                / 晚，比 {smallerGuestCount} 人方案
+                <span className="font-bold mx-0.5" style={{ color: "hsl(0, 75%, 45%)" }}>
+                  省 NT${(smallerPerPerson - Math.round(opt.totalPrice / opt.guestCount / safeNights)).toLocaleString()} / 人
+                </span>
+              </p>
+            </div>
+          )}
+
+          <div className="flex items-center gap-1.5">
+            <Check className="h-3 w-3 shrink-0" style={{ color: "hsl(140, 50%, 35%)" }} />
+            <p className="text-[10.5px] leading-tight text-foreground">
+              <span className="font-medium">早餐已含</span>
+              <span className="text-muted-foreground"> · 等值 NT$2,400 已包進總價</span>
+            </p>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <Plus className="h-3 w-3 shrink-0 text-muted-foreground" />
+            <p className="text-[10.5px] leading-tight text-muted-foreground">
+              加床 <span className="font-medium text-foreground">+NT$3,500 / 床</span>（如需要）
+            </p>
+          </div>
+
+          {holidayDiff > 0 && (
+            <div className="flex items-center gap-1.5">
+              <Plus className="h-3 w-3 shrink-0 text-muted-foreground" />
+              <p className="text-[10.5px] leading-tight text-muted-foreground">
+                改假日入住 <span className="font-medium text-foreground">+NT${holidayDiff.toLocaleString()}</span>（同人數）
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       <button
         type="button"
