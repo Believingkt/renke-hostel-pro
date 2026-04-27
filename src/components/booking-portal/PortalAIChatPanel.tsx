@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Send, Loader2, RotateCcw, Mic, Volume2, VolumeX, Sparkles, Calendar, Users, MapPin } from "lucide-react";
+import { Send, Loader2, RotateCcw, Mic, Volume2, VolumeX, Sparkles, Calendar, Users, MapPin, BedDouble, Minus, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useVoiceChat } from "@/hooks/use-voice-chat";
 import assistantAvatar from "@/assets/assistant-avatar-xiaoan.png?inline";
@@ -18,13 +18,13 @@ interface Message {
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/portal-ai-chat`;
 
-// 智慧預設值：今日 +30 天、14 人、6 房、宜蘭
+// 智慧預設值：今日 +30 天、宜蘭
 function getSmartDefault() {
   const d = new Date();
   d.setDate(d.getDate() + 30);
   return {
+    date: d,
     dateLabel: `${d.getMonth() + 1}/${d.getDate()}`,
-    summary: `${d.getMonth() + 1}/${d.getDate()} · 14 人 · 6 間房 · 宜蘭`,
   };
 }
 
@@ -41,6 +41,8 @@ const PortalAIChatPanel = () => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
+  const [defaultGuests, setDefaultGuests] = useState(14);
+  const [defaultRooms, setDefaultRooms] = useState(6);
   const focusRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { isRecording, isTranscribing, playingMessageIndex, startRecording, stopRecording, playTTS, stopPlayback } = useVoiceChat();
@@ -246,23 +248,87 @@ const PortalAIChatPanel = () => {
                 <p className="text-xs text-muted-foreground">告訴我「想去哪、幾個人、什麼時候」即可</p>
               </div>
 
-              {/* Smart default suggestion */}
-              <button
-                onClick={() => sendMessage(`我要訂 ${smartDefault.summary}`)}
-                disabled={isLoading}
-                className="w-full max-w-sm rounded-2xl border border-[hsl(25,60%,80%)] bg-white/80 backdrop-blur p-3 text-left hover:bg-white hover:border-[hsl(25,70%,55%)] hover:shadow-md transition-all group"
-              >
-                <div className="flex items-center gap-2 mb-1">
+              {/* Smart default with adjustable guests & rooms */}
+              <div className="w-full max-w-sm rounded-2xl border border-[hsl(25,60%,80%)] bg-white/80 backdrop-blur p-3">
+                <div className="flex items-center gap-2 mb-2">
                   <Sparkles className="h-3.5 w-3.5 text-[hsl(25,70%,50%)]" />
                   <span className="text-[11px] font-semibold text-[hsl(25,70%,45%)] uppercase tracking-wide">幫您預設好了</span>
                 </div>
-                <div className="flex items-center gap-3 text-sm font-semibold text-foreground">
+                <div className="flex items-center gap-3 text-sm font-semibold text-foreground mb-3">
                   <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5 text-muted-foreground" />{smartDefault.dateLabel}</span>
-                  <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5 text-muted-foreground" />14 人</span>
                   <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5 text-muted-foreground" />宜蘭</span>
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-1 group-hover:text-foreground/70">點此一鍵開始 →</p>
-              </button>
+
+                {/* Adjustable rows */}
+                <div className="space-y-2 mb-3">
+                  <div className="flex items-center justify-between rounded-lg bg-[hsl(25,60%,97%)] px-3 py-2">
+                    <span className="flex items-center gap-2 text-sm text-foreground">
+                      <Users className="h-4 w-4 text-muted-foreground" />入住人數
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7 rounded-full"
+                        onClick={(e) => { e.stopPropagation(); setDefaultGuests(Math.max(1, defaultGuests - 1)); }}
+                        disabled={defaultGuests <= 1}
+                      >
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <span className="w-8 text-center text-sm font-semibold tabular-nums">{defaultGuests}</span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7 rounded-full"
+                        onClick={(e) => { e.stopPropagation(); setDefaultGuests(Math.min(50, defaultGuests + 1)); }}
+                        disabled={defaultGuests >= 50}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg bg-[hsl(25,60%,97%)] px-3 py-2">
+                    <span className="flex items-center gap-2 text-sm text-foreground">
+                      <BedDouble className="h-4 w-4 text-muted-foreground" />房間數
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7 rounded-full"
+                        onClick={(e) => { e.stopPropagation(); setDefaultRooms(Math.max(1, defaultRooms - 1)); }}
+                        disabled={defaultRooms <= 1}
+                      >
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <span className="w-8 text-center text-sm font-semibold tabular-nums">{defaultRooms}</span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7 rounded-full"
+                        onClick={(e) => { e.stopPropagation(); setDefaultRooms(Math.min(20, defaultRooms + 1)); }}
+                        disabled={defaultRooms >= 20}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  className="w-full h-10 rounded-xl text-white font-medium"
+                  style={{ background: "hsl(25, 70%, 55%)" }}
+                  onClick={() => sendMessage(`我要訂 ${smartDefault.dateLabel} · ${defaultGuests} 人 · ${defaultRooms} 間房 · 宜蘭`)}
+                  disabled={isLoading}
+                >
+                  一鍵開始找房 →
+                </Button>
+              </div>
 
               {/* Hot picks */}
               <div className="w-full max-w-sm space-y-1.5">
