@@ -18,13 +18,13 @@ interface Message {
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/portal-ai-chat`;
 
-// 智慧預設值：今日 +30 天、14 人、6 房、宜蘭
+// 智慧預設值：今日 +30 天、宜蘭
 function getSmartDefault() {
   const d = new Date();
   d.setDate(d.getDate() + 30);
   return {
+    date: d,
     dateLabel: `${d.getMonth() + 1}/${d.getDate()}`,
-    summary: `${d.getMonth() + 1}/${d.getDate()} · 14 人 · 6 間房 · 宜蘭`,
   };
 }
 
