@@ -379,6 +379,21 @@ const CapacityPriceLadder = ({ roomTypes, onSelect, nights, checkIn }: Props) =>
           const isRecommended = tier.guestCount === recommendedGuestCount;
           const opt = buildOption(tier, isRecommended);
           const saved = opt.originalPrice - opt.totalPrice;
+          // 找一個更小人數的方案做對照（同 tier 內找最小的人數方案）
+          const smallerTier = currentTiers.find(
+            (t) => t.guestCount < tier.guestCount
+          );
+          const smallerPerPerson = smallerTier
+            ? Math.round(smallerTier.sale / smallerTier.guestCount)
+            : null;
+          // 假日差價：同人數的 weekend 方案 sale - 當前 tier sale
+          const weekendSame = PRICING_TABLE.weekend.find(
+            (t) => t.guestCount === tier.guestCount
+          );
+          const holidayDiff =
+            activeTier !== "weekend" && weekendSame
+              ? weekendSame.sale - tier.sale
+              : 0;
           return (
             <PriceCard
               key={`std-${tier.guestCount}`}
@@ -395,6 +410,9 @@ const CapacityPriceLadder = ({ roomTypes, onSelect, nights, checkIn }: Props) =>
                   expandedKey === `std-${tier.guestCount}` ? null : `std-${tier.guestCount}`
                 )
               }
+              smallerPerPerson={smallerPerPerson}
+              smallerGuestCount={smallerTier?.guestCount ?? null}
+              holidayDiff={holidayDiff}
             />
           );
         })}
