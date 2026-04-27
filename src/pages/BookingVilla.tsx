@@ -178,6 +178,12 @@ const BookingVilla = () => {
     if (subPlanKey) params.set("plan", subPlanKey);
     if (checkInStr) params.set("checkIn", checkInStr);
     if (checkOutStr) params.set("checkOut", checkOutStr);
+    const adultsStr = searchParams.get("adults");
+    const childrenStr = searchParams.get("children");
+    const roomsStr = searchParams.get("rooms");
+    if (adultsStr) params.set("adults", adultsStr);
+    if (childrenStr) params.set("children", childrenStr);
+    if (roomsStr) params.set("rooms", roomsStr);
     navigate(`/book?${params.toString()}`);
   };
 

@@ -621,6 +621,9 @@ const BookingPortal = () => {
     const params = new URLSearchParams();
     if (checkIn) params.set("checkIn", format(checkIn, "yyyy-MM-dd"));
     if (checkOut) params.set("checkOut", format(checkOut, "yyyy-MM-dd"));
+    if (adults) params.set("adults", String(adults));
+    if (children) params.set("children", String(children));
+    if (rooms) params.set("rooms", String(rooms));
     const qs = params.toString();
     navigate(`/booking/villa/${accId}${qs ? `?${qs}` : ""}`);
   };
@@ -842,7 +845,7 @@ const BookingPortal = () => {
               <Card
                 key={acc.id}
                 className="group overflow-hidden border-none shadow-sm hover:shadow-lg transition-all cursor-pointer"
-                onClick={() => navigate(`/booking/villa/${acc.id}`)}
+                onClick={() => handleAccClick(acc.id)}
               >
                 <div className="aspect-[4/3] overflow-hidden bg-muted">
                   {acc.hero_photo_url ? (
