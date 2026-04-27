@@ -621,6 +621,9 @@ const BookingPortal = () => {
     const params = new URLSearchParams();
     if (checkIn) params.set("checkIn", format(checkIn, "yyyy-MM-dd"));
     if (checkOut) params.set("checkOut", format(checkOut, "yyyy-MM-dd"));
+    if (adults) params.set("adults", String(adults));
+    if (children) params.set("children", String(children));
+    if (rooms) params.set("rooms", String(rooms));
     const qs = params.toString();
     navigate(`/booking/villa/${accId}${qs ? `?${qs}` : ""}`);
   };
