@@ -439,9 +439,25 @@ interface PriceCardProps {
   onSelect: (option: CapacityOption, subPlanKey?: string) => void;
   isExpanded: boolean;
   onToggle: () => void;
+  smallerPerPerson?: number | null;
+  smallerGuestCount?: number | null;
+  holidayDiff?: number;
 }
 
-const PriceCard = ({ opt, tier, saved, nights, safeNights, accent, onSelect, isExpanded, onToggle }: PriceCardProps) => {
+const PriceCard = ({
+  opt,
+  tier,
+  saved,
+  nights,
+  safeNights,
+  accent,
+  onSelect,
+  isExpanded,
+  onToggle,
+  smallerPerPerson = null,
+  smallerGuestCount = null,
+  holidayDiff = 0,
+}: PriceCardProps) => {
   const perPerson = Math.round(opt.totalPrice / opt.guestCount / safeNights);
 
   const accentColor = accent === "few" ? "hsl(0, 75%, 50%)" : "hsl(25, 70%, 50%)";
