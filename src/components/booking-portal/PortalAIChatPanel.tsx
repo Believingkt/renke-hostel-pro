@@ -2,12 +2,17 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { Send, Loader2, RotateCcw, Mic, Volume2, VolumeX, Sparkles, Calendar, Users, MapPin, BedDouble, Minus, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useVoiceChat } from "@/hooks/use-voice-chat";
 import assistantAvatar from "@/assets/assistant-avatar-xiaoan.png?inline";
 import ReactMarkdown from "react-markdown";
 import { parseRoomListings, ChatRoomCard } from "./ChatRoomCard";
+import { format, addDays } from "date-fns";
+import { zhTW } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 interface Message {
   role: "user" | "assistant";
