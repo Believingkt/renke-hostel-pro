@@ -48,6 +48,10 @@ const PortalAIChatPanel = () => {
   const [showWelcome, setShowWelcome] = useState(true);
   const [defaultGuests, setDefaultGuests] = useState(14);
   const [defaultRooms, setDefaultRooms] = useState(6);
+  const [checkIn, setCheckIn] = useState<Date>(smartDefault.date);
+  const [checkOut, setCheckOut] = useState<Date>(addDays(smartDefault.date, 1));
+  const [checkInOpen, setCheckInOpen] = useState(false);
+  const [checkOutOpen, setCheckOutOpen] = useState(false);
   const focusRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { isRecording, isTranscribing, playingMessageIndex, startRecording, stopRecording, playTTS, stopPlayback } = useVoiceChat();
