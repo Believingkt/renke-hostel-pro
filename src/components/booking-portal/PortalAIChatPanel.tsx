@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Send, Loader2, RotateCcw, Mic, Volume2, VolumeX, Sparkles, Calendar, Users, MapPin } from "lucide-react";
+import { Send, Loader2, RotateCcw, Mic, Volume2, VolumeX, Sparkles, Calendar, Users, MapPin, BedDouble, Minus, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useVoiceChat } from "@/hooks/use-voice-chat";
 import assistantAvatar from "@/assets/assistant-avatar-xiaoan.png?inline";
