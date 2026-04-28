@@ -64,36 +64,41 @@ serve(async (req) => {
         console.log(`Filtered to ${filteredData.length} records for year ${year}`);
         
         // Transform holidays (放假日)
+        // 規則：僅保留全國性的國定假日 + 補假；排除週六/週日的「例假/休息日」描述
+        const isCompensatory = (item: GovernmentHoliday) =>
+          (item.holidayCategory || '').includes('補假') ||
+          (item.name || '').includes('補假');
+
         const holidayRecords = filteredData
-          .filter((item: GovernmentHoliday) => 
-            item.isHoliday === '是' && 
-            (item.holidayCategory === '放假之紀念日及節日' || 
+          .filter((item: GovernmentHoliday) =>
+            item.isHoliday === '是' &&
+            (item.holidayCategory === '放假之紀念日及節日' ||
              item.holidayCategory.includes('放假'))
           )
-          .filter((item: GovernmentHoliday) => 
-            // Only include named holidays, not regular weekends
-            item.name && 
-            item.name !== '' && 
+          .filter((item: GovernmentHoliday) =>
+            // 過濾掉純例假日（星期六/星期日無名稱），只留有名稱的國定假日
+            item.name &&
+            item.name.trim() !== '' &&
             !item.name.includes('星期')
           )
           .map((item: GovernmentHoliday) => ({
             date: `${item.date.substring(0, 4)}-${item.date.substring(4, 6)}-${item.date.substring(6, 8)}`,
             name: item.name,
-            type: 'holiday' as const,
+            type: (isCompensatory(item) ? 'compensatory_day_off' : 'holiday') as TaiwanHoliday['type'],
           }));
-        
-        // Transform workdays (補班日)
+
+        // Transform workdays (補班日 → work_on_weekend，視為平日)
         const workdayRecords = filteredData
-          .filter((item: GovernmentHoliday) => 
-            item.isHoliday === '否' && 
+          .filter((item: GovernmentHoliday) =>
+            item.isHoliday === '否' &&
             item.holidayCategory.includes('補行上班')
           )
           .map((item: GovernmentHoliday) => ({
             date: `${item.date.substring(0, 4)}-${item.date.substring(4, 6)}-${item.date.substring(6, 8)}`,
             name: item.name || '補班日',
-            type: 'workday' as const,
+            type: 'work_on_weekend' as const,
           }));
-        
+
         holidays = [...holidayRecords, ...workdayRecords];
         console.log(`Transformed to ${holidayRecords.length} holidays and ${workdayRecords.length} workdays`);
       }
