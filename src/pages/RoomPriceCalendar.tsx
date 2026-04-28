@@ -757,9 +757,11 @@ function RoomTypeRows({
                   isUnavailable && "opacity-60",
                 )}
                 onClick={() => onCellClick(roomType, template, dateStr, price || undefined, cellData?.available_rooms)}
-                title={isUnavailable ? '無法預定（已關閉販售）' : undefined}
+                title={isUnavailable ? '無法預定（已關閉販售）' : (isOverridden ? '此日已單獨設定價格' : undefined)}
               >
-                <span className="text-sm">{isUnavailable ? '' : formatPrice(price)}</span>
+                <span className={cn("text-sm", isOverridden && "font-semibold text-primary")}>
+                  {isUnavailable ? '' : formatPrice(price)}
+                </span>
               </td>
             );
           })}
