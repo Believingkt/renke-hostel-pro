@@ -285,13 +285,20 @@ export function RoomPriceEditDialog({
             .insert(overrideToInsert);
           if (error) throw error;
         }
+        console.log('[RoomPriceEditDialog] override write done', {
+          updated: overrideToUpdate.length,
+          inserted: overrideToInsert.length,
+        });
       }
 
-      toast.success(`已更新 ${datesToUpdate.length} 個日期的設定`);
+      const summary = changePrice && templateId
+        ? `已更新 ${datesToUpdate.length} 個日期的「${templateName ?? '專案'}」價格`
+        : `已更新 ${datesToUpdate.length} 個日期的設定`;
+      toast.success(summary);
       onComplete();
-    } catch (error) {
+    } catch (error: any) {
       console.error('儲存失敗:', error);
-      toast.error('儲存失敗');
+      toast.error(`儲存失敗：${error?.message ?? '未知錯誤'}`);
     } finally {
       setSaving(false);
     }
