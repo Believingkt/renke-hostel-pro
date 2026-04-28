@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { GripVertical, Pencil, Copy, Link2, Power, PowerOff, Trash2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { GripVertical, Pencil, Copy, Check, Link2, Power, PowerOff, Trash2 } from "lucide-react";
 
 import { AccommodationHoverCard } from "./AccommodationHoverCard";
 import { toast } from "sonner";
@@ -65,7 +67,18 @@ export function DraggableAccommodationRow({
     transition,
   };
 
-  
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      toast.success("已複製連結", { description: url });
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast.error("複製失敗");
+    }
+  };
 
   return (
     <TableRow
@@ -116,18 +129,28 @@ export function DraggableAccommodationRow({
               >
                 {displayUrl}
               </a>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={() => {
-                  navigator.clipboard.writeText(fullUrl);
-                  toast.success("已複製連結");
-                }}
-                title="複製連結"
-              >
-                <Copy className="h-3 w-3" />
-              </Button>
+              <TooltipProvider delayDuration={150}>
+                <Tooltip open={copied ? true : undefined}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => handleCopy(fullUrl)}
+                      aria-label="複製連結"
+                    >
+                      {copied ? (
+                        <Check className="h-3 w-3 text-primary" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    {copied ? "已複製!" : "複製連結"}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           );
         })()}
