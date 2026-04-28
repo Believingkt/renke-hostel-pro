@@ -562,13 +562,17 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
 
     setIsSaving(true);
     try {
+      // Recalculate price synchronously to avoid stale state (e.g. holidays loaded after initial calc)
+      const freshPrice = await calculatePrice();
+      setCalculatedPrice(freshPrice);
+
       // Calculate deposit and balance amounts
       const addonTotal = editForm.selected_addons.reduce((sum, selectedAddon) => {
         const addon = addonSettings.find(a => a.id === selectedAddon.addon_id);
         return sum + (addon ? addon.price_per_unit * selectedAddon.quantity : 0);
       }, 0);
-      const effectiveTotal = manualTotalPriceStr !== null ? Math.max(0, parseInt(manualTotalPriceStr) || 0) : calculatedPrice.total;
-      const effectiveDiscount = manualDiscountStr !== null ? Math.max(0, parseInt(manualDiscountStr) || 0) : calculatedPrice.discount;
+      const effectiveTotal = manualTotalPriceStr !== null ? Math.max(0, parseInt(manualTotalPriceStr) || 0) : freshPrice.total;
+      const effectiveDiscount = manualDiscountStr !== null ? Math.max(0, parseInt(manualDiscountStr) || 0) : freshPrice.discount;
       const totalFinal = Math.max(0, effectiveTotal - effectiveDiscount + addonTotal);
       const depositAmount = useDeposit ? Math.round(totalFinal * (depositPct / 100)) : 0;
       
