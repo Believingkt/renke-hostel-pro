@@ -399,23 +399,30 @@ export function RoomPriceEditDialog({
                   onCheckedChange={(checked) => setChangePrice(checked === true)}
                 />
                 <label htmlFor="changePrice" className="text-sm cursor-pointer font-medium">
-                  變更專案價格
+                  {templateId ? '變更此專案價格' : '變更基礎價格'}
                 </label>
               </div>
 
               {changePrice && (
-                <div className="ml-6 flex items-center gap-2">
-                  <Label htmlFor="customPrice" className="text-sm">
-                    價格設定
-                  </Label>
-                  <Input
-                    id="customPrice"
-                    type="number"
-                    value={customPrice}
-                    onChange={(e) => setCustomPrice(e.target.value)}
-                    className="w-32"
-                    placeholder={currentPrice?.toString()}
-                  />
+                <div className="ml-6 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="customPrice" className="text-sm">
+                      價格設定
+                    </Label>
+                    <Input
+                      id="customPrice"
+                      type="number"
+                      value={customPrice}
+                      onChange={(e) => setCustomPrice(e.target.value)}
+                      className="w-32"
+                      placeholder={currentPrice?.toString()}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {templateId
+                      ? '僅覆寫此專案在所選日期的售價，不影響其他專案。'
+                      : '更新基礎價格，不影響各專案的覆寫價。'}
+                  </p>
                 </div>
               )}
             </div>
