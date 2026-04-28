@@ -1558,19 +1558,32 @@ const OrderDetailPage = () => {
                                 <Label className="text-xs">房型</Label>
                                 <Select
                                   value={or.room_type_id}
-                                  onValueChange={(v) => setEditOrderRooms(prev => prev.map(r => {
-                                    if (r.id !== or.id) return r;
+                                  onValueChange={async (v) => {
                                     const selectedRoomType = roomTypes.find(rt => rt.id === v);
-                                    if (!selectedRoomType) return { ...r, room_type_id: v };
-                                    const suggestedUnitPrice = getSuggestedRoomUnitPrice(v, r.id) || selectedRoomType.base_price;
-
-                                    return {
+                                    if (!selectedRoomType) {
+                                      setEditOrderRooms(prev => prev.map(r => r.id === or.id ? { ...r, room_type_id: v } : r));
+                                      return;
+                                    }
+                                    // 1) 先依「日期 + 方案」算單間總額
+                                    const dateBasedTotal = await computeRoomTotalByDates(v, or.template_name);
+                                    let unitPrice = 0;
+                                    let roomTotal = 0;
+                                    if (dateBasedTotal > 0) {
+                                      // dateBasedTotal 是「單間 × 所有晚數」，再乘以間數得到此 room row 總額
+                                      roomTotal = dateBasedTotal * or.quantity;
+                                      unitPrice = or.quantity > 0 ? Math.round(roomTotal / or.quantity) : roomTotal;
+                                    } else {
+                                      // fallback：舊邏輯（同房型既有單價或 base_price）
+                                      unitPrice = getSuggestedRoomUnitPrice(v, or.id) || selectedRoomType.base_price;
+                                      roomTotal = unitPrice * or.quantity;
+                                    }
+                                    setEditOrderRooms(prev => prev.map(r => r.id === or.id ? {
                                       ...r,
                                       room_type_id: v,
-                                      unit_price: suggestedUnitPrice,
-                                      room_price: suggestedUnitPrice * r.quantity,
-                                    };
-                                  }))}
+                                      unit_price: unitPrice,
+                                      room_price: roomTotal,
+                                    } : r));
+                                  }}
                                 >
                                   <SelectTrigger className="h-8 text-xs">
                                     <SelectValue />
