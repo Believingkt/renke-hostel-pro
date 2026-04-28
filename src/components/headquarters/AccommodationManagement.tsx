@@ -820,7 +820,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
                       </TableHead>
                       <TableHead>民宿名稱</TableHead>
                       
-                      <TableHead>自訂網域</TableHead>
+                      <TableHead>訂房連結</TableHead>
                       <TableHead>狀態</TableHead>
                       <TableHead>建立時間</TableHead>
                       <TableHead className="text-center">操作</TableHead>
