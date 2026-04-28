@@ -741,15 +741,19 @@ function RoomTypeRows({
             const dateStr = format(day, 'yyyy-MM-dd');
             const dayType = getDayType(day, dateStr);
             const isWeekend = dayType === 'weekend' || dayType === 'holiday';
+            const isPeak = dayType === 'peak';
             const cellData = getCellData(roomType.id, dateStr);
 
-            // 優先使用該專案在該日期的覆寫價，否則回退到專案預設平日/假日價
+            // 優先使用該專案在該日期的覆寫價，否則回退到專案的「平日/旺日/假日」價
             const isUnavailable = cellData?.is_available === false;
             const overrideKey = `${roomType.id}_${dateStr}_${template.id}`;
             const overridePrice = templatePriceOverrides.get(overrideKey);
+            // 旺日 fallback 順序：peak_price → weekday_price → weekend_price
             const fallbackPrice = isWeekend
-              ? (template.weekend_price ?? template.weekday_price)
-              : (template.weekday_price ?? template.weekend_price);
+              ? (template.weekend_price ?? template.peak_price ?? template.weekday_price)
+              : isPeak
+              ? (template.peak_price ?? template.weekday_price ?? template.weekend_price)
+              : (template.weekday_price ?? template.peak_price ?? template.weekend_price);
             const price = overridePrice ?? fallbackPrice;
             const isOverridden = overridePrice != null;
 
@@ -760,7 +764,8 @@ function RoomTypeRows({
                   "px-1 py-1 text-center border-r cursor-pointer transition-colors",
                   isWeekend && "bg-orange-50/50 hover:bg-orange-100/50",
                   dayType === 'holiday' && "bg-red-50/50 hover:bg-red-100/50",
-                  !isWeekend && "hover:bg-muted/50",
+                  isPeak && "bg-amber-50/40 hover:bg-amber-100/50",
+                  !isWeekend && !isPeak && "hover:bg-muted/50",
                   isUnavailable && "opacity-60",
                 )}
                 onClick={() => onCellClick(roomType, template, dateStr, price || undefined, cellData?.available_rooms)}
