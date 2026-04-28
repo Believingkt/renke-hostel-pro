@@ -67,7 +67,18 @@ export function DraggableAccommodationRow({
     transition,
   };
 
-  
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      toast.success("已複製連結", { description: url });
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast.error("複製失敗");
+    }
+  };
 
   return (
     <TableRow
