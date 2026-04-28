@@ -247,16 +247,27 @@ const OrderDetailPage = () => {
     const dates = eachDayOfInterval({ start, end: addDays(end, -1) }).map(d => format(d, "yyyy-MM-dd"));
     if (!dates.length) return 0;
 
-    // 找對應 template：先用 templateName 比對 + room_type，否則任一同 room_type 的 template
+    // 只在「該新房型」的 templates 內找對應方案，避免拿到其他房型的同名/相近 template 而算錯價
+    const candidates = allTemplates.filter(t => t.room_type_id === roomTypeId);
     let template: PricingTemplateLite | null = null;
     if (templateName) {
-      template =
-        allTemplates.find(t => t.room_type_id === roomTypeId && t.template_name === templateName) ||
-        allTemplates.find(t => t.template_name === templateName) ||
-        null;
+      // 1) 精準同名
+      template = candidates.find(t => t.template_name === templateName) || null;
+      // 2) 同 meal plan 類別（二食 / 三食 / 一食）
+      if (!template) {
+        const mealTag = templateName.includes("三食") || templateName.includes("3食")
+          ? "三食"
+          : templateName.includes("二食") || templateName.includes("2食") || templateName.includes("兩食")
+            ? "二食"
+            : null;
+        if (mealTag) {
+          template = candidates.find(t => (t.template_name || "").includes(mealTag)) || null;
+        }
+      }
     }
+    // 3) 退而求其次：該房型的第一個 template
     if (!template) {
-      template = allTemplates.find(t => t.room_type_id === roomTypeId) || null;
+      template = candidates[0] || null;
     }
 
     const priceMap = await resolveTemplatePricesForDates({
