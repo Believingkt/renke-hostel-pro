@@ -3,6 +3,7 @@ import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useAliasPrefix } from "@/hooks/use-alias-prefix";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { useSubdomain } from "@/hooks/use-subdomain";
