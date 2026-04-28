@@ -16,7 +16,8 @@ interface GovernmentHoliday {
 interface TaiwanHoliday {
   date: string;  // YYYY-MM-DD format
   name: string;
-  type: 'holiday' | 'workday';  // 國定假日 or 補班日
+  // 'holiday' = 國定假日 (放假); 'compensatory_day_off' = 補假; 'work_on_weekend' = 補班日
+  type: 'holiday' | 'compensatory_day_off' | 'work_on_weekend';
 }
 
 serve(async (req) => {
