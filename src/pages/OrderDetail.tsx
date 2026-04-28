@@ -206,6 +206,10 @@ const OrderDetailPage = () => {
   const [editExclusiveDoubleRooms, setEditExclusiveDoubleRooms] = useState(0);
   const [editExclusiveQuadRooms, setEditExclusiveQuadRooms] = useState(0);
   const MAX_TOTAL_ROOMS = 6;
+  // 只有森山寫照保留「包區」用語，其餘民宿一律使用「包棟」
+  const SENSAN_ACC_ID = "5f764d55-ae11-4631-80fe-2e611853deae";
+  const isSensan = order?.accommodation_id === SENSAN_ACC_ID;
+  const exclusiveLabel = isSensan ? "包區" : "包棟";
   const [depositRatioRef] = useState<{ current: number }>({ current: 0 });
   const [originalDiscountCode] = useState<{ current: string }>({ current: "" });
   const getRoomUnitPrice = useCallback((roomPrice: number, quantity: number) => {
