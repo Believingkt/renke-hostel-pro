@@ -179,16 +179,6 @@ export function DraggableAccommodationRow({
           >
             <Pencil className="h-4 w-4" />
           </Button>
-          {accommodation.custom_domain && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onCustomDomain(accommodation)}
-              title="自訂網域設定"
-            >
-              <Link2 className="h-4 w-4 text-primary" />
-            </Button>
-          )}
           <Button
             variant="ghost"
             size="icon"
