@@ -154,7 +154,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
       setError(null);
       const { data, error } = await supabase
         .from("public_holidays")
-        .select("*")
+        .select("id, holiday_date, holiday_name, holiday_type, created_at, updated_at")
         .eq("accommodation_id", accommodationId)
         .order("holiday_date", { ascending: true });
 
