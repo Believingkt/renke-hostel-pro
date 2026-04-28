@@ -61,7 +61,7 @@ import {
 import { EmptyState } from "@/components/EmptyState";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useSubdomain } from "@/hooks/use-subdomain";
+import { useAccommodation } from "@/contexts/AccommodationContext";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -129,7 +129,7 @@ interface DiscountCodeSecrets {
 
 const KolDiscount = () => {
   const navigate = useNavigate();
-  const { accommodationId } = useSubdomain();
+  const { currentAccommodationId: accommodationId } = useAccommodation();
   const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);

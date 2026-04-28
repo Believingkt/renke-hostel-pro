@@ -1,7 +1,7 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useSubdomain } from "@/hooks/use-subdomain";
+import { useAccommodation } from "@/contexts/AccommodationContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -64,7 +64,7 @@ const statusLabels: Record<string, string> = {
 
 const DiscountCodeOrders = () => {
   const { discountCode } = useParams<{ discountCode: string }>();
-  const { accommodationId } = useSubdomain();
+  const { currentAccommodationId: accommodationId } = useAccommodation();
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
