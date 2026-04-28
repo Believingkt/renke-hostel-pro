@@ -53,6 +53,9 @@ interface InventoryData {
   booked_count: number;
 }
 
+// 專案 × 日期的價格覆寫
+type TemplatePriceOverrides = Map<string, number>; // key: `${roomTypeId}_${date}_${templateId}`
+
 interface PublicHoliday {
   holiday_date: string;
   holiday_type: string;
