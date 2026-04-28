@@ -496,10 +496,10 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                       const holiday = holidays.get(dateStr);
                       const dayOfWeek = date.getDay();
                       const isSat = dayOfWeek === 6;
-                      const isSun = dayOfWeek === 0;
                       const isHoliday = holiday && (holiday.holiday_type === "holiday" || holiday.holiday_type === "compensatory_day_off");
                       const isWorkOnWeekend = holiday?.holiday_type === "work_on_weekend";
-                      const isRed = (isSat || isSun || isHoliday) && !isWorkOnWeekend;
+                      // 依專案規範：僅週六與國定假日為假日，週日視為平日
+                      const isRed = (isSat || isHoliday) && !isWorkOnWeekend;
 
                       return (
                         <div
