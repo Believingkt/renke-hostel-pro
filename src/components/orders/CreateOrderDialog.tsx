@@ -382,46 +382,18 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
       for (const sel of updatedSelections) {
         const template = pricingTemplates.find(t => t.id === sel.template_id);
-        let selPrice = 0;
-
-        const hasTemplateWeekdayWeekend = template
-          && ((template.weekday_price != null && template.weekday_price > 0)
-            || (template.weekend_price != null && template.weekend_price > 0));
-
-        if (hasTemplateWeekdayWeekend) {
-          const weekdayPrice = template!.weekday_price ?? template!.price ?? 0;
-          const weekendPrice = template!.weekend_price ?? template!.price ?? weekdayPrice;
-          let perRoom = 0;
-          for (let i = 0; i < nights; i++) {
-            const d = new Date(start);
-            d.setDate(start.getDate() + i);
-            perRoom += isWeekendDate(d) ? weekendPrice : weekdayPrice;
-          }
-          selPrice = perRoom * sel.quantity;
-        } else if (template && template.price != null && template.price > 0) {
-          selPrice = template.price * nights * sel.quantity;
-        } else {
-          let priceColumn = 'price';
-          if (template) {
-            const name = template.template_name || template.project_name || '';
-            if (name.includes('三食') || name.includes('3食')) priceColumn = 'price_3_meals';
-            else if (name.includes('二食') || name.includes('2食') || name.includes('兩食')) priceColumn = 'price_2_meals';
-          }
-          let sum = 0;
-          for (const dateStr of dates) {
-            const { data: priceData } = await supabase
-              .from("room_inventory_pricing")
-              .select("price, price_2_meals, price_3_meals")
-              .eq("room_type_id", sel.room_type_id)
-              .eq("date", dateStr)
-              .maybeSingle();
-            if (priceData) {
-              const selectedPrice = (priceData as any)[priceColumn];
-              sum += (selectedPrice != null && selectedPrice > 0) ? selectedPrice : (priceData.price ?? 0);
-            }
-          }
-          selPrice = sum * sel.quantity;
+        // 統一使用解析器：優先用「該專案在該日的覆寫價」，再 fallback 到 template / base row
+        const priceMap = await resolveTemplatePricesForDates({
+          roomTypeId: sel.room_type_id,
+          template: template ?? null,
+          dates,
+          isWeekendDate,
+        });
+        let perRoom = 0;
+        for (const dateStr of dates) {
+          perRoom += priceMap[dateStr] ?? 0;
         }
+        const selPrice = perRoom * sel.quantity;
         sel.roomPrice = selPrice;
         totalPrice += selPrice;
       }
