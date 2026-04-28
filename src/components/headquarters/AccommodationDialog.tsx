@@ -634,13 +634,16 @@ export function AccommodationDialog({
                     />
                   </div>
 
-                  {/* 自訂子網域 */}
+                  {/* 自訂網址路徑 */}
                   <div className="space-y-2">
                     <Label htmlFor="short_url_alias" className="flex items-center gap-2 text-sm font-medium">
                       <Globe className="h-4 w-4 text-muted-foreground" />
-                      自訂子網域
+                      自訂網址路徑
                     </Label>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-stretch rounded-md border border-input bg-background overflow-hidden focus-within:ring-2 focus-within:ring-ring">
+                      <span className="flex items-center px-3 text-sm text-muted-foreground bg-muted/50 whitespace-nowrap font-medium border-r border-input">
+                        booking.lakeze.com/
+                      </span>
                       <div className="relative flex-1">
                         <Input
                           id="short_url_alias"
@@ -648,7 +651,7 @@ export function AccommodationDialog({
                           onChange={(e) => handleSubdomainChange(e.target.value)}
                           placeholder="例如：myhotel"
                           disabled={isSubmitting}
-                          className="pr-10 h-11"
+                          className="pr-10 h-11 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                           maxLength={30}
                         />
                         {formData.short_url_alias && (
@@ -657,7 +660,6 @@ export function AccommodationDialog({
                           </div>
                         )}
                       </div>
-                      <span className="text-sm text-muted-foreground whitespace-nowrap font-medium">.lakeze.com</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-muted-foreground">
