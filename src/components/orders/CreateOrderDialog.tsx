@@ -1061,7 +1061,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               }
             }}
           >
-            {isHakuna ? "包棟" : "包區"}
+            {exclusiveLabel}
           </Button>
           <Button
             type="button"
@@ -1073,7 +1073,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               setRoomSelections([]);
             }}
           >
-            {isHakuna ? "非包棟" : "非包區"}
+            {`非${exclusiveLabel}`}
           </Button>
         </div>
 
@@ -1082,13 +1082,13 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           <div className="space-y-3">
             {roomTypes.filter(r => r.is_exclusive_package).length === 0 ? (
               <div className="p-4 border rounded-lg bg-muted/30 text-center text-sm text-muted-foreground">
-                目前沒有{isHakuna ? "包棟" : "包區"}房型，請先至房型管理新增
+                目前沒有{exclusiveLabel}房型，請先至房型管理新增
               </div>
             ) : (
               <div className="p-3 border rounded-lg space-y-3 bg-muted/30">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label className="text-xs">{isHakuna ? "包棟" : "包區"}方案 <span className="text-destructive">*</span></Label>
+                    <Label className="text-xs">{exclusiveLabel}方案 <span className="text-destructive">*</span></Label>
                     <Select
                       value={roomSelections[0]?.room_type_id || ""}
                       onValueChange={(value) => {
@@ -1105,7 +1105,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                       }}
                     >
                       <SelectTrigger className="h-10 text-sm">
-                        <SelectValue placeholder={`選擇${isHakuna ? "包棟" : "包區"}方案`} />
+                        <SelectValue placeholder={`選擇${exclusiveLabel}方案`} />
                       </SelectTrigger>
                       <SelectContent>
                         {roomTypes.filter(r => r.is_exclusive_package).map((rt) => (
@@ -1178,11 +1178,11 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                   </div>
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {isHakuna ? "包棟" : "包區"}已鎖定 {MAX_TOTAL_ROOMS} 間房（雙人房 {exclusiveDoubleRooms} 間、四人房 {exclusiveQuadRooms} 間）
+                  {exclusiveLabel}已鎖定 {MAX_TOTAL_ROOMS} 間房（雙人房 {exclusiveDoubleRooms} 間、四人房 {exclusiveQuadRooms} 間）
                 </div>
                 {roomSelections[0]?.roomPrice > 0 && (
                   <div className="text-xs text-right text-muted-foreground">
-                    小計：NT$ {roomSelections[0].roomPrice.toLocaleString()}（{isHakuna ? "包棟" : "包區"}）
+                    小計：NT$ {roomSelections[0].roomPrice.toLocaleString()}（{exclusiveLabel}）
                   </div>
                 )}
               </div>
