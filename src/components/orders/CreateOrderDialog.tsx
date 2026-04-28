@@ -113,9 +113,14 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
   // Multi-room selections
   const [roomSelections, setRoomSelections] = useState<RoomSelection[]>([]);
-  const MAX_TOTAL_ROOMS = 6;
-  
-  // Booking mode: "exclusive" (包區) or "normal" (非包區) or "" (not yet selected)
+  // 哈庫納馬塔塔：7 間房（最多 2 雙人房 + 4 四人房，加上 1 額外房型）
+  const HAKUNA_ACC_ID = "6b6ac0dc-602b-4dec-9167-7791ac412ba3";
+  const isHakuna = currentAccommodationId === HAKUNA_ACC_ID;
+  const MAX_TOTAL_ROOMS = isHakuna ? 7 : 6;
+  const MAX_DOUBLE_ROOMS = isHakuna ? 2 : 3;
+  const MAX_QUAD_ROOMS = isHakuna ? 4 : 3;
+
+  // Booking mode: "exclusive" (包棟) or "normal" (非包棟) or "" (not yet selected)
   const [bookingMode, setBookingMode] = useState<"" | "exclusive" | "normal">("");
   const [exclusiveDoubleRooms, setExclusiveDoubleRooms] = useState(0);
   const [exclusiveQuadRooms, setExclusiveQuadRooms] = useState(0);
