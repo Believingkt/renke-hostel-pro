@@ -53,6 +53,9 @@ interface InventoryData {
   booked_count: number;
 }
 
+// 專案 × 日期的價格覆寫
+type TemplatePriceOverrides = Map<string, number>; // key: `${roomTypeId}_${date}_${templateId}`
+
 interface PublicHoliday {
   holiday_date: string;
   holiday_type: string;
@@ -74,6 +77,7 @@ export default function RoomPriceCalendar() {
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [templates, setTemplates] = useState<PricingTemplate[]>([]);
   const [inventory, setInventory] = useState<Map<string, InventoryData>>(new Map());
+  const [templatePriceOverrides, setTemplatePriceOverrides] = useState<TemplatePriceOverrides>(new Map());
   const [holidays, setHolidays] = useState<Map<string, PublicHoliday>>(new Map());
   const [loading, setLoading] = useState(true);
   
@@ -144,7 +148,7 @@ export default function RoomPriceCalendar() {
           .order('display_order', { ascending: true }),
         supabase
           .from('room_inventory_pricing')
-          .select('room_type_id, date, price, available_rooms, is_available, notes')
+          .select('room_type_id, date, price, available_rooms, is_available, notes, pricing_template_id')
           .gte('date', monthStart)
           .lte('date', monthEnd),
         supabase
@@ -188,7 +192,35 @@ export default function RoomPriceCalendar() {
 
       const loadedRoomTypes = (roomTypesResult.data || []) as RoomType[];
       const loadedTemplates = (templatesResult.data || []) as PricingTemplate[];
-      let loadedInventory = (inventoryResult.data || []) as InventoryData[];
+      const allInventoryRows = (inventoryResult.data || []) as Array<{
+        room_type_id: string;
+        date: string;
+        price: number;
+        available_rooms: number;
+        is_available: boolean;
+        notes: string | null;
+        pricing_template_id: string | null;
+      }>;
+
+      // 拆分為「庫存/基礎價列」（pricing_template_id IS NULL）與「專案覆寫價列」
+      let loadedInventory: InventoryData[] = allInventoryRows
+        .filter(r => r.pricing_template_id == null)
+        .map(r => ({
+          room_type_id: r.room_type_id,
+          date: r.date,
+          price: r.price,
+          available_rooms: r.available_rooms,
+          is_available: r.is_available,
+          notes: r.notes,
+          booked_count: 0,
+        }));
+
+      const overrideMap: TemplatePriceOverrides = new Map();
+      allInventoryRows
+        .filter(r => r.pricing_template_id != null)
+        .forEach(r => {
+          overrideMap.set(`${r.room_type_id}_${r.date}_${r.pricing_template_id}`, r.price);
+        });
 
       // 同步：若「整月庫存都一致」且與房型房間數量不同，則以房型房間數量為準
       // 目的：避免套用模板/初始化時把庫存寫死為 1，導致與房型管理不一致
@@ -232,6 +264,7 @@ export default function RoomPriceCalendar() {
                .eq('room_type_id', t.roomTypeId)
                .gte('date', monthStart)
                .lte('date', monthEnd)
+               .is('pricing_template_id', null)
                .eq('available_rooms', t.fromValue);
 
              if (syncError) throw syncError;
@@ -257,6 +290,7 @@ export default function RoomPriceCalendar() {
         invMap.set(key, { ...item, booked_count: bookingCountMap.get(key) || 0 });
       });
       setInventory(invMap);
+      setTemplatePriceOverrides(overrideMap);
 
       // 建立假日查找表
       const holMap = new Map<string, PublicHoliday>();
@@ -516,6 +550,7 @@ export default function RoomPriceCalendar() {
                             roomType={roomType}
                             templates={roomTemplates}
                             inventory={inventory}
+                            templatePriceOverrides={templatePriceOverrides}
                             monthDays={monthDays}
                             holidays={holidays}
                             getCellData={getCellData}
@@ -548,6 +583,7 @@ export default function RoomPriceCalendar() {
                         roomType={roomType}
                         templates={roomTemplates}
                         inventory={inventory}
+                        templatePriceOverrides={templatePriceOverrides}
                         monthDays={monthDays}
                         holidays={holidays}
                         getCellData={getCellData}
@@ -572,6 +608,7 @@ export default function RoomPriceCalendar() {
           onOpenChange={setEditDialogOpen}
           roomTypeId={selectedCell.roomTypeId}
           roomTypeName={selectedCell.roomTypeName}
+          templateId={selectedCell.templateId}
           templateName={selectedCell.templateName}
           initialDate={selectedCell.date}
           currentPrice={selectedCell.currentPrice}
@@ -589,6 +626,7 @@ interface RoomTypeRowsProps {
   roomType: RoomType;
   templates: PricingTemplate[];
   inventory: Map<string, InventoryData>;
+  templatePriceOverrides: TemplatePriceOverrides;
   monthDays: Date[];
   holidays: Map<string, PublicHoliday>;
   getCellData: (roomTypeId: string, dateStr: string) => InventoryData | undefined;
@@ -601,6 +639,7 @@ function RoomTypeRows({
   roomType,
   templates,
   inventory,
+  templatePriceOverrides,
   monthDays,
   holidays,
   getCellData,
@@ -698,11 +737,15 @@ function RoomTypeRows({
             const isWeekend = dayType === 'weekend' || dayType === 'holiday';
             const cellData = getCellData(roomType.id, dateStr);
 
-            // 直接從專案設定取得平日/假日價格
+            // 優先使用該專案在該日期的覆寫價，否則回退到專案預設平日/假日價
             const isUnavailable = cellData?.is_available === false;
-            const price = isWeekend
+            const overrideKey = `${roomType.id}_${dateStr}_${template.id}`;
+            const overridePrice = templatePriceOverrides.get(overrideKey);
+            const fallbackPrice = isWeekend
               ? (template.weekend_price ?? template.weekday_price)
               : (template.weekday_price ?? template.weekend_price);
+            const price = overridePrice ?? fallbackPrice;
+            const isOverridden = overridePrice != null;
 
             return (
               <td
@@ -715,9 +758,11 @@ function RoomTypeRows({
                   isUnavailable && "opacity-60",
                 )}
                 onClick={() => onCellClick(roomType, template, dateStr, price || undefined, cellData?.available_rooms)}
-                title={isUnavailable ? '無法預定（已關閉販售）' : undefined}
+                title={isUnavailable ? '無法預定（已關閉販售）' : (isOverridden ? '此日已單獨設定價格' : undefined)}
               >
-                <span className="text-sm">{isUnavailable ? '' : formatPrice(price)}</span>
+                <span className={cn("text-sm", isOverridden && "font-semibold text-primary")}>
+                  {isUnavailable ? '' : formatPrice(price)}
+                </span>
               </td>
             );
           })}

@@ -27,6 +27,7 @@ interface RoomPriceEditDialogProps {
   onOpenChange: (open: boolean) => void;
   roomTypeId: string;
   roomTypeName: string;
+  templateId?: string;
   templateName?: string;
   initialDate: string;
   currentPrice?: number;
@@ -51,6 +52,7 @@ export function RoomPriceEditDialog({
   onOpenChange,
   roomTypeId,
   roomTypeName,
+  templateId,
   templateName,
   initialDate,
   currentPrice,
@@ -173,14 +175,16 @@ export function RoomPriceEditDialog({
         return;
       }
 
-      // 構建更新數據
-      const updates = datesToUpdate.map(date => {
+      // 1) 處理「庫存/販售狀態」與「無 template 時的價格變更」→ 寫入 pricing_template_id IS NULL 的列
+      const baseUpdates = datesToUpdate.map(date => {
         const updateData: any = {
           room_type_id: roomTypeId,
           date,
+          pricing_template_id: null,
         };
 
-        if (changePrice) {
+        // 只有在「未綁定專案」時，價格變更才寫入基礎價列
+        if (changePrice && !templateId) {
           updateData.price = parseInt(customPrice);
         }
 
@@ -195,46 +199,65 @@ export function RoomPriceEditDialog({
         return updateData;
       });
 
-      // 先獲取現有記錄
-      const { data: existingData, error: fetchError } = await supabase
-        .from('room_inventory_pricing')
-        .select('id, date')
-        .eq('room_type_id', roomTypeId)
-        .in('date', datesToUpdate);
+      const needBaseWrite = changeAvailability || changeInventory || (changePrice && !templateId);
 
-      if (fetchError) throw fetchError;
+      if (needBaseWrite) {
+        // 取得既有的基礎價列
+        const { data: existingBase, error: fetchBaseError } = await supabase
+          .from('room_inventory_pricing')
+          .select('id, date')
+          .eq('room_type_id', roomTypeId)
+          .is('pricing_template_id', null)
+          .in('date', datesToUpdate);
 
-      const existingDates = new Set(existingData?.map(d => d.date) || []);
+        if (fetchBaseError) throw fetchBaseError;
+        const existingBaseDates = new Set((existingBase || []).map(d => d.date));
 
-      // 分離需要更新和插入的記錄
-      const toUpdate = updates.filter(u => existingDates.has(u.date));
-      const toInsert = updates.filter(u => !existingDates.has(u.date)).map(u => ({
-        ...u,
-        price: u.price || parseInt(customPrice) || currentPrice || 0,
-        available_rooms: u.available_rooms ?? 1,
-        is_available: u.is_available ?? true,
-      }));
+        const baseToUpdate = baseUpdates.filter(u => existingBaseDates.has(u.date));
+        const baseToInsert = baseUpdates
+          .filter(u => !existingBaseDates.has(u.date))
+          .map(u => ({
+            ...u,
+            price: u.price ?? currentPrice ?? 0,
+            available_rooms: u.available_rooms ?? 1,
+            is_available: u.is_available ?? true,
+          }));
 
-      // 批量更新
-      if (toUpdate.length > 0) {
-        for (const update of toUpdate) {
+        for (const update of baseToUpdate) {
           const { error } = await supabase
             .from('room_inventory_pricing')
             .update(update)
             .eq('room_type_id', roomTypeId)
-            .eq('date', update.date);
+            .eq('date', update.date)
+            .is('pricing_template_id', null);
+          if (error) throw error;
+        }
 
+        if (baseToInsert.length > 0) {
+          const { error } = await supabase
+            .from('room_inventory_pricing')
+            .insert(baseToInsert);
           if (error) throw error;
         }
       }
 
-      // 批量插入新記錄
-      if (toInsert.length > 0) {
-        const { error } = await supabase
-          .from('room_inventory_pricing')
-          .insert(toInsert);
+      // 2) 處理「專案價格覆寫」→ 寫入 pricing_template_id = templateId 的列
+      if (changePrice && templateId) {
+        const overrideRows = datesToUpdate.map(date => ({
+          room_type_id: roomTypeId,
+          date,
+          pricing_template_id: templateId,
+          price: parseInt(customPrice),
+          // 衛星欄位（NOT NULL constraint 預防）
+          available_rooms: 0,
+          is_available: true,
+        }));
 
-        if (error) throw error;
+        const { error: upsertError } = await supabase
+          .from('room_inventory_pricing')
+          .upsert(overrideRows, { onConflict: 'room_type_id,date,pricing_template_id' });
+
+        if (upsertError) throw upsertError;
       }
 
       toast.success(`已更新 ${datesToUpdate.length} 個日期的設定`);
@@ -376,23 +399,30 @@ export function RoomPriceEditDialog({
                   onCheckedChange={(checked) => setChangePrice(checked === true)}
                 />
                 <label htmlFor="changePrice" className="text-sm cursor-pointer font-medium">
-                  變更專案價格
+                  {templateId ? '變更此專案價格' : '變更基礎價格'}
                 </label>
               </div>
 
               {changePrice && (
-                <div className="ml-6 flex items-center gap-2">
-                  <Label htmlFor="customPrice" className="text-sm">
-                    價格設定
-                  </Label>
-                  <Input
-                    id="customPrice"
-                    type="number"
-                    value={customPrice}
-                    onChange={(e) => setCustomPrice(e.target.value)}
-                    className="w-32"
-                    placeholder={currentPrice?.toString()}
-                  />
+                <div className="ml-6 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="customPrice" className="text-sm">
+                      價格設定
+                    </Label>
+                    <Input
+                      id="customPrice"
+                      type="number"
+                      value={customPrice}
+                      onChange={(e) => setCustomPrice(e.target.value)}
+                      className="w-32"
+                      placeholder={currentPrice?.toString()}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {templateId
+                      ? '僅覆寫此專案在所選日期的售價，不影響其他專案。'
+                      : '更新基礎價格，不影響各專案的覆寫價。'}
+                  </p>
                 </div>
               )}
             </div>

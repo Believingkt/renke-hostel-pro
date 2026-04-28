@@ -2491,6 +2491,7 @@ export type Database = {
           price: number
           price_2_meals: number | null
           price_3_meals: number | null
+          pricing_template_id: string | null
           room_type_id: string
           updated_at: string
         }
@@ -2506,6 +2507,7 @@ export type Database = {
           price: number
           price_2_meals?: number | null
           price_3_meals?: number | null
+          pricing_template_id?: string | null
           room_type_id: string
           updated_at?: string
         }
@@ -2521,10 +2523,18 @@ export type Database = {
           price?: number
           price_2_meals?: number | null
           price_3_meals?: number | null
+          pricing_template_id?: string | null
           room_type_id?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "room_inventory_pricing_pricing_template_id_fkey"
+            columns: ["pricing_template_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_templates"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "room_inventory_pricing_room_type_id_fkey"
             columns: ["room_type_id"]
