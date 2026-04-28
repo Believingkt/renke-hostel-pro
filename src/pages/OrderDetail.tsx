@@ -553,14 +553,14 @@ const OrderDetailPage = () => {
         editOrderRooms.some(r => roomTypes.find(t => t.id === r.room_type_id)?.is_exclusive_package) ||
         !!roomTypes.find(t => t.id === editForm.room_type_id)?.is_exclusive_package;
       let finalNotes = editForm.notes.trim();
-      // Strip any existing 包區房間配置 line first
+      // Strip any existing 包區/包棟房間配置 line first
       finalNotes = finalNotes
         .split("\n")
-        .filter(line => !/^【包區房間配置】/.test(line.trim()))
+        .filter(line => !/^【(?:包區|包棟)房間配置】/.test(line.trim()))
         .join("\n")
         .trim();
       if (hasExclusivePackage && (editExclusiveDoubleRooms > 0 || editExclusiveQuadRooms > 0)) {
-        const pkgLine = `【包區房間配置】雙人房 ${editExclusiveDoubleRooms} 間、四人房 ${editExclusiveQuadRooms} 間`;
+        const pkgLine = `【${exclusiveLabel}房間配置】雙人房 ${editExclusiveDoubleRooms} 間、四人房 ${editExclusiveQuadRooms} 間`;
         finalNotes = finalNotes ? `${pkgLine}\n${finalNotes}` : pkgLine;
       }
 
