@@ -29,7 +29,7 @@ interface AccommodationFormData {
   email: string;
   description: string;
   short_url_alias: string;
-  theme_preset: string;
+  // 註：theme_preset 已從表單移除，所有民宿一律使用人客多橘色（由 onSubmit handler 在 DB 層強制寫入 "default"）
 }
 
 interface AccommodationDialogProps {
