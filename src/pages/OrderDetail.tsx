@@ -231,6 +231,47 @@ const OrderDetailPage = () => {
     return candidatePrices.length > 0 ? Math.min(...candidatePrices) : 0;
   }, [editOrderRooms, getRoomUnitPrice, orderRooms, roomTypes]);
 
+  /**
+   * 依「訂單入住日期」與該房型的對應方案 (template) 透過 templatePriceResolver
+   * 計算每晚價格總和，回傳「單間總額（含所有晚數）」。
+   * 若找不到方案或日期區間，回傳 0（呼叫端會 fallback 到舊邏輯）。
+   */
+  const computeRoomTotalByDates = useCallback(async (
+    roomTypeId: string,
+    templateName: string | null | undefined,
+  ): Promise<number> => {
+    if (!order?.check_in_date || !order?.check_out_date || !roomTypeId) return 0;
+    const start = new Date(order.check_in_date);
+    const end = new Date(order.check_out_date);
+    if (!(start < end)) return 0;
+    const dates = eachDayOfInterval({ start, end: addDays(end, -1) }).map(d => format(d, "yyyy-MM-dd"));
+    if (!dates.length) return 0;
+
+    // 找對應 template：先用 templateName 比對 + room_type，否則任一同 room_type 的 template
+    let template: PricingTemplateLite | null = null;
+    if (templateName) {
+      template =
+        allTemplates.find(t => t.room_type_id === roomTypeId && t.template_name === templateName) ||
+        allTemplates.find(t => t.template_name === templateName) ||
+        null;
+    }
+    if (!template) {
+      template = allTemplates.find(t => t.room_type_id === roomTypeId) || null;
+    }
+
+    const priceMap = await resolveTemplatePricesForDates({
+      roomTypeId,
+      template,
+      dates,
+      publicHolidays,
+    });
+    let total = 0;
+    for (const d of dates) {
+      if (priceMap[d] != null) total += priceMap[d];
+    }
+    return Math.round(total);
+  }, [order?.check_in_date, order?.check_out_date, allTemplates, publicHolidays]);
+
   const [editForm, setEditForm] = useState<EditFormState>({
     guest_name: "",
     guest_phone: "",
