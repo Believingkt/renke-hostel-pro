@@ -497,10 +497,10 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
             )}
           </div>
 
-          {/* 平日與假日價格（擇一必填） */}
+          {/* 平日 / 旺日 / 假日價格（擇一必填） */}
           <div className="space-y-2">
             <Label>價格設定 <span className="text-xs text-muted-foreground font-normal">（擇一必填）</span></Label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="weekday_price" className="text-sm font-normal text-muted-foreground">平日價格</Label>
                 <Input
@@ -516,7 +516,25 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
                   className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
                   inputMode="numeric"
                 />
-                <p className="text-xs text-muted-foreground">週日至週五的價格</p>
+                <p className="text-xs text-muted-foreground">週一至週四的價格</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="peak_price" className="text-sm font-normal text-muted-foreground">旺日價格</Label>
+                <Input
+                  id="peak_price"
+                  type="number"
+                  min="0"
+                  value={formData.peak_price ?? ""}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    peak_price: e.target.value ? parseInt(e.target.value) : null
+                  })}
+                  placeholder="請輸入旺日價格"
+                  className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
+                  inputMode="numeric"
+                />
+                <p className="text-xs text-muted-foreground">週五及週日的價格</p>
               </div>
 
               <div className="space-y-2">
@@ -537,8 +555,8 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
                 <p className="text-xs text-muted-foreground">週六及國定假日的價格</p>
               </div>
             </div>
-            {(errors.weekday_price || errors.weekend_price) && (
-              <p className="text-sm text-destructive">{errors.weekday_price || errors.weekend_price}</p>
+            {(errors.weekday_price || errors.peak_price || errors.weekend_price) && (
+              <p className="text-sm text-destructive">{errors.weekday_price || errors.peak_price || errors.weekend_price}</p>
             )}
           </div>
 
