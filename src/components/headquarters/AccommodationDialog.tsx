@@ -29,7 +29,7 @@ interface AccommodationFormData {
   email: string;
   description: string;
   short_url_alias: string;
-  theme_preset: string;
+  // 註：theme_preset 已從表單移除，所有民宿一律使用人客多橘色（由 onSubmit handler 在 DB 層強制寫入 "default"）
 }
 
 interface AccommodationDialogProps {
@@ -77,7 +77,6 @@ export function AccommodationDialog({
     email: "",
     description: "",
     short_url_alias: "",
-    theme_preset: "default",
   });
 
   // Logo states
@@ -119,7 +118,6 @@ export function AccommodationDialog({
         email: initialData.email || "",
         description: initialData.description || "",
         short_url_alias: initialData.short_url_alias || "",
-        theme_preset: "default", // 一律使用人客多橘色，不再支援自訂主題
       });
       setHeaderLogoUrl(initialData.header_logo_url || null);
       setFooterLogoUrl(initialData.footer_logo_url || null);
@@ -137,7 +135,6 @@ export function AccommodationDialog({
         email: "",
         description: "",
         short_url_alias: "",
-        theme_preset: "default",
       });
       setHeaderLogoUrl(null);
       setFooterLogoUrl(null);
