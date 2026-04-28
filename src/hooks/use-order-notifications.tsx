@@ -29,7 +29,12 @@ export const useOrderNotifications = (enabled: boolean = true) => {
           const n = payload.new as {
             title?: string;
             description?: string;
+            accommodation_id?: string;
           };
+          // 雙重保險：僅顯示當前民宿的通知，避免切換時殘留訂閱誤觸
+          if (n.accommodation_id && n.accommodation_id !== accommodationId) {
+            return;
+          }
           toast({
             title: n.title ?? "通知",
             description: n.description ?? "",
