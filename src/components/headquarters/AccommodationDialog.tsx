@@ -620,7 +620,7 @@ export function AccommodationDialog({
       case "available":
         return "可以使用";
       case "taken":
-        return "已被使用";
+        return "此路徑已被使用";
       case "invalid":
         return "格式不正確";
       default:
