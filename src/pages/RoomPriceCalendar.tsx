@@ -316,15 +316,20 @@ export default function RoomPriceCalendar() {
     setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1));
   };
 
-  // 判斷日期類型
-  const getDayType = (date: Date, dateStr: string): 'weekend' | 'holiday' | 'weekday' => {
+  // 判斷日期類型（三段式）：
+  //  - weekday  平日：週一至週四
+  //  - peak     旺日：週五、週日
+  //  - weekend  假日：週六
+  //  - holiday  國定假日（視同假日）
+  const getDayType = (date: Date, dateStr: string): 'weekend' | 'holiday' | 'peak' | 'weekday' => {
     const holiday = holidays.get(dateStr);
     if (holiday) {
       if (holiday.holiday_type === 'work_on_weekend') return 'weekday';
       return 'holiday';
     }
-    // 依專案規範：僅週六視為假日，週日為平日
-    if (date.getDay() === 6) return 'weekend';
+    const day = date.getDay(); // 0=Sun, 6=Sat
+    if (day === 6) return 'weekend';
+    if (day === 5 || day === 0) return 'peak';
     return 'weekday';
   };
 
