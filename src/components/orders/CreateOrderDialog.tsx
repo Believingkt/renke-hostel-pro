@@ -621,6 +621,31 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
     setIsSaving(true);
     try {
+      // Recompute room prices synchronously to avoid stale 0 values from async useEffect race
+      const nights = calculateNights();
+      if (nights > 0) {
+        const dates: string[] = [];
+        const start = new Date(form.check_in_date);
+        for (let i = 0; i < nights; i++) {
+          const d = new Date(start);
+          d.setDate(start.getDate() + i);
+          dates.push(format(d, "yyyy-MM-dd"));
+        }
+        for (const sel of roomSelections) {
+          const template = pricingTemplates.find(t => t.id === sel.template_id);
+          const priceMap = await resolveTemplatePricesForDates({
+            roomTypeId: sel.room_type_id,
+            template: template ?? null,
+            dates,
+            publicHolidays,
+          });
+          let perRoom = 0;
+          for (const dateStr of dates) {
+            perRoom += priceMap[dateStr] ?? 0;
+          }
+          sel.roomPrice = perRoom * sel.quantity;
+        }
+      }
       const totals = getTotals();
       const depositAmount = useDeposit ? Math.round(totals.final * (depositPct / 100)) : 0;
       const balanceAmount = totals.final - depositAmount;
