@@ -1650,7 +1650,7 @@ const OrderDetailPage = () => {
                               <Select value={String(editExclusiveDoubleRooms)} onValueChange={(v) => setEditExclusiveDoubleRooms(Number(v))}>
                                 <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                  {[0, 1, 2, 3].map(n => (
+                                  {doubleRoomOptions.map(n => (
                                     <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
                                   ))}
                                 </SelectContent>
