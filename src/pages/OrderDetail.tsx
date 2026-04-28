@@ -205,11 +205,18 @@ const OrderDetailPage = () => {
   const [editOrderRooms, setEditOrderRooms] = useState<EditOrderRoom[]>([]);
   const [editExclusiveDoubleRooms, setEditExclusiveDoubleRooms] = useState(0);
   const [editExclusiveQuadRooms, setEditExclusiveQuadRooms] = useState(0);
-  const MAX_TOTAL_ROOMS = 6;
   // 只有森山寫照保留「包區」用語，其餘民宿一律使用「包棟」
   const SENSAN_ACC_ID = "5f764d55-ae11-4631-80fe-2e611853deae";
+  // 哈庫納馬塔塔：最多 2 雙人房 + 4 四人房 = 6 間
+  const HAKUNA_ACC_ID = "6b6ac0dc-602b-4dec-9167-7791ac412ba3";
   const isSensan = order?.accommodation_id === SENSAN_ACC_ID;
+  const isHakuna = order?.accommodation_id === HAKUNA_ACC_ID;
   const exclusiveLabel = isSensan ? "包區" : "包棟";
+  const MAX_TOTAL_ROOMS = isHakuna ? 7 : 6;
+  const MAX_DOUBLE_ROOMS = isHakuna ? 2 : 3;
+  const MAX_QUAD_ROOMS = isHakuna ? 4 : 3;
+  const doubleRoomOptions = Array.from({ length: MAX_DOUBLE_ROOMS + 1 }, (_, i) => i);
+  const quadRoomOptions = Array.from({ length: MAX_QUAD_ROOMS + 1 }, (_, i) => i);
   const [depositRatioRef] = useState<{ current: number }>({ current: 0 });
   const [originalDiscountCode] = useState<{ current: string }>({ current: "" });
   const getRoomUnitPrice = useCallback((roomPrice: number, quantity: number) => {
@@ -1643,7 +1650,7 @@ const OrderDetailPage = () => {
                               <Select value={String(editExclusiveDoubleRooms)} onValueChange={(v) => setEditExclusiveDoubleRooms(Number(v))}>
                                 <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                  {[0, 1, 2, 3].map(n => (
+                                  {doubleRoomOptions.map(n => (
                                     <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
                                   ))}
                                 </SelectContent>
@@ -1654,7 +1661,7 @@ const OrderDetailPage = () => {
                               <Select value={String(editExclusiveQuadRooms)} onValueChange={(v) => setEditExclusiveQuadRooms(Number(v))}>
                                 <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                  {[0, 1, 2, 3].map(n => (
+                                  {quadRoomOptions.map(n => (
                                     <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
                                   ))}
                                 </SelectContent>
@@ -1733,7 +1740,7 @@ const OrderDetailPage = () => {
                           <Select value={String(editExclusiveDoubleRooms)} onValueChange={(v) => setEditExclusiveDoubleRooms(Number(v))}>
                             <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
                             <SelectContent>
-                              {[0, 1, 2, 3].map(n => (
+                              {doubleRoomOptions.map(n => (
                                 <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
                               ))}
                             </SelectContent>
@@ -1744,7 +1751,7 @@ const OrderDetailPage = () => {
                           <Select value={String(editExclusiveQuadRooms)} onValueChange={(v) => setEditExclusiveQuadRooms(Number(v))}>
                             <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
                             <SelectContent>
-                              {[0, 1, 2, 3].map(n => (
+                              {quadRoomOptions.map(n => (
                                 <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
                               ))}
                             </SelectContent>
