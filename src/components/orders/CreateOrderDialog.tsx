@@ -113,9 +113,14 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
   // Multi-room selections
   const [roomSelections, setRoomSelections] = useState<RoomSelection[]>([]);
-  const MAX_TOTAL_ROOMS = 6;
-  
-  // Booking mode: "exclusive" (包區) or "normal" (非包區) or "" (not yet selected)
+  // 哈庫納馬塔塔：7 間房（最多 2 雙人房 + 4 四人房，加上 1 額外房型）
+  const HAKUNA_ACC_ID = "6b6ac0dc-602b-4dec-9167-7791ac412ba3";
+  const isHakuna = currentAccommodationId === HAKUNA_ACC_ID;
+  const MAX_TOTAL_ROOMS = isHakuna ? 7 : 6;
+  const MAX_DOUBLE_ROOMS = isHakuna ? 2 : 3;
+  const MAX_QUAD_ROOMS = isHakuna ? 4 : 3;
+
+  // Booking mode: "exclusive" (包棟) or "normal" (非包棟) or "" (not yet selected)
   const [bookingMode, setBookingMode] = useState<"" | "exclusive" | "normal">("");
   const [exclusiveDoubleRooms, setExclusiveDoubleRooms] = useState(0);
   const [exclusiveQuadRooms, setExclusiveQuadRooms] = useState(0);
@@ -662,7 +667,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         notes: (() => {
           let note = form.notes.trim();
           if (bookingMode === 'exclusive' && (exclusiveDoubleRooms > 0 || exclusiveQuadRooms > 0)) {
-            const roomDetail = `【包區房間配置】雙人房 ${exclusiveDoubleRooms} 間、四人房 ${exclusiveQuadRooms} 間`;
+            const roomDetail = `【包棟房間配置】雙人房 ${exclusiveDoubleRooms} 間、四人房 ${exclusiveQuadRooms} 間`;
             note = note ? `${roomDetail}\n${note}` : roomDetail;
           }
           return note || null;
@@ -1027,7 +1032,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               }
             }}
           >
-            包區
+            包棟
           </Button>
           <Button
             type="button"
@@ -1039,7 +1044,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               setRoomSelections([]);
             }}
           >
-            非包區
+            非包棟
           </Button>
         </div>
 
@@ -1048,13 +1053,13 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           <div className="space-y-3">
             {roomTypes.filter(r => r.is_exclusive_package).length === 0 ? (
               <div className="p-4 border rounded-lg bg-muted/30 text-center text-sm text-muted-foreground">
-                目前沒有包區房型，請先至房型管理新增
+                目前沒有包棟房型，請先至房型管理新增
               </div>
             ) : (
               <div className="p-3 border rounded-lg space-y-3 bg-muted/30">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label className="text-xs">包區方案 <span className="text-destructive">*</span></Label>
+                    <Label className="text-xs">包棟方案 <span className="text-destructive">*</span></Label>
                     <Select
                       value={roomSelections[0]?.room_type_id || ""}
                       onValueChange={(value) => {
@@ -1071,7 +1076,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                       }}
                     >
                       <SelectTrigger className="h-10 text-sm">
-                        <SelectValue placeholder="選擇包區方案" />
+                        <SelectValue placeholder="選擇包棟方案" />
                       </SelectTrigger>
                       <SelectContent>
                         {roomTypes.filter(r => r.is_exclusive_package).map((rt) => (
@@ -1123,7 +1128,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {[0, 1, 2, 3].map(n => (
+                        {Array.from({ length: MAX_DOUBLE_ROOMS + 1 }, (_, i) => i).map(n => (
                           <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
                         ))}
                       </SelectContent>
@@ -1136,7 +1141,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {[0, 1, 2, 3].map(n => (
+                        {Array.from({ length: MAX_QUAD_ROOMS + 1 }, (_, i) => i).map(n => (
                           <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
                         ))}
                       </SelectContent>
@@ -1144,11 +1149,11 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                   </div>
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  包區已鎖定 {MAX_TOTAL_ROOMS} 間房（雙人房 {exclusiveDoubleRooms} 間、四人房 {exclusiveQuadRooms} 間）
+                  包棟已鎖定 {MAX_TOTAL_ROOMS} 間房（雙人房 {exclusiveDoubleRooms} 間、四人房 {exclusiveQuadRooms} 間）
                 </div>
                 {roomSelections[0]?.roomPrice > 0 && (
                   <div className="text-xs text-right text-muted-foreground">
-                    小計：NT$ {roomSelections[0].roomPrice.toLocaleString()}（包區）
+                    小計：NT$ {roomSelections[0].roomPrice.toLocaleString()}（包棟）
                   </div>
                 )}
               </div>
