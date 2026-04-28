@@ -118,7 +118,6 @@ export function AccommodationDialog({
         email: initialData.email || "",
         description: initialData.description || "",
         short_url_alias: initialData.short_url_alias || "",
-        theme_preset: "default", // 一律使用人客多橘色，不再支援自訂主題
       });
       setHeaderLogoUrl(initialData.header_logo_url || null);
       setFooterLogoUrl(initialData.footer_logo_url || null);
