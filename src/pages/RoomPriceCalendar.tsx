@@ -288,7 +288,8 @@ export default function RoomPriceCalendar() {
       if (holiday.holiday_type === 'work_on_weekend') return 'weekday';
       return 'holiday';
     }
-    if (isWeekendDate(date)) return 'weekend';
+    // 依專案規範：僅週六視為假日，週日為平日
+    if (date.getDay() === 6) return 'weekend';
     return 'weekday';
   };
 
