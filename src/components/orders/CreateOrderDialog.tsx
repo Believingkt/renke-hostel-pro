@@ -375,19 +375,15 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       let totalPrice = 0;
       const updatedSelections = [...roomSelections];
 
-      const isWeekendDate = (d: Date) => {
-        if (d.getDay() === 6) return true;
-        return publicHolidays.includes(format(d, "yyyy-MM-dd"));
-      };
-
       for (const sel of updatedSelections) {
         const template = pricingTemplates.find(t => t.id === sel.template_id);
         // 統一使用解析器：優先用「該專案在該日的覆寫價」，再 fallback 到 template / base row
+        // 三段式：平日(週一至週四) / 旺日(週五、週日) / 假日(週六及國定假日)
         const priceMap = await resolveTemplatePricesForDates({
           roomTypeId: sel.room_type_id,
           template: template ?? null,
           dates,
-          isWeekendDate,
+          publicHolidays,
         });
         let perRoom = 0;
         for (const dateStr of dates) {
