@@ -3,6 +3,7 @@ import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useAliasPrefix } from "@/hooks/use-alias-prefix";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { useSubdomain } from "@/hooks/use-subdomain";
@@ -21,6 +22,7 @@ import lokezeLogo from "@/assets/lokeze-logo.png";
 
 export function Header() {
   const navigate = useNavigate();
+  const { aliasNavigate } = useAliasPrefix();
   const { accommodationId } = useSubdomain();
   const { userAccommodations } = useAccommodation();
   const { open, isMobile } = useSidebar();
@@ -140,7 +142,7 @@ export function Header() {
             variant="ghost"
             size="icon"
             className="h-10 w-10 relative touch-manipulation"
-            onClick={() => navigate('/admin/notifications')}
+            onClick={() => aliasNavigate('/admin/notifications')}
           >
             <Bell className="h-5 w-5" />
             {unreadCount > 0 && (
