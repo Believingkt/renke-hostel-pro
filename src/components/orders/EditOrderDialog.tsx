@@ -442,7 +442,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
     };
 
     checkInventoryAndPrice();
-  }, [editForm.check_in_date, editForm.check_out_date, editForm.room_type_id, selectedTemplateId, appliedDiscount, currentAccommodationId, order, pricingTemplates]);
+  }, [editForm.check_in_date, editForm.check_out_date, editForm.room_type_id, selectedTemplateId, appliedDiscount, currentAccommodationId, order, pricingTemplates, publicHolidays]);
 
   const handleApplyDiscount = async () => {
     if (!discountCode.trim() || !currentAccommodationId) {
