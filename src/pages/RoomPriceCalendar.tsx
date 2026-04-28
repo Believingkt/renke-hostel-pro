@@ -264,6 +264,7 @@ export default function RoomPriceCalendar() {
                .eq('room_type_id', t.roomTypeId)
                .gte('date', monthStart)
                .lte('date', monthEnd)
+               .is('pricing_template_id', null)
                .eq('available_rooms', t.fromValue);
 
              if (syncError) throw syncError;
