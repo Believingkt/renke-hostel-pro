@@ -243,6 +243,7 @@ export function RoomPriceEditDialog({
 
       // 2) 處理「專案價格覆寫」→ 寫入 pricing_template_id = templateId 的列
       // 註：partial unique index 無法被 ON CONFLICT 推斷，需手動 select → update/insert
+      console.log('[RoomPriceEditDialog] save', { changePrice, templateId, datesToUpdate, customPrice });
       if (changePrice && templateId) {
         const priceValue = parseInt(customPrice);
 
@@ -284,13 +285,20 @@ export function RoomPriceEditDialog({
             .insert(overrideToInsert);
           if (error) throw error;
         }
+        console.log('[RoomPriceEditDialog] override write done', {
+          updated: overrideToUpdate.length,
+          inserted: overrideToInsert.length,
+        });
       }
 
-      toast.success(`已更新 ${datesToUpdate.length} 個日期的設定`);
+      const summary = changePrice && templateId
+        ? `已更新 ${datesToUpdate.length} 個日期的「${templateName ?? '專案'}」價格`
+        : `已更新 ${datesToUpdate.length} 個日期的設定`;
+      toast.success(summary);
       onComplete();
-    } catch (error) {
+    } catch (error: any) {
       console.error('儲存失敗:', error);
-      toast.error('儲存失敗');
+      toast.error(`儲存失敗：${error?.message ?? '未知錯誤'}`);
     } finally {
       setSaving(false);
     }
