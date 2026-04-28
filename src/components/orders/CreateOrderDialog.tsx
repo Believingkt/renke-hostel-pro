@@ -1032,7 +1032,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               }
             }}
           >
-            包區
+            包棟
           </Button>
           <Button
             type="button"
