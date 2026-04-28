@@ -608,6 +608,7 @@ export default function RoomPriceCalendar() {
           onOpenChange={setEditDialogOpen}
           roomTypeId={selectedCell.roomTypeId}
           roomTypeName={selectedCell.roomTypeName}
+          templateId={selectedCell.templateId}
           templateName={selectedCell.templateName}
           initialDate={selectedCell.date}
           currentPrice={selectedCell.currentPrice}
