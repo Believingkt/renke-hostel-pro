@@ -546,24 +546,31 @@ export function AccommodationDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate subdomain if provided
+    // Validate path if provided
     if (formData.short_url_alias) {
       if (!SUBDOMAIN_REGEX.test(formData.short_url_alias)) {
-        toast.error("子網域格式錯誤", {
+        toast.error("網址路徑格式錯誤", {
           description: "請使用小寫英文、數字和連字號，長度 3-30 字元",
         });
         return;
       }
 
+      if (RESERVED_PATHS.has(formData.short_url_alias.toLowerCase())) {
+        toast.error("此路徑為系統保留字", {
+          description: "請使用其他名稱（避免使用 admin、auth、booking 等）",
+        });
+        return;
+      }
+
       if (subdomainStatus === "taken") {
-        toast.error("子網域已被使用", {
-          description: "請選擇其他子網域名稱",
+        toast.error("此網址路徑已被使用", {
+          description: `booking.lakeze.com/${formData.short_url_alias} 已被其他民宿使用，請更換`,
         });
         return;
       }
 
       if (subdomainStatus === "checking") {
-        toast.error("正在檢查子網域", {
+        toast.error("正在檢查網址路徑", {
           description: "請稍候再試",
         });
         return;
@@ -574,6 +581,18 @@ export function AccommodationDialog({
     try {
       await onSubmit(formData);
       onOpenChange(false);
+    } catch (error: any) {
+      // Catch DB-level unique-violation as a final safety net
+      const code = error?.code || error?.cause?.code;
+      const msg = String(error?.message || "");
+      if (code === "23505" || msg.includes("accommodation_info_short_url_alias_unique")) {
+        toast.error("此網址路徑已被使用", {
+          description: `booking.lakeze.com/${formData.short_url_alias} 已被其他民宿使用，請更換`,
+        });
+        setSubdomainStatus("taken");
+      } else {
+        throw error;
+      }
     } finally {
       setIsSubmitting(false);
     }
