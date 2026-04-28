@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useSubdomain } from "@/hooks/use-subdomain";
+import { useAccommodation } from "@/contexts/AccommodationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { 
@@ -65,7 +65,7 @@ interface BackupLog {
 }
 
 const DataBackup = () => {
-  const { accommodationId } = useSubdomain();
+  const { currentAccommodationId: accommodationId } = useAccommodation();
   const [backups, setBackups] = useState<BackupLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -78,6 +78,11 @@ const DataBackup = () => {
   const [selectedBackup, setSelectedBackup] = useState<BackupLog | null>(null);
   const [clearExisting, setClearExisting] = useState(false);
   const [backupMode, setBackupMode] = useState<'full' | 'incremental'>('full');
+
+  // Reset list immediately on accommodation switch to prevent cross-tenant data flash
+  useEffect(() => {
+    setBackups([]);
+  }, [accommodationId]);
 
   useEffect(() => {
     if (accommodationId) {

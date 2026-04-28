@@ -49,6 +49,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
 import { PageHeader } from "@/components/PageHeader";
+import { useAccommodation } from "@/contexts/AccommodationContext";
 
 interface FaqItem {
   id: string;
@@ -73,8 +74,8 @@ const faqSchema = z.object({
 
 const Faq = () => {
   const isMobile = useIsMobile();
+  const { currentAccommodationId: accommodationId } = useAccommodation();
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
-  const [accommodationId, setAccommodationId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingFaq, setDeletingFaq] = useState<FaqItem | null>(null);
@@ -85,29 +86,28 @@ const Faq = () => {
     is_published: true,
   });
 
+  // Reset list immediately when accommodation switches to prevent cross-tenant data flash
   useEffect(() => {
-    loadFaqs();
-  }, []);
+    setFaqs([]);
+  }, [accommodationId]);
+
+  useEffect(() => {
+    if (accommodationId) {
+      loadFaqs();
+    }
+  }, [accommodationId]);
 
   const loadFaqs = async () => {
+    if (!accommodationId) return;
     try {
-      const { data: infoData } = await supabase
-        .from("accommodation_info")
-        .select("id")
-        .maybeSingle();
+      const { data: faqData, error } = await supabase
+        .from("faqs")
+        .select("*")
+        .eq("accommodation_id", accommodationId)
+        .order("display_order");
 
-      if (infoData) {
-        setAccommodationId(infoData.id);
-
-        const { data: faqData, error } = await supabase
-          .from("faqs")
-          .select("*")
-          .eq("accommodation_id", infoData.id)
-          .order("display_order");
-
-        if (error) throw error;
-        setFaqs(faqData || []);
-      }
+      if (error) throw error;
+      setFaqs(faqData || []);
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error("Error loading FAQs:", error);

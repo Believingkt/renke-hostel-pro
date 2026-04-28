@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useSubdomain } from "@/hooks/use-subdomain";
+import { useAccommodation } from "@/contexts/AccommodationContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -106,7 +106,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const { accommodationId, isLoading: subdomainLoading } = useSubdomain();
+  const { currentAccommodationId: accommodationId, isLoading: subdomainLoading } = useAccommodation();
   const [holidays, setHolidays] = useState<PublicHoliday[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -140,6 +140,11 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [syncResult, setSyncResult] = useState<{ inserted: number; year: number } | null>(null);
+
+  // Reset list immediately when switching accommodation to prevent cross-tenant flash
+  useEffect(() => {
+    setHolidays([]);
+  }, [accommodationId]);
 
   useEffect(() => {
     if (subdomainLoading || !accommodationId) return;
