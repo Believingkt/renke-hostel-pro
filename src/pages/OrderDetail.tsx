@@ -837,7 +837,7 @@ const OrderDetailPage = () => {
           const roomTypeId = orderData.room_type_id;
           let templatesQuery = supabase
             .from("pricing_templates")
-            .select("id, template_name, meal_plans")
+            .select("id, template_name, meal_plans, room_type_id, price, weekday_price, peak_price, weekend_price")
             .eq("accommodation_id", orderData.accommodation_id);
           if (roomTypeId) {
             templatesQuery = templatesQuery.eq("room_type_id", roomTypeId);
@@ -845,7 +845,7 @@ const OrderDetailPage = () => {
           const { data: templatesData } = await templatesQuery;
 
           if (templatesData && templatesData.length > 0) {
-            setRoomTemplates(templatesData.map(t => ({ id: t.id, template_name: t.template_name })));
+            setRoomTemplates(templatesData as any);
             // Derive meal plan options from template names
             const derivedPlans: CustomMealPlan[] = [];
             const defaultTemplate = templatesData.find(t => (t as any).meal_plans && Array.isArray((t as any).meal_plans) && ((t as any).meal_plans as any[]).length > 0);
