@@ -24,7 +24,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
+import { format, eachDayOfInterval, addDays } from "date-fns";
+import { resolveTemplatePricesForDates, type PricingTemplateLite } from "@/utils/templatePriceResolver";
 import { useToast } from "@/hooks/use-toast";
 import { OnlinePaymentDialog } from "@/components/orders/OnlinePaymentDialog";
 import {
@@ -182,7 +183,9 @@ const OrderDetailPage = () => {
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
-  const [roomTemplates, setRoomTemplates] = useState<{ id: string; template_name: string }[]>([]);
+  const [roomTemplates, setRoomTemplates] = useState<(PricingTemplateLite & { room_type_id?: string | null })[]>([]);
+  const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
+  const [allTemplates, setAllTemplates] = useState<(PricingTemplateLite & { room_type_id?: string | null })[]>([]);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showPriceEditDialog, setShowPriceEditDialog] = useState(false);
@@ -227,6 +230,47 @@ const OrderDetailPage = () => {
 
     return candidatePrices.length > 0 ? Math.min(...candidatePrices) : 0;
   }, [editOrderRooms, getRoomUnitPrice, orderRooms, roomTypes]);
+
+  /**
+   * 依「訂單入住日期」與該房型的對應方案 (template) 透過 templatePriceResolver
+   * 計算每晚價格總和，回傳「單間總額（含所有晚數）」。
+   * 若找不到方案或日期區間，回傳 0（呼叫端會 fallback 到舊邏輯）。
+   */
+  const computeRoomTotalByDates = useCallback(async (
+    roomTypeId: string,
+    templateName: string | null | undefined,
+  ): Promise<number> => {
+    if (!order?.check_in_date || !order?.check_out_date || !roomTypeId) return 0;
+    const start = new Date(order.check_in_date);
+    const end = new Date(order.check_out_date);
+    if (!(start < end)) return 0;
+    const dates = eachDayOfInterval({ start, end: addDays(end, -1) }).map(d => format(d, "yyyy-MM-dd"));
+    if (!dates.length) return 0;
+
+    // 找對應 template：先用 templateName 比對 + room_type，否則任一同 room_type 的 template
+    let template: PricingTemplateLite | null = null;
+    if (templateName) {
+      template =
+        allTemplates.find(t => t.room_type_id === roomTypeId && t.template_name === templateName) ||
+        allTemplates.find(t => t.template_name === templateName) ||
+        null;
+    }
+    if (!template) {
+      template = allTemplates.find(t => t.room_type_id === roomTypeId) || null;
+    }
+
+    const priceMap = await resolveTemplatePricesForDates({
+      roomTypeId,
+      template,
+      dates,
+      publicHolidays,
+    });
+    let total = 0;
+    for (const d of dates) {
+      if (priceMap[d] != null) total += priceMap[d];
+    }
+    return Math.round(total);
+  }, [order?.check_in_date, order?.check_out_date, allTemplates, publicHolidays]);
 
   const [editForm, setEditForm] = useState<EditFormState>({
     guest_name: "",
@@ -835,7 +879,7 @@ const OrderDetailPage = () => {
           const roomTypeId = orderData.room_type_id;
           let templatesQuery = supabase
             .from("pricing_templates")
-            .select("id, template_name, meal_plans")
+            .select("id, template_name, meal_plans, room_type_id, price, weekday_price, peak_price, weekend_price")
             .eq("accommodation_id", orderData.accommodation_id);
           if (roomTypeId) {
             templatesQuery = templatesQuery.eq("room_type_id", roomTypeId);
@@ -843,7 +887,7 @@ const OrderDetailPage = () => {
           const { data: templatesData } = await templatesQuery;
 
           if (templatesData && templatesData.length > 0) {
-            setRoomTemplates(templatesData.map(t => ({ id: t.id, template_name: t.template_name })));
+            setRoomTemplates(templatesData as any);
             // Derive meal plan options from template names
             const derivedPlans: CustomMealPlan[] = [];
             const defaultTemplate = templatesData.find(t => (t as any).meal_plans && Array.isArray((t as any).meal_plans) && ((t as any).meal_plans as any[]).length > 0);
@@ -868,6 +912,29 @@ const OrderDetailPage = () => {
           } else {
             setRoomTemplates([]);
             setCustomMealPlans([]);
+          }
+
+          // Fetch ALL templates for this accommodation (used to recalc when room type changes)
+          const { data: allTemplatesData } = await supabase
+            .from("pricing_templates")
+            .select("id, template_name, meal_plans, room_type_id, price, weekday_price, peak_price, weekend_price")
+            .eq("accommodation_id", orderData.accommodation_id);
+          if (allTemplatesData) setAllTemplates(allTemplatesData as any);
+
+          // Fetch public holidays covering the order date range (with margin)
+          if (orderData.check_in_date && orderData.check_out_date) {
+            const { data: holidayData } = await supabase
+              .from("public_holidays")
+              .select("date, holiday_type")
+              .gte("date", orderData.check_in_date)
+              .lte("date", orderData.check_out_date);
+            if (holidayData) {
+              setPublicHolidays(
+                holidayData
+                  .filter((h: any) => h.holiday_type !== "work_on_weekend")
+                  .map((h: any) => h.date),
+              );
+            }
           }
 
           // Fetch addon settings for edit mode
@@ -1491,19 +1558,32 @@ const OrderDetailPage = () => {
                                 <Label className="text-xs">房型</Label>
                                 <Select
                                   value={or.room_type_id}
-                                  onValueChange={(v) => setEditOrderRooms(prev => prev.map(r => {
-                                    if (r.id !== or.id) return r;
+                                  onValueChange={async (v) => {
                                     const selectedRoomType = roomTypes.find(rt => rt.id === v);
-                                    if (!selectedRoomType) return { ...r, room_type_id: v };
-                                    const suggestedUnitPrice = getSuggestedRoomUnitPrice(v, r.id) || selectedRoomType.base_price;
-
-                                    return {
+                                    if (!selectedRoomType) {
+                                      setEditOrderRooms(prev => prev.map(r => r.id === or.id ? { ...r, room_type_id: v } : r));
+                                      return;
+                                    }
+                                    // 1) 先依「日期 + 方案」算單間總額
+                                    const dateBasedTotal = await computeRoomTotalByDates(v, or.template_name);
+                                    let unitPrice = 0;
+                                    let roomTotal = 0;
+                                    if (dateBasedTotal > 0) {
+                                      // dateBasedTotal 是「單間 × 所有晚數」，再乘以間數得到此 room row 總額
+                                      roomTotal = dateBasedTotal * or.quantity;
+                                      unitPrice = or.quantity > 0 ? Math.round(roomTotal / or.quantity) : roomTotal;
+                                    } else {
+                                      // fallback：舊邏輯（同房型既有單價或 base_price）
+                                      unitPrice = getSuggestedRoomUnitPrice(v, or.id) || selectedRoomType.base_price;
+                                      roomTotal = unitPrice * or.quantity;
+                                    }
+                                    setEditOrderRooms(prev => prev.map(r => r.id === or.id ? {
                                       ...r,
                                       room_type_id: v,
-                                      unit_price: suggestedUnitPrice,
-                                      room_price: suggestedUnitPrice * r.quantity,
-                                    };
-                                  }))}
+                                      unit_price: unitPrice,
+                                      room_price: roomTotal,
+                                    } : r));
+                                  }}
                                 >
                                   <SelectTrigger className="h-8 text-xs">
                                     <SelectValue />
