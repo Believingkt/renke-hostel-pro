@@ -372,24 +372,14 @@ const OrderDetailPage = () => {
       const savedRoomsTotal = orderRooms.reduce((sum, r) => sum + r.room_price, 0);
       const shouldUseOrderTotalForSingleRoom = orderRooms.length === 1 && Number(order.total_price || 0) > 0 && savedRoomsTotal !== Number(order.total_price || 0);
       const normalizedRooms = orderRooms.map((or) => {
-        const correctedRoomPrice = shouldUseOrderTotalForSingleRoom ? Number(order.total_price || 0) : or.room_price;
-        const currentUnitPrice = getRoomUnitPrice(correctedRoomPrice, or.quantity);
-        const sameTypeUnitPrices = orderRooms
-          .filter((room) => room.room_type_id === or.room_type_id)
-          .map((room) => getRoomUnitPrice(shouldUseOrderTotalForSingleRoom ? Number(order.total_price || 0) : room.room_price, room.quantity))
-          .filter((price) => price > 0);
-        const roomTypeBasePrice = roomTypes.find((roomType) => roomType.id === or.room_type_id)?.base_price ?? 0;
-        const resolvedUnitPrice = Math.min(
-          ...[...sameTypeUnitPrices, roomTypeBasePrice].filter((price) => price > 0),
-        );
-        const unitPrice = Number.isFinite(resolvedUnitPrice) ? resolvedUnitPrice : currentUnitPrice;
-
+        const correctedRoomPrice = shouldUseOrderTotalForSingleRoom ? Number(order.total_price || 0) : Number(or.room_price || 0);
+        const unitPrice = getRoomUnitPrice(correctedRoomPrice, or.quantity);
         return {
           id: or.id,
           room_type_id: or.room_type_id,
           quantity: or.quantity,
-          room_price: shouldUseOrderTotalForSingleRoom ? correctedRoomPrice : unitPrice * or.quantity,
-          unit_price: shouldUseOrderTotalForSingleRoom ? currentUnitPrice : unitPrice,
+          room_price: correctedRoomPrice,
+          unit_price: unitPrice,
           template_name: or.template_name,
         };
       });
@@ -514,22 +504,16 @@ const OrderDetailPage = () => {
   // Re-initialize editOrderRooms when orderRooms load after editing already started
   useEffect(() => {
     if (!isEditing || orderRooms.length === 0 || editOrderRooms.length > 0) return;
+    const savedRoomsTotal = orderRooms.reduce((sum, r) => sum + r.room_price, 0);
+    const shouldUseOrderTotalForSingleRoom = orderRooms.length === 1 && Number(order?.total_price || 0) > 0 && savedRoomsTotal !== Number(order?.total_price || 0);
     const normalizedRooms = orderRooms.map((or) => {
-      const currentUnitPrice = getRoomUnitPrice(or.room_price, or.quantity);
-      const sameTypeUnitPrices = orderRooms
-        .filter((room) => room.room_type_id === or.room_type_id)
-        .map((room) => getRoomUnitPrice(room.room_price, room.quantity))
-        .filter((price) => price > 0);
-      const roomTypeBasePrice = roomTypes.find((roomType) => roomType.id === or.room_type_id)?.base_price ?? 0;
-      const resolvedUnitPrice = Math.min(
-        ...[...sameTypeUnitPrices, roomTypeBasePrice].filter((price) => price > 0),
-      );
-      const unitPrice = Number.isFinite(resolvedUnitPrice) ? resolvedUnitPrice : currentUnitPrice;
+      const correctedRoomPrice = shouldUseOrderTotalForSingleRoom ? Number(order?.total_price || 0) : Number(or.room_price || 0);
+      const unitPrice = getRoomUnitPrice(correctedRoomPrice, or.quantity);
       return {
         id: or.id,
         room_type_id: or.room_type_id,
         quantity: or.quantity,
-        room_price: unitPrice * or.quantity,
+        room_price: correctedRoomPrice,
         unit_price: unitPrice,
         template_name: or.template_name,
       };
@@ -886,27 +870,27 @@ const OrderDetailPage = () => {
             .order("display_order", { ascending: true });
           if (rtData) setRoomTypes(rtData);
 
-          // Fetch pricing templates linked to the order's room type
-          const roomTypeId = orderData.room_type_id;
-          let templatesQuery = supabase
+          // Fetch all pricing templates for this accommodation so edited room rows can
+          // resolve the correct room-type-specific inventory price, including holidays.
+          const { data: templatesData } = await supabase
             .from("pricing_templates")
             .select("id, template_name, meal_plans, room_type_id, price, weekday_price, peak_price, weekend_price")
             .eq("accommodation_id", orderData.accommodation_id);
-          if (roomTypeId) {
-            templatesQuery = templatesQuery.eq("room_type_id", roomTypeId);
-          }
-          const { data: templatesData } = await templatesQuery;
 
           if (templatesData && templatesData.length > 0) {
-            setRoomTemplates(templatesData as any);
+            const roomTypeId = orderData.room_type_id;
+            const roomTypeTemplates = roomTypeId
+              ? templatesData.filter((t: any) => t.room_type_id === roomTypeId)
+              : templatesData;
+            setRoomTemplates(roomTypeTemplates as any);
             // Derive meal plan options from template names
             const derivedPlans: CustomMealPlan[] = [];
-            const defaultTemplate = templatesData.find(t => (t as any).meal_plans && Array.isArray((t as any).meal_plans) && ((t as any).meal_plans as any[]).length > 0);
+            const defaultTemplate = roomTypeTemplates.find(t => (t as any).meal_plans && Array.isArray((t as any).meal_plans) && ((t as any).meal_plans as any[]).length > 0);
             if (defaultTemplate) {
               const plans = (defaultTemplate as any).meal_plans as CustomMealPlan[];
               derivedPlans.push(...plans);
             }
-            for (const t of templatesData) {
+            for (const t of roomTypeTemplates) {
               const name = t.template_name || "";
               if (name.includes("二食") || name.includes("2食")) {
                 if (!derivedPlans.some(p => p.id === "2_meals")) {
@@ -925,25 +909,21 @@ const OrderDetailPage = () => {
             setCustomMealPlans([]);
           }
 
-          // Fetch ALL templates for this accommodation (used to recalc when room type changes)
-          const { data: allTemplatesData } = await supabase
-            .from("pricing_templates")
-            .select("id, template_name, meal_plans, room_type_id, price, weekday_price, peak_price, weekend_price")
-            .eq("accommodation_id", orderData.accommodation_id);
-          if (allTemplatesData) setAllTemplates(allTemplatesData as any);
+          if (templatesData) setAllTemplates(templatesData as any);
 
           // Fetch public holidays covering the order date range (with margin)
           if (orderData.check_in_date && orderData.check_out_date) {
             const { data: holidayData } = await supabase
               .from("public_holidays")
-              .select("date, holiday_type")
-              .gte("date", orderData.check_in_date)
-              .lte("date", orderData.check_out_date);
+              .select("holiday_date, holiday_type")
+              .eq("accommodation_id", orderData.accommodation_id)
+              .gte("holiday_date", orderData.check_in_date)
+              .lte("holiday_date", orderData.check_out_date);
             if (holidayData) {
               setPublicHolidays(
                 holidayData
                   .filter((h: any) => h.holiday_type !== "work_on_weekend")
-                  .map((h: any) => h.date),
+                  .map((h: any) => h.holiday_date),
               );
             }
           }
@@ -1525,10 +1505,11 @@ const OrderDetailPage = () => {
                           size="sm"
                           className="h-7 gap-1 text-xs"
                           disabled={editOrderRooms.reduce((sum, r) => sum + r.quantity, 0) >= MAX_TOTAL_ROOMS || roomTypes.length === 0}
-                          onClick={() => {
+                          onClick={async () => {
                             const rt = roomTypes[0];
                             if (!rt) return;
-                            const suggestedUnitPrice = getSuggestedRoomUnitPrice(rt.id) || rt.base_price;
+                            const dateBasedTotal = await computeRoomTotalByDates(rt.id, null);
+                            const suggestedUnitPrice = dateBasedTotal || getSuggestedRoomUnitPrice(rt.id) || rt.base_price;
                             setEditOrderRooms(prev => [...prev, {
                               id: crypto.randomUUID(),
                               room_type_id: rt.id,
