@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useSubdomain } from "@/hooks/use-subdomain";
+import { useAccommodation } from "@/contexts/AccommodationContext";
 import { AnalyticsDashboard } from "@/components/analytics/AnalyticsDashboard";
 import { PageHeader } from "@/components/PageHeader";
 import { BarChart3, Home } from "lucide-react";
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/breadcrumb";
 
 const Analytics = () => {
-  const { accommodationId } = useSubdomain();
+  const { currentAccommodationId: accommodationId } = useAccommodation();
 
   if (!accommodationId) {
     return (
