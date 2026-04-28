@@ -61,6 +61,7 @@ const PointsApiDocs = () => {
           "template_name": "一泊二食 - 平日",
           "price": 6000,
           "weekday_price": 6000,
+          "peak_price": 7000,
           "weekend_price": 8000
         }
       ]
