@@ -100,42 +100,37 @@ export function DraggableAccommodationRow({
       </TableCell>
 
 
-      {/* Custom Domain */}
+      {/* Booking Portal Link */}
       <TableCell>
-        {accommodation.custom_domain ? (
-          <div className="flex items-center gap-1">
-            <a
-              href={`https://${accommodation.custom_domain}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline text-sm"
-            >
-              {accommodation.custom_domain}
-            </a>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6"
-              onClick={() => {
-                navigator.clipboard.writeText(`https://${accommodation.custom_domain}`);
-                toast.success("已複製連結");
-              }}
-              title="複製連結"
-            >
-              <Copy className="h-3 w-3" />
-            </Button>
-          </div>
-        ) : (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 text-xs text-muted-foreground hover:text-primary"
-            onClick={() => onCustomDomain(accommodation)}
-          >
-            <Link2 className="h-3 w-3 mr-1" />
-            設定網域
-          </Button>
-        )}
+        {(() => {
+          const slug = accommodation.short_url_alias || accommodation.id;
+          const displayUrl = `booking.lakeze.com/${slug}`;
+          const fullUrl = `https://${displayUrl}`;
+          return (
+            <div className="flex items-center gap-1">
+              <a
+                href={fullUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline text-sm"
+              >
+                {displayUrl}
+              </a>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={() => {
+                  navigator.clipboard.writeText(fullUrl);
+                  toast.success("已複製連結");
+                }}
+                title="複製連結"
+              >
+                <Copy className="h-3 w-3" />
+              </Button>
+            </div>
+          );
+        })()}
       </TableCell>
 
       {/* Status */}
