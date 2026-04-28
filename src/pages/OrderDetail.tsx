@@ -1505,10 +1505,11 @@ const OrderDetailPage = () => {
                           size="sm"
                           className="h-7 gap-1 text-xs"
                           disabled={editOrderRooms.reduce((sum, r) => sum + r.quantity, 0) >= MAX_TOTAL_ROOMS || roomTypes.length === 0}
-                          onClick={() => {
+                          onClick={async () => {
                             const rt = roomTypes[0];
                             if (!rt) return;
-                            const suggestedUnitPrice = getSuggestedRoomUnitPrice(rt.id) || rt.base_price;
+                            const dateBasedTotal = await computeRoomTotalByDates(rt.id, null);
+                            const suggestedUnitPrice = dateBasedTotal || getSuggestedRoomUnitPrice(rt.id) || rt.base_price;
                             setEditOrderRooms(prev => [...prev, {
                               id: crypto.randomUUID(),
                               room_type_id: rt.id,
