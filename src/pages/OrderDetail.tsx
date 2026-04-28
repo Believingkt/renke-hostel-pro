@@ -206,6 +206,10 @@ const OrderDetailPage = () => {
   const [editExclusiveDoubleRooms, setEditExclusiveDoubleRooms] = useState(0);
   const [editExclusiveQuadRooms, setEditExclusiveQuadRooms] = useState(0);
   const MAX_TOTAL_ROOMS = 6;
+  // 只有森山寫照保留「包區」用語，其餘民宿一律使用「包棟」
+  const SENSAN_ACC_ID = "5f764d55-ae11-4631-80fe-2e611853deae";
+  const isSensan = order?.accommodation_id === SENSAN_ACC_ID;
+  const exclusiveLabel = isSensan ? "包區" : "包棟";
   const [depositRatioRef] = useState<{ current: number }>({ current: 0 });
   const [originalDiscountCode] = useState<{ current: string }>({ current: "" });
   const getRoomUnitPrice = useCallback((roomPrice: number, quantity: number) => {
@@ -317,7 +321,7 @@ const OrderDetailPage = () => {
     if (!order) return;
     // Parse exclusive package room config from notes
     const notesStr = order.notes || "";
-    const pkgMatch = notesStr.match(/【包區房間配置】雙人房\s*(\d+)\s*間、四人房\s*(\d+)\s*間/);
+    const pkgMatch = notesStr.match(/【(?:包區|包棟)房間配置】雙人房\s*(\d+)\s*間、四人房\s*(\d+)\s*間/);
     setEditExclusiveDoubleRooms(pkgMatch ? parseInt(pkgMatch[1]) : 0);
     setEditExclusiveQuadRooms(pkgMatch ? parseInt(pkgMatch[2]) : 0);
     setEditForm({
@@ -549,14 +553,14 @@ const OrderDetailPage = () => {
         editOrderRooms.some(r => roomTypes.find(t => t.id === r.room_type_id)?.is_exclusive_package) ||
         !!roomTypes.find(t => t.id === editForm.room_type_id)?.is_exclusive_package;
       let finalNotes = editForm.notes.trim();
-      // Strip any existing 包區房間配置 line first
+      // Strip any existing 包區/包棟房間配置 line first
       finalNotes = finalNotes
         .split("\n")
-        .filter(line => !/^【包區房間配置】/.test(line.trim()))
+        .filter(line => !/^【(?:包區|包棟)房間配置】/.test(line.trim()))
         .join("\n")
         .trim();
       if (hasExclusivePackage && (editExclusiveDoubleRooms > 0 || editExclusiveQuadRooms > 0)) {
-        const pkgLine = `【包區房間配置】雙人房 ${editExclusiveDoubleRooms} 間、四人房 ${editExclusiveQuadRooms} 間`;
+        const pkgLine = `【${exclusiveLabel}房間配置】雙人房 ${editExclusiveDoubleRooms} 間、四人房 ${editExclusiveQuadRooms} 間`;
         finalNotes = finalNotes ? `${pkgLine}\n${finalNotes}` : pkgLine;
       }
 
@@ -1632,7 +1636,7 @@ const OrderDetailPage = () => {
                       })}
                       {editOrderRooms.some(r => roomTypes.find(t => t.id === r.room_type_id)?.is_exclusive_package) && (
                         <div className="p-3 rounded-lg border border-dashed bg-muted/20 space-y-2">
-                          <div className="text-xs font-medium">包區房間配置</div>
+                          <div className="text-xs font-medium">{exclusiveLabel}房間配置</div>
                           <div className="grid grid-cols-2 gap-2">
                             <div className="space-y-1">
                               <Label className="text-xs">雙人房間數</Label>
@@ -1722,7 +1726,7 @@ const OrderDetailPage = () => {
                   <>
                     <Separator />
                     <div className="p-3 rounded-lg border border-dashed bg-muted/20 space-y-2">
-                      <div className="text-sm font-medium">包區房間配置</div>
+                      <div className="text-sm font-medium">{exclusiveLabel}房間配置</div>
                       <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1">
                           <Label className="text-xs">雙人房間數</Label>

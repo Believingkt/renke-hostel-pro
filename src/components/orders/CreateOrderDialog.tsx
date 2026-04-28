@@ -696,7 +696,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         notes: (() => {
           let note = form.notes.trim();
           if (bookingMode === 'exclusive' && (exclusiveDoubleRooms > 0 || exclusiveQuadRooms > 0)) {
-            const roomDetail = `【包棟房間配置】雙人房 ${exclusiveDoubleRooms} 間、四人房 ${exclusiveQuadRooms} 間`;
+            const roomDetail = `【${exclusiveLabel}房間配置】雙人房 ${exclusiveDoubleRooms} 間、四人房 ${exclusiveQuadRooms} 間`;
             note = note ? `${roomDetail}\n${note}` : roomDetail;
           }
           return note || null;
