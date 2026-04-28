@@ -691,6 +691,7 @@ function RoomTypeRows({
           const dateStr = format(day, 'yyyy-MM-dd');
           const dayType = getDayType(day, dateStr);
           const isWeekend = dayType === 'weekend' || dayType === 'holiday';
+          const isPeak = dayType === 'peak';
           const cellData = getCellData(roomType.id, dateStr);
 
           // 當日被「關閉販售」時，前台視為不可預定，因此表格庫存顯示為 0
@@ -707,7 +708,8 @@ function RoomTypeRows({
                 "px-2 py-1 text-center border-r cursor-pointer transition-colors",
                 isWeekend && "bg-orange-50/50 hover:bg-orange-100/50",
                 dayType === 'holiday' && "bg-red-50/50 hover:bg-red-100/50",
-                !isWeekend && "hover:bg-muted/50",
+                isPeak && "bg-amber-50/40 hover:bg-amber-100/50",
+                !isWeekend && !isPeak && "hover:bg-muted/50",
               )}
               onClick={() => onCellClick(roomType, null, dateStr, cellData?.price || undefined, cellData?.available_rooms)}
             >
