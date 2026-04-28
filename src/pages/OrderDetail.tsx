@@ -24,7 +24,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
+import { format, eachDayOfInterval, addDays } from "date-fns";
+import { resolveTemplatePricesForDates, type PricingTemplateLite } from "@/utils/templatePriceResolver";
 import { useToast } from "@/hooks/use-toast";
 import { OnlinePaymentDialog } from "@/components/orders/OnlinePaymentDialog";
 import {
