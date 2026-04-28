@@ -243,6 +243,7 @@ export function RoomPriceEditDialog({
 
       // 2) 處理「專案價格覆寫」→ 寫入 pricing_template_id = templateId 的列
       // 註：partial unique index 無法被 ON CONFLICT 推斷，需手動 select → update/insert
+      console.log('[RoomPriceEditDialog] save', { changePrice, templateId, datesToUpdate, customPrice });
       if (changePrice && templateId) {
         const priceValue = parseInt(customPrice);
 
