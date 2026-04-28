@@ -625,6 +625,7 @@ interface RoomTypeRowsProps {
   roomType: RoomType;
   templates: PricingTemplate[];
   inventory: Map<string, InventoryData>;
+  templatePriceOverrides: TemplatePriceOverrides;
   monthDays: Date[];
   holidays: Map<string, PublicHoliday>;
   getCellData: (roomTypeId: string, dateStr: string) => InventoryData | undefined;
@@ -637,6 +638,7 @@ function RoomTypeRows({
   roomType,
   templates,
   inventory,
+  templatePriceOverrides,
   monthDays,
   holidays,
   getCellData,
