@@ -582,17 +582,28 @@ export function AccommodationDialog({
       await onSubmit(formData);
       onOpenChange(false);
     } catch (error: any) {
-      // Catch DB-level unique-violation as a final safety net
       const code = error?.code || error?.cause?.code;
       const msg = String(error?.message || "");
+
+      // Unique-violation: alias already taken
       if (code === "23505" || msg.includes("accommodation_info_short_url_alias_unique")) {
         toast.error("此網址路徑已被使用", {
           description: `booking.lakeze.com/${formData.short_url_alias} 已被其他民宿使用，請更換`,
         });
         setSubdomainStatus("taken");
-      } else {
-        throw error;
+        return;
       }
+
+      // Server-side validation error from validate_short_url_alias trigger
+      if (code === "22023" || msg.includes("網址路徑")) {
+        toast.error("網址路徑驗證失敗", {
+          description: msg.replace(/^.*?:\s*/, "") || "請檢查網址路徑格式",
+        });
+        setSubdomainStatus("invalid");
+        return;
+      }
+
+      throw error;
     } finally {
       setIsSubmitting(false);
     }
