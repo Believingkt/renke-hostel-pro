@@ -1149,11 +1149,11 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                   </div>
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  包棟已鎖定 {MAX_TOTAL_ROOMS} 間房（雙人房 {exclusiveDoubleRooms} 間、四人房 {exclusiveQuadRooms} 間）
+                  {isHakuna ? "包棟" : "包區"}已鎖定 {MAX_TOTAL_ROOMS} 間房（雙人房 {exclusiveDoubleRooms} 間、四人房 {exclusiveQuadRooms} 間）
                 </div>
                 {roomSelections[0]?.roomPrice > 0 && (
                   <div className="text-xs text-right text-muted-foreground">
-                    小計：NT$ {roomSelections[0].roomPrice.toLocaleString()}（包棟）
+                    小計：NT$ {roomSelections[0].roomPrice.toLocaleString()}（{isHakuna ? "包棟" : "包區"}）
                   </div>
                 )}
               </div>
