@@ -1149,7 +1149,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                   </div>
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  包區已鎖定 {MAX_TOTAL_ROOMS} 間房（雙人房 {exclusiveDoubleRooms} 間、四人房 {exclusiveQuadRooms} 間）
+                  包棟已鎖定 {MAX_TOTAL_ROOMS} 間房（雙人房 {exclusiveDoubleRooms} 間、四人房 {exclusiveQuadRooms} 間）
                 </div>
                 {roomSelections[0]?.roomPrice > 0 && (
                   <div className="text-xs text-right text-muted-foreground">
