@@ -175,14 +175,16 @@ export function RoomPriceEditDialog({
         return;
       }
 
-      // 構建更新數據
-      const updates = datesToUpdate.map(date => {
+      // 1) 處理「庫存/販售狀態」與「無 template 時的價格變更」→ 寫入 pricing_template_id IS NULL 的列
+      const baseUpdates = datesToUpdate.map(date => {
         const updateData: any = {
           room_type_id: roomTypeId,
           date,
+          pricing_template_id: null,
         };
 
-        if (changePrice) {
+        // 只有在「未綁定專案」時，價格變更才寫入基礎價列
+        if (changePrice && !templateId) {
           updateData.price = parseInt(customPrice);
         }
 
@@ -197,46 +199,65 @@ export function RoomPriceEditDialog({
         return updateData;
       });
 
-      // 先獲取現有記錄
-      const { data: existingData, error: fetchError } = await supabase
-        .from('room_inventory_pricing')
-        .select('id, date')
-        .eq('room_type_id', roomTypeId)
-        .in('date', datesToUpdate);
+      const needBaseWrite = changeAvailability || changeInventory || (changePrice && !templateId);
 
-      if (fetchError) throw fetchError;
+      if (needBaseWrite) {
+        // 取得既有的基礎價列
+        const { data: existingBase, error: fetchBaseError } = await supabase
+          .from('room_inventory_pricing')
+          .select('id, date')
+          .eq('room_type_id', roomTypeId)
+          .is('pricing_template_id', null)
+          .in('date', datesToUpdate);
 
-      const existingDates = new Set(existingData?.map(d => d.date) || []);
+        if (fetchBaseError) throw fetchBaseError;
+        const existingBaseDates = new Set((existingBase || []).map(d => d.date));
 
-      // 分離需要更新和插入的記錄
-      const toUpdate = updates.filter(u => existingDates.has(u.date));
-      const toInsert = updates.filter(u => !existingDates.has(u.date)).map(u => ({
-        ...u,
-        price: u.price || parseInt(customPrice) || currentPrice || 0,
-        available_rooms: u.available_rooms ?? 1,
-        is_available: u.is_available ?? true,
-      }));
+        const baseToUpdate = baseUpdates.filter(u => existingBaseDates.has(u.date));
+        const baseToInsert = baseUpdates
+          .filter(u => !existingBaseDates.has(u.date))
+          .map(u => ({
+            ...u,
+            price: u.price ?? currentPrice ?? 0,
+            available_rooms: u.available_rooms ?? 1,
+            is_available: u.is_available ?? true,
+          }));
 
-      // 批量更新
-      if (toUpdate.length > 0) {
-        for (const update of toUpdate) {
+        for (const update of baseToUpdate) {
           const { error } = await supabase
             .from('room_inventory_pricing')
             .update(update)
             .eq('room_type_id', roomTypeId)
-            .eq('date', update.date);
+            .eq('date', update.date)
+            .is('pricing_template_id', null);
+          if (error) throw error;
+        }
 
+        if (baseToInsert.length > 0) {
+          const { error } = await supabase
+            .from('room_inventory_pricing')
+            .insert(baseToInsert);
           if (error) throw error;
         }
       }
 
-      // 批量插入新記錄
-      if (toInsert.length > 0) {
-        const { error } = await supabase
-          .from('room_inventory_pricing')
-          .insert(toInsert);
+      // 2) 處理「專案價格覆寫」→ 寫入 pricing_template_id = templateId 的列
+      if (changePrice && templateId) {
+        const overrideRows = datesToUpdate.map(date => ({
+          room_type_id: roomTypeId,
+          date,
+          pricing_template_id: templateId,
+          price: parseInt(customPrice),
+          // 衛星欄位（NOT NULL constraint 預防）
+          available_rooms: 0,
+          is_available: true,
+        }));
 
-        if (error) throw error;
+        const { error: upsertError } = await supabase
+          .from('room_inventory_pricing')
+          .upsert(overrideRows, { onConflict: 'room_type_id,date,pricing_template_id' });
+
+        if (upsertError) throw upsertError;
       }
 
       toast.success(`已更新 ${datesToUpdate.length} 個日期的設定`);
