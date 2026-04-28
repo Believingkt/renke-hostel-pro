@@ -173,31 +173,39 @@ Deno.serve(async (req) => {
       const holidays = await fetchHolidaysForYear(year, supabaseUrl, anonKey);
 
       for (const accommodation of accommodations) {
-        const { error: deleteError } = await supabase
+        // 先刪除該年範圍內、不在本次來源中的舊紀錄（處理政府公告變更/撤回的情境）
+        const incomingDates = holidays.map((h) => h.date);
+        let staleQuery = supabase
           .from('public_holidays')
           .delete()
           .eq('accommodation_id', accommodation.id)
           .gte('holiday_date', `${year}-01-01`)
           .lte('holiday_date', `${year}-12-31`);
 
-        if (deleteError) {
-          throw new Error(`Failed to clear holidays for ${accommodation.name}: ${deleteError.message}`);
+        if (incomingDates.length > 0) {
+          staleQuery = staleQuery.not('holiday_date', 'in', `(${incomingDates.map((d) => `"${d}"`).join(',')})`);
+        }
+
+        const { error: staleError } = await staleQuery;
+        if (staleError) {
+          throw new Error(`Failed to clear stale holidays for ${accommodation.name}: ${staleError.message}`);
         }
 
         if (holidays.length > 0) {
-          const holidaysToInsert = holidays.map((holiday) => ({
+          const holidaysToUpsert = holidays.map((holiday) => ({
             accommodation_id: accommodation.id,
             holiday_date: holiday.date,
             holiday_name: holiday.name,
             holiday_type: holiday.type,
           }));
 
-          const { error: insertError } = await supabase
+          // Upsert by (accommodation_id, holiday_date) — 依賴 unique constraint 防重複
+          const { error: upsertError } = await supabase
             .from('public_holidays')
-            .insert(holidaysToInsert);
+            .upsert(holidaysToUpsert, { onConflict: 'accommodation_id,holiday_date' });
 
-          if (insertError) {
-            throw new Error(`Failed to insert holidays for ${accommodation.name}: ${insertError.message}`);
+          if (upsertError) {
+            throw new Error(`Failed to upsert holidays for ${accommodation.name}: ${upsertError.message}`);
           }
 
           totalSynced += holidaysToInsert.length;
