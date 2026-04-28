@@ -289,6 +289,7 @@ export default function RoomPriceCalendar() {
         invMap.set(key, { ...item, booked_count: bookingCountMap.get(key) || 0 });
       });
       setInventory(invMap);
+      setTemplatePriceOverrides(overrideMap);
 
       // 建立假日查找表
       const holMap = new Map<string, PublicHoliday>();
