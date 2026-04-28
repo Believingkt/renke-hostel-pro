@@ -17,14 +17,38 @@ export interface PricingTemplateLite {
   project_name?: string | null;
   price?: number | null;
   weekday_price?: number | null;
+  peak_price?: number | null;
   weekend_price?: number | null;
 }
+
+export type DayTier = "weekday" | "peak" | "weekend";
 
 interface ResolveOptions {
   roomTypeId: string;
   template: PricingTemplateLite | null | undefined;
   dates: string[]; // YYYY-MM-DD
-  isWeekendDate: (d: Date) => boolean;
+  /** 國定假日 YYYY-MM-DD 列表（可選）。若提供，將套用三段式（平日/旺日/假日）規則。 */
+  publicHolidays?: string[];
+  /** 向後兼容：兩段式 isWeekend 判斷。若同時提供 publicHolidays，以 publicHolidays 為主。 */
+  isWeekendDate?: (d: Date) => boolean;
+}
+
+/**
+ * 三段式日別分類：
+ *  - weekday (平日): 週一至週四
+ *  - peak    (旺日): 週五、週日
+ *  - weekend (假日): 週六、國定假日
+ */
+export function classifyDayTier(date: Date, publicHolidays: Set<string>): DayTier {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  const key = `${yyyy}-${mm}-${dd}`;
+  if (publicHolidays.has(key)) return "weekend";
+  const day = date.getDay(); // 0=Sun ... 6=Sat
+  if (day === 6) return "weekend";
+  if (day === 5 || day === 0) return "peak";
+  return "weekday";
 }
 
 function getMealPriceColumn(template: PricingTemplateLite | null | undefined): "price" | "price_2_meals" | "price_3_meals" {
