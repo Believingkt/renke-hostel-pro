@@ -77,6 +77,7 @@ export default function RoomPriceCalendar() {
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [templates, setTemplates] = useState<PricingTemplate[]>([]);
   const [inventory, setInventory] = useState<Map<string, InventoryData>>(new Map());
+  const [templatePriceOverrides, setTemplatePriceOverrides] = useState<TemplatePriceOverrides>(new Map());
   const [holidays, setHolidays] = useState<Map<string, PublicHoliday>>(new Map());
   const [loading, setLoading] = useState(true);
   
