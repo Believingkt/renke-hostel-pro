@@ -583,6 +583,7 @@ export default function RoomPriceCalendar() {
                         roomType={roomType}
                         templates={roomTemplates}
                         inventory={inventory}
+                        templatePriceOverrides={templatePriceOverrides}
                         monthDays={monthDays}
                         holidays={holidays}
                         getCellData={getCellData}
