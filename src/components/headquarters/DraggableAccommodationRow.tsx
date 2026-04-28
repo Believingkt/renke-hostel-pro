@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { GripVertical, Pencil, Copy, Link2, Power, PowerOff, Trash2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { GripVertical, Pencil, Copy, Check, Link2, Power, PowerOff, Trash2 } from "lucide-react";
 
 import { AccommodationHoverCard } from "./AccommodationHoverCard";
 import { toast } from "sonner";
