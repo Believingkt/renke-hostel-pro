@@ -1044,7 +1044,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               setRoomSelections([]);
             }}
           >
-            非包區
+            非包棟
           </Button>
         </div>
 
