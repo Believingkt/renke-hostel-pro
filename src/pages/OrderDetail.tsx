@@ -870,16 +870,12 @@ const OrderDetailPage = () => {
             .order("display_order", { ascending: true });
           if (rtData) setRoomTypes(rtData);
 
-          // Fetch pricing templates linked to the order's room type
-          const roomTypeId = orderData.room_type_id;
-          let templatesQuery = supabase
+          // Fetch all pricing templates for this accommodation so edited room rows can
+          // resolve the correct room-type-specific inventory price, including holidays.
+          const { data: templatesData } = await supabase
             .from("pricing_templates")
             .select("id, template_name, meal_plans, room_type_id, price, weekday_price, peak_price, weekend_price")
             .eq("accommodation_id", orderData.accommodation_id);
-          if (roomTypeId) {
-            templatesQuery = templatesQuery.eq("room_type_id", roomTypeId);
-          }
-          const { data: templatesData } = await templatesQuery;
 
           if (templatesData && templatesData.length > 0) {
             setRoomTemplates(templatesData as any);
@@ -909,25 +905,21 @@ const OrderDetailPage = () => {
             setCustomMealPlans([]);
           }
 
-          // Fetch ALL templates for this accommodation (used to recalc when room type changes)
-          const { data: allTemplatesData } = await supabase
-            .from("pricing_templates")
-            .select("id, template_name, meal_plans, room_type_id, price, weekday_price, peak_price, weekend_price")
-            .eq("accommodation_id", orderData.accommodation_id);
-          if (allTemplatesData) setAllTemplates(allTemplatesData as any);
+          if (templatesData) setAllTemplates(templatesData as any);
 
           // Fetch public holidays covering the order date range (with margin)
           if (orderData.check_in_date && orderData.check_out_date) {
             const { data: holidayData } = await supabase
               .from("public_holidays")
-              .select("date, holiday_type")
-              .gte("date", orderData.check_in_date)
-              .lte("date", orderData.check_out_date);
+              .select("holiday_date, holiday_type")
+              .eq("accommodation_id", orderData.accommodation_id)
+              .gte("holiday_date", orderData.check_in_date)
+              .lte("holiday_date", orderData.check_out_date);
             if (holidayData) {
               setPublicHolidays(
                 holidayData
                   .filter((h: any) => h.holiday_type !== "work_on_weekend")
-                  .map((h: any) => h.date),
+                  .map((h: any) => h.holiday_date),
               );
             }
           }
