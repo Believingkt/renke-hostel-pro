@@ -208,11 +208,11 @@ Deno.serve(async (req) => {
             throw new Error(`Failed to upsert holidays for ${accommodation.name}: ${upsertError.message}`);
           }
 
-          totalSynced += holidaysToInsert.length;
+          totalSynced += holidaysToUpsert.length;
           results.push({
             year,
             accommodation_id: accommodation.id,
-            inserted: holidaysToInsert.length,
+            inserted: holidaysToUpsert.length,
           });
         }
       }
