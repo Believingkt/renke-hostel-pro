@@ -473,7 +473,7 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
   // Fetch pricing template
   const { data: selectedTemplate, error: templateError } = await supabase
     .from("pricing_templates")
-    .select("id, template_name, price, weekday_price, weekend_price, meal_plans, room_type_id")
+    .select("id, template_name, price, weekday_price, peak_price, weekend_price, meal_plans, room_type_id, accommodation_id")
     .eq("id", pricing_template_id)
     .maybeSingle();
 
@@ -499,7 +499,7 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
   }
 
   // Determine price column for inventory fallback
-  let priceColumn = "price";
+  let priceColumn: "price" | "price_2_meals" | "price_3_meals" = "price";
   const templateName = selectedTemplate.template_name || "";
   if (templateName.includes("三食") || templateName.includes("3_meals")) {
     priceColumn = "price_3_meals";
@@ -507,12 +507,26 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
     priceColumn = "price_2_meals";
   }
 
-  // Check availability
-  const { data: inventory } = await supabase
-    .from("room_inventory_pricing")
-    .select(`date, price, price_2_meals, price_3_meals, available_rooms, is_available`)
-    .eq("room_type_id", room_type_id)
-    .in("date", dates);
+  // Check availability + pull project-specific overrides + public holidays in parallel
+  const [{ data: inventory }, { data: overrides }, { data: holidayRows }] = await Promise.all([
+    supabase
+      .from("room_inventory_pricing")
+      .select(`date, price, price_2_meals, price_3_meals, available_rooms, is_available`)
+      .eq("room_type_id", room_type_id)
+      .is("pricing_template_id", null)
+      .in("date", dates),
+    supabase
+      .from("room_inventory_pricing")
+      .select("date, price")
+      .eq("room_type_id", room_type_id)
+      .eq("pricing_template_id", pricing_template_id)
+      .in("date", dates),
+    supabase
+      .from("public_holidays")
+      .select("holiday_date, holiday_type")
+      .eq("accommodation_id", selectedTemplate.accommodation_id)
+      .in("holiday_date", dates),
+  ]);
 
   if (!inventory || inventory.length < dates.length) {
     return jsonResponse({ error: "Some dates have no inventory configured" }, 400);
@@ -524,18 +538,59 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
     }
   }
 
-  // Calculate total price: template price × nights, fallback to inventory sum
-  const nights = dates.length;
-  let totalPrice = 0;
+  // Build holiday + override maps
+  const holidaySet = new Set<string>();
+  const workOnWeekendSet = new Set<string>();
+  for (const h of holidayRows || []) {
+    if (h.holiday_type === "work_on_weekend") workOnWeekendSet.add(h.holiday_date);
+    else holidaySet.add(h.holiday_date);
+  }
+  const overrideMap = new Map<string, number>();
+  for (const o of overrides || []) {
+    if (o.price != null) overrideMap.set(o.date, o.price);
+  }
+  const inventoryMap = new Map<string, any>();
+  for (const inv of inventory) inventoryMap.set(inv.date, inv);
 
-  if (selectedTemplate.price != null && selectedTemplate.price > 0) {
-    totalPrice = selectedTemplate.price * nights;
-  } else {
-    // Fallback: sum inventory prices
-    for (const inv of inventory) {
-      const mealPrice = inv[priceColumn];
-      totalPrice += (mealPrice != null && mealPrice > 0) ? mealPrice : (inv.price || 0);
+  // 三段式 day classifier:
+  //  weekend (假日) = 週六 + 國定假日
+  //  peak    (旺日) = 週五、週日（非國定假日）
+  //  weekday (平日) = 週一至週四
+  const classifyDay = (dateStr: string): "weekday" | "peak" | "weekend" => {
+    if (holidaySet.has(dateStr)) return "weekend";
+    const dt = new Date(dateStr + "T00:00:00");
+    const day = dt.getUTCDay();
+    if (day === 6) return "weekend";
+    if ((day === 5 || day === 0) && !workOnWeekendSet.has(dateStr)) return "peak";
+    return "weekday";
+  };
+
+  // Resolve per-night price using priority:
+  //  1) override (project + date) → 2) template tier price → 3) inventory base row
+  const weekdayP = selectedTemplate.weekday_price ?? selectedTemplate.price ?? null;
+  const weekendP = selectedTemplate.weekend_price ?? selectedTemplate.price ?? weekdayP;
+  const peakP =
+    selectedTemplate.peak_price ??
+    selectedTemplate.weekday_price ??
+    weekendP;
+
+  let totalPrice = 0;
+  for (const dateStr of dates) {
+    if (overrideMap.has(dateStr)) {
+      totalPrice += overrideMap.get(dateStr)!;
+      continue;
     }
+    const tier = classifyDay(dateStr);
+    const tierPrice =
+      tier === "weekend" ? weekendP : tier === "peak" ? peakP : weekdayP;
+    if (tierPrice != null && tierPrice > 0) {
+      totalPrice += tierPrice;
+      continue;
+    }
+    // Fallback to inventory base row
+    const inv = inventoryMap.get(dateStr);
+    const mealPrice = inv ? (inv as any)[priceColumn] : null;
+    totalPrice += (mealPrice != null && mealPrice > 0) ? mealPrice : (inv?.price || 0);
   }
 
   // --- Full payment flow: points deduct from total, remaining must be paid in full by card ---
