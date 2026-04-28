@@ -22,6 +22,7 @@ import lokezeLogo from "@/assets/lokeze-logo.png";
 
 export function Header() {
   const navigate = useNavigate();
+  const { aliasNavigate } = useAliasPrefix();
   const { accommodationId } = useSubdomain();
   const { userAccommodations } = useAccommodation();
   const { open, isMobile } = useSidebar();
