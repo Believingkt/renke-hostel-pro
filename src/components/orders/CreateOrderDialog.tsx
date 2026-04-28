@@ -1153,7 +1153,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                 </div>
                 {roomSelections[0]?.roomPrice > 0 && (
                   <div className="text-xs text-right text-muted-foreground">
-                    小計：NT$ {roomSelections[0].roomPrice.toLocaleString()}（包區）
+                    小計：NT$ {roomSelections[0].roomPrice.toLocaleString()}（包棟）
                   </div>
                 )}
               </div>
