@@ -314,6 +314,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     };
 
     const weekdayPrice = template.weekday_price ?? template.price;
+    const peakPrice = template.peak_price;
     const weekendPrice = template.weekend_price;
     const availRooms = (template as any).available_rooms ?? 1;
 
@@ -353,11 +354,17 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
 
         {/* 價格與庫存資訊 */}
         <div className="px-4 pb-3 ml-6">
-          <div className="grid grid-cols-3 gap-3 text-sm">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
             <div>
               <span className="text-muted-foreground text-xs">平日價格</span>
               <div className="font-semibold text-primary tabular-nums">
                 {weekdayPrice != null ? `NT$ ${weekdayPrice.toLocaleString()}` : '未設定'}
+              </div>
+            </div>
+            <div>
+              <span className="text-muted-foreground text-xs">旺日價格</span>
+              <div className="font-semibold text-primary tabular-nums">
+                {peakPrice != null ? `NT$ ${peakPrice.toLocaleString()}` : '未設定'}
               </div>
             </div>
             <div>
