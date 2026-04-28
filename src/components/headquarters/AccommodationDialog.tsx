@@ -679,7 +679,7 @@ export function AccommodationDialog({
                     {formData.short_url_alias && subdomainStatus === "available" && (
                       <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-sm">
                         <span className="text-muted-foreground">您的網站網址：</span>
-                        <span className="font-semibold text-primary ml-1">https://{formData.short_url_alias}.lakeze.com</span>
+                        <span className="font-semibold text-primary ml-1">https://booking.lakeze.com/{formData.short_url_alias}</span>
                       </div>
                     )}
                   </div>
