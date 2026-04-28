@@ -654,9 +654,9 @@ export function AccommodationDialog({
           {/* Content - Two Column Layout */}
           <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
             <div className="flex-1 overflow-y-auto">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 min-h-full">
-                {/* Left Column - Basic Info */}
-                <div className="p-6 space-y-5 border-r bg-background">
+              <div className="min-h-full">
+                {/* Basic Info（主題配色已移除，固定使用人客多橘色） */}
+                <div className="p-6 space-y-5 bg-background">
                   <div className="space-y-1">
                     <h3 className="font-semibold text-base flex items-center gap-2">
                       <div className="h-5 w-1 rounded-full bg-primary" />
