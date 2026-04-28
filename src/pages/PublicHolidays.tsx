@@ -648,6 +648,83 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
         />
       )}
 
+      {!showInPricingPage && (
+        <Card>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+              <RefreshCw className="h-4 w-4" />
+              重新同步政府開放資料
+            </CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
+              選擇年份後重新從政府資料平台拉取假日（含補假與補班日）。同名日期會以新資料覆蓋。
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+            <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs sm:text-sm">同步年份</Label>
+                <Select
+                  value={String(syncYear)}
+                  onValueChange={(v) => setSyncYear(parseInt(v, 10))}
+                  disabled={isSyncing}
+                >
+                  <SelectTrigger className="w-full sm:w-[160px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[currentYear - 1, currentYear, currentYear + 1, currentYear + 2].map((y) => (
+                      <SelectItem key={y} value={String(y)}>
+                        {y} 年
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                onClick={handleResyncYear}
+                disabled={isSyncing || !accommodationId}
+                className="text-xs sm:text-sm"
+              >
+                {isSyncing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    同步中…
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    重新同步 {syncYear} 年
+                  </>
+                )}
+              </Button>
+              <div className="flex-1 text-xs sm:text-sm text-muted-foreground sm:text-right">
+                {lastSyncAt ? (
+                  <>
+                    最後同步：{format(lastSyncAt, "yyyy-MM-dd HH:mm", { locale: zhTW })}
+                  </>
+                ) : (
+                  <>尚未同步</>
+                )}
+              </div>
+            </div>
+            {syncMessage && (
+              <div
+                role="status"
+                aria-live="polite"
+                className={cn(
+                  "mt-3 rounded-md border px-3 py-2 text-xs sm:text-sm",
+                  isSyncing && "border-primary/30 bg-primary/5 text-primary",
+                  !isSyncing && syncResult && "border-green-500/30 bg-green-500/5 text-green-700",
+                  !isSyncing && !syncResult && "border-destructive/30 bg-destructive/5 text-destructive",
+                )}
+              >
+                {syncMessage}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader className="p-4 sm:p-6">
           <CardDescription className="text-xs sm:text-sm">
