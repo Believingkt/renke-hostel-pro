@@ -31,14 +31,28 @@ const normalizeHolidayType = (type: string) => {
   return 'holiday';
 };
 
+// 同一日期僅保留一筆，優先級：補班 > 補假 > 一般國定假日，避免衝突
+const TYPE_PRIORITY: Record<string, number> = {
+  work_on_weekend: 0,
+  compensatory_day_off: 1,
+  holiday: 2,
+};
+
 const getUniqueHolidays = (holidays: HolidayRecord[]) => {
   const uniqueByDate = new Map<string, HolidayRecord>();
 
   for (const holiday of holidays) {
-    uniqueByDate.set(holiday.date, {
+    const normalized: HolidayRecord = {
       ...holiday,
       type: normalizeHolidayType(holiday.type),
-    });
+    };
+    const existing = uniqueByDate.get(holiday.date);
+    if (
+      !existing ||
+      (TYPE_PRIORITY[normalized.type] ?? 99) < (TYPE_PRIORITY[existing.type] ?? 99)
+    ) {
+      uniqueByDate.set(holiday.date, normalized);
+    }
   }
 
   return Array.from(uniqueByDate.values()).sort((a, b) => a.date.localeCompare(b.date));
