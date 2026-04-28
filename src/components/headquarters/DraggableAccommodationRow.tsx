@@ -129,18 +129,28 @@ export function DraggableAccommodationRow({
               >
                 {displayUrl}
               </a>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={() => {
-                  navigator.clipboard.writeText(fullUrl);
-                  toast.success("已複製連結");
-                }}
-                title="複製連結"
-              >
-                <Copy className="h-3 w-3" />
-              </Button>
+              <TooltipProvider delayDuration={150}>
+                <Tooltip open={copied ? true : undefined}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => handleCopy(fullUrl)}
+                      aria-label="複製連結"
+                    >
+                      {copied ? (
+                        <Check className="h-3 w-3 text-primary" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    {copied ? "已複製!" : "複製連結"}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           );
         })()}
