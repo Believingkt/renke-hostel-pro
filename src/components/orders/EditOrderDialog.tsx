@@ -33,6 +33,7 @@ interface PricingTemplate {
   project_name: string | null;
   price: number | null;
   weekday_price: number | null;
+  peak_price: number | null;
   weekend_price: number | null;
   room_type_id: string | null;
 }
