@@ -44,6 +44,7 @@ interface PricingTemplate {
   description: string | null;
   price: number | null;
   weekday_price: number | null;
+  peak_price: number | null;
   weekend_price: number | null;
   available_rooms: number;
   meal_plans: any[];
@@ -70,12 +71,13 @@ const templateSchema = z.object({
   template_name: z.string().trim().min(1, "專案名稱不能為空").max(50, "專案名稱最多50字"),
   description: z.string().trim().max(200, "描述最多200字").optional(),
   weekday_price: z.number().int().min(0, "價格不能為負數").nullable(),
+  peak_price: z.number().int().min(0, "價格不能為負數").nullable(),
   weekend_price: z.number().int().min(0, "價格不能為負數").nullable(),
   available_rooms: z.number().int().min(0, "庫存量不能為負數"),
 }).refine((data) => {
-  return data.weekday_price != null || data.weekend_price != null;
+  return data.weekday_price != null || data.peak_price != null || data.weekend_price != null;
 }, {
-  message: "請至少設定平日或假日價格",
+  message: "請至少設定一項價格（平日 / 旺日 / 假日）",
   path: ["weekday_price"],
 });
 
@@ -92,6 +94,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     template_name: "",
     description: "",
     weekday_price: null as number | null,
+    peak_price: null as number | null,
     weekend_price: null as number | null,
     available_rooms: 1,
     room_type_id: "" as string,
