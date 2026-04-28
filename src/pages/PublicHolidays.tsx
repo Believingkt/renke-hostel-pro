@@ -45,7 +45,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Calendar, Plus, Trash2, CalendarDays, Edit, Download, Filter, TrendingUp, LayoutGrid, List, Home, Loader2, Globe, Briefcase } from "lucide-react";
+import { Calendar, Plus, Trash2, CalendarDays, Edit, Download, Filter, TrendingUp, LayoutGrid, List, Home, Loader2, Globe, Briefcase, RefreshCw } from "lucide-react";
 import { format, getYear, startOfYear, endOfYear, isSameDay, addMonths, subMonths } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -67,7 +67,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResponsiveTabs, TabItem } from "@/components/ResponsiveTabs";
 import { PageHeader } from "@/components/PageHeader";
 
-type HolidayType = 'holiday' | 'workday';
+type HolidayType = 'holiday' | 'workday' | 'compensatory_day_off' | 'work_on_weekend';
 
 interface PublicHoliday {
   id: string;
@@ -75,18 +75,21 @@ interface PublicHoliday {
   holiday_name: string;
   holiday_type: HolidayType;
   created_at: string;
+  updated_at?: string;
 }
 
-const HOLIDAY_TYPE_CONFIG = {
-  holiday: { label: '假日', color: 'bg-success', badge: 'default' as const, description: '國定假日（使用假日定價）' },
-  workday: { label: '補班', color: 'bg-orange-500', badge: 'secondary' as const, description: '補班日（使用平日定價）' },
+const HOLIDAY_TYPE_CONFIG: Record<HolidayType, { label: string; badge: 'default' | 'secondary'; description: string }> = {
+  holiday: { label: '假日', badge: 'default', description: '國定假日（使用假日定價）' },
+  compensatory_day_off: { label: '補假', badge: 'default', description: '國定假日補假（使用假日定價）' },
+  work_on_weekend: { label: '補班', badge: 'secondary', description: '補班日（使用平日定價）' },
+  workday: { label: '補班', badge: 'secondary', description: '補班日（使用平日定價）' },
 };
 
 // API holiday response type
 interface ApiHoliday {
   date: string;
   name: string;
-  type: 'holiday' | 'workday';
+  type: HolidayType;
 }
 
 // 常見假日模板 (僅固定日期，避免誤導性農曆節日示例日期)
