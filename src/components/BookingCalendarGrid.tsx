@@ -711,7 +711,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                 const tooltipText = (() => {
                                   let tip = `${entry.guest_name} | ${getSourceLabel(entry.order_source)}`;
                                   if (entry.notes) {
-                                    const match = entry.notes.match(/【包區房間配置】(.+)/);
+                                    const match = entry.notes.match(/【包(?:區|棟)房間配置】(.+)/);
                                     if (match) tip += `\n${match[0]}`;
                                   }
                                   return tip;
