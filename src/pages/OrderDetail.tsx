@@ -185,6 +185,7 @@ const OrderDetailPage = () => {
   const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
   const [roomTemplates, setRoomTemplates] = useState<(PricingTemplateLite & { room_type_id?: string | null })[]>([]);
   const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
+  const [allTemplates, setAllTemplates] = useState<(PricingTemplateLite & { room_type_id?: string | null })[]>([]);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showPriceEditDialog, setShowPriceEditDialog] = useState(false);
