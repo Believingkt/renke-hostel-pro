@@ -125,8 +125,17 @@ interface AccommodationDialogProps {
   isEditing?: boolean;
 }
 
-// Subdomain validation regex: lowercase letters, numbers, hyphens, 3-30 chars
+// URL path validation regex: lowercase letters, numbers, hyphens, 3-30 chars
 const SUBDOMAIN_REGEX = /^[a-z0-9]([a-z0-9-]{1,28}[a-z0-9])?$/;
+
+// Reserved paths used by the booking portal routing — cannot be used as alias
+const RESERVED_PATHS = new Set([
+  "admin", "auth", "hq", "hq-auth", "headquarters", "booking", "book",
+  "member", "ai-booking", "order-search", "order-payment", "payment",
+  "payment-result", "linepay", "public-payment", "pay", "profile",
+  "reset-password", "change-password", "kol-api-docs", "points-api-docs",
+  "og-preview", "payment-test", "__cb", "api", "www",
+]);
 
 export function AccommodationDialog({
   open,
