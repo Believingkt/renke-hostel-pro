@@ -317,7 +317,7 @@ const OrderDetailPage = () => {
     if (!order) return;
     // Parse exclusive package room config from notes
     const notesStr = order.notes || "";
-    const pkgMatch = notesStr.match(/【包(?:區|棟)房間配置】雙人房\s*(\d+)\s*間、四人房\s*(\d+)\s*間/);
+    const pkgMatch = notesStr.match(/【包區房間配置】雙人房\s*(\d+)\s*間、四人房\s*(\d+)\s*間/);
     setEditExclusiveDoubleRooms(pkgMatch ? parseInt(pkgMatch[1]) : 0);
     setEditExclusiveQuadRooms(pkgMatch ? parseInt(pkgMatch[2]) : 0);
     setEditForm({
@@ -544,19 +544,19 @@ const OrderDetailPage = () => {
     try {
       const editFinalPriceCalc = editForm.total_price + editForm.addon_total - editForm.discount_amount;
 
-      // If any edited room is an exclusive package, regenerate the [包棟房間配置] note line
+      // If any edited room is an exclusive package, regenerate the [包區房間配置] note line
       const hasExclusivePackage =
         editOrderRooms.some(r => roomTypes.find(t => t.id === r.room_type_id)?.is_exclusive_package) ||
         !!roomTypes.find(t => t.id === editForm.room_type_id)?.is_exclusive_package;
       let finalNotes = editForm.notes.trim();
-      // Strip any existing 包區/包棟房間配置 line first
+      // Strip any existing 包區房間配置 line first
       finalNotes = finalNotes
         .split("\n")
-        .filter(line => !/^【包(?:區|棟)房間配置】/.test(line.trim()))
+        .filter(line => !/^【包區房間配置】/.test(line.trim()))
         .join("\n")
         .trim();
       if (hasExclusivePackage && (editExclusiveDoubleRooms > 0 || editExclusiveQuadRooms > 0)) {
-        const pkgLine = `【包棟房間配置】雙人房 ${editExclusiveDoubleRooms} 間、四人房 ${editExclusiveQuadRooms} 間`;
+        const pkgLine = `【包區房間配置】雙人房 ${editExclusiveDoubleRooms} 間、四人房 ${editExclusiveQuadRooms} 間`;
         finalNotes = finalNotes ? `${pkgLine}\n${finalNotes}` : pkgLine;
       }
 
@@ -1632,7 +1632,7 @@ const OrderDetailPage = () => {
                       })}
                       {editOrderRooms.some(r => roomTypes.find(t => t.id === r.room_type_id)?.is_exclusive_package) && (
                         <div className="p-3 rounded-lg border border-dashed bg-muted/20 space-y-2">
-                          <div className="text-xs font-medium">包棟房間配置</div>
+                          <div className="text-xs font-medium">包區房間配置</div>
                           <div className="grid grid-cols-2 gap-2">
                             <div className="space-y-1">
                               <Label className="text-xs">雙人房間數</Label>
@@ -1722,7 +1722,7 @@ const OrderDetailPage = () => {
                   <>
                     <Separator />
                     <div className="p-3 rounded-lg border border-dashed bg-muted/20 space-y-2">
-                      <div className="text-sm font-medium">包棟房間配置</div>
+                      <div className="text-sm font-medium">包區房間配置</div>
                       <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1">
                           <Label className="text-xs">雙人房間數</Label>
