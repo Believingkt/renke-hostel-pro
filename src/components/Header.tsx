@@ -78,7 +78,7 @@ export function Header() {
 
     // 訂閱新通知
     const channel = supabase
-      .channel('unread-notifications')
+      .channel(`unread-notifications-${accommodationId}`)
       .on(
         'postgres_changes',
         {
