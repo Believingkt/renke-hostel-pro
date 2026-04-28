@@ -192,7 +192,35 @@ export default function RoomPriceCalendar() {
 
       const loadedRoomTypes = (roomTypesResult.data || []) as RoomType[];
       const loadedTemplates = (templatesResult.data || []) as PricingTemplate[];
-      let loadedInventory = (inventoryResult.data || []) as InventoryData[];
+      const allInventoryRows = (inventoryResult.data || []) as Array<{
+        room_type_id: string;
+        date: string;
+        price: number;
+        available_rooms: number;
+        is_available: boolean;
+        notes: string | null;
+        pricing_template_id: string | null;
+      }>;
+
+      // 拆分為「庫存/基礎價列」（pricing_template_id IS NULL）與「專案覆寫價列」
+      let loadedInventory: InventoryData[] = allInventoryRows
+        .filter(r => r.pricing_template_id == null)
+        .map(r => ({
+          room_type_id: r.room_type_id,
+          date: r.date,
+          price: r.price,
+          available_rooms: r.available_rooms,
+          is_available: r.is_available,
+          notes: r.notes,
+          booked_count: 0,
+        }));
+
+      const overrideMap: TemplatePriceOverrides = new Map();
+      allInventoryRows
+        .filter(r => r.pricing_template_id != null)
+        .forEach(r => {
+          overrideMap.set(`${r.room_type_id}_${r.date}_${r.pricing_template_id}`, r.price);
+        });
 
       // 同步：若「整月庫存都一致」且與房型房間數量不同，則以房型房間數量為準
       // 目的：避免套用模板/初始化時把庫存寫死為 1，導致與房型管理不一致
