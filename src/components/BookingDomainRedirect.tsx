@@ -55,6 +55,12 @@ export function BookingDomainRedirect({ children }: { children: ReactNode }) {
     const hostname = window.location.hostname.toLowerCase();
     if (!BOOKING_DOMAINS.includes(hostname)) return;
 
+    // 條件判斷 1：系統保留路徑（HQ、auth 等）絕不重導向
+    const isAlwaysAllowed = ALWAYS_ALLOWED_PATHS.some(
+      (p) => location.pathname === p || location.pathname.startsWith(`${p}/`)
+    );
+    if (isAlwaysAllowed) return;
+
     const segments = location.pathname.split("/").filter(Boolean);
     if (segments.length > 0 && !RESERVED_FIRST_SEGMENTS.has(segments[0])) {
       // 視為 alias 路徑，交給 AliasResolver 處理
