@@ -1,6 +1,6 @@
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Globe, MapPin, Phone, Mail, Image, Palette, Link2, Calendar } from "lucide-react";
+import { Building2, MapPin, Phone, Mail, Image, Palette, Link2, Calendar } from "lucide-react";
 import { getThemeConfig, THEME_PRESET_CONFIGS } from "@/constants/themes";
 
 interface Accommodation {
