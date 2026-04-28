@@ -752,7 +752,13 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>房型 <span className="text-destructive">*</span></Label>
-              <Select value={editForm.room_type_id} onValueChange={(value) => setEditForm({...editForm, room_type_id: value})}>
+              <Select value={editForm.room_type_id} onValueChange={(value) => {
+                setEditForm({...editForm, room_type_id: value});
+                // 切換房型時，清除手動覆寫的金額，讓系統依據房型/日期/專案自動重算
+                setManualTotalPriceStr(null);
+                setManualDiscountStr(null);
+                setSelectedTemplateId("");
+              }}>
                 <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
                   <SelectValue placeholder="選擇房型" />
                 </SelectTrigger>
