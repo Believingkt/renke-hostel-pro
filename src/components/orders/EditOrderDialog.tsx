@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { resolveTemplatePricesForDates } from "@/utils/templatePriceResolver";
 
 interface RoomType {
   id: string;
@@ -334,49 +335,25 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
     const selectedTemplate = pricingTemplates.find(t => t.id === selectedTemplateId)
       || filteredTemplates.find(t => t.id === selectedTemplateId);
 
-    const hasTemplateWeekdayWeekend = selectedTemplate
-      && ((selectedTemplate.weekday_price != null && selectedTemplate.weekday_price > 0)
-        || (selectedTemplate.weekend_price != null && selectedTemplate.weekend_price > 0));
+    // 計算每晚日期
+    const dates: string[] = [];
+    const start = new Date(editForm.check_in_date);
+    for (let i = 0; i < nights; i++) {
+      const currentDate = new Date(start);
+      currentDate.setDate(start.getDate() + i);
+      dates.push(format(currentDate, "yyyy-MM-dd"));
+    }
 
-    if (hasTemplateWeekdayWeekend) {
-      // Use template weekday/weekend prices per night
-      const start = new Date(editForm.check_in_date);
-      const weekdayPrice = selectedTemplate!.weekday_price ?? selectedTemplate!.price ?? 0;
-      const weekendPrice = selectedTemplate!.weekend_price ?? selectedTemplate!.price ?? weekdayPrice;
-      for (let i = 0; i < nights; i++) {
-        const currentDate = new Date(start);
-        currentDate.setDate(start.getDate() + i);
-        total += isWeekend(currentDate) ? weekendPrice : weekdayPrice;
-      }
-    } else if (selectedTemplate && selectedTemplate.price != null && selectedTemplate.price > 0) {
-      total = selectedTemplate.price * nights;
-    } else {
-      // Fallback: sum inventory prices based on template meal type
-      let priceColumn = 'price';
-      if (selectedTemplate) {
-        const name = selectedTemplate.template_name || selectedTemplate.project_name || '';
-        if (name.includes('三食') || name.includes('3食')) priceColumn = 'price_3_meals';
-        else if (name.includes('二食') || name.includes('2食') || name.includes('兩食')) priceColumn = 'price_2_meals';
-      }
+    // 統一使用解析器：優先用「該專案在該日的覆寫價」，再 fallback 到 template / base row
+    const priceMap = await resolveTemplatePricesForDates({
+      roomTypeId: editForm.room_type_id,
+      template: selectedTemplate ?? null,
+      dates,
+      isWeekendDate: isWeekend,
+    });
 
-      const start = new Date(editForm.check_in_date);
-      for (let i = 0; i < nights; i++) {
-        const currentDate = new Date(start);
-        currentDate.setDate(start.getDate() + i);
-        const dateStr = format(currentDate, "yyyy-MM-dd");
-
-        const { data: priceData } = await supabase
-          .from("room_inventory_pricing")
-          .select("price, price_2_meals, price_3_meals")
-          .eq("room_type_id", editForm.room_type_id)
-          .eq("date", dateStr)
-          .maybeSingle();
-
-        if (priceData) {
-          const selectedPrice = (priceData as any)[priceColumn];
-          total += (selectedPrice != null && selectedPrice > 0) ? selectedPrice : (priceData.price ?? 0);
-        }
-      }
+    for (const dateStr of dates) {
+      total += priceMap[dateStr] ?? 0;
     }
 
     const discount = calculateDiscount(total);
