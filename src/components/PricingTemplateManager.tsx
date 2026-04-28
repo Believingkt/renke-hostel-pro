@@ -161,6 +161,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       template_name: "",
       description: "",
       weekday_price: null,
+      peak_price: null,
       weekend_price: null,
       available_rooms: 1,
       room_type_id: "",
@@ -175,6 +176,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       template_name: template.template_name,
       description: template.description || "",
       weekday_price: template.weekday_price ?? template.price ?? null,
+      peak_price: template.peak_price ?? null,
       weekend_price: template.weekend_price ?? null,
       available_rooms: (template as any).available_rooms ?? 1,
       room_type_id: template.room_type_id || "",
@@ -213,8 +215,9 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         template_name: formData.template_name,
         description: formData.description || null,
         weekday_price: formData.weekday_price,
+        peak_price: formData.peak_price,
         weekend_price: formData.weekend_price,
-        price: formData.weekday_price, // 向後兼容
+        price: formData.weekday_price ?? formData.peak_price ?? formData.weekend_price, // 向後兼容
         available_rooms: formData.available_rooms,
         accommodation_id: accommodationId,
         room_type_id: formData.room_type_id || null,
