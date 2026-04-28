@@ -13,90 +13,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Globe, CheckCircle2, XCircle, AlertCircle, Palette, Upload, Trash2, Image, Crop, CreditCard } from "lucide-react";
+import { Loader2, Globe, CheckCircle2, XCircle, AlertCircle, Upload, Trash2, Image, Crop, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { LogoCropDialog } from "@/components/LogoCropDialog";
-import { THEME_PRESET_CONFIGS, getThemeConfig } from "@/constants/themes";
-
-// 主題預覽元件
-const ThemePreview = ({ themeValue }: { themeValue: string }) => {
-  const theme = getThemeConfig(themeValue);
-  const { colors } = theme;
-
-  return (
-    <div 
-      className="rounded-lg border overflow-hidden shadow-sm"
-      style={{ backgroundColor: colors.background }}
-    >
-      {/* 模擬導航列 */}
-      <div 
-        className="h-8 flex items-center px-3 gap-2"
-        style={{ backgroundColor: colors.background, borderBottom: `1px solid ${colors.card}` }}
-      >
-        <div 
-          className="h-4 w-16 rounded"
-          style={{ backgroundColor: colors.primary }}
-        />
-        <div className="flex-1" />
-        <div className="flex gap-1.5">
-          {[1, 2, 3].map(i => (
-            <div 
-              key={i}
-              className="h-2 w-8 rounded"
-              style={{ backgroundColor: colors.card }}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* 模擬 Hero 區塊 */}
-      <div 
-        className="h-16 flex items-center justify-center"
-        style={{ 
-          background: `linear-gradient(135deg, ${colors.primary}, ${colors.accent})` 
-        }}
-      >
-        <div className="text-center">
-          <div className="h-2 w-20 rounded bg-white/90 mx-auto mb-1" />
-          <div className="h-1.5 w-14 rounded bg-white/60 mx-auto" />
-        </div>
-      </div>
-
-      {/* 模擬內容區塊 */}
-      <div className="p-3 space-y-2" style={{ backgroundColor: colors.background }}>
-        <div className="flex gap-2">
-          {[1, 2].map(i => (
-            <div 
-              key={i}
-              className="flex-1 h-10 rounded-md p-2"
-              style={{ backgroundColor: colors.card }}
-            >
-              <div 
-                className="h-1.5 w-8 rounded mb-1"
-                style={{ backgroundColor: colors.primary, opacity: 0.7 }}
-              />
-              <div className="h-1 w-full rounded" style={{ backgroundColor: colors.primary, opacity: 0.2 }} />
-            </div>
-          ))}
-        </div>
-        <div 
-          className="h-6 rounded-md flex items-center justify-center"
-          style={{ backgroundColor: colors.primary }}
-        >
-          <div className="h-1.5 w-12 rounded bg-white/90" />
-        </div>
-      </div>
-
-      {/* 模擬 Footer */}
-      <div 
-        className="h-6 flex items-center justify-center"
-        style={{ backgroundColor: colors.footer }}
-      >
-        <div className="h-1 w-16 rounded bg-white/40" />
-      </div>
-    </div>
-  );
-};
 
 interface AccommodationFormData {
   name: string;
