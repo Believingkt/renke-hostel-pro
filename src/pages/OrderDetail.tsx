@@ -873,6 +873,29 @@ const OrderDetailPage = () => {
             setCustomMealPlans([]);
           }
 
+          // Fetch ALL templates for this accommodation (used to recalc when room type changes)
+          const { data: allTemplatesData } = await supabase
+            .from("pricing_templates")
+            .select("id, template_name, meal_plans, room_type_id, price, weekday_price, peak_price, weekend_price")
+            .eq("accommodation_id", orderData.accommodation_id);
+          if (allTemplatesData) setAllTemplates(allTemplatesData as any);
+
+          // Fetch public holidays covering the order date range (with margin)
+          if (orderData.check_in_date && orderData.check_out_date) {
+            const { data: holidayData } = await supabase
+              .from("public_holidays")
+              .select("date, holiday_type")
+              .gte("date", orderData.check_in_date)
+              .lte("date", orderData.check_out_date);
+            if (holidayData) {
+              setPublicHolidays(
+                holidayData
+                  .filter((h: any) => h.holiday_type !== "work_on_weekend")
+                  .map((h: any) => h.date),
+              );
+            }
+          }
+
           // Fetch addon settings for edit mode
           const { data: addonData } = await supabase
             .from("addon_settings")
