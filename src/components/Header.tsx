@@ -142,7 +142,7 @@ export function Header() {
             variant="ghost"
             size="icon"
             className="h-10 w-10 relative touch-manipulation"
-            onClick={() => navigate('/admin/notifications')}
+            onClick={() => aliasNavigate('/admin/notifications')}
           >
             <Bell className="h-5 w-5" />
             {unreadCount > 0 && (
