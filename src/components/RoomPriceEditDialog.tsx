@@ -52,6 +52,7 @@ export function RoomPriceEditDialog({
   onOpenChange,
   roomTypeId,
   roomTypeName,
+  templateId,
   templateName,
   initialDate,
   currentPrice,
