@@ -460,6 +460,53 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
     return Array.from(years).sort((a, b) => b - a);
   }, [holidays]);
 
+  // 最後同步時間：取目前該民宿假日資料中最新的 updated_at / created_at
+  const lastSyncAt = useMemo(() => {
+    if (!holidays.length) return null;
+    const ts = holidays
+      .map((h) => new Date(h.updated_at || h.created_at).getTime())
+      .filter((t) => !Number.isNaN(t));
+    if (!ts.length) return null;
+    return new Date(Math.max(...ts));
+  }, [holidays]);
+
+  // 重新同步指定年份的台灣國定假日
+  const handleResyncYear = async () => {
+    if (!accommodationId) return;
+    setIsSyncing(true);
+    setSyncMessage("正在從政府開放資料同步假日…");
+    setSyncResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-taiwan-holidays", {
+        body: { years: [syncYear] },
+      });
+      if (error) throw error;
+
+      // 後端會回傳所有有權限的民宿同步結果，篩出當前民宿
+      const results: Array<{ year: number; accommodation_id: string; inserted: number }> =
+        data?.results ?? [];
+      const mine = results.find(
+        (r) => r.year === syncYear && r.accommodation_id === accommodationId,
+      );
+      const inserted = mine?.inserted ?? 0;
+
+      setSyncResult({ inserted, year: syncYear });
+      setSyncMessage(`完成：${syncYear} 年共寫入 ${inserted} 筆假日紀錄`);
+      toast({
+        title: "假日同步完成",
+        description: `${syncYear} 年寫入 ${inserted} 筆`,
+      });
+      await loadHolidays();
+    } catch (err) {
+      console.error("Resync holidays error:", err);
+      const msg = err instanceof Error ? err.message : "同步失敗";
+      setSyncMessage(`同步失敗：${msg}`);
+      toast({ title: "同步失敗", description: msg, variant: "destructive" });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   // 獲取當前月份的假日
   const monthHolidays = useMemo(() => {
     return holidays.filter(holiday => {
