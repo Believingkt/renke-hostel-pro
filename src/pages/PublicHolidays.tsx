@@ -45,7 +45,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Calendar, Plus, Trash2, CalendarDays, Edit, Download, Filter, TrendingUp, LayoutGrid, List, Home, Loader2, Globe, Briefcase } from "lucide-react";
+import { Calendar, Plus, Trash2, CalendarDays, Edit, Download, Filter, TrendingUp, LayoutGrid, List, Home, Loader2, Globe, Briefcase, RefreshCw } from "lucide-react";
 import { format, getYear, startOfYear, endOfYear, isSameDay, addMonths, subMonths } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -67,7 +67,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResponsiveTabs, TabItem } from "@/components/ResponsiveTabs";
 import { PageHeader } from "@/components/PageHeader";
 
-type HolidayType = 'holiday' | 'workday';
+type HolidayType = 'holiday' | 'workday' | 'compensatory_day_off' | 'work_on_weekend';
 
 interface PublicHoliday {
   id: string;
@@ -75,18 +75,21 @@ interface PublicHoliday {
   holiday_name: string;
   holiday_type: HolidayType;
   created_at: string;
+  updated_at?: string;
 }
 
-const HOLIDAY_TYPE_CONFIG = {
-  holiday: { label: '假日', color: 'bg-success', badge: 'default' as const, description: '國定假日（使用假日定價）' },
-  workday: { label: '補班', color: 'bg-orange-500', badge: 'secondary' as const, description: '補班日（使用平日定價）' },
+const HOLIDAY_TYPE_CONFIG: Record<HolidayType, { label: string; badge: 'default' | 'secondary'; description: string }> = {
+  holiday: { label: '假日', badge: 'default', description: '國定假日（使用假日定價）' },
+  compensatory_day_off: { label: '補假', badge: 'default', description: '國定假日補假（使用假日定價）' },
+  work_on_weekend: { label: '補班', badge: 'secondary', description: '補班日（使用平日定價）' },
+  workday: { label: '補班', badge: 'secondary', description: '補班日（使用平日定價）' },
 };
 
 // API holiday response type
 interface ApiHoliday {
   date: string;
   name: string;
-  type: 'holiday' | 'workday';
+  type: HolidayType;
 }
 
 // 常見假日模板 (僅固定日期，避免誤導性農曆節日示例日期)
@@ -132,6 +135,12 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
   const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
   const currentYear = new Date().getFullYear();
 
+  // 同步功能 state
+  const [syncYear, setSyncYear] = useState<number>(new Date().getFullYear());
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [syncResult, setSyncResult] = useState<{ inserted: number; year: number } | null>(null);
+
   useEffect(() => {
     if (subdomainLoading || !accommodationId) return;
     loadHolidays();
@@ -145,7 +154,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
       setError(null);
       const { data, error } = await supabase
         .from("public_holidays")
-        .select("*")
+        .select("id, holiday_date, holiday_name, holiday_type, created_at, updated_at")
         .eq("accommodation_id", accommodationId)
         .order("holiday_date", { ascending: true });
 
@@ -451,6 +460,53 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
     return Array.from(years).sort((a, b) => b - a);
   }, [holidays]);
 
+  // 最後同步時間：取目前該民宿假日資料中最新的 updated_at / created_at
+  const lastSyncAt = useMemo(() => {
+    if (!holidays.length) return null;
+    const ts = holidays
+      .map((h) => new Date(h.updated_at || h.created_at).getTime())
+      .filter((t) => !Number.isNaN(t));
+    if (!ts.length) return null;
+    return new Date(Math.max(...ts));
+  }, [holidays]);
+
+  // 重新同步指定年份的台灣國定假日
+  const handleResyncYear = async () => {
+    if (!accommodationId) return;
+    setIsSyncing(true);
+    setSyncMessage("正在從政府開放資料同步假日…");
+    setSyncResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-taiwan-holidays", {
+        body: { years: [syncYear] },
+      });
+      if (error) throw error;
+
+      // 後端會回傳所有有權限的民宿同步結果，篩出當前民宿
+      const results: Array<{ year: number; accommodation_id: string; inserted: number }> =
+        data?.results ?? [];
+      const mine = results.find(
+        (r) => r.year === syncYear && r.accommodation_id === accommodationId,
+      );
+      const inserted = mine?.inserted ?? 0;
+
+      setSyncResult({ inserted, year: syncYear });
+      setSyncMessage(`完成：${syncYear} 年共寫入 ${inserted} 筆假日紀錄`);
+      toast({
+        title: "假日同步完成",
+        description: `${syncYear} 年寫入 ${inserted} 筆`,
+      });
+      await loadHolidays();
+    } catch (err) {
+      console.error("Resync holidays error:", err);
+      const msg = err instanceof Error ? err.message : "同步失敗";
+      setSyncMessage(`同步失敗：${msg}`);
+      toast({ title: "同步失敗", description: msg, variant: "destructive" });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   // 獲取當前月份的假日
   const monthHolidays = useMemo(() => {
     return holidays.filter(holiday => {
@@ -590,6 +646,83 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
             </div>
           }
         />
+      )}
+
+      {!showInPricingPage && (
+        <Card>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+              <RefreshCw className="h-4 w-4" />
+              重新同步政府開放資料
+            </CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
+              選擇年份後重新從政府資料平台拉取假日（含補假與補班日）。同名日期會以新資料覆蓋。
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+            <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs sm:text-sm">同步年份</Label>
+                <Select
+                  value={String(syncYear)}
+                  onValueChange={(v) => setSyncYear(parseInt(v, 10))}
+                  disabled={isSyncing}
+                >
+                  <SelectTrigger className="w-full sm:w-[160px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[currentYear - 1, currentYear, currentYear + 1, currentYear + 2].map((y) => (
+                      <SelectItem key={y} value={String(y)}>
+                        {y} 年
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                onClick={handleResyncYear}
+                disabled={isSyncing || !accommodationId}
+                className="text-xs sm:text-sm"
+              >
+                {isSyncing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    同步中…
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    重新同步 {syncYear} 年
+                  </>
+                )}
+              </Button>
+              <div className="flex-1 text-xs sm:text-sm text-muted-foreground sm:text-right">
+                {lastSyncAt ? (
+                  <>
+                    最後同步：{format(lastSyncAt, "yyyy-MM-dd HH:mm", { locale: zhTW })}
+                  </>
+                ) : (
+                  <>尚未同步</>
+                )}
+              </div>
+            </div>
+            {syncMessage && (
+              <div
+                role="status"
+                aria-live="polite"
+                className={cn(
+                  "mt-3 rounded-md border px-3 py-2 text-xs sm:text-sm",
+                  isSyncing && "border-primary/30 bg-primary/5 text-primary",
+                  !isSyncing && syncResult && "border-green-500/30 bg-green-500/5 text-green-700",
+                  !isSyncing && !syncResult && "border-destructive/30 bg-destructive/5 text-destructive",
+                )}
+              >
+                {syncMessage}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       <Card>
