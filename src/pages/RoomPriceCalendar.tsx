@@ -148,7 +148,7 @@ export default function RoomPriceCalendar() {
           .order('display_order', { ascending: true }),
         supabase
           .from('room_inventory_pricing')
-          .select('room_type_id, date, price, available_rooms, is_available, notes')
+          .select('room_type_id, date, price, available_rooms, is_available, notes, pricing_template_id')
           .gte('date', monthStart)
           .lte('date', monthEnd),
         supabase
