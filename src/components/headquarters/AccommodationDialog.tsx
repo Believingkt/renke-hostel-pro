@@ -77,7 +77,6 @@ export function AccommodationDialog({
     email: "",
     description: "",
     short_url_alias: "",
-    theme_preset: "default",
   });
 
   // Logo states
