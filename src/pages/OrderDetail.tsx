@@ -878,15 +878,19 @@ const OrderDetailPage = () => {
             .eq("accommodation_id", orderData.accommodation_id);
 
           if (templatesData && templatesData.length > 0) {
-            setRoomTemplates(templatesData as any);
+            const roomTypeId = orderData.room_type_id;
+            const roomTypeTemplates = roomTypeId
+              ? templatesData.filter((t: any) => t.room_type_id === roomTypeId)
+              : templatesData;
+            setRoomTemplates(roomTypeTemplates as any);
             // Derive meal plan options from template names
             const derivedPlans: CustomMealPlan[] = [];
-            const defaultTemplate = templatesData.find(t => (t as any).meal_plans && Array.isArray((t as any).meal_plans) && ((t as any).meal_plans as any[]).length > 0);
+            const defaultTemplate = roomTypeTemplates.find(t => (t as any).meal_plans && Array.isArray((t as any).meal_plans) && ((t as any).meal_plans as any[]).length > 0);
             if (defaultTemplate) {
               const plans = (defaultTemplate as any).meal_plans as CustomMealPlan[];
               derivedPlans.push(...plans);
             }
-            for (const t of templatesData) {
+            for (const t of roomTypeTemplates) {
               const name = t.template_name || "";
               if (name.includes("二食") || name.includes("2食")) {
                 if (!derivedPlans.some(p => p.id === "2_meals")) {
