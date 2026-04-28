@@ -1661,7 +1661,7 @@ const OrderDetailPage = () => {
                               <Select value={String(editExclusiveQuadRooms)} onValueChange={(v) => setEditExclusiveQuadRooms(Number(v))}>
                                 <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                  {[0, 1, 2, 3].map(n => (
+                                  {quadRoomOptions.map(n => (
                                     <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
                                   ))}
                                 </SelectContent>
