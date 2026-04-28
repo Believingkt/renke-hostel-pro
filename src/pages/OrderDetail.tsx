@@ -372,24 +372,14 @@ const OrderDetailPage = () => {
       const savedRoomsTotal = orderRooms.reduce((sum, r) => sum + r.room_price, 0);
       const shouldUseOrderTotalForSingleRoom = orderRooms.length === 1 && Number(order.total_price || 0) > 0 && savedRoomsTotal !== Number(order.total_price || 0);
       const normalizedRooms = orderRooms.map((or) => {
-        const correctedRoomPrice = shouldUseOrderTotalForSingleRoom ? Number(order.total_price || 0) : or.room_price;
-        const currentUnitPrice = getRoomUnitPrice(correctedRoomPrice, or.quantity);
-        const sameTypeUnitPrices = orderRooms
-          .filter((room) => room.room_type_id === or.room_type_id)
-          .map((room) => getRoomUnitPrice(shouldUseOrderTotalForSingleRoom ? Number(order.total_price || 0) : room.room_price, room.quantity))
-          .filter((price) => price > 0);
-        const roomTypeBasePrice = roomTypes.find((roomType) => roomType.id === or.room_type_id)?.base_price ?? 0;
-        const resolvedUnitPrice = Math.min(
-          ...[...sameTypeUnitPrices, roomTypeBasePrice].filter((price) => price > 0),
-        );
-        const unitPrice = Number.isFinite(resolvedUnitPrice) ? resolvedUnitPrice : currentUnitPrice;
-
+        const correctedRoomPrice = shouldUseOrderTotalForSingleRoom ? Number(order.total_price || 0) : Number(or.room_price || 0);
+        const unitPrice = getRoomUnitPrice(correctedRoomPrice, or.quantity);
         return {
           id: or.id,
           room_type_id: or.room_type_id,
           quantity: or.quantity,
-          room_price: shouldUseOrderTotalForSingleRoom ? correctedRoomPrice : unitPrice * or.quantity,
-          unit_price: shouldUseOrderTotalForSingleRoom ? currentUnitPrice : unitPrice,
+          room_price: correctedRoomPrice,
+          unit_price: unitPrice,
           template_name: or.template_name,
         };
       });
@@ -514,22 +504,16 @@ const OrderDetailPage = () => {
   // Re-initialize editOrderRooms when orderRooms load after editing already started
   useEffect(() => {
     if (!isEditing || orderRooms.length === 0 || editOrderRooms.length > 0) return;
+    const savedRoomsTotal = orderRooms.reduce((sum, r) => sum + r.room_price, 0);
+    const shouldUseOrderTotalForSingleRoom = orderRooms.length === 1 && Number(order?.total_price || 0) > 0 && savedRoomsTotal !== Number(order?.total_price || 0);
     const normalizedRooms = orderRooms.map((or) => {
-      const currentUnitPrice = getRoomUnitPrice(or.room_price, or.quantity);
-      const sameTypeUnitPrices = orderRooms
-        .filter((room) => room.room_type_id === or.room_type_id)
-        .map((room) => getRoomUnitPrice(room.room_price, room.quantity))
-        .filter((price) => price > 0);
-      const roomTypeBasePrice = roomTypes.find((roomType) => roomType.id === or.room_type_id)?.base_price ?? 0;
-      const resolvedUnitPrice = Math.min(
-        ...[...sameTypeUnitPrices, roomTypeBasePrice].filter((price) => price > 0),
-      );
-      const unitPrice = Number.isFinite(resolvedUnitPrice) ? resolvedUnitPrice : currentUnitPrice;
+      const correctedRoomPrice = shouldUseOrderTotalForSingleRoom ? Number(order?.total_price || 0) : Number(or.room_price || 0);
+      const unitPrice = getRoomUnitPrice(correctedRoomPrice, or.quantity);
       return {
         id: or.id,
         room_type_id: or.room_type_id,
         quantity: or.quantity,
-        room_price: unitPrice * or.quantity,
+        room_price: correctedRoomPrice,
         unit_price: unitPrice,
         template_name: or.template_name,
       };
