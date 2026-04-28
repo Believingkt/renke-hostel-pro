@@ -1632,7 +1632,7 @@ const OrderDetailPage = () => {
                       })}
                       {editOrderRooms.some(r => roomTypes.find(t => t.id === r.room_type_id)?.is_exclusive_package) && (
                         <div className="p-3 rounded-lg border border-dashed bg-muted/20 space-y-2">
-                          <div className="text-xs font-medium">包區房間配置</div>
+                          <div className="text-xs font-medium">包棟房間配置</div>
                           <div className="grid grid-cols-2 gap-2">
                             <div className="space-y-1">
                               <Label className="text-xs">雙人房間數</Label>
@@ -1722,7 +1722,7 @@ const OrderDetailPage = () => {
                   <>
                     <Separator />
                     <div className="p-3 rounded-lg border border-dashed bg-muted/20 space-y-2">
-                      <div className="text-sm font-medium">包區房間配置</div>
+                      <div className="text-sm font-medium">包棟房間配置</div>
                       <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1">
                           <Label className="text-xs">雙人房間數</Label>
