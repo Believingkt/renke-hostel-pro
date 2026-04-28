@@ -530,6 +530,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
           phone: cloningAccommodation.phone,
           email: cloningAccommodation.email,
           description: cloningAccommodation.description,
+          theme_preset: "default", // 一律使用人客多橘色
           is_active: true,
         })
         .select("id")
