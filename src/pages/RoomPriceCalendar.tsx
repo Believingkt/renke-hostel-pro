@@ -736,11 +736,15 @@ function RoomTypeRows({
             const isWeekend = dayType === 'weekend' || dayType === 'holiday';
             const cellData = getCellData(roomType.id, dateStr);
 
-            // 直接從專案設定取得平日/假日價格
+            // 優先使用該專案在該日期的覆寫價，否則回退到專案預設平日/假日價
             const isUnavailable = cellData?.is_available === false;
-            const price = isWeekend
+            const overrideKey = `${roomType.id}_${dateStr}_${template.id}`;
+            const overridePrice = templatePriceOverrides.get(overrideKey);
+            const fallbackPrice = isWeekend
               ? (template.weekend_price ?? template.weekday_price)
               : (template.weekday_price ?? template.weekend_price);
+            const price = overridePrice ?? fallbackPrice;
+            const isOverridden = overridePrice != null;
 
             return (
               <td
