@@ -27,6 +27,7 @@ interface RoomPriceEditDialogProps {
   onOpenChange: (open: boolean) => void;
   roomTypeId: string;
   roomTypeName: string;
+  templateId?: string;
   templateName?: string;
   initialDate: string;
   currentPrice?: number;
