@@ -242,22 +242,48 @@ export function RoomPriceEditDialog({
       }
 
       // 2) 處理「專案價格覆寫」→ 寫入 pricing_template_id = templateId 的列
+      // 註：partial unique index 無法被 ON CONFLICT 推斷，需手動 select → update/insert
       if (changePrice && templateId) {
-        const overrideRows = datesToUpdate.map(date => ({
-          room_type_id: roomTypeId,
-          date,
-          pricing_template_id: templateId,
-          price: parseInt(customPrice),
-          // 衛星欄位（NOT NULL constraint 預防）
-          available_rooms: 0,
-          is_available: true,
-        }));
+        const priceValue = parseInt(customPrice);
 
-        const { error: upsertError } = await supabase
+        const { data: existingOverride, error: fetchOverrideError } = await supabase
           .from('room_inventory_pricing')
-          .upsert(overrideRows, { onConflict: 'room_type_id,date,pricing_template_id' });
+          .select('id, date')
+          .eq('room_type_id', roomTypeId)
+          .eq('pricing_template_id', templateId)
+          .in('date', datesToUpdate);
 
-        if (upsertError) throw upsertError;
+        if (fetchOverrideError) throw fetchOverrideError;
+        const existingOverrideDates = new Set((existingOverride || []).map(d => d.date));
+
+        const overrideToUpdate = datesToUpdate.filter(d => existingOverrideDates.has(d));
+        const overrideToInsert = datesToUpdate
+          .filter(d => !existingOverrideDates.has(d))
+          .map(date => ({
+            room_type_id: roomTypeId,
+            date,
+            pricing_template_id: templateId,
+            price: priceValue,
+            available_rooms: 0,
+            is_available: true,
+          }));
+
+        for (const date of overrideToUpdate) {
+          const { error } = await supabase
+            .from('room_inventory_pricing')
+            .update({ price: priceValue })
+            .eq('room_type_id', roomTypeId)
+            .eq('date', date)
+            .eq('pricing_template_id', templateId);
+          if (error) throw error;
+        }
+
+        if (overrideToInsert.length > 0) {
+          const { error } = await supabase
+            .from('room_inventory_pricing')
+            .insert(overrideToInsert);
+          if (error) throw error;
+        }
       }
 
       toast.success(`已更新 ${datesToUpdate.length} 個日期的設定`);
