@@ -38,6 +38,7 @@ interface PricingTemplate {
   project_name: string | null;
   price: number | null;
   weekday_price: number | null;
+  peak_price: number | null;
   weekend_price: number | null;
   room_type_id: string | null;
   available_rooms: number | null;
@@ -143,7 +144,7 @@ export default function RoomPriceCalendar() {
           .order('display_order', { ascending: true }),
         supabase
           .from('pricing_templates')
-          .select('id, template_name, project_name, price, weekday_price, weekend_price, room_type_id, available_rooms')
+          .select('id, template_name, project_name, price, weekday_price, peak_price, weekend_price, room_type_id, available_rooms')
           .eq('accommodation_id', currentAccommodationId)
           .order('display_order', { ascending: true }),
         supabase
@@ -315,15 +316,20 @@ export default function RoomPriceCalendar() {
     setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1));
   };
 
-  // 判斷日期類型
-  const getDayType = (date: Date, dateStr: string): 'weekend' | 'holiday' | 'weekday' => {
+  // 判斷日期類型（三段式）：
+  //  - weekday  平日：週一至週四
+  //  - peak     旺日：週五、週日
+  //  - weekend  假日：週六
+  //  - holiday  國定假日（視同假日）
+  const getDayType = (date: Date, dateStr: string): 'weekend' | 'holiday' | 'peak' | 'weekday' => {
     const holiday = holidays.get(dateStr);
     if (holiday) {
       if (holiday.holiday_type === 'work_on_weekend') return 'weekday';
       return 'holiday';
     }
-    // 依專案規範：僅週六視為假日，週日為平日
-    if (date.getDay() === 6) return 'weekend';
+    const day = date.getDay(); // 0=Sun, 6=Sat
+    if (day === 6) return 'weekend';
+    if (day === 5 || day === 0) return 'peak';
     return 'weekday';
   };
 
@@ -505,6 +511,7 @@ export default function RoomPriceCalendar() {
                       const dateStr = format(day, 'yyyy-MM-dd');
                       const dayType = getDayType(day, dateStr);
                       const isWeekend = dayType === 'weekend' || dayType === 'holiday';
+                      const isPeak = dayType === 'peak';
                       
                       return (
                         <th
@@ -512,7 +519,8 @@ export default function RoomPriceCalendar() {
                           className={cn(
                             "px-2 py-1 text-center font-medium min-w-[70px] border-r",
                             isWeekend && "bg-orange-50 text-orange-600",
-                            dayType === 'holiday' && "bg-red-50 text-red-600"
+                            dayType === 'holiday' && "bg-red-50 text-red-600",
+                            isPeak && "bg-amber-50 text-amber-700"
                           )}
                         >
                           <div className="text-xs">{weekDayNames[day.getDay()]}</div>
@@ -630,7 +638,7 @@ interface RoomTypeRowsProps {
   monthDays: Date[];
   holidays: Map<string, PublicHoliday>;
   getCellData: (roomTypeId: string, dateStr: string) => InventoryData | undefined;
-  getDayType: (date: Date, dateStr: string) => 'weekend' | 'holiday' | 'weekday';
+  getDayType: (date: Date, dateStr: string) => 'weekend' | 'holiday' | 'peak' | 'weekday';
   onCellClick: (roomType: RoomType, template: PricingTemplate | null, dateStr: string, currentPrice?: number, currentAvailableRooms?: number) => void;
   showCategoryHeader?: boolean;
 }
@@ -683,6 +691,7 @@ function RoomTypeRows({
           const dateStr = format(day, 'yyyy-MM-dd');
           const dayType = getDayType(day, dateStr);
           const isWeekend = dayType === 'weekend' || dayType === 'holiday';
+          const isPeak = dayType === 'peak';
           const cellData = getCellData(roomType.id, dateStr);
 
           // 當日被「關閉販售」時，前台視為不可預定，因此表格庫存顯示為 0
@@ -699,7 +708,8 @@ function RoomTypeRows({
                 "px-2 py-1 text-center border-r cursor-pointer transition-colors",
                 isWeekend && "bg-orange-50/50 hover:bg-orange-100/50",
                 dayType === 'holiday' && "bg-red-50/50 hover:bg-red-100/50",
-                !isWeekend && "hover:bg-muted/50",
+                isPeak && "bg-amber-50/40 hover:bg-amber-100/50",
+                !isWeekend && !isPeak && "hover:bg-muted/50",
               )}
               onClick={() => onCellClick(roomType, null, dateStr, cellData?.price || undefined, cellData?.available_rooms)}
             >
@@ -735,15 +745,19 @@ function RoomTypeRows({
             const dateStr = format(day, 'yyyy-MM-dd');
             const dayType = getDayType(day, dateStr);
             const isWeekend = dayType === 'weekend' || dayType === 'holiday';
+            const isPeak = dayType === 'peak';
             const cellData = getCellData(roomType.id, dateStr);
 
-            // 優先使用該專案在該日期的覆寫價，否則回退到專案預設平日/假日價
+            // 優先使用該專案在該日期的覆寫價，否則回退到專案的「平日/旺日/假日」價
             const isUnavailable = cellData?.is_available === false;
             const overrideKey = `${roomType.id}_${dateStr}_${template.id}`;
             const overridePrice = templatePriceOverrides.get(overrideKey);
+            // 旺日 fallback 順序：peak_price → weekday_price → weekend_price
             const fallbackPrice = isWeekend
-              ? (template.weekend_price ?? template.weekday_price)
-              : (template.weekday_price ?? template.weekend_price);
+              ? (template.weekend_price ?? template.peak_price ?? template.weekday_price)
+              : isPeak
+              ? (template.peak_price ?? template.weekday_price ?? template.weekend_price)
+              : (template.weekday_price ?? template.peak_price ?? template.weekend_price);
             const price = overridePrice ?? fallbackPrice;
             const isOverridden = overridePrice != null;
 
@@ -754,7 +768,8 @@ function RoomTypeRows({
                   "px-1 py-1 text-center border-r cursor-pointer transition-colors",
                   isWeekend && "bg-orange-50/50 hover:bg-orange-100/50",
                   dayType === 'holiday' && "bg-red-50/50 hover:bg-red-100/50",
-                  !isWeekend && "hover:bg-muted/50",
+                  isPeak && "bg-amber-50/40 hover:bg-amber-100/50",
+                  !isWeekend && !isPeak && "hover:bg-muted/50",
                   isUnavailable && "opacity-60",
                 )}
                 onClick={() => onCellClick(roomType, template, dateStr, price || undefined, cellData?.available_rooms)}

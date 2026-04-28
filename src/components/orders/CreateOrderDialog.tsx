@@ -52,6 +52,7 @@ interface PricingTemplate {
   project_name: string | null;
   price: number | null;
   weekday_price: number | null;
+  peak_price: number | null;
   weekend_price: number | null;
 }
 
@@ -208,7 +209,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           .eq("enabled", true),
         supabase
           .from("pricing_templates")
-          .select("id, template_name, meal_plans, project_name, room_type_id, price, weekday_price, weekend_price")
+          .select("id, template_name, meal_plans, project_name, room_type_id, price, weekday_price, peak_price, weekend_price")
           .eq("accommodation_id", currentAccommodationId)
           .order("display_order")
       ]);
