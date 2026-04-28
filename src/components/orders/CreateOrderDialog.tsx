@@ -115,7 +115,11 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const [roomSelections, setRoomSelections] = useState<RoomSelection[]>([]);
   // 哈庫納馬塔塔：7 間房（最多 2 雙人房 + 4 四人房，加上 1 額外房型）
   const HAKUNA_ACC_ID = "6b6ac0dc-602b-4dec-9167-7791ac412ba3";
+  const SENSAN_ACC_ID = "5f764d55-ae11-4631-80fe-2e611853deae";
   const isHakuna = currentAccommodationId === HAKUNA_ACC_ID;
+  const isSensan = currentAccommodationId === SENSAN_ACC_ID;
+  // 只有森山寫照保留「包區」用語，其餘民宿一律使用「包棟」
+  const exclusiveLabel = isSensan ? "包區" : "包棟";
   const MAX_TOTAL_ROOMS = isHakuna ? 7 : 6;
   const MAX_DOUBLE_ROOMS = isHakuna ? 2 : 3;
   const MAX_QUAD_ROOMS = isHakuna ? 4 : 3;
