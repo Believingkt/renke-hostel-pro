@@ -135,6 +135,12 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
   const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
   const currentYear = new Date().getFullYear();
 
+  // 同步功能 state
+  const [syncYear, setSyncYear] = useState<number>(new Date().getFullYear());
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [syncResult, setSyncResult] = useState<{ inserted: number; year: number } | null>(null);
+
   useEffect(() => {
     if (subdomainLoading || !accommodationId) return;
     loadHolidays();
