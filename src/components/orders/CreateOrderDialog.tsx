@@ -1053,7 +1053,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           <div className="space-y-3">
             {roomTypes.filter(r => r.is_exclusive_package).length === 0 ? (
               <div className="p-4 border rounded-lg bg-muted/30 text-center text-sm text-muted-foreground">
-                目前沒有包區房型，請先至房型管理新增
+                目前沒有包棟房型，請先至房型管理新增
               </div>
             ) : (
               <div className="p-3 border rounded-lg space-y-3 bg-muted/30">
