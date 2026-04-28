@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { resolveTemplatePricesForDates } from "@/utils/templatePriceResolver";
 
 interface RoomType {
   id: string;
