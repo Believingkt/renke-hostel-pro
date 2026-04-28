@@ -1076,7 +1076,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                       }}
                     >
                       <SelectTrigger className="h-10 text-sm">
-                        <SelectValue placeholder="選擇包棟方案" />
+                        <SelectValue placeholder={`選擇${isHakuna ? "包棟" : "包區"}方案`} />
                       </SelectTrigger>
                       <SelectContent>
                         {roomTypes.filter(r => r.is_exclusive_package).map((rt) => (
