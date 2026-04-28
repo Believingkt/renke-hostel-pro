@@ -1032,7 +1032,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               }
             }}
           >
-            包棟
+            {isHakuna ? "包棟" : "包區"}
           </Button>
           <Button
             type="button"
@@ -1044,7 +1044,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               setRoomSelections([]);
             }}
           >
-            非包棟
+            {isHakuna ? "非包棟" : "非包區"}
           </Button>
         </div>
 
@@ -1053,13 +1053,13 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           <div className="space-y-3">
             {roomTypes.filter(r => r.is_exclusive_package).length === 0 ? (
               <div className="p-4 border rounded-lg bg-muted/30 text-center text-sm text-muted-foreground">
-                目前沒有包棟房型，請先至房型管理新增
+                目前沒有{isHakuna ? "包棟" : "包區"}房型，請先至房型管理新增
               </div>
             ) : (
               <div className="p-3 border rounded-lg space-y-3 bg-muted/30">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label className="text-xs">包棟方案 <span className="text-destructive">*</span></Label>
+                    <Label className="text-xs">{isHakuna ? "包棟" : "包區"}方案 <span className="text-destructive">*</span></Label>
                     <Select
                       value={roomSelections[0]?.room_type_id || ""}
                       onValueChange={(value) => {
