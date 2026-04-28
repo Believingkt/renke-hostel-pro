@@ -1128,7 +1128,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {[0, 1, 2, 3].map(n => (
+                        {Array.from({ length: MAX_DOUBLE_ROOMS + 1 }, (_, i) => i).map(n => (
                           <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
                         ))}
                       </SelectContent>
