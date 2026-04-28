@@ -1059,7 +1059,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               <div className="p-3 border rounded-lg space-y-3 bg-muted/30">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label className="text-xs">包區方案 <span className="text-destructive">*</span></Label>
+                    <Label className="text-xs">包棟方案 <span className="text-destructive">*</span></Label>
                     <Select
                       value={roomSelections[0]?.room_type_id || ""}
                       onValueChange={(value) => {
