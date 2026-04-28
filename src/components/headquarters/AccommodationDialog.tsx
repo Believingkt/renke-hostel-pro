@@ -494,13 +494,19 @@ export function AccommodationDialog({
       return;
     }
 
+    // Reserved path check
+    if (RESERVED_PATHS.has(alias.toLowerCase())) {
+      setSubdomainStatus("taken");
+      return;
+    }
+
     setSubdomainStatus("checking");
 
     try {
       const query = supabase
         .from("accommodation_info")
         .select("id")
-        .eq("short_url_alias", alias);
+        .ilike("short_url_alias", alias);
 
       // Exclude current accommodation when editing
       if (isEditing && initialData?.id) {
