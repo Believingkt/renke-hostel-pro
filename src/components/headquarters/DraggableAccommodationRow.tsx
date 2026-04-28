@@ -5,7 +5,7 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { GripVertical, Pencil, Copy, Check, Link2, Power, PowerOff, Trash2 } from "lucide-react";
+import { GripVertical, Pencil, Copy, Check, Power, PowerOff, Trash2 } from "lucide-react";
 
 import { AccommodationHoverCard } from "./AccommodationHoverCard";
 import { toast } from "sonner";
@@ -23,7 +23,6 @@ interface Accommodation {
   email: string | null;
   description: string | null;
   short_url_alias: string | null;
-  custom_domain: string | null;
   theme_preset: string | null;
   header_logo_url: string | null;
   footer_logo_url: string | null;
@@ -37,7 +36,6 @@ interface DraggableAccommodationRowProps {
   onClone: (acc: Accommodation) => void;
   onToggle: (acc: Accommodation) => void;
   onDelete: (acc: Accommodation) => void;
-  onCustomDomain: (acc: Accommodation) => void;
   isDragDisabled?: boolean;
 }
 
@@ -47,7 +45,6 @@ export function DraggableAccommodationRow({
   onClone,
   onToggle,
   onDelete,
-  onCustomDomain,
   isDragDisabled = false,
 }: DraggableAccommodationRowProps) {
   const {

@@ -42,10 +42,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Building2, Plus, Pencil, Power, PowerOff, Loader2, ExternalLink, Copy, Search, X, Globe, Link2, Palette, GripVertical, Trash2 } from "lucide-react";
+import { Building2, Plus, Pencil, Power, PowerOff, Loader2, ExternalLink, Copy, Search, X, Globe, Palette, GripVertical, Trash2 } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { AccommodationDialog } from "./AccommodationDialog";
-import { CustomDomainDialog } from "./CustomDomainDialog";
 import { DraggableAccommodationRow } from "./DraggableAccommodationRow";
 import { AccommodationHoverCard } from "./AccommodationHoverCard";
 import { THEME_COLORS } from "@/constants/themes";
@@ -82,7 +81,6 @@ interface Accommodation {
   email: string | null;
   description: string | null;
   short_url_alias: string | null;
-  custom_domain: string | null;
   theme_preset: string | null;
   header_logo_url: string | null;
   footer_logo_url: string | null;
@@ -137,15 +135,6 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
-
-  // Custom domain dialog state
-  const [customDomainDialogOpen, setCustomDomainDialogOpen] = useState(false);
-  const [customDomainAccommodation, setCustomDomainAccommodation] = useState<Accommodation | null>(null);
-
-  const openCustomDomainDialog = (accommodation: Accommodation) => {
-    setCustomDomainAccommodation(accommodation);
-    setCustomDomainDialogOpen(true);
-  };
 
   // DnD sensors
   const sensors = useSensors(
@@ -839,7 +828,6 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
                           onClone={openCloneDialog}
                           onToggle={openToggleDialog}
                           onDelete={openDeleteDialog}
-                          onCustomDomain={openCustomDomainDialog}
                           isDragDisabled={isDragDisabled}
                         />
                       ))}
@@ -1027,19 +1015,6 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-
-      {/* Custom Domain Dialog */}
-      {customDomainAccommodation && (
-        <CustomDomainDialog
-          open={customDomainDialogOpen}
-          onOpenChange={setCustomDomainDialogOpen}
-          accommodationId={customDomainAccommodation.id}
-          accommodationName={customDomainAccommodation.name}
-          currentDomain={customDomainAccommodation.custom_domain}
-          onDomainUpdated={onRefresh}
-        />
-      )}
     </>
   );
 });

@@ -1,6 +1,6 @@
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Globe, MapPin, Phone, Mail, Image, Palette, Link2, Calendar } from "lucide-react";
+import { Building2, MapPin, Phone, Mail, Image, Palette, Link2, Calendar } from "lucide-react";
 import { getThemeConfig, THEME_PRESET_CONFIGS } from "@/constants/themes";
 
 interface Accommodation {
@@ -16,7 +16,7 @@ interface Accommodation {
   email: string | null;
   description: string | null;
   short_url_alias: string | null;
-  custom_domain: string | null;
+  
   theme_preset: string | null;
   header_logo_url: string | null;
   footer_logo_url: string | null;
@@ -132,19 +132,6 @@ export function AccommodationHoverCard({ accommodation, children }: Accommodatio
                   className="text-sm text-primary hover:underline truncate"
                 >
                   {accommodation.short_url_alias}.lakeze.com
-                </a>
-              </div>
-            )}
-            {accommodation.custom_domain && (
-              <div className="flex items-center gap-2">
-                <Globe className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                <a 
-                  href={`https://${accommodation.custom_domain}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-primary hover:underline truncate"
-                >
-                  {accommodation.custom_domain}
                 </a>
               </div>
             )}
