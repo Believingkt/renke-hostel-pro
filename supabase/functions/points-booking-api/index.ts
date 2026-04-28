@@ -270,7 +270,7 @@ async function handleGetRoomTypes(supabase: any, accId: string) {
   // Fetch pricing templates for each room type
   const { data: templates } = await supabase
     .from("pricing_templates")
-    .select("id, template_name, price, weekday_price, weekend_price, room_type_id")
+    .select("id, template_name, price, weekday_price, peak_price, weekend_price, room_type_id")
     .eq("accommodation_id", accId)
     .order("display_order", { ascending: true, nullsFirst: false });
 
@@ -284,6 +284,7 @@ async function handleGetRoomTypes(supabase: any, accId: string) {
       template_name: t.template_name,
       price: t.price,
       weekday_price: t.weekday_price,
+      peak_price: t.peak_price,
       weekend_price: t.weekend_price,
     });
   }
