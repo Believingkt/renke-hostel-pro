@@ -321,7 +321,7 @@ const OrderDetailPage = () => {
     if (!order) return;
     // Parse exclusive package room config from notes
     const notesStr = order.notes || "";
-    const pkgMatch = notesStr.match(/【包區房間配置】雙人房\s*(\d+)\s*間、四人房\s*(\d+)\s*間/);
+    const pkgMatch = notesStr.match(/【(?:包區|包棟)房間配置】雙人房\s*(\d+)\s*間、四人房\s*(\d+)\s*間/);
     setEditExclusiveDoubleRooms(pkgMatch ? parseInt(pkgMatch[1]) : 0);
     setEditExclusiveQuadRooms(pkgMatch ? parseInt(pkgMatch[2]) : 0);
     setEditForm({
