@@ -2263,6 +2263,7 @@ export type Database = {
           id: string
           is_default: boolean | null
           meal_plans: Json | null
+          peak_price: number | null
           price: number | null
           project_description: string | null
           project_name: string | null
@@ -2281,6 +2282,7 @@ export type Database = {
           id?: string
           is_default?: boolean | null
           meal_plans?: Json | null
+          peak_price?: number | null
           price?: number | null
           project_description?: string | null
           project_name?: string | null
@@ -2299,6 +2301,7 @@ export type Database = {
           id?: string
           is_default?: boolean | null
           meal_plans?: Json | null
+          peak_price?: number | null
           price?: number | null
           project_description?: string | null
           project_name?: string | null
