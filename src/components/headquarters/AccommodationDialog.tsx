@@ -13,90 +13,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Globe, CheckCircle2, XCircle, AlertCircle, Palette, Upload, Trash2, Image, Crop, CreditCard } from "lucide-react";
+import { Loader2, Globe, CheckCircle2, XCircle, AlertCircle, Upload, Trash2, Image, Crop, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { LogoCropDialog } from "@/components/LogoCropDialog";
-import { THEME_PRESET_CONFIGS, getThemeConfig } from "@/constants/themes";
-
-// 主題預覽元件
-const ThemePreview = ({ themeValue }: { themeValue: string }) => {
-  const theme = getThemeConfig(themeValue);
-  const { colors } = theme;
-
-  return (
-    <div 
-      className="rounded-lg border overflow-hidden shadow-sm"
-      style={{ backgroundColor: colors.background }}
-    >
-      {/* 模擬導航列 */}
-      <div 
-        className="h-8 flex items-center px-3 gap-2"
-        style={{ backgroundColor: colors.background, borderBottom: `1px solid ${colors.card}` }}
-      >
-        <div 
-          className="h-4 w-16 rounded"
-          style={{ backgroundColor: colors.primary }}
-        />
-        <div className="flex-1" />
-        <div className="flex gap-1.5">
-          {[1, 2, 3].map(i => (
-            <div 
-              key={i}
-              className="h-2 w-8 rounded"
-              style={{ backgroundColor: colors.card }}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* 模擬 Hero 區塊 */}
-      <div 
-        className="h-16 flex items-center justify-center"
-        style={{ 
-          background: `linear-gradient(135deg, ${colors.primary}, ${colors.accent})` 
-        }}
-      >
-        <div className="text-center">
-          <div className="h-2 w-20 rounded bg-white/90 mx-auto mb-1" />
-          <div className="h-1.5 w-14 rounded bg-white/60 mx-auto" />
-        </div>
-      </div>
-
-      {/* 模擬內容區塊 */}
-      <div className="p-3 space-y-2" style={{ backgroundColor: colors.background }}>
-        <div className="flex gap-2">
-          {[1, 2].map(i => (
-            <div 
-              key={i}
-              className="flex-1 h-10 rounded-md p-2"
-              style={{ backgroundColor: colors.card }}
-            >
-              <div 
-                className="h-1.5 w-8 rounded mb-1"
-                style={{ backgroundColor: colors.primary, opacity: 0.7 }}
-              />
-              <div className="h-1 w-full rounded" style={{ backgroundColor: colors.primary, opacity: 0.2 }} />
-            </div>
-          ))}
-        </div>
-        <div 
-          className="h-6 rounded-md flex items-center justify-center"
-          style={{ backgroundColor: colors.primary }}
-        >
-          <div className="h-1.5 w-12 rounded bg-white/90" />
-        </div>
-      </div>
-
-      {/* 模擬 Footer */}
-      <div 
-        className="h-6 flex items-center justify-center"
-        style={{ backgroundColor: colors.footer }}
-      >
-        <div className="h-1 w-16 rounded bg-white/40" />
-      </div>
-    </div>
-  );
-};
 
 interface AccommodationFormData {
   name: string;
@@ -654,9 +573,9 @@ export function AccommodationDialog({
           {/* Content - Two Column Layout */}
           <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
             <div className="flex-1 overflow-y-auto">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 min-h-full">
-                {/* Left Column - Basic Info */}
-                <div className="p-6 space-y-5 border-r bg-background">
+              <div className="min-h-full">
+                {/* Basic Info（主題配色已移除，固定使用人客多橘色） */}
+                <div className="p-6 space-y-5 bg-background">
                   <div className="space-y-1">
                     <h3 className="font-semibold text-base flex items-center gap-2">
                       <div className="h-5 w-1 rounded-full bg-primary" />
@@ -976,84 +895,7 @@ export function AccommodationDialog({
                   )}
                 </div>
 
-                {/* Right Column - Theme Selection */}
-                <div className="p-6 space-y-5 bg-muted/20">
-                  <div className="space-y-1">
-                    <h3 className="font-semibold text-base flex items-center gap-2">
-                      <div className="h-5 w-1 rounded-full bg-primary" />
-                      <Palette className="h-4 w-4" />
-                      網站主題配色
-                    </h3>
-                    <p className="text-xs text-muted-foreground">選擇適合您民宿風格的配色方案</p>
-                  </div>
-
-                  {/* Theme Preview - Sticky */}
-                  <div className="sticky top-0 z-10 bg-muted/20 pb-4">
-                    <div className="bg-background rounded-xl border shadow-sm p-4">
-                      <p className="text-xs text-muted-foreground text-center mb-3 font-medium">
-                        即時預覽
-                      </p>
-                      <ThemePreview themeValue={formData.theme_preset} />
-                      <p className="text-center text-sm font-medium mt-3 text-foreground">
-                        {THEME_PRESET_CONFIGS.find(t => t.value === formData.theme_preset)?.label}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Theme Grid */}
-                  <div className="grid grid-cols-2 gap-2">
-                    {THEME_PRESET_CONFIGS.map((theme) => (
-                      <button
-                        key={theme.value}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, theme_preset: theme.value })}
-                        disabled={isSubmitting}
-                        className={`text-left p-3 rounded-xl border-2 transition-all hover:scale-[1.02] ${
-                          formData.theme_preset === theme.value 
-                            ? 'border-primary bg-primary/5 shadow-md ring-2 ring-primary/20' 
-                            : 'border-transparent bg-background hover:border-primary/30 hover:shadow-sm'
-                        }`}
-                      >
-                        <div className="flex items-start gap-2.5">
-                          {/* 顏色指示條 */}
-                          <div 
-                            className="w-1.5 h-10 rounded-full flex-shrink-0 mt-0.5"
-                            style={{ 
-                              background: `linear-gradient(180deg, ${theme.colors.primary}, ${theme.colors.accent})`
-                            }}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-sm font-semibold truncate">{theme.label}</span>
-                              {formData.theme_preset === theme.value && (
-                                <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
-                              )}
-                            </div>
-                            <p className="text-xs text-muted-foreground truncate mt-0.5">{theme.description}</p>
-                            {/* Mini color swatches */}
-                            <div className="flex gap-1 mt-2">
-                              <div 
-                                className="w-4 h-4 rounded-full border border-white shadow-sm"
-                                style={{ backgroundColor: theme.colors.primary }}
-                                title="主色"
-                              />
-                              <div 
-                                className="w-4 h-4 rounded-full border border-white shadow-sm"
-                                style={{ backgroundColor: theme.colors.accent }}
-                                title="強調色"
-                              />
-                              <div 
-                                className="w-4 h-4 rounded-full border border-white shadow-sm"
-                                style={{ backgroundColor: theme.colors.footer }}
-                                title="頁尾色"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                {/* 主題配色已移除：所有民宿統一使用人客多橘色 */}
               </div>
             </div>
 
