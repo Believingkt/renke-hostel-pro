@@ -511,6 +511,7 @@ export default function RoomPriceCalendar() {
                       const dateStr = format(day, 'yyyy-MM-dd');
                       const dayType = getDayType(day, dateStr);
                       const isWeekend = dayType === 'weekend' || dayType === 'holiday';
+                      const isPeak = dayType === 'peak';
                       
                       return (
                         <th
@@ -518,7 +519,8 @@ export default function RoomPriceCalendar() {
                           className={cn(
                             "px-2 py-1 text-center font-medium min-w-[70px] border-r",
                             isWeekend && "bg-orange-50 text-orange-600",
-                            dayType === 'holiday' && "bg-red-50 text-red-600"
+                            dayType === 'holiday' && "bg-red-50 text-red-600",
+                            isPeak && "bg-amber-50 text-amber-700"
                           )}
                         >
                           <div className="text-xs">{weekDayNames[day.getDay()]}</div>
