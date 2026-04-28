@@ -345,11 +345,12 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
     }
 
     // 統一使用解析器：優先用「該專案在該日的覆寫價」，再 fallback 到 template / base row
+    // 三段式：平日(週一至週四) / 旺日(週五、週日) / 假日(週六及國定假日)
     const priceMap = await resolveTemplatePricesForDates({
       roomTypeId: editForm.room_type_id,
       template: selectedTemplate ?? null,
       dates,
-      isWeekendDate: isWeekend,
+      publicHolidays,
     });
 
     for (const dateStr of dates) {

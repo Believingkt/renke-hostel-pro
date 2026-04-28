@@ -44,6 +44,7 @@ interface PricingTemplate {
   description: string | null;
   price: number | null;
   weekday_price: number | null;
+  peak_price: number | null;
   weekend_price: number | null;
   available_rooms: number;
   meal_plans: any[];
@@ -70,12 +71,13 @@ const templateSchema = z.object({
   template_name: z.string().trim().min(1, "專案名稱不能為空").max(50, "專案名稱最多50字"),
   description: z.string().trim().max(200, "描述最多200字").optional(),
   weekday_price: z.number().int().min(0, "價格不能為負數").nullable(),
+  peak_price: z.number().int().min(0, "價格不能為負數").nullable(),
   weekend_price: z.number().int().min(0, "價格不能為負數").nullable(),
   available_rooms: z.number().int().min(0, "庫存量不能為負數"),
 }).refine((data) => {
-  return data.weekday_price != null || data.weekend_price != null;
+  return data.weekday_price != null || data.peak_price != null || data.weekend_price != null;
 }, {
-  message: "請至少設定平日或假日價格",
+  message: "請至少設定一項價格（平日 / 旺日 / 假日）",
   path: ["weekday_price"],
 });
 
@@ -92,6 +94,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     template_name: "",
     description: "",
     weekday_price: null as number | null,
+    peak_price: null as number | null,
     weekend_price: null as number | null,
     available_rooms: 1,
     room_type_id: "" as string,
@@ -158,6 +161,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       template_name: "",
       description: "",
       weekday_price: null,
+      peak_price: null,
       weekend_price: null,
       available_rooms: 1,
       room_type_id: "",
@@ -172,6 +176,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       template_name: template.template_name,
       description: template.description || "",
       weekday_price: template.weekday_price ?? template.price ?? null,
+      peak_price: template.peak_price ?? null,
       weekend_price: template.weekend_price ?? null,
       available_rooms: (template as any).available_rooms ?? 1,
       room_type_id: template.room_type_id || "",
@@ -210,8 +215,9 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         template_name: formData.template_name,
         description: formData.description || null,
         weekday_price: formData.weekday_price,
+        peak_price: formData.peak_price,
         weekend_price: formData.weekend_price,
-        price: formData.weekday_price, // 向後兼容
+        price: formData.weekday_price ?? formData.peak_price ?? formData.weekend_price, // 向後兼容
         available_rooms: formData.available_rooms,
         accommodation_id: accommodationId,
         room_type_id: formData.room_type_id || null,
@@ -308,6 +314,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     };
 
     const weekdayPrice = template.weekday_price ?? template.price;
+    const peakPrice = template.peak_price;
     const weekendPrice = template.weekend_price;
     const availRooms = (template as any).available_rooms ?? 1;
 
@@ -347,11 +354,17 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
 
         {/* 價格與庫存資訊 */}
         <div className="px-4 pb-3 ml-6">
-          <div className="grid grid-cols-3 gap-3 text-sm">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
             <div>
               <span className="text-muted-foreground text-xs">平日價格</span>
               <div className="font-semibold text-primary tabular-nums">
                 {weekdayPrice != null ? `NT$ ${weekdayPrice.toLocaleString()}` : '未設定'}
+              </div>
+            </div>
+            <div>
+              <span className="text-muted-foreground text-xs">旺日價格</span>
+              <div className="font-semibold text-primary tabular-nums">
+                {peakPrice != null ? `NT$ ${peakPrice.toLocaleString()}` : '未設定'}
               </div>
             </div>
             <div>
@@ -484,10 +497,10 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
             )}
           </div>
 
-          {/* 平日與假日價格（擇一必填） */}
+          {/* 平日 / 旺日 / 假日價格（擇一必填） */}
           <div className="space-y-2">
             <Label>價格設定 <span className="text-xs text-muted-foreground font-normal">（擇一必填）</span></Label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="weekday_price" className="text-sm font-normal text-muted-foreground">平日價格</Label>
                 <Input
@@ -503,7 +516,25 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
                   className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
                   inputMode="numeric"
                 />
-                <p className="text-xs text-muted-foreground">週日至週五的價格</p>
+                <p className="text-xs text-muted-foreground">週一至週四的價格</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="peak_price" className="text-sm font-normal text-muted-foreground">旺日價格</Label>
+                <Input
+                  id="peak_price"
+                  type="number"
+                  min="0"
+                  value={formData.peak_price ?? ""}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    peak_price: e.target.value ? parseInt(e.target.value) : null
+                  })}
+                  placeholder="請輸入旺日價格"
+                  className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
+                  inputMode="numeric"
+                />
+                <p className="text-xs text-muted-foreground">週五及週日的價格</p>
               </div>
 
               <div className="space-y-2">
@@ -524,8 +555,8 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
                 <p className="text-xs text-muted-foreground">週六及國定假日的價格</p>
               </div>
             </div>
-            {(errors.weekday_price || errors.weekend_price) && (
-              <p className="text-sm text-destructive">{errors.weekday_price || errors.weekend_price}</p>
+            {(errors.weekday_price || errors.peak_price || errors.weekend_price) && (
+              <p className="text-sm text-destructive">{errors.weekday_price || errors.peak_price || errors.weekend_price}</p>
             )}
           </div>
 
