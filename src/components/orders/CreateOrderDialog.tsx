@@ -66,6 +66,16 @@ interface RoomSelection {
   filteredTemplates: PricingTemplate[];
 }
 
+interface InventoryWarning {
+  date: string;
+  roomTypeId?: string;
+  roomName?: string;
+  available: number;
+  needed?: number;
+  blocked?: boolean;
+  blockedBy?: string;
+}
+
 interface CreateOrderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -91,7 +101,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const [pricingTemplates, setPricingTemplates] = useState<PricingTemplate[]>([]);
   const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
   const [roomPrice, setRoomPrice] = useState(0);
-  const [inventoryWarnings, setInventoryWarnings] = useState<{ date: string; available: number; blocked?: boolean; blockedBy?: string }[]>([]);
+  const [inventoryWarnings, setInventoryWarnings] = useState<InventoryWarning[]>([]);
   const [isCheckingInventory, setIsCheckingInventory] = useState(false);
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; type: "percentage" | "amount"; value: number } | null>(null);
@@ -481,6 +491,113 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     return appliedDiscount.value;
   };
 
+  const buildStayDates = useCallback(() => {
+    const nights = calculateNights();
+    if (nights <= 0) return [];
+    const start = new Date(form.check_in_date);
+    return Array.from({ length: nights }, (_, i) => {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      return format(d, "yyyy-MM-dd");
+    });
+  }, [form.check_in_date, form.check_out_date]);
+
+  const validateInventoryAvailability = useCallback(async (): Promise<InventoryWarning[]> => {
+    if (roomSelections.length === 0 || !form.check_in_date || !form.check_out_date || !currentAccommodationId) return [];
+
+    const dates = buildStayDates();
+    if (dates.length === 0) return [];
+
+    const requiredByRoomType = new Map<string, number>();
+    roomSelections.forEach((sel) => {
+      requiredByRoomType.set(sel.room_type_id, (requiredByRoomType.get(sel.room_type_id) || 0) + sel.quantity);
+    });
+
+    const roomTypeIds = Array.from(requiredByRoomType.keys());
+    const [inventoryRes, ordersRes] = await Promise.all([
+      supabase
+        .from("room_inventory_pricing")
+        .select("room_type_id, date, available_rooms, is_available")
+        .in("room_type_id", roomTypeIds)
+        .in("date", dates),
+      supabase
+        .from("orders")
+        .select("id, check_in_date, check_out_date, room_type_id")
+        .eq("accommodation_id", currentAccommodationId)
+        .in("order_status", ["hold", "pending", "confirmed"])
+        .lt("check_in_date", form.check_out_date)
+        .gt("check_out_date", form.check_in_date),
+    ]);
+
+    if (inventoryRes.error) throw inventoryRes.error;
+    if (ordersRes.error) throw ordersRes.error;
+
+    const orderIds = (ordersRes.data || []).map((order) => order.id);
+    let orderRoomsData: Array<{ order_id: string; room_type_id: string; quantity: number | null }> = [];
+    if (orderIds.length > 0) {
+      const { data, error } = await supabase
+        .from("order_rooms")
+        .select("order_id, room_type_id, quantity")
+        .in("order_id", orderIds);
+      if (error) throw error;
+      orderRoomsData = data || [];
+    }
+
+    const roomsByOrderId = new Map<string, Array<{ room_type_id: string; quantity: number }>>();
+    orderRoomsData.forEach((room) => {
+      if (!roomsByOrderId.has(room.order_id)) roomsByOrderId.set(room.order_id, []);
+      roomsByOrderId.get(room.order_id)!.push({ room_type_id: room.room_type_id, quantity: room.quantity || 1 });
+    });
+
+    const bookedByRoomDate = new Map<string, number>();
+    (ordersRes.data || []).forEach((order) => {
+      const entries = roomsByOrderId.get(order.id)?.length
+        ? roomsByOrderId.get(order.id)!
+        : order.room_type_id
+          ? [{ room_type_id: order.room_type_id, quantity: 1 }]
+          : [];
+
+      dates.forEach((date) => {
+        if (order.check_in_date <= date && order.check_out_date > date) {
+          entries.forEach((entry) => {
+            const key = `${entry.room_type_id}_${date}`;
+            bookedByRoomDate.set(key, (bookedByRoomDate.get(key) || 0) + entry.quantity);
+          });
+        }
+      });
+    });
+
+    const inventoryByRoomDate = new Map<string, { available_rooms: number | null; is_available: boolean | null }>();
+    (inventoryRes.data || []).forEach((row) => {
+      inventoryByRoomDate.set(`${row.room_type_id}_${row.date}`, {
+        available_rooms: row.available_rooms,
+        is_available: row.is_available,
+      });
+    });
+
+    const warnings: InventoryWarning[] = [];
+    roomTypeIds.forEach((roomTypeId) => {
+      const needed = requiredByRoomType.get(roomTypeId) || 0;
+      const roomName = roomTypes.find((room) => room.id === roomTypeId)?.name || "房型";
+
+      dates.forEach((date) => {
+        const key = `${roomTypeId}_${date}`;
+        const inventory = inventoryByRoomDate.get(key);
+        const totalInventory = inventory?.is_available === false ? 0 : (inventory?.available_rooms ?? 0);
+        const booked = bookedByRoomDate.get(key) || 0;
+        const remaining = Math.max(totalInventory - booked, 0);
+
+        if (!inventory || inventory.is_available === false) {
+          warnings.push({ date, roomTypeId, roomName, available: 0, needed, blocked: true });
+        } else if (remaining < needed) {
+          warnings.push({ date, roomTypeId, roomName, available: remaining, needed });
+        }
+      });
+    });
+
+    return warnings;
+  }, [buildStayDates, currentAccommodationId, form.check_in_date, form.check_out_date, roomSelections, roomTypes]);
+
   // Check inventory warnings (for all room selections)
   useEffect(() => {
     const checkInventory = async () => {
@@ -490,60 +607,16 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       }
       setIsCheckingInventory(true);
       try {
-        const nights = calculateNights();
-        if (nights === 0) { setInventoryWarnings([]); return; }
-        const dates: string[] = [];
-        const start = new Date(form.check_in_date);
-        for (let i = 0; i < nights; i++) {
-          const d = new Date(start);
-          d.setDate(start.getDate() + i);
-          dates.push(format(d, "yyyy-MM-dd"));
-        }
-        const warnings: typeof inventoryWarnings = [];
-        const checkedTypes = new Set<string>();
-        for (const sel of roomSelections) {
-          if (checkedTypes.has(sel.room_type_id)) continue;
-          checkedTypes.add(sel.room_type_id);
-
-          // 1) 先查 room_inventory_pricing，判斷是否有「關閉販售」(is_available=false)
-          const { data: pricingRows } = await supabase
-            .from('room_inventory_pricing')
-            .select('date, is_available')
-            .eq('room_type_id', sel.room_type_id)
-            .in('date', dates);
-          const closedDates = new Set<string>(
-            (pricingRows || [])
-              .filter((r: any) => r.is_available === false)
-              .map((r: any) => r.date)
-          );
-
-          const { data: inventoryData } = await supabase.rpc(
-            'get_adjusted_room_inventory_batch',
-            { p_room_type_id: sel.room_type_id, p_dates: dates, p_accommodation_id: currentAccommodationId }
-          );
-          if (inventoryData) {
-            const roomName = roomTypes.find(r => r.id === sel.room_type_id)?.name || '';
-            for (const item of inventoryData) {
-              const neededQty = roomSelections.filter(s => s.room_type_id === sel.room_type_id).reduce((sum, s) => sum + s.quantity, 0);
-              const dateKey = typeof item.date_value === 'string' ? item.date_value : format(new Date(item.date_value), 'yyyy-MM-dd');
-              if (closedDates.has(dateKey)) {
-                warnings.push({ date: dateKey, available: 0, blocked: true, blockedBy: roomName });
-              } else if (item.is_blocked) {
-                warnings.push({ date: dateKey, available: 0, blocked: true, blockedBy: item.blocked_by_room_name || roomName });
-              } else if (item.available_rooms < neededQty) {
-                warnings.push({ date: dateKey, available: item.available_rooms });
-              }
-            }
-          }
-        }
+        const warnings = await validateInventoryAvailability();
         setInventoryWarnings(warnings);
+      } catch (error) {
+        console.error("查詢庫存失敗:", error);
       } finally {
         setIsCheckingInventory(false);
       }
     };
     checkInventory();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.check_in_date, form.check_out_date, roomSelectionsKey, currentAccommodationId, roomTypes]);
+  }, [form.check_in_date, form.check_out_date, roomSelectionsKey, currentAccommodationId, validateInventoryAvailability]);
 
   const handleApplyDiscount = async () => {
     if (!discountCode.trim() || !currentAccommodationId) {
@@ -639,31 +712,45 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       return;
     }
 
-    // Block creation when inventory is closed (blocked) or insufficient on any selected date
-    if (inventoryWarnings.length > 0) {
-      const blockedDates = inventoryWarnings.filter(w => w.blocked || w.available <= 0);
+    setIsSaving(true);
+
+    // Block creation with a fresh inventory check, not stale UI warnings.
+    let latestInventoryWarnings: InventoryWarning[] = [];
+    try {
+      latestInventoryWarnings = await validateInventoryAvailability();
+      setInventoryWarnings(latestInventoryWarnings);
+    } catch (error) {
+      console.error("查詢庫存失敗:", error);
+      toast({ title: "無法確認庫存", description: "請稍後再試，避免建立超過庫存的訂單", variant: "destructive" });
+      setIsSaving(false);
+      return;
+    }
+
+    if (latestInventoryWarnings.length > 0) {
+      const blockedDates = latestInventoryWarnings.filter(w => w.blocked || w.available <= 0);
       if (blockedDates.length > 0) {
-        const dateList = blockedDates.map(w => format(parseISO(w.date), "MM/dd")).join("、");
+        const dateList = blockedDates.map(w => `${format(parseISO(w.date), "MM/dd")}${w.roomName ? ` ${w.roomName}` : ""}`).join("、");
         toast({
           title: "無法建立訂單",
           description: `${dateList} 已關閉庫存，無法建立訂單`,
           variant: "destructive",
         });
+        setIsSaving(false);
         return;
       }
-      const insufficientDates = inventoryWarnings.filter(w => !w.blocked && w.available > 0);
+      const insufficientDates = latestInventoryWarnings.filter(w => !w.blocked && w.available > 0);
       if (insufficientDates.length > 0) {
-        const dateList = insufficientDates.map(w => `${format(parseISO(w.date), "MM/dd")}(剩 ${w.available})`).join("、");
+        const dateList = insufficientDates.map(w => `${format(parseISO(w.date), "MM/dd")}${w.roomName ? ` ${w.roomName}` : ""}(剩 ${w.available}，需 ${w.needed ?? 1})`).join("、");
         toast({
           title: "庫存不足",
           description: `${dateList}，無法建立訂單`,
           variant: "destructive",
         });
+        setIsSaving(false);
         return;
       }
     }
 
-    setIsSaving(true);
     try {
       // Recompute room prices synchronously to avoid stale 0 values from async useEffect race
       const nights = calculateNights();
@@ -775,7 +862,11 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           template_id: sel.template_id || null,
           template_name: sel.template_name || null,
         }));
-        await supabase.from("order_rooms").insert(orderRooms);
+        const { error: roomsError } = await supabase.from("order_rooms").insert(orderRooms);
+        if (roomsError) {
+          await supabase.from("orders").delete().eq("id", orderData.id);
+          throw roomsError;
+        }
       }
 
       if (error) throw error;
@@ -1559,18 +1650,18 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                 <li key={index}>
                   {warning.blocked ? (
                     <span>
-                      {format(parseISO(warning.date), "MM/dd")}：已被 <strong>{warning.blockedBy}</strong> 預訂封鎖
+                      {format(parseISO(warning.date), "MM/dd")}{warning.roomName ? ` ${warning.roomName}` : ""}：已關閉或無庫存
                     </span>
                   ) : (
                     <span>
-                      {format(parseISO(warning.date), "MM/dd")}：剩餘 <strong>{warning.available}</strong> 間
+                      {format(parseISO(warning.date), "MM/dd")}{warning.roomName ? ` ${warning.roomName}` : ""}：剩餘 <strong>{warning.available}</strong> 間，需 {warning.needed ?? 1} 間
                     </span>
                   )}
                 </li>
               ))}
             </ul>
             <div className="text-xs mt-2 text-amber-700 dark:text-amber-300">
-              仍可建立訂單，但請確認實際房況
+              無法建立超過庫存的訂單
             </div>
           </AlertDescription>
         </Alert>
