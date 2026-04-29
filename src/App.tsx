@@ -13,6 +13,7 @@ import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
 import { HQDomainRedirect } from "@/components/HQDomainRedirect";
 import { BookingDomainRedirect } from "@/components/BookingDomainRedirect";
 import { AliasResolver } from "@/components/AliasResolver";
+import { RequireModule } from "@/components/RequireModule";
 
 const { Suspense, lazy } = React;
 
