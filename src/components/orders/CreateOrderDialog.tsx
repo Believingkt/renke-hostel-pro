@@ -544,7 +544,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             available: 0,
             needed,
             blocked: true,
-            blockedByRoomName: row.blocked_by_room_name || undefined,
+            blockedBy: row.blocked_by_room_name || undefined,
           });
         } else if (available < needed) {
           warnings.push({ date: dateStr, roomTypeId, roomName, available, needed });
