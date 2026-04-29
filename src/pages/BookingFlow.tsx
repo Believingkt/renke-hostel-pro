@@ -3135,6 +3135,14 @@ const BookingFlow = () => {
                               }}
                               onSelect={(date) => {
                                 if (date && !isNaN(date.getTime())) {
+                                  if (!isCalendarDateBookable(date)) {
+                                    toast({
+                                      title: "此日期已無庫存",
+                                      description: "請選擇其他可預訂日期",
+                                      variant: "destructive",
+                                    });
+                                    return;
+                                  }
                                   setCheckInDate(date);
                                   setTimeout(() => {
                                     setIsCheckInDateOpen(false);
@@ -3170,10 +3178,16 @@ const BookingFlow = () => {
                                    const dateStr = formatISO(date, { representation: 'date' });
                                    return availableDatesForCalendar.has(dateStr);
                                  },
+                                  unavailable: (date) => {
+                                    const today = new Date();
+                                    today.setHours(0, 0, 0, 0);
+                                    return date >= today && !isCalendarDateBookable(date);
+                                  },
                               }}
                               modifiersClassNames={{
                                 holiday: "bg-primary/10 text-primary font-semibold rounded-md",
                                 available: "!font-extrabold text-foreground",
+                                 unavailable: "pointer-events-none opacity-40 text-muted-foreground line-through",
                               }}
                               initialFocus
                               className="pointer-events-auto"
@@ -3237,6 +3251,14 @@ const BookingFlow = () => {
                                     });
                                     return;
                                   }
+                                  if (checkInDate && !isStayRangeBookable(checkInDate, date)) {
+                                    toast({
+                                      title: "所選區間已無庫存",
+                                      description: "請選擇連續可預訂的住宿日期",
+                                      variant: "destructive",
+                                    });
+                                    return;
+                                  }
                                   setCheckOutDate(date);
                                   setTimeout(() => {
                                     setIsCheckOutDateOpen(false);
@@ -3270,10 +3292,16 @@ const BookingFlow = () => {
                                    const dateStr = formatISO(date, { representation: 'date' });
                                    return availableDatesForCalendar.has(dateStr);
                                  },
+                                  unavailable: (date) => {
+                                    const today = new Date();
+                                    today.setHours(0, 0, 0, 0);
+                                    return date >= today && checkInDate !== undefined && !isStayRangeBookable(checkInDate, date);
+                                  },
                               }}
                               modifiersClassNames={{
                                 holiday: "bg-primary/10 text-primary font-semibold rounded-md",
                                 available: "!font-extrabold text-foreground",
+                                 unavailable: "pointer-events-none opacity-40 text-muted-foreground line-through",
                               }}
                               initialFocus
                               className="pointer-events-auto"
