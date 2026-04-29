@@ -214,6 +214,7 @@ const BookingFlow = () => {
   const [unavailableDatesForRoom, setUnavailableDatesForRoom] = useState<Set<string>>(new Set());
   const [availableDatesForCalendar, setAvailableDatesForCalendar] = useState<Set<string>>(new Set());
   const [isLoadingRoomDates, setIsLoadingRoomDates] = useState(false);
+  const [hasLoadedDateAvailability, setHasLoadedDateAvailability] = useState(false);
   const [checkInCalendarMonth, setCheckInCalendarMonth] = useState<Date>(new Date());
   const [checkOutCalendarMonth, setCheckOutCalendarMonth] = useState<Date>(new Date());
   
