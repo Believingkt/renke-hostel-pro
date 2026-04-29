@@ -246,7 +246,7 @@ const HeroSection = ({
 
   // 載入房間庫存可用日期
   // AVAILABILITY_CACHE_VERSION：每次邏輯有變動時遞增，可強制清除舊版本快取
-  const AVAILABILITY_CACHE_VERSION = 'v4-2026-04-29-partial';
+  const AVAILABILITY_CACHE_VERSION = 'v5-2026-04-29-exclusive-fallback';
 
   useEffect(() => {
     const loadAvailability = async () => {
