@@ -160,7 +160,7 @@ export default function RoomPriceCalendar() {
           .lte('holiday_date', monthEnd),
         supabase
           .from('orders')
-          .select('check_in_date, check_out_date, room_type_id')
+          .select('id, check_in_date, check_out_date, room_type_id')
           .eq('accommodation_id', currentAccommodationId)
           .neq('order_status', 'cancelled')
           .gte('check_out_date', monthStart)
@@ -175,17 +175,46 @@ export default function RoomPriceCalendar() {
 
       if (ordersResult.error) console.error('查詢訂單失敗:', ordersResult.error);
 
-      // 計算每個房型每個日期的預訂數量
+      // 取得多房型訂單的房型明細（order_rooms）
+      const orderIds = (ordersResult.data || []).map(o => o.id);
+      let orderRoomsData: Array<{ order_id: string; room_type_id: string; quantity: number }> = [];
+      if (orderIds.length > 0) {
+        const { data: orData, error: orErr } = await supabase
+          .from('order_rooms')
+          .select('order_id, room_type_id, quantity')
+          .in('order_id', orderIds);
+        if (orErr) console.error('查詢 order_rooms 失敗:', orErr);
+        orderRoomsData = orData || [];
+      }
+      const orderRoomsByOrderId = new Map<string, Array<{ room_type_id: string; quantity: number }>>();
+      orderRoomsData.forEach(or => {
+        if (!orderRoomsByOrderId.has(or.order_id)) orderRoomsByOrderId.set(or.order_id, []);
+        orderRoomsByOrderId.get(or.order_id)!.push({ room_type_id: or.room_type_id, quantity: or.quantity });
+      });
+
+      // 計算每個房型每個日期的預訂數量（多房型訂單以 order_rooms 為準，避免重複/漏算）
       const bookingCountMap = new Map<string, number>();
       if (ordersResult.data) {
         ordersResult.data.forEach(order => {
-          if (!order.room_type_id) return;
+          const rooms = orderRoomsByOrderId.get(order.id);
+          // 若有多房型明細，使用明細展開；否則 fallback 到 orders.room_type_id（單一房型訂單）
+          const roomEntries: Array<{ room_type_id: string; quantity: number }> =
+            rooms && rooms.length > 0
+              ? rooms
+              : order.room_type_id
+                ? [{ room_type_id: order.room_type_id, quantity: 1 }]
+                : [];
+          if (roomEntries.length === 0) return;
+
           const checkIn = new Date(order.check_in_date);
           const checkOut = new Date(order.check_out_date);
           let cur = new Date(checkIn);
           while (cur < checkOut) {
-            const key = `${order.room_type_id}_${format(cur, 'yyyy-MM-dd')}`;
-            bookingCountMap.set(key, (bookingCountMap.get(key) || 0) + 1);
+            const dateStr = format(cur, 'yyyy-MM-dd');
+            roomEntries.forEach(re => {
+              const key = `${re.room_type_id}_${dateStr}`;
+              bookingCountMap.set(key, (bookingCountMap.get(key) || 0) + (re.quantity || 1));
+            });
             cur = addDays(cur, 1);
           }
         });
