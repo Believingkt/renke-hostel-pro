@@ -246,7 +246,7 @@ const HeroSection = ({
 
   // 載入房間庫存可用日期
   // AVAILABILITY_CACHE_VERSION：每次邏輯有變動時遞增，可強制清除舊版本快取
-  const AVAILABILITY_CACHE_VERSION = 'v4-2026-04-29-partial';
+  const AVAILABILITY_CACHE_VERSION = 'v5-2026-04-29-exclusive-fallback';
 
   useEffect(() => {
     const loadAvailability = async () => {
@@ -327,47 +327,24 @@ const HeroSection = ({
         });
       }
 
-      // 散客房型 (非包區方案)：用以判斷「部分售完 vs 全部售完」
-      const guestRoomTypes = roomTypes.filter((rt: any) => !rt.is_exclusive_package);
-
+      // 規則：
+      // - 開啟：任一房型（散客或包區）仍有可訂庫存（rooms > 0 且未被封鎖）
+      //   散客即使當天未開庫存（沒有 inventory row），只要包區有空仍開啟
+      // - 關閉：所有房型皆無空（散客全訂滿且包區也都無）
       const available = new Set<string>();
-      const partial = new Set<string>();
       for (const date of allDates) {
-        // 計算散客房型在該日的可訂狀況
-        const guestStats = guestRoomTypes.map((rt: any) => {
-          const base = baseIndex.get(`${rt.id}:${date}`);
-          const adj = adjustedIndex.get(`${rt.id}:${date}`);
-          const usable = !!(base && base.is_available && base.hasPrice);
-          const blocked = !adj || adj.is_blocked;
-          const rooms = adj?.available_rooms ?? 0;
-          return { usable, blocked, rooms };
-        });
-
-        // 任一房型 (含包區) 仍有可訂庫存 → 該日開放
         const ok = roomTypes.some((rt: any) => {
-          const base = baseIndex.get(`${rt.id}:${date}`);
           const adj = adjustedIndex.get(`${rt.id}:${date}`);
-          if (!base || !base.is_available || !base.hasPrice) return false;
-          if (!adj || adj.is_blocked) return false;
+          if (!adj) return false;
+          if (adj.is_blocked) return false;
           return adj.available_rooms > 0;
         });
 
-        if (ok) {
-          available.add(date);
-
-          // 標記「部分售完」：某些散客房型有空、某些已售完 (rooms=0 或被封鎖)
-          if (guestStats.length > 0) {
-            const anyAvail = guestStats.some(s => s.usable && !s.blocked && s.rooms > 0);
-            const anySoldOut = guestStats.some(s => !s.usable || s.blocked || s.rooms <= 0);
-            if (anyAvail && anySoldOut) {
-              partial.add(date);
-            }
-          }
-        }
+        if (ok) available.add(date);
       }
 
       setAvailableDates(available);
-      setPartiallyAvailableDates(partial);
+      setPartiallyAvailableDates(new Set());
     };
 
     loadAvailability();
@@ -761,15 +738,11 @@ const HeroSection = ({
                           <span className="text-muted-foreground">平日定價</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-md border border-border relative flex items-center justify-center">
-                            <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-orange-500" />
-                          </div>
-                          <span className="text-muted-foreground">部分售完</span>
-                        </div>
-                        <div className="flex items-center gap-2">
                           <span className="w-6 h-6 flex items-center justify-center text-muted-foreground/40 text-sm">30</span>
                           <span className="text-muted-foreground">已滿房</span>
                         </div>
+
+
                       </div>
 
                     </div>
@@ -831,12 +804,7 @@ const HeroSection = ({
                           <div className="w-6 h-6 bg-background rounded-md border border-border"></div>
                           <span className="text-muted-foreground">平日定價</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-md border border-border relative flex items-center justify-center">
-                            <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-orange-500" />
-                          </div>
-                          <span className="text-muted-foreground">部分售完</span>
-                        </div>
+                        
                         <div className="flex items-center gap-2">
                           <span className="w-6 h-6 flex items-center justify-center text-muted-foreground/40 text-sm">30</span>
                           <span className="text-muted-foreground">已滿房</span>
