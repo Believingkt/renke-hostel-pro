@@ -1642,18 +1642,18 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                 <li key={index}>
                   {warning.blocked ? (
                     <span>
-                      {format(parseISO(warning.date), "MM/dd")}：已被 <strong>{warning.blockedBy}</strong> 預訂封鎖
+                      {format(parseISO(warning.date), "MM/dd")}{warning.roomName ? ` ${warning.roomName}` : ""}：已關閉或無庫存
                     </span>
                   ) : (
                     <span>
-                      {format(parseISO(warning.date), "MM/dd")}：剩餘 <strong>{warning.available}</strong> 間
+                      {format(parseISO(warning.date), "MM/dd")}{warning.roomName ? ` ${warning.roomName}` : ""}：剩餘 <strong>{warning.available}</strong> 間，需 {warning.needed ?? 1} 間
                     </span>
                   )}
                 </li>
               ))}
             </ul>
             <div className="text-xs mt-2 text-amber-700 dark:text-amber-300">
-              仍可建立訂單，但請確認實際房況
+              無法建立超過庫存的訂單
             </div>
           </AlertDescription>
         </Alert>
