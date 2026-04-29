@@ -331,21 +331,28 @@ const HeroSection = ({
       }
 
       // 規則：
-      // - 散客房型（非包區）：任一散客有空即視為散客側可訂
-      // - 包區房型：必須「每一個包區」都仍有庫存（rooms > 0 且未被封鎖）
-      //   只要任一包區無庫存，整天即關閉
-      // - 開啟條件：散客側有空 AND 所有包區皆有空
+      // - 散客房型（非包區）：
+      //     a) 任一散客房型有空 → 散客側 OK
+      //     b) 散客全部「未開庫存」(沒有 inventory row) → 視為散客側不阻擋，由包區決定
+      //     c) 散客有開庫存但全部售完/封鎖 → 散客側無空
+      // - 包區房型：必須「每一個包區」皆仍有空，只要任一包區無庫存即關閉
+      // - 最終開啟：散客側不阻擋 AND 所有包區皆有空
       const exclusiveTypes = roomTypes.filter((rt: any) => rt.is_exclusive_package);
       const nonExclusiveTypes = roomTypes.filter((rt: any) => !rt.is_exclusive_package);
 
       const available = new Set<string>();
       for (const date of allDates) {
-        // 散客側：至少一個散客房型有空
-        const guestOk = nonExclusiveTypes.some((rt: any) => {
+        // 散客當日是否有任何 inventory row（用 baseIndex 判斷是否「已開庫存」）
+        const guestHasInventory = nonExclusiveTypes.some((rt: any) =>
+          baseIndex.has(`${rt.id}:${date}`)
+        );
+        const guestAnyAvailable = nonExclusiveTypes.some((rt: any) => {
           const adj = adjustedIndex.get(`${rt.id}:${date}`);
           if (!adj || adj.is_blocked) return false;
           return adj.available_rooms > 0;
         });
+        // 散客未開庫存 → 不阻擋；有開庫存 → 必須有空
+        const guestOk = !guestHasInventory || guestAnyAvailable;
 
         // 包區側：每一個包區都必須仍有空
         const allExclusiveOk = exclusiveTypes.length === 0 || exclusiveTypes.every((rt: any) => {
