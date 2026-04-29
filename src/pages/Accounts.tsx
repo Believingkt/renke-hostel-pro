@@ -46,8 +46,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Loader2, Users, UserPlus, Mail, MailCheck, CheckCircle2, XCircle, UserCog, Shield, UserCheck, KeyRound, Home } from "lucide-react";
+import { Plus, Trash2, Loader2, Users, UserPlus, Mail, MailCheck, CheckCircle2, XCircle, UserCog, Shield, UserCheck, KeyRound, Home, Settings2 } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
+import { StaffPermissionsDialog } from "@/components/StaffPermissionsDialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
@@ -81,6 +82,7 @@ const Accounts = () => {
   const [emailFormatValid, setEmailFormatValid] = useState<boolean | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [permissionsUserId, setPermissionsUserId] = useState<string | null>(null);
   const { currentAccommodationId: accommodationId } = useAccommodation();
 
   useEffect(() => {
@@ -751,6 +753,16 @@ const Accounts = () => {
                       <TableCell className="text-sm">{user.lastLogin}</TableCell>
                       <TableCell className="text-sm">
                         <div className="flex items-center gap-0">
+                          {user.role === 'staff' && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setPermissionsUserId(user.id)}
+                              title="設定模組權限"
+                            >
+                              <Settings2 className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"
@@ -832,6 +844,16 @@ const Accounts = () => {
                         </div>
                       </div>
                       <div className="flex flex-col gap-2 shrink-0">
+                        {user.role === 'staff' && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setPermissionsUserId(user.id)}
+                            title="設定模組權限"
+                          >
+                            <Settings2 className="h-5 w-5" />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
@@ -877,6 +899,15 @@ const Accounts = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {permissionsUserId && accommodationId && (
+        <StaffPermissionsDialog
+          open={!!permissionsUserId}
+          onOpenChange={(o) => !o && setPermissionsUserId(null)}
+          userId={permissionsUserId}
+          accommodationId={accommodationId}
+        />
+      )}
     </div>
   );
 };

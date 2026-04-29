@@ -36,6 +36,7 @@ import {
 import { useLocation } from "react-router-dom";
 import { PreloadLink } from "@/components/PreloadLink";
 import { useAliasPrefix } from "@/hooks/use-alias-prefix";
+import { useStaffPermissions } from "@/hooks/use-staff-permissions";
 import {
   Sidebar,
   SidebarContent,
@@ -54,11 +55,12 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import lokezeLogo from "@/assets/lokeze-logo.png";
 
 const menuItems = [
-  { title: "營運分析", url: "/admin", icon: BarChart3 },
+  { title: "營運分析", url: "/admin", icon: BarChart3, moduleKey: "analytics" },
   { 
     title: "訂單資訊", 
     url: "/admin/orders", 
     icon: ShoppingBag,
+    moduleKey: "orders",
     subItems: [
       { title: "預訂管理", url: "/admin/room-inventory", icon: Package },
       { title: "訂單列表", url: "/admin/orders?tab=list", icon: ClipboardList },
@@ -68,6 +70,7 @@ const menuItems = [
     title: "官網內容", 
     url: "/admin/website-content", 
     icon: Globe,
+    moduleKey: "website_content",
     subItems: [
       { title: "網頁設定", url: "/admin/website-content?tab=basic-info", icon: Info },
       { title: "設施服務", url: "/admin/website-content?tab=facilities", icon: Wrench },
@@ -82,6 +85,7 @@ const menuItems = [
     title: "房型設施", 
     url: "/admin/pricing", 
     icon: Hotel,
+    moduleKey: "pricing",
     subItems: [
       { title: "房型管理", url: "/admin/pricing?tab=rooms", icon: Bed },
       { title: "客房設施", url: "/admin/pricing?tab=facilities", icon: Wrench },
@@ -91,23 +95,29 @@ const menuItems = [
     title: "房價庫存", 
     url: "/admin/room-price-calendar", 
     icon: DollarSign,
+    moduleKey: "room_price",
     subItems: [
       { title: "房價庫存設定", url: "/admin/room-price-calendar", icon: DollarSign },
       { title: "專案設定", url: "/admin/pricing?tab=basic", icon: TrendingUp },
       { title: "國定假日", url: "/admin/pricing?tab=holidays", icon: Calendar },
     ]
   },
-  { title: "顧客資料", url: "/admin/customers", icon: Users },
-  { title: "網紅導購", url: "/admin/discount-codes", icon: Sparkles },
-  { title: "請款管理", url: "/admin/settlement", icon: Banknote },
+  { title: "顧客資料", url: "/admin/customers", icon: Users, moduleKey: "customers" },
+  { title: "網紅導購", url: "/admin/discount-codes", icon: Sparkles, moduleKey: "discount_codes" },
+  { title: "請款管理", url: "/admin/settlement", icon: Banknote, moduleKey: "settlement" },
   // { title: "流量分析", url: "/admin/analytics", icon: TrendingUp },
-  { title: "帳號管理", url: "/admin/accounts", icon: KeyRound },
+  { title: "帳號管理", url: "/admin/accounts", icon: KeyRound, moduleKey: "accounts" },
 ];
 
 export function AppSidebar() {
   const { open, setOpenMobile, isMobile } = useSidebar();
   const location = useLocation();
   const { withPrefix, prefix } = useAliasPrefix();
+  const { canView, isStaff } = useStaffPermissions();
+
+  const visibleMenuItems = menuItems.filter(
+    (item) => !isStaff || !item.moduleKey || canView(item.moduleKey)
+  );
 
   const handleLinkClick = () => {
     if (isMobile) {
@@ -146,7 +156,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="gap-2.5">
-              {menuItems.map((item) => (
+              {visibleMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   {item.subItems ? (
                     <Collapsible defaultOpen={isActiveRoute(item.url)} className="group/collapsible">

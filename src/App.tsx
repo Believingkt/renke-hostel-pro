@@ -13,6 +13,7 @@ import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
 import { HQDomainRedirect } from "@/components/HQDomainRedirect";
 import { BookingDomainRedirect } from "@/components/BookingDomainRedirect";
 import { AliasResolver } from "@/components/AliasResolver";
+import { RequireModule } from "@/components/RequireModule";
 
 const { Suspense, lazy } = React;
 
@@ -190,67 +191,103 @@ function App() {
 
                     {/* 後台管理頁面 */}
                     <Route path="admin" element={
-                      <Suspense fallback={<DashboardSkeleton />}><Dashboard /></Suspense>
+                      <RequireModule module="analytics">
+                        <Suspense fallback={<DashboardSkeleton />}><Dashboard /></Suspense>
+                      </RequireModule>
                     } />
                     <Route path="admin/website-content" element={
-                      <Suspense fallback={<FormSkeleton fields={12} hasImage={true} />}><WebsiteContent /></Suspense>
+                      <RequireModule module="website_content">
+                        <Suspense fallback={<FormSkeleton fields={12} hasImage={true} />}><WebsiteContent /></Suspense>
+                      </RequireModule>
                     } />
                     <Route path="admin/faq" element={
-                      <Suspense fallback={<FormSkeleton fields={3} />}><Faq /></Suspense>
+                      <RequireModule module="website_content">
+                        <Suspense fallback={<FormSkeleton fields={3} />}><Faq /></Suspense>
+                      </RequireModule>
                     } />
                     <Route path="admin/orders" element={
-                      <Suspense fallback={<TableSkeleton rows={10} columns={8} />}><Orders /></Suspense>
+                      <RequireModule module="orders">
+                        <Suspense fallback={<TableSkeleton rows={10} columns={8} />}><Orders /></Suspense>
+                      </RequireModule>
                     } />
                     <Route path="admin/orders/:orderId" element={
-                      <Suspense fallback={<DetailSkeleton sections={4} />}><OrderDetail /></Suspense>
+                      <RequireModule module="orders">
+                        <Suspense fallback={<DetailSkeleton sections={4} />}><OrderDetail /></Suspense>
+                      </RequireModule>
                     } />
                     <Route path="admin/pricing" element={
-                      <Suspense fallback={<FormSkeleton fields={8} />}><Pricing /></Suspense>
+                      <RequireModule module="pricing">
+                        <Suspense fallback={<FormSkeleton fields={8} />}><Pricing /></Suspense>
+                      </RequireModule>
                     } />
                     <Route path="admin/room-inventory" element={
-                      <Suspense fallback={<FormSkeleton fields={6} />}><RoomInventory /></Suspense>
+                      <RequireModule module="orders">
+                        <Suspense fallback={<FormSkeleton fields={6} />}><RoomInventory /></Suspense>
+                      </RequireModule>
                     } />
                     <Route path="admin/room-price-calendar" element={
-                      <Suspense fallback={<TableSkeleton rows={8} columns={15} />}><RoomPriceCalendar /></Suspense>
+                      <RequireModule module="room_price">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={15} />}><RoomPriceCalendar /></Suspense>
+                      </RequireModule>
                     } />
                     <Route path="admin/accounts" element={
-                      <Suspense fallback={<FormSkeleton fields={4} />}><Accounts /></Suspense>
+                      <RequireModule module="accounts">
+                        <Suspense fallback={<FormSkeleton fields={4} />}><Accounts /></Suspense>
+                      </RequireModule>
                     } />
                     <Route path="admin/discount-codes" element={
-                      <Suspense fallback={<TableSkeleton rows={8} columns={7} />}><KolDiscount /></Suspense>
+                      <RequireModule module="discount_codes">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={7} />}><KolDiscount /></Suspense>
+                      </RequireModule>
                     } />
                     <Route path="admin/discount-codes/:discountCodeId/detail" element={
-                      <Suspense fallback={<TableSkeleton rows={8} columns={7} />}><KolDiscountDetail /></Suspense>
+                      <RequireModule module="discount_codes">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={7} />}><KolDiscountDetail /></Suspense>
+                      </RequireModule>
                     } />
                     <Route path="admin/discount-codes/:discountCode/orders" element={
-                      <Suspense fallback={<TableSkeleton rows={10} columns={7} />}><DiscountCodeOrders /></Suspense>
+                      <RequireModule module="discount_codes">
+                        <Suspense fallback={<TableSkeleton rows={10} columns={7} />}><DiscountCodeOrders /></Suspense>
+                      </RequireModule>
                     } />
                     <Route path="admin/user-roles" element={
-                      <Suspense fallback={<TableSkeleton rows={8} columns={4} />}><UserRoles /></Suspense>
+                      <RequireModule module="accounts">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={4} />}><UserRoles /></Suspense>
+                      </RequireModule>
                     } />
                     <Route path="admin/customers" element={
-                      <Suspense fallback={<TableSkeleton rows={10} columns={6} />}><Customers /></Suspense>
+                      <RequireModule module="customers">
+                        <Suspense fallback={<TableSkeleton rows={10} columns={6} />}><Customers /></Suspense>
+                      </RequireModule>
                     } />
                     <Route path="admin/customers/:customerId/orders" element={
-                      <Suspense fallback={<TableSkeleton rows={10} columns={7} />}><CustomerOrders /></Suspense>
+                      <RequireModule module="customers">
+                        <Suspense fallback={<TableSkeleton rows={10} columns={7} />}><CustomerOrders /></Suspense>
+                      </RequireModule>
                     } />
                     <Route path="admin/notifications" element={
                       <Suspense fallback={<TableSkeleton rows={8} columns={4} showFilters={false} />}><Notifications /></Suspense>
                     } />
                     <Route path="admin/public-holidays" element={
-                      <Suspense fallback={<FormSkeleton fields={2} />}><PublicHolidays /></Suspense>
+                      <RequireModule module="room_price">
+                        <Suspense fallback={<FormSkeleton fields={2} />}><PublicHolidays /></Suspense>
+                      </RequireModule>
                     } />
                     <Route path="admin/backup" element={
                       <Suspense fallback={<FormSkeleton fields={5} />}><DataBackup /></Suspense>
                     } />
                     <Route path="admin/settlement" element={
-                      <Suspense fallback={<TableSkeleton rows={8} columns={6} />}><Settlement /></Suspense>
+                      <RequireModule module="settlement">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={6} />}><Settlement /></Suspense>
+                      </RequireModule>
                     } />
                     <Route path="admin/email-test" element={
                       <Suspense fallback={<DashboardSkeleton />}><EmailTest /></Suspense>
                     } />
                     <Route path="admin/analytics" element={
-                      <Suspense fallback={<DashboardSkeleton />}><Analytics /></Suspense>
+                      <RequireModule module="analytics">
+                        <Suspense fallback={<DashboardSkeleton />}><Analytics /></Suspense>
+                      </RequireModule>
                     } />
 
                     {/* 其他頁面 */}

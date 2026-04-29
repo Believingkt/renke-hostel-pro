@@ -2785,6 +2785,36 @@ export type Database = {
           },
         ]
       }
+      staff_module_permissions: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          id: string
+          module_key: string
+          permission_level: Database["public"]["Enums"]["module_permission_level"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          id?: string
+          module_key: string
+          permission_level?: Database["public"]["Enums"]["module_permission_level"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          id?: string
+          module_key?: string
+          permission_level?: Database["public"]["Enums"]["module_permission_level"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       system_health_logs: {
         Row: {
           alert_sent: boolean
@@ -3074,6 +3104,14 @@ export type Database = {
               min_order_amount: number
             }[]
           }
+      get_staff_module_permission: {
+        Args: {
+          _accommodation_id: string
+          _module_key: string
+          _user_id: string
+        }
+        Returns: Database["public"]["Enums"]["module_permission_level"]
+      }
       get_user_accommodations: {
         Args: { _user_id: string }
         Returns: {
@@ -3156,6 +3194,7 @@ export type Database = {
         | "redeem"
         | "expire"
         | "admin_adjust"
+      module_permission_level: "hidden" | "readonly" | "editable"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3293,6 +3332,7 @@ export const Constants = {
         "expire",
         "admin_adjust",
       ],
+      module_permission_level: ["hidden", "readonly", "editable"],
     },
   },
 } as const
