@@ -721,13 +721,13 @@ const BookingFlow = () => {
   }, [accommodationId, roomTypes, selectedTemplate]);
 
   const isCalendarDateBookable = (date: Date) => {
-    if (!hasLoadedDateAvailability) return true;
+    if (!hasLoadedDateAvailability || isLoadingRoomDates) return false;
     const dateStr = formatISO(date, { representation: 'date' });
     return availableDatesForCalendar.has(dateStr);
   };
 
   const isStayRangeBookable = (startDate: Date, endExclusive: Date) => {
-    if (!hasLoadedDateAvailability) return true;
+    if (!hasLoadedDateAvailability || isLoadingRoomDates) return false;
 
     const current = new Date(format(startDate, 'yyyy-MM-dd') + 'T00:00:00');
     const end = new Date(format(endExclusive, 'yyyy-MM-dd') + 'T00:00:00');
