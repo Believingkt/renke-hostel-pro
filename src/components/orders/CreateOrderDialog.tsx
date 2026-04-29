@@ -607,60 +607,16 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       }
       setIsCheckingInventory(true);
       try {
-        const nights = calculateNights();
-        if (nights === 0) { setInventoryWarnings([]); return; }
-        const dates: string[] = [];
-        const start = new Date(form.check_in_date);
-        for (let i = 0; i < nights; i++) {
-          const d = new Date(start);
-          d.setDate(start.getDate() + i);
-          dates.push(format(d, "yyyy-MM-dd"));
-        }
-        const warnings: typeof inventoryWarnings = [];
-        const checkedTypes = new Set<string>();
-        for (const sel of roomSelections) {
-          if (checkedTypes.has(sel.room_type_id)) continue;
-          checkedTypes.add(sel.room_type_id);
-
-          // 1) 先查 room_inventory_pricing，判斷是否有「關閉販售」(is_available=false)
-          const { data: pricingRows } = await supabase
-            .from('room_inventory_pricing')
-            .select('date, is_available')
-            .eq('room_type_id', sel.room_type_id)
-            .in('date', dates);
-          const closedDates = new Set<string>(
-            (pricingRows || [])
-              .filter((r: any) => r.is_available === false)
-              .map((r: any) => r.date)
-          );
-
-          const { data: inventoryData } = await supabase.rpc(
-            'get_adjusted_room_inventory_batch',
-            { p_room_type_id: sel.room_type_id, p_dates: dates, p_accommodation_id: currentAccommodationId }
-          );
-          if (inventoryData) {
-            const roomName = roomTypes.find(r => r.id === sel.room_type_id)?.name || '';
-            for (const item of inventoryData) {
-              const neededQty = roomSelections.filter(s => s.room_type_id === sel.room_type_id).reduce((sum, s) => sum + s.quantity, 0);
-              const dateKey = typeof item.date_value === 'string' ? item.date_value : format(new Date(item.date_value), 'yyyy-MM-dd');
-              if (closedDates.has(dateKey)) {
-                warnings.push({ date: dateKey, available: 0, blocked: true, blockedBy: roomName });
-              } else if (item.is_blocked) {
-                warnings.push({ date: dateKey, available: 0, blocked: true, blockedBy: item.blocked_by_room_name || roomName });
-              } else if (item.available_rooms < neededQty) {
-                warnings.push({ date: dateKey, available: item.available_rooms });
-              }
-            }
-          }
-        }
+        const warnings = await validateInventoryAvailability();
         setInventoryWarnings(warnings);
+      } catch (error) {
+        console.error("查詢庫存失敗:", error);
       } finally {
         setIsCheckingInventory(false);
       }
     };
     checkInventory();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.check_in_date, form.check_out_date, roomSelectionsKey, currentAccommodationId, roomTypes]);
+  }, [form.check_in_date, form.check_out_date, roomSelectionsKey, currentAccommodationId, validateInventoryAvailability]);
 
   const handleApplyDiscount = async () => {
     if (!discountCode.trim() || !currentAccommodationId) {
