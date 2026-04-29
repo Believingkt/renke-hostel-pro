@@ -246,7 +246,7 @@ const HeroSection = ({
 
   // 載入房間庫存可用日期
   // AVAILABILITY_CACHE_VERSION：每次邏輯有變動時遞增，可強制清除舊版本快取
-  const AVAILABILITY_CACHE_VERSION = 'v5-2026-04-29-exclusive-fallback';
+  const AVAILABILITY_CACHE_VERSION = 'v6-2026-04-29-date-value-fix';
 
   useEffect(() => {
     const loadAvailability = async () => {
@@ -312,7 +312,10 @@ const HeroSection = ({
       const adjustedIndex = new Map<string, { available_rooms: number; is_blocked: boolean }>();
       for (const { roomTypeId, rows } of adjustedResults) {
         for (const row of rows) {
-          adjustedIndex.set(`${roomTypeId}:${row.date}`, {
+          // RPC 回傳欄位名為 date_value
+          const dateKey = (row as any).date_value ?? (row as any).date;
+          if (!dateKey) continue;
+          adjustedIndex.set(`${roomTypeId}:${dateKey}`, {
             available_rooms: row.available_rooms ?? 0,
             is_blocked: row.is_blocked === true,
           });
