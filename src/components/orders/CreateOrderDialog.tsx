@@ -712,11 +712,21 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       return;
     }
 
-    // Block creation when inventory is closed (blocked) or insufficient on any selected date
-    if (inventoryWarnings.length > 0) {
-      const blockedDates = inventoryWarnings.filter(w => w.blocked || w.available <= 0);
+    // Block creation with a fresh inventory check, not stale UI warnings.
+    let latestInventoryWarnings: InventoryWarning[] = [];
+    try {
+      latestInventoryWarnings = await validateInventoryAvailability();
+      setInventoryWarnings(latestInventoryWarnings);
+    } catch (error) {
+      console.error("查詢庫存失敗:", error);
+      toast({ title: "無法確認庫存", description: "請稍後再試，避免建立超過庫存的訂單", variant: "destructive" });
+      return;
+    }
+
+    if (latestInventoryWarnings.length > 0) {
+      const blockedDates = latestInventoryWarnings.filter(w => w.blocked || w.available <= 0);
       if (blockedDates.length > 0) {
-        const dateList = blockedDates.map(w => format(parseISO(w.date), "MM/dd")).join("、");
+        const dateList = blockedDates.map(w => `${format(parseISO(w.date), "MM/dd")}${w.roomName ? ` ${w.roomName}` : ""}`).join("、");
         toast({
           title: "無法建立訂單",
           description: `${dateList} 已關閉庫存，無法建立訂單`,
@@ -724,9 +734,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         });
         return;
       }
-      const insufficientDates = inventoryWarnings.filter(w => !w.blocked && w.available > 0);
+      const insufficientDates = latestInventoryWarnings.filter(w => !w.blocked && w.available > 0);
       if (insufficientDates.length > 0) {
-        const dateList = insufficientDates.map(w => `${format(parseISO(w.date), "MM/dd")}(剩 ${w.available})`).join("、");
+        const dateList = insufficientDates.map(w => `${format(parseISO(w.date), "MM/dd")}${w.roomName ? ` ${w.roomName}` : ""}(剩 ${w.available}，需 ${w.needed ?? 1})`).join("、");
         toast({
           title: "庫存不足",
           description: `${dateList}，無法建立訂單`,
