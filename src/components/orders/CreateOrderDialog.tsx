@@ -712,6 +712,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       return;
     }
 
+    setIsSaving(true);
+
     // Block creation with a fresh inventory check, not stale UI warnings.
     let latestInventoryWarnings: InventoryWarning[] = [];
     try {
@@ -720,6 +722,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     } catch (error) {
       console.error("查詢庫存失敗:", error);
       toast({ title: "無法確認庫存", description: "請稍後再試，避免建立超過庫存的訂單", variant: "destructive" });
+      setIsSaving(false);
       return;
     }
 
@@ -732,6 +735,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           description: `${dateList} 已關閉庫存，無法建立訂單`,
           variant: "destructive",
         });
+        setIsSaving(false);
         return;
       }
       const insufficientDates = latestInventoryWarnings.filter(w => !w.blocked && w.available > 0);
@@ -742,11 +746,11 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           description: `${dateList}，無法建立訂單`,
           variant: "destructive",
         });
+        setIsSaving(false);
         return;
       }
     }
 
-    setIsSaving(true);
     try {
       // Recompute room prices synchronously to avoid stale 0 values from async useEffect race
       const nights = calculateNights();
