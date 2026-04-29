@@ -66,6 +66,16 @@ interface RoomSelection {
   filteredTemplates: PricingTemplate[];
 }
 
+interface InventoryWarning {
+  date: string;
+  roomTypeId?: string;
+  roomName?: string;
+  available: number;
+  needed?: number;
+  blocked?: boolean;
+  blockedBy?: string;
+}
+
 interface CreateOrderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -91,7 +101,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const [pricingTemplates, setPricingTemplates] = useState<PricingTemplate[]>([]);
   const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
   const [roomPrice, setRoomPrice] = useState(0);
-  const [inventoryWarnings, setInventoryWarnings] = useState<{ date: string; available: number; blocked?: boolean; blockedBy?: string }[]>([]);
+  const [inventoryWarnings, setInventoryWarnings] = useState<InventoryWarning[]>([]);
   const [isCheckingInventory, setIsCheckingInventory] = useState(false);
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; type: "percentage" | "amount"; value: number } | null>(null);
