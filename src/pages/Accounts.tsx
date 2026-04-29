@@ -82,6 +82,7 @@ const Accounts = () => {
   const [emailFormatValid, setEmailFormatValid] = useState<boolean | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [permissionsUserId, setPermissionsUserId] = useState<string | null>(null);
   const { currentAccommodationId: accommodationId } = useAccommodation();
 
   useEffect(() => {
