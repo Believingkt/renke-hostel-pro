@@ -753,6 +753,16 @@ const Accounts = () => {
                       <TableCell className="text-sm">{user.lastLogin}</TableCell>
                       <TableCell className="text-sm">
                         <div className="flex items-center gap-0">
+                          {user.role === 'staff' && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setPermissionsUserId(user.id)}
+                              title="設定模組權限"
+                            >
+                              <Settings2 className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"
