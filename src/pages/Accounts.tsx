@@ -574,6 +574,13 @@ const Accounts = () => {
         title="帳號管理"
         icon={KeyRound}
         action={
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button asChild variant="outline" className="gap-2">
+              <Link to="/admin/permission-templates">
+                <ShieldCheck className="h-4 w-4" />
+                權限範本
+              </Link>
+            </Button>
           <Dialog open={open} onOpenChange={(isOpen) => {
             setOpen(isOpen);
             if (!isOpen) {
