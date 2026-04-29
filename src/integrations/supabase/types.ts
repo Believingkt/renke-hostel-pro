@@ -1871,6 +1871,42 @@ export type Database = {
         }
         Relationships: []
       }
+      permission_templates: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          is_system: boolean
+          name: string
+          permissions: Json
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_system?: boolean
+          name: string
+          permissions?: Json
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_system?: boolean
+          name?: string
+          permissions?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       platform_coupons: {
         Row: {
           accommodation_id: string | null
@@ -2887,6 +2923,7 @@ export type Database = {
           created_at: string
           id: string
           role: Database["public"]["Enums"]["app_role"]
+          template_id: string | null
           updated_at: string
           user_id: string
         }
@@ -2895,6 +2932,7 @@ export type Database = {
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          template_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -2903,6 +2941,7 @@ export type Database = {
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          template_id?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -2912,6 +2951,13 @@ export type Database = {
             columns: ["accommodation_id"]
             isOneToOne: false
             referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_roles_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "permission_templates"
             referencedColumns: ["id"]
           },
         ]
