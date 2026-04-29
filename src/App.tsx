@@ -65,6 +65,7 @@ const Pricing = lazy(() => import("./pages/Pricing"));
 const RoomInventory = lazy(() => import("./pages/RoomInventory"));
 const RoomPriceCalendar = lazy(() => import("./pages/RoomPriceCalendar"));
 const Accounts = lazy(() => import("./pages/Accounts"));
+const PermissionTemplates = lazy(() => import("./pages/PermissionTemplates"));
 const KolDiscount = lazy(() => import("./pages/KolDiscount"));
 const DiscountCodeOrders = lazy(() => import("./pages/DiscountCodeOrders"));
 const KolDiscountDetail = lazy(() => import("./pages/KolDiscountDetail"));
