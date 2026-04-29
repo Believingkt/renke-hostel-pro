@@ -46,7 +46,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Loader2, Users, UserPlus, Mail, MailCheck, CheckCircle2, XCircle, UserCog, Shield, UserCheck, KeyRound, Home, Settings2 } from "lucide-react";
+import { Plus, Trash2, Loader2, Users, UserPlus, Mail, MailCheck, CheckCircle2, XCircle, UserCog, Shield, UserCheck, KeyRound, Home, Settings2, ShieldCheck } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { StaffPermissionsDialog } from "@/components/StaffPermissionsDialog";
 import { Card, CardContent } from "@/components/ui/card";
@@ -574,6 +574,13 @@ const Accounts = () => {
         title="帳號管理"
         icon={KeyRound}
         action={
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button asChild variant="outline" className="gap-2">
+              <Link to="/admin/permission-templates">
+                <ShieldCheck className="h-4 w-4" />
+                權限範本
+              </Link>
+            </Button>
           <Dialog open={open} onOpenChange={(isOpen) => {
             setOpen(isOpen);
             if (!isOpen) {
@@ -688,6 +695,7 @@ const Accounts = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+          </div>
         }
       />
 

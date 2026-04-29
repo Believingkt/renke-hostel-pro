@@ -65,6 +65,7 @@ const Pricing = lazy(() => import("./pages/Pricing"));
 const RoomInventory = lazy(() => import("./pages/RoomInventory"));
 const RoomPriceCalendar = lazy(() => import("./pages/RoomPriceCalendar"));
 const Accounts = lazy(() => import("./pages/Accounts"));
+const PermissionTemplates = lazy(() => import("./pages/PermissionTemplates"));
 const KolDiscount = lazy(() => import("./pages/KolDiscount"));
 const DiscountCodeOrders = lazy(() => import("./pages/DiscountCodeOrders"));
 const KolDiscountDetail = lazy(() => import("./pages/KolDiscountDetail"));
@@ -233,6 +234,11 @@ function App() {
                     <Route path="admin/accounts" element={
                       <RequireModule module="accounts">
                         <Suspense fallback={<FormSkeleton fields={4} />}><Accounts /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/permission-templates" element={
+                      <RequireModule module="accounts">
+                        <Suspense fallback={<FormSkeleton fields={4} />}><PermissionTemplates /></Suspense>
                       </RequireModule>
                     } />
                     <Route path="admin/discount-codes" element={
