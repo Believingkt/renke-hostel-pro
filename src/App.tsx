@@ -236,6 +236,11 @@ function App() {
                         <Suspense fallback={<FormSkeleton fields={4} />}><Accounts /></Suspense>
                       </RequireModule>
                     } />
+                    <Route path="admin/permission-templates" element={
+                      <RequireModule module="accounts">
+                        <Suspense fallback={<FormSkeleton fields={4} />}><PermissionTemplates /></Suspense>
+                      </RequireModule>
+                    } />
                     <Route path="admin/discount-codes" element={
                       <RequireModule module="discount_codes">
                         <Suspense fallback={<TableSkeleton rows={8} columns={7} />}><KolDiscount /></Suspense>
