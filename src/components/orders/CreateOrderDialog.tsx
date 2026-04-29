@@ -623,6 +623,30 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       return;
     }
 
+    // Block creation when inventory is closed (blocked) or insufficient on any selected date
+    if (inventoryWarnings.length > 0) {
+      const blockedDates = inventoryWarnings.filter(w => w.blocked || w.available <= 0);
+      if (blockedDates.length > 0) {
+        const dateList = blockedDates.map(w => format(parseISO(w.date), "MM/dd")).join("、");
+        toast({
+          title: "無法建立訂單",
+          description: `${dateList} 已關閉庫存，無法建立訂單`,
+          variant: "destructive",
+        });
+        return;
+      }
+      const insufficientDates = inventoryWarnings.filter(w => !w.blocked && w.available > 0);
+      if (insufficientDates.length > 0) {
+        const dateList = insufficientDates.map(w => `${format(parseISO(w.date), "MM/dd")}(剩 ${w.available})`).join("、");
+        toast({
+          title: "庫存不足",
+          description: `${dateList}，無法建立訂單`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     setIsSaving(true);
     try {
       // Recompute room prices synchronously to avoid stale 0 values from async useEffect race
