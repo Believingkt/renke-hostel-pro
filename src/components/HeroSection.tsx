@@ -331,19 +331,30 @@ const HeroSection = ({
       }
 
       // 規則：
-      // - 開啟：任一房型（散客或包區）仍有可訂庫存（rooms > 0 且未被封鎖）
-      //   散客即使當天未開庫存（沒有 inventory row），只要包區有空仍開啟
-      // - 關閉：所有房型皆無空（散客全訂滿且包區也都無）
+      // - 散客房型（非包區）：任一散客有空即視為散客側可訂
+      // - 包區房型：必須「每一個包區」都仍有庫存（rooms > 0 且未被封鎖）
+      //   只要任一包區無庫存，整天即關閉
+      // - 開啟條件：散客側有空 AND 所有包區皆有空
+      const exclusiveTypes = roomTypes.filter((rt: any) => rt.is_exclusive_package);
+      const nonExclusiveTypes = roomTypes.filter((rt: any) => !rt.is_exclusive_package);
+
       const available = new Set<string>();
       for (const date of allDates) {
-        const ok = roomTypes.some((rt: any) => {
+        // 散客側：至少一個散客房型有空
+        const guestOk = nonExclusiveTypes.some((rt: any) => {
           const adj = adjustedIndex.get(`${rt.id}:${date}`);
-          if (!adj) return false;
-          if (adj.is_blocked) return false;
+          if (!adj || adj.is_blocked) return false;
           return adj.available_rooms > 0;
         });
 
-        if (ok) available.add(date);
+        // 包區側：每一個包區都必須仍有空
+        const allExclusiveOk = exclusiveTypes.length === 0 || exclusiveTypes.every((rt: any) => {
+          const adj = adjustedIndex.get(`${rt.id}:${date}`);
+          if (!adj || adj.is_blocked) return false;
+          return adj.available_rooms > 0;
+        });
+
+        if (guestOk && allExclusiveOk) available.add(date);
       }
 
       setAvailableDates(available);
