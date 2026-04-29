@@ -605,16 +605,18 @@ const BookingFlow = () => {
     }
   }, [searchParams, roomTypes, selectedRoom]);
 
-  // 載入日期可用性（供日期選擇器使用），與首頁邏輯一致
+  // 載入日期可用性（供日期選擇器使用），以調整後庫存與包區互斥邏輯判斷
   useEffect(() => {
     if (!accommodationId) {
       setUnavailableDatesForRoom(new Set());
       setAvailableDatesForCalendar(new Set());
+      setHasLoadedDateAvailability(false);
       return;
     }
 
     const loadDateAvailability = async () => {
       setIsLoadingRoomDates(true);
+      setHasLoadedDateAvailability(false);
       try {
         const today = new Date();
         const sixMonthsLater = addMonths(today, 6);
@@ -626,93 +628,119 @@ const BookingFlow = () => {
         if (roomTypeIds.length === 0) {
           setUnavailableDatesForRoom(new Set());
           setAvailableDatesForCalendar(new Set());
+          setHasLoadedDateAvailability(true);
           return;
         }
 
-        // 這裡固定沿用首頁做法：以全部房型聚合可訂日期，不受預選房型影響
-        const [inventoryResult, exclusiveOrdersResult] = await Promise.all([
+        const dateRange: string[] = [];
+        const cursor = new Date(todayStr + 'T00:00:00');
+        const rangeEnd = new Date(endStr + 'T00:00:00');
+        while (cursor <= rangeEnd) {
+          dateRange.push(formatISO(cursor, { representation: 'date' }));
+          cursor.setDate(cursor.getDate() + 1);
+        }
+
+        const [inventoryResult, adjustedResults] = await Promise.all([
           supabase
             .from('room_inventory_pricing')
-            .select('date, available_rooms, is_available, price, room_type_id')
+            .select('date, available_rooms, is_available, price, price_2_meals, price_3_meals, room_type_id')
             .in('room_type_id', roomTypeIds)
             .gte('date', todayStr)
             .lte('date', endStr),
-          supabase
-            .from('orders')
-            .select('check_in_date, check_out_date, room_type_id')
-            .eq('accommodation_id', accommodationId)
-            .not('order_status', 'eq', 'cancelled')
-            .gte('check_out_date', todayStr)
-            .lte('check_in_date', endStr),
+          Promise.all(
+            roomTypeIds.map(async (roomTypeId) => {
+              const { data, error } = await supabase.rpc('get_adjusted_room_inventory_batch', {
+                p_room_type_id: roomTypeId,
+                p_dates: dateRange,
+                p_accommodation_id: accommodationId,
+              });
+              if (error) throw error;
+              return { roomTypeId, rows: data || [] };
+            })
+          ),
         ]);
 
         if (inventoryResult.error) throw inventoryResult.error;
-        const data = inventoryResult.data;
 
-        const exclusiveBlockedDates = new Set<string>();
-        const exclusiveRoomIds = new Set(roomTypes.filter((room) => room.is_exclusive_package).map((room) => room.id));
-        const allBoundOrExclusive = roomTypes.every((room) => room.is_exclusive_package || room.is_bound_to_exclusive);
+        const priceColumn = getPriceColumn();
+        const inventoryIndex = new Map<string, NonNullable<typeof inventoryResult.data>[number]>();
+        inventoryResult.data?.forEach((row) => {
+          inventoryIndex.set(`${row.room_type_id}:${row.date}`, row);
+        });
 
-        if (exclusiveOrdersResult.data && allBoundOrExclusive) {
-          for (const order of exclusiveOrdersResult.data) {
-            if (!exclusiveRoomIds.has(order.room_type_id)) continue;
+        const adjustedIndex = new Map<string, any>();
+        adjustedResults.forEach(({ roomTypeId, rows }) => {
+          rows.forEach((row: any) => {
+            const dateValue = typeof row.date_value === 'string'
+              ? row.date_value
+              : format(new Date(row.date_value), 'yyyy-MM-dd');
+            adjustedIndex.set(`${roomTypeId}:${dateValue}`, row);
+          });
+        });
 
-            const startDate = new Date(order.check_in_date + 'T00:00:00');
-            const endDate = new Date(order.check_out_date + 'T00:00:00');
-            const current = new Date(startDate);
+        const unavailable = new Set<string>();
+        const available = new Set<string>();
 
-            while (current < endDate) {
-              exclusiveBlockedDates.add(formatISO(current, { representation: 'date' }));
-              current.setDate(current.getDate() + 1);
-            }
+        for (const dateStr of dateRange) {
+          const hasAnyAvailableRoom = roomTypeIds.some((roomTypeId) => {
+            const inventoryRow = inventoryIndex.get(`${roomTypeId}:${dateStr}`);
+            const adjustedRow = adjustedIndex.get(`${roomTypeId}:${dateStr}`);
+            const selectedPrice = priceColumn === 'price_3_meals'
+              ? inventoryRow?.price_3_meals
+              : priceColumn === 'price_2_meals'
+                ? inventoryRow?.price_2_meals
+                : inventoryRow?.price;
+
+            return inventoryRow?.is_available !== false
+              && selectedPrice !== null
+              && selectedPrice !== undefined
+              && adjustedRow?.is_blocked !== true
+              && (adjustedRow?.available_rooms ?? 0) > 0;
+          });
+
+          if (hasAnyAvailableRoom) {
+            available.add(dateStr);
+          } else {
+            unavailable.add(dateStr);
           }
         }
 
-        if (data && data.length > 0) {
-          const dateAvailabilityMap = new Map<string, boolean>();
-
-          for (const row of data) {
-            const isAvail = row.is_available !== false && row.available_rooms > 0 && row.price !== null && row.price !== undefined;
-
-            if (isAvail) {
-              dateAvailabilityMap.set(row.date, true);
-            } else if (!dateAvailabilityMap.has(row.date)) {
-              dateAvailabilityMap.set(row.date, false);
-            }
-          }
-
-          for (const blockedDate of exclusiveBlockedDates) {
-            dateAvailabilityMap.set(blockedDate, false);
-          }
-
-          const unavailable = new Set<string>();
-          const available = new Set<string>();
-
-          for (const [dateStr, isAvail] of dateAvailabilityMap.entries()) {
-            if (isAvail) {
-              available.add(dateStr);
-            } else {
-              unavailable.add(dateStr);
-            }
-          }
-
-          setUnavailableDatesForRoom(unavailable);
-          setAvailableDatesForCalendar(available);
-        } else {
-          setUnavailableDatesForRoom(new Set());
-          setAvailableDatesForCalendar(new Set());
-        }
+        setUnavailableDatesForRoom(unavailable);
+        setAvailableDatesForCalendar(available);
       } catch (err) {
         if (import.meta.env.DEV) {
           console.error('Error loading date availability:', err);
         }
       } finally {
+        setHasLoadedDateAvailability(true);
         setIsLoadingRoomDates(false);
       }
     };
 
     loadDateAvailability();
-  }, [accommodationId, roomTypes]);
+  }, [accommodationId, roomTypes, selectedTemplate]);
+
+  const isCalendarDateBookable = (date: Date) => {
+    if (!hasLoadedDateAvailability) return true;
+    const dateStr = formatISO(date, { representation: 'date' });
+    return availableDatesForCalendar.has(dateStr);
+  };
+
+  const isStayRangeBookable = (startDate: Date, endExclusive: Date) => {
+    if (!hasLoadedDateAvailability) return true;
+
+    const current = new Date(format(startDate, 'yyyy-MM-dd') + 'T00:00:00');
+    const end = new Date(format(endExclusive, 'yyyy-MM-dd') + 'T00:00:00');
+
+    while (current < end) {
+      if (!availableDatesForCalendar.has(formatISO(current, { representation: 'date' }))) {
+        return false;
+      }
+      current.setDate(current.getDate() + 1);
+    }
+
+    return true;
+  };
 
   // 當日期或房型變化時，預先獲取價格和檢查可用性
   useEffect(() => {
