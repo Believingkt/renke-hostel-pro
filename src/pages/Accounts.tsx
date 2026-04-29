@@ -695,6 +695,7 @@ const Accounts = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+          </div>
         }
       />
 
