@@ -105,6 +105,7 @@ const HeroSection = ({
   const [isCheckOutDateOpen, setIsCheckOutDateOpen] = useState(false);
   const [publicHolidays, setPublicHolidays] = useState<Date[]>([]);
   const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
+  const [partiallyAvailableDates, setPartiallyAvailableDates] = useState<Set<string>>(new Set());
   const [hasInventoryData, setHasInventoryData] = useState(false);
   const [heroPhotos, setHeroPhotos] = useState<HeroPhoto[]>([]);
   const [isLoadingPhotos, setIsLoadingPhotos] = useState(true);
@@ -245,7 +246,7 @@ const HeroSection = ({
 
   // 載入房間庫存可用日期
   // AVAILABILITY_CACHE_VERSION：每次邏輯有變動時遞增，可強制清除舊版本快取
-  const AVAILABILITY_CACHE_VERSION = 'v3-2026-04-29';
+  const AVAILABILITY_CACHE_VERSION = 'v4-2026-04-29-partial';
 
   useEffect(() => {
     const loadAvailability = async () => {
@@ -265,10 +266,10 @@ const HeroSection = ({
         // sessionStorage 不可用，忽略
       }
 
-      // 取得該住宿所有房型
+      // 取得該住宿所有房型 (含 capacity / 包區屬性，用以判斷散客房型)
       const { data: roomTypes } = await supabase
         .from('room_types')
-        .select('id')
+        .select('id, is_exclusive_package, is_bound_to_exclusive')
         .eq('accommodation_id', accId);
 
       if (!roomTypes || roomTypes.length === 0) return;
@@ -326,19 +327,47 @@ const HeroSection = ({
         });
       }
 
+      // 散客房型 (非包區方案)：用以判斷「部分售完 vs 全部售完」
+      const guestRoomTypes = roomTypes.filter((rt: any) => !rt.is_exclusive_package);
+
       const available = new Set<string>();
+      const partial = new Set<string>();
       for (const date of allDates) {
-        const ok = roomTypes.some((rt) => {
+        // 計算散客房型在該日的可訂狀況
+        const guestStats = guestRoomTypes.map((rt: any) => {
+          const base = baseIndex.get(`${rt.id}:${date}`);
+          const adj = adjustedIndex.get(`${rt.id}:${date}`);
+          const usable = !!(base && base.is_available && base.hasPrice);
+          const blocked = !adj || adj.is_blocked;
+          const rooms = adj?.available_rooms ?? 0;
+          return { usable, blocked, rooms };
+        });
+
+        // 任一房型 (含包區) 仍有可訂庫存 → 該日開放
+        const ok = roomTypes.some((rt: any) => {
           const base = baseIndex.get(`${rt.id}:${date}`);
           const adj = adjustedIndex.get(`${rt.id}:${date}`);
           if (!base || !base.is_available || !base.hasPrice) return false;
           if (!adj || adj.is_blocked) return false;
           return adj.available_rooms > 0;
         });
-        if (ok) available.add(date);
+
+        if (ok) {
+          available.add(date);
+
+          // 標記「部分售完」：某些散客房型有空、某些已售完 (rooms=0 或被封鎖)
+          if (guestStats.length > 0) {
+            const anyAvail = guestStats.some(s => s.usable && !s.blocked && s.rooms > 0);
+            const anySoldOut = guestStats.some(s => !s.usable || s.blocked || s.rooms <= 0);
+            if (anyAvail && anySoldOut) {
+              partial.add(date);
+            }
+          }
+        }
       }
 
       setAvailableDates(available);
+      setPartiallyAvailableDates(partial);
     };
 
     loadAvailability();
@@ -412,6 +441,13 @@ const HeroSection = ({
     const today = new Date(new Date().setHours(0, 0, 0, 0));
     if (date < today) return true;
     return !isDateAvailable(date);
+  };
+
+  // 檢查日期是否「部分售完」（仍可訂，但部分散客房型已售完）
+  const isDatePartiallyAvailable = (date: Date) => {
+    if (!hasInventoryData) return false;
+    const dateStr = formatISO(date, { representation: 'date' });
+    return partiallyAvailableDates.has(dateStr);
   };
 
   useEffect(() => {
@@ -703,17 +739,19 @@ const HeroSection = ({
                         disabled={isDateUnavailable}
                         modifiers={{
                           holiday: (date) => isHoliday(date) && !isDateUnavailable(date),
-                          available: (date) => !isDateUnavailable(date)
+                          available: (date) => !isDateUnavailable(date),
+                          partial: (date) => isDatePartiallyAvailable(date)
                         }}
                         modifiersClassNames={{
                           holiday: "bg-primary/10 text-primary font-semibold rounded-md",
-                          available: "!font-extrabold text-foreground"
+                          available: "!font-extrabold text-foreground",
+                          partial: "relative after:content-[''] after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-orange-500"
                         }}
                         initialFocus
                         className="pointer-events-auto"
                         variant="frontend"
                       />
-                      <div className="flex items-center gap-4 mt-3 pt-3 border-t text-xs flex-wrap">
+                      <div className="flex items-center gap-3 mt-3 pt-3 border-t text-xs flex-wrap">
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 bg-primary/10 rounded-md border border-primary/20"></div>
                           <span className="text-muted-foreground">假日定價</span>
@@ -723,10 +761,17 @@ const HeroSection = ({
                           <span className="text-muted-foreground">平日定價</span>
                         </div>
                         <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-md border border-border relative flex items-center justify-center">
+                            <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-orange-500" />
+                          </div>
+                          <span className="text-muted-foreground">部分售完</span>
+                        </div>
+                        <div className="flex items-center gap-2">
                           <span className="w-6 h-6 flex items-center justify-center text-muted-foreground/40 text-sm">30</span>
                           <span className="text-muted-foreground">已滿房</span>
                         </div>
                       </div>
+
                     </div>
                   </PopoverContent>
                 </Popover>
@@ -765,17 +810,19 @@ const HeroSection = ({
                         }}
                         modifiers={{
                           holiday: (date) => isHoliday(date) && !isDateUnavailable(date),
-                          available: (date) => !isDateUnavailable(date)
+                          available: (date) => !isDateUnavailable(date),
+                          partial: (date) => isDatePartiallyAvailable(date)
                         }}
                         modifiersClassNames={{
                           holiday: "bg-primary/10 text-primary font-semibold rounded-md",
-                          available: "!font-extrabold text-foreground"
+                          available: "!font-extrabold text-foreground",
+                          partial: "relative after:content-[''] after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-orange-500"
                         }}
                         initialFocus
                         className="pointer-events-auto"
                         variant="frontend"
                       />
-                      <div className="flex items-center gap-4 mt-3 pt-3 border-t text-xs flex-wrap">
+                      <div className="flex items-center gap-3 mt-3 pt-3 border-t text-xs flex-wrap">
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 bg-primary/10 rounded-md border border-primary/20"></div>
                           <span className="text-muted-foreground">假日定價</span>
@@ -785,10 +832,17 @@ const HeroSection = ({
                           <span className="text-muted-foreground">平日定價</span>
                         </div>
                         <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-md border border-border relative flex items-center justify-center">
+                            <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-orange-500" />
+                          </div>
+                          <span className="text-muted-foreground">部分售完</span>
+                        </div>
+                        <div className="flex items-center gap-2">
                           <span className="w-6 h-6 flex items-center justify-center text-muted-foreground/40 text-sm">30</span>
                           <span className="text-muted-foreground">已滿房</span>
                         </div>
                       </div>
+
                     </div>
                   </PopoverContent>
                 </Popover>
