@@ -844,6 +844,16 @@ const Accounts = () => {
                         </div>
                       </div>
                       <div className="flex flex-col gap-2 shrink-0">
+                        {user.role === 'staff' && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setPermissionsUserId(user.id)}
+                            title="設定模組權限"
+                          >
+                            <Settings2 className="h-5 w-5" />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
