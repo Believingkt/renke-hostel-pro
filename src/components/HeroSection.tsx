@@ -244,10 +244,26 @@ const HeroSection = ({
   }, []);
 
   // 載入房間庫存可用日期
-  useEffect(() => {
-    const loadAvailability = async () => {
+  // AVAILABILITY_CACHE_VERSION：每次邏輯有變動時遞增，可強制清除舊版本快取
+  const AVAILABILITY_CACHE_VERSION = 'v3-2026-04-29';
+
+  const loadAvailability = async () => {
       const accId = currentAccommodationId;
       if (!accId) return;
+
+      // 檢查快取版本，舊版本一律清空
+      try {
+        const storedVersion = sessionStorage.getItem('availability_cache_version');
+        if (storedVersion !== AVAILABILITY_CACHE_VERSION) {
+          // 清除所有 availability_* 快取
+          Object.keys(sessionStorage)
+            .filter((k) => k.startsWith('availability_'))
+            .forEach((k) => sessionStorage.removeItem(k));
+          sessionStorage.setItem('availability_cache_version', AVAILABILITY_CACHE_VERSION);
+        }
+      } catch (_) {
+        // sessionStorage 可能不可用，忽略
+      }
 
       // 取得該住宿所有房型
       const { data: roomTypes } = await supabase
