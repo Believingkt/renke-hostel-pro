@@ -742,10 +742,7 @@ const HeroSection = ({
                           <span className="text-muted-foreground">已滿房</span>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <span className="w-6 h-6 flex items-center justify-center text-muted-foreground/40 text-sm">30</span>
-                          <span className="text-muted-foreground">已滿房</span>
-                        </div>
+
                       </div>
 
                     </div>
