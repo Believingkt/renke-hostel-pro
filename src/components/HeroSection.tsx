@@ -244,10 +244,26 @@ const HeroSection = ({
   }, []);
 
   // 載入房間庫存可用日期
+  // AVAILABILITY_CACHE_VERSION：每次邏輯有變動時遞增，可強制清除舊版本快取
+  const AVAILABILITY_CACHE_VERSION = 'v3-2026-04-29';
+
   useEffect(() => {
     const loadAvailability = async () => {
       const accId = currentAccommodationId;
       if (!accId) return;
+
+      // 檢查快取版本，舊版本一律清空
+      try {
+        const storedVersion = sessionStorage.getItem('availability_cache_version');
+        if (storedVersion !== AVAILABILITY_CACHE_VERSION) {
+          Object.keys(sessionStorage)
+            .filter((k) => k.startsWith('availability_'))
+            .forEach((k) => sessionStorage.removeItem(k));
+          sessionStorage.setItem('availability_cache_version', AVAILABILITY_CACHE_VERSION);
+        }
+      } catch (_) {
+        // sessionStorage 不可用，忽略
+      }
 
       // 取得該住宿所有房型
       const { data: roomTypes } = await supabase
@@ -292,7 +308,6 @@ const HeroSection = ({
         })
       );
 
-      // 索引：roomTypeId:date -> { available_rooms, is_blocked }
       const adjustedIndex = new Map<string, { available_rooms: number; is_blocked: boolean }>();
       for (const { roomTypeId, rows } of adjustedResults) {
         for (const row of rows) {
@@ -303,7 +318,6 @@ const HeroSection = ({
         }
       }
 
-      // 索引：roomTypeId:date -> { is_available, price }（基本可售與價格條件）
       const baseIndex = new Map<string, { is_available: boolean; hasPrice: boolean }>();
       for (const row of inventoryRows) {
         baseIndex.set(`${row.room_type_id}:${row.date}`, {
@@ -312,7 +326,6 @@ const HeroSection = ({
         });
       }
 
-      // 某日期只要有任一房型「可售 + 有價 + 未封鎖 + 調整後庫存>0」即算可用
       const available = new Set<string>();
       for (const date of allDates) {
         const ok = roomTypes.some((rt) => {
@@ -329,6 +342,20 @@ const HeroSection = ({
     };
 
     loadAvailability();
+
+    // 視窗重新聚焦或顯示時重新驗證庫存（確保 publish 後資料即時）
+    const handleRevalidate = () => {
+      if (document.visibilityState === 'visible') {
+        loadAvailability();
+      }
+    };
+    window.addEventListener('focus', handleRevalidate);
+    document.addEventListener('visibilitychange', handleRevalidate);
+
+    return () => {
+      window.removeEventListener('focus', handleRevalidate);
+      document.removeEventListener('visibilitychange', handleRevalidate);
+    };
   }, [currentAccommodationId]);
 
   // 生成圖片模糊預覽 - 延遲執行以避免阻塞關鍵內容
