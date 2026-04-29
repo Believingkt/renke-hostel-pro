@@ -739,17 +739,19 @@ const HeroSection = ({
                         disabled={isDateUnavailable}
                         modifiers={{
                           holiday: (date) => isHoliday(date) && !isDateUnavailable(date),
-                          available: (date) => !isDateUnavailable(date)
+                          available: (date) => !isDateUnavailable(date),
+                          partial: (date) => isDatePartiallyAvailable(date)
                         }}
                         modifiersClassNames={{
                           holiday: "bg-primary/10 text-primary font-semibold rounded-md",
-                          available: "!font-extrabold text-foreground"
+                          available: "!font-extrabold text-foreground",
+                          partial: "relative after:content-[''] after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-orange-500"
                         }}
                         initialFocus
                         className="pointer-events-auto"
                         variant="frontend"
                       />
-                      <div className="flex items-center gap-4 mt-3 pt-3 border-t text-xs flex-wrap">
+                      <div className="flex items-center gap-3 mt-3 pt-3 border-t text-xs flex-wrap">
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 bg-primary/10 rounded-md border border-primary/20"></div>
                           <span className="text-muted-foreground">假日定價</span>
@@ -759,10 +761,17 @@ const HeroSection = ({
                           <span className="text-muted-foreground">平日定價</span>
                         </div>
                         <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-md border border-border relative flex items-center justify-center">
+                            <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-orange-500" />
+                          </div>
+                          <span className="text-muted-foreground">部分售完</span>
+                        </div>
+                        <div className="flex items-center gap-2">
                           <span className="w-6 h-6 flex items-center justify-center text-muted-foreground/40 text-sm">30</span>
                           <span className="text-muted-foreground">已滿房</span>
                         </div>
                       </div>
+
                     </div>
                   </PopoverContent>
                 </Popover>
