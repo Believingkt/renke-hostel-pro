@@ -3155,11 +3155,7 @@ const BookingFlow = () => {
                                 const today = new Date();
                                 today.setHours(0, 0, 0, 0);
                                 if (date < today) return true;
-                                // 有庫存資料時才禁用無庫存日期；無庫存資料時不禁用（與首頁一致）
-                                if (unavailableDatesForRoom.size > 0 || availableDatesForCalendar.size > 0) {
-                                   const dateStr = formatISO(date, { representation: 'date' });
-                                  if (unavailableDatesForRoom.has(dateStr)) return true;
-                                }
+                                if (!isCalendarDateBookable(date)) return true;
                                 return false;
                               }}
                               modifiers={{
@@ -3168,7 +3164,7 @@ const BookingFlow = () => {
                                   today.setHours(0, 0, 0, 0);
                                   if (date < today) return false;
                                   const dateStr = formatISO(date, { representation: 'date' });
-                                  if (unavailableDatesForRoom.has(dateStr)) return false;
+                                  if (!isCalendarDateBookable(date)) return false;
                                   return isWeekend(date);
                                 },
                                  available: (date) => {
@@ -3259,6 +3255,7 @@ const BookingFlow = () => {
                                 today.setHours(0, 0, 0, 0);
                                 if (date < today) return true;
                                 if (checkInDate && date <= checkInDate) return true;
+                                if (checkInDate && !isStayRangeBookable(checkInDate, date)) return true;
                                 return false;
                               }}
                               modifiers={{
@@ -3267,6 +3264,7 @@ const BookingFlow = () => {
                                   today.setHours(0, 0, 0, 0);
                                   if (date < today) return false;
                                   if (checkInDate && date <= checkInDate) return false;
+                                  if (checkInDate && !isStayRangeBookable(checkInDate, date)) return false;
                                   return isWeekend(date);
                                 },
                                  available: (date) => {
