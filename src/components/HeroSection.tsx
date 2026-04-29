@@ -246,7 +246,7 @@ const HeroSection = ({
 
   // 載入房間庫存可用日期
   // AVAILABILITY_CACHE_VERSION：每次邏輯有變動時遞增，可強制清除舊版本快取
-  const AVAILABILITY_CACHE_VERSION = 'v3-2026-04-29';
+  const AVAILABILITY_CACHE_VERSION = 'v4-2026-04-29-partial';
 
   useEffect(() => {
     const loadAvailability = async () => {
@@ -266,10 +266,10 @@ const HeroSection = ({
         // sessionStorage 不可用，忽略
       }
 
-      // 取得該住宿所有房型
+      // 取得該住宿所有房型 (含 capacity / 包區屬性，用以判斷散客房型)
       const { data: roomTypes } = await supabase
         .from('room_types')
-        .select('id')
+        .select('id, is_exclusive_package, is_bound_to_exclusive')
         .eq('accommodation_id', accId);
 
       if (!roomTypes || roomTypes.length === 0) return;
@@ -327,19 +327,47 @@ const HeroSection = ({
         });
       }
 
+      // 散客房型 (非包區方案)：用以判斷「部分售完 vs 全部售完」
+      const guestRoomTypes = roomTypes.filter((rt: any) => !rt.is_exclusive_package);
+
       const available = new Set<string>();
+      const partial = new Set<string>();
       for (const date of allDates) {
-        const ok = roomTypes.some((rt) => {
+        // 計算散客房型在該日的可訂狀況
+        const guestStats = guestRoomTypes.map((rt: any) => {
+          const base = baseIndex.get(`${rt.id}:${date}`);
+          const adj = adjustedIndex.get(`${rt.id}:${date}`);
+          const usable = !!(base && base.is_available && base.hasPrice);
+          const blocked = !adj || adj.is_blocked;
+          const rooms = adj?.available_rooms ?? 0;
+          return { usable, blocked, rooms };
+        });
+
+        // 任一房型 (含包區) 仍有可訂庫存 → 該日開放
+        const ok = roomTypes.some((rt: any) => {
           const base = baseIndex.get(`${rt.id}:${date}`);
           const adj = adjustedIndex.get(`${rt.id}:${date}`);
           if (!base || !base.is_available || !base.hasPrice) return false;
           if (!adj || adj.is_blocked) return false;
           return adj.available_rooms > 0;
         });
-        if (ok) available.add(date);
+
+        if (ok) {
+          available.add(date);
+
+          // 標記「部分售完」：某些散客房型有空、某些已售完 (rooms=0 或被封鎖)
+          if (guestStats.length > 0) {
+            const anyAvail = guestStats.some(s => s.usable && !s.blocked && s.rooms > 0);
+            const anySoldOut = guestStats.some(s => !s.usable || s.blocked || s.rooms <= 0);
+            if (anyAvail && anySoldOut) {
+              partial.add(date);
+            }
+          }
+        }
       }
 
       setAvailableDates(available);
+      setPartiallyAvailableDates(partial);
     };
 
     loadAvailability();
