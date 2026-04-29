@@ -3163,7 +3163,6 @@ const BookingFlow = () => {
                                   const today = new Date();
                                   today.setHours(0, 0, 0, 0);
                                   if (date < today) return false;
-                                  const dateStr = formatISO(date, { representation: 'date' });
                                   if (!isCalendarDateBookable(date)) return false;
                                   return isWeekend(date);
                                 },
