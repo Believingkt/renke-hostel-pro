@@ -113,6 +113,11 @@ export function AppSidebar() {
   const { open, setOpenMobile, isMobile } = useSidebar();
   const location = useLocation();
   const { withPrefix, prefix } = useAliasPrefix();
+  const { canView, isStaff } = useStaffPermissions();
+
+  const visibleMenuItems = menuItems.filter(
+    (item) => !isStaff || !item.moduleKey || canView(item.moduleKey)
+  );
 
   const handleLinkClick = () => {
     if (isMobile) {
