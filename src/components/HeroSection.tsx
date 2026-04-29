@@ -312,7 +312,10 @@ const HeroSection = ({
       const adjustedIndex = new Map<string, { available_rooms: number; is_blocked: boolean }>();
       for (const { roomTypeId, rows } of adjustedResults) {
         for (const row of rows) {
-          adjustedIndex.set(`${roomTypeId}:${row.date}`, {
+          // RPC 回傳欄位名為 date_value
+          const dateKey = (row as any).date_value ?? (row as any).date;
+          if (!dateKey) continue;
+          adjustedIndex.set(`${roomTypeId}:${dateKey}`, {
             available_rooms: row.available_rooms ?? 0,
             is_blocked: row.is_blocked === true,
           });
