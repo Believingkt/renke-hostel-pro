@@ -899,6 +899,15 @@ const Accounts = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {permissionsUserId && accommodationId && (
+        <StaffPermissionsDialog
+          open={!!permissionsUserId}
+          onOpenChange={(o) => !o && setPermissionsUserId(null)}
+          userId={permissionsUserId}
+          accommodationId={accommodationId}
+        />
+      )}
     </div>
   );
 };
