@@ -804,12 +804,7 @@ const HeroSection = ({
                           <div className="w-6 h-6 bg-background rounded-md border border-border"></div>
                           <span className="text-muted-foreground">平日定價</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-md border border-border relative flex items-center justify-center">
-                            <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-orange-500" />
-                          </div>
-                          <span className="text-muted-foreground">部分售完</span>
-                        </div>
+                        
                         <div className="flex items-center gap-2">
                           <span className="w-6 h-6 flex items-center justify-center text-muted-foreground/40 text-sm">30</span>
                           <span className="text-muted-foreground">已滿房</span>
