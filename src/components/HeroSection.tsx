@@ -246,7 +246,7 @@ const HeroSection = ({
 
   // 載入房間庫存可用日期
   // AVAILABILITY_CACHE_VERSION：每次邏輯有變動時遞增，可強制清除舊版本快取
-  const AVAILABILITY_CACHE_VERSION = 'v6-2026-04-29-date-value-fix';
+  const AVAILABILITY_CACHE_VERSION = 'v7-2026-04-29-strict-both-sides';
 
   useEffect(() => {
     const loadAvailability = async () => {
@@ -330,20 +330,34 @@ const HeroSection = ({
         });
       }
 
-      // 規則：
-      // - 開啟：任一房型（散客或包區）仍有可訂庫存（rooms > 0 且未被封鎖）
-      //   散客即使當天未開庫存（沒有 inventory row），只要包區有空仍開啟
-      // - 關閉：所有房型皆無空（散客全訂滿且包區也都無）
+      // 規則（嚴格雙邊判定）：
+      // - 開啟：散客側「至少一個房型有空」 AND 包區側「至少一個方案有空」
+      // - 關閉：散客全無空（含未設庫存視為 0）或 包區全無空 → 整天關閉
+      // 散客房型 = 非 exclusive 且 非 bound_to_exclusive
+      // 包區房型 = is_exclusive_package = true
+      const exclusiveRoomTypes = roomTypes.filter((rt: any) => rt.is_exclusive_package === true);
+      const guestRoomTypes = roomTypes.filter(
+        (rt: any) => rt.is_exclusive_package !== true && rt.is_bound_to_exclusive !== true
+      );
+
+      const hasSpace = (rt: any, date: string) => {
+        const adj = adjustedIndex.get(`${rt.id}:${date}`);
+        if (!adj) return false;
+        if (adj.is_blocked) return false;
+        return adj.available_rooms > 0;
+      };
+
       const available = new Set<string>();
       for (const date of allDates) {
-        const ok = roomTypes.some((rt: any) => {
-          const adj = adjustedIndex.get(`${rt.id}:${date}`);
-          if (!adj) return false;
-          if (adj.is_blocked) return false;
-          return adj.available_rooms > 0;
-        });
+        const exclusiveOk =
+          exclusiveRoomTypes.length === 0 ||
+          exclusiveRoomTypes.some((rt: any) => hasSpace(rt, date));
+        const guestOk =
+          guestRoomTypes.length === 0 ||
+          guestRoomTypes.some((rt: any) => hasSpace(rt, date));
 
-        if (ok) available.add(date);
+        // 雙邊都要有空才開啟（任一邊全無 → 關閉）
+        if (exclusiveOk && guestOk) available.add(date);
       }
 
       setAvailableDates(available);
