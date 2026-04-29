@@ -491,6 +491,113 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     return appliedDiscount.value;
   };
 
+  const buildStayDates = useCallback(() => {
+    const nights = calculateNights();
+    if (nights <= 0) return [];
+    const start = new Date(form.check_in_date);
+    return Array.from({ length: nights }, (_, i) => {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      return format(d, "yyyy-MM-dd");
+    });
+  }, [form.check_in_date, form.check_out_date]);
+
+  const validateInventoryAvailability = useCallback(async (): Promise<InventoryWarning[]> => {
+    if (roomSelections.length === 0 || !form.check_in_date || !form.check_out_date || !currentAccommodationId) return [];
+
+    const dates = buildStayDates();
+    if (dates.length === 0) return [];
+
+    const requiredByRoomType = new Map<string, number>();
+    roomSelections.forEach((sel) => {
+      requiredByRoomType.set(sel.room_type_id, (requiredByRoomType.get(sel.room_type_id) || 0) + sel.quantity);
+    });
+
+    const roomTypeIds = Array.from(requiredByRoomType.keys());
+    const [inventoryRes, ordersRes] = await Promise.all([
+      supabase
+        .from("room_inventory_pricing")
+        .select("room_type_id, date, available_rooms, is_available")
+        .in("room_type_id", roomTypeIds)
+        .in("date", dates),
+      supabase
+        .from("orders")
+        .select("id, check_in_date, check_out_date, room_type_id")
+        .eq("accommodation_id", currentAccommodationId)
+        .in("order_status", ["hold", "pending", "confirmed"])
+        .lt("check_in_date", form.check_out_date)
+        .gt("check_out_date", form.check_in_date),
+    ]);
+
+    if (inventoryRes.error) throw inventoryRes.error;
+    if (ordersRes.error) throw ordersRes.error;
+
+    const orderIds = (ordersRes.data || []).map((order) => order.id);
+    let orderRoomsData: Array<{ order_id: string; room_type_id: string; quantity: number | null }> = [];
+    if (orderIds.length > 0) {
+      const { data, error } = await supabase
+        .from("order_rooms")
+        .select("order_id, room_type_id, quantity")
+        .in("order_id", orderIds);
+      if (error) throw error;
+      orderRoomsData = data || [];
+    }
+
+    const roomsByOrderId = new Map<string, Array<{ room_type_id: string; quantity: number }>>();
+    orderRoomsData.forEach((room) => {
+      if (!roomsByOrderId.has(room.order_id)) roomsByOrderId.set(room.order_id, []);
+      roomsByOrderId.get(room.order_id)!.push({ room_type_id: room.room_type_id, quantity: room.quantity || 1 });
+    });
+
+    const bookedByRoomDate = new Map<string, number>();
+    (ordersRes.data || []).forEach((order) => {
+      const entries = roomsByOrderId.get(order.id)?.length
+        ? roomsByOrderId.get(order.id)!
+        : order.room_type_id
+          ? [{ room_type_id: order.room_type_id, quantity: 1 }]
+          : [];
+
+      dates.forEach((date) => {
+        if (order.check_in_date <= date && order.check_out_date > date) {
+          entries.forEach((entry) => {
+            const key = `${entry.room_type_id}_${date}`;
+            bookedByRoomDate.set(key, (bookedByRoomDate.get(key) || 0) + entry.quantity);
+          });
+        }
+      });
+    });
+
+    const inventoryByRoomDate = new Map<string, { available_rooms: number | null; is_available: boolean | null }>();
+    (inventoryRes.data || []).forEach((row) => {
+      inventoryByRoomDate.set(`${row.room_type_id}_${row.date}`, {
+        available_rooms: row.available_rooms,
+        is_available: row.is_available,
+      });
+    });
+
+    const warnings: InventoryWarning[] = [];
+    roomTypeIds.forEach((roomTypeId) => {
+      const needed = requiredByRoomType.get(roomTypeId) || 0;
+      const roomName = roomTypes.find((room) => room.id === roomTypeId)?.name || "房型";
+
+      dates.forEach((date) => {
+        const key = `${roomTypeId}_${date}`;
+        const inventory = inventoryByRoomDate.get(key);
+        const totalInventory = inventory?.is_available === false ? 0 : (inventory?.available_rooms ?? 0);
+        const booked = bookedByRoomDate.get(key) || 0;
+        const remaining = Math.max(totalInventory - booked, 0);
+
+        if (!inventory || inventory.is_available === false) {
+          warnings.push({ date, roomTypeId, roomName, available: 0, needed, blocked: true });
+        } else if (remaining < needed) {
+          warnings.push({ date, roomTypeId, roomName, available: remaining, needed });
+        }
+      });
+    });
+
+    return warnings;
+  }, [buildStayDates, currentAccommodationId, form.check_in_date, form.check_out_date, roomSelections, roomTypes]);
+
   // Check inventory warnings (for all room selections)
   useEffect(() => {
     const checkInventory = async () => {
