@@ -858,7 +858,11 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           template_id: sel.template_id || null,
           template_name: sel.template_name || null,
         }));
-        await supabase.from("order_rooms").insert(orderRooms);
+        const { error: roomsError } = await supabase.from("order_rooms").insert(orderRooms);
+        if (roomsError) {
+          await supabase.from("orders").delete().eq("id", orderData.id);
+          throw roomsError;
+        }
       }
 
       if (error) throw error;
