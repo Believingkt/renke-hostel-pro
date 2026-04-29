@@ -504,6 +504,19 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         for (const sel of roomSelections) {
           if (checkedTypes.has(sel.room_type_id)) continue;
           checkedTypes.add(sel.room_type_id);
+
+          // 1) 先查 room_inventory_pricing，判斷是否有「關閉販售」(is_available=false)
+          const { data: pricingRows } = await supabase
+            .from('room_inventory_pricing')
+            .select('date, is_available')
+            .eq('room_type_id', sel.room_type_id)
+            .in('date', dates);
+          const closedDates = new Set<string>(
+            (pricingRows || [])
+              .filter((r: any) => r.is_available === false)
+              .map((r: any) => r.date)
+          );
+
           const { data: inventoryData } = await supabase.rpc(
             'get_adjusted_room_inventory_batch',
             { p_room_type_id: sel.room_type_id, p_dates: dates, p_accommodation_id: currentAccommodationId }
@@ -512,10 +525,13 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             const roomName = roomTypes.find(r => r.id === sel.room_type_id)?.name || '';
             for (const item of inventoryData) {
               const neededQty = roomSelections.filter(s => s.room_type_id === sel.room_type_id).reduce((sum, s) => sum + s.quantity, 0);
-              if (item.is_blocked) {
-                warnings.push({ date: item.date_value, available: 0, blocked: true, blockedBy: item.blocked_by_room_name || roomName });
+              const dateKey = typeof item.date_value === 'string' ? item.date_value : format(new Date(item.date_value), 'yyyy-MM-dd');
+              if (closedDates.has(dateKey)) {
+                warnings.push({ date: dateKey, available: 0, blocked: true, blockedBy: roomName });
+              } else if (item.is_blocked) {
+                warnings.push({ date: dateKey, available: 0, blocked: true, blockedBy: item.blocked_by_room_name || roomName });
               } else if (item.available_rooms < neededQty) {
-                warnings.push({ date: item.date_value, available: item.available_rooms });
+                warnings.push({ date: dateKey, available: item.available_rooms });
               }
             }
           }
