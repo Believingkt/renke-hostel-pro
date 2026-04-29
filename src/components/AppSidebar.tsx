@@ -36,6 +36,7 @@ import {
 import { useLocation } from "react-router-dom";
 import { PreloadLink } from "@/components/PreloadLink";
 import { useAliasPrefix } from "@/hooks/use-alias-prefix";
+import { useStaffPermissions } from "@/hooks/use-staff-permissions";
 import {
   Sidebar,
   SidebarContent,
