@@ -252,7 +252,7 @@ const HeroSection = ({
       // 取得該住宿所有房型
       const { data: roomTypes } = await supabase
         .from('room_types')
-        .select('id, is_exclusive_package, is_bound_to_exclusive')
+        .select('id')
         .eq('accommodation_id', accId);
 
       if (!roomTypes || roomTypes.length === 0) return;
@@ -262,64 +262,70 @@ const HeroSection = ({
       const sixMonthsLater = addMonths(today, 6);
       const endStr = formatISO(endOfMonth(sixMonthsLater), { representation: 'date' });
 
-      // 同時查詢庫存資料和包區訂單
-      const [inventoryResult, exclusiveOrdersResult] = await Promise.all([
-        supabase
-          .from('room_inventory_pricing')
-          .select('date, available_rooms, is_available, price, room_type_id')
-          .in('room_type_id', roomTypes.map(r => r.id))
-          .gte('date', todayStr)
-          .lte('date', endStr),
-        supabase
-          .from('orders')
-          .select('check_in_date, check_out_date, room_type_id')
-          .eq('accommodation_id', accId)
-          .not('order_status', 'eq', 'cancelled')
-          .gte('check_out_date', todayStr)
-          .lte('check_in_date', endStr)
-      ]);
+      // 先取庫存底表，建立完整日期清單
+      const { data: inventoryRows } = await supabase
+        .from('room_inventory_pricing')
+        .select('date, available_rooms, is_available, price, room_type_id')
+        .in('room_type_id', roomTypes.map(r => r.id))
+        .gte('date', todayStr)
+        .lte('date', endStr);
 
-      const data = inventoryResult.data;
-
-      // 建立被包區訂單佔用的日期集合
-      const exclusiveBlockedDates = new Set<string>();
-      const exclusiveRoomIds = new Set(roomTypes.filter(r => r.is_exclusive_package).map(r => r.id));
-      const allBoundOrExclusive = roomTypes.every(r => r.is_exclusive_package || r.is_bound_to_exclusive);
-
-      if (exclusiveOrdersResult.data && allBoundOrExclusive) {
-        for (const order of exclusiveOrdersResult.data) {
-          if (!exclusiveRoomIds.has(order.room_type_id)) continue;
-          // 標記該訂單覆蓋的每一天為被佔用
-          const startDate = new Date(order.check_in_date + 'T00:00:00');
-          const endDate = new Date(order.check_out_date + 'T00:00:00');
-          const current = new Date(startDate);
-          while (current < endDate) {
-            exclusiveBlockedDates.add(formatISO(current, { representation: 'date' }));
-            current.setDate(current.getDate() + 1);
-          }
-        }
-      }
-
-      if (data && data.length > 0) {
-        setHasInventoryData(true);
-        // 按日期聚合：某日期只要有任一房型可用即算可用
-        const dateAvailMap = new Map<string, boolean>();
-        for (const row of data) {
-          const isAvail = (row.is_available !== false) && (row.available_rooms > 0) && (row.price !== null && row.price !== undefined);
-          if (isAvail) {
-            dateAvailMap.set(row.date, true);
-          } else if (!dateAvailMap.has(row.date)) {
-            dateAvailMap.set(row.date, false);
-          }
-        }
-        // 移除被包區訂單佔用的日期
-        for (const blockedDate of exclusiveBlockedDates) {
-          dateAvailMap.set(blockedDate, false);
-        }
-        setAvailableDates(new Set([...dateAvailMap.entries()].filter(([, v]) => v).map(([k]) => k)));
-      } else {
+      if (!inventoryRows || inventoryRows.length === 0) {
         setHasInventoryData(false);
+        return;
       }
+
+      setHasInventoryData(true);
+
+      // 收集所有日期
+      const allDates = Array.from(new Set(inventoryRows.map(r => r.date))).sort();
+
+      // 對每個房型呼叫 RPC 取得「調整後庫存」(已扣除訂單 + 包區互斥邏輯)
+      const adjustedResults = await Promise.all(
+        roomTypes.map(async (rt) => {
+          const { data } = await supabase.rpc('get_adjusted_room_inventory_batch', {
+            p_room_type_id: rt.id,
+            p_dates: allDates,
+            p_accommodation_id: accId,
+          });
+          return { roomTypeId: rt.id, rows: (data as any[]) || [] };
+        })
+      );
+
+      // 索引：roomTypeId:date -> { available_rooms, is_blocked }
+      const adjustedIndex = new Map<string, { available_rooms: number; is_blocked: boolean }>();
+      for (const { roomTypeId, rows } of adjustedResults) {
+        for (const row of rows) {
+          adjustedIndex.set(`${roomTypeId}:${row.date}`, {
+            available_rooms: row.available_rooms ?? 0,
+            is_blocked: row.is_blocked === true,
+          });
+        }
+      }
+
+      // 索引：roomTypeId:date -> { is_available, price }（基本可售與價格條件）
+      const baseIndex = new Map<string, { is_available: boolean; hasPrice: boolean }>();
+      for (const row of inventoryRows) {
+        baseIndex.set(`${row.room_type_id}:${row.date}`, {
+          is_available: row.is_available !== false,
+          hasPrice: row.price !== null && row.price !== undefined,
+        });
+      }
+
+      // 某日期只要有任一房型「可售 + 有價 + 未封鎖 + 調整後庫存>0」即算可用
+      const available = new Set<string>();
+      for (const date of allDates) {
+        const ok = roomTypes.some((rt) => {
+          const base = baseIndex.get(`${rt.id}:${date}`);
+          const adj = adjustedIndex.get(`${rt.id}:${date}`);
+          if (!base || !base.is_available || !base.hasPrice) return false;
+          if (!adj || adj.is_blocked) return false;
+          return adj.available_rooms > 0;
+        });
+        if (ok) available.add(date);
+      }
+
+      setAvailableDates(available);
     };
 
     loadAvailability();
