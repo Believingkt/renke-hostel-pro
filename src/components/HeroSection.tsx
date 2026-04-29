@@ -443,6 +443,13 @@ const HeroSection = ({
     return !isDateAvailable(date);
   };
 
+  // 檢查日期是否「部分售完」（仍可訂，但部分散客房型已售完）
+  const isDatePartiallyAvailable = (date: Date) => {
+    if (!hasInventoryData) return false;
+    const dateStr = formatISO(date, { representation: 'date' });
+    return partiallyAvailableDates.has(dateStr);
+  };
+
   useEffect(() => {
     if (!carouselApi || !autoplayEnabled) return;
 
