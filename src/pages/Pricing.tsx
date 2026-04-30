@@ -158,6 +158,18 @@ const Pricing = () => {
   const [deletingRoomType, setDeletingRoomType] = useState<any>(null);
 
   useEffect(() => {
+    // 路徑強制決定 tab：/admin/projects → basic, /admin/holidays → holidays
+    if (typeof window !== "undefined") {
+      const path = window.location.pathname;
+      if (path.endsWith("/admin/projects")) {
+        setActiveTab("basic");
+        return;
+      }
+      if (path.endsWith("/admin/holidays")) {
+        setActiveTab("holidays");
+        return;
+      }
+    }
     const tab = searchParams.get("tab");
     if (tab && (tab === "rooms" || tab === "basic" || tab === "facilities" || tab === "holidays")) {
       setActiveTab(tab);
