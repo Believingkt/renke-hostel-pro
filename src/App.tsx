@@ -282,7 +282,9 @@ function App() {
                       </RequireModule>
                     } />
                     <Route path="admin/notifications" element={
-                      <Suspense fallback={<TableSkeleton rows={8} columns={4} showFilters={false} />}><Notifications /></Suspense>
+                      <RequireModule module="orders">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={4} showFilters={false} />}><Notifications /></Suspense>
+                      </RequireModule>
                     } />
                     <Route path="admin/public-holidays" element={
                       <RequireModule module="room_price">
@@ -290,7 +292,9 @@ function App() {
                       </RequireModule>
                     } />
                     <Route path="admin/backup" element={
-                      <Suspense fallback={<FormSkeleton fields={5} />}><DataBackup /></Suspense>
+                      <RequireModule module="accounts">
+                        <Suspense fallback={<FormSkeleton fields={5} />}><DataBackup /></Suspense>
+                      </RequireModule>
                     } />
                     <Route path="admin/settlement" element={
                       <RequireModule module="settlement">
@@ -298,7 +302,9 @@ function App() {
                       </RequireModule>
                     } />
                     <Route path="admin/email-test" element={
-                      <Suspense fallback={<DashboardSkeleton />}><EmailTest /></Suspense>
+                      <RequireModule module="accounts">
+                        <Suspense fallback={<DashboardSkeleton />}><EmailTest /></Suspense>
+                      </RequireModule>
                     } />
                     <Route path="admin/analytics" element={
                       <RequireModule module="analytics">
