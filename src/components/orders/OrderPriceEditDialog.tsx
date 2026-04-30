@@ -116,6 +116,8 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
       });
   }, [currentAccommodationId]);
 
+  const [originalAddons, setOriginalAddons] = useState<AddonDetail[]>([]);
+
   useEffect(() => {
     if (open && order) {
       setEditTotalPriceStr(String(order.total_price));
@@ -133,14 +135,23 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
         .single()
         .then(({ data }) => {
           const quantities: Record<string, number> = {};
+          const orig: AddonDetail[] = [];
           if (data?.custom_addon_details && Array.isArray(data.custom_addon_details)) {
             for (const a of data.custom_addon_details as any[]) {
               if (a?.addon_type && a.count > 0) {
                 quantities[a.addon_type] = a.count;
+                orig.push({
+                  addon_type: a.addon_type,
+                  count: a.count,
+                  price_per_unit: a.price_per_unit ?? 0,
+                  total: a.total ?? 0,
+                  unit_label: a.unit_label ?? "",
+                });
               }
             }
           }
           setAddonQuantities(quantities);
+          setOriginalAddons(orig);
         });
     }
   }, [open, order]);
@@ -235,6 +246,20 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
         if (Number(safeTotalPrice) !== Number(order.total_price ?? 0)) parts.push(`房費 ${order.total_price}→${safeTotalPrice}`);
         if (Number(safeDiscountAmount) !== Number(order.discount_amount ?? 0)) parts.push(`折扣 ${order.discount_amount}→${safeDiscountAmount}`);
         if (Number(safeDepositAmount) !== Number(order.deposit_amount ?? 0)) parts.push(`訂金 ${order.deposit_amount ?? 0}→${safeDepositAmount}`);
+        // Per-addon diffs (寵物/餐食/自訂加購) — explain why 實收 changed
+        const addonKeys = Array.from(new Set([
+          ...originalAddons.map(a => a.addon_type),
+          ...newCustomAddonDetails.map(a => a.addon_type),
+        ]));
+        for (const k of addonKeys) {
+          const o = originalAddons.find(a => a.addon_type === k);
+          const n = newCustomAddonDetails.find(a => a.addon_type === k);
+          const oc = o?.count || 0, ot = o?.total || 0;
+          const nc = n?.count || 0, nt = n?.total || 0;
+          if (oc !== nc || ot !== nt) {
+            parts.push(`${k} ${oc}/${ot}→${nc}/${nt}`);
+          }
+        }
         if (Number(editPaidAmount) !== Number(order.paid_amount ?? 0)) parts.push(`已付 ${order.paid_amount ?? 0}→${editPaidAmount}`);
         if (Number(safeFinalPrice) !== Number(order.final_price ?? 0)) parts.push(`實收 ${order.final_price}→${safeFinalPrice}`);
         const reasonStr = editReason.trim() ? `｜原因：${editReason.trim()}` : "";
