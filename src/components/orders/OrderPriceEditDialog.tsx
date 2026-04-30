@@ -342,6 +342,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
               id="list-edit-deposit"
               type="text"
               inputMode="numeric"
+              disabled={isAmountLocked}
               value={editDepositAmountStr}
               onChange={(e) => setEditDepositAmountStr(e.target.value.replace(/[^0-9]/g, ''))}
             />
