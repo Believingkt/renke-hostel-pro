@@ -747,6 +747,7 @@ const Accounts = () => {
                 <TableHead className="text-foreground text-sm">角色</TableHead>
                 <TableHead className="text-foreground text-sm">狀態</TableHead>
                 <TableHead className="text-foreground text-sm">最後登入時間</TableHead>
+                <TableHead className="text-foreground text-sm whitespace-nowrap">修改已結清折扣</TableHead>
                 <TableHead className="text-center w-[140px] text-foreground text-sm">操作</TableHead>
               </TableRow>
             </TableHeader>
