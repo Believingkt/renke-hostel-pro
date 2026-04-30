@@ -68,6 +68,7 @@ interface User {
   roleLabel: string;
   status: 'pending' | 'active';
   statusLabel: string;
+  canUnlockPaidDiscount: boolean;
 }
 
 const Accounts = () => {
