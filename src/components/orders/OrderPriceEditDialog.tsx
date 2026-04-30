@@ -9,7 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { Order } from "@/types/order";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus, Lock } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface OrderPriceEditDialogProps {
   order: Order | null;
