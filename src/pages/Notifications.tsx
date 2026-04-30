@@ -169,6 +169,8 @@ const Notifications = () => {
         return '📋';
       case 'payment':
         return '💰';
+      case 'settled_amount_change':
+        return '🔒';
       default:
         return '🔔';
     }
@@ -177,6 +179,7 @@ const Notifications = () => {
   const getNotificationBadgeVariant = (notification: Notification): "default" | "info" | "success" | "destructive" => {
     if (notification.type === 'new_order') return 'info';
     if (notification.type === 'payment') return 'success';
+    if (notification.type === 'settled_amount_change') return 'destructive';
     if (notification.type === 'status_update' && 
         (notification.title.includes('取消') || notification.description.includes('取消'))) {
       return 'destructive';
