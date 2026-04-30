@@ -564,6 +564,31 @@ const Accounts = () => {
     }
   };
 
+  const handleToggleUnlockDiscount = async (userId: string, currentValue: boolean) => {
+    if (!accommodationId) return;
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, canUnlockPaidDiscount: !currentValue } : u));
+    try {
+      if (currentValue) {
+        const { error } = await supabase
+          .from("paid_order_discount_unlock_permissions")
+          .delete()
+          .eq("user_id", userId)
+          .eq("accommodation_id", accommodationId);
+        if (error) throw error;
+        toast.success("已移除「修改已結清訂單折扣」權限");
+      } else {
+        const { error } = await supabase
+          .from("paid_order_discount_unlock_permissions")
+          .insert({ user_id: userId, accommodation_id: accommodationId });
+        if (error) throw error;
+        toast.success("已授予「修改已結清訂單折扣」權限");
+      }
+    } catch (error: any) {
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, canUnlockPaidDiscount: currentValue } : u));
+      toast.error("更新權限失敗：" + (error.message || "未知錯誤"));
+    }
+  };
+
   return (
     <div className="space-y-6 md:space-y-8 p-4 md:p-0">
       <Breadcrumb>
