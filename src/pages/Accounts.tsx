@@ -900,6 +900,19 @@ const Accounts = () => {
                           <p className="text-xs text-muted-foreground">最後登入時間</p>
                           <p className="text-sm">{user.lastLogin}</p>
                         </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">修改已結清折扣</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Switch
+                              checked={user.canUnlockPaidDiscount}
+                              onCheckedChange={() => handleToggleUnlockDiscount(user.id, user.canUnlockPaidDiscount)}
+                              aria-label="可修改已結清訂單折扣"
+                            />
+                            {user.canUnlockPaidDiscount && (
+                              <Unlock className="h-3.5 w-3.5 text-primary" />
+                            )}
+                          </div>
+                        </div>
                       </div>
                       <div className="flex flex-col gap-2 shrink-0">
                         {user.role === 'staff' && (
