@@ -819,6 +819,35 @@ const OrderDetailPage = () => {
         newPaymentStatus = "deposit_paid";
       }
 
+      // Build locked audit-line when this is a paid/deposit-paid order with amount changes
+      const wasPaidOrDeposit = ["deposit_paid", "paid", "fully_paid"].includes(order.payment_status);
+      const amountChanged =
+        Number(editTotalPrice) !== Number(order.total_price ?? 0) ||
+        Number(editDiscountAmount) !== Number(order.discount_amount ?? 0) ||
+        Number(editDepositAmount) !== Number(order.deposit_amount ?? 0) ||
+        Number(editPaidAmount) !== Number(order.paid_amount ?? 0) ||
+        Number(editFinalPrice) !== Number(order.final_price ?? 0);
+
+      let nextNotes: string | null = order.notes ?? null;
+      if (wasPaidOrDeposit && amountChanged) {
+        const { data: { user } } = await supabase.auth.getUser();
+        const who = user?.email || user?.id || "unknown";
+        const ts = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Taipei" }).slice(0, 16);
+        const parts: string[] = [];
+        if (Number(editTotalPrice) !== Number(order.total_price ?? 0)) parts.push(`房費 ${order.total_price}→${editTotalPrice}`);
+        if (Number(editDiscountAmount) !== Number(order.discount_amount ?? 0)) parts.push(`折扣 ${order.discount_amount}→${editDiscountAmount}`);
+        if (Number(editDepositAmount) !== Number(order.deposit_amount ?? 0)) parts.push(`訂金 ${order.deposit_amount ?? 0}→${editDepositAmount}`);
+        if (Number(editPaidAmount) !== Number(order.paid_amount ?? 0)) parts.push(`已付 ${order.paid_amount ?? 0}→${editPaidAmount}`);
+        if (Number(editFinalPrice) !== Number(order.final_price ?? 0)) parts.push(`實收 ${order.final_price}→${editFinalPrice}`);
+        const reasonStr = editReason.trim() ? `｜原因：${editReason.trim()}` : "";
+        const auditLine = `🔒[金額異動 ${ts} by ${who}] ${parts.join("、")}${reasonStr}`;
+        nextNotes = nextNotes ? `${nextNotes}\n${auditLine}` : auditLine;
+      } else if (editReason.trim()) {
+        nextNotes = order.notes
+          ? `${order.notes}\n\n【金額修改】${editReason.trim()}`
+          : `【金額修改】${editReason.trim()}`;
+      }
+
       const { error } = await supabase
         .from("orders")
         .update({
@@ -828,11 +857,7 @@ const OrderDetailPage = () => {
           deposit_amount: editDepositAmount,
           paid_amount: editPaidAmount,
           payment_status: newPaymentStatus,
-          ...(editReason.trim() ? {
-            notes: order.notes
-              ? `${order.notes}\n\n【金額修改】${editReason.trim()}`
-              : `【金額修改】${editReason.trim()}`,
-          } : {}),
+          notes: nextNotes,
         })
         .eq("id", order.id);
       if (error) throw error;
