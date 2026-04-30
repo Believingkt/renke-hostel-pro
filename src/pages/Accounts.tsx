@@ -46,7 +46,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Loader2, Users, UserPlus, Mail, MailCheck, CheckCircle2, XCircle, UserCog, Shield, UserCheck, KeyRound, Home, Settings2, ShieldCheck } from "lucide-react";
+import { Plus, Trash2, Loader2, Users, UserPlus, Mail, MailCheck, CheckCircle2, XCircle, UserCog, Shield, UserCheck, KeyRound, Home, Settings2, ShieldCheck, Unlock } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { EmptyState } from "@/components/EmptyState";
 import { StaffPermissionsDialog } from "@/components/StaffPermissionsDialog";
 import { Card, CardContent } from "@/components/ui/card";
@@ -67,6 +68,7 @@ interface User {
   roleLabel: string;
   status: 'pending' | 'active';
   statusLabel: string;
+  canUnlockPaidDiscount: boolean;
 }
 
 const Accounts = () => {
@@ -143,6 +145,15 @@ const Accounts = () => {
         ur.role === 'hotel_admin' || ur.role === 'staff'
       );
 
+      // Fetch unlock permissions for these users in this accommodation
+      const filteredUserIds = filteredUserRoles.map((ur: any) => ur.user_id);
+      const { data: unlockPerms } = await supabase
+        .from("paid_order_discount_unlock_permissions")
+        .select("user_id")
+        .eq("accommodation_id", accommodationId)
+        .in("user_id", filteredUserIds.length ? filteredUserIds : ["00000000-0000-0000-0000-000000000000"]);
+      const unlockSet = new Set((unlockPerms ?? []).map((p: any) => p.user_id));
+
       const usersData: User[] = filteredUserRoles.map((ur: any) => {
         const profile = profilesMap.get(ur.user_id);
         const hasLoggedIn = !!profile?.lastSignInAt;
@@ -159,6 +170,7 @@ const Accounts = () => {
           roleLabel: getRoleLabel(ur.role),
           status: (hasLoggedIn ? 'active' : 'pending') as 'active' | 'pending',
           statusLabel: hasLoggedIn ? '已啟用' : '待設定密碼',
+          canUnlockPaidDiscount: unlockSet.has(ur.user_id),
         };
       });
 
@@ -552,6 +564,31 @@ const Accounts = () => {
     }
   };
 
+  const handleToggleUnlockDiscount = async (userId: string, currentValue: boolean) => {
+    if (!accommodationId) return;
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, canUnlockPaidDiscount: !currentValue } : u));
+    try {
+      if (currentValue) {
+        const { error } = await supabase
+          .from("paid_order_discount_unlock_permissions")
+          .delete()
+          .eq("user_id", userId)
+          .eq("accommodation_id", accommodationId);
+        if (error) throw error;
+        toast.success("已移除「修改已結清訂單折扣」權限");
+      } else {
+        const { error } = await supabase
+          .from("paid_order_discount_unlock_permissions")
+          .insert({ user_id: userId, accommodation_id: accommodationId });
+        if (error) throw error;
+        toast.success("已授予「修改已結清訂單折扣」權限");
+      }
+    } catch (error: any) {
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, canUnlockPaidDiscount: currentValue } : u));
+      toast.error("更新權限失敗：" + (error.message || "未知錯誤"));
+    }
+  };
+
   return (
     <div className="space-y-6 md:space-y-8 p-4 md:p-0">
       <Breadcrumb>
@@ -710,19 +747,20 @@ const Accounts = () => {
                 <TableHead className="text-foreground text-sm">角色</TableHead>
                 <TableHead className="text-foreground text-sm">狀態</TableHead>
                 <TableHead className="text-foreground text-sm">最後登入時間</TableHead>
+                <TableHead className="text-foreground text-sm whitespace-nowrap">修改已結清折扣</TableHead>
                 <TableHead className="text-center w-[140px] text-foreground text-sm">操作</TableHead>
               </TableRow>
             </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
+                    <TableCell colSpan={7} className="text-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
                     </TableCell>
                   </TableRow>
                 ) : users.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="p-0">
+                  <TableCell colSpan={7} className="p-0">
                     <EmptyState
                       icon={UserPlus}
                       title="尚無帳號"
@@ -759,6 +797,18 @@ const Accounts = () => {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm">{user.lastLogin}</TableCell>
+                      <TableCell className="text-sm">
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={user.canUnlockPaidDiscount}
+                            onCheckedChange={() => handleToggleUnlockDiscount(user.id, user.canUnlockPaidDiscount)}
+                            aria-label="可修改已結清訂單折扣"
+                          />
+                          {user.canUnlockPaidDiscount && (
+                            <Unlock className="h-3.5 w-3.5 text-primary" />
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-sm">
                         <div className="flex items-center gap-0">
                           {user.role === 'staff' && (
@@ -849,6 +899,19 @@ const Accounts = () => {
                         <div>
                           <p className="text-xs text-muted-foreground">最後登入時間</p>
                           <p className="text-sm">{user.lastLogin}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">修改已結清折扣</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Switch
+                              checked={user.canUnlockPaidDiscount}
+                              onCheckedChange={() => handleToggleUnlockDiscount(user.id, user.canUnlockPaidDiscount)}
+                              aria-label="可修改已結清訂單折扣"
+                            />
+                            {user.canUnlockPaidDiscount && (
+                              <Unlock className="h-3.5 w-3.5 text-primary" />
+                            )}
+                          </div>
                         </div>
                       </div>
                       <div className="flex flex-col gap-2 shrink-0">

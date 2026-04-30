@@ -66,6 +66,42 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
   // Lock amount fields once payment has started (deposit_paid / paid / fully_paid)
   const isAmountLocked = !!order && ["deposit_paid", "paid", "fully_paid"].includes(order.payment_status);
 
+  // Permission: can current user unlock discount fields on already-paid orders?
+  const [canUnlockDiscount, setCanUnlockDiscount] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    const check = async () => {
+      if (!isAmountLocked || !currentAccommodationId) {
+        setCanUnlockDiscount(false);
+        return;
+      }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      // super_admin?
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      const isSuper = (roles ?? []).some((r: any) => r.role === "super_admin");
+      if (isSuper) {
+        if (!cancelled) setCanUnlockDiscount(true);
+        return;
+      }
+      const { data: perm } = await supabase
+        .from("paid_order_discount_unlock_permissions")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("accommodation_id", currentAccommodationId)
+        .maybeSingle();
+      if (!cancelled) setCanUnlockDiscount(!!perm);
+    };
+    check();
+    return () => { cancelled = true; };
+  }, [isAmountLocked, currentAccommodationId, order?.id]);
+
+  // Discount fields are only locked when amount-locked AND user has no unlock permission
+  const isDiscountLocked = isAmountLocked && !canUnlockDiscount;
+
   // Fetch addon settings once
   useEffect(() => {
     if (!currentAccommodationId) return;
@@ -124,9 +160,9 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
     }
     // Safety: enforce locked fields server-truth even if UI was bypassed
     const safeTotalPrice = isAmountLocked ? order.total_price : editTotalPrice;
-    const safeDiscountAmount = isAmountLocked ? order.discount_amount : editDiscountAmount;
+    const safeDiscountAmount = isDiscountLocked ? order.discount_amount : editDiscountAmount;
     const safeDepositAmount = isAmountLocked ? (order.deposit_amount ?? 0) : editDepositAmount;
-    const safeDiscountCode = isAmountLocked ? (order.discount_code || "") : editDiscountCode;
+    const safeDiscountCode = isDiscountLocked ? (order.discount_code || "") : editDiscountCode;
     const safeFinalPrice = safeTotalPrice - safeDiscountAmount + addonTotal;
     setIsSaving(true);
     try {
@@ -238,7 +274,9 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
             <Alert>
               <Lock className="h-4 w-4" />
               <AlertDescription>
-                已付款後無法修改房費、折扣、折扣碼、訂金，僅可調整加購方案與已付金額。
+                {canUnlockDiscount
+                  ? "已付款訂單僅鎖定房費與訂金。您具有「修改已結清折扣」權限，可調整折扣金額與折扣碼以補登折扣券。"
+                  : "已付款後無法修改房費、折扣、折扣碼、訂金，僅可調整加購方案與已付金額。"}
               </AlertDescription>
             </Alert>
           )}
@@ -257,7 +295,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
             <Input
               id="list-edit-discount"
               type="text" inputMode="numeric"
-              disabled={isAmountLocked}
+              disabled={isDiscountLocked}
               value={editDiscountAmountStr}
               onChange={(e) => setEditDiscountAmountStr(e.target.value)}
             />
@@ -268,7 +306,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
               id="list-edit-discount-code"
               type="text"
               placeholder="選填"
-              disabled={isAmountLocked}
+              disabled={isDiscountLocked}
               value={editDiscountCode}
               onChange={(e) => setEditDiscountCode(e.target.value)}
             />
