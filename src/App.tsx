@@ -302,7 +302,9 @@ function App() {
                       </RequireModule>
                     } />
                     <Route path="admin/email-test" element={
-                      <Suspense fallback={<DashboardSkeleton />}><EmailTest /></Suspense>
+                      <RequireModule module="accounts">
+                        <Suspense fallback={<DashboardSkeleton />}><EmailTest /></Suspense>
+                      </RequireModule>
                     } />
                     <Route path="admin/analytics" element={
                       <RequireModule module="analytics">
