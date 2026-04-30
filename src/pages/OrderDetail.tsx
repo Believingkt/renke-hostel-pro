@@ -456,7 +456,7 @@ const OrderDetailPage = () => {
   // Skip when order is already paid/deposit_paid — deposit must stay locked
   useEffect(() => {
     if (!isEditing || depositRatioRef.current <= 0) return;
-    if (order && ["paid", "fully_paid"].includes(order.payment_status)) return;
+    if (order && ["deposit_paid", "paid", "fully_paid"].includes(order.payment_status)) return;
     const newFinal = editForm.total_price + editForm.addon_total - editForm.discount_amount;
     const newDeposit = Math.max(0, Math.round(newFinal * depositRatioRef.current));
     if (newDeposit !== editForm.deposit_amount) {
@@ -642,7 +642,11 @@ const OrderDetailPage = () => {
       } else {
         updateData.discount_code = order.discount_code;
       }
-      addIfChanged("deposit_amount", editForm.deposit_amount, order.deposit_amount);
+      const isDepositLocked = ["deposit_paid", "paid", "fully_paid"].includes(order.payment_status);
+      if (!isDepositLocked || Number(editForm.deposit_amount) !== Number(order.deposit_amount ?? 0)) {
+        if (!isDepositLocked) updateData.deposit_amount = editForm.deposit_amount;
+      }
+      if (!isDepositLocked) updateData.deposit_amount = editForm.deposit_amount;
       // final_price may legitimately change when addons are added/removed on a paid order.
       // Always include it so the total reflects current addons; the DB trigger allows this
       // as long as core financial fields (total_price/discount/deposit) are unchanged.
