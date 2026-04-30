@@ -424,14 +424,16 @@ const OrderDetailPage = () => {
   }, [isEditing, editForm.pet_plan_price, editForm.meal_plan_total, editForm.custom_addon_details]);
 
   // Auto-sync deposit_amount when final price changes
+  // Skip when order is already paid/deposit_paid — deposit must stay locked
   useEffect(() => {
     if (!isEditing || depositRatioRef.current <= 0) return;
+    if (order && ["deposit_paid", "paid", "fully_paid"].includes(order.payment_status)) return;
     const newFinal = editForm.total_price + editForm.addon_total - editForm.discount_amount;
     const newDeposit = Math.max(0, Math.round(newFinal * depositRatioRef.current));
     if (newDeposit !== editForm.deposit_amount) {
       setEditForm(f => ({ ...f, deposit_amount: newDeposit }));
     }
-  }, [isEditing, editForm.total_price, editForm.addon_total, editForm.discount_amount]);
+  }, [isEditing, editForm.total_price, editForm.addon_total, editForm.discount_amount, order?.payment_status]);
 
   // Auto-lookup discount code and apply discount amount
   useEffect(() => {
