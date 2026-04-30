@@ -138,10 +138,10 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
         paid_amount: order.paid_amount,
       };
       const newValues = {
-        total_price: editTotalPrice,
-        discount_amount: editDiscountAmount,
-        final_price: editFinalPrice,
-        deposit_amount: editDepositAmount,
+        total_price: safeTotalPrice,
+        discount_amount: safeDiscountAmount,
+        final_price: safeFinalPrice,
+        deposit_amount: safeDepositAmount,
         paid_amount: editPaidAmount,
       };
 
