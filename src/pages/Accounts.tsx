@@ -145,6 +145,15 @@ const Accounts = () => {
         ur.role === 'hotel_admin' || ur.role === 'staff'
       );
 
+      // Fetch unlock permissions for these users in this accommodation
+      const filteredUserIds = filteredUserRoles.map((ur: any) => ur.user_id);
+      const { data: unlockPerms } = await supabase
+        .from("paid_order_discount_unlock_permissions")
+        .select("user_id")
+        .eq("accommodation_id", accommodationId)
+        .in("user_id", filteredUserIds.length ? filteredUserIds : ["00000000-0000-0000-0000-000000000000"]);
+      const unlockSet = new Set((unlockPerms ?? []).map((p: any) => p.user_id));
+
       const usersData: User[] = filteredUserRoles.map((ur: any) => {
         const profile = profilesMap.get(ur.user_id);
         const hasLoggedIn = !!profile?.lastSignInAt;
@@ -161,6 +170,7 @@ const Accounts = () => {
           roleLabel: getRoleLabel(ur.role),
           status: (hasLoggedIn ? 'active' : 'pending') as 'active' | 'pending',
           statusLabel: hasLoggedIn ? '已啟用' : '待設定密碼',
+          canUnlockPaidDiscount: unlockSet.has(ur.user_id),
         };
       });
 
