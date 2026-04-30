@@ -228,12 +228,20 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
           <DialogDescription>修改訂單 {order?.order_number} 的價格明細</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
+          {isAmountLocked && (
+            <Alert>
+              <Lock className="h-4 w-4" />
+              <AlertDescription>
+                已付款後無法修改房費、折扣、折扣碼、訂金，僅可調整加購方案與已付金額。
+              </AlertDescription>
+            </Alert>
+          )}
           <div className="space-y-2">
             <Label htmlFor="list-edit-total-price">房費金額</Label>
             <Input
               id="list-edit-total-price"
               type="text" inputMode="numeric"
-             
+              disabled={isAmountLocked}
               value={editTotalPriceStr}
               onChange={(e) => setEditTotalPriceStr(e.target.value)}
             />
@@ -243,7 +251,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
             <Input
               id="list-edit-discount"
               type="text" inputMode="numeric"
-             
+              disabled={isAmountLocked}
               value={editDiscountAmountStr}
               onChange={(e) => setEditDiscountAmountStr(e.target.value)}
             />
@@ -254,6 +262,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
               id="list-edit-discount-code"
               type="text"
               placeholder="選填"
+              disabled={isAmountLocked}
               value={editDiscountCode}
               onChange={(e) => setEditDiscountCode(e.target.value)}
             />
