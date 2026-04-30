@@ -629,14 +629,19 @@ const OrderDetailPage = () => {
 
       // Financial fields are immutable after payment (DB trigger).
       // Only include them if the order is not yet paid OR the value actually changed.
-      const isPaidOrDeposit = order.payment_status === "deposit_paid" || order.payment_status === "paid";
+      const isPaidOrDeposit = ["deposit_paid", "paid", "fully_paid"].includes(order.payment_status);
       const addIfChanged = (key: string, newVal: number, oldVal: number | null | undefined) => {
         if (!isPaidOrDeposit || Number(newVal) !== Number(oldVal ?? 0)) {
           updateData[key] = newVal;
         }
       };
       addIfChanged("total_price", editForm.total_price, order.total_price);
-      addIfChanged("discount_amount", editForm.discount_amount, order.discount_amount);
+      if (!isPaidOrDeposit || canUnlockPaidOrderDiscount) {
+        addIfChanged("discount_amount", editForm.discount_amount, order.discount_amount);
+        updateData.discount_code = editForm.discount_code.trim() || null;
+      } else {
+        updateData.discount_code = order.discount_code;
+      }
       addIfChanged("deposit_amount", editForm.deposit_amount, order.deposit_amount);
       // final_price may legitimately change when addons are added/removed on a paid order.
       // Always include it so the total reflects current addons; the DB trigger allows this
@@ -646,7 +651,7 @@ const OrderDetailPage = () => {
       if (isPaidOrDeposit) {
         const blocked: string[] = [];
         if (Number(editForm.total_price) !== Number(order.total_price ?? 0)) blocked.push("房費金額");
-        if (Number(editForm.discount_amount) !== Number(order.discount_amount ?? 0)) blocked.push("折扣金額");
+        if (!canUnlockPaidOrderDiscount && Number(editForm.discount_amount) !== Number(order.discount_amount ?? 0)) blocked.push("折扣金額");
         if (Number(editForm.deposit_amount) !== Number(order.deposit_amount ?? 0)) blocked.push("訂金");
         if (blocked.length > 0) {
           toast({
