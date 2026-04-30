@@ -681,7 +681,11 @@ const OrderDetailPage = () => {
         }
         if (auditParts.length > 0) {
           const { data: { user } } = await supabase.auth.getUser();
-          const who = user?.email || user?.id || "unknown";
+          let who = "unknown";
+          if (user) {
+            const { data: prof } = await supabase.from("profiles").select("name").eq("id", user.id).maybeSingle();
+            who = (prof?.name && prof.name.trim()) || user.email || user.id;
+          }
           const ts = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Taipei" }).slice(0, 16);
           const auditLine = `🔒[金額異動 ${ts} by ${who}] ${auditParts.join("、")}`;
           finalNotes = finalNotes ? `${finalNotes}\n${auditLine}` : auditLine;
@@ -856,7 +860,11 @@ const OrderDetailPage = () => {
       let nextNotes: string | null = order.notes ?? null;
       if (wasPaidOrDeposit && amountChanged) {
         const { data: { user } } = await supabase.auth.getUser();
-        const who = user?.email || user?.id || "unknown";
+        let who = "unknown";
+        if (user) {
+          const { data: prof } = await supabase.from("profiles").select("name").eq("id", user.id).maybeSingle();
+          who = (prof?.name && prof.name.trim()) || user.email || user.id;
+        }
         const ts = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Taipei" }).slice(0, 16);
         const parts: string[] = [];
         if (Number(editTotalPrice) !== Number(order.total_price ?? 0)) parts.push(`房費 ${order.total_price}→${editTotalPrice}`);
