@@ -170,23 +170,23 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
       let newPaymentStatus = order.payment_status;
       if (editPaidAmount <= 0) {
         newPaymentStatus = "unpaid";
-      } else if (editPaidAmount >= editFinalPrice) {
+      } else if (editPaidAmount >= safeFinalPrice) {
         newPaymentStatus = "paid";
-      } else if (editPaidAmount > 0 && editPaidAmount < editFinalPrice) {
+      } else if (editPaidAmount > 0 && editPaidAmount < safeFinalPrice) {
         newPaymentStatus = "deposit_paid";
       }
 
       const { error } = await supabase
         .from("orders")
         .update({
-          total_price: editTotalPrice,
-          discount_amount: editDiscountAmount,
-          final_price: editFinalPrice,
-          deposit_amount: editDepositAmount,
+          total_price: safeTotalPrice,
+          discount_amount: safeDiscountAmount,
+          final_price: safeFinalPrice,
+          deposit_amount: safeDepositAmount,
           paid_amount: editPaidAmount,
           payment_status: newPaymentStatus,
           custom_addon_details: newCustomAddonDetails as any,
-          discount_code: editDiscountCode.trim() || null,
+          discount_code: safeDiscountCode.trim() || null,
           meal_plan_details: newMealPlanDetails.length > 0 ? newMealPlanDetails as any : null,
           ...(editReason.trim() ? {
             notes: order.notes
