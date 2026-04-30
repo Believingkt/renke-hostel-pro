@@ -37,7 +37,7 @@ const Notifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
-  const [typeFilter, setTypeFilter] = useState<'all' | 'new_order' | 'payment' | 'status_update'>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'new_order' | 'payment' | 'status_update' | 'settled_amount_change'>('all');
   const { toast } = useToast();
   const navigate = useNavigate();
 
