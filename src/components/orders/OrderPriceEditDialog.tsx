@@ -116,6 +116,8 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
       });
   }, [currentAccommodationId]);
 
+  const [originalAddons, setOriginalAddons] = useState<AddonDetail[]>([]);
+
   useEffect(() => {
     if (open && order) {
       setEditTotalPriceStr(String(order.total_price));
@@ -133,14 +135,23 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
         .single()
         .then(({ data }) => {
           const quantities: Record<string, number> = {};
+          const orig: AddonDetail[] = [];
           if (data?.custom_addon_details && Array.isArray(data.custom_addon_details)) {
             for (const a of data.custom_addon_details as any[]) {
               if (a?.addon_type && a.count > 0) {
                 quantities[a.addon_type] = a.count;
+                orig.push({
+                  addon_type: a.addon_type,
+                  count: a.count,
+                  price_per_unit: a.price_per_unit ?? 0,
+                  total: a.total ?? 0,
+                  unit_label: a.unit_label ?? "",
+                });
               }
             }
           }
           setAddonQuantities(quantities);
+          setOriginalAddons(orig);
         });
     }
   }, [open, order]);
