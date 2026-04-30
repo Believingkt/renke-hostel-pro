@@ -344,6 +344,18 @@ const Notifications = () => {
             >
               📋 狀態更新
             </Button>
+            <Button
+              variant="outline"
+              size="default"
+              onClick={() => setTypeFilter('settled_amount_change')}
+              className={`rounded-full px-6 h-10 font-medium transition-all hover:scale-105 ${
+                typeFilter === 'settled_amount_change'
+                  ? 'bg-destructive text-destructive-foreground border-destructive hover:bg-destructive/90'
+                  : 'hover:bg-destructive/10 hover:border-destructive/50'
+              }`}
+            >
+              🔒 結清金額變動
+            </Button>
           </div>
         </div>
       </Card>
