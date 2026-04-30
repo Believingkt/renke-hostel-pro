@@ -9,7 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { Order } from "@/types/order";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus, Lock } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface OrderPriceEditDialogProps {
   order: Order | null;
@@ -61,6 +62,9 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
   }, 0);
 
   const editFinalPrice = editTotalPrice - editDiscountAmount + addonTotal;
+
+  // Lock amount fields once payment has started (deposit_paid / paid / fully_paid)
+  const isAmountLocked = !!order && ["deposit_paid", "paid", "fully_paid"].includes(order.payment_status);
 
   // Fetch addon settings once
   useEffect(() => {
@@ -118,6 +122,12 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
       toast({ title: "實收金額不可為負數", variant: "destructive" });
       return;
     }
+    // Safety: enforce locked fields server-truth even if UI was bypassed
+    const safeTotalPrice = isAmountLocked ? order.total_price : editTotalPrice;
+    const safeDiscountAmount = isAmountLocked ? order.discount_amount : editDiscountAmount;
+    const safeDepositAmount = isAmountLocked ? (order.deposit_amount ?? 0) : editDepositAmount;
+    const safeDiscountCode = isAmountLocked ? (order.discount_code || "") : editDiscountCode;
+    const safeFinalPrice = safeTotalPrice - safeDiscountAmount + addonTotal;
     setIsSaving(true);
     try {
       const oldValues = {
@@ -128,10 +138,10 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
         paid_amount: order.paid_amount,
       };
       const newValues = {
-        total_price: editTotalPrice,
-        discount_amount: editDiscountAmount,
-        final_price: editFinalPrice,
-        deposit_amount: editDepositAmount,
+        total_price: safeTotalPrice,
+        discount_amount: safeDiscountAmount,
+        final_price: safeFinalPrice,
+        deposit_amount: safeDepositAmount,
         paid_amount: editPaidAmount,
       };
 
@@ -160,23 +170,23 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
       let newPaymentStatus = order.payment_status;
       if (editPaidAmount <= 0) {
         newPaymentStatus = "unpaid";
-      } else if (editPaidAmount >= editFinalPrice) {
+      } else if (editPaidAmount >= safeFinalPrice) {
         newPaymentStatus = "paid";
-      } else if (editPaidAmount > 0 && editPaidAmount < editFinalPrice) {
+      } else if (editPaidAmount > 0 && editPaidAmount < safeFinalPrice) {
         newPaymentStatus = "deposit_paid";
       }
 
       const { error } = await supabase
         .from("orders")
         .update({
-          total_price: editTotalPrice,
-          discount_amount: editDiscountAmount,
-          final_price: editFinalPrice,
-          deposit_amount: editDepositAmount,
+          total_price: safeTotalPrice,
+          discount_amount: safeDiscountAmount,
+          final_price: safeFinalPrice,
+          deposit_amount: safeDepositAmount,
           paid_amount: editPaidAmount,
           payment_status: newPaymentStatus,
           custom_addon_details: newCustomAddonDetails as any,
-          discount_code: editDiscountCode.trim() || null,
+          discount_code: safeDiscountCode.trim() || null,
           meal_plan_details: newMealPlanDetails.length > 0 ? newMealPlanDetails as any : null,
           ...(editReason.trim() ? {
             notes: order.notes
@@ -224,12 +234,20 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
           <DialogDescription>修改訂單 {order?.order_number} 的價格明細</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
+          {isAmountLocked && (
+            <Alert>
+              <Lock className="h-4 w-4" />
+              <AlertDescription>
+                已付款後無法修改房費、折扣、折扣碼、訂金，僅可調整加購方案與已付金額。
+              </AlertDescription>
+            </Alert>
+          )}
           <div className="space-y-2">
             <Label htmlFor="list-edit-total-price">房費金額</Label>
             <Input
               id="list-edit-total-price"
               type="text" inputMode="numeric"
-             
+              disabled={isAmountLocked}
               value={editTotalPriceStr}
               onChange={(e) => setEditTotalPriceStr(e.target.value)}
             />
@@ -239,7 +257,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
             <Input
               id="list-edit-discount"
               type="text" inputMode="numeric"
-             
+              disabled={isAmountLocked}
               value={editDiscountAmountStr}
               onChange={(e) => setEditDiscountAmountStr(e.target.value)}
             />
@@ -250,6 +268,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
               id="list-edit-discount-code"
               type="text"
               placeholder="選填"
+              disabled={isAmountLocked}
               value={editDiscountCode}
               onChange={(e) => setEditDiscountCode(e.target.value)}
             />
@@ -329,6 +348,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
               id="list-edit-deposit"
               type="text"
               inputMode="numeric"
+              disabled={isAmountLocked}
               value={editDepositAmountStr}
               onChange={(e) => setEditDepositAmountStr(e.target.value.replace(/[^0-9]/g, ''))}
             />
