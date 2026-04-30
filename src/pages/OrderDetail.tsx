@@ -2059,7 +2059,7 @@ const OrderDetailPage = () => {
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">訂金金額</span>
                     {isEditing ? (
-                      <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right" type="text" inputMode="numeric" disabled={["paid", "fully_paid"].includes(order.payment_status)} value={editForm.deposit_amount} onChange={(e) => setEditForm(f => ({ ...f, deposit_amount: Math.max(0, parseInt(e.target.value) || 0) }))} />
+                      <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right" type="text" inputMode="numeric" disabled={["deposit_paid", "paid", "fully_paid"].includes(order.payment_status)} value={editForm.deposit_amount} onChange={(e) => setEditForm(f => ({ ...f, deposit_amount: Math.max(0, parseInt(e.target.value) || 0) }))} />
                     ) : (
                       <span className="font-medium text-base md:text-base">NT$ {order.deposit_amount.toLocaleString()}</span>
                     )}
