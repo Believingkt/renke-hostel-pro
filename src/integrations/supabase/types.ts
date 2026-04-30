@@ -1841,6 +1841,30 @@ export type Database = {
           },
         ]
       }
+      paid_order_discount_unlock_permissions: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          granted_by: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       password_reset_tokens: {
         Row: {
           created_at: string
@@ -3055,6 +3079,10 @@ export type Database = {
       }
     }
     Functions: {
+      can_unlock_paid_order_discount: {
+        Args: { _accommodation_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_view_user_roles: {
         Args: { _accommodation_id: string }
         Returns: boolean
