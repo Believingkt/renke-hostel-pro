@@ -162,7 +162,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
     // Safety: enforce locked fields server-truth even if UI was bypassed
     const safeTotalPrice = isAmountLocked ? order.total_price : editTotalPrice;
     const safeDiscountAmount = isDiscountLocked ? order.discount_amount : editDiscountAmount;
-    const safeDepositAmount = isAmountLocked ? (order.deposit_amount ?? 0) : editDepositAmount;
+    const safeDepositAmount = isDepositLocked ? (order.deposit_amount ?? 0) : editDepositAmount;
     const safeDiscountCode = isDiscountLocked ? (order.discount_code || "") : editDiscountCode;
     const safeFinalPrice = safeTotalPrice - safeDiscountAmount + addonTotal;
     setIsSaving(true);
@@ -417,7 +417,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
               id="list-edit-deposit"
               type="text"
               inputMode="numeric"
-              disabled={isAmountLocked}
+              disabled={isDepositLocked}
               value={editDepositAmountStr}
               onChange={(e) => setEditDepositAmountStr(e.target.value.replace(/[^0-9]/g, ''))}
             />
