@@ -66,6 +66,42 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
   // Lock amount fields once payment has started (deposit_paid / paid / fully_paid)
   const isAmountLocked = !!order && ["deposit_paid", "paid", "fully_paid"].includes(order.payment_status);
 
+  // Permission: can current user unlock discount fields on already-paid orders?
+  const [canUnlockDiscount, setCanUnlockDiscount] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    const check = async () => {
+      if (!isAmountLocked || !currentAccommodationId) {
+        setCanUnlockDiscount(false);
+        return;
+      }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      // super_admin?
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      const isSuper = (roles ?? []).some((r: any) => r.role === "super_admin");
+      if (isSuper) {
+        if (!cancelled) setCanUnlockDiscount(true);
+        return;
+      }
+      const { data: perm } = await supabase
+        .from("paid_order_discount_unlock_permissions")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("accommodation_id", currentAccommodationId)
+        .maybeSingle();
+      if (!cancelled) setCanUnlockDiscount(!!perm);
+    };
+    check();
+    return () => { cancelled = true; };
+  }, [isAmountLocked, currentAccommodationId, order?.id]);
+
+  // Discount fields are only locked when amount-locked AND user has no unlock permission
+  const isDiscountLocked = isAmountLocked && !canUnlockDiscount;
+
   // Fetch addon settings once
   useEffect(() => {
     if (!currentAccommodationId) return;
