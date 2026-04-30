@@ -98,8 +98,8 @@ const menuItems = [
     moduleKey: "room_price",
     subItems: [
       { title: "房價庫存設定", url: "/admin/room-price-calendar", icon: DollarSign },
-      { title: "專案設定", url: "/admin/pricing?tab=basic", icon: TrendingUp },
-      { title: "國定假日", url: "/admin/pricing?tab=holidays", icon: Calendar },
+      { title: "專案設定", url: "/admin/projects", icon: TrendingUp },
+      { title: "國定假日", url: "/admin/holidays", icon: Calendar },
     ]
   },
   { title: "顧客資料", url: "/admin/customers", icon: Users, moduleKey: "customers" },

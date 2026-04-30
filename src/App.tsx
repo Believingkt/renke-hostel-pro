@@ -221,6 +221,16 @@ function App() {
                         <Suspense fallback={<FormSkeleton fields={8} />}><Pricing /></Suspense>
                       </RequireModule>
                     } />
+                    <Route path="admin/projects" element={
+                      <RequireModule module="room_price">
+                        <Suspense fallback={<FormSkeleton fields={8} />}><Pricing /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/holidays" element={
+                      <RequireModule module="room_price">
+                        <Suspense fallback={<FormSkeleton fields={8} />}><Pricing /></Suspense>
+                      </RequireModule>
+                    } />
                     <Route path="admin/room-inventory" element={
                       <RequireModule module="orders">
                         <Suspense fallback={<FormSkeleton fields={6} />}><RoomInventory /></Suspense>
