@@ -224,15 +224,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
       let nextNotes: string | null = order.notes ?? null;
       if (wasPaidOrDeposit && amountChanged) {
         const { data: { user } } = await supabase.auth.getUser();
-        let who = user?.email || user?.id || "unknown";
-        if (user?.id) {
-          const { data: prof } = await supabase
-            .from("profiles")
-            .select("name")
-            .eq("id", user.id)
-            .maybeSingle();
-          if (prof?.name) who = prof.name;
-        }
+        const who = user?.email || user?.id || "unknown";
         const ts = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Taipei" }).slice(0, 16);
         const parts: string[] = [];
         if (Number(safeTotalPrice) !== Number(order.total_price ?? 0)) parts.push(`房費 ${order.total_price}→${safeTotalPrice}`);
