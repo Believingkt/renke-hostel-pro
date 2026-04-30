@@ -380,7 +380,7 @@ const Notifications = () => {
               } ${
                 notification.type === 'new_order' ? 'border-l-4 border-l-warning' :
                 notification.type === 'payment' ? 'border-l-4 border-l-success' :
-                notification.type === 'status_update' ? 'border-l-4 border-l-primary' : ''
+                notification.type === 'status_update' ? 'border-l-4 border-l-primary' : notification.type === 'settled_amount_change' ? 'border-l-4 border-l-destructive' : ''
               }`}
               onClick={() => handleNotificationClick(notification)}
             >
@@ -461,7 +461,7 @@ const Notifications = () => {
               } ${
                 notification.type === 'new_order' ? 'border-l-4 border-l-warning' :
                 notification.type === 'payment' ? 'border-l-4 border-l-success' :
-                notification.type === 'status_update' ? 'border-l-4 border-l-primary' : ''
+                notification.type === 'status_update' ? 'border-l-4 border-l-primary' : notification.type === 'settled_amount_change' ? 'border-l-4 border-l-destructive' : ''
               }`}
               onClick={() => handleNotificationClick(notification)}
             >
@@ -542,7 +542,7 @@ const Notifications = () => {
               } ${
                 notification.type === 'new_order' ? 'border-l-4 border-l-warning' :
                 notification.type === 'payment' ? 'border-l-4 border-l-success' :
-                notification.type === 'status_update' ? 'border-l-4 border-l-primary' : ''
+                notification.type === 'status_update' ? 'border-l-4 border-l-primary' : notification.type === 'settled_amount_change' ? 'border-l-4 border-l-destructive' : ''
               }`}
               onClick={() => handleNotificationClick(notification)}
             >
