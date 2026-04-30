@@ -798,6 +798,18 @@ const Accounts = () => {
                       </TableCell>
                       <TableCell className="text-sm">{user.lastLogin}</TableCell>
                       <TableCell className="text-sm">
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={user.canUnlockPaidDiscount}
+                            onCheckedChange={() => handleToggleUnlockDiscount(user.id, user.canUnlockPaidDiscount)}
+                            aria-label="可修改已結清訂單折扣"
+                          />
+                          {user.canUnlockPaidDiscount && (
+                            <Unlock className="h-3.5 w-3.5 text-primary" />
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm">
                         <div className="flex items-center gap-0">
                           {user.role === 'staff' && (
                             <Button
