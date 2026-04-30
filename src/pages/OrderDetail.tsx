@@ -323,6 +323,35 @@ const OrderDetailPage = () => {
     addon_total: 0,
   });
   const [discountCodeError, setDiscountCodeError] = useState("");
+  const [canUnlockPaidOrderDiscount, setCanUnlockPaidOrderDiscount] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const checkPaidOrderDiscountUnlock = async () => {
+      if (!order || !["deposit_paid", "paid", "fully_paid"].includes(order.payment_status)) {
+        setCanUnlockPaidOrderDiscount(false);
+        return;
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setCanUnlockPaidOrderDiscount(false);
+        return;
+      }
+
+      const { data, error } = await supabase.rpc("can_unlock_paid_order_discount", {
+        _user_id: user.id,
+        _accommodation_id: order.accommodation_id,
+      });
+
+      if (!cancelled) {
+        setCanUnlockPaidOrderDiscount(!error && !!data);
+      }
+    };
+
+    checkPaidOrderDiscountUnlock();
+    return () => { cancelled = true; };
+  }, [order?.id, order?.accommodation_id, order?.payment_status]);
 
   const startEditing = () => {
     if (!order) return;
