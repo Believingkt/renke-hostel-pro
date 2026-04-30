@@ -292,7 +292,9 @@ function App() {
                       </RequireModule>
                     } />
                     <Route path="admin/backup" element={
-                      <Suspense fallback={<FormSkeleton fields={5} />}><DataBackup /></Suspense>
+                      <RequireModule module="accounts">
+                        <Suspense fallback={<FormSkeleton fields={5} />}><DataBackup /></Suspense>
+                      </RequireModule>
                     } />
                     <Route path="admin/settlement" element={
                       <RequireModule module="settlement">
