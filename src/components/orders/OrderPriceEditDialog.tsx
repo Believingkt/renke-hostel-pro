@@ -246,6 +246,20 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
         if (Number(safeTotalPrice) !== Number(order.total_price ?? 0)) parts.push(`房費 ${order.total_price}→${safeTotalPrice}`);
         if (Number(safeDiscountAmount) !== Number(order.discount_amount ?? 0)) parts.push(`折扣 ${order.discount_amount}→${safeDiscountAmount}`);
         if (Number(safeDepositAmount) !== Number(order.deposit_amount ?? 0)) parts.push(`訂金 ${order.deposit_amount ?? 0}→${safeDepositAmount}`);
+        // Per-addon diffs (寵物/餐食/自訂加購) — explain why 實收 changed
+        const addonKeys = Array.from(new Set([
+          ...originalAddons.map(a => a.addon_type),
+          ...newCustomAddonDetails.map(a => a.addon_type),
+        ]));
+        for (const k of addonKeys) {
+          const o = originalAddons.find(a => a.addon_type === k);
+          const n = newCustomAddonDetails.find(a => a.addon_type === k);
+          const oc = o?.count || 0, ot = o?.total || 0;
+          const nc = n?.count || 0, nt = n?.total || 0;
+          if (oc !== nc || ot !== nt) {
+            parts.push(`${k} ${oc}/${ot}→${nc}/${nt}`);
+          }
+        }
         if (Number(editPaidAmount) !== Number(order.paid_amount ?? 0)) parts.push(`已付 ${order.paid_amount ?? 0}→${editPaidAmount}`);
         if (Number(safeFinalPrice) !== Number(order.final_price ?? 0)) parts.push(`實收 ${order.final_price}→${safeFinalPrice}`);
         const reasonStr = editReason.trim() ? `｜原因：${editReason.trim()}` : "";
