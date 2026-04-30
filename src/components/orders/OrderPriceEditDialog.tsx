@@ -63,6 +63,9 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
 
   const editFinalPrice = editTotalPrice - editDiscountAmount + addonTotal;
 
+  // Lock amount fields once payment has started (deposit_paid / paid / fully_paid)
+  const isAmountLocked = !!order && ["deposit_paid", "paid", "fully_paid"].includes(order.payment_status);
+
   // Fetch addon settings once
   useEffect(() => {
     if (!currentAccommodationId) return;
