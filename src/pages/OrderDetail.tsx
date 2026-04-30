@@ -673,6 +673,40 @@ const OrderDetailPage = () => {
         if (canUnlockPaidOrderDiscount && (editForm.discount_code.trim() || "") !== (order.discount_code || "")) {
           auditParts.push(`折扣碼 ${order.discount_code || "(無)"}→${editForm.discount_code.trim() || "(無)"}`);
         }
+
+        // Addon diffs (寵物 / 餐食 / 自訂加購) — show item-level changes that explain 實收 變動
+        const oldPetTotal = (() => {
+          const all = (order.custom_addon_details as CustomAddonDetail[]) || [];
+          const legacyPet = all.find((a: any) => a?.addon_type === "寵物" || a?.addon_type === "pet");
+          return (order.pet_plan_price || 0) > 0 ? (order.pet_plan_price || 0) : (legacyPet?.total || 0);
+        })();
+        const oldPetCount = (() => {
+          const all = (order.custom_addon_details as CustomAddonDetail[]) || [];
+          const legacyPet = all.find((a: any) => a?.addon_type === "寵物" || a?.addon_type === "pet");
+          return (order.pet_count || 0) > 0 ? (order.pet_count || 0) : (legacyPet?.count || 0);
+        })();
+        if (Number(editForm.pet_count) !== Number(oldPetCount) || Number(editForm.pet_plan_price) !== Number(oldPetTotal)) {
+          auditParts.push(`寵物 ${oldPetCount}隻/${oldPetTotal}→${editForm.pet_count}隻/${editForm.pet_plan_price}`);
+        }
+        if (Number(editForm.meal_plan_total) !== Number(order.meal_plan_total ?? 0)) {
+          auditParts.push(`餐食 ${order.meal_plan_total ?? 0}→${editForm.meal_plan_total}`);
+        }
+        // Per-addon diff for custom_addon_details (excluding pet/meal which are tracked separately above)
+        const oldAddons: CustomAddonDetail[] = ((order.custom_addon_details as CustomAddonDetail[]) || [])
+          .filter(a => a.addon_type !== "寵物" && a.addon_type !== "pet" && a.addon_type !== "餐食" && a.addon_type !== "meal");
+        const newAddons = editForm.custom_addon_details
+          .filter(a => a.addon_type !== "寵物" && a.addon_type !== "pet" && a.addon_type !== "餐食" && a.addon_type !== "meal");
+        const addonKeys = Array.from(new Set([...oldAddons.map(a => a.addon_type), ...newAddons.map(a => a.addon_type)]));
+        for (const k of addonKeys) {
+          const o = oldAddons.find(a => a.addon_type === k);
+          const n = newAddons.find(a => a.addon_type === k);
+          const oc = o?.count || 0, ot = o?.total || 0;
+          const nc = n?.count || 0, nt = n?.total || 0;
+          if (oc !== nc || ot !== nt) {
+            auditParts.push(`${k} ${oc}/${ot}→${nc}/${nt}`);
+          }
+        }
+
         if (Number(editFinalPriceCalc) !== Number(order.final_price ?? 0)) {
           auditParts.push(`實收 ${order.final_price}→${editFinalPriceCalc}`);
         }
