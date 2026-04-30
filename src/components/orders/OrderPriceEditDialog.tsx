@@ -212,6 +212,36 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
         newPaymentStatus = "deposit_paid";
       }
 
+      // Detect amount changes for the locked audit-line
+      const wasPaidOrDeposit = ["deposit_paid", "paid", "fully_paid"].includes(order.payment_status);
+      const amountChanged =
+        Number(safeTotalPrice) !== Number(order.total_price ?? 0) ||
+        Number(safeDiscountAmount) !== Number(order.discount_amount ?? 0) ||
+        Number(safeDepositAmount) !== Number(order.deposit_amount ?? 0) ||
+        Number(editPaidAmount) !== Number(order.paid_amount ?? 0) ||
+        Number(safeFinalPrice) !== Number(order.final_price ?? 0);
+
+      let nextNotes: string | null = order.notes ?? null;
+      if (wasPaidOrDeposit && amountChanged) {
+        const { data: { user } } = await supabase.auth.getUser();
+        const who = user?.email || user?.id || "unknown";
+        const ts = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Taipei" }).slice(0, 16);
+        const parts: string[] = [];
+        if (Number(safeTotalPrice) !== Number(order.total_price ?? 0)) parts.push(`房費 ${order.total_price}→${safeTotalPrice}`);
+        if (Number(safeDiscountAmount) !== Number(order.discount_amount ?? 0)) parts.push(`折扣 ${order.discount_amount}→${safeDiscountAmount}`);
+        if (Number(safeDepositAmount) !== Number(order.deposit_amount ?? 0)) parts.push(`訂金 ${order.deposit_amount ?? 0}→${safeDepositAmount}`);
+        if (Number(editPaidAmount) !== Number(order.paid_amount ?? 0)) parts.push(`已付 ${order.paid_amount ?? 0}→${editPaidAmount}`);
+        if (Number(safeFinalPrice) !== Number(order.final_price ?? 0)) parts.push(`實收 ${order.final_price}→${safeFinalPrice}`);
+        const reasonStr = editReason.trim() ? `｜原因：${editReason.trim()}` : "";
+        const auditLine = `🔒[金額異動 ${ts} by ${who}] ${parts.join("、")}${reasonStr}`;
+        nextNotes = nextNotes ? `${nextNotes}\n${auditLine}` : auditLine;
+      } else if (editReason.trim()) {
+        // Non-locked path: keep original behaviour for plain reason note
+        nextNotes = order.notes
+          ? `${order.notes}\n【金額修改】${editReason.trim()}`
+          : `【金額修改】${editReason.trim()}`;
+      }
+
       const { error } = await supabase
         .from("orders")
         .update({
@@ -224,11 +254,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
           custom_addon_details: newCustomAddonDetails as any,
           discount_code: safeDiscountCode.trim() || null,
           meal_plan_details: newMealPlanDetails.length > 0 ? newMealPlanDetails as any : null,
-          ...(editReason.trim() ? {
-            notes: order.notes
-              ? `${order.notes}\n【金額修改】${editReason.trim()}`
-              : `【金額修改】${editReason.trim()}`,
-          } : {}),
+          notes: nextNotes,
         })
         .eq("id", order.id);
       if (error) throw error;
