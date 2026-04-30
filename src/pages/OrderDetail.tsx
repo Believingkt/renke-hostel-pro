@@ -664,6 +664,31 @@ const OrderDetailPage = () => {
         }
       }
 
+      // Auto-append locked audit line when a settled order has financial changes via inline edit
+      if (isPaidOrDeposit) {
+        const auditParts: string[] = [];
+        if (canUnlockPaidOrderDiscount && Number(editForm.discount_amount) !== Number(order.discount_amount ?? 0)) {
+          auditParts.push(`折扣 ${order.discount_amount}→${editForm.discount_amount}`);
+        }
+        if (canUnlockPaidOrderDiscount && (editForm.discount_code.trim() || "") !== (order.discount_code || "")) {
+          auditParts.push(`折扣碼 ${order.discount_code || "(無)"}→${editForm.discount_code.trim() || "(無)"}`);
+        }
+        if (Number(editFinalPriceCalc) !== Number(order.final_price ?? 0)) {
+          auditParts.push(`實收 ${order.final_price}→${editFinalPriceCalc}`);
+        }
+        if (Number(editForm.paid_amount) !== Number(order.paid_amount ?? 0)) {
+          auditParts.push(`已付 ${order.paid_amount ?? 0}→${editForm.paid_amount}`);
+        }
+        if (auditParts.length > 0) {
+          const { data: { user } } = await supabase.auth.getUser();
+          const who = user?.email || user?.id || "unknown";
+          const ts = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Taipei" }).slice(0, 16);
+          const auditLine = `🔒[金額異動 ${ts} by ${who}] ${auditParts.join("、")}`;
+          finalNotes = finalNotes ? `${finalNotes}\n${auditLine}` : auditLine;
+          updateData.notes = finalNotes;
+        }
+      }
+
       // Handle status timestamp updates
       if (editForm.order_status !== order.order_status) {
         if (editForm.order_status === "confirmed") {
