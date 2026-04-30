@@ -37,7 +37,7 @@ const Notifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
-  const [typeFilter, setTypeFilter] = useState<'all' | 'new_order' | 'payment' | 'status_update'>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'new_order' | 'payment' | 'status_update' | 'settled_amount_change'>('all');
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -169,6 +169,8 @@ const Notifications = () => {
         return '📋';
       case 'payment':
         return '💰';
+      case 'settled_amount_change':
+        return '🔒';
       default:
         return '🔔';
     }
@@ -177,6 +179,7 @@ const Notifications = () => {
   const getNotificationBadgeVariant = (notification: Notification): "default" | "info" | "success" | "destructive" => {
     if (notification.type === 'new_order') return 'info';
     if (notification.type === 'payment') return 'success';
+    if (notification.type === 'settled_amount_change') return 'destructive';
     if (notification.type === 'status_update' && 
         (notification.title.includes('取消') || notification.description.includes('取消'))) {
       return 'destructive';
@@ -341,6 +344,18 @@ const Notifications = () => {
             >
               📋 狀態更新
             </Button>
+            <Button
+              variant="outline"
+              size="default"
+              onClick={() => setTypeFilter('settled_amount_change')}
+              className={`rounded-full px-6 h-10 font-medium transition-all hover:scale-105 ${
+                typeFilter === 'settled_amount_change'
+                  ? 'bg-destructive text-destructive-foreground border-destructive hover:bg-destructive/90'
+                  : 'hover:bg-destructive/10 hover:border-destructive/50'
+              }`}
+            >
+              🔒 結清金額變動
+            </Button>
           </div>
         </div>
       </Card>
@@ -365,7 +380,7 @@ const Notifications = () => {
               } ${
                 notification.type === 'new_order' ? 'border-l-4 border-l-warning' :
                 notification.type === 'payment' ? 'border-l-4 border-l-success' :
-                notification.type === 'status_update' ? 'border-l-4 border-l-primary' : ''
+                notification.type === 'status_update' ? 'border-l-4 border-l-primary' : notification.type === 'settled_amount_change' ? 'border-l-4 border-l-destructive' : ''
               }`}
               onClick={() => handleNotificationClick(notification)}
             >
@@ -446,7 +461,7 @@ const Notifications = () => {
               } ${
                 notification.type === 'new_order' ? 'border-l-4 border-l-warning' :
                 notification.type === 'payment' ? 'border-l-4 border-l-success' :
-                notification.type === 'status_update' ? 'border-l-4 border-l-primary' : ''
+                notification.type === 'status_update' ? 'border-l-4 border-l-primary' : notification.type === 'settled_amount_change' ? 'border-l-4 border-l-destructive' : ''
               }`}
               onClick={() => handleNotificationClick(notification)}
             >
@@ -527,7 +542,7 @@ const Notifications = () => {
               } ${
                 notification.type === 'new_order' ? 'border-l-4 border-l-warning' :
                 notification.type === 'payment' ? 'border-l-4 border-l-success' :
-                notification.type === 'status_update' ? 'border-l-4 border-l-primary' : ''
+                notification.type === 'status_update' ? 'border-l-4 border-l-primary' : notification.type === 'settled_amount_change' ? 'border-l-4 border-l-destructive' : ''
               }`}
               onClick={() => handleNotificationClick(notification)}
             >
