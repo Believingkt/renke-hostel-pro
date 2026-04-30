@@ -3168,6 +3168,18 @@ export type Database = {
       is_admin: { Args: { user_id_param: string }; Returns: boolean }
       is_super_admin: { Args: { user_uuid: string }; Returns: boolean }
       is_user_admin: { Args: { _user_id: string }; Returns: boolean }
+      staff_can_edit_module: {
+        Args: { _accommodation_id: string; _module_key: string }
+        Returns: boolean
+      }
+      staff_can_edit_module_for_room_type: {
+        Args: { _module_key: string; _room_type_id: string }
+        Returns: boolean
+      }
+      staff_can_view_module: {
+        Args: { _accommodation_id: string; _module_key: string }
+        Returns: boolean
+      }
       user_has_access_to_accommodation: {
         Args: { _accommodation_id: string; _user_id: string }
         Returns: boolean
