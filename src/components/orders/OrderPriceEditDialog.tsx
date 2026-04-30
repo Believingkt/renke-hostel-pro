@@ -274,7 +274,9 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
             <Alert>
               <Lock className="h-4 w-4" />
               <AlertDescription>
-                已付款後無法修改房費、折扣、折扣碼、訂金，僅可調整加購方案與已付金額。
+                {canUnlockDiscount
+                  ? "已付款訂單僅鎖定房費與訂金。您具有「修改已結清折扣」權限，可調整折扣金額與折扣碼以補登折扣券。"
+                  : "已付款後無法修改房費、折扣、折扣碼、訂金，僅可調整加購方案與已付金額。"}
               </AlertDescription>
             </Alert>
           )}
@@ -293,7 +295,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
             <Input
               id="list-edit-discount"
               type="text" inputMode="numeric"
-              disabled={isAmountLocked}
+              disabled={isDiscountLocked}
               value={editDiscountAmountStr}
               onChange={(e) => setEditDiscountAmountStr(e.target.value)}
             />
@@ -304,7 +306,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
               id="list-edit-discount-code"
               type="text"
               placeholder="選填"
-              disabled={isAmountLocked}
+              disabled={isDiscountLocked}
               value={editDiscountCode}
               onChange={(e) => setEditDiscountCode(e.target.value)}
             />
