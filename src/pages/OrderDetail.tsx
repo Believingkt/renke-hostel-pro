@@ -456,7 +456,7 @@ const OrderDetailPage = () => {
   // Skip when order is already paid/deposit_paid — deposit must stay locked
   useEffect(() => {
     if (!isEditing || depositRatioRef.current <= 0) return;
-    if (order && ["paid", "fully_paid"].includes(order.payment_status)) return;
+    if (order && ["deposit_paid", "paid", "fully_paid"].includes(order.payment_status)) return;
     const newFinal = editForm.total_price + editForm.addon_total - editForm.discount_amount;
     const newDeposit = Math.max(0, Math.round(newFinal * depositRatioRef.current));
     if (newDeposit !== editForm.deposit_amount) {
@@ -642,26 +642,26 @@ const OrderDetailPage = () => {
       } else {
         updateData.discount_code = order.discount_code;
       }
-      addIfChanged("deposit_amount", editForm.deposit_amount, order.deposit_amount);
+      const isDepositLocked = ["deposit_paid", "paid", "fully_paid"].includes(order.payment_status);
+      if (!isDepositLocked) updateData.deposit_amount = editForm.deposit_amount;
       // final_price may legitimately change when addons are added/removed on a paid order.
       // Always include it so the total reflects current addons; the DB trigger allows this
       // as long as core financial fields (total_price/discount/deposit) are unchanged.
       addIfChanged("final_price", editFinalPriceCalc, order.final_price);
 
-      if (isPaidOrDeposit) {
-        const blocked: string[] = [];
-        if (Number(editForm.total_price) !== Number(order.total_price ?? 0)) blocked.push("房費金額");
-        if (!canUnlockPaidOrderDiscount && Number(editForm.discount_amount) !== Number(order.discount_amount ?? 0)) blocked.push("折扣金額");
-        if (Number(editForm.deposit_amount) !== Number(order.deposit_amount ?? 0)) blocked.push("訂金");
-        if (blocked.length > 0) {
-          toast({
-            title: "已付款訂單無法修改金額",
-            description: `${blocked.join("、")} 無法在已付款後變更，請改用退款或新增訂單方式處理。`,
-            variant: "destructive",
-          });
-          setIsSavingEdit(false);
-          return;
-        }
+      // Block disallowed financial edits with friendly toast
+      const blocked: string[] = [];
+      if (isPaidOrDeposit && Number(editForm.total_price) !== Number(order.total_price ?? 0)) blocked.push("房費金額");
+      if (isPaidOrDeposit && !canUnlockPaidOrderDiscount && Number(editForm.discount_amount) !== Number(order.discount_amount ?? 0)) blocked.push("折扣金額");
+      if (isDepositLocked && Number(editForm.deposit_amount) !== Number(order.deposit_amount ?? 0)) blocked.push("訂金");
+      if (blocked.length > 0) {
+        toast({
+          title: "已付款訂單無法修改金額",
+          description: `${blocked.join("、")} 無法在此付款狀態下變更，請改用退款或新增訂單方式處理。`,
+          variant: "destructive",
+        });
+        setIsSavingEdit(false);
+        return;
       }
 
       // Auto-append locked audit line when a settled order has financial changes via inline edit
@@ -2059,7 +2059,7 @@ const OrderDetailPage = () => {
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">訂金金額</span>
                     {isEditing ? (
-                      <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right" type="text" inputMode="numeric" disabled={["paid", "fully_paid"].includes(order.payment_status)} value={editForm.deposit_amount} onChange={(e) => setEditForm(f => ({ ...f, deposit_amount: Math.max(0, parseInt(e.target.value) || 0) }))} />
+                      <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right" type="text" inputMode="numeric" disabled={["deposit_paid", "paid", "fully_paid"].includes(order.payment_status)} value={editForm.deposit_amount} onChange={(e) => setEditForm(f => ({ ...f, deposit_amount: Math.max(0, parseInt(e.target.value) || 0) }))} />
                     ) : (
                       <span className="font-medium text-base md:text-base">NT$ {order.deposit_amount.toLocaleString()}</span>
                     )}

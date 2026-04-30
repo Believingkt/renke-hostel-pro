@@ -63,8 +63,9 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
 
   const editFinalPrice = editTotalPrice - editDiscountAmount + addonTotal;
 
-  // Lock amount fields once payment has started (deposit_paid / paid / fully_paid)
+  // Total/discount fields lock only when fully paid; deposit locks once any payment received
   const isAmountLocked = !!order && ["paid", "fully_paid"].includes(order.payment_status);
+  const isDepositLocked = !!order && ["deposit_paid", "paid", "fully_paid"].includes(order.payment_status);
 
   // Permission: can current user unlock discount fields on already-paid orders?
   const [canUnlockDiscount, setCanUnlockDiscount] = useState(false);
@@ -161,7 +162,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
     // Safety: enforce locked fields server-truth even if UI was bypassed
     const safeTotalPrice = isAmountLocked ? order.total_price : editTotalPrice;
     const safeDiscountAmount = isDiscountLocked ? order.discount_amount : editDiscountAmount;
-    const safeDepositAmount = isAmountLocked ? (order.deposit_amount ?? 0) : editDepositAmount;
+    const safeDepositAmount = isDepositLocked ? (order.deposit_amount ?? 0) : editDepositAmount;
     const safeDiscountCode = isDiscountLocked ? (order.discount_code || "") : editDiscountCode;
     const safeFinalPrice = safeTotalPrice - safeDiscountAmount + addonTotal;
     setIsSaving(true);
@@ -416,7 +417,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
               id="list-edit-deposit"
               type="text"
               inputMode="numeric"
-              disabled={isAmountLocked}
+              disabled={isDepositLocked}
               value={editDepositAmountStr}
               onChange={(e) => setEditDepositAmountStr(e.target.value.replace(/[^0-9]/g, ''))}
             />
