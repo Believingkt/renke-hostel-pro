@@ -282,7 +282,9 @@ function App() {
                       </RequireModule>
                     } />
                     <Route path="admin/notifications" element={
-                      <Suspense fallback={<TableSkeleton rows={8} columns={4} showFilters={false} />}><Notifications /></Suspense>
+                      <RequireModule module="orders">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={4} showFilters={false} />}><Notifications /></Suspense>
+                      </RequireModule>
                     } />
                     <Route path="admin/public-holidays" element={
                       <RequireModule module="room_price">
