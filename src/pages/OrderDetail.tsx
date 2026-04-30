@@ -323,6 +323,35 @@ const OrderDetailPage = () => {
     addon_total: 0,
   });
   const [discountCodeError, setDiscountCodeError] = useState("");
+  const [canUnlockPaidOrderDiscount, setCanUnlockPaidOrderDiscount] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const checkPaidOrderDiscountUnlock = async () => {
+      if (!order || !["deposit_paid", "paid", "fully_paid"].includes(order.payment_status)) {
+        setCanUnlockPaidOrderDiscount(false);
+        return;
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setCanUnlockPaidOrderDiscount(false);
+        return;
+      }
+
+      const { data, error } = await supabase.rpc("can_unlock_paid_order_discount", {
+        _user_id: user.id,
+        _accommodation_id: order.accommodation_id,
+      });
+
+      if (!cancelled) {
+        setCanUnlockPaidOrderDiscount(!error && !!data);
+      }
+    };
+
+    checkPaidOrderDiscountUnlock();
+    return () => { cancelled = true; };
+  }, [order?.id, order?.accommodation_id, order?.payment_status]);
 
   const startEditing = () => {
     if (!order) return;
@@ -600,14 +629,19 @@ const OrderDetailPage = () => {
 
       // Financial fields are immutable after payment (DB trigger).
       // Only include them if the order is not yet paid OR the value actually changed.
-      const isPaidOrDeposit = order.payment_status === "deposit_paid" || order.payment_status === "paid";
+      const isPaidOrDeposit = ["deposit_paid", "paid", "fully_paid"].includes(order.payment_status);
       const addIfChanged = (key: string, newVal: number, oldVal: number | null | undefined) => {
         if (!isPaidOrDeposit || Number(newVal) !== Number(oldVal ?? 0)) {
           updateData[key] = newVal;
         }
       };
       addIfChanged("total_price", editForm.total_price, order.total_price);
-      addIfChanged("discount_amount", editForm.discount_amount, order.discount_amount);
+      if (!isPaidOrDeposit || canUnlockPaidOrderDiscount) {
+        addIfChanged("discount_amount", editForm.discount_amount, order.discount_amount);
+        updateData.discount_code = editForm.discount_code.trim() || null;
+      } else {
+        updateData.discount_code = order.discount_code;
+      }
       addIfChanged("deposit_amount", editForm.deposit_amount, order.deposit_amount);
       // final_price may legitimately change when addons are added/removed on a paid order.
       // Always include it so the total reflects current addons; the DB trigger allows this
@@ -617,7 +651,7 @@ const OrderDetailPage = () => {
       if (isPaidOrDeposit) {
         const blocked: string[] = [];
         if (Number(editForm.total_price) !== Number(order.total_price ?? 0)) blocked.push("房費金額");
-        if (Number(editForm.discount_amount) !== Number(order.discount_amount ?? 0)) blocked.push("折扣金額");
+        if (!canUnlockPaidOrderDiscount && Number(editForm.discount_amount) !== Number(order.discount_amount ?? 0)) blocked.push("折扣金額");
         if (Number(editForm.deposit_amount) !== Number(order.deposit_amount ?? 0)) blocked.push("訂金");
         if (blocked.length > 0) {
           toast({
@@ -1854,7 +1888,7 @@ const OrderDetailPage = () => {
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">原始金額</span>
                     {isEditing ? (
-                      <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right" type="text" inputMode="numeric" value={editForm.total_price} onChange={(e) => setEditForm(f => ({ ...f, total_price: Math.max(0, parseInt(e.target.value) || 0) }))} />
+                      <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right" type="text" inputMode="numeric" disabled={["deposit_paid", "paid", "fully_paid"].includes(order.payment_status)} value={editForm.total_price} onChange={(e) => setEditForm(f => ({ ...f, total_price: Math.max(0, parseInt(e.target.value) || 0) }))} />
                     ) : (
                       <span className="font-medium text-base md:text-base">NT$ {displayTotal.toLocaleString()}</span>
                     )}
@@ -1867,7 +1901,7 @@ const OrderDetailPage = () => {
             <div className="flex justify-between items-center gap-2">
               <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">折扣金額</span>
               {isEditing ? (
-                <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right" type="text" inputMode="numeric" value={editForm.discount_amount} onChange={(e) => setEditForm(f => ({ ...f, discount_amount: Math.max(0, parseInt(e.target.value) || 0) }))} />
+                <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right" type="text" inputMode="numeric" disabled={["deposit_paid", "paid", "fully_paid"].includes(order.payment_status) && !canUnlockPaidOrderDiscount} value={editForm.discount_amount} onChange={(e) => setEditForm(f => ({ ...f, discount_amount: Math.max(0, parseInt(e.target.value) || 0) }))} />
               ) : (
                 order.discount_amount > 0 ? (
                   <span className="font-medium text-base md:text-base text-destructive">- NT$ {order.discount_amount.toLocaleString()}</span>
@@ -1880,7 +1914,7 @@ const OrderDetailPage = () => {
               <div className="flex justify-between items-center gap-2">
                 <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">折扣碼</span>
                 {isEditing ? (
-                  <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right uppercase" type="text" placeholder="選填" value={editForm.discount_code} onChange={(e) => { setEditForm(f => ({ ...f, discount_code: e.target.value.toUpperCase() })); setDiscountCodeError(""); }} />
+                  <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right uppercase" type="text" placeholder="選填" disabled={["deposit_paid", "paid", "fully_paid"].includes(order.payment_status) && !canUnlockPaidOrderDiscount} value={editForm.discount_code} onChange={(e) => { setEditForm(f => ({ ...f, discount_code: e.target.value.toUpperCase() })); setDiscountCodeError(""); }} />
                 ) : (
                   order.discount_code ? (
                     <Badge variant="outline" className="text-xs">{order.discount_code}</Badge>
@@ -1967,7 +2001,7 @@ const OrderDetailPage = () => {
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">訂金金額</span>
                     {isEditing ? (
-                      <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right" type="text" inputMode="numeric" value={editForm.deposit_amount} onChange={(e) => setEditForm(f => ({ ...f, deposit_amount: Math.max(0, parseInt(e.target.value) || 0) }))} />
+                      <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right" type="text" inputMode="numeric" disabled={["deposit_paid", "paid", "fully_paid"].includes(order.payment_status)} value={editForm.deposit_amount} onChange={(e) => setEditForm(f => ({ ...f, deposit_amount: Math.max(0, parseInt(e.target.value) || 0) }))} />
                     ) : (
                       <span className="font-medium text-base md:text-base">NT$ {order.deposit_amount.toLocaleString()}</span>
                     )}
