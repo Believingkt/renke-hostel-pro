@@ -990,6 +990,31 @@ const BookingFlow = () => {
           };
         }
 
+        // 並行取得每個房型在日期範圍內的「調整後庫存」（已扣除既有訂單佔用）
+        const adjustedIndex: Record<string, Record<string, number | null>> = {};
+        try {
+          const adjustedResults = await Promise.all(
+            roomTypes.map(async (room) => {
+              const { data, error } = await supabase.rpc('get_adjusted_room_inventory_batch', {
+                p_room_type_id: room.id,
+                p_dates: dateRange,
+                p_accommodation_id: accommodationId,
+              });
+              return { roomId: room.id, data: error ? null : data };
+            })
+          );
+          for (const r of adjustedResults) {
+            if (!r.data) continue;
+            adjustedIndex[r.roomId] = {};
+            for (const row of r.data as any[]) {
+              const dateKey = typeof row.date_value === 'string' ? row.date_value : new Date(row.date_value).toISOString().split('T')[0];
+              adjustedIndex[r.roomId][dateKey] = row.available_rooms;
+            }
+          }
+        } catch (e) {
+          if (import.meta.env.DEV) console.error('adjusted inventory batch error', e);
+        }
+
         // 處理每個房型的可用性
         for (const room of roomTypes) {
           let hasMissingPricing = false;
