@@ -332,12 +332,30 @@ const HeroSection = ({
         });
       }
 
-      // 規則：
-      // - 開啟：任一房型（散客或包區）仍有可訂庫存（rooms > 0 且未被封鎖）
-      //   散客即使當天未開庫存（沒有 inventory row），只要包區有空仍開啟
-      // - 關閉：所有房型皆無空（散客全訂滿且包區也都無）
+      // 規則:
+      // - 預設:任一房型(散客或包區)仍有可訂庫存(rooms > 0 且未被封鎖)即開啟
+      // - 哈庫納馬塔塔特例:只看包棟房型(is_exclusive_package=true),
+      //   若有 2 個(含)以上包棟無庫存或被封鎖,則整天關閉;散客房型不參與判斷
+      const isHakuna = accId === HAKUNA_ACCOMMODATION_ID;
+      const packageRoomTypes = roomTypes.filter((rt: any) => rt.is_exclusive_package === true);
+
       const available = new Set<string>();
       for (const date of allDates) {
+        if (isHakuna && packageRoomTypes.length > 0) {
+          // 計算當天「無庫存」的包棟房型數量(含未設定庫存或被封鎖)
+          const unavailablePackageCount = packageRoomTypes.filter((rt: any) => {
+            const adj = adjustedIndex.get(`${rt.id}:${date}`);
+            if (!adj) return true;
+            if (adj.is_blocked) return true;
+            return adj.available_rooms <= 0;
+          }).length;
+
+          if (unavailablePackageCount < 2) {
+            available.add(date);
+          }
+          continue;
+        }
+
         const ok = roomTypes.some((rt: any) => {
           const adj = adjustedIndex.get(`${rt.id}:${date}`);
           if (!adj) return false;
