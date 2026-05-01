@@ -246,7 +246,7 @@ const HeroSection = ({
 
   // 載入房間庫存可用日期
   // AVAILABILITY_CACHE_VERSION：每次邏輯有變動時遞增，可強制清除舊版本快取
-  const AVAILABILITY_CACHE_VERSION = 'v7-2026-05-01-hakuna-package-rule';
+  const AVAILABILITY_CACHE_VERSION = 'v8-2026-05-01-hakuna-is-available';
   // 哈庫納馬塔塔住宿 ID:套用「包棟房型 ≥2 個無庫存即關閉整天,散客房型不參與判斷」
   const HAKUNA_ACCOMMODATION_ID = '6b6ac0dc-602b-4dec-9167-7791ac412ba3';
 
@@ -342,8 +342,11 @@ const HeroSection = ({
       const available = new Set<string>();
       for (const date of allDates) {
         if (isHakuna && packageRoomTypes.length > 0) {
-          // 計算當天「無庫存」的包棟房型數量(含未設定庫存或被封鎖)
+          // 計算當天「無庫存」的包棟房型數量
+          // 條件:未設定/被封鎖/available_rooms<=0/後台 is_available=false
           const unavailablePackageCount = packageRoomTypes.filter((rt: any) => {
+            const base = baseIndex.get(`${rt.id}:${date}`);
+            if (base && base.is_available === false) return true;
             const adj = adjustedIndex.get(`${rt.id}:${date}`);
             if (!adj) return true;
             if (adj.is_blocked) return true;
