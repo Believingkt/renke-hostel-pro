@@ -246,7 +246,7 @@ const HeroSection = ({
 
   // 載入房間庫存可用日期
   // AVAILABILITY_CACHE_VERSION：每次邏輯有變動時遞增，可強制清除舊版本快取
-  const AVAILABILITY_CACHE_VERSION = 'v7-2026-05-01-exclusive-close-rule';
+  const AVAILABILITY_CACHE_VERSION = 'v6-2026-04-29-date-value-fix';
 
   useEffect(() => {
     const loadAvailability = async () => {
@@ -330,34 +330,18 @@ const HeroSection = ({
         });
       }
 
-      // 規則（套用至有包棟的住宿，例如森山、哈庫納馬塔塔）：
-      // - 若該住宿有任何「包棟房型」(is_exclusive_package=true)：
-      //   * 關閉：任一包棟房型當天無庫存（available_rooms=0）或被封鎖 → 整天關閉
-      //   * 散客房型「沒開庫存」(無 inventory row) 不視為關閉條件
-      // - 若該住宿沒有任何包棟房型：沿用原規則「任一房型有空即開啟」
-      const exclusiveRooms = roomTypes.filter((rt: any) => rt.is_exclusive_package === true);
-      const hasExclusive = exclusiveRooms.length > 0;
-
+      // 規則：
+      // - 開啟：任一房型（散客或包區）仍有可訂庫存（rooms > 0 且未被封鎖）
+      //   散客即使當天未開庫存（沒有 inventory row），只要包區有空仍開啟
+      // - 關閉：所有房型皆無空（散客全訂滿且包區也都無）
       const available = new Set<string>();
       for (const date of allDates) {
-        let ok = false;
-        if (hasExclusive) {
-          // 任一包棟無空 → 關閉
-          ok = exclusiveRooms.every((rt: any) => {
-            const adj = adjustedIndex.get(`${rt.id}:${date}`);
-            if (!adj) return false; // 包棟當天沒開庫存 → 視為無空
-            if (adj.is_blocked) return false;
-            return adj.available_rooms > 0;
-          });
-        } else {
-          // 原邏輯：任一房型有空即開啟
-          ok = roomTypes.some((rt: any) => {
-            const adj = adjustedIndex.get(`${rt.id}:${date}`);
-            if (!adj) return false;
-            if (adj.is_blocked) return false;
-            return adj.available_rooms > 0;
-          });
-        }
+        const ok = roomTypes.some((rt: any) => {
+          const adj = adjustedIndex.get(`${rt.id}:${date}`);
+          if (!adj) return false;
+          if (adj.is_blocked) return false;
+          return adj.available_rooms > 0;
+        });
 
         if (ok) available.add(date);
       }
