@@ -342,8 +342,11 @@ const HeroSection = ({
       const available = new Set<string>();
       for (const date of allDates) {
         if (isHakuna && packageRoomTypes.length > 0) {
-          // 計算當天「無庫存」的包棟房型數量(含未設定庫存或被封鎖)
+          // 計算當天「無庫存」的包棟房型數量
+          // 條件:未設定/被封鎖/available_rooms<=0/後台 is_available=false
           const unavailablePackageCount = packageRoomTypes.filter((rt: any) => {
+            const base = baseIndex.get(`${rt.id}:${date}`);
+            if (base && base.is_available === false) return true;
             const adj = adjustedIndex.get(`${rt.id}:${date}`);
             if (!adj) return true;
             if (adj.is_blocked) return true;
