@@ -1039,9 +1039,16 @@ const BookingFlow = () => {
               // 關閉販售：前台視為無空房
               hasNoAvailability = true;
               if (!unavailableDates.includes(dateStr)) unavailableDates.push(dateStr);
-            } else if (priceData.available_rooms !== null && priceData.available_rooms <= 0) {
-              hasNoAvailability = true;
-              if (!unavailableDates.includes(dateStr)) unavailableDates.push(dateStr);
+            } else {
+              // 優先使用 adjusted（已扣除既有訂單佔用），fallback 至 raw available_rooms
+              const adjusted = adjustedIndex[room.id]?.[dateStr];
+              const effectiveAvailable = adjusted !== undefined && adjusted !== null
+                ? adjusted
+                : priceData.available_rooms;
+              if (effectiveAvailable !== null && effectiveAvailable !== undefined && effectiveAvailable <= 0) {
+                hasNoAvailability = true;
+                if (!unavailableDates.includes(dateStr)) unavailableDates.push(dateStr);
+              }
             }
           }
 
