@@ -962,11 +962,27 @@ const BookingFlow = () => {
         const bookedRoomTypeId = exclusiveBooking?.[0]?.booked_room_type_id || null;
         const bookedRoomTypeName = exclusiveBooking?.[0]?.booked_room_type_name || '';
 
+        // 判斷「被預訂的房型」是否為包棟
+        const bookedRoom = bookedRoomTypeId ? roomTypes.find(r => r.id === bookedRoomTypeId) : null;
+        const bookedIsExclusive = bookedRoom?.is_exclusive_package === true;
+
         const blockIndex: Record<string, { isBlocked: boolean; blockedByRoomName: string; adjustedAvailable: number | null }> = {};
         for (const room of roomTypes) {
-          const isExclusiveOrBound = room.is_exclusive_package === true || room.is_bound_to_exclusive === true;
-          // 該房型被視為 blocked 的條件：今日已存在「另一個」包棟訂單，且當前房型屬於互斥群組
-          const isBlocked = hasExclusiveBooking && isExclusiveOrBound && bookedRoomTypeId !== room.id;
+          const isExclusive = room.is_exclusive_package === true;
+          const isBoundToExclusive = room.is_bound_to_exclusive === true;
+
+          // 互斥規則：
+          //  - 若已有「包棟」被預訂：所有同群組房型(包含散客 is_bound_to_exclusive)都 blocked。
+          //  - 若已有「散客」被預訂：只有「包棟」被 blocked，其他散客不互鎖。
+          let isBlocked = false;
+          if (hasExclusiveBooking && bookedRoomTypeId !== room.id) {
+            if (bookedIsExclusive) {
+              isBlocked = isExclusive || isBoundToExclusive;
+            } else {
+              isBlocked = isExclusive;
+            }
+          }
+
           blockIndex[room.id] = {
             isBlocked,
             blockedByRoomName: isBlocked ? bookedRoomTypeName : '',
