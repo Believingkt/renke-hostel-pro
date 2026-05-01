@@ -72,7 +72,7 @@ export function AccommodationSelector() {
 
       const { data, error } = await supabase
         .from('accommodation_info')
-        .select('id, name')
+        .select('id, name, short_url_alias, custom_domain')
         .in('id', accommodationIds);
 
       if (error) throw error;
