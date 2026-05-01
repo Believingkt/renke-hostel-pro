@@ -962,16 +962,57 @@ const BookingFlow = () => {
         const bookedRoomTypeId = exclusiveBooking?.[0]?.booked_room_type_id || null;
         const bookedRoomTypeName = exclusiveBooking?.[0]?.booked_room_type_name || '';
 
+        // 判斷「被預訂的房型」是否為包棟
+        const bookedRoom = bookedRoomTypeId ? roomTypes.find(r => r.id === bookedRoomTypeId) : null;
+        const bookedIsExclusive = bookedRoom?.is_exclusive_package === true;
+
         const blockIndex: Record<string, { isBlocked: boolean; blockedByRoomName: string; adjustedAvailable: number | null }> = {};
         for (const room of roomTypes) {
-          const isExclusiveOrBound = room.is_exclusive_package === true || room.is_bound_to_exclusive === true;
-          // 該房型被視為 blocked 的條件：今日已存在「另一個」包棟訂單，且當前房型屬於互斥群組
-          const isBlocked = hasExclusiveBooking && isExclusiveOrBound && bookedRoomTypeId !== room.id;
+          const isExclusive = room.is_exclusive_package === true;
+          const isBoundToExclusive = room.is_bound_to_exclusive === true;
+
+          // 互斥規則：
+          //  - 若已有「包棟」被預訂：所有同群組房型(包含散客 is_bound_to_exclusive)都 blocked。
+          //  - 若已有「散客」被預訂：只有「包棟」被 blocked，其他散客不互鎖。
+          let isBlocked = false;
+          if (hasExclusiveBooking && bookedRoomTypeId !== room.id) {
+            if (bookedIsExclusive) {
+              isBlocked = isExclusive || isBoundToExclusive;
+            } else {
+              isBlocked = isExclusive;
+            }
+          }
+
           blockIndex[room.id] = {
             isBlocked,
             blockedByRoomName: isBlocked ? bookedRoomTypeName : '',
             adjustedAvailable: null, // 詳細扣減量由 pricingIndex.available_rooms 處理
           };
+        }
+
+        // 並行取得每個房型在日期範圍內的「調整後庫存」（已扣除既有訂單佔用）
+        const adjustedIndex: Record<string, Record<string, number | null>> = {};
+        try {
+          const adjustedResults = await Promise.all(
+            roomTypes.map(async (room) => {
+              const { data, error } = await supabase.rpc('get_adjusted_room_inventory_batch', {
+                p_room_type_id: room.id,
+                p_dates: dateRange,
+                p_accommodation_id: accommodationId,
+              });
+              return { roomId: room.id, data: error ? null : data };
+            })
+          );
+          for (const r of adjustedResults) {
+            if (!r.data) continue;
+            adjustedIndex[r.roomId] = {};
+            for (const row of r.data as any[]) {
+              const dateKey = typeof row.date_value === 'string' ? row.date_value : new Date(row.date_value).toISOString().split('T')[0];
+              adjustedIndex[r.roomId][dateKey] = row.available_rooms;
+            }
+          }
+        } catch (e) {
+          if (import.meta.env.DEV) console.error('adjusted inventory batch error', e);
         }
 
         // 處理每個房型的可用性
@@ -998,9 +1039,16 @@ const BookingFlow = () => {
               // 關閉販售：前台視為無空房
               hasNoAvailability = true;
               if (!unavailableDates.includes(dateStr)) unavailableDates.push(dateStr);
-            } else if (priceData.available_rooms !== null && priceData.available_rooms <= 0) {
-              hasNoAvailability = true;
-              if (!unavailableDates.includes(dateStr)) unavailableDates.push(dateStr);
+            } else {
+              // 優先使用 adjusted（已扣除既有訂單佔用），fallback 至 raw available_rooms
+              const adjusted = adjustedIndex[room.id]?.[dateStr];
+              const effectiveAvailable = adjusted !== undefined && adjusted !== null
+                ? adjusted
+                : priceData.available_rooms;
+              if (effectiveAvailable !== null && effectiveAvailable !== undefined && effectiveAvailable <= 0) {
+                hasNoAvailability = true;
+                if (!unavailableDates.includes(dateStr)) unavailableDates.push(dateStr);
+              }
             }
           }
 
