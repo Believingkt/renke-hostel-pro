@@ -106,7 +106,7 @@ export function AccommodationSelector() {
               variant="ghost" 
               size="icon"
               className="h-9 w-9"
-              onClick={() => window.open('/', '_blank')}
+              onClick={() => window.open(buildFrontendUrl(accommodations[0]), '_blank')}
             >
               <ExternalLink className="h-4 w-4" />
             </Button>
@@ -119,6 +119,8 @@ export function AccommodationSelector() {
     );
   }
 
+  const currentAcc = accommodations.find(a => a.id === currentAccommodationId);
+
   return (
     <div className="flex items-center gap-1.5">
       <TooltipProvider>
@@ -128,7 +130,7 @@ export function AccommodationSelector() {
               variant="ghost" 
               size="icon"
               className="h-9 w-9"
-              onClick={() => window.open('/', '_blank')}
+              onClick={() => window.open(buildFrontendUrl(currentAcc), '_blank')}
             >
               <ExternalLink className="h-4 w-4" />
             </Button>
