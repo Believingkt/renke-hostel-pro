@@ -21,6 +21,29 @@ import {
 interface Accommodation {
   id: string;
   name: string;
+  short_url_alias: string | null;
+  custom_domain: string | null;
+}
+
+function buildFrontendUrl(acc: Accommodation | undefined): string {
+  if (!acc) return "/";
+  if (acc.custom_domain) {
+    return `https://${acc.custom_domain.replace(/^https?:\/\//, "")}/`;
+  }
+  if (acc.short_url_alias) {
+    const host = window.location.hostname.toLowerCase();
+    const isLovablePreview =
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host.includes("lovableproject.com") ||
+      host.includes("lovable.app");
+    if (isLovablePreview) {
+      // 預覽環境用 ?acc= 查詢參數
+      return `${window.location.origin}/?acc=${acc.short_url_alias}`;
+    }
+    return `https://booking.lakeze.com/${acc.short_url_alias}`;
+  }
+  return "/";
 }
 
 export function AccommodationSelector() {
@@ -49,7 +72,7 @@ export function AccommodationSelector() {
 
       const { data, error } = await supabase
         .from('accommodation_info')
-        .select('id, name')
+        .select('id, name, short_url_alias, custom_domain')
         .in('id', accommodationIds);
 
       if (error) throw error;
@@ -83,7 +106,7 @@ export function AccommodationSelector() {
               variant="ghost" 
               size="icon"
               className="h-9 w-9"
-              onClick={() => window.open('/', '_blank')}
+              onClick={() => window.open(buildFrontendUrl(accommodations[0]), '_blank')}
             >
               <ExternalLink className="h-4 w-4" />
             </Button>
@@ -96,6 +119,8 @@ export function AccommodationSelector() {
     );
   }
 
+  const currentAcc = accommodations.find(a => a.id === currentAccommodationId);
+
   return (
     <div className="flex items-center gap-1.5">
       <TooltipProvider>
@@ -105,7 +130,7 @@ export function AccommodationSelector() {
               variant="ghost" 
               size="icon"
               className="h-9 w-9"
-              onClick={() => window.open('/', '_blank')}
+              onClick={() => window.open(buildFrontendUrl(currentAcc), '_blank')}
             >
               <ExternalLink className="h-4 w-4" />
             </Button>
