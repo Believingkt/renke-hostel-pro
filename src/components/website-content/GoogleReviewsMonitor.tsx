@@ -309,7 +309,15 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
         return tb - ta;
       });
     setSelectedKeys(resorted);
-    toast.success("已重置為預設排序(最新優先)");
+    if (autoApplyReset) {
+      // 自動套用到前台,並強制重新載入預覽
+      void saveDisplaySettings({ keysOverride: resorted, silent: true });
+      setShowPreview(true);
+      setPreviewRefreshKey((k) => k + 1);
+      toast.success("已重置並套用至前台");
+    } else {
+      toast.success("已重置為預設排序(最新優先)");
+    }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
