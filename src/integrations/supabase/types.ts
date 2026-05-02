@@ -1055,6 +1055,116 @@ export type Database = {
           },
         ]
       }
+      deposit_card_tokens: {
+        Row: {
+          accommodation_id: string
+          card_expiry: string | null
+          card_key: string
+          card_last_four: string | null
+          card_token: string
+          card_type: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          order_id: string
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          card_expiry?: string | null
+          card_key: string
+          card_last_four?: string | null
+          card_token: string
+          card_type?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          order_id: string
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          card_expiry?: string | null
+          card_key?: string
+          card_last_four?: string | null
+          card_token?: string
+          card_type?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          order_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deposit_card_tokens_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deposit_charges: {
+        Row: {
+          accommodation_id: string
+          action: string
+          amount: number
+          card_token_id: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          order_id: string
+          performed_by: string | null
+          rec_trade_id: string | null
+          status: string
+          trigger_source: string
+        }
+        Insert: {
+          accommodation_id: string
+          action: string
+          amount: number
+          card_token_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          order_id: string
+          performed_by?: string | null
+          rec_trade_id?: string | null
+          status: string
+          trigger_source: string
+        }
+        Update: {
+          accommodation_id?: string
+          action?: string
+          amount?: number
+          card_token_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          order_id?: string
+          performed_by?: string | null
+          rec_trade_id?: string | null
+          status?: string
+          trigger_source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deposit_charges_card_token_id_fkey"
+            columns: ["card_token_id"]
+            isOneToOne: false
+            referencedRelation: "deposit_card_tokens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deposit_charges_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       discount_code_secrets: {
         Row: {
           api_key: string | null
@@ -1651,7 +1761,14 @@ export type Database = {
           custom_addon_details: Json | null
           customer_id: string | null
           deposit_amount: number | null
+          deposit_charged_amount: number
+          deposit_charged_at: string | null
+          deposit_method: string | null
           deposit_payment_method: string | null
+          deposit_refunded_amount: number
+          deposit_refunded_at: string | null
+          deposit_required_amount: number
+          deposit_status: string
           discount_amount: number | null
           discount_code: string | null
           final_price: number
@@ -1697,7 +1814,14 @@ export type Database = {
           custom_addon_details?: Json | null
           customer_id?: string | null
           deposit_amount?: number | null
+          deposit_charged_amount?: number
+          deposit_charged_at?: string | null
+          deposit_method?: string | null
           deposit_payment_method?: string | null
+          deposit_refunded_amount?: number
+          deposit_refunded_at?: string | null
+          deposit_required_amount?: number
+          deposit_status?: string
           discount_amount?: number | null
           discount_code?: string | null
           final_price: number
@@ -1743,7 +1867,14 @@ export type Database = {
           custom_addon_details?: Json | null
           customer_id?: string | null
           deposit_amount?: number | null
+          deposit_charged_amount?: number
+          deposit_charged_at?: string | null
+          deposit_method?: string | null
           deposit_payment_method?: string | null
+          deposit_refunded_amount?: number
+          deposit_refunded_at?: string | null
+          deposit_required_amount?: number
+          deposit_status?: string
           discount_amount?: number | null
           discount_code?: string | null
           final_price?: number
