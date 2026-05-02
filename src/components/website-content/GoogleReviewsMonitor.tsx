@@ -74,6 +74,33 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
   const [timeRange, setTimeRange] = useState<TimeRange>("all");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
 
+  // 欄位顯示切換(持久化)
+  const COLS_KEY = "google-reviews-monitor-cols-v1";
+  const [visibleCols, setVisibleCols] = useState<{
+    author: boolean;
+    photo: boolean;
+    rating: boolean;
+    publishTime: boolean;
+    text: boolean;
+  }>(() => {
+    if (typeof window === "undefined")
+      return { author: true, photo: true, rating: true, publishTime: true, text: true };
+    try {
+      const raw = localStorage.getItem(COLS_KEY);
+      if (raw) return { author: true, photo: true, rating: true, publishTime: true, text: true, ...JSON.parse(raw) };
+    } catch {}
+    return { author: true, photo: true, rating: true, publishTime: true, text: true };
+  });
+  const toggleCol = (k: keyof typeof visibleCols) => {
+    setVisibleCols((prev) => {
+      const next = { ...prev, [k]: !prev[k] };
+      try {
+        localStorage.setItem(COLS_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
+
   const toggleRating = (n: number) => {
     setRatingFilter((prev) => {
       const next = new Set(prev);
