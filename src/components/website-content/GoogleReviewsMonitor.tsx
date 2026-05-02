@@ -778,7 +778,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                     draggable={true}
                     onDragEnd={handleDragEnd}
                   />
-                </>
+                </div>
               );
             })()
           ) : filteredReviews.length === 0 ? (
