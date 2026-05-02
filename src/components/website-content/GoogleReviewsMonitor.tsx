@@ -423,7 +423,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                   Google 評論同步狀態 {statusBadge}
                 </CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">
-                  即時查看快取內容與最近一次更新結果
+                  按下「立即同步」以從 Google 手動抓取最新評論內容
                 </p>
               </div>
             </div>
