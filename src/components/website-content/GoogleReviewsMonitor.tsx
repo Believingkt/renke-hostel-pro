@@ -839,14 +839,6 @@ const SortableReviewCard = ({
     </div>
   );
 };
-        </CardContent>
-      </Card>
-
-      {/* 設定區塊(複用既有元件) */}
-      <GoogleReviewsSettings accommodationId={accommodationId} />
-    </div>
-  );
-};
 
 const StatBox = ({
   label,
