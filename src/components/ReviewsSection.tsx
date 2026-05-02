@@ -82,7 +82,9 @@ const ReviewsSection = ({ accommodationId, customTitle, customSubtitle }: Review
       return { cache: finalCache, displayCount, selectedKeys };
     },
     enabled: !!accommodationId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: "always",
   });
 
   const googleCache = googleData?.cache ?? null;
