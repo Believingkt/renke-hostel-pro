@@ -74,6 +74,33 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
   const [timeRange, setTimeRange] = useState<TimeRange>("all");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
 
+  // 欄位顯示切換(持久化)
+  const COLS_KEY = "google-reviews-monitor-cols-v1";
+  const [visibleCols, setVisibleCols] = useState<{
+    author: boolean;
+    photo: boolean;
+    rating: boolean;
+    publishTime: boolean;
+    text: boolean;
+  }>(() => {
+    if (typeof window === "undefined")
+      return { author: true, photo: true, rating: true, publishTime: true, text: true };
+    try {
+      const raw = localStorage.getItem(COLS_KEY);
+      if (raw) return { author: true, photo: true, rating: true, publishTime: true, text: true, ...JSON.parse(raw) };
+    } catch {}
+    return { author: true, photo: true, rating: true, publishTime: true, text: true };
+  });
+  const toggleCol = (k: keyof typeof visibleCols) => {
+    setVisibleCols((prev) => {
+      const next = { ...prev, [k]: !prev[k] };
+      try {
+        localStorage.setItem(COLS_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
+
   const toggleRating = (n: number) => {
     setRatingFilter((prev) => {
       const next = new Set(prev);
@@ -460,6 +487,32 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
             </div>
           )}
 
+          {/* 欄位顯示切換 */}
+          {totalCount > 0 && (
+            <div className="flex flex-wrap items-center gap-2 px-1">
+              <span className="text-xs text-muted-foreground mr-1">
+                顯示欄位:
+              </span>
+              {([
+                ["author", "作者"],
+                ["photo", "頭像"],
+                ["rating", "評分"],
+                ["publishTime", "發布時間"],
+                ["text", "文字內容"],
+              ] as const).map(([key, label]) => (
+                <Toggle
+                  key={key}
+                  pressed={visibleCols[key]}
+                  onPressedChange={() => toggleCol(key)}
+                  size="sm"
+                  className="h-7 px-2 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                >
+                  {label}
+                </Toggle>
+              ))}
+            </div>
+          )}
+
           {!cache?.reviews?.length ? (
             <div className="text-center py-10 text-muted-foreground text-sm">
               {placeId
@@ -472,60 +525,73 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
             </div>
           ) : (
             <div className="space-y-3">
-              {filteredReviews.map((rv, i) => (
-                <div
-                  key={i}
-                  className="rounded-lg border p-4 space-y-2 bg-background"
-                >
-                  <div className="flex items-start justify-between gap-3 flex-wrap">
-                    <div className="flex items-center gap-2">
-                      {rv.authorPhoto && (
-                        <img
-                          src={rv.authorPhoto}
-                          alt={rv.authorName}
-                          className="h-8 w-8 rounded-full object-cover"
-                          referrerPolicy="no-referrer"
-                        />
-                      )}
-                      <div>
-                        <div className="font-medium text-sm">
-                          {rv.authorName}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {[1, 2, 3, 4, 5].map((s) => (
-                            <Star
-                              key={s}
-                              className={`h-3.5 w-3.5 ${
-                                s <= Math.round(rv.rating)
-                                  ? "fill-primary text-primary"
-                                  : "text-muted-foreground/30"
-                              }`}
+              {filteredReviews.map((rv, i) => {
+                const showHeader =
+                  visibleCols.author || visibleCols.photo || visibleCols.rating || visibleCols.publishTime;
+                return (
+                  <div
+                    key={i}
+                    className="rounded-lg border p-4 space-y-2 bg-background"
+                  >
+                    {showHeader && (
+                      <div className="flex items-start justify-between gap-3 flex-wrap">
+                        <div className="flex items-center gap-2">
+                          {visibleCols.photo && rv.authorPhoto && (
+                            <img
+                              src={rv.authorPhoto}
+                              alt={rv.authorName}
+                              className="h-8 w-8 rounded-full object-cover"
+                              referrerPolicy="no-referrer"
                             />
-                          ))}
-                          {rv.relativeTime && (
-                            <span className="text-xs text-muted-foreground ml-2">
-                              {rv.relativeTime}
-                            </span>
                           )}
+                          <div>
+                            {visibleCols.author && (
+                              <div className="font-medium text-sm">
+                                {rv.authorName}
+                              </div>
+                            )}
+                            {(visibleCols.rating || visibleCols.publishTime) && (
+                              <div className="flex items-center gap-1">
+                                {visibleCols.rating &&
+                                  [1, 2, 3, 4, 5].map((s) => (
+                                    <Star
+                                      key={s}
+                                      className={`h-3.5 w-3.5 ${
+                                        s <= Math.round(rv.rating)
+                                          ? "fill-primary text-primary"
+                                          : "text-muted-foreground/30"
+                                      }`}
+                                    />
+                                  ))}
+                                {visibleCols.publishTime && rv.relativeTime && (
+                                  <span className="text-xs text-muted-foreground ml-2">
+                                    {rv.relativeTime}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
+                        {visibleCols.author && rv.authorUrl && (
+                          <a
+                            href={rv.authorUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+                          >
+                            Google 個人檔案 <ExternalLink className="h-3 w-3" />
+                          </a>
+                        )}
                       </div>
-                    </div>
-                    {rv.authorUrl && (
-                      <a
-                        href={rv.authorUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs text-primary hover:underline inline-flex items-center gap-1"
-                      >
-                        Google 個人檔案 <ExternalLink className="h-3 w-3" />
-                      </a>
+                    )}
+                    {visibleCols.text && (
+                      <p className="text-sm whitespace-pre-wrap text-foreground/90">
+                        {rv.text || <em className="text-muted-foreground">(無文字內容)</em>}
+                      </p>
                     )}
                   </div>
-                  <p className="text-sm whitespace-pre-wrap text-foreground/90">
-                    {rv.text || <em className="text-muted-foreground">(無文字內容)</em>}
-                  </p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
