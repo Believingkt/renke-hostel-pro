@@ -163,10 +163,10 @@ const ReviewsSection = ({ accommodationId, customTitle, customSubtitle }: Review
 
   if (items.length === 0) return null;
 
-  const averageRating = useGoogle && googleData?.rating != null
-    ? googleData.rating.toFixed(1)
+  const averageRating = useGoogle && googleCache?.rating != null
+    ? googleCache.rating.toFixed(1)
     : (items.reduce((s, r) => s + r.rating, 0) / items.length).toFixed(1);
-  const totalCount = useGoogle ? (googleData?.totalReviews ?? items.length) : items.length;
+  const totalCount = useGoogle ? (googleCache?.totalReviews ?? items.length) : items.length;
 
   return (
     <section id="reviews" className="py-12 md:py-16 lg:py-20 bg-secondary/20">
@@ -199,9 +199,9 @@ const ReviewsSection = ({ accommodationId, customTitle, customSubtitle }: Review
             <p className="text-sm md:text-sm lg:text-base text-muted-foreground">
               來自 {totalCount} 則{useGoogle ? ' Google ' : ''}評論
             </p>
-            {useGoogle && googleData?.googleMapsUri && (
+            {useGoogle && googleCache?.googleMapsUri && (
               <a
-                href={googleData.googleMapsUri}
+                href={googleCache.googleMapsUri}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-2"
