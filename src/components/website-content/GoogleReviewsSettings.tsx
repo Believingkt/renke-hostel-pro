@@ -3,13 +3,32 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Star, RefreshCw, ExternalLink } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Star, RefreshCw, ExternalLink, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface Props {
   accommodationId: string;
 }
+
+const INTERVAL_OPTIONS: Array<{ value: number; label: string }> = [
+  { value: 1, label: "每 1 小時" },
+  { value: 3, label: "每 3 小時" },
+  { value: 6, label: "每 6 小時" },
+  { value: 12, label: "每 12 小時" },
+  { value: 24, label: "每 24 小時(每天)" },
+  { value: 48, label: "每 2 天" },
+  { value: 72, label: "每 3 天" },
+  { value: 168, label: "每 7 天" },
+];
 
 interface CachedReviews {
   placeId: string;
