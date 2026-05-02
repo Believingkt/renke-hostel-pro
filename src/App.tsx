@@ -79,6 +79,7 @@ const DataBackup = lazy(() => import("./pages/DataBackup"));
 const EmailTest = lazy(() => import("./pages/EmailTest"));
 const Settlement = lazy(() => import("./pages/Settlement"));
 const Analytics = lazy(() => import("./pages/Analytics"));
+const Reception = lazy(() => import("./pages/Reception"));
 
 function App() {
   return (
@@ -309,6 +310,11 @@ function App() {
                     <Route path="admin/analytics" element={
                       <RequireModule module="analytics">
                         <Suspense fallback={<DashboardSkeleton />}><Analytics /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/reception" element={
+                      <RequireModule module="reception">
+                        <Suspense fallback={<DashboardSkeleton />}><Reception /></Suspense>
                       </RequireModule>
                     } />
 
