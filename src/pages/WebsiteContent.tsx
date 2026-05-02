@@ -3093,6 +3093,11 @@ const WebsiteContent = () => {
             uploadingFooterLogo={uploadingFooterLogo}
           />
 
+          {/* Google 評論串接 */}
+          {accommodationId && (
+            <GoogleReviewsSettings accommodationId={accommodationId} />
+          )}
+
           {/* 自訂圖片區塊 */}
           {accommodationId && (
             <CustomSectionsManager
