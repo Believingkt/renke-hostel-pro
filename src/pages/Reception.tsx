@@ -94,6 +94,24 @@ export default function Reception() {
   const [sortKey, setSortKey] = useState<SortKey>("order_number");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [refreshing, setRefreshing] = useState(false);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
+  const [nowTick, setNowTick] = useState(0);
+
+  // Re-render every 30s so relative timestamp stays fresh
+  useEffect(() => {
+    const id = setInterval(() => setNowTick((n) => n + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const formatRelative = (d: Date) => {
+    void nowTick;
+    const diff = Math.floor((Date.now() - d.getTime()) / 1000);
+    if (diff < 10) return "剛剛";
+    if (diff < 60) return `${diff} 秒前`;
+    if (diff < 3600) return `${Math.floor(diff / 60)} 分鐘前`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)} 小時前`;
+    return format(d, "yyyy-MM-dd HH:mm");
+  };
 
   const today = todayStr();
 
