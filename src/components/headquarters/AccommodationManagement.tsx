@@ -855,6 +855,19 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
         isEditing={!!editingAccommodation}
       />
 
+      {/* Google Reviews Dialog */}
+      <Dialog open={!!googleReviewsAcc} onOpenChange={(o) => !o && setGoogleReviewsAcc(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Google 評論設定 — {googleReviewsAcc?.name}</DialogTitle>
+            <DialogDescription>設定 Google Place ID 並同步最新評論到前台</DialogDescription>
+          </DialogHeader>
+          {googleReviewsAcc && (
+            <GoogleReviewsSettings accommodationId={googleReviewsAcc.id} />
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Toggle Active Dialog */}
       <AlertDialog open={toggleDialogOpen} onOpenChange={setToggleDialogOpen}>
         <AlertDialogContent>
