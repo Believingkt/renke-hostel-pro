@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -121,6 +121,23 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
     setAutoApplyReset(next);
     try {
       localStorage.setItem(AUTO_APPLY_RESET_KEY, next ? "1" : "0");
+    } catch {}
+  };
+
+  // 拖曳排序後是否自動套用至前台
+  const AUTO_APPLY_DRAG_KEY = "google-reviews-auto-apply-drag-v1";
+  const [autoApplyDrag, setAutoApplyDrag] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return localStorage.getItem(AUTO_APPLY_DRAG_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const toggleAutoApplyDrag = (next: boolean) => {
+    setAutoApplyDrag(next);
+    try {
+      localStorage.setItem(AUTO_APPLY_DRAG_KEY, next ? "1" : "0");
     } catch {}
   };
 
@@ -338,16 +355,64 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
     });
   };
 
+  // 拖曳自動套用:debounce 600ms,避免連續拖曳轟炸 DB
+  const dragAutoApplyTimerRef = useRef<number | null>(null);
+  const dragAutoApplyToastIdRef = useRef<string | number | null>(null);
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
+    let nextKeys: string[] | null = null;
     setSelectedKeys((prev) => {
       const oldIndex = prev.indexOf(String(active.id));
       const newIndex = prev.indexOf(String(over.id));
       if (oldIndex === -1 || newIndex === -1) return prev;
-      return arrayMove(prev, oldIndex, newIndex);
+      const moved = arrayMove(prev, oldIndex, newIndex);
+      nextKeys = moved;
+      return moved;
     });
+
+    if (!autoApplyDrag || !nextKeys) return;
+
+    // 立刻刷新預覽,DB 寫入則 debounce
+    setShowPreview(true);
+    setPreviewRefreshKey((k) => k + 1);
+
+    if (dragAutoApplyTimerRef.current) {
+      window.clearTimeout(dragAutoApplyTimerRef.current);
+    }
+    if (!dragAutoApplyToastIdRef.current) {
+      dragAutoApplyToastIdRef.current = toast.loading("排序變更中...");
+    }
+    const keysToSave = nextKeys;
+    dragAutoApplyTimerRef.current = window.setTimeout(async () => {
+      const result = await saveDisplaySettings({
+        keysOverride: keysToSave,
+        silent: true,
+      });
+      const tid = dragAutoApplyToastIdRef.current ?? undefined;
+      dragAutoApplyToastIdRef.current = null;
+      if (result.ok) {
+        toast.success("排序已自動套用至前台", { id: tid });
+      } else {
+        const errMsg = "error" in result ? result.error : "未知錯誤";
+        toast.error(`套用失敗:${errMsg}`, {
+          id: tid,
+          description: "前台尚未更新,請重試或手動點擊「套用至前台」",
+          duration: 8000,
+        });
+      }
+    }, 600);
   };
+
+  useEffect(() => {
+    return () => {
+      if (dragAutoApplyTimerRef.current) {
+        window.clearTimeout(dragAutoApplyTimerRef.current);
+      }
+    };
+  }, []);
+
 
   const saveDisplaySettings = async (
     opts?: { keysOverride?: string[]; countOverride?: number; silent?: boolean }
@@ -664,6 +729,16 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                     onCheckedChange={(v) => toggleAutoApplyReset(v === true)}
                   />
                   重置後自動套用至前台
+                </label>
+                <label
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none px-1"
+                  title="勾選後,拖曳調整順序會自動儲存(0.6 秒後)並重新載入前台預覽"
+                >
+                  <Checkbox
+                    checked={autoApplyDrag}
+                    onCheckedChange={(v) => toggleAutoApplyDrag(v === true)}
+                  />
+                  拖曳後自動套用至前台
                 </label>
                 <Button
                   type="button"
