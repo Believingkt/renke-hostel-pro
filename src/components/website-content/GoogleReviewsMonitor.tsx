@@ -85,7 +85,7 @@ interface Props {
   accommodationId: string | null;
 }
 
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
 
 export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
   const [loading, setLoading] = useState(true);
