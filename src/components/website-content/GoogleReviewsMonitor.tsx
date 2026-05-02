@@ -498,12 +498,85 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                 目前快取的評論內容
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                這些就是前台「旅客評價」區會顯示的資料
+                勾選你想顯示在前台的評論,設定數量後按「套用至前台」
               </p>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* 前台顯示控制 */}
+          {totalCount > 0 && (
+            <div className="rounded-lg border bg-primary/5 p-4 space-y-3">
+              <div className="flex items-start gap-2">
+                <Eye className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm">前台顯示設定</div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {selectedKeys.length === 0
+                      ? "未精選任何評論時,前台會自動依「最新優先」顯示前 N 則"
+                      : `已精選 ${selectedKeys.length} 則(可拖曳調整順序),前台依此順序顯示`}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">顯示</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={displayCount}
+                    onChange={(e) => {
+                      const n = parseInt(e.target.value, 10);
+                      if (Number.isFinite(n)) setDisplayCount(n);
+                      else setDisplayCount(1);
+                    }}
+                    onBlur={() => {
+                      const n = Math.max(1, Math.min(50, Math.round(displayCount || 1)));
+                      setDisplayCount(n);
+                    }}
+                    className="h-9 w-20 text-center"
+                  />
+                  <span className="text-xs text-muted-foreground">則 (1~50)</span>
+                </div>
+                <div className="flex-1" />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={selectAllVisible}
+                  disabled={filteredReviews.length === 0}
+                >
+                  全選目前可見
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearSelection}
+                  disabled={selectedKeys.length === 0}
+                >
+                  清除精選
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={saveDisplaySettings}
+                  disabled={savingDisplay || !dirty}
+                  className="gap-1"
+                >
+                  <Save className="h-3.5 w-3.5" />
+                  {savingDisplay ? "儲存中..." : "套用至前台"}
+                </Button>
+              </div>
+              {dirty && (
+                <p className="text-xs text-amber-600">
+                  有未儲存的變更
+                </p>
+              )}
+            </div>
+          )}
+
           {/* 篩選列 */}
           {totalCount > 0 && (
             <div className="rounded-lg border bg-muted/20 p-3 space-y-3">
