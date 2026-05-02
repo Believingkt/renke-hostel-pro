@@ -292,12 +292,13 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
   const clearSelection = () => setSelectedKeys([]);
 
   // 將已勾選評論依「最新發佈時間」重新排序(預設順序),並即時套用到前台預覽
-  const resetCustomOrder = () => {
+  const resetCustomOrder = async () => {
     const all = cache?.reviews ?? [];
     if (selectedKeys.length === 0) {
       toast.info("目前沒有自訂順序可重置");
       return;
     }
+    const previousKeys = [...selectedKeys];
     const map = new Map(all.map((r) => [reviewKey(r), r]));
     const resorted = [...selectedKeys]
       .filter((k) => map.has(k))
@@ -309,15 +310,32 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
         return tb - ta;
       });
     setSelectedKeys(resorted);
-    if (autoApplyReset) {
-      // 自動套用到前台,並強制重新載入預覽
-      void saveDisplaySettings({ keysOverride: resorted, silent: true });
-      setShowPreview(true);
-      setPreviewRefreshKey((k) => k + 1);
-      toast.success("已重置並套用至前台");
-    } else {
+
+    if (!autoApplyReset) {
       toast.success("已重置為預設排序(最新優先)");
+      return;
     }
+
+    // 自動套用流程:先顯示 loading,等寫入成功才回報成功
+    setShowPreview(true);
+    setPreviewRefreshKey((k) => k + 1);
+    const toastId = toast.loading("正在重置並套用至前台...");
+    const result = await saveDisplaySettings({
+      keysOverride: resorted,
+      silent: true,
+    });
+    if (result.ok) {
+      toast.success("已重置並套用至前台", { id: toastId });
+      return;
+    }
+    // 失敗時保留剛才的預覽排序(不還原 UI),但提示錯誤;
+    // savedSelectedKeys 維持舊值,使用者可重試或手動套用
+    const errMsg = "error" in result ? result.error : "未知錯誤";
+    toast.error(`套用失敗:${errMsg}`, {
+      id: toastId,
+      description: "前台尚未更新,請重試或手動點擊「套用至前台」",
+      duration: 8000,
+    });
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -333,8 +351,8 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
 
   const saveDisplaySettings = async (
     opts?: { keysOverride?: string[]; countOverride?: number; silent?: boolean }
-  ) => {
-    if (!accommodationId) return;
+  ): Promise<{ ok: true } | { ok: false; error: string }> => {
+    if (!accommodationId) return { ok: false, error: "尚未選擇民宿" };
     const count = Math.max(
       1,
       Math.min(50, Math.round(opts?.countOverride ?? displayCount ?? 1))
@@ -348,15 +366,16 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
         google_reviews_selected_keys: keys,
       } as any)
       .eq("id", accommodationId);
-    if (error) {
-      toast.error("儲存失敗:" + error.message);
-    } else {
-      setSavedDisplayCount(count);
-      setSavedSelectedKeys([...keys]);
-      setDisplayCount(count);
-      if (!opts?.silent) toast.success("已套用至前台");
-    }
     setSavingDisplay(false);
+    if (error) {
+      if (!opts?.silent) toast.error("儲存失敗:" + error.message);
+      return { ok: false, error: error.message };
+    }
+    setSavedDisplayCount(count);
+    setSavedSelectedKeys([...keys]);
+    setDisplayCount(count);
+    if (!opts?.silent) toast.success("已套用至前台");
+    return { ok: true };
   };
 
   const dirty =
