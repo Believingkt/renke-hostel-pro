@@ -544,6 +544,16 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                 <div className="flex-1" />
                 <Button
                   type="button"
+                  variant={showPreview ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setShowPreview((v) => !v)}
+                  className="gap-1"
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                  {showPreview ? "隱藏前台預覽" : "前台預覽"}
+                </Button>
+                <Button
+                  type="button"
                   variant="outline"
                   size="sm"
                   onClick={selectAllVisible}
