@@ -57,6 +57,7 @@ import lokezeLogo from "@/assets/lokeze-logo.png";
 
 const menuItems = [
   { title: "營運分析", url: "/admin", icon: BarChart3, moduleKey: "analytics" },
+  { title: "櫃檯接待", url: "/admin/reception", icon: ConciergeBell, moduleKey: "reception" },
   { 
     title: "訂單資訊", 
     url: "/admin/orders", 
