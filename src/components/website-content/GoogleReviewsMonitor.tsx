@@ -403,11 +403,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
         <Clock className="h-3 w-3" /> 快取已過期
       </Badge>
     ),
-    fresh: (
-      <Badge className="gap-1 bg-emerald-600 hover:bg-emerald-600">
-        <CheckCircle2 className="h-3 w-3" /> 快取新鮮
-      </Badge>
-    ),
+    fresh: null,
   }[status];
 
   const formatAge = (ms: number) => {
@@ -432,7 +428,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                   Google 評論同步狀態 {statusBadge}
                 </CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">
-                  即時查看 Place ID、快取內容與最近一次更新結果
+                  即時查看快取內容與最近一次更新結果
                 </p>
               </div>
             </div>
@@ -450,12 +446,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <StatBox
-              label="Place ID"
-              value={placeId || "—"}
-              mono
-            />
+          <div className="grid sm:grid-cols-3 gap-3">
             <StatBox
               label="星等"
               value={
