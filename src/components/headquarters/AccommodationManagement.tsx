@@ -46,6 +46,7 @@ import { Building2, Plus, Pencil, Power, PowerOff, Loader2, ExternalLink, Copy, 
 import { EmptyState } from "@/components/EmptyState";
 import { AccommodationDialog } from "./AccommodationDialog";
 import { DraggableAccommodationRow } from "./DraggableAccommodationRow";
+import { GoogleReviewsSettings } from "@/components/website-content/GoogleReviewsSettings";
 import { AccommodationHoverCard } from "./AccommodationHoverCard";
 import { THEME_COLORS } from "@/constants/themes";
 import { useAuditLog } from "@/hooks/use-audit-log";
@@ -109,6 +110,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
   const [toggleDialogOpen, setToggleDialogOpen] = useState(false);
   const [togglingAccommodation, setTogglingAccommodation] = useState<Accommodation | null>(null);
   const [isToggling, setIsToggling] = useState(false);
+  const [googleReviewsAcc, setGoogleReviewsAcc] = useState<Accommodation | null>(null);
   
   // Clone states
   const [cloneDialogOpen, setCloneDialogOpen] = useState(false);
@@ -828,6 +830,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
                           onClone={openCloneDialog}
                           onToggle={openToggleDialog}
                           onDelete={openDeleteDialog}
+                          onGoogleReviews={(a) => setGoogleReviewsAcc(a)}
                           isDragDisabled={isDragDisabled}
                         />
                       ))}
@@ -851,6 +854,19 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
         initialData={editingAccommodation || undefined}
         isEditing={!!editingAccommodation}
       />
+
+      {/* Google Reviews Dialog */}
+      <Dialog open={!!googleReviewsAcc} onOpenChange={(o) => !o && setGoogleReviewsAcc(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Google 評論設定 — {googleReviewsAcc?.name}</DialogTitle>
+            <DialogDescription>設定 Google Place ID 並同步最新評論到前台</DialogDescription>
+          </DialogHeader>
+          {googleReviewsAcc && (
+            <GoogleReviewsSettings accommodationId={googleReviewsAcc.id} />
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Toggle Active Dialog */}
       <AlertDialog open={toggleDialogOpen} onOpenChange={setToggleDialogOpen}>

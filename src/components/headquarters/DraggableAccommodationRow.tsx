@@ -5,7 +5,7 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { GripVertical, Pencil, Copy, Check, Power, PowerOff, Trash2 } from "lucide-react";
+import { GripVertical, Pencil, Copy, Check, Power, PowerOff, Trash2, Star } from "lucide-react";
 
 import { AccommodationHoverCard } from "./AccommodationHoverCard";
 import { toast } from "sonner";
@@ -36,6 +36,7 @@ interface DraggableAccommodationRowProps {
   onClone: (acc: Accommodation) => void;
   onToggle: (acc: Accommodation) => void;
   onDelete: (acc: Accommodation) => void;
+  onGoogleReviews?: (acc: Accommodation) => void;
   isDragDisabled?: boolean;
 }
 
@@ -45,6 +46,7 @@ export function DraggableAccommodationRow({
   onClone,
   onToggle,
   onDelete,
+  onGoogleReviews,
   isDragDisabled = false,
 }: DraggableAccommodationRowProps) {
   const {
@@ -184,6 +186,16 @@ export function DraggableAccommodationRow({
           >
             <Copy className="h-4 w-4" />
           </Button>
+          {onGoogleReviews && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onGoogleReviews(accommodation)}
+              title="Google 評論設定"
+            >
+              <Star className="h-4 w-4" />
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon"

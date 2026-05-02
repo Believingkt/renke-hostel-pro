@@ -1,4 +1,4 @@
-import { Star, MessageCircle } from "lucide-react";
+import { Star, ExternalLink } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -8,7 +8,7 @@ interface ReviewsSectionProps {
   customSubtitle?: string;
 }
 
-interface Review {
+interface LocalReview {
   id: string;
   reviewer_name: string;
   review_date: string;
@@ -16,68 +16,131 @@ interface Review {
   comment: string;
 }
 
+interface GoogleReviewItem {
+  rating: number;
+  text: string;
+  authorName: string;
+  authorPhoto?: string | null;
+  authorUrl?: string | null;
+  publishTime?: string | null;
+  relativeTime?: string | null;
+}
+
+interface GoogleCache {
+  placeId: string;
+  name?: string;
+  rating?: number | null;
+  totalReviews?: number;
+  googleMapsUri?: string;
+  reviews?: GoogleReviewItem[];
+}
+
+const STALE_MS = 24 * 60 * 60 * 1000; // 24h
+
 const ReviewsSection = ({ accommodationId, customTitle, customSubtitle }: ReviewsSectionProps) => {
-  const { data: reviews = [], isLoading } = useQuery({
+  // 1. 先讀 accommodation_info 的 Google 評論快取
+  const { data: googleData } = useQuery({
+    queryKey: ['google-reviews', accommodationId],
+    queryFn: async () => {
+      if (!accommodationId) return null;
+      const { data } = await supabase
+        .from('accommodation_info')
+        .select('google_place_id, google_reviews_cache, google_reviews_cached_at')
+        .eq('id', accommodationId)
+        .maybeSingle();
+
+      if (!data?.google_place_id) return null;
+
+      const cache = (data.google_reviews_cache as unknown as GoogleCache) || null;
+      const cachedAt = data.google_reviews_cached_at
+        ? new Date(data.google_reviews_cached_at).getTime()
+        : 0;
+
+      const isStale = !cache || Date.now() - cachedAt > STALE_MS;
+
+      // 過期就背景觸發 refresh,但仍先回傳當前快取(若有)避免閃爍
+      if (isStale) {
+        try {
+          const { data: refreshed } = await supabase.functions.invoke(
+            'fetch-google-reviews',
+            { body: { accommodationId, force: false } }
+          );
+          if (refreshed?.data) {
+            return refreshed.data as GoogleCache;
+          }
+        } catch (err) {
+          if (import.meta.env.DEV) console.warn('Google reviews refresh failed', err);
+        }
+      }
+
+      return cache;
+    },
+    enabled: !!accommodationId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // 2. 沒有 Google 評論時回退到本地 reviews 表
+  const { data: localReviews = [] } = useQuery({
     queryKey: ['reviews', accommodationId],
     queryFn: async () => {
       if (!accommodationId) return [];
-      
       const { data, error } = await supabase
         .from('reviews')
         .select('id, reviewer_name, review_date, rating, comment')
         .eq('accommodation_id', accommodationId)
         .eq('is_published', true)
         .order('display_order', { ascending: true });
-
-      if (error) {
-        console.error('Error fetching reviews:', error);
-        return [];
-      }
-
-      return data as Review[];
+      if (error) return [];
+      return data as LocalReview[];
     },
-    enabled: !!accommodationId,
+    enabled: !!accommodationId && !googleData?.reviews?.length,
   });
 
-  // 計算平均評分
-  const averageRating = reviews.length > 0
-    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
-    : "0";
-  const totalReviews = reviews.length;
+  const useGoogle = !!googleData?.reviews?.length;
+  const items: Array<{
+    id: string;
+    name: string;
+    date: string;
+    rating: number;
+    comment: string;
+    photo?: string | null;
+    authorUrl?: string | null;
+  }> = useGoogle
+    ? googleData!.reviews!.map((r, i) => ({
+        id: `g-${i}`,
+        name: r.authorName,
+        date: r.relativeTime || (r.publishTime ? new Date(r.publishTime).toLocaleDateString('zh-TW') : ''),
+        rating: r.rating,
+        comment: r.text,
+        photo: r.authorPhoto,
+        authorUrl: r.authorUrl,
+      }))
+    : localReviews.map((r) => ({
+        id: r.id,
+        name: r.reviewer_name,
+        date: r.review_date,
+        rating: r.rating,
+        comment: r.comment,
+      }));
 
-  if (isLoading) {
-    return (
-      <section className="py-12 md:py-16 lg:py-20 bg-secondary/20">
-        <div className="container mx-auto px-4 md:px-6">
-          <div className="max-w-6xl mx-auto animate-pulse">
-            <div className="h-8 bg-muted rounded w-48 mx-auto mb-4"></div>
-            <div className="h-4 bg-muted rounded w-64 mx-auto mb-12"></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="bg-card p-6 rounded-lg border">
-                  <div className="h-6 bg-muted rounded w-24 mb-2"></div>
-                  <div className="h-4 bg-muted rounded w-full"></div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-    );
-  }
+  if (items.length === 0) return null;
 
-  // 沒有資料時直接隱藏
-  if (reviews.length === 0) {
-    return null;
-  }
+  const averageRating = useGoogle && googleData?.rating != null
+    ? googleData.rating.toFixed(1)
+    : (items.reduce((s, r) => s + r.rating, 0) / items.length).toFixed(1);
+  const totalCount = useGoogle ? (googleData?.totalReviews ?? items.length) : items.length;
 
   return (
     <section id="reviews" className="py-12 md:py-16 lg:py-20 bg-secondary/20">
       <div className="container mx-auto px-4 md:px-6">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-3 lg:mb-4">{customTitle || '旅客評價'}</h2>
-          <p className="text-center text-muted-foreground text-base md:text-base lg:text-lg mb-8 md:mb-12 lg:mb-16 max-w-3xl mx-auto">{customSubtitle || '來自真實旅客的住宿體驗分享'}</p>
-          
+          <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-3 lg:mb-4">
+            {customTitle || (useGoogle ? 'Google 評論' : '旅客評價')}
+          </h2>
+          <p className="text-center text-muted-foreground text-base md:text-base lg:text-lg mb-8 md:mb-12 lg:mb-16 max-w-3xl mx-auto">
+            {customSubtitle || '來自真實旅客的住宿體驗分享'}
+          </p>
+
           {/* Rating Summary */}
           <div className="text-center mb-6 md:mb-7 lg:mb-8">
             <div className="flex items-center justify-center gap-2 md:gap-3 mb-2">
@@ -86,43 +149,83 @@ const ReviewsSection = ({ accommodationId, customTitle, customSubtitle }: Review
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star
                     key={star}
-                    className="w-6 h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 fill-primary text-primary"
+                    className={`w-6 h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 ${
+                      star <= Math.round(parseFloat(averageRating))
+                        ? 'fill-primary text-primary'
+                        : 'text-muted-foreground/30'
+                    }`}
                   />
                 ))}
               </div>
             </div>
-            <p className="text-sm md:text-sm lg:text-base text-muted-foreground">來自 {totalReviews} 則評論</p>
+            <p className="text-sm md:text-sm lg:text-base text-muted-foreground">
+              來自 {totalCount} 則{useGoogle ? ' Google ' : ''}評論
+            </p>
+            {useGoogle && googleData?.googleMapsUri && (
+              <a
+                href={googleData.googleMapsUri}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-2"
+              >
+                在 Google 地圖查看全部 <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            )}
           </div>
 
-          {/* Reviews Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 lg:gap-6">
-            {reviews.map((review) => (
+            {items.map((review) => (
               <div
                 key={review.id}
                 className="bg-card p-5 md:p-6 lg:p-6 rounded-lg border border-border/50 hover:shadow-lg transition-all duration-300"
               >
-                <div className="flex items-start justify-between mb-3 md:mb-3 lg:mb-4">
-                  <div>
-                    <h3 className="font-semibold text-base md:text-base lg:text-lg">{review.reviewer_name}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{review.review_date}</p>
+                <div className="flex items-start justify-between mb-3 md:mb-3 lg:mb-4 gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    {review.photo ? (
+                      <img
+                        src={review.photo}
+                        alt={review.name}
+                        className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-semibold flex-shrink-0">
+                        {review.name.charAt(0)}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-base md:text-base lg:text-lg truncate">{review.name}</h3>
+                      {review.date && (
+                        <p className="text-sm text-muted-foreground mt-0.5">{review.date}</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex gap-0.5">
+                  <div className="flex gap-0.5 flex-shrink-0">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Star
                         key={star}
                         className={`w-4 h-4 md:w-4 md:h-4 lg:w-5 lg:h-5 ${
                           star <= review.rating
-                            ? "fill-primary text-primary"
-                            : "fill-muted text-muted"
+                            ? 'fill-primary text-primary'
+                            : 'fill-muted text-muted'
                         }`}
                       />
                     ))}
                   </div>
                 </div>
-                <p className="text-sm md:text-sm lg:text-base text-foreground leading-relaxed">{review.comment}</p>
+                <p className="text-sm md:text-sm lg:text-base text-foreground leading-relaxed whitespace-pre-line line-clamp-6">
+                  {review.comment}
+                </p>
               </div>
             ))}
           </div>
+
+          {useGoogle && (
+            <p className="text-center text-xs text-muted-foreground mt-6">
+              評論資料由 Google 提供
+            </p>
+          )}
         </div>
       </div>
     </section>

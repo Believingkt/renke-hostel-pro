@@ -193,6 +193,9 @@ export type Database = {
           email: string | null
           facebook_url: string | null
           footer_logo_url: string | null
+          google_place_id: string | null
+          google_reviews_cache: Json | null
+          google_reviews_cached_at: string | null
           header_logo_url: string | null
           hero_autoplay_delay: number | null
           hero_description: string | null
@@ -249,6 +252,9 @@ export type Database = {
           email?: string | null
           facebook_url?: string | null
           footer_logo_url?: string | null
+          google_place_id?: string | null
+          google_reviews_cache?: Json | null
+          google_reviews_cached_at?: string | null
           header_logo_url?: string | null
           hero_autoplay_delay?: number | null
           hero_description?: string | null
@@ -305,6 +311,9 @@ export type Database = {
           email?: string | null
           facebook_url?: string | null
           footer_logo_url?: string | null
+          google_place_id?: string | null
+          google_reviews_cache?: Json | null
+          google_reviews_cached_at?: string | null
           header_logo_url?: string | null
           hero_autoplay_delay?: number | null
           hero_description?: string | null
