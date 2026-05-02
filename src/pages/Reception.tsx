@@ -94,6 +94,24 @@ export default function Reception() {
   const [sortKey, setSortKey] = useState<SortKey>("order_number");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [refreshing, setRefreshing] = useState(false);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
+  const [nowTick, setNowTick] = useState(0);
+
+  // Re-render every 30s so relative timestamp stays fresh
+  useEffect(() => {
+    const id = setInterval(() => setNowTick((n) => n + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const formatRelative = (d: Date) => {
+    void nowTick;
+    const diff = Math.floor((Date.now() - d.getTime()) / 1000);
+    if (diff < 10) return "剛剛";
+    if (diff < 60) return `${diff} 秒前`;
+    if (diff < 3600) return `${Math.floor(diff / 60)} 分鐘前`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)} 小時前`;
+    return format(d, "yyyy-MM-dd HH:mm");
+  };
 
   const today = todayStr();
 
@@ -211,6 +229,7 @@ export default function Reception() {
         .order("order_number", { ascending: true });
       if (error) throw error;
       setOrders((data ?? []) as unknown as ReceptionOrder[]);
+      setLastRefreshedAt(new Date());
     } catch (err: any) {
       toast({ title: "載入失敗", description: err.message, variant: "destructive" });
     } finally {
@@ -339,17 +358,24 @@ export default function Reception() {
             >
               <LogOut className="h-4 w-4" /> 退房
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="gap-2 ml-auto"
-              aria-label="重新整理"
-            >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-              重新整理
-            </Button>
+            <div className="ml-auto flex items-center gap-2">
+              {lastRefreshedAt && (
+                <span className="text-xs text-muted-foreground" title={format(lastRefreshedAt, "yyyy-MM-dd HH:mm:ss")}>
+                  最後更新：{formatRelative(lastRefreshedAt)}
+                </span>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="gap-2"
+                aria-label="重新整理"
+              >
+                <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                重新整理
+              </Button>
+            </div>
           </div>
         </CardHeader>
 
