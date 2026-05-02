@@ -745,6 +745,42 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                 ? "目前沒有快取資料,請按上方「立即同步」"
                 : "尚未設定 Google Place ID"}
             </div>
+          ) : sortBy === "custom" ? (
+            (() => {
+              // 自訂順序模式:依 selectedKeys 順序顯示已勾選評論,拖曳即時改變順序
+              const map = new Map(
+                (cache?.reviews || []).map((r) => [reviewKey(r), r])
+              );
+              const orderedSelected = selectedKeys
+                .map((k) => map.get(k))
+                .filter(Boolean) as CachedReview[];
+              if (orderedSelected.length === 0) {
+                return (
+                  <div className="text-center py-10 text-muted-foreground text-sm space-y-2">
+                    <p>自訂順序模式下,僅顯示已勾選的評論。</p>
+                    <p className="text-xs">
+                      請先切換回其他排序方式勾選評論,再回到此模式拖曳排序。
+                    </p>
+                  </div>
+                );
+              }
+              return (
+                <>
+                  <div className="rounded-md bg-primary/5 border border-primary/20 px-3 py-2 text-xs text-muted-foreground">
+                    🟰 拖曳左側握把調整順序,前台預覽會即時同步(無需先儲存)。
+                    顯示 {orderedSelected.length} 則已精選評論。
+                  </div>
+                  <ReviewList
+                    reviews={orderedSelected}
+                    visibleCols={visibleCols}
+                    selectedKeys={selectedKeys}
+                    onToggleSelect={toggleSelect}
+                    draggable={true}
+                    onDragEnd={handleDragEnd}
+                  />
+                </>
+              );
+            })()
           ) : filteredReviews.length === 0 ? (
             <div className="text-center py-10 text-muted-foreground text-sm">
               沒有符合條件的評論,請調整篩選條件
@@ -755,7 +791,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
               visibleCols={visibleCols}
               selectedKeys={selectedKeys}
               onToggleSelect={toggleSelect}
-              draggable={sortBy === "custom"}
+              draggable={false}
               onDragEnd={handleDragEnd}
             />
           )}
