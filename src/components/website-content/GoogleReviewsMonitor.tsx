@@ -299,10 +299,12 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
               type="button"
               onClick={handleSync}
               disabled={syncing || !placeId}
-              className="gap-2"
+              aria-busy={syncing}
+              aria-live="polite"
+              className="gap-2 min-w-[130px]"
             >
               <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
-              {syncing ? "同步中..." : "立即同步"}
+              {syncing ? "同步中,請稍候..." : "立即同步"}
             </Button>
           </div>
         </CardHeader>
