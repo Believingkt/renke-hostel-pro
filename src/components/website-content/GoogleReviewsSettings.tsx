@@ -52,6 +52,9 @@ export const GoogleReviewsSettings = ({ accommodationId }: Props) => {
   const [originalPlaceId, setOriginalPlaceId] = useState("");
   const [cache, setCache] = useState<CachedReviews | null>(null);
   const [cachedAt, setCachedAt] = useState<string | null>(null);
+  const [autoEnabled, setAutoEnabled] = useState(false);
+  const [autoInterval, setAutoInterval] = useState<number>(24);
+  const [savingSchedule, setSavingSchedule] = useState(false);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -61,7 +64,9 @@ export const GoogleReviewsSettings = ({ accommodationId }: Props) => {
     setLoading(true);
     const { data } = await supabase
       .from("accommodation_info")
-      .select("google_place_id, google_reviews_cache, google_reviews_cached_at")
+      .select(
+        "google_place_id, google_reviews_cache, google_reviews_cached_at, google_reviews_auto_sync_enabled, google_reviews_auto_sync_interval_hours"
+      )
       .eq("id", accommodationId)
       .maybeSingle();
     if (data) {
@@ -70,6 +75,8 @@ export const GoogleReviewsSettings = ({ accommodationId }: Props) => {
       setOriginalPlaceId(pid);
       setCache((data.google_reviews_cache as unknown as CachedReviews) || null);
       setCachedAt(data.google_reviews_cached_at || null);
+      setAutoEnabled(!!(data as any).google_reviews_auto_sync_enabled);
+      setAutoInterval((data as any).google_reviews_auto_sync_interval_hours || 24);
     }
     setLoading(false);
   };
@@ -93,6 +100,30 @@ export const GoogleReviewsSettings = ({ accommodationId }: Props) => {
       setOriginalPlaceId(trimmed);
     }
     setSaving(false);
+  };
+
+  const updateSchedule = async (next: {
+    enabled?: boolean;
+    interval?: number;
+  }) => {
+    const enabled = next.enabled ?? autoEnabled;
+    const interval = next.interval ?? autoInterval;
+    setSavingSchedule(true);
+    const { error } = await supabase
+      .from("accommodation_info")
+      .update({
+        google_reviews_auto_sync_enabled: enabled,
+        google_reviews_auto_sync_interval_hours: interval,
+      } as any)
+      .eq("id", accommodationId);
+    if (error) {
+      toast.error("排程儲存失敗:" + error.message);
+    } else {
+      setAutoEnabled(enabled);
+      setAutoInterval(interval);
+      toast.success(enabled ? "已啟用自動同步" : "已停用自動同步");
+    }
+    setSavingSchedule(false);
   };
 
   const handleSync = async (force = true) => {
