@@ -351,8 +351,8 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
 
   const saveDisplaySettings = async (
     opts?: { keysOverride?: string[]; countOverride?: number; silent?: boolean }
-  ) => {
-    if (!accommodationId) return;
+  ): Promise<{ ok: true } | { ok: false; error: string }> => {
+    if (!accommodationId) return { ok: false, error: "尚未選擇民宿" };
     const count = Math.max(
       1,
       Math.min(50, Math.round(opts?.countOverride ?? displayCount ?? 1))
@@ -366,15 +366,16 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
         google_reviews_selected_keys: keys,
       } as any)
       .eq("id", accommodationId);
-    if (error) {
-      toast.error("儲存失敗:" + error.message);
-    } else {
-      setSavedDisplayCount(count);
-      setSavedSelectedKeys([...keys]);
-      setDisplayCount(count);
-      if (!opts?.silent) toast.success("已套用至前台");
-    }
     setSavingDisplay(false);
+    if (error) {
+      if (!opts?.silent) toast.error("儲存失敗:" + error.message);
+      return { ok: false, error: error.message };
+    }
+    setSavedDisplayCount(count);
+    setSavedSelectedKeys([...keys]);
+    setDisplayCount(count);
+    if (!opts?.silent) toast.success("已套用至前台");
+    return { ok: true };
   };
 
   const dirty =
