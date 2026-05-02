@@ -364,16 +364,115 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {/* 篩選列 */}
+          {totalCount > 0 && (
+            <div className="rounded-lg border bg-muted/20 p-3 space-y-3">
+              <div className="flex flex-wrap gap-2 items-center">
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    value={keyword}
+                    onChange={(e) => setKeyword(e.target.value)}
+                    placeholder="搜尋評論內容或評論者..."
+                    className="pl-9 h-10"
+                  />
+                </div>
+                <Select
+                  value={timeRange}
+                  onValueChange={(v) => setTimeRange(v as TimeRange)}
+                >
+                  <SelectTrigger className="w-[140px] h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">全部時間</SelectItem>
+                    <SelectItem value="7d">最近 7 天</SelectItem>
+                    <SelectItem value="30d">最近 30 天</SelectItem>
+                    <SelectItem value="90d">最近 3 個月</SelectItem>
+                    <SelectItem value="180d">最近 6 個月</SelectItem>
+                    <SelectItem value="365d">最近 1 年</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={textFilter}
+                  onValueChange={(v) => setTextFilter(v as TextFilter)}
+                >
+                  <SelectTrigger className="w-[140px] h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">文字:全部</SelectItem>
+                    <SelectItem value="with_text">僅有文字</SelectItem>
+                    <SelectItem value="no_text">僅純星等</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={sortBy}
+                  onValueChange={(v) => setSortBy(v as SortOption)}
+                >
+                  <SelectTrigger className="w-[140px] h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">最新優先</SelectItem>
+                    <SelectItem value="oldest">最舊優先</SelectItem>
+                    <SelectItem value="rating_desc">星等高→低</SelectItem>
+                    <SelectItem value="rating_asc">星等低→高</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-muted-foreground mr-1">
+                  星等:
+                </span>
+                {[5, 4, 3, 2, 1].map((n) => (
+                  <Toggle
+                    key={n}
+                    pressed={ratingFilter.has(n)}
+                    onPressedChange={() => toggleRating(n)}
+                    size="sm"
+                    className="h-8 px-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                    aria-label={`${n} 星`}
+                  >
+                    <span className="flex items-center gap-0.5 text-sm">
+                      {n}
+                      <Star className="h-3 w-3 fill-current" />
+                    </span>
+                  </Toggle>
+                ))}
+                <div className="flex-1" />
+                <span className="text-xs text-muted-foreground">
+                  顯示 {filteredReviews.length} / {totalCount} 則
+                </span>
+                {hasActiveFilter && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={resetFilters}
+                    className="h-8 gap-1 text-xs"
+                  >
+                    <X className="h-3 w-3" /> 清除篩選
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
           {!cache?.reviews?.length ? (
             <div className="text-center py-10 text-muted-foreground text-sm">
               {placeId
                 ? "目前沒有快取資料,請按上方「立即同步」"
                 : "尚未設定 Google Place ID"}
             </div>
+          ) : filteredReviews.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground text-sm">
+              沒有符合條件的評論,請調整篩選條件
+            </div>
           ) : (
             <div className="space-y-3">
-              {cache.reviews.map((rv, i) => (
+              {filteredReviews.map((rv, i) => (
                 <div
                   key={i}
                   className="rounded-lg border p-4 space-y-2 bg-background"
