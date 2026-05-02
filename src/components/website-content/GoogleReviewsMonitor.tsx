@@ -514,7 +514,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
             <div>
               <CardTitle className="text-xl flex items-center gap-2">
                 <Database className="h-5 w-5" />
-                目前已抓取的評論內容
+                前台顯示設定
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
                 勾選你想顯示在前台的評論,設定數量後按「套用至前台」
