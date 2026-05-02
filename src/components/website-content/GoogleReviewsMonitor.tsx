@@ -124,6 +124,23 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
     } catch {}
   };
 
+  // 拖曳排序後是否自動套用至前台
+  const AUTO_APPLY_DRAG_KEY = "google-reviews-auto-apply-drag-v1";
+  const [autoApplyDrag, setAutoApplyDrag] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return localStorage.getItem(AUTO_APPLY_DRAG_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const toggleAutoApplyDrag = (next: boolean) => {
+    setAutoApplyDrag(next);
+    try {
+      localStorage.setItem(AUTO_APPLY_DRAG_KEY, next ? "1" : "0");
+    } catch {}
+  };
+
   // 篩選 / 排序 state
   const [keyword, setKeyword] = useState("");
   const [ratingFilter, setRatingFilter] = useState<Set<number>>(new Set());
