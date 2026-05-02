@@ -589,6 +589,34 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
             </div>
           )}
 
+          {/* 前台預覽 */}
+          {showPreview && totalCount > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Eye className="h-3.5 w-3.5 text-primary" />
+                <span>
+                  以下為套用「目前(含未儲存)的勾選與顯示數量」後的前台呈現預覽
+                </span>
+                {dirty && (
+                  <span className="text-amber-600 font-medium">
+                    · 未儲存
+                  </span>
+                )}
+              </div>
+              <GoogleReviewsPreview
+                reviews={cache?.reviews || []}
+                displayCount={Math.max(
+                  1,
+                  Math.min(50, Math.round(displayCount || 1))
+                )}
+                selectedKeys={selectedKeys}
+                totalReviews={cache?.totalReviews}
+                averageRating={cache?.rating ?? null}
+                googleMapsUri={cache?.googleMapsUri}
+              />
+            </div>
+          )}
+
           {/* 篩選列 */}
           {totalCount > 0 && (
             <div className="rounded-lg border bg-muted/20 p-3 space-y-3">
