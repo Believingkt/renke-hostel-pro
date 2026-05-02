@@ -46,6 +46,7 @@ import { Building2, Plus, Pencil, Power, PowerOff, Loader2, ExternalLink, Copy, 
 import { EmptyState } from "@/components/EmptyState";
 import { AccommodationDialog } from "./AccommodationDialog";
 import { DraggableAccommodationRow } from "./DraggableAccommodationRow";
+import { GoogleReviewsSettings } from "@/components/website-content/GoogleReviewsSettings";
 import { AccommodationHoverCard } from "./AccommodationHoverCard";
 import { THEME_COLORS } from "@/constants/themes";
 import { useAuditLog } from "@/hooks/use-audit-log";
