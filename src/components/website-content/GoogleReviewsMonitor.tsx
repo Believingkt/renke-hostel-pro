@@ -730,6 +730,16 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                   />
                   重置後自動套用至前台
                 </label>
+                <label
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none px-1"
+                  title="勾選後,拖曳調整順序會自動儲存(0.6 秒後)並重新載入前台預覽"
+                >
+                  <Checkbox
+                    checked={autoApplyDrag}
+                    onCheckedChange={(v) => toggleAutoApplyDrag(v === true)}
+                  />
+                  拖曳後自動套用至前台
+                </label>
                 <Button
                   type="button"
                   size="sm"
