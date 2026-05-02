@@ -186,6 +186,16 @@ export function DraggableAccommodationRow({
           >
             <Copy className="h-4 w-4" />
           </Button>
+          {onGoogleReviews && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onGoogleReviews(accommodation)}
+              title="Google 評論設定"
+            >
+              <Star className="h-4 w-4" />
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon"
