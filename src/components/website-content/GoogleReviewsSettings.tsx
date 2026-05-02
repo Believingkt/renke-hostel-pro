@@ -127,6 +127,7 @@ export const GoogleReviewsSettings = ({ accommodationId }: Props) => {
   };
 
   const handleSync = async (force = true) => {
+    if (syncing) return; // 防連點
     if (!placeId.trim()) {
       toast.error("請先填入 Place ID");
       return;
@@ -136,6 +137,7 @@ export const GoogleReviewsSettings = ({ accommodationId }: Props) => {
       await handleSave();
     }
     setSyncing(true);
+    const toastId = toast.loading("正在向 Google 取得最新評論...");
     try {
       const { data, error } = await supabase.functions.invoke(
         "fetch-google-reviews",
@@ -143,14 +145,14 @@ export const GoogleReviewsSettings = ({ accommodationId }: Props) => {
       );
       if (error) throw error;
       if (data?.error) {
-        toast.error("同步失敗:" + (data.message || data.error));
+        toast.error("同步失敗:" + (data.message || data.error), { id: toastId });
       } else {
-        toast.success("已同步 Google 評論");
+        toast.success("已同步 Google 評論", { id: toastId });
         setCache(data.data);
         setCachedAt(data.cachedAt);
       }
     } catch (e: any) {
-      toast.error("同步失敗:" + (e?.message || String(e)));
+      toast.error("同步失敗:" + (e?.message || String(e)), { id: toastId });
     } finally {
       setSyncing(false);
     }
