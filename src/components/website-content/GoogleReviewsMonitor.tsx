@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -22,12 +23,40 @@ import {
   XCircle,
   Search,
   X,
+  GripVertical,
+  Save,
+  Eye,
 } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { GoogleReviewsSettings } from "./GoogleReviewsSettings";
 
-type SortOption = "newest" | "oldest" | "rating_desc" | "rating_asc";
+const reviewKey = (rv: { authorName: string; publishTime?: string | null }) =>
+  `${rv.authorName}__${rv.publishTime || ""}`;
+
+type SortOption =
+  | "newest"
+  | "oldest"
+  | "rating_desc"
+  | "rating_asc"
+  | "custom";
 type TextFilter = "all" | "with_text" | "no_text";
 type TimeRange = "all" | "7d" | "30d" | "90d" | "180d" | "365d";
 
@@ -66,6 +95,13 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
     message: string;
     at: string;
   } | null>(null);
+
+  // 前台顯示控制
+  const [displayCount, setDisplayCount] = useState<number>(5);
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]); // 同時是排序順序
+  const [savedDisplayCount, setSavedDisplayCount] = useState<number>(5);
+  const [savedSelectedKeys, setSavedSelectedKeys] = useState<string[]>([]);
+  const [savingDisplay, setSavingDisplay] = useState(false);
 
   // 篩選 / 排序 state
   const [keyword, setKeyword] = useState("");
@@ -152,6 +188,16 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
 
     const sorted = [...filtered].sort((a, b) => {
       switch (sortBy) {
+        case "custom": {
+          const orderMap = new Map(selectedKeys.map((k, idx) => [k, idx]));
+          const ai = orderMap.has(reviewKey(a)) ? orderMap.get(reviewKey(a))! : Infinity;
+          const bi = orderMap.has(reviewKey(b)) ? orderMap.get(reviewKey(b))! : Infinity;
+          if (ai !== bi) return ai - bi;
+          // 未選的依最新排序
+          const ta = a.publishTime ? new Date(a.publishTime).getTime() : 0;
+          const tb = b.publishTime ? new Date(b.publishTime).getTime() : 0;
+          return tb - ta;
+        }
         case "newest":
         case "oldest": {
           const ta = a.publishTime ? new Date(a.publishTime).getTime() : 0;
@@ -165,7 +211,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
       }
     });
     return sorted;
-  }, [cache, keyword, ratingFilter, textFilter, timeRange, sortBy]);
+  }, [cache, keyword, ratingFilter, textFilter, timeRange, sortBy, selectedKeys]);
 
   const totalCount = cache?.reviews?.length ?? 0;
   const hasActiveFilter =
@@ -181,7 +227,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
     const { data, error } = await supabase
       .from("accommodation_info")
       .select(
-        "google_place_id, google_reviews_cache, google_reviews_cached_at"
+        "google_place_id, google_reviews_cache, google_reviews_cached_at, google_reviews_display_count, google_reviews_selected_keys"
       )
       .eq("id", accommodationId)
       .maybeSingle();
@@ -191,6 +237,14 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
       setPlaceId(data.google_place_id || null);
       setCache((data.google_reviews_cache as unknown as CachedReviews) || null);
       setCachedAt(data.google_reviews_cached_at || null);
+      const dc = (data as any).google_reviews_display_count ?? 5;
+      const sk = Array.isArray((data as any).google_reviews_selected_keys)
+        ? ((data as any).google_reviews_selected_keys as string[])
+        : [];
+      setDisplayCount(dc);
+      setSavedDisplayCount(dc);
+      setSelectedKeys(sk);
+      setSavedSelectedKeys(sk);
     }
     setLoading(false);
   }, [accommodationId]);
@@ -198,6 +252,60 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
   useEffect(() => {
     load();
   }, [load]);
+
+  const toggleSelect = (key: string) => {
+    setSelectedKeys((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    );
+  };
+
+  const selectAllVisible = () => {
+    const visibleKeys = filteredReviews.map(reviewKey);
+    setSelectedKeys((prev) => {
+      const next = [...prev];
+      for (const k of visibleKeys) if (!next.includes(k)) next.push(k);
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedKeys([]);
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setSelectedKeys((prev) => {
+      const oldIndex = prev.indexOf(String(active.id));
+      const newIndex = prev.indexOf(String(over.id));
+      if (oldIndex === -1 || newIndex === -1) return prev;
+      return arrayMove(prev, oldIndex, newIndex);
+    });
+  };
+
+  const saveDisplaySettings = async () => {
+    if (!accommodationId) return;
+    const count = Math.max(1, Math.min(50, Math.round(displayCount || 1)));
+    setSavingDisplay(true);
+    const { error } = await supabase
+      .from("accommodation_info")
+      .update({
+        google_reviews_display_count: count,
+        google_reviews_selected_keys: selectedKeys,
+      } as any)
+      .eq("id", accommodationId);
+    if (error) {
+      toast.error("儲存失敗:" + error.message);
+    } else {
+      setSavedDisplayCount(count);
+      setSavedSelectedKeys([...selectedKeys]);
+      setDisplayCount(count);
+      toast.success("已套用至前台");
+    }
+    setSavingDisplay(false);
+  };
+
+  const dirty =
+    displayCount !== savedDisplayCount ||
+    JSON.stringify(selectedKeys) !== JSON.stringify(savedSelectedKeys);
 
   const handleSync = async () => {
     if (!accommodationId) return;
@@ -390,12 +498,85 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                 目前快取的評論內容
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                這些就是前台「旅客評價」區會顯示的資料
+                勾選你想顯示在前台的評論,設定數量後按「套用至前台」
               </p>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* 前台顯示控制 */}
+          {totalCount > 0 && (
+            <div className="rounded-lg border bg-primary/5 p-4 space-y-3">
+              <div className="flex items-start gap-2">
+                <Eye className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm">前台顯示設定</div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {selectedKeys.length === 0
+                      ? "未精選任何評論時,前台會自動依「最新優先」顯示前 N 則"
+                      : `已精選 ${selectedKeys.length} 則(可拖曳調整順序),前台依此順序顯示`}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">顯示</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={displayCount}
+                    onChange={(e) => {
+                      const n = parseInt(e.target.value, 10);
+                      if (Number.isFinite(n)) setDisplayCount(n);
+                      else setDisplayCount(1);
+                    }}
+                    onBlur={() => {
+                      const n = Math.max(1, Math.min(50, Math.round(displayCount || 1)));
+                      setDisplayCount(n);
+                    }}
+                    className="h-9 w-20 text-center"
+                  />
+                  <span className="text-xs text-muted-foreground">則 (1~50)</span>
+                </div>
+                <div className="flex-1" />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={selectAllVisible}
+                  disabled={filteredReviews.length === 0}
+                >
+                  全選目前可見
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearSelection}
+                  disabled={selectedKeys.length === 0}
+                >
+                  清除精選
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={saveDisplaySettings}
+                  disabled={savingDisplay || !dirty}
+                  className="gap-1"
+                >
+                  <Save className="h-3.5 w-3.5" />
+                  {savingDisplay ? "儲存中..." : "套用至前台"}
+                </Button>
+              </div>
+              {dirty && (
+                <p className="text-xs text-amber-600">
+                  有未儲存的變更
+                </p>
+              )}
+            </div>
+          )}
+
           {/* 篩選列 */}
           {totalCount > 0 && (
             <div className="rounded-lg border bg-muted/20 p-3 space-y-3">
@@ -450,6 +631,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                     <SelectItem value="oldest">最舊優先</SelectItem>
                     <SelectItem value="rating_desc">星等高→低</SelectItem>
                     <SelectItem value="rating_asc">星等低→高</SelectItem>
+                    <SelectItem value="custom">自訂順序(可拖曳)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -528,81 +710,205 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
               沒有符合條件的評論,請調整篩選條件
             </div>
           ) : (
-            <div className="space-y-3">
-              {filteredReviews.map((rv, i) => {
-                const showHeader =
-                  visibleCols.author || visibleCols.photo || visibleCols.rating || visibleCols.publishTime;
-                return (
-                  <div
-                    key={i}
-                    className="rounded-lg border p-4 space-y-2 bg-background"
-                  >
-                    {showHeader && (
-                      <div className="flex items-start justify-between gap-3 flex-wrap">
-                        <div className="flex items-center gap-2">
-                          {visibleCols.photo && rv.authorPhoto && (
-                            <img
-                              src={rv.authorPhoto}
-                              alt={rv.authorName}
-                              className="h-8 w-8 rounded-full object-cover"
-                              referrerPolicy="no-referrer"
-                            />
-                          )}
-                          <div>
-                            {visibleCols.author && (
-                              <div className="font-medium text-sm">
-                                {rv.authorName}
-                              </div>
-                            )}
-                            {(visibleCols.rating || visibleCols.publishTime) && (
-                              <div className="flex items-center gap-1">
-                                {visibleCols.rating &&
-                                  [1, 2, 3, 4, 5].map((s) => (
-                                    <Star
-                                      key={s}
-                                      className={`h-3.5 w-3.5 ${
-                                        s <= Math.round(rv.rating)
-                                          ? "fill-primary text-primary"
-                                          : "text-muted-foreground/30"
-                                      }`}
-                                    />
-                                  ))}
-                                {visibleCols.publishTime && rv.relativeTime && (
-                                  <span className="text-xs text-muted-foreground ml-2">
-                                    {rv.relativeTime}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        {visibleCols.author && rv.authorUrl && (
-                          <a
-                            href={rv.authorUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-xs text-primary hover:underline inline-flex items-center gap-1"
-                          >
-                            Google 個人檔案 <ExternalLink className="h-3 w-3" />
-                          </a>
-                        )}
-                      </div>
-                    )}
-                    {visibleCols.text && (
-                      <p className="text-sm whitespace-pre-wrap text-foreground/90">
-                        {rv.text || <em className="text-muted-foreground">(無文字內容)</em>}
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            <ReviewList
+              reviews={filteredReviews}
+              visibleCols={visibleCols}
+              selectedKeys={selectedKeys}
+              onToggleSelect={toggleSelect}
+              draggable={sortBy === "custom"}
+              onDragEnd={handleDragEnd}
+            />
           )}
         </CardContent>
       </Card>
 
       {/* 設定區塊(複用既有元件) */}
       <GoogleReviewsSettings accommodationId={accommodationId} />
+    </div>
+  );
+};
+
+// 評論列表元件:支援拖曳/勾選
+interface ReviewListProps {
+  reviews: CachedReview[];
+  visibleCols: {
+    author: boolean;
+    photo: boolean;
+    rating: boolean;
+    publishTime: boolean;
+    text: boolean;
+  };
+  selectedKeys: string[];
+  onToggleSelect: (key: string) => void;
+  draggable: boolean;
+  onDragEnd: (event: DragEndEvent) => void;
+}
+
+const ReviewList = ({
+  reviews,
+  visibleCols,
+  selectedKeys,
+  onToggleSelect,
+  draggable,
+  onDragEnd,
+}: ReviewListProps) => {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+  const ids = reviews.map(reviewKey);
+
+  if (!draggable) {
+    return (
+      <div className="space-y-3">
+        {reviews.map((rv) => (
+          <ReviewCard
+            key={reviewKey(rv)}
+            rv={rv}
+            visibleCols={visibleCols}
+            checked={selectedKeys.includes(reviewKey(rv))}
+            onToggle={() => onToggleSelect(reviewKey(rv))}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+      <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+        <div className="space-y-3">
+          {reviews.map((rv) => (
+            <SortableReviewCard
+              key={reviewKey(rv)}
+              id={reviewKey(rv)}
+              rv={rv}
+              visibleCols={visibleCols}
+              checked={selectedKeys.includes(reviewKey(rv))}
+              onToggle={() => onToggleSelect(reviewKey(rv))}
+            />
+          ))}
+        </div>
+      </SortableContext>
+    </DndContext>
+  );
+};
+
+interface ReviewCardProps {
+  rv: CachedReview;
+  visibleCols: ReviewListProps["visibleCols"];
+  checked: boolean;
+  onToggle: () => void;
+  dragHandle?: React.ReactNode;
+}
+
+const ReviewCard = ({ rv, visibleCols, checked, onToggle, dragHandle }: ReviewCardProps) => {
+  const showHeader =
+    visibleCols.author || visibleCols.photo || visibleCols.rating || visibleCols.publishTime;
+  return (
+    <div
+      className={`rounded-lg border p-4 space-y-2 bg-background transition-colors ${
+        checked ? "border-primary/50 bg-primary/5" : ""
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        {dragHandle}
+        <div
+          className="pt-0.5 cursor-pointer"
+          onClick={onToggle}
+          role="checkbox"
+          aria-checked={checked}
+        >
+          <Checkbox checked={checked} onCheckedChange={onToggle} />
+        </div>
+        <div className="flex-1 space-y-2 min-w-0">
+          {showHeader && (
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                {visibleCols.photo && rv.authorPhoto && (
+                  <img
+                    src={rv.authorPhoto}
+                    alt={rv.authorName}
+                    className="h-8 w-8 rounded-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                )}
+                <div>
+                  {visibleCols.author && (
+                    <div className="font-medium text-sm">{rv.authorName}</div>
+                  )}
+                  {(visibleCols.rating || visibleCols.publishTime) && (
+                    <div className="flex items-center gap-1">
+                      {visibleCols.rating &&
+                        [1, 2, 3, 4, 5].map((s) => (
+                          <Star
+                            key={s}
+                            className={`h-3.5 w-3.5 ${
+                              s <= Math.round(rv.rating)
+                                ? "fill-primary text-primary"
+                                : "text-muted-foreground/30"
+                            }`}
+                          />
+                        ))}
+                      {visibleCols.publishTime && rv.relativeTime && (
+                        <span className="text-xs text-muted-foreground ml-2">
+                          {rv.relativeTime}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+              {visibleCols.author && rv.authorUrl && (
+                <a
+                  href={rv.authorUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+                >
+                  Google 個人檔案 <ExternalLink className="h-3 w-3" />
+                </a>
+              )}
+            </div>
+          )}
+          {visibleCols.text && (
+            <p className="text-sm whitespace-pre-wrap text-foreground/90">
+              {rv.text || <em className="text-muted-foreground">(無文字內容)</em>}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const SortableReviewCard = ({
+  id,
+  ...rest
+}: ReviewCardProps & { id: string }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style}>
+      <ReviewCard
+        {...rest}
+        dragHandle={
+          <button
+            type="button"
+            className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1 -ml-1"
+            aria-label="拖曳排序"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+        }
+      />
     </div>
   );
 };

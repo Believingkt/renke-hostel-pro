@@ -198,6 +198,8 @@ export type Database = {
           google_reviews_auto_sync_interval_hours: number
           google_reviews_cache: Json | null
           google_reviews_cached_at: string | null
+          google_reviews_display_count: number
+          google_reviews_selected_keys: Json
           header_logo_url: string | null
           hero_autoplay_delay: number | null
           hero_description: string | null
@@ -259,6 +261,8 @@ export type Database = {
           google_reviews_auto_sync_interval_hours?: number
           google_reviews_cache?: Json | null
           google_reviews_cached_at?: string | null
+          google_reviews_display_count?: number
+          google_reviews_selected_keys?: Json
           header_logo_url?: string | null
           hero_autoplay_delay?: number | null
           hero_description?: string | null
@@ -320,6 +324,8 @@ export type Database = {
           google_reviews_auto_sync_interval_hours?: number
           google_reviews_cache?: Json | null
           google_reviews_cached_at?: string | null
+          google_reviews_display_count?: number
+          google_reviews_selected_keys?: Json
           header_logo_url?: string | null
           hero_autoplay_delay?: number | null
           hero_description?: string | null

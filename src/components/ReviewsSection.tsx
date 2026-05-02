@@ -45,7 +45,7 @@ const ReviewsSection = ({ accommodationId, customTitle, customSubtitle }: Review
       if (!accommodationId) return null;
       const { data } = await supabase
         .from('accommodation_info')
-        .select('google_place_id, google_reviews_cache, google_reviews_cached_at')
+        .select('google_place_id, google_reviews_cache, google_reviews_cached_at, google_reviews_display_count, google_reviews_selected_keys')
         .eq('id', accommodationId)
         .maybeSingle();
 
@@ -56,8 +56,14 @@ const ReviewsSection = ({ accommodationId, customTitle, customSubtitle }: Review
         ? new Date(data.google_reviews_cached_at).getTime()
         : 0;
 
+      const displayCount = ((data as any).google_reviews_display_count ?? 5) as number;
+      const selectedKeys = Array.isArray((data as any).google_reviews_selected_keys)
+        ? ((data as any).google_reviews_selected_keys as string[])
+        : [];
+
       const isStale = !cache || Date.now() - cachedAt > STALE_MS;
 
+      let finalCache = cache;
       // 過期就背景觸發 refresh,但仍先回傳當前快取(若有)避免閃爍
       if (isStale) {
         try {
@@ -66,18 +72,22 @@ const ReviewsSection = ({ accommodationId, customTitle, customSubtitle }: Review
             { body: { accommodationId, force: false } }
           );
           if (refreshed?.data) {
-            return refreshed.data as GoogleCache;
+            finalCache = refreshed.data as GoogleCache;
           }
         } catch (err) {
           if (import.meta.env.DEV) console.warn('Google reviews refresh failed', err);
         }
       }
 
-      return cache;
+      return { cache: finalCache, displayCount, selectedKeys };
     },
     enabled: !!accommodationId,
     staleTime: 5 * 60 * 1000,
   });
+
+  const googleCache = googleData?.cache ?? null;
+  const displayCount = googleData?.displayCount ?? 5;
+  const selectedKeys = googleData?.selectedKeys ?? [];
 
   // 2. 沒有 Google 評論時回退到本地 reviews 表
   const { data: localReviews = [] } = useQuery({
@@ -93,10 +103,38 @@ const ReviewsSection = ({ accommodationId, customTitle, customSubtitle }: Review
       if (error) return [];
       return data as LocalReview[];
     },
-    enabled: !!accommodationId && !googleData?.reviews?.length,
+    enabled: !!accommodationId && !googleCache?.reviews?.length,
   });
 
-  const useGoogle = !!googleData?.reviews?.length;
+  const useGoogle = !!googleCache?.reviews?.length;
+
+  // 依後台精選/排序 + 顯示數量篩選 Google 評論
+  const reviewKey = (r: GoogleReviewItem) =>
+    `${r.authorName}__${r.publishTime || ''}`;
+  const pickedGoogleReviews: GoogleReviewItem[] = useGoogle
+    ? (() => {
+        const all = googleCache!.reviews!;
+        if (selectedKeys.length > 0) {
+          // 依後台選擇順序
+          const map = new Map(all.map((r) => [reviewKey(r), r]));
+          const ordered: GoogleReviewItem[] = [];
+          for (const k of selectedKeys) {
+            const r = map.get(k);
+            if (r) ordered.push(r);
+          }
+          return ordered.slice(0, displayCount);
+        }
+        // 未精選 → 依最新排序前 N 則
+        return [...all]
+          .sort((a, b) => {
+            const ta = a.publishTime ? new Date(a.publishTime).getTime() : 0;
+            const tb = b.publishTime ? new Date(b.publishTime).getTime() : 0;
+            return tb - ta;
+          })
+          .slice(0, displayCount);
+      })()
+    : [];
+
   const items: Array<{
     id: string;
     name: string;
@@ -106,7 +144,7 @@ const ReviewsSection = ({ accommodationId, customTitle, customSubtitle }: Review
     photo?: string | null;
     authorUrl?: string | null;
   }> = useGoogle
-    ? googleData!.reviews!.map((r, i) => ({
+    ? pickedGoogleReviews.map((r, i) => ({
         id: `g-${i}`,
         name: r.authorName,
         date: r.relativeTime || (r.publishTime ? new Date(r.publishTime).toLocaleDateString('zh-TW') : ''),
@@ -125,10 +163,10 @@ const ReviewsSection = ({ accommodationId, customTitle, customSubtitle }: Review
 
   if (items.length === 0) return null;
 
-  const averageRating = useGoogle && googleData?.rating != null
-    ? googleData.rating.toFixed(1)
+  const averageRating = useGoogle && googleCache?.rating != null
+    ? googleCache.rating.toFixed(1)
     : (items.reduce((s, r) => s + r.rating, 0) / items.length).toFixed(1);
-  const totalCount = useGoogle ? (googleData?.totalReviews ?? items.length) : items.length;
+  const totalCount = useGoogle ? (googleCache?.totalReviews ?? items.length) : items.length;
 
   return (
     <section id="reviews" className="py-12 md:py-16 lg:py-20 bg-secondary/20">
@@ -161,9 +199,9 @@ const ReviewsSection = ({ accommodationId, customTitle, customSubtitle }: Review
             <p className="text-sm md:text-sm lg:text-base text-muted-foreground">
               來自 {totalCount} 則{useGoogle ? ' Google ' : ''}評論
             </p>
-            {useGoogle && googleData?.googleMapsUri && (
+            {useGoogle && googleCache?.googleMapsUri && (
               <a
-                href={googleData.googleMapsUri}
+                href={googleCache.googleMapsUri}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-2"
