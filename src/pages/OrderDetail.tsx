@@ -2122,8 +2122,10 @@ const OrderDetailPage = () => {
               );
             })()}
           </CardContent>
-        </Card>
       </div>
+
+      {/* 押金管理 */}
+      {order && <DepositManagementSection orderId={order.id} />}
 
       {/* 加購方案 */}
       <Card>
