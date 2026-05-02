@@ -227,7 +227,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
     const { data, error } = await supabase
       .from("accommodation_info")
       .select(
-        "google_place_id, google_reviews_cache, google_reviews_cached_at"
+        "google_place_id, google_reviews_cache, google_reviews_cached_at, google_reviews_display_count, google_reviews_selected_keys"
       )
       .eq("id", accommodationId)
       .maybeSingle();
@@ -237,6 +237,14 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
       setPlaceId(data.google_place_id || null);
       setCache((data.google_reviews_cache as unknown as CachedReviews) || null);
       setCachedAt(data.google_reviews_cached_at || null);
+      const dc = (data as any).google_reviews_display_count ?? 5;
+      const sk = Array.isArray((data as any).google_reviews_selected_keys)
+        ? ((data as any).google_reviews_selected_keys as string[])
+        : [];
+      setDisplayCount(dc);
+      setSavedDisplayCount(dc);
+      setSelectedKeys(sk);
+      setSavedSelectedKeys(sk);
     }
     setLoading(false);
   }, [accommodationId]);
@@ -244,6 +252,60 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
   useEffect(() => {
     load();
   }, [load]);
+
+  const toggleSelect = (key: string) => {
+    setSelectedKeys((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    );
+  };
+
+  const selectAllVisible = () => {
+    const visibleKeys = filteredReviews.map(reviewKey);
+    setSelectedKeys((prev) => {
+      const next = [...prev];
+      for (const k of visibleKeys) if (!next.includes(k)) next.push(k);
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedKeys([]);
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setSelectedKeys((prev) => {
+      const oldIndex = prev.indexOf(String(active.id));
+      const newIndex = prev.indexOf(String(over.id));
+      if (oldIndex === -1 || newIndex === -1) return prev;
+      return arrayMove(prev, oldIndex, newIndex);
+    });
+  };
+
+  const saveDisplaySettings = async () => {
+    if (!accommodationId) return;
+    const count = Math.max(1, Math.min(50, Math.round(displayCount || 1)));
+    setSavingDisplay(true);
+    const { error } = await supabase
+      .from("accommodation_info")
+      .update({
+        google_reviews_display_count: count,
+        google_reviews_selected_keys: selectedKeys,
+      } as any)
+      .eq("id", accommodationId);
+    if (error) {
+      toast.error("儲存失敗:" + error.message);
+    } else {
+      setSavedDisplayCount(count);
+      setSavedSelectedKeys([...selectedKeys]);
+      setDisplayCount(count);
+      toast.success("已套用至前台");
+    }
+    setSavingDisplay(false);
+  };
+
+  const dirty =
+    displayCount !== savedDisplayCount ||
+    JSON.stringify(selectedKeys) !== JSON.stringify(savedSelectedKeys);
 
   const handleSync = async () => {
     if (!accommodationId) return;
