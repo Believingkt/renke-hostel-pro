@@ -29,7 +29,6 @@ interface ReceptionOrder {
   order_number: string;
   guest_name: string | null;
   guest_phone: string | null;
-  buyer_name?: string | null;
   check_in_date: string;
   check_out_date: string;
   checked_in_at: string | null;
@@ -40,7 +39,7 @@ interface ReceptionOrder {
   rooms?: Array<{ room_type_id: string; quantity: number; room_type?: { name: string | null } | null }>;
 }
 
-type SortKey = "order_number" | "guest_name" | "buyer_name" | "status";
+type SortKey = "order_number" | "guest_name" | "status";
 
 const todayStr = () => format(new Date(), "yyyy-MM-dd");
 const offsetDateStr = (days: number) => {
@@ -164,7 +163,7 @@ export default function Reception() {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          `id, order_number, guest_name, guest_phone, buyer_name,
+          `id, order_number, guest_name, guest_phone,
            check_in_date, check_out_date, checked_in_at, checked_out_at,
            order_source, order_status,
            room_type:room_types ( name ),
@@ -228,7 +227,6 @@ export default function Reception() {
         return (
           o.order_number.toLowerCase().includes(kw) ||
           (o.guest_name ?? "").toLowerCase().includes(kw) ||
-          (o.buyer_name ?? "").toLowerCase().includes(kw) ||
           (o.guest_phone ?? "").toLowerCase().includes(kw) ||
           roomLabel(o).toLowerCase().includes(kw)
         );
@@ -238,7 +236,6 @@ export default function Reception() {
     const get = (o: ReceptionOrder) => {
       if (sortKey === "order_number") return o.order_number;
       if (sortKey === "guest_name") return o.guest_name ?? "";
-      if (sortKey === "buyer_name") return o.buyer_name ?? "";
       const s = mode === "checkin" ? getCheckinStatus(o).label : getCheckoutStatus(o).label;
       return s;
     };
@@ -379,9 +376,6 @@ export default function Reception() {
                   <Th onClick={() => toggleSort("guest_name")} active={sortKey === "guest_name"}>
                     顧客
                   </Th>
-                  <Th onClick={() => toggleSort("buyer_name")} active={sortKey === "buyer_name"}>
-                    訂購人
-                  </Th>
                   <Th>房型</Th>
                   <Th onClick={() => toggleSort("status")} active={sortKey === "status"}>
                     狀態
@@ -424,8 +418,12 @@ export default function Reception() {
                             </div>
                           )}
                         </td>
-                        <td className="px-4 py-3 align-top">{o.guest_name ?? "—"}</td>
-                        <td className="px-4 py-3 align-top">{o.buyer_name ?? o.guest_name ?? "—"}</td>
+                        <td className="px-4 py-3 align-top">
+                          <div>{o.guest_name ?? "—"}</div>
+                          {o.guest_phone && (
+                            <div className="text-xs text-muted-foreground mt-0.5">{o.guest_phone}</div>
+                          )}
+                        </td>
                         <td className="px-4 py-3 align-top">{roomLabel(o)}</td>
                         <td className="px-4 py-3 align-top">
                           <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
