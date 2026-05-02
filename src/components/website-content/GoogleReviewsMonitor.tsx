@@ -529,11 +529,21 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                 <Eye className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-sm">精選評論</div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {selectedKeys.length === 0
-                      ? "未精選任何評論時,前台會自動依「最新優先」顯示前 N 則"
-                      : `已精選 ${selectedKeys.length} 則(可拖曳調整順序),前台依此順序顯示`}
-                  </p>
+                  {selectedKeys.length === 0 ? (
+                    <div className="text-xs text-muted-foreground mt-1 space-y-1">
+                      <p>目前尚未精選任何評論,前台會自動依「最新優先」顯示前 {displayCount} 則。</p>
+                      <p>若想自行挑選顯示內容,請依下列步驟完成設定:</p>
+                      <ol className="list-decimal pl-4 space-y-0.5">
+                        <li>按右上角「立即同步」從 Google 抓取最新評論。</li>
+                        <li>於下方評論列表勾選想顯示的評論(可拖曳調整順序)。</li>
+                        <li>設定要顯示的則數,按「套用至前台」即可生效。</li>
+                      </ol>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      已精選 {selectedKeys.length} 則(可拖曳調整順序),前台依此順序顯示。記得按「套用至前台」儲存變更。
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-3">
