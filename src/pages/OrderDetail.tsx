@@ -2122,6 +2122,7 @@ const OrderDetailPage = () => {
               );
             })()}
           </CardContent>
+        </Card>
       </div>
 
       {/* 押金管理 */}
