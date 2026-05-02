@@ -217,6 +217,64 @@ export const GoogleReviewsSettings = ({ accommodationId }: Props) => {
           </Button>
         </div>
 
+        {/* 自動同步排程 */}
+        <div className="rounded-lg border bg-muted/20 p-4 space-y-4">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="flex items-start gap-3">
+              <Clock className="h-5 w-5 text-primary mt-0.5" />
+              <div>
+                <Label htmlFor="auto-sync-toggle" className="text-base font-medium cursor-pointer">
+                  自動同步排程
+                </Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  啟用後系統會依設定間隔自動抓取最新 Google 評論,無需手動按下「立即同步」
+                </p>
+              </div>
+            </div>
+            <Switch
+              id="auto-sync-toggle"
+              checked={autoEnabled}
+              disabled={savingSchedule || !placeId.trim()}
+              onCheckedChange={(v) => updateSchedule({ enabled: v })}
+            />
+          </div>
+
+          <div className="flex items-center gap-3 flex-wrap">
+            <Label className="text-sm text-muted-foreground min-w-[60px]">同步頻率</Label>
+            <Select
+              value={String(autoInterval)}
+              onValueChange={(v) => updateSchedule({ interval: Number(v) })}
+              disabled={savingSchedule}
+            >
+              <SelectTrigger className="w-[200px] h-10">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {INTERVAL_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={String(opt.value)}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {autoEnabled && (
+              <span className="text-xs text-muted-foreground">
+                下一次自動同步約於
+                {(() => {
+                  const last = cachedAt ? new Date(cachedAt).getTime() : Date.now();
+                  const next = new Date(last + autoInterval * 3600_000);
+                  return ` ${next.toLocaleString("zh-TW")}`;
+                })()}
+              </span>
+            )}
+          </div>
+          {!placeId.trim() && (
+            <p className="text-xs text-amber-600">
+              請先儲存 Place ID 才能啟用自動同步
+            </p>
+          )}
+        </div>
+
         {cache && (
           <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
             <div className="flex items-center justify-between flex-wrap gap-2">
