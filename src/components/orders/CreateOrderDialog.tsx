@@ -1741,7 +1741,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
       <div className="space-y-3 rounded-lg border border-border p-4 bg-muted/30">
         <div className="flex items-center justify-between gap-2">
-          <Label className="text-base font-semibold">押金 (Security Deposit)</Label>
+          <Label className="text-base font-semibold">押金</Label>
           <span className="text-xs text-muted-foreground">入住前一天扣款</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
