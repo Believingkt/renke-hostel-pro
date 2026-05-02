@@ -487,6 +487,32 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
             </div>
           )}
 
+          {/* 欄位顯示切換 */}
+          {totalCount > 0 && (
+            <div className="flex flex-wrap items-center gap-2 px-1">
+              <span className="text-xs text-muted-foreground mr-1">
+                顯示欄位:
+              </span>
+              {([
+                ["author", "作者"],
+                ["photo", "頭像"],
+                ["rating", "評分"],
+                ["publishTime", "發布時間"],
+                ["text", "文字內容"],
+              ] as const).map(([key, label]) => (
+                <Toggle
+                  key={key}
+                  pressed={visibleCols[key]}
+                  onPressedChange={() => toggleCol(key)}
+                  size="sm"
+                  className="h-7 px-2 text-xs data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                >
+                  {label}
+                </Toggle>
+              ))}
+            </div>
+          )}
+
           {!cache?.reviews?.length ? (
             <div className="text-center py-10 text-muted-foreground text-sm">
               {placeId
