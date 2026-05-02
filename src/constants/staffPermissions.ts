@@ -13,6 +13,7 @@ export interface ModuleDefinition {
 
 export const STAFF_MODULES: ModuleDefinition[] = [
   { key: "analytics", label: "營運分析" },
+  { key: "reception", label: "櫃檯接待" },
   { key: "orders", label: "訂單資訊" },
   { key: "website_content", label: "官網內容" },
   { key: "pricing", label: "房型設施" },
@@ -25,6 +26,7 @@ export const STAFF_MODULES: ModuleDefinition[] = [
 
 export const DEFAULT_STAFF_PERMISSIONS: Record<string, ModulePermissionLevel> = {
   orders: "editable",
+  reception: "editable",
   room_price: "editable",
   customers: "editable",
   analytics: "readonly",
