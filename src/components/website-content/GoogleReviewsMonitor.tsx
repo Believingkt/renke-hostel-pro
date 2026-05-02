@@ -47,6 +47,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { GoogleReviewsSettings } from "./GoogleReviewsSettings";
+import { GoogleReviewsPreview } from "./GoogleReviewsPreview";
 
 const reviewKey = (rv: { authorName: string; publishTime?: string | null }) =>
   `${rv.authorName}__${rv.publishTime || ""}`;
@@ -102,6 +103,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
   const [savedDisplayCount, setSavedDisplayCount] = useState<number>(5);
   const [savedSelectedKeys, setSavedSelectedKeys] = useState<string[]>([]);
   const [savingDisplay, setSavingDisplay] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   // 篩選 / 排序 state
   const [keyword, setKeyword] = useState("");
@@ -542,6 +544,16 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                 <div className="flex-1" />
                 <Button
                   type="button"
+                  variant={showPreview ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setShowPreview((v) => !v)}
+                  className="gap-1"
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                  {showPreview ? "隱藏前台預覽" : "前台預覽"}
+                </Button>
+                <Button
+                  type="button"
                   variant="outline"
                   size="sm"
                   onClick={selectAllVisible}
@@ -574,6 +586,34 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                   有未儲存的變更
                 </p>
               )}
+            </div>
+          )}
+
+          {/* 前台預覽 */}
+          {showPreview && totalCount > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Eye className="h-3.5 w-3.5 text-primary" />
+                <span>
+                  以下為套用「目前(含未儲存)的勾選與顯示數量」後的前台呈現預覽
+                </span>
+                {dirty && (
+                  <span className="text-amber-600 font-medium">
+                    · 未儲存
+                  </span>
+                )}
+              </div>
+              <GoogleReviewsPreview
+                reviews={cache?.reviews || []}
+                displayCount={Math.max(
+                  1,
+                  Math.min(50, Math.round(displayCount || 1))
+                )}
+                selectedKeys={selectedKeys}
+                totalReviews={cache?.totalReviews}
+                averageRating={cache?.rating ?? null}
+                googleMapsUri={cache?.googleMapsUri}
+              />
             </div>
           )}
 
