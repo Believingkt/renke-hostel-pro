@@ -666,8 +666,18 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                     value={keyword}
                     onChange={(e) => setKeyword(e.target.value)}
                     placeholder="搜尋評論內容或評論者..."
-                    className="pl-10 h-10"
+                    className={`pl-10 h-10 ${keyword ? "pr-10" : ""}`}
                   />
+                  {keyword && (
+                    <button
+                      type="button"
+                      onClick={() => setKeyword("")}
+                      aria-label="清除搜尋"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
                 <Select
                   value={timeRange}
