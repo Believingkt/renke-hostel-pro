@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { Globe, Plus, Trash2, Edit2, GripVertical, MapPin, Image as ImageIcon, Upload, Info, Wrench, Package, HelpCircle, Navigation, icons, AlertCircle, BookOpen, Home, Clock } from "lucide-react";
+import { Globe, Plus, Trash2, Edit2, GripVertical, MapPin, Image as ImageIcon, Upload, Info, Wrench, Package, HelpCircle, Navigation, icons, AlertCircle, BookOpen, Home, Clock, Star } from "lucide-react";
 import { invalidateAccommodationCache } from "@/hooks/use-accommodation-cache";
 import {
   Breadcrumb,
@@ -21,6 +21,7 @@ import { HomepageSectionsBlock } from "@/components/website-content/HomepageSect
 import { AddonPlansSection, AddonPlan } from "@/components/website-content/AddonPlansSection";
 import { CustomSectionsManager } from "@/components/website-content/CustomSectionsManager";
 import { GoogleReviewsSettings } from "@/components/website-content/GoogleReviewsSettings";
+import { GoogleReviewsMonitor } from "@/components/website-content/GoogleReviewsMonitor";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { ValidatedInput } from "@/components/ui/validated-input";
 import { ValidatedTextarea } from "@/components/ui/validated-textarea";
@@ -400,7 +401,8 @@ const WebsiteContent = () => {
       'gallery': '精選照片',
       'booking-info': '訂房須知',
       'faq': '常見問題',
-      'location': '交通地圖'
+      'location': '交通地圖',
+      'reviews': 'Google 評論'
     };
     return titleMap[activeTab] || '官網內容';
   };
@@ -4073,6 +4075,11 @@ const WebsiteContent = () => {
               />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="reviews" className="space-y-6">
+          <PageHeader title="Google 評論" icon={Star} />
+          <GoogleReviewsMonitor accommodationId={accommodationId} />
         </TabsContent>
       </Tabs>
 
