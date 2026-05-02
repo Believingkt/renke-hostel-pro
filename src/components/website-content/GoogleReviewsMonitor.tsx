@@ -326,16 +326,15 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
     });
     if (result.ok) {
       toast.success("已重置並套用至前台", { id: toastId });
-    } else {
-      // 失敗時保留剛才的預覽排序(不還原 UI),但提示錯誤;
-      // savedSelectedKeys 維持舊值,使用者可重試或手動套用
-      toast.error(`套用失敗:${result.error}`, {
-        id: toastId,
-        description: "前台尚未更新,請重試或手動點擊「套用至前台」",
-        duration: 8000,
-      });
-      // 註:不還原 selectedKeys,讓使用者看到嘗試套用的順序;若想取消可手動拖回
+      return;
     }
+    // 失敗時保留剛才的預覽排序(不還原 UI),但提示錯誤;
+    // savedSelectedKeys 維持舊值,使用者可重試或手動套用
+    toast.error(`套用失敗:${result.error}`, {
+      id: toastId,
+      description: "前台尚未更新,請重試或手動點擊「套用至前台」",
+      duration: 8000,
+    });
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
