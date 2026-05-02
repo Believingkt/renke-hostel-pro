@@ -113,3 +113,6 @@ verify_jwt = false
 
 [functions.report-frontend-error]
 verify_jwt = false
+
+[functions.fetch-google-reviews]
+verify_jwt = true
