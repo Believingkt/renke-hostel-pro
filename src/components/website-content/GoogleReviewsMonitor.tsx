@@ -765,7 +765,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                 );
               }
               return (
-                <>
+                <div className="space-y-3">
                   <div className="rounded-md bg-primary/5 border border-primary/20 px-3 py-2 text-xs text-muted-foreground">
                     🟰 拖曳左側握把調整順序,前台預覽會即時同步(無需先儲存)。
                     顯示 {orderedSelected.length} 則已精選評論。
