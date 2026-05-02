@@ -21,6 +21,7 @@ import { HomepageSectionsBlock } from "@/components/website-content/HomepageSect
 import { AddonPlansSection, AddonPlan } from "@/components/website-content/AddonPlansSection";
 import { CustomSectionsManager } from "@/components/website-content/CustomSectionsManager";
 import { GoogleReviewsSettings } from "@/components/website-content/GoogleReviewsSettings";
+import { GoogleReviewsMonitor } from "@/components/website-content/GoogleReviewsMonitor";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { ValidatedInput } from "@/components/ui/validated-input";
 import { ValidatedTextarea } from "@/components/ui/validated-textarea";
