@@ -105,6 +105,24 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
   const [savedSelectedKeys, setSavedSelectedKeys] = useState<string[]>([]);
   const [savingDisplay, setSavingDisplay] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
+
+  // 重置後是否自動套用至前台
+  const AUTO_APPLY_RESET_KEY = "google-reviews-auto-apply-reset-v1";
+  const [autoApplyReset, setAutoApplyReset] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return localStorage.getItem(AUTO_APPLY_RESET_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const toggleAutoApplyReset = (next: boolean) => {
+    setAutoApplyReset(next);
+    try {
+      localStorage.setItem(AUTO_APPLY_RESET_KEY, next ? "1" : "0");
+    } catch {}
+  };
 
   // 篩選 / 排序 state
   const [keyword, setKeyword] = useState("");
