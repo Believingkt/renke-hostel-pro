@@ -1739,6 +1739,52 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         </div>
       </div>
 
+      <div className="space-y-3 rounded-lg border border-border p-4 bg-muted/30">
+        <div className="flex items-center justify-between gap-2">
+          <Label className="text-base font-semibold">押金 (Security Deposit)</Label>
+          <span className="text-xs text-muted-foreground">入住前一天扣款</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label className="text-sm">收取方式</Label>
+            <Select
+              value={form.security_deposit_method}
+              onValueChange={(value: "none" | "cash" | "card") =>
+                setForm({ ...form, security_deposit_method: value })
+              }
+            >
+              <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">不收取</SelectItem>
+                <SelectItem value="cash">現場現金</SelectItem>
+                <SelectItem value="card">線上綁卡（建立後於訂單詳情完成）</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm">押金金額 (NT$)</Label>
+            <Input
+              type="number"
+              min={0}
+              step={100}
+              value={form.security_deposit_amount}
+              onChange={(e) =>
+                setForm({ ...form, security_deposit_amount: Number(e.target.value) || 0 })
+              }
+              disabled={form.security_deposit_method === "none"}
+              className="h-12 text-base sm:h-10 sm:text-sm"
+            />
+          </div>
+        </div>
+        {form.security_deposit_method === "card" && (
+          <p className="text-xs text-muted-foreground">
+            訂單建立後，請至訂單詳情頁的「押金管理」區塊請房客完成綁卡，系統會於入住前一天自動扣款。
+          </p>
+        )}
+      </div>
+
       <div className="space-y-2">
         <Label>備註</Label>
         <Textarea
