@@ -67,6 +67,87 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
     at: string;
   } | null>(null);
 
+  // 篩選 / 排序 state
+  const [keyword, setKeyword] = useState("");
+  const [ratingFilter, setRatingFilter] = useState<Set<number>>(new Set());
+  const [textFilter, setTextFilter] = useState<TextFilter>("all");
+  const [timeRange, setTimeRange] = useState<TimeRange>("all");
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
+
+  const toggleRating = (n: number) => {
+    setRatingFilter((prev) => {
+      const next = new Set(prev);
+      if (next.has(n)) next.delete(n);
+      else next.add(n);
+      return next;
+    });
+  };
+
+  const resetFilters = () => {
+    setKeyword("");
+    setRatingFilter(new Set());
+    setTextFilter("all");
+    setTimeRange("all");
+    setSortBy("newest");
+  };
+
+  const filteredReviews = useMemo(() => {
+    const all = cache?.reviews ?? [];
+    const kw = keyword.trim().toLowerCase();
+    const now = Date.now();
+    const rangeMs: Record<TimeRange, number | null> = {
+      all: null,
+      "7d": 7 * 86400_000,
+      "30d": 30 * 86400_000,
+      "90d": 90 * 86400_000,
+      "180d": 180 * 86400_000,
+      "365d": 365 * 86400_000,
+    };
+    const limit = rangeMs[timeRange];
+
+    const filtered = all.filter((r) => {
+      if (ratingFilter.size > 0 && !ratingFilter.has(Math.round(r.rating))) {
+        return false;
+      }
+      const hasText = !!(r.text && r.text.trim().length > 0);
+      if (textFilter === "with_text" && !hasText) return false;
+      if (textFilter === "no_text" && hasText) return false;
+      if (kw) {
+        const hay = `${r.text || ""} ${r.authorName || ""}`.toLowerCase();
+        if (!hay.includes(kw)) return false;
+      }
+      if (limit && r.publishTime) {
+        const t = new Date(r.publishTime).getTime();
+        if (Number.isFinite(t) && now - t > limit) return false;
+      }
+      return true;
+    });
+
+    const sorted = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case "newest":
+        case "oldest": {
+          const ta = a.publishTime ? new Date(a.publishTime).getTime() : 0;
+          const tb = b.publishTime ? new Date(b.publishTime).getTime() : 0;
+          return sortBy === "newest" ? tb - ta : ta - tb;
+        }
+        case "rating_desc":
+          return b.rating - a.rating;
+        case "rating_asc":
+          return a.rating - b.rating;
+      }
+    });
+    return sorted;
+  }, [cache, keyword, ratingFilter, textFilter, timeRange, sortBy]);
+
+  const totalCount = cache?.reviews?.length ?? 0;
+  const hasActiveFilter =
+    keyword.trim() !== "" ||
+    ratingFilter.size > 0 ||
+    textFilter !== "all" ||
+    timeRange !== "all" ||
+    sortBy !== "newest";
+
   const load = useCallback(async () => {
     if (!accommodationId) return;
     setLoading(true);
