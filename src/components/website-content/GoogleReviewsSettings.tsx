@@ -3,13 +3,32 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Star, RefreshCw, ExternalLink } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Star, RefreshCw, ExternalLink, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface Props {
   accommodationId: string;
 }
+
+const INTERVAL_OPTIONS: Array<{ value: number; label: string }> = [
+  { value: 1, label: "每 1 小時" },
+  { value: 3, label: "每 3 小時" },
+  { value: 6, label: "每 6 小時" },
+  { value: 12, label: "每 12 小時" },
+  { value: 24, label: "每 24 小時(每天)" },
+  { value: 48, label: "每 2 天" },
+  { value: 72, label: "每 3 天" },
+  { value: 168, label: "每 7 天" },
+];
 
 interface CachedReviews {
   placeId: string;
@@ -33,6 +52,9 @@ export const GoogleReviewsSettings = ({ accommodationId }: Props) => {
   const [originalPlaceId, setOriginalPlaceId] = useState("");
   const [cache, setCache] = useState<CachedReviews | null>(null);
   const [cachedAt, setCachedAt] = useState<string | null>(null);
+  const [autoEnabled, setAutoEnabled] = useState(false);
+  const [autoInterval, setAutoInterval] = useState<number>(24);
+  const [savingSchedule, setSavingSchedule] = useState(false);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -42,7 +64,9 @@ export const GoogleReviewsSettings = ({ accommodationId }: Props) => {
     setLoading(true);
     const { data } = await supabase
       .from("accommodation_info")
-      .select("google_place_id, google_reviews_cache, google_reviews_cached_at")
+      .select(
+        "google_place_id, google_reviews_cache, google_reviews_cached_at, google_reviews_auto_sync_enabled, google_reviews_auto_sync_interval_hours"
+      )
       .eq("id", accommodationId)
       .maybeSingle();
     if (data) {
@@ -51,6 +75,8 @@ export const GoogleReviewsSettings = ({ accommodationId }: Props) => {
       setOriginalPlaceId(pid);
       setCache((data.google_reviews_cache as unknown as CachedReviews) || null);
       setCachedAt(data.google_reviews_cached_at || null);
+      setAutoEnabled(!!(data as any).google_reviews_auto_sync_enabled);
+      setAutoInterval((data as any).google_reviews_auto_sync_interval_hours || 24);
     }
     setLoading(false);
   };
@@ -74,6 +100,30 @@ export const GoogleReviewsSettings = ({ accommodationId }: Props) => {
       setOriginalPlaceId(trimmed);
     }
     setSaving(false);
+  };
+
+  const updateSchedule = async (next: {
+    enabled?: boolean;
+    interval?: number;
+  }) => {
+    const enabled = next.enabled ?? autoEnabled;
+    const interval = next.interval ?? autoInterval;
+    setSavingSchedule(true);
+    const { error } = await supabase
+      .from("accommodation_info")
+      .update({
+        google_reviews_auto_sync_enabled: enabled,
+        google_reviews_auto_sync_interval_hours: interval,
+      } as any)
+      .eq("id", accommodationId);
+    if (error) {
+      toast.error("排程儲存失敗:" + error.message);
+    } else {
+      setAutoEnabled(enabled);
+      setAutoInterval(interval);
+      toast.success(enabled ? "已啟用自動同步" : "已停用自動同步");
+    }
+    setSavingSchedule(false);
   };
 
   const handleSync = async (force = true) => {
@@ -165,6 +215,64 @@ export const GoogleReviewsSettings = ({ accommodationId }: Props) => {
             <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
             {syncing ? "同步中..." : "立即同步評論"}
           </Button>
+        </div>
+
+        {/* 自動同步排程 */}
+        <div className="rounded-lg border bg-muted/20 p-4 space-y-4">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="flex items-start gap-3">
+              <Clock className="h-5 w-5 text-primary mt-0.5" />
+              <div>
+                <Label htmlFor="auto-sync-toggle" className="text-base font-medium cursor-pointer">
+                  自動同步排程
+                </Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  啟用後系統會依設定間隔自動抓取最新 Google 評論,無需手動按下「立即同步」
+                </p>
+              </div>
+            </div>
+            <Switch
+              id="auto-sync-toggle"
+              checked={autoEnabled}
+              disabled={savingSchedule || !placeId.trim()}
+              onCheckedChange={(v) => updateSchedule({ enabled: v })}
+            />
+          </div>
+
+          <div className="flex items-center gap-3 flex-wrap">
+            <Label className="text-sm text-muted-foreground min-w-[60px]">同步頻率</Label>
+            <Select
+              value={String(autoInterval)}
+              onValueChange={(v) => updateSchedule({ interval: Number(v) })}
+              disabled={savingSchedule}
+            >
+              <SelectTrigger className="w-[200px] h-10">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {INTERVAL_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={String(opt.value)}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {autoEnabled && (
+              <span className="text-xs text-muted-foreground">
+                下一次自動同步約於
+                {(() => {
+                  const last = cachedAt ? new Date(cachedAt).getTime() : Date.now();
+                  const next = new Date(last + autoInterval * 3600_000);
+                  return ` ${next.toLocaleString("zh-TW")}`;
+                })()}
+              </span>
+            )}
+          </div>
+          {!placeId.trim() && (
+            <p className="text-xs text-amber-600">
+              請先儲存 Place ID 才能啟用自動同步
+            </p>
+          )}
         </div>
 
         {cache && (

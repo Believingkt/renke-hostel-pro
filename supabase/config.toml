@@ -116,3 +116,6 @@ verify_jwt = false
 
 [functions.fetch-google-reviews]
 verify_jwt = true
+
+[functions.auto-sync-google-reviews]
+verify_jwt = false
