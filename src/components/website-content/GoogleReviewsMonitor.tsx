@@ -355,16 +355,64 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
     });
   };
 
+  // 拖曳自動套用:debounce 600ms,避免連續拖曳轟炸 DB
+  const dragAutoApplyTimerRef = useRef<number | null>(null);
+  const dragAutoApplyToastIdRef = useRef<string | number | null>(null);
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
+    let nextKeys: string[] | null = null;
     setSelectedKeys((prev) => {
       const oldIndex = prev.indexOf(String(active.id));
       const newIndex = prev.indexOf(String(over.id));
       if (oldIndex === -1 || newIndex === -1) return prev;
-      return arrayMove(prev, oldIndex, newIndex);
+      const moved = arrayMove(prev, oldIndex, newIndex);
+      nextKeys = moved;
+      return moved;
     });
+
+    if (!autoApplyDrag || !nextKeys) return;
+
+    // 立刻刷新預覽,DB 寫入則 debounce
+    setShowPreview(true);
+    setPreviewRefreshKey((k) => k + 1);
+
+    if (dragAutoApplyTimerRef.current) {
+      window.clearTimeout(dragAutoApplyTimerRef.current);
+    }
+    if (!dragAutoApplyToastIdRef.current) {
+      dragAutoApplyToastIdRef.current = toast.loading("排序變更中...");
+    }
+    const keysToSave = nextKeys;
+    dragAutoApplyTimerRef.current = window.setTimeout(async () => {
+      const result = await saveDisplaySettings({
+        keysOverride: keysToSave,
+        silent: true,
+      });
+      const tid = dragAutoApplyToastIdRef.current ?? undefined;
+      dragAutoApplyToastIdRef.current = null;
+      if (result.ok) {
+        toast.success("排序已自動套用至前台", { id: tid });
+      } else {
+        const errMsg = "error" in result ? result.error : "未知錯誤";
+        toast.error(`套用失敗:${errMsg}`, {
+          id: tid,
+          description: "前台尚未更新,請重試或手動點擊「套用至前台」",
+          duration: 8000,
+        });
+      }
+    }, 600);
   };
+
+  useEffect(() => {
+    return () => {
+      if (dragAutoApplyTimerRef.current) {
+        window.clearTimeout(dragAutoApplyTimerRef.current);
+      }
+    };
+  }, []);
+
 
   const saveDisplaySettings = async (
     opts?: { keysOverride?: string[]; countOverride?: number; silent?: boolean }
