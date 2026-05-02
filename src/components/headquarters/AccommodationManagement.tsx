@@ -830,6 +830,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
                           onClone={openCloneDialog}
                           onToggle={openToggleDialog}
                           onDelete={openDeleteDialog}
+                          onGoogleReviews={(a) => setGoogleReviewsAcc(a)}
                           isDragDisabled={isDragDisabled}
                         />
                       ))}
