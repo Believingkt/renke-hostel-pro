@@ -105,6 +105,24 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
   const [savedSelectedKeys, setSavedSelectedKeys] = useState<string[]>([]);
   const [savingDisplay, setSavingDisplay] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
+
+  // 重置後是否自動套用至前台
+  const AUTO_APPLY_RESET_KEY = "google-reviews-auto-apply-reset-v1";
+  const [autoApplyReset, setAutoApplyReset] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return localStorage.getItem(AUTO_APPLY_RESET_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const toggleAutoApplyReset = (next: boolean) => {
+    setAutoApplyReset(next);
+    try {
+      localStorage.setItem(AUTO_APPLY_RESET_KEY, next ? "1" : "0");
+    } catch {}
+  };
 
   // 篩選 / 排序 state
   const [keyword, setKeyword] = useState("");
@@ -291,7 +309,15 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
         return tb - ta;
       });
     setSelectedKeys(resorted);
-    toast.success("已重置為預設排序(最新優先)");
+    if (autoApplyReset) {
+      // 自動套用到前台,並強制重新載入預覽
+      void saveDisplaySettings({ keysOverride: resorted, silent: true });
+      setShowPreview(true);
+      setPreviewRefreshKey((k) => k + 1);
+      toast.success("已重置並套用至前台");
+    } else {
+      toast.success("已重置為預設排序(最新優先)");
+    }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -305,24 +331,30 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
     });
   };
 
-  const saveDisplaySettings = async () => {
+  const saveDisplaySettings = async (
+    opts?: { keysOverride?: string[]; countOverride?: number; silent?: boolean }
+  ) => {
     if (!accommodationId) return;
-    const count = Math.max(1, Math.min(50, Math.round(displayCount || 1)));
+    const count = Math.max(
+      1,
+      Math.min(50, Math.round(opts?.countOverride ?? displayCount ?? 1))
+    );
+    const keys = opts?.keysOverride ?? selectedKeys;
     setSavingDisplay(true);
     const { error } = await supabase
       .from("accommodation_info")
       .update({
         google_reviews_display_count: count,
-        google_reviews_selected_keys: selectedKeys,
+        google_reviews_selected_keys: keys,
       } as any)
       .eq("id", accommodationId);
     if (error) {
       toast.error("儲存失敗:" + error.message);
     } else {
       setSavedDisplayCount(count);
-      setSavedSelectedKeys([...selectedKeys]);
+      setSavedSelectedKeys([...keys]);
       setDisplayCount(count);
-      toast.success("已套用至前台");
+      if (!opts?.silent) toast.success("已套用至前台");
     }
     setSavingDisplay(false);
   };
@@ -604,10 +636,20 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                   <RotateCcw className="h-3.5 w-3.5" />
                   重置自訂順序
                 </Button>
+                <label
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none px-1"
+                  title="勾選後,點擊「重置自訂順序」會自動儲存並重新載入前台預覽"
+                >
+                  <Checkbox
+                    checked={autoApplyReset}
+                    onCheckedChange={(v) => toggleAutoApplyReset(v === true)}
+                  />
+                  重置後自動套用至前台
+                </label>
                 <Button
                   type="button"
                   size="sm"
-                  onClick={saveDisplaySettings}
+                  onClick={() => saveDisplaySettings()}
                   disabled={savingDisplay || !dirty}
                   className="gap-1"
                 >
@@ -638,6 +680,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                 )}
               </div>
               <GoogleReviewsPreview
+                key={`preview-${previewRefreshKey}`}
                 reviews={cache?.reviews || []}
                 displayCount={Math.max(
                   1,
