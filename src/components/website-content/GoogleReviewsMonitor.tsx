@@ -85,7 +85,7 @@ interface Props {
   accommodationId: string | null;
 }
 
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
 
 export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
   const [loading, setLoading] = useState(true);
@@ -378,14 +378,11 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
   if (loading) return null;
 
   const ageMs = cachedAt ? Date.now() - new Date(cachedAt).getTime() : null;
-  const isFresh = ageMs !== null && ageMs < CACHE_TTL_MS;
-  const status: "not_configured" | "fresh" | "stale" | "never" = !placeId
+  const status: "not_configured" | "synced" | "never" = !placeId
     ? "not_configured"
     : !cachedAt
     ? "never"
-    : isFresh
-    ? "fresh"
-    : "stale";
+    : "synced";
 
   const statusBadge = {
     not_configured: (
@@ -398,12 +395,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
         <AlertTriangle className="h-3 w-3" /> 尚未同步
       </Badge>
     ),
-    stale: (
-      <Badge variant="outline" className="gap-1 border-amber-500 text-amber-700">
-        <Clock className="h-3 w-3" /> 快取已過期
-      </Badge>
-    ),
-    fresh: null,
+    synced: null,
   }[status];
 
   const formatAge = (ms: number) => {
@@ -431,7 +423,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                   Google 評論同步狀態 {statusBadge}
                 </CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">
-                  即時查看快取內容與最近一次更新結果
+                  按下「立即同步」以從 Google 手動抓取最新評論內容
                 </p>
               </div>
             </div>
@@ -463,7 +455,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
               value={cache?.totalReviews?.toLocaleString() ?? "—"}
             />
             <StatBox
-              label="快取評論數"
+              label="已抓取評論數"
               value={`${cache?.reviews?.length ?? 0} 則`}
             />
           </div>
@@ -522,7 +514,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
             <div>
               <CardTitle className="text-xl flex items-center gap-2">
                 <Database className="h-5 w-5" />
-                目前快取的評論內容
+                目前已抓取的評論內容
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
                 勾選你想顯示在前台的評論,設定數量後按「套用至前台」
@@ -780,7 +772,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
           {!cache?.reviews?.length ? (
             <div className="text-center py-10 text-muted-foreground text-sm">
               {placeId
-                ? "目前沒有快取資料,請按上方「立即同步」"
+                ? "目前尚未抓取任何評論,請按上方「立即同步」"
                 : "尚未設定 Google Place ID"}
             </div>
           ) : sortBy === "custom" ? (
