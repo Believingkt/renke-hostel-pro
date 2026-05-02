@@ -637,76 +637,208 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
               沒有符合條件的評論,請調整篩選條件
             </div>
           ) : (
-            <div className="space-y-3">
-              {filteredReviews.map((rv, i) => {
-                const showHeader =
-                  visibleCols.author || visibleCols.photo || visibleCols.rating || visibleCols.publishTime;
-                return (
-                  <div
-                    key={i}
-                    className="rounded-lg border p-4 space-y-2 bg-background"
-                  >
-                    {showHeader && (
-                      <div className="flex items-start justify-between gap-3 flex-wrap">
-                        <div className="flex items-center gap-2">
-                          {visibleCols.photo && rv.authorPhoto && (
-                            <img
-                              src={rv.authorPhoto}
-                              alt={rv.authorName}
-                              className="h-8 w-8 rounded-full object-cover"
-                              referrerPolicy="no-referrer"
-                            />
-                          )}
-                          <div>
-                            {visibleCols.author && (
-                              <div className="font-medium text-sm">
-                                {rv.authorName}
-                              </div>
-                            )}
-                            {(visibleCols.rating || visibleCols.publishTime) && (
-                              <div className="flex items-center gap-1">
-                                {visibleCols.rating &&
-                                  [1, 2, 3, 4, 5].map((s) => (
-                                    <Star
-                                      key={s}
-                                      className={`h-3.5 w-3.5 ${
-                                        s <= Math.round(rv.rating)
-                                          ? "fill-primary text-primary"
-                                          : "text-muted-foreground/30"
-                                      }`}
-                                    />
-                                  ))}
-                                {visibleCols.publishTime && rv.relativeTime && (
-                                  <span className="text-xs text-muted-foreground ml-2">
-                                    {rv.relativeTime}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        {visibleCols.author && rv.authorUrl && (
-                          <a
-                            href={rv.authorUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-xs text-primary hover:underline inline-flex items-center gap-1"
-                          >
-                            Google 個人檔案 <ExternalLink className="h-3 w-3" />
-                          </a>
-                        )}
-                      </div>
-                    )}
-                    {visibleCols.text && (
-                      <p className="text-sm whitespace-pre-wrap text-foreground/90">
-                        {rv.text || <em className="text-muted-foreground">(無文字內容)</em>}
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
+            <ReviewList
+              reviews={filteredReviews}
+              visibleCols={visibleCols}
+              selectedKeys={selectedKeys}
+              onToggleSelect={toggleSelect}
+              draggable={sortBy === "custom"}
+              onDragEnd={handleDragEnd}
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 設定區塊(複用既有元件) */}
+      <GoogleReviewsSettings accommodationId={accommodationId} />
+    </div>
+  );
+};
+
+// 評論列表元件:支援拖曳/勾選
+interface ReviewListProps {
+  reviews: CachedReview[];
+  visibleCols: {
+    author: boolean;
+    photo: boolean;
+    rating: boolean;
+    publishTime: boolean;
+    text: boolean;
+  };
+  selectedKeys: string[];
+  onToggleSelect: (key: string) => void;
+  draggable: boolean;
+  onDragEnd: (event: DragEndEvent) => void;
+}
+
+const ReviewList = ({
+  reviews,
+  visibleCols,
+  selectedKeys,
+  onToggleSelect,
+  draggable,
+  onDragEnd,
+}: ReviewListProps) => {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+  const ids = reviews.map(reviewKey);
+
+  if (!draggable) {
+    return (
+      <div className="space-y-3">
+        {reviews.map((rv) => (
+          <ReviewCard
+            key={reviewKey(rv)}
+            rv={rv}
+            visibleCols={visibleCols}
+            checked={selectedKeys.includes(reviewKey(rv))}
+            onToggle={() => onToggleSelect(reviewKey(rv))}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+      <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+        <div className="space-y-3">
+          {reviews.map((rv) => (
+            <SortableReviewCard
+              key={reviewKey(rv)}
+              id={reviewKey(rv)}
+              rv={rv}
+              visibleCols={visibleCols}
+              checked={selectedKeys.includes(reviewKey(rv))}
+              onToggle={() => onToggleSelect(reviewKey(rv))}
+            />
+          ))}
+        </div>
+      </SortableContext>
+    </DndContext>
+  );
+};
+
+interface ReviewCardProps {
+  rv: CachedReview;
+  visibleCols: ReviewListProps["visibleCols"];
+  checked: boolean;
+  onToggle: () => void;
+  dragHandle?: React.ReactNode;
+}
+
+const ReviewCard = ({ rv, visibleCols, checked, onToggle, dragHandle }: ReviewCardProps) => {
+  const showHeader =
+    visibleCols.author || visibleCols.photo || visibleCols.rating || visibleCols.publishTime;
+  return (
+    <div
+      className={`rounded-lg border p-4 space-y-2 bg-background transition-colors ${
+        checked ? "border-primary/50 bg-primary/5" : ""
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        {dragHandle}
+        <div
+          className="pt-0.5 cursor-pointer"
+          onClick={onToggle}
+          role="checkbox"
+          aria-checked={checked}
+        >
+          <Checkbox checked={checked} onCheckedChange={onToggle} />
+        </div>
+        <div className="flex-1 space-y-2 min-w-0">
+          {showHeader && (
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                {visibleCols.photo && rv.authorPhoto && (
+                  <img
+                    src={rv.authorPhoto}
+                    alt={rv.authorName}
+                    className="h-8 w-8 rounded-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                )}
+                <div>
+                  {visibleCols.author && (
+                    <div className="font-medium text-sm">{rv.authorName}</div>
+                  )}
+                  {(visibleCols.rating || visibleCols.publishTime) && (
+                    <div className="flex items-center gap-1">
+                      {visibleCols.rating &&
+                        [1, 2, 3, 4, 5].map((s) => (
+                          <Star
+                            key={s}
+                            className={`h-3.5 w-3.5 ${
+                              s <= Math.round(rv.rating)
+                                ? "fill-primary text-primary"
+                                : "text-muted-foreground/30"
+                            }`}
+                          />
+                        ))}
+                      {visibleCols.publishTime && rv.relativeTime && (
+                        <span className="text-xs text-muted-foreground ml-2">
+                          {rv.relativeTime}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+              {visibleCols.author && rv.authorUrl && (
+                <a
+                  href={rv.authorUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+                >
+                  Google 個人檔案 <ExternalLink className="h-3 w-3" />
+                </a>
+              )}
             </div>
           )}
+          {visibleCols.text && (
+            <p className="text-sm whitespace-pre-wrap text-foreground/90">
+              {rv.text || <em className="text-muted-foreground">(無文字內容)</em>}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const SortableReviewCard = ({
+  id,
+  ...rest
+}: ReviewCardProps & { id: string }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style}>
+      <ReviewCard
+        {...rest}
+        dragHandle={
+          <button
+            type="button"
+            className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1 -ml-1"
+            aria-label="拖曳排序"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+        }
+      />
+    </div>
+  );
+};
         </CardContent>
       </Card>
 
