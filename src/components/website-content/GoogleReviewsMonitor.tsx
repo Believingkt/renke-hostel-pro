@@ -16,7 +16,6 @@ import {
   Star,
   RefreshCw,
   ExternalLink,
-  CheckCircle2,
   AlertTriangle,
   Clock,
   Database,
@@ -506,7 +505,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
         </CardContent>
       </Card>
 
-      {/* 快取評論內容 */}
+      {/* 前台顯示設定 */}
       <Card>
         <CardHeader className="pb-4">
           <div className="flex items-center gap-3">
