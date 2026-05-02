@@ -831,8 +831,22 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
               );
             })()
           ) : filteredReviews.length === 0 ? (
-            <div className="text-center py-10 text-muted-foreground text-sm">
-              沒有符合條件的評論,請調整篩選條件
+            <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+              <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                <Search className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium">找不到符合條件的評論</p>
+                <p className="text-xs text-muted-foreground">
+                  目前共有 {totalCount} 則評論,請調整關鍵字或篩選條件再試一次
+                </p>
+              </div>
+              {hasActiveFilter && (
+                <Button variant="outline" size="sm" onClick={resetFilters} className="mt-1">
+                  <X className="h-4 w-4 mr-1" />
+                  清除所有篩選
+                </Button>
+              )}
             </div>
           ) : (
             <ReviewList
