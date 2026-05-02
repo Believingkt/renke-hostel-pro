@@ -358,17 +358,24 @@ export default function Reception() {
             >
               <LogOut className="h-4 w-4" /> 退房
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="gap-2 ml-auto"
-              aria-label="重新整理"
-            >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-              重新整理
-            </Button>
+            <div className="ml-auto flex items-center gap-2">
+              {lastRefreshedAt && (
+                <span className="text-xs text-muted-foreground" title={format(lastRefreshedAt, "yyyy-MM-dd HH:mm:ss")}>
+                  最後更新：{formatRelative(lastRefreshedAt)}
+                </span>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="gap-2"
+                aria-label="重新整理"
+              >
+                <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                重新整理
+              </Button>
+            </div>
           </div>
         </CardHeader>
 
