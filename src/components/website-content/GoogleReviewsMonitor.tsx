@@ -272,6 +272,27 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
 
   const clearSelection = () => setSelectedKeys([]);
 
+  // 將已勾選評論依「最新發佈時間」重新排序(預設順序),並即時套用到前台預覽
+  const resetCustomOrder = () => {
+    const all = cache?.reviews ?? [];
+    if (selectedKeys.length === 0) {
+      toast.info("目前沒有自訂順序可重置");
+      return;
+    }
+    const map = new Map(all.map((r) => [reviewKey(r), r]));
+    const resorted = [...selectedKeys]
+      .filter((k) => map.has(k))
+      .sort((a, b) => {
+        const ra = map.get(a)!;
+        const rb = map.get(b)!;
+        const ta = ra.publishTime ? new Date(ra.publishTime).getTime() : 0;
+        const tb = rb.publishTime ? new Date(rb.publishTime).getTime() : 0;
+        return tb - ta;
+      });
+    setSelectedKeys(resorted);
+    toast.success("已重置為預設排序(最新優先)");
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
