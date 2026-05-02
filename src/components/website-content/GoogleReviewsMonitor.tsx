@@ -680,6 +680,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                 )}
               </div>
               <GoogleReviewsPreview
+                key={`preview-${previewRefreshKey}`}
                 reviews={cache?.reviews || []}
                 displayCount={Math.max(
                   1,
