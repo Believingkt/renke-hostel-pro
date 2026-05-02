@@ -201,12 +201,14 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
 
   const handleSync = async () => {
     if (!accommodationId) return;
+    if (syncing) return; // 防連點:同步進行中直接忽略
     if (!placeId) {
       toast.error("尚未設定 Google Place ID");
       return;
     }
     setSyncing(true);
     setLastError(null);
+    const toastId = toast.loading("正在向 Google 取得最新評論...");
     try {
       const { data, error } = await supabase.functions.invoke(
         "fetch-google-reviews",
@@ -216,16 +218,16 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
       if (data?.error) {
         const msg = data.message || data.error;
         setLastError({ message: String(msg), at: new Date().toISOString() });
-        toast.error("同步失敗:" + msg);
+        toast.error("同步失敗:" + msg, { id: toastId });
       } else {
         setCache(data.data);
         setCachedAt(data.cachedAt);
-        toast.success("已同步 Google 評論");
+        toast.success("已同步 Google 評論", { id: toastId });
       }
     } catch (e: any) {
       const msg = e?.message || String(e);
       setLastError({ message: msg, at: new Date().toISOString() });
-      toast.error("同步失敗:" + msg);
+      toast.error("同步失敗:" + msg, { id: toastId });
     } finally {
       setSyncing(false);
     }
@@ -297,10 +299,12 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
               type="button"
               onClick={handleSync}
               disabled={syncing || !placeId}
-              className="gap-2"
+              aria-busy={syncing}
+              aria-live="polite"
+              className="gap-2 min-w-[130px]"
             >
               <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
-              {syncing ? "同步中..." : "立即同步"}
+              {syncing ? "同步中,請稍候..." : "立即同步"}
             </Button>
           </div>
         </CardHeader>
