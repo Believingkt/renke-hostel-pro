@@ -1,7 +1,7 @@
 // Edge Function: fetch-google-reviews
 // 從 Google Places API (New) 抓取指定地點的最新評論並寫回 accommodation_info.google_reviews_cache。
 // 公開可呼叫(verify_jwt = false 預設),寫入用 service role 繞過 RLS。
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
