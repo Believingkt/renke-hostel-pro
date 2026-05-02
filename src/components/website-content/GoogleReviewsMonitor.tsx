@@ -594,6 +594,18 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                 </Button>
                 <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={resetCustomOrder}
+                  disabled={selectedKeys.length === 0}
+                  className="gap-1"
+                  title="將已勾選評論依最新發佈時間重新排序"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  重置自訂順序
+                </Button>
+                <Button
+                  type="button"
                   size="sm"
                   onClick={saveDisplaySettings}
                   disabled={savingDisplay || !dirty}
