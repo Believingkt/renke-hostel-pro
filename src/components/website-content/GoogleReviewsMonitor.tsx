@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -22,10 +23,33 @@ import {
   XCircle,
   Search,
   X,
+  GripVertical,
+  Save,
+  Eye,
 } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { GoogleReviewsSettings } from "./GoogleReviewsSettings";
+
+const reviewKey = (rv: { authorName: string; publishTime?: string | null }) =>
+  `${rv.authorName}__${rv.publishTime || ""}`;
 
 type SortOption = "newest" | "oldest" | "rating_desc" | "rating_asc";
 type TextFilter = "all" | "with_text" | "no_text";
