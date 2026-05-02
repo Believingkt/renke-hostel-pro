@@ -28,6 +28,7 @@ import { format, eachDayOfInterval, addDays } from "date-fns";
 import { resolveTemplatePricesForDates, type PricingTemplateLite } from "@/utils/templatePriceResolver";
 import { useToast } from "@/hooks/use-toast";
 import { OnlinePaymentDialog } from "@/components/orders/OnlinePaymentDialog";
+import { DepositManagementSection } from "@/components/orders/DepositManagementSection";
 import {
   AlertDialog,
   AlertDialogAction,
