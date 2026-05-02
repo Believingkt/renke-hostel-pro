@@ -51,7 +51,12 @@ import { GoogleReviewsSettings } from "./GoogleReviewsSettings";
 const reviewKey = (rv: { authorName: string; publishTime?: string | null }) =>
   `${rv.authorName}__${rv.publishTime || ""}`;
 
-type SortOption = "newest" | "oldest" | "rating_desc" | "rating_asc";
+type SortOption =
+  | "newest"
+  | "oldest"
+  | "rating_desc"
+  | "rating_asc"
+  | "custom";
 type TextFilter = "all" | "with_text" | "no_text";
 type TimeRange = "all" | "7d" | "30d" | "90d" | "180d" | "365d";
 
