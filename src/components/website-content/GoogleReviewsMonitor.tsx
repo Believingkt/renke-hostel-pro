@@ -96,6 +96,13 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
     at: string;
   } | null>(null);
 
+  // 前台顯示控制
+  const [displayCount, setDisplayCount] = useState<number>(5);
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]); // 同時是排序順序
+  const [savedDisplayCount, setSavedDisplayCount] = useState<number>(5);
+  const [savedSelectedKeys, setSavedSelectedKeys] = useState<string[]>([]);
+  const [savingDisplay, setSavingDisplay] = useState(false);
+
   // 篩選 / 排序 state
   const [keyword, setKeyword] = useState("");
   const [ratingFilter, setRatingFilter] = useState<Set<number>>(new Set());
