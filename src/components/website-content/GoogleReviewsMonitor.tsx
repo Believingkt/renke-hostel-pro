@@ -661,19 +661,19 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
             <div className="rounded-lg border bg-muted/20 p-3 space-y-3">
               <div className="flex flex-wrap gap-2 items-center">
                 <div className="relative w-full sm:flex-1 sm:min-w-[200px]">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Search className="absolute left-3 sm:left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
                   <Input
                     value={keyword}
                     onChange={(e) => setKeyword(e.target.value)}
                     placeholder="搜尋評論內容或評論者..."
-                    className="h-12 sm:h-10 !pl-12 !pr-12 text-base sm:text-sm"
+                    className="h-11 sm:h-10 !pl-10 !pr-10 text-sm leading-normal placeholder:text-sm placeholder:truncate"
                   />
                   {keyword && (
                     <button
                       type="button"
                       onClick={() => setKeyword("")}
                       aria-label="清除搜尋"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors z-10"
                     >
                       <X className="h-4 w-4" />
                     </button>
