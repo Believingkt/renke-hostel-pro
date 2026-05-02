@@ -809,6 +809,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           : null,
         confirmed_at: form.order_status === "confirmed" ? new Date().toISOString() : null,
         order_source: form.order_source || "manual",
+        deposit_required_amount: form.security_deposit_method !== "none" ? form.security_deposit_amount : 0,
+        deposit_method: form.security_deposit_method !== "none" ? form.security_deposit_method : null,
+        deposit_status: form.security_deposit_method === "none" ? "not_required" : "pending",
       }).select('id').single();
 
       if (error) throw error;
