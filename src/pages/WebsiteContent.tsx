@@ -20,7 +20,7 @@ import { HeaderFooterSection } from "@/components/website-content/HeaderFooterSe
 import { HomepageSectionsBlock } from "@/components/website-content/HomepageSectionsBlock";
 import { AddonPlansSection, AddonPlan } from "@/components/website-content/AddonPlansSection";
 import { CustomSectionsManager } from "@/components/website-content/CustomSectionsManager";
-import { GoogleReviewsSettings } from "@/components/website-content/GoogleReviewsSettings";
+
 import { GoogleReviewsMonitor } from "@/components/website-content/GoogleReviewsMonitor";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { ValidatedInput } from "@/components/ui/validated-input";
@@ -3095,10 +3095,7 @@ const WebsiteContent = () => {
             uploadingFooterLogo={uploadingFooterLogo}
           />
 
-          {/* Google 評論串接 */}
-          {accommodationId && (
-            <GoogleReviewsSettings accommodationId={accommodationId} />
-          )}
+
 
           {/* 自訂圖片區塊 */}
           {accommodationId && (
