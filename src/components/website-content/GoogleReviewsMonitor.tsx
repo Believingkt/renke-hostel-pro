@@ -330,7 +330,8 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
     }
     // 失敗時保留剛才的預覽排序(不還原 UI),但提示錯誤;
     // savedSelectedKeys 維持舊值,使用者可重試或手動套用
-    toast.error(`套用失敗:${result.error}`, {
+    const errMsg = "error" in result ? result.error : "未知錯誤";
+    toast.error(`套用失敗:${errMsg}`, {
       id: toastId,
       description: "前台尚未更新,請重試或手動點擊「套用至前台」",
       duration: 8000,
