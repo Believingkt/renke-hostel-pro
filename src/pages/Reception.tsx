@@ -118,6 +118,31 @@ export default function Reception() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentAccommodationId, mode, day]);
 
+  // Realtime: refresh list & counts when any order in this accommodation changes
+  useEffect(() => {
+    if (!currentAccommodationId) return;
+    const channel = supabase
+      .channel(`reception-orders-${currentAccommodationId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "orders",
+          filter: `accommodation_id=eq.${currentAccommodationId}`,
+        },
+        () => {
+          loadOrders();
+          loadCounts();
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentAccommodationId, mode, day]);
+
   const loadCounts = async () => {
     if (!currentAccommodationId) return;
     const dates = {
