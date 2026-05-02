@@ -660,7 +660,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
           {totalCount > 0 && (
             <div className="rounded-lg border bg-muted/20 p-3 space-y-3">
               <div className="flex flex-wrap gap-2 items-center">
-                <div className="relative flex-1 min-w-[200px]">
+                <div className="relative w-full sm:flex-1 sm:min-w-[200px]">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
                     value={keyword}
@@ -683,7 +683,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                   value={timeRange}
                   onValueChange={(v) => setTimeRange(v as TimeRange)}
                 >
-                  <SelectTrigger className="w-[140px] h-10">
+                  <SelectTrigger className="flex-1 sm:flex-none sm:w-[140px] h-10 min-w-[110px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -699,7 +699,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                   value={textFilter}
                   onValueChange={(v) => setTextFilter(v as TextFilter)}
                 >
-                  <SelectTrigger className="w-[140px] h-10">
+                  <SelectTrigger className="flex-1 sm:flex-none sm:w-[140px] h-10 min-w-[110px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -712,7 +712,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                   value={sortBy}
                   onValueChange={(v) => setSortBy(v as SortOption)}
                 >
-                  <SelectTrigger className="w-[140px] h-10">
+                  <SelectTrigger className="flex-1 sm:flex-none sm:w-[140px] h-10 min-w-[110px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
