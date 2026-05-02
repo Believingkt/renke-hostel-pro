@@ -636,6 +636,16 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                   <RotateCcw className="h-3.5 w-3.5" />
                   重置自訂順序
                 </Button>
+                <label
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none px-1"
+                  title="勾選後,點擊「重置自訂順序」會自動儲存並重新載入前台預覽"
+                >
+                  <Checkbox
+                    checked={autoApplyReset}
+                    onCheckedChange={(v) => toggleAutoApplyReset(v === true)}
+                  />
+                  重置後自動套用至前台
+                </label>
                 <Button
                   type="button"
                   size="sm"
