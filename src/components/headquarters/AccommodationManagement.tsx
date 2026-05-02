@@ -110,6 +110,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
   const [toggleDialogOpen, setToggleDialogOpen] = useState(false);
   const [togglingAccommodation, setTogglingAccommodation] = useState<Accommodation | null>(null);
   const [isToggling, setIsToggling] = useState(false);
+  const [googleReviewsAcc, setGoogleReviewsAcc] = useState<Accommodation | null>(null);
   
   // Clone states
   const [cloneDialogOpen, setCloneDialogOpen] = useState(false);
