@@ -1,7 +1,16 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Toggle } from "@/components/ui/toggle";
 import {
   Star,
   RefreshCw,
@@ -11,10 +20,16 @@ import {
   Clock,
   Database,
   XCircle,
+  Search,
+  X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { GoogleReviewsSettings } from "./GoogleReviewsSettings";
+
+type SortOption = "newest" | "oldest" | "rating_desc" | "rating_asc";
+type TextFilter = "all" | "with_text" | "no_text";
+type TimeRange = "all" | "7d" | "30d" | "90d" | "180d" | "365d";
 
 interface CachedReview {
   rating: number;
