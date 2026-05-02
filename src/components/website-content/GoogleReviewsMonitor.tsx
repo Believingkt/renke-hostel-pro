@@ -772,7 +772,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
           {!cache?.reviews?.length ? (
             <div className="text-center py-10 text-muted-foreground text-sm">
               {placeId
-                ? "目前沒有快取資料,請按上方「立即同步」"
+                ? "目前尚未抓取任何評論,請按上方「立即同步」"
                 : "尚未設定 Google Place ID"}
             </div>
           ) : sortBy === "custom" ? (
