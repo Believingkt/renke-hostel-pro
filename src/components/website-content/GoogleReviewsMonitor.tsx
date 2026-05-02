@@ -1011,8 +1011,9 @@ const SortableReviewCard = ({
         dragHandle={
           <button
             type="button"
-            className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1 -ml-1"
+            className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1 -ml-1 touch-none select-none"
             aria-label="拖曳排序"
+            onClick={(e) => e.stopPropagation()}
             {...attributes}
             {...listeners}
           >
