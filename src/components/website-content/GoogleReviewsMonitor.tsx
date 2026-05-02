@@ -378,14 +378,11 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
   if (loading) return null;
 
   const ageMs = cachedAt ? Date.now() - new Date(cachedAt).getTime() : null;
-  const isFresh = ageMs !== null && ageMs < CACHE_TTL_MS;
-  const status: "not_configured" | "fresh" | "stale" | "never" = !placeId
+  const status: "not_configured" | "synced" | "never" = !placeId
     ? "not_configured"
     : !cachedAt
     ? "never"
-    : isFresh
-    ? "fresh"
-    : "stale";
+    : "synced";
 
   const statusBadge = {
     not_configured: (
@@ -398,12 +395,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
         <AlertTriangle className="h-3 w-3" /> 尚未同步
       </Badge>
     ),
-    stale: (
-      <Badge variant="outline" className="gap-1 border-amber-500 text-amber-700">
-        <Clock className="h-3 w-3" /> 快取已過期
-      </Badge>
-    ),
-    fresh: null,
+    synced: null,
   }[status];
 
   const formatAge = (ms: number) => {
