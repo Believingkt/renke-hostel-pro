@@ -160,6 +160,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     balance_paid: false,
     notes: "",
     order_source: "",
+    security_deposit_method: "none" as "none" | "cash" | "card",
+    security_deposit_amount: 5000,
   });
 
   // Reset form when dialog opens
@@ -183,6 +185,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         balance_paid: false,
         notes: "",
         order_source: "",
+        security_deposit_method: "none",
+        security_deposit_amount: 5000,
       });
       setSelectedAddons([]);
       setDiscountCode("");
