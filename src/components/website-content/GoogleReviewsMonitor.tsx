@@ -103,6 +103,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
   const [savedDisplayCount, setSavedDisplayCount] = useState<number>(5);
   const [savedSelectedKeys, setSavedSelectedKeys] = useState<string[]>([]);
   const [savingDisplay, setSavingDisplay] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   // 篩選 / 排序 state
   const [keyword, setKeyword] = useState("");
