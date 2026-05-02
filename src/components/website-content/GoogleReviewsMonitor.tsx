@@ -345,14 +345,24 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
       toast.success("已重置並套用至前台", { id: toastId });
       return;
     }
-    // 失敗時保留剛才的預覽排序(不還原 UI),但提示錯誤;
-    // savedSelectedKeys 維持舊值,使用者可重試或手動套用
     const errMsg = "error" in result ? result.error : "未知錯誤";
     toast.error(`套用失敗:${errMsg}`, {
       id: toastId,
-      description: "前台尚未更新,請重試或手動點擊「套用至前台」",
-      duration: 8000,
+      description: "前台尚未更新,可恢復為套用前的預覽排序",
+      duration: 12000,
+      action: {
+        label: "恢復到套用前預覽",
+        onClick: () => restorePreviewOrder(previousKeys),
+      },
     });
+  };
+
+  // 恢復預覽到指定的「套用前」排序快照
+  const restorePreviewOrder = (snapshot: string[]) => {
+    setSelectedKeys([...snapshot]);
+    setPreviewRefreshKey((k) => k + 1);
+    setShowPreview(true);
+    toast.success("已恢復到套用前的預覽排序");
   };
 
   // 拖曳自動套用:debounce 600ms,避免連續拖曳轟炸 DB
