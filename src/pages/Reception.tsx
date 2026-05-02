@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
-import { ConciergeBell, Home, LogIn, LogOut, Search, X, ArrowUpDown } from "lucide-react";
+import { ConciergeBell, Home, LogIn, LogOut, RefreshCw, Search, X, ArrowUpDown } from "lucide-react";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { useStaffPermissions } from "@/hooks/use-staff-permissions";
 import { supabase } from "@/integrations/supabase/client";
@@ -93,8 +93,19 @@ export default function Reception() {
   const [actingId, setActingId] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("order_number");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [refreshing, setRefreshing] = useState(false);
 
   const today = todayStr();
+
+  const handleRefresh = async () => {
+    if (!currentAccommodationId || refreshing) return;
+    setRefreshing(true);
+    try {
+      await Promise.all([loadOrders(), loadCounts()]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const targetDate = useMemo(() => {
     if (mode === "checkout") return today;
@@ -327,6 +338,17 @@ export default function Reception() {
               className="gap-2"
             >
               <LogOut className="h-4 w-4" /> 退房
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="gap-2 ml-auto"
+              aria-label="重新整理"
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+              重新整理
             </Button>
           </div>
         </CardHeader>
