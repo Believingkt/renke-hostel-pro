@@ -400,7 +400,8 @@ const WebsiteContent = () => {
       'gallery': '精選照片',
       'booking-info': '訂房須知',
       'faq': '常見問題',
-      'location': '交通地圖'
+      'location': '交通地圖',
+      'reviews': 'Google 評論'
     };
     return titleMap[activeTab] || '官網內容';
   };
