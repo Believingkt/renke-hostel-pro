@@ -558,6 +558,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                     <SelectItem value="oldest">最舊優先</SelectItem>
                     <SelectItem value="rating_desc">星等高→低</SelectItem>
                     <SelectItem value="rating_asc">星等低→高</SelectItem>
+                    <SelectItem value="custom">自訂順序(可拖曳)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
