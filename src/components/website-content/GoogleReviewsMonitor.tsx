@@ -26,6 +26,7 @@ import {
   GripVertical,
   Save,
   Eye,
+  RotateCcw,
 } from "lucide-react";
 import {
   DndContext,
