@@ -188,6 +188,16 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
 
     const sorted = [...filtered].sort((a, b) => {
       switch (sortBy) {
+        case "custom": {
+          const orderMap = new Map(selectedKeys.map((k, idx) => [k, idx]));
+          const ai = orderMap.has(reviewKey(a)) ? orderMap.get(reviewKey(a))! : Infinity;
+          const bi = orderMap.has(reviewKey(b)) ? orderMap.get(reviewKey(b))! : Infinity;
+          if (ai !== bi) return ai - bi;
+          // 未選的依最新排序
+          const ta = a.publishTime ? new Date(a.publishTime).getTime() : 0;
+          const tb = b.publishTime ? new Date(b.publishTime).getTime() : 0;
+          return tb - ta;
+        }
         case "newest":
         case "oldest": {
           const ta = a.publishTime ? new Date(a.publishTime).getTime() : 0;
@@ -201,7 +211,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
       }
     });
     return sorted;
-  }, [cache, keyword, ratingFilter, textFilter, timeRange, sortBy]);
+  }, [cache, keyword, ratingFilter, textFilter, timeRange, sortBy, selectedKeys]);
 
   const totalCount = cache?.reviews?.length ?? 0;
   const hasActiveFilter =
