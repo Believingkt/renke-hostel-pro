@@ -661,21 +661,24 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
             <div className="rounded-lg border bg-muted/20 p-3 space-y-3">
               <div className="flex flex-wrap gap-2 items-center">
                 <div className="relative w-full sm:flex-1 sm:min-w-[200px]">
-                  <Search className="absolute left-3 sm:left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
+                  {/* Search icon hit area (decorative, larger touch zone for visual balance) */}
+                  <div className="absolute left-0 top-0 h-full w-11 sm:w-10 flex items-center justify-center pointer-events-none z-10">
+                    <Search className="h-4 w-4 text-muted-foreground" />
+                  </div>
                   <Input
                     value={keyword}
                     onChange={(e) => setKeyword(e.target.value)}
                     placeholder="搜尋評論內容或評論者..."
-                    className="h-11 sm:h-10 !pl-10 !pr-10 text-sm leading-normal placeholder:text-sm placeholder:truncate"
+                    className="h-11 sm:h-10 !pl-11 sm:!pl-10 !pr-12 sm:!pr-10 text-sm leading-normal placeholder:text-sm placeholder:truncate"
                   />
                   {keyword && (
                     <button
                       type="button"
                       onClick={() => setKeyword("")}
                       aria-label="清除搜尋"
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors z-10"
+                      className="absolute right-0 top-0 h-full w-11 sm:w-10 inline-flex items-center justify-center text-muted-foreground hover:text-foreground active:bg-muted/60 sm:hover:bg-muted sm:rounded-md sm:right-1 sm:top-1/2 sm:-translate-y-1/2 sm:h-8 sm:w-8 transition-colors z-10"
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-5 w-5 sm:h-4 sm:w-4" />
                     </button>
                   )}
                 </div>
