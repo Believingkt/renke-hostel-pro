@@ -455,7 +455,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
               value={cache?.totalReviews?.toLocaleString() ?? "—"}
             />
             <StatBox
-              label="快取評論數"
+              label="已抓取評論數"
               value={`${cache?.reviews?.length ?? 0} 則`}
             />
           </div>
