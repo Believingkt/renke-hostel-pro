@@ -417,6 +417,9 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
 
   return (
     <div className="space-y-6">
+      {/* 設定區塊(Google 評論串接 + 摘要) */}
+      <GoogleReviewsSettings accommodationId={accommodationId} />
+
       {/* 狀態總覽 */}
       <Card>
         <CardHeader className="pb-4">
@@ -833,8 +836,6 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
         </CardContent>
       </Card>
 
-      {/* 設定區塊(複用既有元件) */}
-      <GoogleReviewsSettings accommodationId={accommodationId} />
     </div>
   );
 };
