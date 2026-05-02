@@ -661,12 +661,12 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
             <div className="rounded-lg border bg-muted/20 p-3 space-y-3">
               <div className="flex flex-wrap gap-2 items-center">
                 <div className="relative flex-1 min-w-[200px]">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
                     value={keyword}
                     onChange={(e) => setKeyword(e.target.value)}
                     placeholder="搜尋評論內容或評論者..."
-                    className="pl-9 h-10"
+                    className="pl-10 h-10"
                   />
                 </div>
                 <Select
