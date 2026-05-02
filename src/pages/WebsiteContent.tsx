@@ -4075,6 +4075,11 @@ const WebsiteContent = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="reviews" className="space-y-6">
+          <PageHeader title="Google 評論" icon={Star} />
+          <GoogleReviewsMonitor accommodationId={accommodationId} />
+        </TabsContent>
       </Tabs>
 
       {/* FAQ Dialog */}
