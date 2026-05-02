@@ -107,40 +107,6 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
   const [showPreview, setShowPreview] = useState(false);
   const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
 
-  // 重置後是否自動套用至前台
-  const AUTO_APPLY_RESET_KEY = "google-reviews-auto-apply-reset-v1";
-  const [autoApplyReset, setAutoApplyReset] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    try {
-      return localStorage.getItem(AUTO_APPLY_RESET_KEY) === "1";
-    } catch {
-      return false;
-    }
-  });
-  const toggleAutoApplyReset = (next: boolean) => {
-    setAutoApplyReset(next);
-    try {
-      localStorage.setItem(AUTO_APPLY_RESET_KEY, next ? "1" : "0");
-    } catch {}
-  };
-
-  // 拖曳排序後是否自動套用至前台
-  const AUTO_APPLY_DRAG_KEY = "google-reviews-auto-apply-drag-v1";
-  const [autoApplyDrag, setAutoApplyDrag] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    try {
-      return localStorage.getItem(AUTO_APPLY_DRAG_KEY) === "1";
-    } catch {
-      return false;
-    }
-  });
-  const toggleAutoApplyDrag = (next: boolean) => {
-    setAutoApplyDrag(next);
-    try {
-      localStorage.setItem(AUTO_APPLY_DRAG_KEY, next ? "1" : "0");
-    } catch {}
-  };
-
   // 篩選 / 排序 state
   const [keyword, setKeyword] = useState("");
   const [ratingFilter, setRatingFilter] = useState<Set<number>>(new Set());
@@ -308,14 +274,13 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
 
   const clearSelection = () => setSelectedKeys([]);
 
-  // 將已勾選評論依「最新發佈時間」重新排序(預設順序),並即時套用到前台預覽
-  const resetCustomOrder = async () => {
+  // 將已勾選評論依「最新發佈時間」重新排序(預設順序)
+  const resetCustomOrder = () => {
     const all = cache?.reviews ?? [];
     if (selectedKeys.length === 0) {
       toast.info("目前沒有自訂順序可重置");
       return;
     }
-    const previousKeys = [...selectedKeys];
     const map = new Map(all.map((r) => [reviewKey(r), r]));
     const resorted = [...selectedKeys]
       .filter((k) => map.has(k))
@@ -327,122 +292,19 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
         return tb - ta;
       });
     setSelectedKeys(resorted);
-
-    if (!autoApplyReset) {
-      toast.success("已重置為預設排序(最新優先)");
-      return;
-    }
-
-    // 自動套用流程:先顯示 loading,等寫入成功才回報成功
-    setShowPreview(true);
-    setPreviewRefreshKey((k) => k + 1);
-    const toastId = toast.loading("正在重置並套用至前台...");
-    const result = await saveDisplaySettings({
-      keysOverride: resorted,
-      silent: true,
-    });
-    if (result.ok) {
-      toast.success("已重置並套用至前台", { id: toastId });
-      return;
-    }
-    const errMsg = "error" in result ? result.error : "未知錯誤";
-    toast.error(`套用失敗:${errMsg}`, {
-      id: toastId,
-      description: "前台尚未更新,可恢復為套用前的預覽排序",
-      duration: 12000,
-      action: {
-        label: "恢復到套用前預覽",
-        onClick: () => restorePreviewOrder(previousKeys),
-      },
-    });
+    toast.success("已重置為預設排序(最新優先)");
   };
-
-  // 恢復預覽到指定的「套用前」排序快照
-  const restorePreviewOrder = (snapshot: string[]) => {
-    setSelectedKeys([...snapshot]);
-    setPreviewRefreshKey((k) => k + 1);
-    setShowPreview(true);
-    toast.success("已恢復到套用前的預覽排序");
-  };
-
-  // 拖曳自動套用:debounce 600ms,避免連續拖曳轟炸 DB
-  const dragAutoApplyTimerRef = useRef<number | null>(null);
-  const dragAutoApplyToastIdRef = useRef<string | number | null>(null);
-  // 一輪 debounce 的「套用前」排序快照(連續拖曳期間維持為最初的順序)
-  const dragPreApplySnapshotRef = useRef<string[] | null>(null);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    let nextKeys: string[] | null = null;
-    let prevKeys: string[] | null = null;
     setSelectedKeys((prev) => {
       const oldIndex = prev.indexOf(String(active.id));
       const newIndex = prev.indexOf(String(over.id));
       if (oldIndex === -1 || newIndex === -1) return prev;
-      prevKeys = prev;
-      const moved = arrayMove(prev, oldIndex, newIndex);
-      nextKeys = moved;
-      return moved;
+      return arrayMove(prev, oldIndex, newIndex);
     });
-
-    if (!autoApplyDrag || !nextKeys) return;
-
-    // 第一次拖曳(尚無 pending timer)時,記下這一輪的原始順序
-    if (!dragAutoApplyTimerRef.current && prevKeys) {
-      dragPreApplySnapshotRef.current = [...prevKeys];
-    }
-
-    // 立刻刷新預覽,DB 寫入則 debounce
-    setShowPreview(true);
-    setPreviewRefreshKey((k) => k + 1);
-
-    if (dragAutoApplyTimerRef.current) {
-      window.clearTimeout(dragAutoApplyTimerRef.current);
-    }
-    if (!dragAutoApplyToastIdRef.current) {
-      dragAutoApplyToastIdRef.current = toast.loading("排序變更中...");
-    }
-    const keysToSave = nextKeys;
-    dragAutoApplyTimerRef.current = window.setTimeout(async () => {
-      dragAutoApplyTimerRef.current = null;
-      const snapshot = dragPreApplySnapshotRef.current;
-      const result = await saveDisplaySettings({
-        keysOverride: keysToSave,
-        silent: true,
-      });
-      const tid = dragAutoApplyToastIdRef.current ?? undefined;
-      dragAutoApplyToastIdRef.current = null;
-      if (result.ok) {
-        dragPreApplySnapshotRef.current = null;
-        toast.success("排序已自動套用至前台", { id: tid });
-      } else {
-        const errMsg = "error" in result ? result.error : "未知錯誤";
-        toast.error(`套用失敗:${errMsg}`, {
-          id: tid,
-          description: "前台尚未更新,可恢復為套用前的預覽排序",
-          duration: 12000,
-          action: snapshot
-            ? {
-                label: "恢復到套用前預覽",
-                onClick: () => {
-                  restorePreviewOrder(snapshot);
-                  dragPreApplySnapshotRef.current = null;
-                },
-              }
-            : undefined,
-        });
-      }
-    }, 600);
   };
-
-  useEffect(() => {
-    return () => {
-      if (dragAutoApplyTimerRef.current) {
-        window.clearTimeout(dragAutoApplyTimerRef.current);
-      }
-    };
-  }, []);
 
 
   const saveDisplaySettings = async (
@@ -751,26 +613,6 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                   <RotateCcw className="h-3.5 w-3.5" />
                   重置自訂順序
                 </Button>
-                <label
-                  className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none px-1"
-                  title="勾選後,點擊「重置自訂順序」會自動儲存並重新載入前台預覽"
-                >
-                  <Checkbox
-                    checked={autoApplyReset}
-                    onCheckedChange={(v) => toggleAutoApplyReset(v === true)}
-                  />
-                  重置後自動套用至前台
-                </label>
-                <label
-                  className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none px-1"
-                  title="勾選後,拖曳調整順序會自動儲存(0.6 秒後)並重新載入前台預覽"
-                >
-                  <Checkbox
-                    checked={autoApplyDrag}
-                    onCheckedChange={(v) => toggleAutoApplyDrag(v === true)}
-                  />
-                  拖曳後自動套用至前台
-                </label>
                 <Button
                   type="button"
                   size="sm"
