@@ -229,6 +229,7 @@ export default function Reception() {
         .order("order_number", { ascending: true });
       if (error) throw error;
       setOrders((data ?? []) as unknown as ReceptionOrder[]);
+      setLastRefreshedAt(new Date());
     } catch (err: any) {
       toast({ title: "載入失敗", description: err.message, variant: "destructive" });
     } finally {
