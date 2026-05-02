@@ -331,24 +331,30 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
     });
   };
 
-  const saveDisplaySettings = async () => {
+  const saveDisplaySettings = async (
+    opts?: { keysOverride?: string[]; countOverride?: number; silent?: boolean }
+  ) => {
     if (!accommodationId) return;
-    const count = Math.max(1, Math.min(50, Math.round(displayCount || 1)));
+    const count = Math.max(
+      1,
+      Math.min(50, Math.round(opts?.countOverride ?? displayCount ?? 1))
+    );
+    const keys = opts?.keysOverride ?? selectedKeys;
     setSavingDisplay(true);
     const { error } = await supabase
       .from("accommodation_info")
       .update({
         google_reviews_display_count: count,
-        google_reviews_selected_keys: selectedKeys,
+        google_reviews_selected_keys: keys,
       } as any)
       .eq("id", accommodationId);
     if (error) {
       toast.error("儲存失敗:" + error.message);
     } else {
       setSavedDisplayCount(count);
-      setSavedSelectedKeys([...selectedKeys]);
+      setSavedSelectedKeys([...keys]);
       setDisplayCount(count);
-      toast.success("已套用至前台");
+      if (!opts?.silent) toast.success("已套用至前台");
     }
     setSavingDisplay(false);
   };
