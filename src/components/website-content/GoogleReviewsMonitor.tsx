@@ -499,60 +499,73 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
             </div>
           ) : (
             <div className="space-y-3">
-              {filteredReviews.map((rv, i) => (
-                <div
-                  key={i}
-                  className="rounded-lg border p-4 space-y-2 bg-background"
-                >
-                  <div className="flex items-start justify-between gap-3 flex-wrap">
-                    <div className="flex items-center gap-2">
-                      {rv.authorPhoto && (
-                        <img
-                          src={rv.authorPhoto}
-                          alt={rv.authorName}
-                          className="h-8 w-8 rounded-full object-cover"
-                          referrerPolicy="no-referrer"
-                        />
-                      )}
-                      <div>
-                        <div className="font-medium text-sm">
-                          {rv.authorName}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {[1, 2, 3, 4, 5].map((s) => (
-                            <Star
-                              key={s}
-                              className={`h-3.5 w-3.5 ${
-                                s <= Math.round(rv.rating)
-                                  ? "fill-primary text-primary"
-                                  : "text-muted-foreground/30"
-                              }`}
+              {filteredReviews.map((rv, i) => {
+                const showHeader =
+                  visibleCols.author || visibleCols.photo || visibleCols.rating || visibleCols.publishTime;
+                return (
+                  <div
+                    key={i}
+                    className="rounded-lg border p-4 space-y-2 bg-background"
+                  >
+                    {showHeader && (
+                      <div className="flex items-start justify-between gap-3 flex-wrap">
+                        <div className="flex items-center gap-2">
+                          {visibleCols.photo && rv.authorPhoto && (
+                            <img
+                              src={rv.authorPhoto}
+                              alt={rv.authorName}
+                              className="h-8 w-8 rounded-full object-cover"
+                              referrerPolicy="no-referrer"
                             />
-                          ))}
-                          {rv.relativeTime && (
-                            <span className="text-xs text-muted-foreground ml-2">
-                              {rv.relativeTime}
-                            </span>
                           )}
+                          <div>
+                            {visibleCols.author && (
+                              <div className="font-medium text-sm">
+                                {rv.authorName}
+                              </div>
+                            )}
+                            {(visibleCols.rating || visibleCols.publishTime) && (
+                              <div className="flex items-center gap-1">
+                                {visibleCols.rating &&
+                                  [1, 2, 3, 4, 5].map((s) => (
+                                    <Star
+                                      key={s}
+                                      className={`h-3.5 w-3.5 ${
+                                        s <= Math.round(rv.rating)
+                                          ? "fill-primary text-primary"
+                                          : "text-muted-foreground/30"
+                                      }`}
+                                    />
+                                  ))}
+                                {visibleCols.publishTime && rv.relativeTime && (
+                                  <span className="text-xs text-muted-foreground ml-2">
+                                    {rv.relativeTime}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
+                        {visibleCols.author && rv.authorUrl && (
+                          <a
+                            href={rv.authorUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+                          >
+                            Google 個人檔案 <ExternalLink className="h-3 w-3" />
+                          </a>
+                        )}
                       </div>
-                    </div>
-                    {rv.authorUrl && (
-                      <a
-                        href={rv.authorUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs text-primary hover:underline inline-flex items-center gap-1"
-                      >
-                        Google 個人檔案 <ExternalLink className="h-3 w-3" />
-                      </a>
+                    )}
+                    {visibleCols.text && (
+                      <p className="text-sm whitespace-pre-wrap text-foreground/90">
+                        {rv.text || <em className="text-muted-foreground">(無文字內容)</em>}
+                      </p>
                     )}
                   </div>
-                  <p className="text-sm whitespace-pre-wrap text-foreground/90">
-                    {rv.text || <em className="text-muted-foreground">(無文字內容)</em>}
-                  </p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
