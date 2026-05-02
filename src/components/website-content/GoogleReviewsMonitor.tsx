@@ -368,21 +368,30 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
   // 拖曳自動套用:debounce 600ms,避免連續拖曳轟炸 DB
   const dragAutoApplyTimerRef = useRef<number | null>(null);
   const dragAutoApplyToastIdRef = useRef<string | number | null>(null);
+  // 一輪 debounce 的「套用前」排序快照(連續拖曳期間維持為最初的順序)
+  const dragPreApplySnapshotRef = useRef<string[] | null>(null);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     let nextKeys: string[] | null = null;
+    let prevKeys: string[] | null = null;
     setSelectedKeys((prev) => {
       const oldIndex = prev.indexOf(String(active.id));
       const newIndex = prev.indexOf(String(over.id));
       if (oldIndex === -1 || newIndex === -1) return prev;
+      prevKeys = prev;
       const moved = arrayMove(prev, oldIndex, newIndex);
       nextKeys = moved;
       return moved;
     });
 
     if (!autoApplyDrag || !nextKeys) return;
+
+    // 第一次拖曳(尚無 pending timer)時,記下這一輪的原始順序
+    if (!dragAutoApplyTimerRef.current && prevKeys) {
+      dragPreApplySnapshotRef.current = [...prevKeys];
+    }
 
     // 立刻刷新預覽,DB 寫入則 debounce
     setShowPreview(true);
@@ -396,6 +405,8 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
     }
     const keysToSave = nextKeys;
     dragAutoApplyTimerRef.current = window.setTimeout(async () => {
+      dragAutoApplyTimerRef.current = null;
+      const snapshot = dragPreApplySnapshotRef.current;
       const result = await saveDisplaySettings({
         keysOverride: keysToSave,
         silent: true,
@@ -403,13 +414,23 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
       const tid = dragAutoApplyToastIdRef.current ?? undefined;
       dragAutoApplyToastIdRef.current = null;
       if (result.ok) {
+        dragPreApplySnapshotRef.current = null;
         toast.success("排序已自動套用至前台", { id: tid });
       } else {
         const errMsg = "error" in result ? result.error : "未知錯誤";
         toast.error(`套用失敗:${errMsg}`, {
           id: tid,
-          description: "前台尚未更新,請重試或手動點擊「套用至前台」",
-          duration: 8000,
+          description: "前台尚未更新,可恢復為套用前的預覽排序",
+          duration: 12000,
+          action: snapshot
+            ? {
+                label: "恢復到套用前預覽",
+                onClick: () => {
+                  restorePreviewOrder(snapshot);
+                  dragPreApplySnapshotRef.current = null;
+                },
+              }
+            : undefined,
         });
       }
     }, 600);
