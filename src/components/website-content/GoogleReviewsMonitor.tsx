@@ -639,7 +639,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                 <Button
                   type="button"
                   size="sm"
-                  onClick={saveDisplaySettings}
+                  onClick={() => saveDisplaySettings()}
                   disabled={savingDisplay || !dirty}
                   className="gap-1"
                 >
