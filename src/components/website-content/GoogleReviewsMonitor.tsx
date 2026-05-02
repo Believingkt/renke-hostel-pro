@@ -925,13 +925,12 @@ const ReviewCard = ({ rv, visibleCols, checked, onToggle, dragHandle }: ReviewCa
     >
       <div className="flex items-start gap-3">
         {dragHandle}
-        <div
-          className="pt-0.5 cursor-pointer"
-          onClick={onToggle}
-          role="checkbox"
-          aria-checked={checked}
-        >
-          <Checkbox checked={checked} onCheckedChange={onToggle} />
+        <div className="pt-0.5">
+          <Checkbox
+            checked={checked}
+            onCheckedChange={onToggle}
+            aria-label={checked ? "取消選取" : "選取"}
+          />
         </div>
         <div className="flex-1 space-y-2 min-w-0">
           {showHeader && (
