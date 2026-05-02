@@ -212,10 +212,12 @@ export const GoogleReviewsSettings = ({ accommodationId }: Props) => {
             variant="outline"
             onClick={() => handleSync(true)}
             disabled={syncing || !placeId.trim()}
-            className="flex items-center gap-2"
+            aria-busy={syncing}
+            aria-live="polite"
+            className="flex items-center gap-2 min-w-[160px]"
           >
             <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
-            {syncing ? "同步中..." : "立即同步評論"}
+            {syncing ? "同步中,請稍候..." : "立即同步評論"}
           </Button>
         </div>
 
