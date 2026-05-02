@@ -514,7 +514,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
             <div>
               <CardTitle className="text-xl flex items-center gap-2">
                 <Database className="h-5 w-5" />
-                目前已抓取的評論內容
+                前台顯示設定
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
                 勾選你想顯示在前台的評論,設定數量後按「套用至前台」
@@ -529,7 +529,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
               <div className="flex items-start gap-2">
                 <Eye className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm">前台顯示設定</div>
+                  <div className="font-medium text-sm">精選評論</div>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {selectedKeys.length === 0
                       ? "未精選任何評論時,前台會自動依「最新優先」顯示前 N 則"
