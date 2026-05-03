@@ -161,7 +161,62 @@ Deno.serve(async (req) => {
     // 2. By admin to test webhook (POST with test flag)
     
     const body = await req.json();
-    const { order_id, test_mode, discount_code_id } = body;
+    const { order_id, test_mode, discount_code_id, test_real_order } = body;
+
+    // Test real order mode - fetch latest order and run internal email logic
+    if (test_real_order) {
+      console.log('[KOL-Webhook] test_real_order mode: fetching latest order');
+      const { data: latestOrder, error: latestErr } = await supabase
+        .from('orders')
+        .select(`
+          id,
+          order_number,
+          guest_name,
+          check_in_date,
+          check_out_date,
+          guest_count,
+          total_price,
+          discount_amount,
+          final_price,
+          order_status,
+          discount_code,
+          created_at,
+          accommodation_id,
+          room_types:room_type_id (name)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (latestErr || !latestOrder) {
+        return new Response(
+          JSON.stringify({ error: '找不到任何訂單', details: latestErr?.message }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const roomTypeName = Array.isArray(latestOrder.room_types)
+        ? latestOrder.room_types[0]?.name
+        : (latestOrder.room_types as { name: string } | null)?.name;
+
+      const emailResult = await sendInternalOrderEmail(supabase, latestOrder, roomTypeName);
+
+      return new Response(
+        JSON.stringify({
+          success: emailResult.success,
+          message: emailResult.success
+            ? `已使用最新訂單 ${latestOrder.order_number} 發送測試通知至 service@lakeze.com`
+            : '測試通知 Email 發送失敗',
+          order_number: latestOrder.order_number,
+          order_id: latestOrder.id,
+          email_result: emailResult,
+        }),
+        {
+          status: emailResult.success ? 200 : 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
 
     // Test mode - send a test webhook
     if (test_mode && discount_code_id) {
