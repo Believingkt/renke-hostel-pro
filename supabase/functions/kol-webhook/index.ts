@@ -42,13 +42,22 @@ async function sendInternalOrderEmail(supabase: any, order: any, roomTypeName: s
   try {
     let accommodationName = '人客多';
     if (order.accommodation_id) {
-      const { data: accInfo } = await supabase
+      const { data: accInfo, error: accErr } = await supabase
         .from('accommodation_info')
         .select('name')
-        .eq('accommodation_id', order.accommodation_id)
+        .eq('id', order.accommodation_id)
         .maybeSingle();
+      if (accErr) console.error('[KOL-Webhook] accommodation_info lookup error:', accErr);
       if (accInfo?.name) accommodationName = accInfo.name;
     }
+
+    // Map order_source to display label
+    const sourceMap: Record<string, string> = {
+      kol: 'KOL互惠',
+      manual: '現場訂房',
+    };
+    const rawSource = order.order_source ?? '';
+    const sourceLabel = sourceMap[rawSource] ?? rawSource;
 
     if (!Deno.env.get('RESEND_API_KEY')) {
       console.error('[KOL-Webhook] RESEND_API_KEY not configured, skipping internal email');
@@ -64,7 +73,7 @@ async function sendInternalOrderEmail(supabase: any, order: any, roomTypeName: s
     const checkOut = new Date(order.check_out_date);
     const nights = Math.max(0, Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)));
 
-    const subject = `【已成立訂單】1筆 - [訂單_${accommodationName} x 星探邀約KOL]`;
+    const subject = `【已成立訂單】1筆 - [${accommodationName} x 星探邀約KOL]`;
     const text = `以下 1 筆訂單已成立，批次通知日期 ${fmtDate(today)}
 ===================================================
 訂單日期：${fmtDateTime(createdAt)}
@@ -75,6 +84,7 @@ async function sendInternalOrderEmail(supabase: any, order: any, roomTypeName: s
 訂單金額：${order.final_price}
 訂單姓名：${order.guest_name}
 折扣代碼：${order.discount_code ?? ''}
+來源：${sourceLabel}
 聯盟券：`;
 
     const { data, error } = await resend.emails.send({
@@ -176,6 +186,7 @@ Deno.serve(async (req) => {
           discount_code,
           created_at,
           accommodation_id,
+          order_source,
           room_types:room_type_id (name)
         `)
         .order('created_at', { ascending: false })
@@ -318,6 +329,7 @@ Deno.serve(async (req) => {
         discount_code,
         created_at,
         accommodation_id,
+        order_source,
         room_types:room_type_id (name)
       `)
       .eq('id', order_id)
