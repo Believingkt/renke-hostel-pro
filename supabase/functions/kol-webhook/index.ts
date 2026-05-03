@@ -59,6 +59,16 @@ async function sendInternalOrderEmail(supabase: any, order: any, roomTypeName: s
     const rawSource = order.order_source ?? '';
     const sourceLabel = sourceMap[rawSource] ?? rawSource;
 
+    // Skip notification when source is KOL互惠 or when discount_code is empty
+    if (sourceLabel === 'KOL互惠') {
+      console.log('[KOL-Webhook] Skip internal email: order_source is KOL互惠');
+      return { success: true, skipped: true, reason: 'order_source is KOL互惠' };
+    }
+    if (!order.discount_code || String(order.discount_code).trim() === '') {
+      console.log('[KOL-Webhook] Skip internal email: discount_code is empty');
+      return { success: true, skipped: true, reason: 'discount_code is empty' };
+    }
+
     if (!Deno.env.get('RESEND_API_KEY')) {
       console.error('[KOL-Webhook] RESEND_API_KEY not configured, skipping internal email');
       return { success: false, error: 'RESEND_API_KEY not configured' };
