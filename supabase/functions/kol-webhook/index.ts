@@ -33,6 +33,74 @@ function generateSignature(payload: string, secret: string): string {
   return hmac.digest('hex');
 }
 
+// Send internal notification email for an order. Returns result, never throws.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function sendInternalOrderEmail(supabase: any, order: any, roomTypeName: string | undefined) {
+  try {
+    let accommodationName = '人客多';
+    if (order.accommodation_id) {
+      const { data: accInfo } = await supabase
+        .from('accommodation_info')
+        .select('name')
+        .eq('accommodation_id', order.accommodation_id)
+        .maybeSingle();
+      if (accInfo?.name) accommodationName = accInfo.name;
+    }
+
+    const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
+    if (!RESEND_API_KEY) {
+      console.error('[KOL-Webhook] RESEND_API_KEY not configured, skipping internal email');
+      return { success: false, error: 'RESEND_API_KEY not configured' };
+    }
+
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const fmtDate = (d: Date) => `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())}`;
+    const fmtDateTime = (d: Date) => `${fmtDate(d)} | ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    const today = new Date();
+    const createdAt = order.created_at ? new Date(order.created_at) : new Date();
+    const checkIn = new Date(order.check_in_date);
+    const checkOut = new Date(order.check_out_date);
+    const nights = Math.max(0, Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)));
+
+    const subject = `【已成立訂單】1筆 - [訂單_${accommodationName} x 星探邀約KOL]`;
+    const text = `以下 1 筆訂單已成立，批次通知日期 ${fmtDate(today)}
+===================================================
+訂單日期：${fmtDateTime(createdAt)}
+訂單編號:${order.order_number}
+入住日：${order.check_in_date}
+入住天數：${nights}天
+包棟房型：${roomTypeName ?? ''}
+訂單金額：${order.final_price}
+訂單姓名：${order.guest_name}
+折扣代碼：${order.discount_code ?? ''}
+聯盟券：`;
+
+    const emailResp = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+      },
+      body: JSON.stringify({
+        from: '人客多通知 <onboarding@resend.dev>',
+        to: ['service@lakeze.com'],
+        subject,
+        text,
+      }),
+    });
+    const respBody = await emailResp.text();
+    if (!emailResp.ok) {
+      console.error('[KOL-Webhook] Internal email failed:', emailResp.status, respBody);
+      return { success: false, status: emailResp.status, error: respBody, subject };
+    }
+    console.log('[KOL-Webhook] Internal notification email sent to service@lakeze.com');
+    return { success: true, status: emailResp.status, response: respBody, subject };
+  } catch (emailErr) {
+    console.error('[KOL-Webhook] Internal email error:', emailErr);
+    return { success: false, error: emailErr instanceof Error ? emailErr.message : String(emailErr) };
+  }
+}
+
 // Send webhook notification
 async function sendWebhook(
   webhookUrl: string, 
@@ -93,7 +161,62 @@ Deno.serve(async (req) => {
     // 2. By admin to test webhook (POST with test flag)
     
     const body = await req.json();
-    const { order_id, test_mode, discount_code_id } = body;
+    const { order_id, test_mode, discount_code_id, test_real_order } = body;
+
+    // Test real order mode - fetch latest order and run internal email logic
+    if (test_real_order) {
+      console.log('[KOL-Webhook] test_real_order mode: fetching latest order');
+      const { data: latestOrder, error: latestErr } = await supabase
+        .from('orders')
+        .select(`
+          id,
+          order_number,
+          guest_name,
+          check_in_date,
+          check_out_date,
+          guest_count,
+          total_price,
+          discount_amount,
+          final_price,
+          order_status,
+          discount_code,
+          created_at,
+          accommodation_id,
+          room_types:room_type_id (name)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (latestErr || !latestOrder) {
+        return new Response(
+          JSON.stringify({ error: '找不到任何訂單', details: latestErr?.message }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const roomTypeName = Array.isArray(latestOrder.room_types)
+        ? latestOrder.room_types[0]?.name
+        : (latestOrder.room_types as { name: string } | null)?.name;
+
+      const emailResult = await sendInternalOrderEmail(supabase, latestOrder, roomTypeName);
+
+      return new Response(
+        JSON.stringify({
+          success: emailResult.success,
+          message: emailResult.success
+            ? `已使用最新訂單 ${latestOrder.order_number} 發送測試通知至 service@lakeze.com`
+            : '測試通知 Email 發送失敗',
+          order_number: latestOrder.order_number,
+          order_id: latestOrder.id,
+          email_result: emailResult,
+        }),
+        {
+          status: emailResult.success ? 200 : 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
 
     // Test mode - send a test webhook
     if (test_mode && discount_code_id) {
@@ -221,66 +344,7 @@ Deno.serve(async (req) => {
 
     // Send internal notification email (regardless of discount code)
     // Failure here must not affect webhook flow
-    try {
-      let accommodationName = '人客多';
-      if (order.accommodation_id) {
-        const { data: accInfo } = await supabase
-          .from('accommodation_info')
-          .select('name')
-          .eq('accommodation_id', order.accommodation_id)
-          .maybeSingle();
-        if (accInfo?.name) accommodationName = accInfo.name;
-      }
-
-      const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
-      if (!RESEND_API_KEY) {
-        console.error('[KOL-Webhook] RESEND_API_KEY not configured, skipping internal email');
-      } else {
-        const pad = (n: number) => String(n).padStart(2, '0');
-        const fmtDate = (d: Date) => `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())}`;
-        const fmtDateTime = (d: Date) => `${fmtDate(d)} | ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-        const today = new Date();
-        const createdAt = order.created_at ? new Date(order.created_at) : new Date();
-        const checkIn = new Date(order.check_in_date);
-        const checkOut = new Date(order.check_out_date);
-        const nights = Math.max(0, Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)));
-
-        const subject = `【已成立訂單】1筆 - [訂單_${accommodationName} x 星探邀約KOL]`;
-        const text = `以下 1 筆訂單已成立，批次通知日期 ${fmtDate(today)}
-===================================================
-訂單日期：${fmtDateTime(createdAt)}
-訂單編號:${order.order_number}
-入住日：${order.check_in_date}
-入住天數：${nights}天
-包棟房型：${roomTypeNameEarly ?? ''}
-訂單金額：${order.final_price}
-訂單姓名：${order.guest_name}
-折扣代碼：${order.discount_code ?? ''}
-聯盟券：`;
-
-        const emailResp = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${RESEND_API_KEY}`,
-          },
-          body: JSON.stringify({
-            from: '人客多通知 <onboarding@resend.dev>',
-            to: ['service@lakeze.com'],
-            subject,
-            text,
-          }),
-        });
-        if (!emailResp.ok) {
-          const errText = await emailResp.text();
-          console.error('[KOL-Webhook] Internal email failed:', emailResp.status, errText);
-        } else {
-          console.log('[KOL-Webhook] Internal notification email sent to service@lakeze.com');
-        }
-      }
-    } catch (emailErr) {
-      console.error('[KOL-Webhook] Internal email error:', emailErr);
-    }
+    await sendInternalOrderEmail(supabase, order, roomTypeNameEarly);
 
     // Check if order has a discount code
     if (!order.discount_code) {
