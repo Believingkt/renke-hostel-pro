@@ -84,8 +84,8 @@ async function sendInternalOrderEmail(supabase: any, order: any, roomTypeName: s
 訂單金額：${order.final_price}
 訂單姓名：${order.guest_name}
 折扣代碼：${order.discount_code ?? ''}
-來源：${sourceLabel}
-聯盟券：`;
+聯盟券：
+來源：${sourceLabel}`;
 
     const { data, error } = await resend.emails.send({
       from: '人客多通知 <noreply@sensaninn.lakeze.com>',
