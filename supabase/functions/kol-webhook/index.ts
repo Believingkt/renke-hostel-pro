@@ -186,6 +186,7 @@ Deno.serve(async (req) => {
           discount_code,
           created_at,
           accommodation_id,
+          order_source,
           room_types:room_type_id (name)
         `)
         .order('created_at', { ascending: false })
@@ -328,6 +329,7 @@ Deno.serve(async (req) => {
         discount_code,
         created_at,
         accommodation_id,
+        order_source,
         room_types:room_type_id (name)
       `)
       .eq('id', order_id)
