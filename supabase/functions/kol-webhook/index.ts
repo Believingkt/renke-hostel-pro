@@ -42,13 +42,22 @@ async function sendInternalOrderEmail(supabase: any, order: any, roomTypeName: s
   try {
     let accommodationName = '人客多';
     if (order.accommodation_id) {
-      const { data: accInfo } = await supabase
+      const { data: accInfo, error: accErr } = await supabase
         .from('accommodation_info')
         .select('name')
-        .eq('accommodation_id', order.accommodation_id)
+        .eq('id', order.accommodation_id)
         .maybeSingle();
+      if (accErr) console.error('[KOL-Webhook] accommodation_info lookup error:', accErr);
       if (accInfo?.name) accommodationName = accInfo.name;
     }
+
+    // Map order_source to display label
+    const sourceMap: Record<string, string> = {
+      kol: 'KOL互惠',
+      manual: '現場訂房',
+    };
+    const rawSource = order.order_source ?? '';
+    const sourceLabel = sourceMap[rawSource] ?? rawSource;
 
     if (!Deno.env.get('RESEND_API_KEY')) {
       console.error('[KOL-Webhook] RESEND_API_KEY not configured, skipping internal email');
