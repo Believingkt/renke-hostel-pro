@@ -1,5 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { createHmac } from 'https://deno.land/std@0.177.0/node/crypto.ts';
+import { Resend } from 'https://esm.sh/resend@4.0.0';
+
+const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -47,8 +50,7 @@ async function sendInternalOrderEmail(supabase: any, order: any, roomTypeName: s
       if (accInfo?.name) accommodationName = accInfo.name;
     }
 
-    const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
-    if (!RESEND_API_KEY) {
+    if (!Deno.env.get('RESEND_API_KEY')) {
       console.error('[KOL-Webhook] RESEND_API_KEY not configured, skipping internal email');
       return { success: false, error: 'RESEND_API_KEY not configured' };
     }
@@ -75,26 +77,18 @@ async function sendInternalOrderEmail(supabase: any, order: any, roomTypeName: s
 折扣代碼：${order.discount_code ?? ''}
 聯盟券：`;
 
-    const emailResp = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-      },
-      body: JSON.stringify({
-        from: '人客多通知 <onboarding@resend.dev>',
-        to: ['service@lakeze.com'],
-        subject,
-        text,
-      }),
+    const { data, error } = await resend.emails.send({
+      from: '人客多通知 <noreply@sensaninn.lakeze.com>',
+      to: ['service@lakeze.com'],
+      subject,
+      text,
     });
-    const respBody = await emailResp.text();
-    if (!emailResp.ok) {
-      console.error('[KOL-Webhook] Internal email failed:', emailResp.status, respBody);
-      return { success: false, status: emailResp.status, error: respBody, subject };
+    if (error) {
+      console.error('[KOL-Webhook] Internal email failed:', error);
+      return { success: false, error: typeof error === 'string' ? error : JSON.stringify(error), subject };
     }
-    console.log('[KOL-Webhook] Internal notification email sent to service@lakeze.com');
-    return { success: true, status: emailResp.status, response: respBody, subject };
+    console.log('[KOL-Webhook] Internal notification email sent to service@lakeze.com', data?.id);
+    return { success: true, response: data, subject };
   } catch (emailErr) {
     console.error('[KOL-Webhook] Internal email error:', emailErr);
     return { success: false, error: emailErr instanceof Error ? emailErr.message : String(emailErr) };
