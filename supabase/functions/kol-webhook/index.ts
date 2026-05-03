@@ -188,6 +188,8 @@ Deno.serve(async (req) => {
           room_types:room_type_id (name)
         `,
         )
+        .not("discount_code", "is", null)
+        .neq("discount_code", "")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
