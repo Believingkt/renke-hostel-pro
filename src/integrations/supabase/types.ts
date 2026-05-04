@@ -1931,6 +1931,27 @@ export type Database = {
           },
         ]
       }
+      ota_channel_dismissed_defaults: {
+        Row: {
+          accommodation_id: string
+          channel_code: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          accommodation_id: string
+          channel_code: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          accommodation_id?: string
+          channel_code?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
       ota_channels: {
         Row: {
           accommodation_id: string
