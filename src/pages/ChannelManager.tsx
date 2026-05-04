@@ -58,6 +58,15 @@ interface OwlTingCredential {
   updated_at: string;
 }
 
+interface ExternalMapping {
+  id: string;
+  cid_code: string;
+  hotel_code: string | null;
+  api_environment: string;
+  is_enabled: boolean;
+  notes: string | null;
+}
+
 interface OwlTingEndpoint {
   id: string;
   endpoint_url: string;
