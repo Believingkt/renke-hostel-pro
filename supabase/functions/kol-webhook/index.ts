@@ -36,20 +36,27 @@ function generateSignature(payload: string, secret: string): string {
   return hmac.digest("hex");
 }
 
-// Send internal notification email for an order. Returns result, never throws.
+// Helper: lookup accommodation name
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function lookupAccommodationName(supabase: any, accommodationId: string | null): Promise<string> {
+  let accommodationName = "人客多";
+  if (accommodationId) {
+    const { data: accInfo, error: accErr } = await supabase
+      .from("accommodation_info")
+      .select("name")
+      .eq("id", accommodationId)
+      .maybeSingle();
+    if (accErr) console.error("[KOL-Webhook] accommodation_info lookup error:", accErr);
+    if (accInfo?.name) accommodationName = accInfo.name;
+  }
+  return accommodationName;
+}
+
+// Send internal notification email for an order (Type 1: 一般通知). Returns result, never throws.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function sendInternalOrderEmail(supabase: any, order: any, roomTypeName: string | undefined) {
   try {
-    let accommodationName = "人客多";
-    if (order.accommodation_id) {
-      const { data: accInfo, error: accErr } = await supabase
-        .from("accommodation_info")
-        .select("name")
-        .eq("id", order.accommodation_id)
-        .maybeSingle();
-      if (accErr) console.error("[KOL-Webhook] accommodation_info lookup error:", accErr);
-      if (accInfo?.name) accommodationName = accInfo.name;
-    }
+    const accommodationName = await lookupAccommodationName(supabase, order.accommodation_id);
 
     // Map order_source to display label
     const sourceMap: Record<string, string> = {
@@ -102,6 +109,63 @@ async function sendInternalOrderEmail(supabase: any, order: any, roomTypeName: s
   } catch (emailErr) {
     console.error("[KOL-Webhook] Internal email error:", emailErr);
     return { success: false, error: emailErr instanceof Error ? emailErr.message : String(emailErr) };
+  }
+}
+
+// Send correction notification email (Type 2: 折扣碼修正通知). Returns result, never throws.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function sendDiscountCorrectionEmail(supabase: any, order: any, previousDiscountCode: string | null) {
+  try {
+    const accommodationName = await lookupAccommodationName(supabase, order.accommodation_id);
+
+    if (!Deno.env.get("RESEND_API_KEY")) {
+      console.error("[KOL-Webhook] RESEND_API_KEY not configured, skipping correction email");
+      return { success: false, error: "RESEND_API_KEY not configured" };
+    }
+
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const fmtDate = (d: Date) => `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())}`;
+    const fmtDateTime = (d: Date) => `${fmtDate(d)} | ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    const today = new Date();
+    const createdAt = order.created_at ? new Date(order.created_at) : new Date();
+
+    const subject = `【折扣碼修正】1筆 - [訂單_${accommodationName} x 星探邀約KOL]`;
+    const text = `以下 1 筆訂單的折扣代碼已修正，通知日期 ${fmtDate(today)}
+===================================================
+訂單編號：${order.order_number}
+訂單日期：${fmtDateTime(createdAt)}
+原折扣代碼：${previousDiscountCode ?? ""}
+新折扣代碼：${order.discount_code ?? ""}`;
+
+    const { data, error } = await resend.emails.send({
+      from: "人客多通知 <noreply@sensaninn.lakeze.com>",
+      to: ["service@lakeze.com"],
+      subject,
+      text,
+    });
+    if (error) {
+      console.error("[KOL-Webhook] Correction email failed:", error);
+      return { success: false, error: typeof error === "string" ? error : JSON.stringify(error), subject };
+    }
+    console.log("[KOL-Webhook] Correction notification email sent to service@lakeze.com", data?.id);
+    return { success: true, response: data, subject };
+  } catch (emailErr) {
+    console.error("[KOL-Webhook] Correction email error:", emailErr);
+    return { success: false, error: emailErr instanceof Error ? emailErr.message : String(emailErr) };
+  }
+}
+
+// Mark order as having had the internal email sent
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function markInternalEmailSent(supabase: any, orderId: string) {
+  try {
+    const { error } = await supabase
+      .from("orders")
+      .update({ internal_email_sent: true, internal_email_sent_at: new Date().toISOString() })
+      .eq("id", orderId);
+    if (error) console.error("[KOL-Webhook] Failed to mark internal_email_sent:", error);
+  } catch (e) {
+    console.error("[KOL-Webhook] markInternalEmailSent error:", e);
   }
 }
 
