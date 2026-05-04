@@ -68,7 +68,7 @@ function withShortNamePrefix(body: string, shortName: string | null): string {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function sendInternalOrderEmail(supabase: any, order: any, roomTypeName: string | undefined) {
   try {
-    const accommodationName = await lookupAccommodationName(supabase, order.accommodation_id);
+    const { name: accommodationName, short_name: shortName } = await lookupAccommodationInfo(supabase, order.accommodation_id);
 
     // Map order_source to display label
     const sourceMap: Record<string, string> = {
