@@ -231,15 +231,26 @@ export default function ChannelManager() {
                   )}
                 </div>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => openEdit(channel)}
-                >
-                  <Settings2 className="h-4 w-4 mr-2" />
-                  設定
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => openEdit(channel)}
+                  >
+                    <Settings2 className="h-4 w-4 mr-2" />
+                    設定
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => setDeleting(channel)}
+                    aria-label={`刪除 ${channel.channel_name}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
