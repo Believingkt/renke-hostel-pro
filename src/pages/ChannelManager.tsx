@@ -425,6 +425,231 @@ export default function ChannelManager() {
         </div>
       )}
 
+      {/* OwlTing 設定區塊 */}
+      <Card className="overflow-hidden">
+        <CardContent className="p-5 space-y-5">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <Plug className="h-5 w-5 text-primary" />
+                OwlTing Channel Manager 介接
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                透過 OwlTing 統一連接 Booking.com / Agoda / Trip.com / Expedia 等通路。
+              </p>
+            </div>
+            {owlCred?.is_active && owlEndpoint?.is_active ? (
+              <Badge className="bg-primary text-primary-foreground">已設定</Badge>
+            ) : (
+              <Badge variant="secondary">尚未完成設定</Badge>
+            )}
+          </div>
+
+          {/* Endpoint URLs (供 OwlTing 使用) */}
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs text-muted-foreground">我方 AR 內容端點 (提供給 OwlTing 呼叫)</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <Input value={inboundUrl} readOnly className="font-mono text-xs" />
+                <Button variant="outline" size="sm" onClick={() => copyToClipboard(inboundUrl, "AR 內容端點")}>
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">我方 ARI 推送觸發端點 (內部使用)</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <Input value={outboundUrl} readOnly className="font-mono text-xs" />
+                <Button variant="outline" size="sm" onClick={() => copyToClipboard(outboundUrl, "ARI 推送端點")}>
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Username / Password */}
+          <div className="border rounded-lg p-4 space-y-3">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div>
+                <h3 className="font-medium flex items-center gap-2">
+                  <KeyRound className="h-4 w-4" />
+                  OwlTing 連入認證
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  OwlTing 呼叫我方端點時使用的 WS-Security UsernameToken。
+                </p>
+              </div>
+              <Button size="sm" variant={owlCred ? "outline" : "default"} onClick={() => openCredDialog(!!owlCred)}>
+                {owlCred ? "輪替密碼" : "建立認證"}
+              </Button>
+            </div>
+            {owlCred ? (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                <div>
+                  <span className="text-muted-foreground text-xs">Hotel Code</span>
+                  <p className="font-mono">{owlCred.hotel_code}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground text-xs">Username</span>
+                  <p className="font-mono">{owlCred.username}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground text-xs">Password</span>
+                  <p className="font-mono text-muted-foreground">••••••••（已加密儲存）</p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">尚未建立。請建立一組認證資料提供給 OwlTing。</p>
+            )}
+          </div>
+
+          {/* ARI Push Endpoint */}
+          <div className="border rounded-lg p-4 space-y-3">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div>
+                <h3 className="font-medium flex items-center gap-2">
+                  <Send className="h-4 w-4" />
+                  ARI 推送目的地 (OwlTing 提供)
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  我方主動推送 Availability / Rates / Inventory 至 OwlTing 的接收端點。
+                </p>
+              </div>
+              <Button size="sm" variant={owlEndpoint ? "outline" : "default"} onClick={openEndpointDialog}>
+                {owlEndpoint ? "編輯" : "設定端點"}
+              </Button>
+            </div>
+            {owlEndpoint ? (
+              <div className="space-y-1 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground text-xs">URL：</span>
+                  <span className="font-mono text-xs break-all">{owlEndpoint.endpoint_url}</span>
+                </div>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span>環境：{owlEndpoint.environment}</span>
+                  {owlEndpoint.remote_username && <span>Username：{owlEndpoint.remote_username}</span>}
+                  {owlEndpoint.last_pushed_at && (
+                    <span>最後推送：{new Date(owlEndpoint.last_pushed_at).toLocaleString()}</span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">尚未設定。請輸入 OwlTing 提供的接收 URL。</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* OwlTing 認證 Dialog */}
+      <Dialog open={credDialogOpen} onOpenChange={setCredDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{owlCred ? "輪替 OwlTing 認證" : "建立 OwlTing 認證"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="ow_hotel_code">Hotel Code</Label>
+              <Input
+                id="ow_hotel_code"
+                value={credForm.hotel_code}
+                onChange={(e) => setCredForm((f) => ({ ...f, hotel_code: e.target.value }))}
+                placeholder="OwlTing 分配的 Hotel Code"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ow_username">Username</Label>
+              <Input
+                id="ow_username"
+                value={credForm.username}
+                onChange={(e) => setCredForm((f) => ({ ...f, username: e.target.value }))}
+                placeholder="至少 4 個字元"
+                autoComplete="off"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ow_password">Password</Label>
+              <Input
+                id="ow_password"
+                type="password"
+                value={credForm.password}
+                onChange={(e) => setCredForm((f) => ({ ...f, password: e.target.value }))}
+                placeholder="至少 8 個字元，將以 SHA-256 加密儲存"
+                autoComplete="new-password"
+              />
+              <p className="text-xs text-muted-foreground">
+                密碼僅以雜湊形式儲存，請務必複製本次輸入並妥善保存。
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCredDialogOpen(false)}>取消</Button>
+            <Button onClick={saveCred} disabled={credSaving}>
+              {credSaving ? "儲存中..." : "儲存"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* OwlTing ARI 端點 Dialog */}
+      <Dialog open={endpointDialogOpen} onOpenChange={setEndpointDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{owlEndpoint ? "編輯 ARI 推送端點" : "設定 ARI 推送端點"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="ep_url">Endpoint URL</Label>
+              <Input
+                id="ep_url"
+                value={endpointForm.endpoint_url}
+                onChange={(e) => setEndpointForm((f) => ({ ...f, endpoint_url: e.target.value }))}
+                placeholder="https://..."
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="ep_user">Remote Username</Label>
+                <Input
+                  id="ep_user"
+                  value={endpointForm.remote_username}
+                  onChange={(e) => setEndpointForm((f) => ({ ...f, remote_username: e.target.value }))}
+                  autoComplete="off"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ep_pass">Remote Password</Label>
+                <Input
+                  id="ep_pass"
+                  type="password"
+                  value={endpointForm.remote_password}
+                  onChange={(e) => setEndpointForm((f) => ({ ...f, remote_password: e.target.value }))}
+                  autoComplete="new-password"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ep_env">環境</Label>
+              <select
+                id="ep_env"
+                className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                value={endpointForm.environment}
+                onChange={(e) => setEndpointForm((f) => ({ ...f, environment: e.target.value }))}
+              >
+                <option value="test">test</option>
+                <option value="production">production</option>
+              </select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEndpointDialogOpen(false)}>取消</Button>
+            <Button onClick={saveEndpoint} disabled={endpointSaving}>
+              {endpointSaving ? "儲存中..." : "儲存"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent>
           <DialogHeader>
