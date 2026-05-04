@@ -27,6 +27,7 @@ import Footer from "@/components/Footer";
 import BookingFooter from "@/components/BookingFooter";
 import MobileBottomNav from "@/components/member/MobileBottomNav";
 import { CustomSectionDisplay, SingleCustomSection, CustomSection } from "@/components/CustomSectionDisplay";
+import OtherChannelsSection from "@/components/OtherChannelsSection";
 
 const BookingAccommodation = () => {
   const { accId } = useParams<{ accId: string }>();
