@@ -337,7 +337,7 @@ const Pricing = () => {
       case "rooms":
         return "房型管理";
       case "facilities":
-        return "房間設施";
+        return "客房設施";
       case "basic":
         return "專案設定";
       case "holidays":
