@@ -274,7 +274,7 @@ Deno.serve(async (req) => {
     let err: string | null = null;
     const startedAt = Date.now();
     try {
-      const r = await fetch(endpoint, {
+      const r = await fetchViaRelay(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "text/xml; charset=utf-8",
