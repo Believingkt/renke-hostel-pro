@@ -27,7 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Settings2, Plug, Trash2 } from "lucide-react";
+import { Settings2, Plug, Trash2, Copy, KeyRound, Send } from "lucide-react";
 
 interface OtaChannel {
   id: string;
