@@ -1781,6 +1781,8 @@ export type Database = {
           guest_phone: string
           id: string
           idempotency_key: string | null
+          internal_email_sent: boolean
+          internal_email_sent_at: string | null
           meal_plan: string | null
           meal_plan_details: Json | null
           meal_plan_total: number | null
@@ -1834,6 +1836,8 @@ export type Database = {
           guest_phone: string
           id?: string
           idempotency_key?: string | null
+          internal_email_sent?: boolean
+          internal_email_sent_at?: string | null
           meal_plan?: string | null
           meal_plan_details?: Json | null
           meal_plan_total?: number | null
@@ -1887,6 +1891,8 @@ export type Database = {
           guest_phone?: string
           id?: string
           idempotency_key?: string | null
+          internal_email_sent?: boolean
+          internal_email_sent_at?: string | null
           meal_plan?: string | null
           meal_plan_details?: Json | null
           meal_plan_total?: number | null
