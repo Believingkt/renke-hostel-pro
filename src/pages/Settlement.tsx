@@ -326,7 +326,7 @@ export default function Settlement() {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -343,9 +343,7 @@ export default function Settlement() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <PageHeader
-        title="請款管理"
-      />
+      <PageHeader title="請款管理" icon={Wallet} />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
