@@ -327,6 +327,22 @@ export default function Settlement() {
 
   return (
     <div className="space-y-6 p-6">
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link to="/admin" className="flex items-center hover:opacity-70 transition-opacity">
+                <Home className="h-4 w-4" />
+              </Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>請款管理</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
       <PageHeader
         title="請款管理"
       />
