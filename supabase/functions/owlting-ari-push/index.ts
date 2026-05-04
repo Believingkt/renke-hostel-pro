@@ -146,6 +146,7 @@ Deno.serve(async (req) => {
     date_from?: string;
     date_to?: string;
     room_type_ids?: string[];
+    mode?: "push" | "ping";
   };
   try {
     payload = await req.json();
@@ -156,18 +157,27 @@ Deno.serve(async (req) => {
     });
   }
 
-  const { accommodation_id, date_from, date_to, room_type_ids } = payload;
-  if (!accommodation_id || !date_from || !date_to) {
-    return new Response(
-      JSON.stringify({ error: "accommodation_id, date_from, date_to are required" }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date_from) || !/^\d{4}-\d{2}-\d{2}$/.test(date_to)) {
-    return new Response(JSON.stringify({ error: "Dates must be YYYY-MM-DD" }), {
+  const { accommodation_id, date_from, date_to, room_type_ids, mode } = payload;
+  if (!accommodation_id) {
+    return new Response(JSON.stringify({ error: "accommodation_id is required" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+  }
+  const isPing = mode === "ping";
+  if (!isPing) {
+    if (!date_from || !date_to) {
+      return new Response(
+        JSON.stringify({ error: "date_from, date_to are required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date_from) || !/^\d{4}-\d{2}-\d{2}$/.test(date_to)) {
+      return new Response(JSON.stringify({ error: "Dates must be YYYY-MM-DD" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
   }
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
