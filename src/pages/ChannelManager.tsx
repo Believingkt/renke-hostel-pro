@@ -462,11 +462,7 @@ export default function ChannelManager() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <PageHeader
-        title="通路管理"
-        description="管理各 OTA 平台串接狀態與 Hotel ID。串接 API 將於後續階段啟用。"
-        icon={Plug}
-      />
+      <PageHeader title="通路管理" icon={Plug} />
 
       {loading ? null : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
