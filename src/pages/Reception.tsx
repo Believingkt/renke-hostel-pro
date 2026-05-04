@@ -1,25 +1,16 @@
-import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
-import { ConciergeBell, Home, LogIn, LogOut, RefreshCw, Search, X, ArrowUpDown } from "lucide-react";
+import { ConciergeBell, LogIn, LogOut, RefreshCw, Search, X, ArrowUpDown } from "lucide-react";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { useStaffPermissions } from "@/hooks/use-staff-permissions";
 import { supabase } from "@/integrations/supabase/client";
-import { PageHeader } from "@/components/PageHeader";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 
 type ReceptionMode = "checkin" | "checkout";
 type CheckinDay = "yesterday" | "today" | "tomorrow";
