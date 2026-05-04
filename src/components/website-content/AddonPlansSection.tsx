@@ -56,6 +56,12 @@ interface AddonPlansSectionProps {
   errors: Record<string, Record<string, string>>;
   onValidate: (addonType: string, fieldName: string, value: string) => void;
   onToggleEnabled?: (addonType: string, enabled: boolean) => Promise<void>;
+  /** 是否隱藏內建的「新增加購方案」頂部按鈕(交由外層 PageHeader action 觸發) */
+  hideTopAddButton?: boolean;
+  /** 受控:新增 dialog 開啟狀態(由外部控制時使用) */
+  addDialogOpen?: boolean;
+  /** 受控:新增 dialog 開關回調 */
+  onAddDialogOpenChange?: (open: boolean) => void;
 }
 
 const defaultNewPlan: Omit<AddonPlan, 'addon_type'> = {
@@ -75,9 +81,17 @@ export const AddonPlansSection = ({
   errors,
   onValidate,
   onToggleEnabled,
+  hideTopAddButton = false,
+  addDialogOpen,
+  onAddDialogOpenChange,
 }: AddonPlansSectionProps) => {
   const isMobile = useIsMobile();
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [internalAddDialogOpen, setInternalAddDialogOpen] = useState(false);
+  const isAddDialogOpen = addDialogOpen ?? internalAddDialogOpen;
+  const setIsAddDialogOpen = (open: boolean) => {
+    if (onAddDialogOpenChange) onAddDialogOpenChange(open);
+    else setInternalAddDialogOpen(open);
+  };
   const [newPlanName, setNewPlanName] = useState("");
   const [newPlanNameError, setNewPlanNameError] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
@@ -220,13 +234,15 @@ export const AddonPlansSection = ({
 
   return (
     <div className="space-y-6">
-      {/* Add button */}
-      <div className="flex justify-end">
-        <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          新增加購方案
-        </Button>
-      </div>
+      {/* Add button (可由外層 PageHeader 取代) */}
+      {!hideTopAddButton && (
+        <div className="flex justify-end">
+          <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            新增加購方案
+          </Button>
+        </div>
+      )}
 
       {/* Addon plan cards */}
       {addonPlans.length === 0 ? (

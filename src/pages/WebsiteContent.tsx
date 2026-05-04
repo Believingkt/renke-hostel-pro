@@ -528,6 +528,7 @@ const WebsiteContent = () => {
   
   // 加購方案驗證錯誤
   const [addonPlanErrors, setAddonPlanErrors] = useState<Record<string, Record<string, string>>>({});
+  const [addAddonDialogOpen, setAddAddonDialogOpen] = useState(false);
 
   // 自訂訂房須知區塊狀態
   interface CustomBookingSection {
@@ -3300,7 +3301,20 @@ const WebsiteContent = () => {
         </TabsContent>
 
         <TabsContent value="addon-plans" className="space-y-6">
-          <PageHeader title="加購方案" icon={Package} />
+          <PageHeader 
+            title="加購方案" 
+            icon={Package}
+            action={
+              <Button
+                onClick={() => setAddAddonDialogOpen(true)}
+                size="default"
+                className="gap-2 h-11 sm:h-10 touch-manipulation"
+              >
+                <Plus className="h-4 w-4" />
+                新增加購方案
+              </Button>
+            }
+          />
           
           <AddonPlansSection
             addonPlans={addonPlans}
@@ -3308,6 +3322,9 @@ const WebsiteContent = () => {
             onDelete={handleDeleteAddonPlan}
             errors={addonPlanErrors}
             onValidate={validateAddonField}
+            hideTopAddButton
+            addDialogOpen={addAddonDialogOpen}
+            onAddDialogOpenChange={setAddAddonDialogOpen}
             onToggleEnabled={async (addonType: string, enabled: boolean) => {
               // 即時儲存啟用狀態
               if (!accommodationId) return;
