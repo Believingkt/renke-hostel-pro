@@ -127,31 +127,10 @@ const DiscountCodeOrders = () => {
 
   return (
     <div className="space-y-6 md:space-y-8">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/admin" className="flex items-center hover:opacity-70 transition-opacity">
-                <Home className="h-4 w-4" />
-              </Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/admin/discount-codes">網紅導購</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>折扣碼訂單 {discountCode}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <PageHeader
-        title={`折扣代碼訂單`}
+      <AdminPageHeader
+        title="折扣代碼訂單"
         icon={Ticket}
+        breadcrumbs={[{ label: "網紅導購", href: "/admin/discount-codes" }]}
         action={
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4" />

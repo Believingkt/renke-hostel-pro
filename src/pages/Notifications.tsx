@@ -232,23 +232,7 @@ const Notifications = () => {
 
   return (
     <div className="space-y-6 md:space-y-8">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/admin" className="flex items-center hover:opacity-70 transition-opacity">
-                <Home className="h-4 w-4" />
-              </Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>通知中心</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <PageHeader
+      <AdminPageHeader
         title="通知中心"
         icon={Bell}
         action={
