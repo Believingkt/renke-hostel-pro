@@ -471,23 +471,7 @@ const Customers = () => {
         />
       ) : (
         <>
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link to="/admin" className="flex items-center hover:opacity-70 transition-opacity">
-                    <Home className="h-4 w-4" />
-                  </Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>顧客資料</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-
-          <PageHeader
+          <AdminPageHeader
             title="顧客資料"
             icon={Users}
             action={
