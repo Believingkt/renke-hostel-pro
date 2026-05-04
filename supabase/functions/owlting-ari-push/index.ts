@@ -375,7 +375,7 @@ Deno.serve(async (req) => {
     let respText = "";
     let err: string | null = null;
     try {
-      const r = await fetch(endpoint, { method: "POST", headers, body: xml });
+      const r = await fetchViaRelay(endpoint, { method: "POST", headers, body: xml });
       status = r.status;
       respText = await r.text();
     } catch (e) {
