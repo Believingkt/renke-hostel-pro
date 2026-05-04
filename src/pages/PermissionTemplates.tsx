@@ -136,7 +136,7 @@ export default function PermissionTemplates() {
   }
 
   return (
-    <div className="space-y-6 p-4 md:p-0">
+    <div className="space-y-6">
       <AdminPageHeader
         title="權限範本"
         icon={ShieldCheck}
