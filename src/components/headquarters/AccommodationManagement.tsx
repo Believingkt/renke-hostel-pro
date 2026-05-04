@@ -82,6 +82,7 @@ interface Accommodation {
   email: string | null;
   description: string | null;
   short_url_alias: string | null;
+  short_name: string | null;
   theme_preset: string | null;
   header_logo_url: string | null;
   footer_logo_url: string | null;
