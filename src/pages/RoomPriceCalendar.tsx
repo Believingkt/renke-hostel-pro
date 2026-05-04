@@ -439,11 +439,11 @@ export default function RoomPriceCalendar() {
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>房價庫存</BreadcrumbPage>
+              <BreadcrumbPage>房價庫存設定</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-        <PageHeader title="房價庫存" icon={DollarSign} />
+        <PageHeader title="房價庫存設定" icon={DollarSign} />
         <TableSkeleton rows={8} columns={15} />
       </div>
     );
@@ -466,12 +466,12 @@ export default function RoomPriceCalendar() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>房價庫存</BreadcrumbPage>
+            <BreadcrumbPage>房價庫存設定</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
 
-      <PageHeader title="房價庫存" icon={DollarSign} />
+      <PageHeader title="房價庫存設定" icon={DollarSign} />
 
       <Card>
         <CardContent className="p-4">
