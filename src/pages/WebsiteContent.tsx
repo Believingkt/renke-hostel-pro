@@ -528,6 +528,7 @@ const WebsiteContent = () => {
   
   // 加購方案驗證錯誤
   const [addonPlanErrors, setAddonPlanErrors] = useState<Record<string, Record<string, string>>>({});
+  const [addAddonDialogOpen, setAddAddonDialogOpen] = useState(false);
 
   // 自訂訂房須知區塊狀態
   interface CustomBookingSection {
