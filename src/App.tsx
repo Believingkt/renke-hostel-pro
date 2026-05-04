@@ -80,6 +80,7 @@ const EmailTest = lazy(() => import("./pages/EmailTest"));
 const Settlement = lazy(() => import("./pages/Settlement"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Reception = lazy(() => import("./pages/Reception"));
+const ChannelManager = lazy(() => import("./pages/ChannelManager"));
 
 function App() {
   return (
@@ -315,6 +316,11 @@ function App() {
                     <Route path="admin/reception" element={
                       <RequireModule module="reception">
                         <Suspense fallback={<DashboardSkeleton />}><Reception /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/channel-manager" element={
+                      <RequireModule module="channel_manager">
+                        <Suspense fallback={<DashboardSkeleton />}><ChannelManager /></Suspense>
                       </RequireModule>
                     } />
 

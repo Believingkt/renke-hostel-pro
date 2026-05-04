@@ -1931,6 +1931,51 @@ export type Database = {
           },
         ]
       }
+      ota_channels: {
+        Row: {
+          accommodation_id: string
+          channel_code: string
+          channel_name: string
+          created_at: string
+          display_order: number
+          hotel_id: string | null
+          id: string
+          is_enabled: boolean
+          last_synced_at: string | null
+          logo_url: string | null
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          channel_code: string
+          channel_name: string
+          created_at?: string
+          display_order?: number
+          hotel_id?: string | null
+          id?: string
+          is_enabled?: boolean
+          last_synced_at?: string | null
+          logo_url?: string | null
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          channel_code?: string
+          channel_name?: string
+          created_at?: string
+          display_order?: number
+          hotel_id?: string | null
+          id?: string
+          is_enabled?: boolean
+          last_synced_at?: string | null
+          logo_url?: string | null
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       page_analytics: {
         Row: {
           accommodation_id: string
