@@ -247,6 +247,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
           email: data.email || null,
           description: data.description || null,
           short_url_alias: data.short_url_alias || null,
+          short_name: data.short_name || null,
           theme_preset: "default", // 一律使用人客多橘色
           is_active: true,
         })
@@ -351,6 +352,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
           email: data.email || null,
           description: data.description || null,
           short_url_alias: data.short_url_alias || null,
+          short_name: data.short_name || null,
           theme_preset: "default", // 一律使用人客多橘色
         })
         .eq("id", editingAccommodation.id);
