@@ -348,6 +348,7 @@ export default function ChannelManager() {
     }
   }
 
+  const isDefaultChannel = (code: string) =>
     DEFAULT_CHANNELS.some((d) => d.channel_code === code);
 
   async function deleteChannel(channel: OtaChannel) {
