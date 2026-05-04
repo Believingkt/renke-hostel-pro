@@ -769,7 +769,145 @@ export default function ChannelManager() {
         </CardContent>
       </Card>
 
-      {/* OwlTing 認證 Dialog */}
+      {/* 台灣旅圖設定 */}
+      <Card className="overflow-hidden">
+        <CardContent className="p-5 space-y-4">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <Plug className="h-5 w-5 text-primary" />
+                台灣旅圖訂房 API
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                透過 VPS 固定 IP（68.178.175.73）連接台灣旅圖 CIDDistributor 查詢 API。
+              </p>
+            </div>
+            <div className="flex gap-2">
+              {tmMapping?.is_enabled ? (
+                <Badge className="bg-primary text-primary-foreground">已啟用</Badge>
+              ) : (
+                <Badge variant="secondary">{tmMapping ? "已停用" : "尚未設定"}</Badge>
+              )}
+              <Button size="sm" variant={tmMapping ? "outline" : "default"} onClick={openTmDialog}>
+                {tmMapping ? "編輯" : "設定"}
+              </Button>
+            </div>
+          </div>
+
+          {tmMapping && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm border rounded-lg p-4">
+              <div>
+                <span className="text-muted-foreground text-xs">CID Code</span>
+                <p className="font-mono">{tmMapping.cid_code}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-xs">Hotel Code</span>
+                <p className="font-mono">{tmMapping.hotel_code || "—"}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-xs">環境</span>
+                <p className="font-mono">{tmMapping.api_environment}</p>
+              </div>
+            </div>
+          )}
+
+          <div className="border rounded-lg p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <h3 className="font-medium flex items-center gap-2">
+                  <Activity className="h-4 w-4" />
+                  連線測試
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  以今日入住、明日退房試呼叫 SearchAll，驗證 IP 白名單與帳密設定。
+                </p>
+              </div>
+              <Button size="sm" variant="outline" onClick={testTmConnection} disabled={tmTesting || !tmMapping?.is_enabled}>
+                {tmTesting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
+                測試連線
+              </Button>
+            </div>
+            {tmResult && (
+              <div className={`flex items-start gap-2 text-xs ${tmResult.ok ? "text-primary" : "text-destructive"}`}>
+                {tmResult.ok ? <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" /> : <XCircle className="h-4 w-4 mt-0.5 shrink-0" />}
+                <span>
+                  {tmResult.message}
+                  {tmResult.elapsed_ms !== undefined && <> · {tmResult.elapsed_ms}ms</>}
+                </span>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 台灣旅圖設定 Dialog */}
+      <Dialog open={tmDialogOpen} onOpenChange={setTmDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{tmMapping ? "編輯台灣旅圖設定" : "設定台灣旅圖"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="tm_cid">CID Code *</Label>
+              <Input
+                id="tm_cid"
+                value={tmForm.cid_code}
+                onChange={(e) => setTmForm((f) => ({ ...f, cid_code: e.target.value }))}
+                placeholder="台灣旅圖分配的 CID 代碼"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tm_hotel">Hotel Code</Label>
+              <Input
+                id="tm_hotel"
+                value={tmForm.hotel_code}
+                onChange={(e) => setTmForm((f) => ({ ...f, hotel_code: e.target.value }))}
+                placeholder="選填"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tm_env">API 環境</Label>
+              <select
+                id="tm_env"
+                className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                value={tmForm.api_environment}
+                onChange={(e) => setTmForm((f) => ({ ...f, api_environment: e.target.value }))}
+              >
+                <option value="production">production（booking.taiwantravelmap.com）</option>
+                <option value="uat">uat（booking.travelmap.com.tw）</option>
+              </select>
+            </div>
+            <div className="flex items-center justify-between border rounded-lg p-3">
+              <div>
+                <Label htmlFor="tm_enabled" className="cursor-pointer">啟用</Label>
+                <p className="text-xs text-muted-foreground mt-1">關閉後查詢 API 將回 404。</p>
+              </div>
+              <Switch
+                id="tm_enabled"
+                checked={tmForm.is_enabled}
+                onCheckedChange={(c) => setTmForm((f) => ({ ...f, is_enabled: c }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tm_notes">備註</Label>
+              <Textarea
+                id="tm_notes"
+                value={tmForm.notes}
+                onChange={(e) => setTmForm((f) => ({ ...f, notes: e.target.value }))}
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTmDialogOpen(false)}>取消</Button>
+            <Button onClick={saveTm} disabled={tmSaving}>
+              {tmSaving ? "儲存中..." : "儲存"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
       <Dialog open={credDialogOpen} onOpenChange={setCredDialogOpen}>
         <DialogContent>
           <DialogHeader>
