@@ -129,7 +129,7 @@ async function sendInternalOrderEmail(supabase: any, order: any, roomTypeName: s
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function sendDiscountCorrectionEmail(supabase: any, order: any, previousDiscountCode: string | null) {
   try {
-    const accommodationName = await lookupAccommodationName(supabase, order.accommodation_id);
+    const { name: accommodationName, short_name: shortName } = await lookupAccommodationInfo(supabase, order.accommodation_id);
 
     if (!Deno.env.get("RESEND_API_KEY")) {
       console.error("[KOL-Webhook] RESEND_API_KEY not configured, skipping correction email");
@@ -143,12 +143,13 @@ async function sendDiscountCorrectionEmail(supabase: any, order: any, previousDi
     const createdAt = order.created_at ? new Date(order.created_at) : new Date();
 
     const subject = `【折扣碼修正】1筆 - [訂單_${accommodationName} x 星探邀約KOL]`;
-    const text = `以下 1 筆訂單的折扣代碼已修正，通知日期 ${fmtDate(today)}
+    const baseText = `以下 1 筆訂單的折扣代碼已修正，通知日期 ${fmtDate(today)}
 ===================================================
 訂單編號：${order.order_number}
 訂單日期：${fmtDateTime(createdAt)}
 原折扣代碼：${previousDiscountCode ?? ""}
 新折扣代碼：${order.discount_code ?? ""}`;
+    const text = withShortNamePrefix(baseText, shortName);
 
     const { data, error } = await resend.emails.send({
       from: "人客多通知 <noreply@sensaninn.lakeze.com>",
