@@ -82,10 +82,11 @@ export default function ChannelManager() {
 
     let list = (data || []) as OtaChannel[];
 
-    // Seed defaults if none exist
-    const missing = DEFAULT_CHANNELS.filter(
-      (d) => !list.some((c) => c.channel_code === d.channel_code)
-    );
+    // Seed defaults only on first visit (avoid re-creating user-deleted channels)
+    const alreadySeeded = seedKey && localStorage.getItem(seedKey) === "1";
+    const missing = !alreadySeeded
+      ? DEFAULT_CHANNELS.filter((d) => !list.some((c) => c.channel_code === d.channel_code))
+      : [];
     if (missing.length) {
       const { data: inserted, error: insertErr } = await supabase
         .from("ota_channels")
