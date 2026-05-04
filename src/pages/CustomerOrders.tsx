@@ -237,31 +237,10 @@ const CustomerOrders = () => {
 
   return (
     <div className="space-y-6 md:space-y-8 animate-fade-in">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/admin" className="flex items-center hover:opacity-70 transition-opacity">
-                <Home className="h-4 w-4" />
-              </Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/admin/customers">顧客資料</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{customer.name} 的訂單</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <PageHeader
+      <AdminPageHeader
         title={`${customer.name} 的訂單記錄`}
         icon={UserRound}
+        breadcrumbs={[{ label: "顧客資料", href: "/admin/customers" }]}
         action={
           <Button
             variant="ghost"
