@@ -1,6 +1,5 @@
-import { Hotel, Users, Calendar, DollarSign, Radio, X, BarChart3, Home, ChevronLeft, ChevronRight } from "lucide-react";
+import { Hotel, Users, Calendar, DollarSign, Radio, X, BarChart3, ChevronLeft, ChevronRight } from "lucide-react";
 import { OccupancyRevenueTable } from "@/components/charts/OccupancyRevenueTable";
-import { Link } from "react-router-dom";
 import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,15 +23,7 @@ import { BookingTrendsChart } from "@/components/charts/BookingTrendsChart";
 import { MonthlyOccupancyRateChart } from "@/components/charts/MonthlyOccupancyRateChart";
 import { MonthlyAveragePriceChart } from "@/components/charts/MonthlyAveragePriceChart";
 import { ChartErrorBoundary } from "@/components/charts/ChartErrorBoundary";
-import { PageHeader } from "@/components/PageHeader";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 
 type ChartKey = 'trends' | 'revenue' | 'occupancy' | 'avgPrice';
 const CHART_LABELS: Record<ChartKey, string> = {

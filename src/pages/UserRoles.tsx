@@ -1,17 +1,9 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { useAuditLog } from "@/hooks/use-audit-log";
 import { toast } from "sonner";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import {
   Table,
   TableBody,
@@ -41,10 +33,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Trash2, Plus, UserPlus, ShieldCheck, Shield, Home } from "lucide-react";
+import { Trash2, Plus, UserPlus, ShieldCheck, Shield } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
-import { PageHeader } from "@/components/PageHeader";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 
 interface UserRole {
   id: string;

@@ -1,16 +1,8 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { toast } from "sonner";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,8 +32,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Home, Plus, Pencil, Trash2, ShieldCheck } from "lucide-react";
-import { PageHeader } from "@/components/PageHeader";
+import { Plus, Pencil, Trash2, ShieldCheck } from "lucide-react";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 import {
   STAFF_MODULES,
   DEFAULT_STAFF_PERMISSIONS,
