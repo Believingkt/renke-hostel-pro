@@ -16,8 +16,18 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Settings2, Plug } from "lucide-react";
+import { Settings2, Plug, Trash2 } from "lucide-react";
 
 interface OtaChannel {
   id: string;
@@ -46,7 +56,9 @@ export default function ChannelManager() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<OtaChannel | null>(null);
   const [form, setForm] = useState({ hotel_id: "", notes: "" });
+  const [deleting, setDeleting] = useState<OtaChannel | null>(null);
   const accId = currentAccommodationId;
+  const seedKey = accId ? `ota_channels_seeded:${accId}` : "";
 
   useEffect(() => {
     if (!accId) return;
