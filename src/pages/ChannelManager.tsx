@@ -46,19 +46,7 @@ export default function ChannelManager() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<OtaChannel | null>(null);
   const [form, setForm] = useState({ hotel_id: "", notes: "" });
-  const [accommodationName, setAccommodationName] = useState<string>("");
-
   const accId = currentAccommodationId;
-
-  useEffect(() => {
-    if (!accId) return;
-    supabase
-      .from("accommodation_info")
-      .select("name")
-      .eq("id", accId)
-      .maybeSingle()
-      .then(({ data }) => setAccommodationName(data?.name || ""));
-  }, [accId]);
 
   useEffect(() => {
     if (!accId) return;
