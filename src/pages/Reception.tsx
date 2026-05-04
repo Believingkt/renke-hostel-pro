@@ -331,7 +331,7 @@ export default function Reception() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <PageHeader title="櫃檯接待" description="協助客人辦理入住與退房" icon={ConciergeBell} />
+      <PageHeader title="櫃檯接待" icon={ConciergeBell} />
 
       <Card>
         <CardHeader className="pb-4">
