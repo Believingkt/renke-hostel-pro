@@ -540,7 +540,35 @@ export default function ChannelManager() {
                 <Button variant="outline" size="sm" onClick={() => copyToClipboard(inboundUrl, "AR 內容端點")}>
                   <Copy className="h-4 w-4" />
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={testInboundEndpoint}
+                  disabled={testingInbound}
+                  aria-label="測試 AR 內容端點"
+                >
+                  {testingInbound ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Activity className="h-4 w-4 mr-1" />
+                  )}
+                  測試
+                </Button>
               </div>
+              {inboundResult && (
+                <div className={`mt-2 flex items-start gap-2 text-xs ${inboundResult.ok ? "text-primary" : "text-destructive"}`}>
+                  {inboundResult.ok ? (
+                    <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
+                  ) : (
+                    <XCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                  )}
+                  <span>
+                    {inboundResult.message}
+                    {inboundResult.status !== undefined && <> · HTTP {inboundResult.status}</>}
+                    {inboundResult.elapsed_ms !== undefined && <> · {inboundResult.elapsed_ms}ms</>}
+                  </span>
+                </div>
+              )}
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">我方 ARI 推送觸發端點 (內部使用)</Label>
@@ -549,7 +577,36 @@ export default function ChannelManager() {
                 <Button variant="outline" size="sm" onClick={() => copyToClipboard(outboundUrl, "ARI 推送端點")}>
                   <Copy className="h-4 w-4" />
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={testOutboundEndpoint}
+                  disabled={testingOutbound || !owlEndpoint}
+                  title={!owlEndpoint ? "請先設定 ARI 推送端點" : "對 OwlTing 端點發送 OTA_PingRQ"}
+                  aria-label="測試 ARI 推送端點"
+                >
+                  {testingOutbound ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Activity className="h-4 w-4 mr-1" />
+                  )}
+                  測試
+                </Button>
               </div>
+              {outboundResult && (
+                <div className={`mt-2 flex items-start gap-2 text-xs ${outboundResult.ok ? "text-primary" : "text-destructive"}`}>
+                  {outboundResult.ok ? (
+                    <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
+                  ) : (
+                    <XCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                  )}
+                  <span>
+                    {outboundResult.message}
+                    {outboundResult.status !== undefined && <> · HTTP {outboundResult.status}</>}
+                    {outboundResult.elapsed_ms !== undefined && <> · {outboundResult.elapsed_ms}ms</>}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
