@@ -1,18 +1,10 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Eye, Calendar, DollarSign, Users, Phone, Mail, FileText, UserRound, Home, Globe, User } from "lucide-react";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { ArrowLeft, Eye, Calendar, DollarSign, Users, Phone, Mail, FileText, UserRound, Globe, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAccommodation } from "@/contexts/AccommodationContext";
@@ -21,7 +13,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { format } from "date-fns";
 import { zhTW } from "date-fns/locale";
-import { PageHeader } from "@/components/PageHeader";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 
 interface Customer {
   id: string;
