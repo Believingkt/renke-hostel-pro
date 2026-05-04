@@ -399,6 +399,8 @@ Deno.serve(async (req) => {
         created_at,
         accommodation_id,
         order_source,
+        internal_email_sent,
+        internal_email_sent_at,
         room_types:room_type_id (name)
       `,
       )
@@ -418,9 +420,40 @@ Deno.serve(async (req) => {
       ? order.room_types[0]?.name
       : (order.room_types as { name: string } | null)?.name;
 
-    // Send internal notification email (regardless of discount code)
-    // Failure here must not affect webhook flow
-    await sendInternalOrderEmail(supabase, order, roomTypeNameEarly);
+    // ============================================================
+    // Internal email decision logic
+    // ============================================================
+    const isUpdate = trigger_type === "update";
+    const isKolSource = (order.order_source ?? "") === "kol"; // "KOL互惠"
+    const currentCode = (order.discount_code ?? "").trim();
+    const prevCode = (previous_discount_code ?? "").trim();
+
+    if (isUpdate) {
+      // UPDATE branch
+      if (!isKolSource && currentCode === prevCode) {
+        console.log("[KOL-Webhook] UPDATE: discount_code unchanged, skip internal email");
+      } else if (isKolSource) {
+        console.log("[KOL-Webhook] UPDATE: order_source is KOL互惠, skip internal email");
+      } else if (!prevCode && currentCode && !order.internal_email_sent) {
+        // Branch 3: was empty, now has value, and never emailed → Type 1
+        const r = await sendInternalOrderEmail(supabase, order, roomTypeNameEarly);
+        if (r.success) await markInternalEmailSent(supabase, order.id);
+      } else if (prevCode && currentCode && currentCode !== prevCode) {
+        // Branch 4: both had values, code changed → Type 2 (correction)
+        await sendDiscountCorrectionEmail(supabase, order, previous_discount_code ?? null);
+        // Do not change internal_email_sent
+      } else {
+        console.log("[KOL-Webhook] UPDATE: no email branch matched", { prevCode, currentCode, sent: order.internal_email_sent });
+      }
+    } else {
+      // INSERT branch (default)
+      if (currentCode && !isKolSource) {
+        const r = await sendInternalOrderEmail(supabase, order, roomTypeNameEarly);
+        if (r.success) await markInternalEmailSent(supabase, order.id);
+      } else {
+        console.log("[KOL-Webhook] INSERT: skip internal email", { hasCode: !!currentCode, isKolSource });
+      }
+    }
 
     // Check if order has a discount code
     if (!order.discount_code) {
