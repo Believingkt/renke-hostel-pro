@@ -81,9 +81,17 @@ export const AddonPlansSection = ({
   errors,
   onValidate,
   onToggleEnabled,
+  hideTopAddButton = false,
+  addDialogOpen,
+  onAddDialogOpenChange,
 }: AddonPlansSectionProps) => {
   const isMobile = useIsMobile();
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [internalAddDialogOpen, setInternalAddDialogOpen] = useState(false);
+  const isAddDialogOpen = addDialogOpen ?? internalAddDialogOpen;
+  const setIsAddDialogOpen = (open: boolean) => {
+    if (onAddDialogOpenChange) onAddDialogOpenChange(open);
+    else setInternalAddDialogOpen(open);
+  };
   const [newPlanName, setNewPlanName] = useState("");
   const [newPlanNameError, setNewPlanNameError] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
