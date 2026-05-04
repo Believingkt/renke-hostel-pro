@@ -49,6 +49,26 @@ const DEFAULT_CHANNELS: Array<Pick<OtaChannel, "channel_code" | "channel_name" |
   { channel_code: "expedia", channel_name: "Expedia", display_order: 4 },
 ];
 
+interface OwlTingCredential {
+  id: string;
+  hotel_code: string;
+  username: string;
+  is_active: boolean;
+  updated_at: string;
+}
+
+interface OwlTingEndpoint {
+  id: string;
+  endpoint_url: string;
+  remote_username: string | null;
+  remote_password: string | null;
+  environment: string;
+  is_active: boolean;
+  last_pushed_at: string | null;
+}
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+
 export default function ChannelManager() {
   const { currentAccommodationId } = useAccommodation();
   const { toast } = useToast();
@@ -57,11 +77,30 @@ export default function ChannelManager() {
   const [editing, setEditing] = useState<OtaChannel | null>(null);
   const [form, setForm] = useState({ hotel_id: "", notes: "" });
   const [deleting, setDeleting] = useState<OtaChannel | null>(null);
+
+  // OwlTing state
+  const [owlCred, setOwlCred] = useState<OwlTingCredential | null>(null);
+  const [owlEndpoint, setOwlEndpoint] = useState<OwlTingEndpoint | null>(null);
+  const [credDialogOpen, setCredDialogOpen] = useState(false);
+  const [credForm, setCredForm] = useState({ hotel_code: "", username: "", password: "" });
+  const [credSaving, setCredSaving] = useState(false);
+  const [endpointDialogOpen, setEndpointDialogOpen] = useState(false);
+  const [endpointForm, setEndpointForm] = useState({
+    endpoint_url: "",
+    remote_username: "",
+    remote_password: "",
+    environment: "test",
+  });
+  const [endpointSaving, setEndpointSaving] = useState(false);
+
   const accId = currentAccommodationId;
+  const inboundUrl = `${SUPABASE_URL}/functions/v1/owlting-content`;
+  const outboundUrl = `${SUPABASE_URL}/functions/v1/owlting-ari-push`;
 
   useEffect(() => {
     if (!accId) return;
     void loadChannels();
+    void loadOwlting();
   }, [accId]);
 
   async function loadChannels() {
