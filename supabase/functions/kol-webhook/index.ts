@@ -36,20 +36,32 @@ function generateSignature(payload: string, secret: string): string {
   return hmac.digest("hex");
 }
 
-// Helper: lookup accommodation name
+// Helper: lookup accommodation name + short_name
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function lookupAccommodationName(supabase: any, accommodationId: string | null): Promise<string> {
+async function lookupAccommodationInfo(
+  supabase: any,
+  accommodationId: string | null,
+): Promise<{ name: string; short_name: string | null }> {
   let accommodationName = "人客多";
+  let shortName: string | null = null;
   if (accommodationId) {
     const { data: accInfo, error: accErr } = await supabase
       .from("accommodation_info")
-      .select("name")
+      .select("name, short_name")
       .eq("id", accommodationId)
       .maybeSingle();
     if (accErr) console.error("[KOL-Webhook] accommodation_info lookup error:", accErr);
     if (accInfo?.name) accommodationName = accInfo.name;
+    if (accInfo?.short_name) shortName = accInfo.short_name;
   }
-  return accommodationName;
+  return { name: accommodationName, short_name: shortName };
+}
+
+// Prepend short_name (followed by a blank line) when present.
+function withShortNamePrefix(body: string, shortName: string | null): string {
+  const trimmed = (shortName ?? "").trim();
+  if (!trimmed) return body;
+  return `${trimmed}\n\n${body}`;
 }
 
 // Send internal notification email for an order (Type 1: 一般通知). Returns result, never throws.
