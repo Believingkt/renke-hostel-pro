@@ -27,7 +27,17 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Settings2, Plug, Trash2, Copy, KeyRound, Send, Activity, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { Settings2, Plug, Trash2, Copy, KeyRound, Send, Activity, Loader2, CheckCircle2, XCircle, Home } from "lucide-react";
+import { Link } from "react-router-dom";
+import { PageHeader } from "@/components/PageHeader";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 interface OtaChannel {
   id: string;
@@ -435,16 +445,28 @@ export default function ChannelManager() {
   if (!accId) return null;
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 space-y-6">
-      <div className="flex items-center gap-3">
-        <Plug className="h-6 w-6 text-primary" />
-        <div>
-          <h1 className="text-2xl font-semibold">通路管理</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            管理各 OTA 平台串接狀態與 Hotel ID。串接 API 將於後續階段啟用。
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link to="/admin" className="flex items-center hover:opacity-70 transition-opacity">
+                <Home className="h-4 w-4" />
+              </Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>通路管理</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
+      <PageHeader
+        title="通路管理"
+        description="管理各 OTA 平台串接狀態與 Hotel ID。串接 API 將於後續階段啟用。"
+        icon={Plug}
+      />
 
       {loading ? null : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
