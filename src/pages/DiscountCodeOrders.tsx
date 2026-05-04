@@ -1,24 +1,16 @@
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Calendar, DollarSign, User, Phone, Mail, Ticket, ShoppingCart, Home, Sparkles } from "lucide-react";
+import { ArrowLeft, Calendar, DollarSign, User, Phone, Mail, Ticket, ShoppingCart, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { ErrorState } from "@/components/ErrorState";
 import { EmptyState } from "@/components/EmptyState";
-import { PageHeader } from "@/components/PageHeader";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 import {
   Table,
   TableBody,

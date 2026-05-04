@@ -1,15 +1,7 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Plus, Trash2, Edit2, GripVertical, HelpCircle, MessageSquare, Home } from "lucide-react";
+
+import { Plus, Trash2, Edit2, GripVertical, HelpCircle, MessageSquare } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { EmptyState } from "@/components/EmptyState";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,7 +40,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
-import { PageHeader } from "@/components/PageHeader";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 
 interface FaqItem {
