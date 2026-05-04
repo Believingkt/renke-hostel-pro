@@ -107,8 +107,23 @@ export default function ChannelManager() {
       }
     }
 
+    if (seedKey) localStorage.setItem(seedKey, "1");
     setChannels(list);
     setLoading(false);
+  }
+
+  async function deleteChannel(channel: OtaChannel) {
+    const { error } = await supabase
+      .from("ota_channels")
+      .delete()
+      .eq("id", channel.id);
+    if (error) {
+      toast({ title: "刪除失敗", description: error.message, variant: "destructive" });
+      return;
+    }
+    setChannels((prev) => prev.filter((c) => c.id !== channel.id));
+    toast({ title: "已刪除", description: channel.channel_name });
+    setDeleting(null);
   }
 
   async function toggleEnabled(channel: OtaChannel, next: boolean) {
