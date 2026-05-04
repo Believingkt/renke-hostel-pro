@@ -210,7 +210,7 @@ const Dashboard = () => {
   }];
 
   const dashboardContent = (
-    <div className="space-y-6 md:space-y-8">
+    <div className="space-y-6">
       <AdminPageHeader
         title="營運分析"
         icon={BarChart3}

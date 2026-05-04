@@ -293,7 +293,7 @@ const DataBackup = () => {
   }
 
   return (
-    <div className="space-y-6 md:space-y-8 p-6">
+    <div className="space-y-6">
       <AdminPageHeader title="資料備份與還原" icon={Database} />
 
       <Card>
