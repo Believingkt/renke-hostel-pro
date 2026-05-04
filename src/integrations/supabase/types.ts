@@ -1997,6 +1997,114 @@ export type Database = {
         }
         Relationships: []
       }
+      owlting_ari_endpoints: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          endpoint_url: string
+          environment: string
+          id: string
+          is_active: boolean
+          last_pushed_at: string | null
+          remote_password: string | null
+          remote_username: string | null
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          endpoint_url: string
+          environment?: string
+          id?: string
+          is_active?: boolean
+          last_pushed_at?: string | null
+          remote_password?: string | null
+          remote_username?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          endpoint_url?: string
+          environment?: string
+          id?: string
+          is_active?: boolean
+          last_pushed_at?: string | null
+          remote_password?: string | null
+          remote_username?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      owlting_credentials: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          hotel_code: string
+          id: string
+          is_active: boolean
+          password_hash: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          hotel_code: string
+          id?: string
+          is_active?: boolean
+          password_hash: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          hotel_code?: string
+          id?: string
+          is_active?: boolean
+          password_hash?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      owlting_message_logs: {
+        Row: {
+          accommodation_id: string | null
+          created_at: string
+          direction: string
+          error_message: string | null
+          http_status: number | null
+          id: string
+          message_type: string | null
+          request_body: string | null
+          response_body: string | null
+        }
+        Insert: {
+          accommodation_id?: string | null
+          created_at?: string
+          direction: string
+          error_message?: string | null
+          http_status?: number | null
+          id?: string
+          message_type?: string | null
+          request_body?: string | null
+          response_body?: string | null
+        }
+        Update: {
+          accommodation_id?: string | null
+          created_at?: string
+          direction?: string
+          error_message?: string | null
+          http_status?: number | null
+          id?: string
+          message_type?: string | null
+          request_body?: string | null
+          response_body?: string | null
+        }
+        Relationships: []
+      }
       page_analytics: {
         Row: {
           accommodation_id: string

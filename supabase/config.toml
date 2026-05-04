@@ -119,3 +119,9 @@ verify_jwt = true
 
 [functions.auto-sync-google-reviews]
 verify_jwt = false
+
+[functions.owlting-content]
+verify_jwt = false
+
+[functions.owlting-ari-push]
+verify_jwt = false
