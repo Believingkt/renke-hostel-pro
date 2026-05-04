@@ -213,7 +213,7 @@ Deno.serve(async (req) => {
   // Load room types
   let roomQuery = supabase
     .from("room_types")
-    .select("id, name, total_rooms, base_price, weekday_price, holiday_price")
+    .select("id, name, room_count, base_price")
     .eq("accommodation_id", accommodation_id);
   if (room_type_ids && room_type_ids.length > 0) {
     roomQuery = roomQuery.in("id", room_type_ids);
@@ -228,32 +228,35 @@ Deno.serve(async (req) => {
   }
 
   const dates = eachDate(date_from, date_to);
+  const roomIds = roomTypes.map((r: any) => r.id);
 
-  // Per-day overrides table (may not exist for all dates) — best-effort
+  // Per-day overrides from room_inventory_pricing
   const { data: overrides } = await supabase
-    .from("room_inventory_calendar")
-    .select("room_type_id, date, available_rooms, price")
-    .eq("accommodation_id", accommodation_id)
+    .from("room_inventory_pricing")
+    .select("room_type_id, date, available_rooms, price, is_available")
+    .in("room_type_id", roomIds)
     .gte("date", date_from)
     .lte("date", date_to);
 
-  const overrideMap = new Map<string, { available?: number; price?: number }>();
+  const overrideMap = new Map<string, { available?: number; price?: number; is_available?: boolean }>();
   for (const o of overrides || []) {
     overrideMap.set(`${o.room_type_id}|${o.date}`, {
       available: o.available_rooms ?? undefined,
       price: o.price ?? undefined,
+      is_available: o.is_available ?? undefined,
     });
   }
 
   const invRows: Array<{ room_type_id: string; date: string; available: number }> = [];
   const rateRows: Array<{ room_type_id: string; date: string; price: number }> = [];
 
-  for (const rt of roomTypes) {
-    const defaultAvail = rt.total_rooms ?? 0;
-    const defaultPrice = rt.weekday_price ?? rt.base_price ?? 0;
+  for (const rt of roomTypes as any[]) {
+    const defaultAvail = rt.room_count ?? 0;
+    const defaultPrice = rt.base_price ?? 0;
     for (const d of dates) {
       const ov = overrideMap.get(`${rt.id}|${d}`);
-      invRows.push({ room_type_id: rt.id, date: d, available: ov?.available ?? defaultAvail });
+      const avail = ov?.is_available === false ? 0 : (ov?.available ?? defaultAvail);
+      invRows.push({ room_type_id: rt.id, date: d, available: avail });
       rateRows.push({ room_type_id: rt.id, date: d, price: ov?.price ?? defaultPrice });
     }
   }
