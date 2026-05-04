@@ -308,6 +308,20 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
       }
 
       toast({ title: "金額修改成功", description: "訂單金額已更新" });
+
+      // Notify kol-webhook of potential discount-code change
+      try {
+        await supabase.functions.invoke('kol-webhook', {
+          body: {
+            order_id: order.id,
+            trigger_type: "update",
+            previous_discount_code: order.discount_code ?? null,
+          },
+        });
+      } catch (e) {
+        console.error("kol-webhook invoke (update) error:", e);
+      }
+
       onOpenChange(false);
       onSuccess();
     } catch (error) {
