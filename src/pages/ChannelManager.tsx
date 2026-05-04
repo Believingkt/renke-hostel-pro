@@ -58,7 +58,6 @@ export default function ChannelManager() {
   const [form, setForm] = useState({ hotel_id: "", notes: "" });
   const [deleting, setDeleting] = useState<OtaChannel | null>(null);
   const accId = currentAccommodationId;
-  const seedKey = accId ? `ota_channels_seeded:${accId}` : "";
 
   useEffect(() => {
     if (!accId) return;
@@ -68,25 +67,35 @@ export default function ChannelManager() {
   async function loadChannels() {
     if (!accId) return;
     setLoading(true);
-    const { data, error } = await supabase
-      .from("ota_channels")
-      .select("*")
-      .eq("accommodation_id", accId)
-      .order("display_order", { ascending: true });
 
-    if (error) {
-      toast({ title: "載入失敗", description: error.message, variant: "destructive" });
+    // Fetch channels and dismissed default codes in parallel
+    const [channelsRes, dismissedRes] = await Promise.all([
+      supabase
+        .from("ota_channels")
+        .select("*")
+        .eq("accommodation_id", accId)
+        .order("display_order", { ascending: true }),
+      supabase
+        .from("ota_channel_dismissed_defaults")
+        .select("channel_code")
+        .eq("accommodation_id", accId),
+    ]);
+
+    if (channelsRes.error) {
+      toast({ title: "載入失敗", description: channelsRes.error.message, variant: "destructive" });
       setLoading(false);
       return;
     }
 
-    let list = (data || []) as OtaChannel[];
+    let list = (channelsRes.data || []) as OtaChannel[];
+    const dismissed = new Set(
+      (dismissedRes.data || []).map((d: { channel_code: string }) => d.channel_code)
+    );
 
-    // Seed defaults only on first visit (avoid re-creating user-deleted channels)
-    const alreadySeeded = seedKey && localStorage.getItem(seedKey) === "1";
-    const missing = !alreadySeeded
-      ? DEFAULT_CHANNELS.filter((d) => !list.some((c) => c.channel_code === d.channel_code))
-      : [];
+    // Seed defaults that are neither present nor dismissed
+    const missing = DEFAULT_CHANNELS.filter(
+      (d) => !list.some((c) => c.channel_code === d.channel_code) && !dismissed.has(d.channel_code)
+    );
     if (missing.length) {
       const { data: inserted, error: insertErr } = await supabase
         .from("ota_channels")
@@ -107,12 +116,15 @@ export default function ChannelManager() {
       }
     }
 
-    if (seedKey) localStorage.setItem(seedKey, "1");
     setChannels(list);
     setLoading(false);
   }
 
+  const isDefaultChannel = (code: string) =>
+    DEFAULT_CHANNELS.some((d) => d.channel_code === code);
+
   async function deleteChannel(channel: OtaChannel) {
+    if (!accId) return;
     const { error } = await supabase
       .from("ota_channels")
       .delete()
@@ -121,6 +133,20 @@ export default function ChannelManager() {
       toast({ title: "刪除失敗", description: error.message, variant: "destructive" });
       return;
     }
+
+    // Record dismissal so default channel is not auto-recreated next load
+    if (isDefaultChannel(channel.channel_code)) {
+      const { error: dismissErr } = await supabase
+        .from("ota_channel_dismissed_defaults")
+        .upsert(
+          { accommodation_id: accId, channel_code: channel.channel_code },
+          { onConflict: "accommodation_id,channel_code" }
+        );
+      if (dismissErr) {
+        console.warn("Failed to record dismissal:", dismissErr.message);
+      }
+    }
+
     setChannels((prev) => prev.filter((c) => c.id !== channel.id));
     toast({ title: "已刪除", description: channel.channel_name });
     setDeleting(null);
