@@ -16,8 +16,18 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Settings2, Plug } from "lucide-react";
+import { Settings2, Plug, Trash2 } from "lucide-react";
 
 interface OtaChannel {
   id: string;
@@ -46,7 +56,9 @@ export default function ChannelManager() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<OtaChannel | null>(null);
   const [form, setForm] = useState({ hotel_id: "", notes: "" });
+  const [deleting, setDeleting] = useState<OtaChannel | null>(null);
   const accId = currentAccommodationId;
+  const seedKey = accId ? `ota_channels_seeded:${accId}` : "";
 
   useEffect(() => {
     if (!accId) return;
@@ -70,10 +82,11 @@ export default function ChannelManager() {
 
     let list = (data || []) as OtaChannel[];
 
-    // Seed defaults if none exist
-    const missing = DEFAULT_CHANNELS.filter(
-      (d) => !list.some((c) => c.channel_code === d.channel_code)
-    );
+    // Seed defaults only on first visit (avoid re-creating user-deleted channels)
+    const alreadySeeded = seedKey && localStorage.getItem(seedKey) === "1";
+    const missing = !alreadySeeded
+      ? DEFAULT_CHANNELS.filter((d) => !list.some((c) => c.channel_code === d.channel_code))
+      : [];
     if (missing.length) {
       const { data: inserted, error: insertErr } = await supabase
         .from("ota_channels")
@@ -94,8 +107,23 @@ export default function ChannelManager() {
       }
     }
 
+    if (seedKey) localStorage.setItem(seedKey, "1");
     setChannels(list);
     setLoading(false);
+  }
+
+  async function deleteChannel(channel: OtaChannel) {
+    const { error } = await supabase
+      .from("ota_channels")
+      .delete()
+      .eq("id", channel.id);
+    if (error) {
+      toast({ title: "刪除失敗", description: error.message, variant: "destructive" });
+      return;
+    }
+    setChannels((prev) => prev.filter((c) => c.id !== channel.id));
+    toast({ title: "已刪除", description: channel.channel_name });
+    setDeleting(null);
   }
 
   async function toggleEnabled(channel: OtaChannel, next: boolean) {
@@ -203,15 +231,26 @@ export default function ChannelManager() {
                   )}
                 </div>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => openEdit(channel)}
-                >
-                  <Settings2 className="h-4 w-4 mr-2" />
-                  設定
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => openEdit(channel)}
+                  >
+                    <Settings2 className="h-4 w-4 mr-2" />
+                    設定
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => setDeleting(channel)}
+                    aria-label={`刪除 ${channel.channel_name}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -253,6 +292,26 @@ export default function ChannelManager() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認刪除通路？</AlertDialogTitle>
+            <AlertDialogDescription>
+              即將刪除「{deleting?.channel_name}」的設定，包含 Hotel ID 與備註。此動作無法復原。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deleting && deleteChannel(deleting)}
+            >
+              確認刪除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
