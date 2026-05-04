@@ -269,7 +269,7 @@ Deno.serve(async (req) => {
       .maybeSingle(),
     supabase
       .from("room_types")
-      .select("id, name, description, capacity, base_price, total_rooms, weekday_price, holiday_price")
+      .select("id, name, description, capacity, base_price, room_count")
       .eq("accommodation_id", accommodationId)
       .order("display_order", { ascending: true }),
   ]);
