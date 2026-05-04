@@ -234,13 +234,15 @@ export const AddonPlansSection = ({
 
   return (
     <div className="space-y-6">
-      {/* Add button */}
-      <div className="flex justify-end">
-        <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          新增加購方案
-        </Button>
-      </div>
+      {/* Add button (可由外層 PageHeader 取代) */}
+      {!hideTopAddButton && (
+        <div className="flex justify-end">
+          <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            新增加購方案
+          </Button>
+        </div>
+      )}
 
       {/* Addon plan cards */}
       {addonPlans.length === 0 ? (
