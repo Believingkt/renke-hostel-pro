@@ -276,8 +276,8 @@ Deno.serve(async (req) => {
 
   const guestRooms = (rooms || [])
     .map((r: any) => {
-      const price = r.weekday_price ?? r.base_price ?? 0;
-      return `      <GuestRoom Code="${xmlEscape(r.id)}" MaxOccupancy="${xmlEscape(r.capacity ?? 2)}" Quantity="${xmlEscape(r.total_rooms ?? 1)}">
+      const price = r.base_price ?? 0;
+      return `      <GuestRoom Code="${xmlEscape(r.id)}" MaxOccupancy="${xmlEscape(r.capacity ?? 2)}" Quantity="${xmlEscape(r.room_count ?? 1)}">
         <TypeRoom RoomTypeName="${xmlEscape(r.name)}" StandardOccupancy="${xmlEscape(r.capacity ?? 2)}"/>
         <DescriptiveText>${xmlEscape(r.description || r.name)}</DescriptiveText>
         <Amenities/>
