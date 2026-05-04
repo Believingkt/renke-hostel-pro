@@ -582,7 +582,7 @@ const Accounts = () => {
   };
 
   return (
-    <div className="space-y-6 md:space-y-8 p-4 md:p-0">
+    <div className="space-y-6">
       <AdminPageHeader
         title="帳號管理"
         icon={KeyRound}
