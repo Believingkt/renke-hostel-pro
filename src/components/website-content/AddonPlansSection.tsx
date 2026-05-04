@@ -56,6 +56,12 @@ interface AddonPlansSectionProps {
   errors: Record<string, Record<string, string>>;
   onValidate: (addonType: string, fieldName: string, value: string) => void;
   onToggleEnabled?: (addonType: string, enabled: boolean) => Promise<void>;
+  /** 是否隱藏內建的「新增加購方案」頂部按鈕(交由外層 PageHeader action 觸發) */
+  hideTopAddButton?: boolean;
+  /** 受控:新增 dialog 開啟狀態(由外部控制時使用) */
+  addDialogOpen?: boolean;
+  /** 受控:新增 dialog 開關回調 */
+  onAddDialogOpenChange?: (open: boolean) => void;
 }
 
 const defaultNewPlan: Omit<AddonPlan, 'addon_type'> = {
