@@ -571,7 +571,7 @@ export default function ChannelManager() {
               )}
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">我方 ARI 推送觸發端點 (內部使用)</Label>
+              <Label className="text-xs text-muted-foreground">我方 ARI 推送觸發端點 (內部使用，出站經 VPS 固定 IP Relay)</Label>
               <div className="flex items-center gap-2 mt-1">
                 <Input value={outboundUrl} readOnly className="font-mono text-xs" />
                 <Button variant="outline" size="sm" onClick={() => copyToClipboard(outboundUrl, "ARI 推送端點")}>
