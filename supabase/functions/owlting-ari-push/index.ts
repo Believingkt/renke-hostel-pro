@@ -220,6 +220,61 @@ Deno.serve(async (req) => {
   const remoteUser = (endpointRes.data.remote_username as string) || null;
   const remotePass = (endpointRes.data.remote_password as string) || null;
 
+  // Ping mode: just POST OTA_PingRQ to the OwlTing endpoint and report status
+  if (isPing) {
+    const pingXml = `<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  ${buildWsSecurityHeader(remoteUser, remotePass)}
+  <soap:Body>
+    <OTA_PingRQ xmlns="http://www.opentravel.org/OTA/2003/05" Version="1.0" TimeStamp="${new Date().toISOString()}">
+      <EchoData>lakeze-channel-test</EchoData>
+    </OTA_PingRQ>
+  </soap:Body>
+</soap:Envelope>`;
+
+    let status = 0;
+    let respText = "";
+    let err: string | null = null;
+    const startedAt = Date.now();
+    try {
+      const r = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/xml; charset=utf-8",
+          "SOAPAction": '"OTA_PingRQ"',
+        },
+        body: pingXml,
+      });
+      status = r.status;
+      respText = await r.text();
+    } catch (e) {
+      err = e instanceof Error ? e.message : String(e);
+    }
+    const elapsed_ms = Date.now() - startedAt;
+
+    await supabase.from("owlting_message_logs").insert({
+      accommodation_id,
+      direction: "outbound",
+      message_type: "OTA_PingRQ",
+      http_status: status || null,
+      request_body: pingXml.slice(0, 50000),
+      response_body: respText.slice(0, 50000),
+      error_message: err,
+    });
+
+    return new Response(
+      JSON.stringify({
+        success: !err && status >= 200 && status < 300,
+        endpoint,
+        http_status: status,
+        elapsed_ms,
+        error: err,
+        response_preview: respText.slice(0, 500),
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
   // Load room types
   let roomQuery = supabase
     .from("room_types")
