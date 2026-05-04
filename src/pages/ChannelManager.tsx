@@ -124,7 +124,83 @@ export default function ChannelManager() {
     if (!accId) return;
     void loadChannels();
     void loadOwlting();
+    void loadTaiwanMap();
   }, [accId]);
+
+  async function loadTaiwanMap() {
+    if (!accId) return;
+    const { data } = await supabase
+      .from("external_hotel_mappings")
+      .select("id,cid_code,hotel_code,api_environment,is_enabled,notes")
+      .eq("accommodation_id", accId)
+      .maybeSingle();
+    setTmMapping((data as ExternalMapping | null) ?? null);
+  }
+
+  function openTmDialog() {
+    setTmForm({
+      cid_code: tmMapping?.cid_code || "",
+      hotel_code: tmMapping?.hotel_code || "",
+      api_environment: tmMapping?.api_environment || "production",
+      is_enabled: tmMapping?.is_enabled ?? true,
+      notes: tmMapping?.notes || "",
+    });
+    setTmDialogOpen(true);
+  }
+
+  async function saveTm() {
+    if (!accId) return;
+    const cid_code = tmForm.cid_code.trim();
+    if (!cid_code) {
+      toast({ title: "請輸入 CID Code", variant: "destructive" });
+      return;
+    }
+    setTmSaving(true);
+    const payload = {
+      accommodation_id: accId,
+      cid_code,
+      hotel_code: tmForm.hotel_code.trim() || null,
+      api_environment: tmForm.api_environment,
+      is_enabled: tmForm.is_enabled,
+      notes: tmForm.notes.trim() || null,
+    };
+    const { error } = tmMapping
+      ? await supabase.from("external_hotel_mappings").update(payload).eq("id", tmMapping.id)
+      : await supabase.from("external_hotel_mappings").insert(payload);
+    setTmSaving(false);
+    if (error) {
+      toast({ title: "儲存失敗", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: tmMapping ? "已更新" : "已建立" });
+    setTmDialogOpen(false);
+    void loadTaiwanMap();
+  }
+
+  async function testTmConnection() {
+    if (!accId) return;
+    setTmTesting(true);
+    setTmResult(null);
+    const start = Date.now();
+    const today = new Date();
+    const tomorrow = new Date(today.getTime() + 86400000);
+    const fmt = (d: Date) => d.toISOString().slice(0, 10);
+    const { data, error } = await supabase.functions.invoke("search-external-rooms", {
+      body: { accommodationId: accId, checkIn: fmt(today), checkOut: fmt(tomorrow) },
+    });
+    const elapsed_ms = Date.now() - start;
+    setTmTesting(false);
+    if (error) {
+      setTmResult({ ok: false, message: error.message || "連線失敗", elapsed_ms });
+      return;
+    }
+    if (data?.error) {
+      setTmResult({ ok: false, message: data.error, elapsed_ms });
+      return;
+    }
+    const count = Array.isArray(data?.rooms) ? data.rooms.length : (Array.isArray(data?.HotelInfo) ? data.HotelInfo.length : 0);
+    setTmResult({ ok: true, message: `連線成功，回傳 ${count} 筆資料（IP 白名單通過）`, elapsed_ms });
+  }
 
   async function loadChannels() {
     if (!accId) return;
