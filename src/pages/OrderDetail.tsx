@@ -810,6 +810,20 @@ const OrderDetailPage = () => {
 
       toast({ title: "儲存成功", description: "訂單已更新" });
       setIsEditing(false);
+
+      // Notify kol-webhook of potential discount-code change
+      try {
+        await supabase.functions.invoke('kol-webhook', {
+          body: {
+            order_id: order.id,
+            trigger_type: "update",
+            previous_discount_code: originalDiscountCode.current ?? null,
+          },
+        });
+      } catch (e) {
+        console.error("kol-webhook invoke (update) error:", e);
+      }
+
       fetchOrder();
     } catch (error: any) {
       console.error("儲存失敗:", error);
