@@ -226,7 +226,14 @@ Deno.serve(async (req) => {
     // 2. By admin to test webhook (POST with test flag)
 
     const body = await req.json();
-    const { order_id, test_mode, discount_code_id, test_real_order } = body;
+    const { order_id, test_mode, discount_code_id, test_real_order, trigger_type, previous_discount_code } = body as {
+      order_id?: string;
+      test_mode?: boolean;
+      discount_code_id?: string;
+      test_real_order?: boolean;
+      trigger_type?: "update" | "insert";
+      previous_discount_code?: string | null;
+    };
 
     // Test real order mode - fetch latest order and run internal email logic
     if (test_real_order) {
