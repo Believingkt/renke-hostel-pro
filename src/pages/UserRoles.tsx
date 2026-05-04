@@ -277,26 +277,7 @@ export default function UserRoles() {
 
   return (
     <div className="space-y-6 md:space-y-8 p-4 md:p-0">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/admin" className="flex items-center hover:opacity-70 transition-opacity">
-                <Home className="h-4 w-4" />
-              </Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>用戶權限管理</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <PageHeader
-        title="用戶權限管理"
-        icon={Shield}
-      />
+      <AdminPageHeader title="用戶權限管理" icon={Shield} />
 
       <Card>
         <CardHeader>

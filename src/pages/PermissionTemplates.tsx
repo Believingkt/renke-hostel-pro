@@ -145,32 +145,16 @@ export default function PermissionTemplates() {
 
   return (
     <div className="space-y-6 p-4 md:p-0">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/admin"><Home className="h-4 w-4" /></Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/admin/accounts">帳號管理</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>權限範本</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <PageHeader title="權限範本" icon={ShieldCheck} />
-        <Button onClick={() => setEditing(emptyTemplate())}>
-          <Plus className="h-4 w-4 mr-2" /> 新增範本
-        </Button>
-      </div>
+      <AdminPageHeader
+        title="權限範本"
+        icon={ShieldCheck}
+        breadcrumbs={[{ label: "帳號管理", href: "/admin/accounts" }]}
+        action={
+          <Button onClick={() => setEditing(emptyTemplate())}>
+            <Plus className="h-4 w-4 mr-2" /> 新增範本
+          </Button>
+        }
+      />
 
       <Card>
         <CardHeader>
