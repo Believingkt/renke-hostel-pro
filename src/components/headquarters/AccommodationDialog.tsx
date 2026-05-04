@@ -464,6 +464,33 @@ export function AccommodationDialog({
     setFormData({ ...formData, short_url_alias: formatted });
   };
 
+  // Auto-generate short_name when creating a new accommodation and the name input loses focus
+  const handleNameBlur = async () => {
+    if (isEditing) return;
+    const trimmed = formData.name.trim();
+    if (!trimmed) return;
+    if (formData.short_name.trim()) return; // user already filled it
+    if (generatingShortName) return;
+
+    setGeneratingShortName(true);
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "generate-accommodation-short-name",
+        { body: { name: trimmed } }
+      );
+      if (error) throw error;
+      const suggestion = (data?.short_name as string | undefined)?.trim();
+      if (suggestion) {
+        setFormData((prev) => (prev.short_name.trim() ? prev : { ...prev, short_name: suggestion }));
+      }
+    } catch (err) {
+      console.error("Failed to generate short_name:", err);
+      // silent fail – user can type manually
+    } finally {
+      setGeneratingShortName(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
