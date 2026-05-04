@@ -108,6 +108,14 @@ export default function ChannelManager() {
   const [inboundResult, setInboundResult] = useState<TestResult>(null);
   const [outboundResult, setOutboundResult] = useState<TestResult>(null);
 
+  // 台灣旅圖 state
+  const [tmMapping, setTmMapping] = useState<ExternalMapping | null>(null);
+  const [tmDialogOpen, setTmDialogOpen] = useState(false);
+  const [tmForm, setTmForm] = useState({ cid_code: "", hotel_code: "", api_environment: "production", is_enabled: true, notes: "" });
+  const [tmSaving, setTmSaving] = useState(false);
+  const [tmTesting, setTmTesting] = useState(false);
+  const [tmResult, setTmResult] = useState<TestResult>(null);
+
   const accId = currentAccommodationId;
   const inboundUrl = `${SUPABASE_URL}/functions/v1/owlting-content`;
   const outboundUrl = `${SUPABASE_URL}/functions/v1/owlting-ari-push`;
