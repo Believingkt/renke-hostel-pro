@@ -118,7 +118,7 @@ const DiscountCodeOrders = () => {
   }
 
   return (
-    <div className="space-y-6 md:space-y-8">
+    <div className="space-y-6">
       <AdminPageHeader
         title="折扣代碼訂單"
         icon={Ticket}
