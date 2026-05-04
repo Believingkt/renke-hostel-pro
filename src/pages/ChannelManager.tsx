@@ -267,7 +267,87 @@ export default function ChannelManager() {
     void loadOwlting();
   }
 
-  const isDefaultChannel = (code: string) =>
+  // Test our INBOUND AR content endpoint by sending an OTA_PingRQ from the browser.
+  async function testInboundEndpoint() {
+    setTestingInbound(true);
+    setInboundResult(null);
+    const pingXml = `<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <OTA_PingRQ xmlns="http://www.opentravel.org/OTA/2003/05" Version="1.0" TimeStamp="${new Date().toISOString()}">
+      <EchoData>lakeze-inbound-test</EchoData>
+    </OTA_PingRQ>
+  </soap:Body>
+</soap:Envelope>`;
+    const startedAt = performance.now();
+    try {
+      const r = await fetch(inboundUrl, {
+        method: "POST",
+        headers: { "Content-Type": "text/xml; charset=utf-8", SOAPAction: '"OTA_PingRQ"' },
+        body: pingXml,
+      });
+      const text = await r.text();
+      const elapsed = Math.round(performance.now() - startedAt);
+      const ok = r.ok && /OTA_PingRS/i.test(text);
+      const result: TestResult = {
+        ok,
+        status: r.status,
+        elapsed_ms: elapsed,
+        message: ok ? "端點有回應，OTA_PingRS 正常。" : `回應未通過驗證：HTTP ${r.status}`,
+      };
+      setInboundResult(result);
+      toast({
+        title: ok ? "AR 內容端點連線成功" : "AR 內容端點連線異常",
+        description: `${elapsed}ms · HTTP ${r.status}`,
+        variant: ok ? undefined : "destructive",
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setInboundResult({ ok: false, message: msg });
+      toast({ title: "連線失敗", description: msg, variant: "destructive" });
+    } finally {
+      setTestingInbound(false);
+    }
+  }
+
+  // Test our OUTBOUND ARI push by asking the edge function to send an OTA_PingRQ to OwlTing.
+  async function testOutboundEndpoint() {
+    if (!accId) return;
+    if (!owlEndpoint) {
+      toast({ title: "請先設定 ARI 推送端點", variant: "destructive" });
+      return;
+    }
+    setTestingOutbound(true);
+    setOutboundResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("owlting-ari-push", {
+        body: { accommodation_id: accId, mode: "ping" },
+      });
+      if (error) throw new Error(error.message);
+      const ok = !!data?.success;
+      const result: TestResult = {
+        ok,
+        status: data?.http_status,
+        elapsed_ms: data?.elapsed_ms,
+        message: ok
+          ? "已成功推送 OTA_PingRQ 至 OwlTing。"
+          : data?.error || `OwlTing 回應 HTTP ${data?.http_status ?? "?"}`,
+      };
+      setOutboundResult(result);
+      toast({
+        title: ok ? "ARI 推送端點連線成功" : "ARI 推送端點連線異常",
+        description: `${data?.elapsed_ms ?? "?"}ms · HTTP ${data?.http_status ?? "?"}`,
+        variant: ok ? undefined : "destructive",
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setOutboundResult({ ok: false, message: msg });
+      toast({ title: "推送失敗", description: msg, variant: "destructive" });
+    } finally {
+      setTestingOutbound(false);
+    }
+  }
+
     DEFAULT_CHANNELS.some((d) => d.channel_code === code);
 
   async function deleteChannel(channel: OtaChannel) {
