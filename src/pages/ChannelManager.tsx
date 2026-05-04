@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccommodation } from "@/contexts/AccommodationContext";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -39,14 +40,25 @@ const DEFAULT_CHANNELS: Array<Pick<OtaChannel, "channel_code" | "channel_name" |
 ];
 
 export default function ChannelManager() {
-  const { selectedAccommodation } = useAccommodation();
+  const { currentAccommodationId } = useAccommodation();
   const { toast } = useToast();
   const [channels, setChannels] = useState<OtaChannel[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<OtaChannel | null>(null);
   const [form, setForm] = useState({ hotel_id: "", notes: "" });
+  const [accommodationName, setAccommodationName] = useState<string>("");
 
-  const accId = selectedAccommodation?.id;
+  const accId = currentAccommodationId;
+
+  useEffect(() => {
+    if (!accId) return;
+    supabase
+      .from("accommodation_info")
+      .select("name")
+      .eq("id", accId)
+      .maybeSingle()
+      .then(({ data }) => setAccommodationName(data?.name || ""));
+  }, [accId]);
 
   useEffect(() => {
     if (!accId) return;
