@@ -88,12 +88,25 @@ async function handleRelay(req, res) {
     return sendJson(res, 400, { error: 'Invalid target URL' });
   }
 
+  // Built-in defaults + extra domains from env (comma-separated, supports *.suffix wildcards)
   const allowedDomains = [
     'booking.taiwantravelmap.com',
     'booking.travelmap.com.tw',
+    ...(process.env.EXTRA_ALLOWED_DOMAINS || '')
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean),
   ];
 
-  if (!allowedDomains.some(d => parsedUrl.hostname === d)) {
+  const matchesDomain = (host, pattern) => {
+    if (pattern.startsWith('*.')) {
+      const suffix = pattern.slice(1); // ".example.com"
+      return host === pattern.slice(2) || host.endsWith(suffix);
+    }
+    return host === pattern;
+  };
+
+  if (!allowedDomains.some(d => matchesDomain(parsedUrl.hostname, d))) {
     console.warn(`[${new Date().toISOString()}] BLOCKED domain: ${parsedUrl.hostname}`);
     return sendJson(res, 403, { error: 'Target domain not allowed' });
   }
