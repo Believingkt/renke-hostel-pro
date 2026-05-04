@@ -111,6 +111,7 @@ export function AccommodationDialog({
     if (initialData) {
       setFormData({
         name: initialData.name || "",
+        short_name: (initialData as any).short_name || "",
         type: initialData.type || "民宿",
         registration_number: initialData.registration_number || "",
         country: initialData.country || "台灣",
@@ -128,6 +129,7 @@ export function AccommodationDialog({
     } else {
       setFormData({
         name: "",
+        short_name: "",
         type: "民宿",
         registration_number: "",
         country: "台灣",
