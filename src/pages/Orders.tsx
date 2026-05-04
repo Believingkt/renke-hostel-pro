@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useSearchParams, Link } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -20,17 +20,9 @@ import { OrderSourceDialog } from "@/components/orders/OrderSourceDialog";
 import { CreateOrderDialog } from "@/components/orders/CreateOrderDialog";
 import { CreateHoldOrderDialog } from "@/components/orders/CreateHoldOrderDialog";
 import { Button } from "@/components/ui/button";
-import { Filter, ShoppingCart, CalendarDays, CreditCard, Package, ShoppingBag, Home, Plus, CalendarClock, Download, Upload } from "lucide-react";
+import { Filter, ShoppingCart, CalendarDays, CreditCard, Package, ShoppingBag, Plus, CalendarClock, Download, Upload } from "lucide-react";
 import { exportOrdersToExcel } from "@/utils/exportOrders";
 import { ImportOrdersDialog } from "@/components/orders/ImportOrdersDialog";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import {
   Sheet,
   SheetContent,
@@ -50,7 +42,7 @@ import {
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
-import { PageHeader } from "@/components/PageHeader";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 
 const Orders = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -497,29 +489,10 @@ const Orders = () => {
 
   return (
     <div className="space-y-6 md:space-y-8">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/admin" className="flex items-center hover:opacity-70 transition-opacity">
-                <Home className="h-4 w-4" />
-              </Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink className="text-muted-foreground">訂單資訊</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>訂單列表</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <PageHeader
+      <AdminPageHeader
         title="訂單列表"
         icon={ShoppingBag}
+        breadcrumbs={[{ label: "訂單資訊" }]}
         action={
           <div className="flex gap-2">
             <Button

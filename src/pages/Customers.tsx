@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,15 +12,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter, DrawerD
 import { useIsMobile } from "@/hooks/use-mobile";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Plus, Pencil, Trash2, Search, FileText, Users, Phone, Mail, Calendar, UserRound, ArrowUpDown, ArrowUp, ArrowDown, Home } from "lucide-react";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { Plus, Pencil, Trash2, Search, FileText, Users, Phone, Mail, Calendar, UserRound, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAccommodation } from "@/contexts/AccommodationContext";
@@ -30,7 +22,7 @@ import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { CustomerQuickPreview } from "@/components/customers/CustomerQuickPreview";
-import { PageHeader } from "@/components/PageHeader";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 
 // Validation schema for customer inputs
 const customerSchema = z.object({
@@ -471,23 +463,7 @@ const Customers = () => {
         />
       ) : (
         <>
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link to="/admin" className="flex items-center hover:opacity-70 transition-opacity">
-                    <Home className="h-4 w-4" />
-                  </Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage>顧客資料</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-
-          <PageHeader
+          <AdminPageHeader
             title="顧客資料"
             icon={Users}
             action={

@@ -1,25 +1,17 @@
 import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
-import { ConciergeBell, Home, LogIn, LogOut, RefreshCw, Search, X, ArrowUpDown } from "lucide-react";
+import { ConciergeBell, LogIn, LogOut, RefreshCw, Search, X, ArrowUpDown } from "lucide-react";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { useStaffPermissions } from "@/hooks/use-staff-permissions";
 import { supabase } from "@/integrations/supabase/client";
-import { PageHeader } from "@/components/PageHeader";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 
 type ReceptionMode = "checkin" | "checkout";
 type CheckinDay = "yesterday" | "today" | "tomorrow";
@@ -315,23 +307,7 @@ export default function Reception() {
 
   return (
     <div className="space-y-6">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/admin" className="flex items-center hover:opacity-70 transition-opacity">
-                <Home className="h-4 w-4" />
-              </Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>櫃檯接待</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <PageHeader title="櫃檯接待" icon={ConciergeBell} />
+      <AdminPageHeader title="櫃檯接待" icon={ConciergeBell} />
 
       <Card>
         <CardHeader className="pb-4">

@@ -11,14 +11,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -46,12 +38,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Loader2, Users, UserPlus, Mail, MailCheck, CheckCircle2, XCircle, UserCog, Shield, UserCheck, KeyRound, Home, Settings2, ShieldCheck, Unlock } from "lucide-react";
+import { Plus, Trash2, Loader2, Users, UserPlus, Mail, MailCheck, CheckCircle2, XCircle, UserCog, Shield, UserCheck, KeyRound, Settings2, ShieldCheck, Unlock } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { EmptyState } from "@/components/EmptyState";
 import { StaffPermissionsDialog } from "@/components/StaffPermissionsDialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { PageHeader } from "@/components/PageHeader";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAccommodation } from "@/contexts/AccommodationContext";
@@ -591,23 +583,7 @@ const Accounts = () => {
 
   return (
     <div className="space-y-6 md:space-y-8 p-4 md:p-0">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/admin" className="flex items-center hover:opacity-70 transition-opacity">
-                <Home className="h-4 w-4" />
-              </Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>帳號管理</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <PageHeader
+      <AdminPageHeader
         title="帳號管理"
         icon={KeyRound}
         action={

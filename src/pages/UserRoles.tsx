@@ -1,17 +1,9 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { useAuditLog } from "@/hooks/use-audit-log";
 import { toast } from "sonner";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import {
   Table,
   TableBody,
@@ -41,10 +33,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Trash2, Plus, UserPlus, ShieldCheck, Shield, Home } from "lucide-react";
+import { Trash2, Plus, UserPlus, ShieldCheck, Shield } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
-import { PageHeader } from "@/components/PageHeader";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 
 interface UserRole {
   id: string;
@@ -277,26 +269,7 @@ export default function UserRoles() {
 
   return (
     <div className="space-y-6 md:space-y-8 p-4 md:p-0">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/admin" className="flex items-center hover:opacity-70 transition-opacity">
-                <Home className="h-4 w-4" />
-              </Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>用戶權限管理</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <PageHeader
-        title="用戶權限管理"
-        icon={Shield}
-      />
+      <AdminPageHeader title="用戶權限管理" icon={Shield} />
 
       <Card>
         <CardHeader>

@@ -1,26 +1,18 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Bell, Check, CheckCheck, Trash2, RefreshCw, BellOff, Home } from "lucide-react";
+import { Bell, Check, CheckCheck, Trash2, RefreshCw, BellOff } from "lucide-react";
 import { formatDistanceToNow, isToday, isYesterday, format } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { EmptyState } from "@/components/EmptyState";
-import { PageHeader } from "@/components/PageHeader";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { NotificationsSkeleton } from "@/components/skeletons/NotificationsSkeleton";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 
 interface Notification {
   id: string;
@@ -232,23 +224,7 @@ const Notifications = () => {
 
   return (
     <div className="space-y-6 md:space-y-8">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/admin" className="flex items-center hover:opacity-70 transition-opacity">
-                <Home className="h-4 w-4" />
-              </Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>通知中心</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <PageHeader
+      <AdminPageHeader
         title="通知中心"
         icon={Bell}
         action={

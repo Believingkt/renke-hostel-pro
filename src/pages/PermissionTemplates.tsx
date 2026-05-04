@@ -1,16 +1,8 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { toast } from "sonner";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,8 +32,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Home, Plus, Pencil, Trash2, ShieldCheck } from "lucide-react";
-import { PageHeader } from "@/components/PageHeader";
+import { Plus, Pencil, Trash2, ShieldCheck } from "lucide-react";
+import { AdminPageHeader } from "@/components/AdminPageHeader";
 import {
   STAFF_MODULES,
   DEFAULT_STAFF_PERMISSIONS,
@@ -145,32 +137,16 @@ export default function PermissionTemplates() {
 
   return (
     <div className="space-y-6 p-4 md:p-0">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/admin"><Home className="h-4 w-4" /></Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/admin/accounts">帳號管理</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>權限範本</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <PageHeader title="權限範本" icon={ShieldCheck} />
-        <Button onClick={() => setEditing(emptyTemplate())}>
-          <Plus className="h-4 w-4 mr-2" /> 新增範本
-        </Button>
-      </div>
+      <AdminPageHeader
+        title="權限範本"
+        icon={ShieldCheck}
+        breadcrumbs={[{ label: "帳號管理", href: "/admin/accounts" }]}
+        action={
+          <Button onClick={() => setEditing(emptyTemplate())}>
+            <Plus className="h-4 w-4 mr-2" /> 新增範本
+          </Button>
+        }
+      />
 
       <Card>
         <CardHeader>
