@@ -499,7 +499,7 @@ const Pricing = () => {
 
         <TabsContent value="facilities" className="space-y-4">
           <PageHeader
-            title="房間設施"
+            title="客房設施"
             icon={Wrench}
           />
           <RoomFacilitiesForm accommodationId={currentAccommodationId || ""} />
