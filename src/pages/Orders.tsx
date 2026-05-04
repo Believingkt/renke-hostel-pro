@@ -488,7 +488,7 @@ const Orders = () => {
   }
 
   return (
-    <div className="space-y-6 md:space-y-8">
+    <div className="space-y-6">
       <AdminPageHeader
         title="訂單列表"
         icon={ShoppingBag}
