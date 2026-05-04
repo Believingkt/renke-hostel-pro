@@ -593,11 +593,31 @@ export function AccommodationDialog({
                       id="name"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      onBlur={handleNameBlur}
                       placeholder="請輸入民宿名稱"
                       required
                       disabled={isSubmitting}
                       className="h-11"
                     />
+                  </div>
+
+                  {/* LINE 推播簡稱 */}
+                  <div className="space-y-2">
+                    <Label htmlFor="short_name" className="text-sm font-medium">LINE 推播簡稱</Label>
+                    <div className="relative">
+                      <Input
+                        id="short_name"
+                        value={formData.short_name}
+                        onChange={(e) => setFormData({ ...formData, short_name: e.target.value })}
+                        placeholder="🌲 森山"
+                        disabled={isSubmitting}
+                        className="h-11 pr-10"
+                      />
+                      {generatingShortName && (
+                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">建議格式：emoji + 2字，例如：🌲 森山</p>
                   </div>
 
                   {/* 自訂網址路徑 */}
