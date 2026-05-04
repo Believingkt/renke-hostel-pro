@@ -159,6 +159,109 @@ export default function ChannelManager() {
     setLoading(false);
   }
 
+  async function loadOwlting() {
+    if (!accId) return;
+    const [credRes, epRes] = await Promise.all([
+      supabase
+        .from("owlting_credentials")
+        .select("id,hotel_code,username,is_active,updated_at")
+        .eq("accommodation_id", accId)
+        .maybeSingle(),
+      supabase
+        .from("owlting_ari_endpoints")
+        .select("id,endpoint_url,remote_username,remote_password,environment,is_active,last_pushed_at")
+        .eq("accommodation_id", accId)
+        .maybeSingle(),
+    ]);
+    setOwlCred((credRes.data as OwlTingCredential | null) ?? null);
+    setOwlEndpoint((epRes.data as OwlTingEndpoint | null) ?? null);
+  }
+
+  function copyToClipboard(text: string, label: string) {
+    navigator.clipboard.writeText(text).then(
+      () => toast({ title: "已複製", description: label }),
+      () => toast({ title: "複製失敗", variant: "destructive" })
+    );
+  }
+
+  function openCredDialog(rotate: boolean) {
+    setCredForm({
+      hotel_code: rotate && owlCred ? owlCred.hotel_code : "",
+      username: rotate && owlCred ? owlCred.username : "",
+      password: "",
+    });
+    setCredDialogOpen(true);
+  }
+
+  async function saveCred() {
+    if (!accId) return;
+    const hotel_code = credForm.hotel_code.trim();
+    const username = credForm.username.trim();
+    const password = credForm.password;
+    if (!hotel_code || username.length < 4 || password.length < 8) {
+      toast({
+        title: "輸入不正確",
+        description: "Hotel Code 必填、Username 至少 4 字、Password 至少 8 字",
+        variant: "destructive",
+      });
+      return;
+    }
+    setCredSaving(true);
+    const { error } = await supabase.rpc("upsert_owlting_credentials", {
+      p_accommodation_id: accId,
+      p_hotel_code: hotel_code,
+      p_username: username,
+      p_password: password,
+    });
+    setCredSaving(false);
+    if (error) {
+      toast({ title: "儲存失敗", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: owlCred ? "已更新認證" : "已建立認證" });
+    setCredDialogOpen(false);
+    void loadOwlting();
+  }
+
+  function openEndpointDialog() {
+    setEndpointForm({
+      endpoint_url: owlEndpoint?.endpoint_url || "",
+      remote_username: owlEndpoint?.remote_username || "",
+      remote_password: owlEndpoint?.remote_password || "",
+      environment: owlEndpoint?.environment || "test",
+    });
+    setEndpointDialogOpen(true);
+  }
+
+  async function saveEndpoint() {
+    if (!accId) return;
+    const url = endpointForm.endpoint_url.trim();
+    if (!/^https?:\/\//i.test(url)) {
+      toast({ title: "請輸入有效的 URL", variant: "destructive" });
+      return;
+    }
+    setEndpointSaving(true);
+    const payload = {
+      accommodation_id: accId,
+      endpoint_url: url,
+      remote_username: endpointForm.remote_username.trim() || null,
+      remote_password: endpointForm.remote_password || null,
+      environment: endpointForm.environment,
+      is_active: true,
+    };
+    const { error } = owlEndpoint
+      ? await supabase.from("owlting_ari_endpoints").update(payload).eq("id", owlEndpoint.id)
+      : await supabase.from("owlting_ari_endpoints").insert(payload);
+    setEndpointSaving(false);
+    if (error) {
+      toast({ title: "儲存失敗", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "已儲存 ARI 推送端點" });
+    setEndpointDialogOpen(false);
+    void loadOwlting();
+  }
+
   const isDefaultChannel = (code: string) =>
     DEFAULT_CHANNELS.some((d) => d.channel_code === code);
 
