@@ -68,6 +68,7 @@ export function AccommodationDialog({
   const [subdomainStatus, setSubdomainStatus] = useState<"idle" | "checking" | "available" | "taken" | "invalid">("idle");
   const [formData, setFormData] = useState<AccommodationFormData>({
     name: "",
+    short_name: "",
     type: "民宿",
     registration_number: "",
     country: "台灣",
@@ -79,6 +80,7 @@ export function AccommodationDialog({
     description: "",
     short_url_alias: "",
   });
+  const [generatingShortName, setGeneratingShortName] = useState(false);
 
   // Logo states
   const [headerLogoUrl, setHeaderLogoUrl] = useState<string | null>(null);
