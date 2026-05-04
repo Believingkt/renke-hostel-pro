@@ -19,6 +19,7 @@ import { LogoCropDialog } from "@/components/LogoCropDialog";
 
 interface AccommodationFormData {
   name: string;
+  short_name: string;
   type: string;
   registration_number: string;
   country: string;
@@ -67,6 +68,7 @@ export function AccommodationDialog({
   const [subdomainStatus, setSubdomainStatus] = useState<"idle" | "checking" | "available" | "taken" | "invalid">("idle");
   const [formData, setFormData] = useState<AccommodationFormData>({
     name: "",
+    short_name: "",
     type: "民宿",
     registration_number: "",
     country: "台灣",
@@ -78,6 +80,7 @@ export function AccommodationDialog({
     description: "",
     short_url_alias: "",
   });
+  const [generatingShortName, setGeneratingShortName] = useState(false);
 
   // Logo states
   const [headerLogoUrl, setHeaderLogoUrl] = useState<string | null>(null);
@@ -108,6 +111,7 @@ export function AccommodationDialog({
     if (initialData) {
       setFormData({
         name: initialData.name || "",
+        short_name: (initialData as any).short_name || "",
         type: initialData.type || "民宿",
         registration_number: initialData.registration_number || "",
         country: initialData.country || "台灣",
@@ -125,6 +129,7 @@ export function AccommodationDialog({
     } else {
       setFormData({
         name: "",
+        short_name: "",
         type: "民宿",
         registration_number: "",
         country: "台灣",
@@ -459,6 +464,33 @@ export function AccommodationDialog({
     setFormData({ ...formData, short_url_alias: formatted });
   };
 
+  // Auto-generate short_name when creating a new accommodation and the name input loses focus
+  const handleNameBlur = async () => {
+    if (isEditing) return;
+    const trimmed = formData.name.trim();
+    if (!trimmed) return;
+    if (formData.short_name.trim()) return; // user already filled it
+    if (generatingShortName) return;
+
+    setGeneratingShortName(true);
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "generate-accommodation-short-name",
+        { body: { name: trimmed } }
+      );
+      if (error) throw error;
+      const suggestion = (data?.short_name as string | undefined)?.trim();
+      if (suggestion) {
+        setFormData((prev) => (prev.short_name.trim() ? prev : { ...prev, short_name: suggestion }));
+      }
+    } catch (err) {
+      console.error("Failed to generate short_name:", err);
+      // silent fail – user can type manually
+    } finally {
+      setGeneratingShortName(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -588,11 +620,31 @@ export function AccommodationDialog({
                       id="name"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      onBlur={handleNameBlur}
                       placeholder="請輸入民宿名稱"
                       required
                       disabled={isSubmitting}
                       className="h-11"
                     />
+                  </div>
+
+                  {/* LINE 推播簡稱 */}
+                  <div className="space-y-2">
+                    <Label htmlFor="short_name" className="text-sm font-medium">LINE 推播簡稱</Label>
+                    <div className="relative">
+                      <Input
+                        id="short_name"
+                        value={formData.short_name}
+                        onChange={(e) => setFormData({ ...formData, short_name: e.target.value })}
+                        placeholder="🌲 森山"
+                        disabled={isSubmitting}
+                        className="h-11 pr-10"
+                      />
+                      {generatingShortName && (
+                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">建議格式：emoji + 2字，例如：🌲 森山</p>
                   </div>
 
                   {/* 自訂網址路徑 */}

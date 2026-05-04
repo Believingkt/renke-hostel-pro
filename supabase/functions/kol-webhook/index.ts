@@ -36,27 +36,39 @@ function generateSignature(payload: string, secret: string): string {
   return hmac.digest("hex");
 }
 
-// Helper: lookup accommodation name
+// Helper: lookup accommodation name + short_name
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function lookupAccommodationName(supabase: any, accommodationId: string | null): Promise<string> {
+async function lookupAccommodationInfo(
+  supabase: any,
+  accommodationId: string | null,
+): Promise<{ name: string; short_name: string | null }> {
   let accommodationName = "人客多";
+  let shortName: string | null = null;
   if (accommodationId) {
     const { data: accInfo, error: accErr } = await supabase
       .from("accommodation_info")
-      .select("name")
+      .select("name, short_name")
       .eq("id", accommodationId)
       .maybeSingle();
     if (accErr) console.error("[KOL-Webhook] accommodation_info lookup error:", accErr);
     if (accInfo?.name) accommodationName = accInfo.name;
+    if (accInfo?.short_name) shortName = accInfo.short_name;
   }
-  return accommodationName;
+  return { name: accommodationName, short_name: shortName };
+}
+
+// Prepend short_name (followed by a blank line) when present.
+function withShortNamePrefix(body: string, shortName: string | null): string {
+  const trimmed = (shortName ?? "").trim();
+  if (!trimmed) return body;
+  return `${trimmed}\n\n${body}`;
 }
 
 // Send internal notification email for an order (Type 1: 一般通知). Returns result, never throws.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function sendInternalOrderEmail(supabase: any, order: any, roomTypeName: string | undefined) {
   try {
-    const accommodationName = await lookupAccommodationName(supabase, order.accommodation_id);
+    const { name: accommodationName, short_name: shortName } = await lookupAccommodationInfo(supabase, order.accommodation_id);
 
     // Map order_source to display label
     const sourceMap: Record<string, string> = {
@@ -81,7 +93,7 @@ async function sendInternalOrderEmail(supabase: any, order: any, roomTypeName: s
     const nights = Math.max(0, Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)));
 
     const subject = `【已成立訂單】1筆 - [訂單_${accommodationName} x 星探邀約KOL]`;
-    const text = `以下 1 筆訂單已成立，批次通知日期 ${fmtDate(today)}
+    const baseText = `以下 1 筆訂單已成立，批次通知日期 ${fmtDate(today)}
 ===================================================
 訂單日期：${fmtDateTime(createdAt)}
 訂單編號:${order.order_number}
@@ -93,6 +105,7 @@ async function sendInternalOrderEmail(supabase: any, order: any, roomTypeName: s
 折扣代碼：${order.discount_code ?? ""}
 聯盟券：
 來源：${sourceLabel}`;
+    const text = withShortNamePrefix(baseText, shortName);
 
     const { data, error } = await resend.emails.send({
       from: "人客多通知 <noreply@sensaninn.lakeze.com>",
@@ -116,7 +129,7 @@ async function sendInternalOrderEmail(supabase: any, order: any, roomTypeName: s
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function sendDiscountCorrectionEmail(supabase: any, order: any, previousDiscountCode: string | null) {
   try {
-    const accommodationName = await lookupAccommodationName(supabase, order.accommodation_id);
+    const { name: accommodationName, short_name: shortName } = await lookupAccommodationInfo(supabase, order.accommodation_id);
 
     if (!Deno.env.get("RESEND_API_KEY")) {
       console.error("[KOL-Webhook] RESEND_API_KEY not configured, skipping correction email");
@@ -130,12 +143,13 @@ async function sendDiscountCorrectionEmail(supabase: any, order: any, previousDi
     const createdAt = order.created_at ? new Date(order.created_at) : new Date();
 
     const subject = `【折扣碼修正】1筆 - [訂單_${accommodationName} x 星探邀約KOL]`;
-    const text = `以下 1 筆訂單的折扣代碼已修正，通知日期 ${fmtDate(today)}
+    const baseText = `以下 1 筆訂單的折扣代碼已修正，通知日期 ${fmtDate(today)}
 ===================================================
 訂單編號：${order.order_number}
 訂單日期：${fmtDateTime(createdAt)}
 原折扣代碼：${previousDiscountCode ?? ""}
 新折扣代碼：${order.discount_code ?? ""}`;
+    const text = withShortNamePrefix(baseText, shortName);
 
     const { data, error } = await resend.emails.send({
       from: "人客多通知 <noreply@sensaninn.lakeze.com>",

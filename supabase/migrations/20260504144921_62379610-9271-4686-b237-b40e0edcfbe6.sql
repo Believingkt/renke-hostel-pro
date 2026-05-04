@@ -1,0 +1,1 @@
+ALTER TABLE public.accommodation_info ADD COLUMN IF NOT EXISTS short_name text DEFAULT NULL;
