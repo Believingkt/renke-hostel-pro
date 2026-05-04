@@ -3528,6 +3528,15 @@ export type Database = {
         Args: { _accommodation_id: string; _module_key: string }
         Returns: boolean
       }
+      upsert_owlting_credentials: {
+        Args: {
+          p_accommodation_id: string
+          p_hotel_code: string
+          p_password: string
+          p_username: string
+        }
+        Returns: string
+      }
       user_has_access_to_accommodation: {
         Args: { _accommodation_id: string; _user_id: string }
         Returns: boolean
