@@ -116,12 +116,12 @@ async function fetchViaRelay(
   targetUrl: string,
   options: { method: string; headers: Record<string, string>; body: string }
 ): Promise<Response> {
-  // OwlTing 專屬 Relay (與 AI Butler 的 STATIC_IP_PROXY_* 分開)
-  const proxyUrl = Deno.env.get("OWLTING_RELAY_URL") || Deno.env.get("STATIC_IP_PROXY_URL");
-  const proxyToken = Deno.env.get("OWLTING_RELAY_TOKEN") || Deno.env.get("STATIC_IP_PROXY_TOKEN");
+  // 共用 AI Butler 的 Relay
+  const proxyUrl = Deno.env.get("STATIC_IP_PROXY_URL");
+  const proxyToken = Deno.env.get("STATIC_IP_PROXY_TOKEN");
 
   if (!proxyUrl) {
-    console.warn("[OwlTing Relay] OWLTING_RELAY_URL not set, using direct connection");
+    console.warn("[OwlTing Relay] STATIC_IP_PROXY_URL not set, using direct connection");
     return fetch(targetUrl, { method: options.method, headers: options.headers, body: options.body });
   }
 
