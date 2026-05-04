@@ -272,6 +272,7 @@ const BookingAccommodation = () => {
               return null;
           }
         })}
+        {accId && <OtherChannelsSection accommodationId={accId} />}
       </main>
 
       <BookingFooter />
