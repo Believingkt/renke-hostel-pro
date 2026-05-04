@@ -27,7 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Settings2, Plug, Trash2, Copy, KeyRound, Send } from "lucide-react";
+import { Settings2, Plug, Trash2, Copy, KeyRound, Send, Activity, Loader2, CheckCircle2, XCircle } from "lucide-react";
 
 interface OtaChannel {
   id: string;
@@ -92,6 +92,11 @@ export default function ChannelManager() {
     environment: "test",
   });
   const [endpointSaving, setEndpointSaving] = useState(false);
+  const [testingInbound, setTestingInbound] = useState(false);
+  const [testingOutbound, setTestingOutbound] = useState(false);
+  type TestResult = { ok: boolean; status?: number; elapsed_ms?: number; message: string } | null;
+  const [inboundResult, setInboundResult] = useState<TestResult>(null);
+  const [outboundResult, setOutboundResult] = useState<TestResult>(null);
 
   const accId = currentAccommodationId;
   const inboundUrl = `${SUPABASE_URL}/functions/v1/owlting-content`;
@@ -260,6 +265,87 @@ export default function ChannelManager() {
     toast({ title: "已儲存 ARI 推送端點" });
     setEndpointDialogOpen(false);
     void loadOwlting();
+  }
+
+  // Test our INBOUND AR content endpoint by sending an OTA_PingRQ from the browser.
+  async function testInboundEndpoint() {
+    setTestingInbound(true);
+    setInboundResult(null);
+    const pingXml = `<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <OTA_PingRQ xmlns="http://www.opentravel.org/OTA/2003/05" Version="1.0" TimeStamp="${new Date().toISOString()}">
+      <EchoData>lakeze-inbound-test</EchoData>
+    </OTA_PingRQ>
+  </soap:Body>
+</soap:Envelope>`;
+    const startedAt = performance.now();
+    try {
+      const r = await fetch(inboundUrl, {
+        method: "POST",
+        headers: { "Content-Type": "text/xml; charset=utf-8", SOAPAction: '"OTA_PingRQ"' },
+        body: pingXml,
+      });
+      const text = await r.text();
+      const elapsed = Math.round(performance.now() - startedAt);
+      const ok = r.ok && /OTA_PingRS/i.test(text);
+      const result: TestResult = {
+        ok,
+        status: r.status,
+        elapsed_ms: elapsed,
+        message: ok ? "端點有回應，OTA_PingRS 正常。" : `回應未通過驗證：HTTP ${r.status}`,
+      };
+      setInboundResult(result);
+      toast({
+        title: ok ? "AR 內容端點連線成功" : "AR 內容端點連線異常",
+        description: `${elapsed}ms · HTTP ${r.status}`,
+        variant: ok ? undefined : "destructive",
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setInboundResult({ ok: false, message: msg });
+      toast({ title: "連線失敗", description: msg, variant: "destructive" });
+    } finally {
+      setTestingInbound(false);
+    }
+  }
+
+  // Test our OUTBOUND ARI push by asking the edge function to send an OTA_PingRQ to OwlTing.
+  async function testOutboundEndpoint() {
+    if (!accId) return;
+    if (!owlEndpoint) {
+      toast({ title: "請先設定 ARI 推送端點", variant: "destructive" });
+      return;
+    }
+    setTestingOutbound(true);
+    setOutboundResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("owlting-ari-push", {
+        body: { accommodation_id: accId, mode: "ping" },
+      });
+      if (error) throw new Error(error.message);
+      const ok = !!data?.success;
+      const result: TestResult = {
+        ok,
+        status: data?.http_status,
+        elapsed_ms: data?.elapsed_ms,
+        message: ok
+          ? "已成功推送 OTA_PingRQ 至 OwlTing。"
+          : data?.error || `OwlTing 回應 HTTP ${data?.http_status ?? "?"}`,
+      };
+      setOutboundResult(result);
+      toast({
+        title: ok ? "ARI 推送端點連線成功" : "ARI 推送端點連線異常",
+        description: `${data?.elapsed_ms ?? "?"}ms · HTTP ${data?.http_status ?? "?"}`,
+        variant: ok ? undefined : "destructive",
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setOutboundResult({ ok: false, message: msg });
+      toast({ title: "推送失敗", description: msg, variant: "destructive" });
+    } finally {
+      setTestingOutbound(false);
+    }
   }
 
   const isDefaultChannel = (code: string) =>
@@ -454,7 +540,35 @@ export default function ChannelManager() {
                 <Button variant="outline" size="sm" onClick={() => copyToClipboard(inboundUrl, "AR 內容端點")}>
                   <Copy className="h-4 w-4" />
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={testInboundEndpoint}
+                  disabled={testingInbound}
+                  aria-label="測試 AR 內容端點"
+                >
+                  {testingInbound ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Activity className="h-4 w-4 mr-1" />
+                  )}
+                  測試
+                </Button>
               </div>
+              {inboundResult && (
+                <div className={`mt-2 flex items-start gap-2 text-xs ${inboundResult.ok ? "text-primary" : "text-destructive"}`}>
+                  {inboundResult.ok ? (
+                    <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
+                  ) : (
+                    <XCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                  )}
+                  <span>
+                    {inboundResult.message}
+                    {inboundResult.status !== undefined && <> · HTTP {inboundResult.status}</>}
+                    {inboundResult.elapsed_ms !== undefined && <> · {inboundResult.elapsed_ms}ms</>}
+                  </span>
+                </div>
+              )}
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">我方 ARI 推送觸發端點 (內部使用)</Label>
@@ -463,7 +577,36 @@ export default function ChannelManager() {
                 <Button variant="outline" size="sm" onClick={() => copyToClipboard(outboundUrl, "ARI 推送端點")}>
                   <Copy className="h-4 w-4" />
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={testOutboundEndpoint}
+                  disabled={testingOutbound || !owlEndpoint}
+                  title={!owlEndpoint ? "請先設定 ARI 推送端點" : "對 OwlTing 端點發送 OTA_PingRQ"}
+                  aria-label="測試 ARI 推送端點"
+                >
+                  {testingOutbound ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Activity className="h-4 w-4 mr-1" />
+                  )}
+                  測試
+                </Button>
               </div>
+              {outboundResult && (
+                <div className={`mt-2 flex items-start gap-2 text-xs ${outboundResult.ok ? "text-primary" : "text-destructive"}`}>
+                  {outboundResult.ok ? (
+                    <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
+                  ) : (
+                    <XCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                  )}
+                  <span>
+                    {outboundResult.message}
+                    {outboundResult.status !== undefined && <> · HTTP {outboundResult.status}</>}
+                    {outboundResult.elapsed_ms !== undefined && <> · {outboundResult.elapsed_ms}ms</>}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
