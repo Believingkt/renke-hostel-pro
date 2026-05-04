@@ -105,6 +105,43 @@ ${rates}
 </soap:Envelope>`;
 }
 
+/**
+ * Forward a SOAP request through the VPS static-IP relay (固定 IP，OwlTing 白名單用)。
+ * Relay 規格：POST {proxy}/relay
+ *   Headers: X-Relay-Token, X-Target-Url, 以及以 X-Forward-Header-* 前綴帶過去的目標 headers
+ *   Body: 原始 request body (relay 會 passthrough)
+ * 若 STATIC_IP_PROXY_URL 未設，回退直連 (測試/dev 用)。
+ */
+async function fetchViaRelay(
+  targetUrl: string,
+  options: { method: string; headers: Record<string, string>; body: string }
+): Promise<Response> {
+  const proxyUrl = Deno.env.get("STATIC_IP_PROXY_URL");
+  const proxyToken = Deno.env.get("STATIC_IP_PROXY_TOKEN");
+
+  if (!proxyUrl) {
+    console.warn("[OwlTing Relay] STATIC_IP_PROXY_URL not set, using direct connection");
+    return fetch(targetUrl, { method: options.method, headers: options.headers, body: options.body });
+  }
+
+  const relayHeaders: Record<string, string> = {
+    "X-Target-Url": targetUrl,
+    "X-Target-Method": options.method,
+    "Content-Type": "application/octet-stream",
+  };
+  if (proxyToken) relayHeaders["X-Relay-Token"] = proxyToken;
+  for (const [key, value] of Object.entries(options.headers)) {
+    relayHeaders[`X-Forward-Header-${key}`] = value;
+  }
+
+  console.log(`[OwlTing Relay] ${options.method} via ${proxyUrl} → ${targetUrl}`);
+  return fetch(`${proxyUrl}/relay`, {
+    method: "POST",
+    headers: relayHeaders,
+    body: options.body,
+  });
+}
+
 function eachDate(from: string, to: string): string[] {
   const out: string[] = [];
   const start = new Date(from + "T00:00:00Z");
