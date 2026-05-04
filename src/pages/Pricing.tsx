@@ -337,7 +337,7 @@ const Pricing = () => {
       case "rooms":
         return "房型管理";
       case "facilities":
-        return "房間設施";
+        return "客房設施";
       case "basic":
         return "專案設定";
       case "holidays":
@@ -499,7 +499,7 @@ const Pricing = () => {
 
         <TabsContent value="facilities" className="space-y-4">
           <PageHeader
-            title="房間設施"
+            title="客房設施"
             icon={Wrench}
           />
           <RoomFacilitiesForm accommodationId={currentAccommodationId || ""} />
