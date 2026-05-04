@@ -19,6 +19,7 @@ import { LogoCropDialog } from "@/components/LogoCropDialog";
 
 interface AccommodationFormData {
   name: string;
+  short_name: string;
   type: string;
   registration_number: string;
   country: string;
