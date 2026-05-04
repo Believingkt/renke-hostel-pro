@@ -92,6 +92,11 @@ export default function ChannelManager() {
     environment: "test",
   });
   const [endpointSaving, setEndpointSaving] = useState(false);
+  const [testingInbound, setTestingInbound] = useState(false);
+  const [testingOutbound, setTestingOutbound] = useState(false);
+  type TestResult = { ok: boolean; status?: number; elapsed_ms?: number; message: string } | null;
+  const [inboundResult, setInboundResult] = useState<TestResult>(null);
+  const [outboundResult, setOutboundResult] = useState<TestResult>(null);
 
   const accId = currentAccommodationId;
   const inboundUrl = `${SUPABASE_URL}/functions/v1/owlting-content`;
