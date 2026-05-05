@@ -270,6 +270,73 @@ const SAMPLE_ERROR = `<OTA_HotelAvailRS xmlns="http://www.opentravel.org/OTA/200
   </Errors>
 </OTA_HotelAvailRS>`;
 
+const SAMPLE_ERROR_HOTEL = `<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <OTA_HotelAvailNotifRS xmlns="http://www.opentravel.org/OTA/2003/05"
+        Version="1.0" TimeStamp="2026-05-05T10:00:01Z" EchoToken="inv-001">
+      <Errors>
+        <Error Type="3" Code="450">HotelCode SENSAN not authorized</Error>
+      </Errors>
+    </OTA_HotelAvailNotifRS>
+  </soap:Body>
+</soap:Envelope>`;
+
+const SAMPLE_ERROR_ROOMTYPE = `<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <OTA_HotelAvailNotifRS xmlns="http://www.opentravel.org/OTA/2003/05"
+        Version="1.0" TimeStamp="2026-05-05T10:00:01Z" EchoToken="inv-001">
+      <Errors>
+        <Error Type="3" Code="402">RoomType RT_a1b2c3d4 not found</Error>
+      </Errors>
+    </OTA_HotelAvailNotifRS>
+  </soap:Body>
+</soap:Envelope>`;
+
+const SAMPLE_ERROR_RES_NOTFOUND = `<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <OTA_HotelResNotifRS xmlns="http://www.opentravel.org/OTA/2003/05"
+        Version="1.0" TimeStamp="2026-05-05T10:00:01Z" EchoToken="res-001">
+      <Errors>
+        <Error Type="3" Code="392">Reservation OWLTING-RES-XXXX not found</Error>
+      </Errors>
+    </OTA_HotelResNotifRS>
+  </soap:Body>
+</soap:Envelope>`;
+
+const SAMPLE_SOAP_FAULT = `<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <soap:Fault>
+      <faultcode>soap:Server</faultcode>
+      <faultstring>Internal server error</faultstring>
+      <detail>
+        <ErrorMessage>Database connection timeout</ErrorMessage>
+        <EchoToken>abc-001</EchoToken>
+      </detail>
+    </soap:Fault>
+  </soap:Body>
+</soap:Envelope>`;
+
+const SAMPLE_HTTP_400 = `HTTP/1.1 400 Bad Request
+Content-Type: text/plain; charset=utf-8
+
+Malformed XML: unexpected end of file at line 12 column 3`;
+
+const SAMPLE_HTTP_415 = `HTTP/1.1 415 Unsupported Media Type
+Content-Type: text/plain; charset=utf-8
+
+Content-Type must be text/xml; charset=utf-8`;
+
+const SAMPLE_HTTP_405 = `HTTP/1.1 405 Method Not Allowed
+Allow: POST
+Content-Type: text/plain; charset=utf-8
+
+Only POST is allowed for SOAP endpoint`;
+
+
 const methods = [
   {
     id: "avail",
@@ -536,33 +603,189 @@ const OwlTingCmDocs = () => {
           {/* Errors */}
           <section className="space-y-4">
             <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Activity className="h-5 w-5" /> 錯誤回應
+              <Activity className="h-5 w-5" /> 錯誤回應 / SOAP Fault
             </h2>
+
+            {/* HTTP status table */}
             <Card>
-              <CardContent className="p-4 space-y-3 text-sm">
-                <p>所有錯誤皆以 OTA 標準 <code>{`<Errors><Error/></Errors>`}</code> 結構回傳，HTTP 狀態碼仍為 200 (僅伺服器內部錯誤為 500)。</p>
-                <CodeBlock label="Error Sample">{SAMPLE_ERROR}</CodeBlock>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                  <div className="rounded-md border bg-muted/40 p-2">
-                    <p className="font-mono">450 — Invalid credentials</p>
-                    <p className="text-muted-foreground">UsernameToken 缺失或密碼錯誤。</p>
-                  </div>
-                  <div className="rounded-md border bg-muted/40 p-2">
-                    <p className="font-mono">450 — HotelCode XXX not authorized</p>
-                    <p className="text-muted-foreground">該帳號不對應指定 HotelCode。</p>
-                  </div>
-                  <div className="rounded-md border bg-muted/40 p-2">
-                    <p className="font-mono">450 — RoomType not found</p>
-                    <p className="text-muted-foreground">RoomTypeCode 對應不到資料。</p>
-                  </div>
-                  <div className="rounded-md border bg-muted/40 p-2">
-                    <p className="font-mono">500 — Server error: ...</p>
-                    <p className="text-muted-foreground">系統錯誤；請保留 EchoToken 與時間後通知對接窗口。</p>
-                  </div>
+              <CardHeader>
+                <CardTitle className="text-base">HTTP 狀態碼對照</CardTitle>
+                <CardDescription>
+                  業務層錯誤一律 HTTP 200 + OTA <code>{`<Errors>`}</code>;傳輸 / 協定層錯誤才會回非 200 狀態碼。
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs border">
+                    <thead className="bg-muted/60">
+                      <tr>
+                        <th className="text-left px-2 py-1.5 border-b w-24">狀態碼</th>
+                        <th className="text-left px-2 py-1.5 border-b">情境</th>
+                        <th className="text-left px-2 py-1.5 border-b w-48">回應格式</th>
+                        <th className="text-left px-2 py-1.5 border-b w-40">建議處理</th>
+                      </tr>
+                    </thead>
+                    <tbody className="font-mono">
+                      <tr className="border-b">
+                        <td className="px-2 py-1.5">200</td>
+                        <td className="px-2 py-1.5">成功 / 業務層錯誤</td>
+                        <td className="px-2 py-1.5">OTA RS (含 Success 或 Errors)</td>
+                        <td className="px-2 py-1.5 text-muted-foreground">需解析 body</td>
+                      </tr>
+                      <tr className="border-b">
+                        <td className="px-2 py-1.5">400</td>
+                        <td className="px-2 py-1.5">XML 解析失敗 / 缺必要欄位</td>
+                        <td className="px-2 py-1.5">text/plain</td>
+                        <td className="px-2 py-1.5 text-muted-foreground">人工修正,不重試</td>
+                      </tr>
+                      <tr className="border-b">
+                        <td className="px-2 py-1.5">401</td>
+                        <td className="px-2 py-1.5">缺少 WS-Security Header</td>
+                        <td className="px-2 py-1.5">OTA RS + Error 450</td>
+                        <td className="px-2 py-1.5 text-muted-foreground">人工修正,不重試</td>
+                      </tr>
+                      <tr className="border-b">
+                        <td className="px-2 py-1.5">405</td>
+                        <td className="px-2 py-1.5">使用 GET / PUT 等非 POST</td>
+                        <td className="px-2 py-1.5">text/plain</td>
+                        <td className="px-2 py-1.5 text-muted-foreground">人工修正,不重試</td>
+                      </tr>
+                      <tr className="border-b">
+                        <td className="px-2 py-1.5">415</td>
+                        <td className="px-2 py-1.5">Content-Type 錯誤</td>
+                        <td className="px-2 py-1.5">text/plain</td>
+                        <td className="px-2 py-1.5 text-muted-foreground">人工修正,不重試</td>
+                      </tr>
+                      <tr className="border-b">
+                        <td className="px-2 py-1.5">429</td>
+                        <td className="px-2 py-1.5">Rate limit (預留)</td>
+                        <td className="px-2 py-1.5">text/plain</td>
+                        <td className="px-2 py-1.5 text-muted-foreground">指數退避重試</td>
+                      </tr>
+                      <tr className="border-b">
+                        <td className="px-2 py-1.5">500</td>
+                        <td className="px-2 py-1.5">伺服器內部錯誤</td>
+                        <td className="px-2 py-1.5">soap:Fault</td>
+                        <td className="px-2 py-1.5 text-muted-foreground">最多重試 3 次</td>
+                      </tr>
+                      <tr className="border-b">
+                        <td className="px-2 py-1.5">502 / 503 / 504</td>
+                        <td className="px-2 py-1.5">Edge / Gateway 暫時不可用</td>
+                        <td className="px-2 py-1.5">text/plain or HTML</td>
+                        <td className="px-2 py-1.5 text-muted-foreground">指數退避重試</td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </CardContent>
             </Card>
+
+            {/* OTA Error Code table */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">OTA Error Code 對照 (HTTP 200 + Errors)</CardTitle>
+                <CardDescription>
+                  以下為人客多 SOAP 端可能回傳的 OTA Error <code>Code</code> 與 <code>Type</code> 組合。
+                  <code>Type</code> 採 OTA EWT (Error Warning Type) 標準:1=Unknown / 3=Biz Rule / 13=Authentication。
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs border">
+                    <thead className="bg-muted/60">
+                      <tr>
+                        <th className="text-left px-2 py-1.5 border-b w-16">Code</th>
+                        <th className="text-left px-2 py-1.5 border-b w-16">Type</th>
+                        <th className="text-left px-2 py-1.5 border-b">訊息</th>
+                        <th className="text-left px-2 py-1.5 border-b">說明</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-b">
+                        <td className="px-2 py-1.5 font-mono">450</td>
+                        <td className="px-2 py-1.5 font-mono">13</td>
+                        <td className="px-2 py-1.5 font-mono">Invalid credentials</td>
+                        <td className="px-2 py-1.5 text-muted-foreground">UsernameToken 缺失或密碼錯誤</td>
+                      </tr>
+                      <tr className="border-b">
+                        <td className="px-2 py-1.5 font-mono">450</td>
+                        <td className="px-2 py-1.5 font-mono">3</td>
+                        <td className="px-2 py-1.5 font-mono">HotelCode XXX not authorized</td>
+                        <td className="px-2 py-1.5 text-muted-foreground">該帳號不對應指定 HotelCode</td>
+                      </tr>
+                      <tr className="border-b">
+                        <td className="px-2 py-1.5 font-mono">402</td>
+                        <td className="px-2 py-1.5 font-mono">3</td>
+                        <td className="px-2 py-1.5 font-mono">RoomType not found</td>
+                        <td className="px-2 py-1.5 text-muted-foreground">InvTypeCode 不存在 (RT_xxxxxxxx)</td>
+                      </tr>
+                      <tr className="border-b">
+                        <td className="px-2 py-1.5 font-mono">402</td>
+                        <td className="px-2 py-1.5 font-mono">3</td>
+                        <td className="px-2 py-1.5 font-mono">RatePlan not found</td>
+                        <td className="px-2 py-1.5 text-muted-foreground">RatePlanCode 不存在 (RP_xxxxxxxx)</td>
+                      </tr>
+                      <tr className="border-b">
+                        <td className="px-2 py-1.5 font-mono">392</td>
+                        <td className="px-2 py-1.5 font-mono">3</td>
+                        <td className="px-2 py-1.5 font-mono">Reservation not found</td>
+                        <td className="px-2 py-1.5 text-muted-foreground">Modify / Cancel 找不到對應 UniqueID</td>
+                      </tr>
+                      <tr className="border-b">
+                        <td className="px-2 py-1.5 font-mono">385</td>
+                        <td className="px-2 py-1.5 font-mono">3</td>
+                        <td className="px-2 py-1.5 font-mono">Invalid date range</td>
+                        <td className="px-2 py-1.5 text-muted-foreground">Start &gt; End 或日期格式錯誤</td>
+                      </tr>
+                      <tr className="border-b">
+                        <td className="px-2 py-1.5 font-mono">320</td>
+                        <td className="px-2 py-1.5 font-mono">3</td>
+                        <td className="px-2 py-1.5 font-mono">Invalid value</td>
+                        <td className="px-2 py-1.5 text-muted-foreground">BookingLimit / AmountAfterTax 為負數或非數字</td>
+                      </tr>
+                      <tr className="border-b">
+                        <td className="px-2 py-1.5 font-mono">448</td>
+                        <td className="px-2 py-1.5 font-mono">1</td>
+                        <td className="px-2 py-1.5 font-mono">System error</td>
+                        <td className="px-2 py-1.5 text-muted-foreground">未預期的伺服器錯誤 (請帶 EchoToken 通報)</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Sample responses */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">可直接貼上的範例回應</CardTitle>
+                <CardDescription>所有業務層錯誤回應結構,可作為對接時的 mock / 測試 fixture。</CardDescription>
+              </CardHeader>
+              <CardContent className="p-4 pt-0 space-y-3">
+                <CodeBlock label="① 認證失敗 — 450 Invalid credentials (HTTP 200)">{SAMPLE_ERROR}</CodeBlock>
+                <CodeBlock label="② HotelCode 未授權 — 450 (HTTP 200)">{SAMPLE_ERROR_HOTEL}</CodeBlock>
+                <CodeBlock label="③ RoomType 找不到 — 402 (HTTP 200)">{SAMPLE_ERROR_ROOMTYPE}</CodeBlock>
+                <CodeBlock label="④ Modify/Cancel 找不到訂單 — 392 (HTTP 200)">{SAMPLE_ERROR_RES_NOTFOUND}</CodeBlock>
+                <CodeBlock label="⑤ 伺服器錯誤 — soap:Fault (HTTP 500)">{SAMPLE_SOAP_FAULT}</CodeBlock>
+                <CodeBlock label="⑥ XML 解析失敗 (HTTP 400)">{SAMPLE_HTTP_400}</CodeBlock>
+                <CodeBlock label="⑦ Content-Type 錯誤 (HTTP 415)">{SAMPLE_HTTP_415}</CodeBlock>
+                <CodeBlock label="⑧ 非 POST (HTTP 405)">{SAMPLE_HTTP_405}</CodeBlock>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-4 text-xs text-muted-foreground space-y-1">
+                <p className="font-medium text-foreground">重試策略建議</p>
+                <ul className="list-disc list-inside space-y-1">
+                  <li><strong>HTTP 5xx / 429 / 網路錯誤</strong> → 指數退避重試 (1s → 2s → 4s,最多 3 次)。</li>
+                  <li><strong>HTTP 4xx (400/401/405/415)</strong> → 不重試,屬請求格式錯誤,請人工修正。</li>
+                  <li><strong>HTTP 200 + OTA Errors (Code 450/402/392 等)</strong> → 不重試,屬業務層錯誤;同一筆請求重送結果相同。</li>
+                  <li>建議所有 Request 都帶唯一 <code>EchoToken</code>,以便雙方 log 對帳。</li>
+                </ul>
+              </CardContent>
+            </Card>
           </section>
+
 
           {/* REST */}
           <section className="space-y-4">
