@@ -4137,7 +4137,7 @@ const BookingFlow = () => {
                           訂單金額付款方式
                         </CardTitle>
                         <p className="text-sm text-muted-foreground mt-2">
-                          訂單金額 NT$ {finalPrice.toLocaleString()}，請選擇付款方式
+                          訂單金額 NT$ {calculateFinalTotal().toLocaleString()}，請選擇付款方式
                         </p>
                       </CardHeader>
                       <CardContent className="space-y-3">
