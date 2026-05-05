@@ -125,3 +125,9 @@ verify_jwt = false
 
 [functions.owlting-ari-push]
 verify_jwt = false
+
+[functions.owlting-cm]
+verify_jwt = false
+
+[functions.owlting-cm-snapshot]
+verify_jwt = false
