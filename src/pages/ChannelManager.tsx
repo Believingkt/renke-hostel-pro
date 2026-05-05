@@ -1041,63 +1041,6 @@ export default function ChannelManager() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-
-      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editing?.channel_name} 設定</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="hotel_id">Hotel ID</Label>
-              <Input
-                id="hotel_id"
-                value={form.hotel_id}
-                onChange={(e) => setForm((f) => ({ ...f, hotel_id: e.target.value }))}
-                placeholder="例如：1234567"
-              />
-              <p className="text-xs text-muted-foreground">
-                該平台分配給民宿的飯店代碼。
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="notes">備註</Label>
-              <Textarea
-                id="notes"
-                value={form.notes}
-                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                rows={3}
-                placeholder="選填"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditing(null)}>取消</Button>
-            <Button onClick={saveEdit}>儲存</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>確認刪除通路？</AlertDialogTitle>
-            <AlertDialogDescription>
-              即將刪除「{deleting?.channel_name}」的設定，包含 Hotel ID 與備註。此動作無法復原。
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => deleting && deleteChannel(deleting)}
-            >
-              確認刪除
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
