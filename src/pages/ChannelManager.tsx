@@ -544,70 +544,6 @@ export default function ChannelManager() {
     <div className="space-y-6">
       <AdminPageHeader title="通路管理" icon={Plug} />
 
-      {loading ? null : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {channels.map((channel) => (
-            <Card key={channel.id} className="overflow-hidden">
-              <CardContent className="p-5 space-y-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="space-y-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-base truncate">
-                        {channel.channel_name}
-                      </h3>
-                      {channel.is_enabled ? (
-                        <Badge className="bg-primary text-primary-foreground">啟用中</Badge>
-                      ) : (
-                        <Badge variant="secondary">未啟用</Badge>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      代碼：{channel.channel_code}
-                    </p>
-                  </div>
-                  <Switch
-                    checked={channel.is_enabled}
-                    onCheckedChange={(v) => toggleEnabled(channel, v)}
-                  />
-                </div>
-
-                <div className="space-y-2 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Hotel ID：</span>
-                    <span className="font-mono">
-                      {channel.hotel_id || <span className="text-muted-foreground">未設定</span>}
-                    </span>
-                  </div>
-                  {channel.notes && (
-                    <p className="text-muted-foreground text-xs line-clamp-2">{channel.notes}</p>
-                  )}
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => openEdit(channel)}
-                  >
-                    <Settings2 className="h-4 w-4 mr-2" />
-                    設定
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                    onClick={() => setDeleting(channel)}
-                    aria-label={`刪除 ${channel.channel_name}`}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
 
       {/* OwlTing 設定區塊 */}
       <Card className="overflow-hidden">
@@ -1105,63 +1041,6 @@ export default function ChannelManager() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-
-      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editing?.channel_name} 設定</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="hotel_id">Hotel ID</Label>
-              <Input
-                id="hotel_id"
-                value={form.hotel_id}
-                onChange={(e) => setForm((f) => ({ ...f, hotel_id: e.target.value }))}
-                placeholder="例如：1234567"
-              />
-              <p className="text-xs text-muted-foreground">
-                該平台分配給民宿的飯店代碼。
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="notes">備註</Label>
-              <Textarea
-                id="notes"
-                value={form.notes}
-                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                rows={3}
-                placeholder="選填"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditing(null)}>取消</Button>
-            <Button onClick={saveEdit}>儲存</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>確認刪除通路？</AlertDialogTitle>
-            <AlertDialogDescription>
-              即將刪除「{deleting?.channel_name}」的設定，包含 Hotel ID 與備註。此動作無法復原。
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => deleting && deleteChannel(deleting)}
-            >
-              確認刪除
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
