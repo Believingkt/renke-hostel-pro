@@ -188,7 +188,50 @@ export function DepositManagementSection({ orderId, refreshKey, onRefresh }: Pro
     }
   };
 
-  return (
+  const handleAutoRecharge = async () => {
+    if (!token) {
+      toast({ variant: "destructive", title: "尚未綁卡", description: "請先請客人完成押金綁卡" });
+      return;
+    }
+    if (remainingToCharge <= 0) {
+      toast({ title: "押金已收齊，無需再次預刷" });
+      return;
+    }
+    setRecharging(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("charge-deposit", {
+        body: { orderId, amount: remainingToCharge, triggerSource: "manual_recharge" },
+      });
+      if (error) throw error;
+      if (!data?.success) {
+        toast({ variant: "destructive", title: "重新預刷失敗", description: data?.message });
+      } else {
+        toast({ title: "重新預刷成功", description: `已扣款 NT$${remainingToCharge.toLocaleString()}` });
+        await load();
+        onRefresh?.();
+      }
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "重新預刷失敗", description: e?.message });
+    } finally {
+      setRecharging(false);
+    }
+  };
+
+  // Auto-precharge schedule: 1 day before check-in
+  const scheduledChargeDate = deposit.check_in_date
+    ? new Date(new Date(deposit.check_in_date).getTime() - 24 * 60 * 60 * 1000)
+    : null;
+  const lastAutoChargeLog = logs.find(
+    (l) => l.trigger_source === "scheduled" || l.trigger_source === "auto",
+  );
+  const autoChargeStatus: { label: string; tone: "muted" | "success" | "destructive" | "warning" } =
+    deposit.deposit_status === "charged" || deposit.deposit_status === "partially_refunded" || deposit.deposit_status === "refunded"
+      ? { label: "已自動預刷完成", tone: "success" }
+      : lastAutoChargeLog?.status === "failed"
+        ? { label: "自動預刷失敗", tone: "destructive" }
+        : scheduledChargeDate && scheduledChargeDate.getTime() < Date.now() && deposit.deposit_method === "card" && remainingToCharge > 0
+          ? { label: "自動預刷待重試", tone: "warning" }
+          : { label: "等待自動預刷", tone: "muted" };
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-base flex items-center gap-2">
