@@ -4489,8 +4489,19 @@ const BookingFlow = () => {
                         </p>
                       </CardHeader>
                       <CardContent>
-                        <div className="p-4 bg-muted/50 rounded-lg">
-                          <p className="font-medium text-base">{paymentMethod}</p>
+                        <div className="p-4 bg-muted/50 rounded-lg space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-muted-foreground">訂單金額</span>
+                            <span className="font-medium text-sm">
+                              {orderPaymentType === "credit_card" ? "信用卡" : "轉帳匯款"}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-muted-foreground">押金 NT$ {DEPOSIT_AMOUNT.toLocaleString()}</span>
+                            <span className="font-medium text-sm">
+                              {depositPaymentType === "card" ? "線上綁卡" : "現場現金"}
+                            </span>
+                          </div>
                         </div>
                         {appliedDiscount && (
                           <div className="mt-3 p-3 bg-primary/10 border border-primary/20 rounded-lg">
