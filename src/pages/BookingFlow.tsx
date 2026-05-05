@@ -4324,6 +4324,65 @@ const BookingFlow = () => {
                             </div>
                           );
                         })}
+
+                        {/* TapPay 信用卡表單 - 訂單為轉帳匯款且押金選擇線上綁卡時，於押金區塊輸入卡片資料 */}
+                        {orderPaymentType === "bank_transfer" && depositPaymentType === "card" && (
+                          <div className="mt-4 p-4 border rounded-lg bg-card">
+                            <div className="mb-3">
+                              <p className="text-sm font-medium text-foreground mb-1">請輸入綁卡用信用卡資訊</p>
+                              <p className="text-xs text-muted-foreground">
+                                此卡片僅供押金預刷使用，不會立即扣款。卡片資訊由 TapPay 安全加密處理
+                              </p>
+                            </div>
+                            {tappayConfigLoading ? (
+                              <div className="flex items-center justify-center py-8">
+                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                                <span className="ml-2 text-sm text-muted-foreground">取得付款設定...</span>
+                              </div>
+                            ) : tappayConfigError ? (
+                              <Alert variant="destructive">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertTitle>付款模組載入失敗</AlertTitle>
+                                <AlertDescription>
+                                  <p className="mb-3">{tappayConfigError}</p>
+                                  <Button type="button" variant="outline" size="sm" onClick={() => reloadTapPayConfig()}>
+                                    重新載入
+                                  </Button>
+                                </AlertDescription>
+                              </Alert>
+                            ) : !isTapPayReady ? (
+                              <div className="flex items-center justify-center py-8">
+                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                                <span className="ml-2 text-sm text-muted-foreground">載入付款表單...</span>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="space-y-3">
+                                  <div>
+                                    <Label className="text-xs text-muted-foreground">卡號</Label>
+                                    <div id="card-number" className="tpfield h-10 border rounded-md px-3 bg-background"></div>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                      <Label className="text-xs text-muted-foreground">有效期限</Label>
+                                      <div id="card-expiration-date" className="tpfield h-10 border rounded-md px-3 bg-background"></div>
+                                    </div>
+                                    <div>
+                                      <Label className="text-xs text-muted-foreground">安全碼</Label>
+                                      <div id="card-ccv" className="tpfield h-10 border rounded-md px-3 bg-background"></div>
+                                    </div>
+                                  </div>
+                                </div>
+                                {cardValid && (
+                                  <div className="mt-3 flex items-center gap-2 text-sm text-success">
+                                    <CheckCircle className="h-4 w-4" />
+                                    <span>卡片資訊已驗證</span>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
 
