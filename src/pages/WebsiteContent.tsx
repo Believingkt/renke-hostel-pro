@@ -462,6 +462,7 @@ const WebsiteContent = () => {
     checkInTime: "15:00",
     checkOutTime: "11:00",
     paymentMethods: [] as string[],
+    bankAccountInfo: "",
     cancellationPolicy: "",
     checkInNotice: "",
     petPolicy: "",
@@ -693,6 +694,7 @@ const WebsiteContent = () => {
             paymentMethods: Array.isArray(bookingSettings.payment_methods) 
               ? (bookingSettings.payment_methods as string[])
               : [],
+            bankAccountInfo: (bookingSettings as any).bank_account_info || "",
             cancellationPolicy: bookingSettings.cancellation_policy || "",
             checkInNotice: infoData.check_in_notice || "",
             petPolicy: bookingSettings.pet_policy || "",
@@ -1061,6 +1063,7 @@ const WebsiteContent = () => {
               paymentMethods: Array.isArray(bookingSettings?.payment_methods) 
                 ? (bookingSettings.payment_methods as string[])
                 : [],
+              bankAccountInfo: (bookingSettings as any)?.bank_account_info || "",
               cancellationPolicy: bookingSettings?.cancellation_policy || "",
               checkInNotice: checkInNoticeData?.check_in_notice || "",
               petPolicy: bookingSettings?.pet_policy || "",
@@ -1260,6 +1263,7 @@ const WebsiteContent = () => {
           check_in_time: bookingInfo.checkInTime,
           check_out_time: bookingInfo.checkOutTime,
           payment_methods: bookingInfo.paymentMethods,
+          bank_account_info: bookingInfo.bankAccountInfo || null,
           cancellation_policy: bookingInfo.cancellationPolicy,
           pet_policy: bookingInfo.petPolicy,
           other_notes: bookingInfo.otherNotes,
@@ -1314,6 +1318,7 @@ const WebsiteContent = () => {
           paymentMethods: Array.isArray(updatedBookingSettings.payment_methods) 
             ? (updatedBookingSettings.payment_methods as string[])
             : [],
+          bankAccountInfo: (updatedBookingSettings as any).bank_account_info || "",
           cancellationPolicy: updatedBookingSettings.cancellation_policy || "",
           checkInNotice: updatedInfo?.check_in_notice || "",
           petPolicy: updatedBookingSettings.pet_policy || "",
@@ -3544,6 +3549,16 @@ const WebsiteContent = () => {
                       <Label htmlFor={`payment-${method}`}>{method}</Label>
                     </div>
                   ))}
+                </div>
+                <div className="space-y-1.5 pt-2">
+                  <Label className="text-sm font-medium">轉帳匯款帳戶資訊</Label>
+                  <p className="text-xs text-muted-foreground">前台訂房選擇「轉帳匯款」時會顯示此區塊內容（銀行、戶名、帳號等）</p>
+                  <Textarea
+                    value={bookingInfo.bankAccountInfo}
+                    onChange={(e) => setBookingInfo(prev => ({ ...prev, bankAccountInfo: e.target.value }))}
+                    placeholder={"範例：\n銀行：玉山銀行（808）\n戶名：人客多旅宿有限公司\n帳號：1234-567-890123"}
+                    rows={5}
+                  />
                 </div>
               </div>
             </CardContent>

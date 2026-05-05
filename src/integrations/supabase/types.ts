@@ -727,6 +727,7 @@ export type Database = {
       booking_settings: {
         Row: {
           accommodation_id: string | null
+          bank_account_info: string | null
           cancellation_policy: string | null
           cancellation_section_subtitle: string | null
           cancellation_section_title: string | null
@@ -753,6 +754,7 @@ export type Database = {
         }
         Insert: {
           accommodation_id?: string | null
+          bank_account_info?: string | null
           cancellation_policy?: string | null
           cancellation_section_subtitle?: string | null
           cancellation_section_title?: string | null
@@ -779,6 +781,7 @@ export type Database = {
         }
         Update: {
           accommodation_id?: string | null
+          bank_account_info?: string | null
           cancellation_policy?: string | null
           cancellation_section_subtitle?: string | null
           cancellation_section_title?: string | null
