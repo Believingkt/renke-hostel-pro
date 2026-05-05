@@ -1700,7 +1700,11 @@ const BookingFlow = () => {
 
     // 如果選擇信用卡，驗證 TapPay 卡片狀態 + 先取得 prime（避免 confirm 步驟欄位卸載）
     if (currentStep === "payment" && needsCardForm) {
+      const isDepositCardOnly = orderPaymentType === "bank_transfer" && depositPaymentType === "card";
+
       if (!isTapPayReady) {
+        const msg = "付款模組載入中，請稍候";
+        if (isDepositCardOnly) setCardFieldError(msg);
         toast({
           title: "付款模組載入中",
           description: "請稍候付款模組載入完成",
@@ -1710,9 +1714,11 @@ const BookingFlow = () => {
       }
 
       if (!cardValid) {
+        const msg = cardFieldError ?? "請確認卡號、有效期限和安全碼都已正確填寫";
+        if (isDepositCardOnly) setCardFieldError(msg);
         toast({
           title: "請輸入完整的信用卡資訊",
-          description: "請確認卡號、有效期限和安全碼都已正確填寫",
+          description: msg,
           variant: "destructive",
         });
         return;
@@ -1726,6 +1732,9 @@ const BookingFlow = () => {
         });
         return;
       }
+
+      // 通過驗證，清除錯誤
+      setCardFieldError(null);
 
       // 若 prime 已過期或尚未取得，重新請 SDK 產生
       if (!tappayPrime || isPrimeExpired()) {
