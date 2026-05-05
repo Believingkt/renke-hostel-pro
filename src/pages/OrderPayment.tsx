@@ -226,6 +226,7 @@ export default function OrderPayment() {
           },
           details: `訂單 ${orderNumber} 付款`,
           frontendRedirectUrl: `${window.location.origin}/payment-result?order_number=${orderNumber}&amount=${amount}&source=link`,
+          bindCard: orderInfo.needsCardBinding,
         },
       });
 
