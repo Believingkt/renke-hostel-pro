@@ -289,6 +289,8 @@ const BookingFlow = () => {
   const [isTapPayReady, setIsTapPayReady] = useState(false);
   const [cardValid, setCardValid] = useState(false);
   const [cardFieldError, setCardFieldError] = useState<string | null>(null);
+  const [cardSubmitAttempted, setCardSubmitAttempted] = useState(false);
+  const cardErrorDebounceRef = useRef<number | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   // Prime 只能在卡片欄位仍在 DOM 時產生；為了避免「確認頁」欄位卸載導致 getPrime 失敗，
