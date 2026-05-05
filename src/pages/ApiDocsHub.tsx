@@ -26,6 +26,13 @@ const apiDocs = [
     icon: Building2,
     path: "/accommodation-api-docs",
   },
+  {
+    title: "OwlTing Channel Manager",
+    subtitle: "OwlTing CM SOAP API",
+    description: "提供奧丁丁 Channel Manager 串接的 OTA SOAP 規範 — 房型、庫存、售價、訂單通知。",
+    icon: Plug,
+    path: "/docs/owlting-cm",
+  },
 ];
 
 const ApiDocsHub = () => {
