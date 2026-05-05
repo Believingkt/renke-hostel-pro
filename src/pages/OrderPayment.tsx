@@ -34,6 +34,7 @@ export default function OrderPayment() {
     guestPhone: string;
     guestEmail: string;
     orderId: string;
+    needsCardBinding: boolean;
   } | null>(null);
   const [loadingOrder, setLoadingOrder] = useState(true);
   const [orderError, setOrderError] = useState<string | null>(null);
@@ -57,7 +58,7 @@ export default function OrderPayment() {
       try {
         const { data, error } = await supabase
           .from("orders")
-          .select("id, guest_name, guest_phone, guest_email, final_price, paid_amount, payment_status, order_status, payment_link_created_at")
+          .select("id, guest_name, guest_phone, guest_email, final_price, paid_amount, payment_status, order_status, payment_link_created_at, deposit_method, deposit_status")
           .eq("order_number", orderNumber)
           .eq("accommodation_id", accommodationId)
           .maybeSingle();
@@ -99,11 +100,19 @@ export default function OrderPayment() {
           return;
         }
 
+        const needsCardBinding =
+          data.deposit_method === "card" &&
+          data.deposit_status !== "card_bound" &&
+          data.deposit_status !== "charged" &&
+          data.deposit_status !== "partially_refunded" &&
+          data.deposit_status !== "refunded";
+
         setOrderInfo({
           guestName: data.guest_name,
           guestPhone: data.guest_phone,
           guestEmail: data.guest_email || "",
           orderId: data.id,
+          needsCardBinding,
         });
 
         // Fetch accommodation name
@@ -217,6 +226,7 @@ export default function OrderPayment() {
           },
           details: `訂單 ${orderNumber} 付款`,
           frontendRedirectUrl: `${window.location.origin}/payment-result?order_number=${orderNumber}&amount=${amount}&source=link`,
+          bindCard: orderInfo.needsCardBinding,
         },
       });
 
@@ -363,6 +373,16 @@ export default function OrderPayment() {
               <span className="text-primary">NT$ {amount.toLocaleString()}</span>
             </div>
           </div>
+
+          {orderInfo?.needsCardBinding && (
+            <Alert className="border-primary/30 bg-primary/5">
+              <ShieldCheck className="h-4 w-4" />
+              <AlertTitle>本次付款將同步完成押金綁卡</AlertTitle>
+              <AlertDescription>
+                此訂單押金為線上綁卡，將使用本次刷卡的同一張卡片進行押金預授權，並於入住前一天自動扣款。
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* 信用卡表單 */}
           <div className="space-y-4">

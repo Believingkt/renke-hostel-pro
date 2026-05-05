@@ -152,7 +152,7 @@ Deno.serve(async (req) => {
     if (order_number) {
       const { data, error } = await supabase
         .from('orders')
-        .select('id, order_number, final_price, paid_amount, payment_status, notes')
+        .select('id, accommodation_id, order_number, final_price, paid_amount, payment_status, notes, deposit_method, deposit_status')
         .eq('order_number', order_number)
         .maybeSingle();
 
@@ -167,7 +167,7 @@ Deno.serve(async (req) => {
       console.log('[tappay-notify] Searching by rec_trade_id in notes...');
       const { data, error } = await supabase
         .from('orders')
-        .select('id, order_number, final_price, paid_amount, payment_status, notes')
+        .select('id, accommodation_id, order_number, final_price, paid_amount, payment_status, notes, deposit_method, deposit_status')
         .ilike('notes', `%${rec_trade_id}%`)
         .maybeSingle();
 
@@ -266,6 +266,40 @@ Deno.serve(async (req) => {
             newPaidAmount,
             newPaymentStatus,
           });
+
+          // Save deposit card token if order needs card binding and TapPay returned card_secret
+          try {
+            const cardSecret = verifiedRecord?.card_secret;
+            const needsBinding = order.deposit_method === 'card'
+              && order.deposit_status !== 'card_bound'
+              && order.deposit_status !== 'charged'
+              && order.deposit_status !== 'partially_refunded'
+              && order.deposit_status !== 'refunded';
+            if (needsBinding && cardSecret?.card_key && cardSecret?.card_token) {
+              const cardInfo = verifiedRecord?.card_info ?? {};
+              await supabase
+                .from('deposit_card_tokens')
+                .update({ is_active: false })
+                .eq('order_id', order.id);
+              await supabase.from('deposit_card_tokens').insert({
+                order_id: order.id,
+                accommodation_id: order.accommodation_id,
+                card_key: cardSecret.card_key,
+                card_token: cardSecret.card_token,
+                card_last_four: cardInfo.last_four ?? null,
+                card_type: cardInfo.type ? String(cardInfo.type) : null,
+                card_expiry: cardInfo.expiry_date ?? null,
+                is_active: true,
+              });
+              await supabase
+                .from('orders')
+                .update({ deposit_method: 'card', deposit_status: 'card_bound' })
+                .eq('id', order.id);
+              console.log('[tappay-notify] Deposit card token bound from payment');
+            }
+          } catch (bindErr) {
+            console.error('[tappay-notify] Failed to bind deposit card from payment:', bindErr);
+          }
 
           await supabase.from('notifications').insert({
             accommodation_id: await getAccommodationIdFromOrder(supabase, order.id),

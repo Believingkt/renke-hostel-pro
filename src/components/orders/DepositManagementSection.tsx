@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CreditCard, RefreshCw, AlertCircle, CheckCircle2, Clock, Banknote } from "lucide-react";
+import { CreditCard, RefreshCw, AlertCircle, CheckCircle2, Clock, Banknote, Link2, Copy, Check } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +31,8 @@ interface DepositSummary {
   deposit_refunded_amount: number;
   deposit_charged_at: string | null;
   deposit_refunded_at: string | null;
+  order_number: string;
+  accommodation_id: string;
 }
 
 interface CardToken {
@@ -74,6 +76,7 @@ export function DepositManagementSection({ orderId, refreshKey, onRefresh }: Pro
   const [chargeAmount, setChargeAmount] = useState<string>("5000");
   const [refundAmount, setRefundAmount] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
+  const [bindLinkCopied, setBindLinkCopied] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -82,7 +85,7 @@ export function DepositManagementSection({ orderId, refreshKey, onRefresh }: Pro
         supabase
           .from("orders")
           .select(
-            "deposit_required_amount, deposit_method, deposit_status, deposit_charged_amount, deposit_refunded_amount, deposit_charged_at, deposit_refunded_at",
+            "deposit_required_amount, deposit_method, deposit_status, deposit_charged_amount, deposit_refunded_amount, deposit_charged_at, deposit_refunded_at, order_number, accommodation_id",
           )
           .eq("id", orderId)
           .single(),
@@ -301,9 +304,37 @@ export function DepositManagementSection({ orderId, refreshKey, onRefresh }: Pro
         )}
 
         {deposit.deposit_method === "card" && !token && deposit.deposit_status === "pending" && (
-          <div className="rounded-md border border-dashed p-3 text-sm text-muted-foreground flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            尚未綁卡。可請客人於訂房連結中完成綁卡。
+          <div className="space-y-2 rounded-md border border-dashed p-3">
+            <div className="text-sm text-muted-foreground flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              尚未綁卡。複製下方連結傳給客人，即可由客人自行完成綁卡。
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={async () => {
+                const link = `${window.location.origin}/pay/bind-card?order_number=${encodeURIComponent(deposit.order_number)}&acc=${encodeURIComponent(deposit.accommodation_id)}`;
+                try {
+                  await navigator.clipboard.writeText(link);
+                } catch {
+                  const ta = document.createElement("textarea");
+                  ta.value = link;
+                  document.body.appendChild(ta);
+                  ta.select();
+                  document.execCommand("copy");
+                  document.body.removeChild(ta);
+                }
+                setBindLinkCopied(true);
+                toast({ title: "已複製押金綁卡連結", description: "可傳送給客人完成綁卡" });
+                setTimeout(() => setBindLinkCopied(false), 2000);
+              }}
+            >
+              {bindLinkCopied ? (
+                <><Check className="h-4 w-4" />已複製綁卡連結</>
+              ) : (
+                <><Link2 className="h-4 w-4" />複製押金綁卡連結</>
+              )}
+            </Button>
           </div>
         )}
       </CardContent>
