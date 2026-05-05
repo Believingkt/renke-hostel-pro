@@ -1241,6 +1241,19 @@ const BookingFlow = () => {
             hasError: update.hasError
           });
           setCardValid(update.canGetPrime);
+          // TapPay status: 0=valid, 1=invalid, 2=incomplete, 3=empty
+          const fieldLabel = (s: number, name: string) => {
+            if (s === 1) return `${name}格式錯誤`;
+            if (s === 2) return `${name}尚未填寫完整`;
+            if (s === 3) return `請輸入${name}`;
+            return null;
+          };
+          const errs = [
+            fieldLabel(update.status.number, "卡號"),
+            fieldLabel(update.status.expiry, "有效期限"),
+            fieldLabel(update.status.ccv, "安全碼"),
+          ].filter(Boolean) as string[];
+          setCardFieldError(update.canGetPrime ? null : (errs[0] ?? null));
           // 卡片內容一變動，就視為需要重新取得 prime
           setTappayPrime(null);
           setTappayPrimeIssuedAt(null);
