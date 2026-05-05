@@ -462,6 +462,7 @@ const WebsiteContent = () => {
     checkInTime: "15:00",
     checkOutTime: "11:00",
     paymentMethods: [] as string[],
+    bankAccountInfo: "",
     cancellationPolicy: "",
     checkInNotice: "",
     petPolicy: "",
