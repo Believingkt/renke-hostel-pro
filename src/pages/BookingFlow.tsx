@@ -1165,7 +1165,7 @@ const BookingFlow = () => {
 
   // 第二步：當 DOM 元素準備好後設定 TapPay 表單
   useEffect(() => {
-    if (!isTapPayReady || currentStep !== 'payment' || paymentMethod !== '信用卡') {
+    if (!isTapPayReady || currentStep !== 'payment' || !needsCardForm) {
       return;
     }
 
