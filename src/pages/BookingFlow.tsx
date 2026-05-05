@@ -4298,7 +4298,7 @@ const BookingFlow = () => {
                             icon: CreditCard,
                             desc: orderPaymentType === "credit_card"
                               ? "可沿用上方訂單付款的同一張信用卡，入住前一天自動預刷"
-                              : "於訂單成立後由系統發送綁卡連結，入住前一天自動預刷",
+                              : "請於下方輸入綁卡用信用卡資訊，入住前一天自動預刷",
                           },
                         ] as const).map((opt) => {
                           const Icon = opt.icon;
