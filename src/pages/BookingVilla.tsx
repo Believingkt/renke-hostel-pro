@@ -250,7 +250,7 @@ const BookingVilla = () => {
             <img
               src={lokezeLogo}
               alt="Lakeze 人客多"
-              className="h-12 object-contain"
+              className="h-24 object-contain"
             />
           </Link>
           <div className="flex items-center gap-0.5 shrink-0">
