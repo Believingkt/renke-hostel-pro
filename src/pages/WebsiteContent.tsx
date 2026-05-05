@@ -1263,6 +1263,7 @@ const WebsiteContent = () => {
           check_in_time: bookingInfo.checkInTime,
           check_out_time: bookingInfo.checkOutTime,
           payment_methods: bookingInfo.paymentMethods,
+          bank_account_info: bookingInfo.bankAccountInfo || null,
           cancellation_policy: bookingInfo.cancellationPolicy,
           pet_policy: bookingInfo.petPolicy,
           other_notes: bookingInfo.otherNotes,
