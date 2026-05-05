@@ -274,16 +274,7 @@ const handler = async (req: Request): Promise<Response> => {
                       <span class="total-price">NT$ ${finalPrice.toLocaleString()}</span>
                     </td>
                   </tr>
-                  ${depositAmount > 0 ? `
-                  <tr style="border-top: 1px solid #e0e0e0;">
-                    <td style="color: #666; padding-top: 15px;">需支付訂金</td>
-                    <td style="text-align: right; padding-top: 15px;">
-                      <span style="font-size: 20px; font-weight: bold; color: #dc3545;">NT$ ${depositAmount.toLocaleString()}</span>
-                    </td>
-                  </tr>
-                  ` : ''}
                 </table>
-                ${depositAmount > 0 ? `<p style="margin-top: 10px; color: #666; font-size: 14px;">剩餘款項請於入住時支付</p>` : ''}
               </div>
 
               <div class="notice">
