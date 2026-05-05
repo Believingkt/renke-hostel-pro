@@ -4396,12 +4396,17 @@ const BookingFlow = () => {
                                     </div>
                                   </div>
                                 </div>
-                                {cardValid && (
+                                {cardValid ? (
                                   <div className="mt-3 flex items-center gap-2 text-sm text-success">
                                     <CheckCircle className="h-4 w-4" />
                                     <span>卡片資訊已驗證</span>
                                   </div>
-                                )}
+                                ) : cardFieldError ? (
+                                  <div className="mt-3 flex items-start gap-2 text-sm text-destructive">
+                                    <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                                    <span>{cardFieldError}</span>
+                                  </div>
+                                ) : null}
                               </>
                             )}
                           </div>
