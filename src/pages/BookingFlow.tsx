@@ -1250,7 +1250,7 @@ const BookingFlow = () => {
     }, 100); // 延遲 100ms 確保 DOM 準備完成
 
     return () => clearTimeout(timer);
-  }, [isTapPayReady, currentStep, paymentMethod]);
+  }, [isTapPayReady, currentStep, needsCardForm]);
 
   const calculateNights = () => {
     if (!checkInDateStr || !checkOutDateStr) return 0;
