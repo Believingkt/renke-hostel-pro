@@ -11,6 +11,43 @@ import { SEOHead } from "@/components/SEOHead";
 const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL as string) ?? "https://YOUR-PROJECT.supabase.co";
 const CM_URL = `${SUPABASE_URL}/functions/v1/owlting-cm`;
 const SNAPSHOT_URL = `${SUPABASE_URL}/functions/v1/owlting-cm-snapshot`;
+const CM_HOST = (() => {
+  try { return new URL(CM_URL).host; } catch { return "YOUR-PROJECT.supabase.co"; }
+})();
+const CM_PATH = (() => {
+  try { return new URL(CM_URL).pathname; } catch { return "/functions/v1/owlting-cm"; }
+})();
+
+function buildHttpHeaders(soapAction: string): string {
+  return `POST ${CM_PATH} HTTP/1.1
+Host: ${CM_HOST}
+Content-Type: text/xml; charset=utf-8
+SOAPAction: "${soapAction}"
+Accept: text/xml
+Accept-Charset: utf-8
+User-Agent: OwlTingCM/1.0
+Connection: keep-alive
+Content-Length: <自動計算 body byte 數>`;
+}
+
+function buildFullEnvelope(bodyXml: string): string {
+  // Wrap a raw method block (without soap:Envelope) with header + envelope
+  const indented = bodyXml.split("\n").map((l) => "    " + l).join("\n");
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Header>
+    <wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">
+      <wsse:UsernameToken>
+        <wsse:Username>YOUR_USERNAME</wsse:Username>
+        <wsse:Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText">YOUR_PASSWORD</wsse:Password>
+      </wsse:UsernameToken>
+    </wsse:Security>
+  </soap:Header>
+  <soap:Body>
+${indented}
+  </soap:Body>
+</soap:Envelope>`;
+}
 
 function CodeBlock({ children, label }: { children: string; label?: string }) {
   return (
