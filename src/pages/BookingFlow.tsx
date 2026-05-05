@@ -123,7 +123,10 @@ interface BookingSettings {
   use_deposit: boolean;
   deposit_percentage: number;
   payment_methods: any;
+  bank_account_info?: string | null;
 }
+
+const DEPOSIT_AMOUNT = 5000;
 
 type BookingStep = "dates" | "room" | "addons" | "guest" | "payment" | "confirm";
 
