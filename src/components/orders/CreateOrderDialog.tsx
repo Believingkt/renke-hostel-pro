@@ -1758,7 +1758,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="cash">現場現金</SelectItem>
-                <SelectItem value="card">線上綁卡（建立後於訂單詳情完成）</SelectItem>
+                <SelectItem value="card">線上綁卡</SelectItem>
               </SelectContent>
             </Select>
           </div>
