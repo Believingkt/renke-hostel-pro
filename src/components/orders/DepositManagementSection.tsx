@@ -304,9 +304,37 @@ export function DepositManagementSection({ orderId, refreshKey, onRefresh }: Pro
         )}
 
         {deposit.deposit_method === "card" && !token && deposit.deposit_status === "pending" && (
-          <div className="rounded-md border border-dashed p-3 text-sm text-muted-foreground flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            尚未綁卡。可請客人於訂房連結中完成綁卡。
+          <div className="space-y-2 rounded-md border border-dashed p-3">
+            <div className="text-sm text-muted-foreground flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              尚未綁卡。複製下方連結傳給客人，即可由客人自行完成綁卡。
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={async () => {
+                const link = `${window.location.origin}/pay/bind-card?order_number=${encodeURIComponent(deposit.order_number)}&acc=${encodeURIComponent(deposit.accommodation_id)}`;
+                try {
+                  await navigator.clipboard.writeText(link);
+                } catch {
+                  const ta = document.createElement("textarea");
+                  ta.value = link;
+                  document.body.appendChild(ta);
+                  ta.select();
+                  document.execCommand("copy");
+                  document.body.removeChild(ta);
+                }
+                setBindLinkCopied(true);
+                toast({ title: "已複製押金綁卡連結", description: "可傳送給客人完成綁卡" });
+                setTimeout(() => setBindLinkCopied(false), 2000);
+              }}
+            >
+              {bindLinkCopied ? (
+                <><Check className="h-4 w-4" />已複製綁卡連結</>
+              ) : (
+                <><Link2 className="h-4 w-4" />複製押金綁卡連結</>
+              )}
+            </Button>
           </div>
         )}
       </CardContent>
