@@ -289,6 +289,8 @@ const BookingFlow = () => {
   const [isTapPayReady, setIsTapPayReady] = useState(false);
   const [cardValid, setCardValid] = useState(false);
   const [cardFieldError, setCardFieldError] = useState<string | null>(null);
+  const [cardSubmitAttempted, setCardSubmitAttempted] = useState(false);
+  const cardErrorDebounceRef = useRef<number | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   // Prime 只能在卡片欄位仍在 DOM 時產生；為了避免「確認頁」欄位卸載導致 getPrime 失敗，
@@ -1253,7 +1255,19 @@ const BookingFlow = () => {
             fieldLabel(update.status.expiry, "有效期限"),
             fieldLabel(update.status.ccv, "安全碼"),
           ].filter(Boolean) as string[];
-          setCardFieldError(update.canGetPrime ? null : (errs[0] ?? null));
+          const nextError = update.canGetPrime ? null : (errs[0] ?? null);
+          // 即時驗證：合法時立即清除錯誤；錯誤訊息以 400ms 去抖更新，避免邊輸入邊跳訊息
+          if (cardErrorDebounceRef.current) {
+            window.clearTimeout(cardErrorDebounceRef.current);
+            cardErrorDebounceRef.current = null;
+          }
+          if (nextError === null) {
+            setCardFieldError(null);
+          } else {
+            cardErrorDebounceRef.current = window.setTimeout(() => {
+              setCardFieldError(nextError);
+            }, 400);
+          }
           // 卡片內容一變動，就視為需要重新取得 prime
           setTappayPrime(null);
           setTappayPrimeIssuedAt(null);
@@ -1701,6 +1715,8 @@ const BookingFlow = () => {
     // 如果選擇信用卡，驗證 TapPay 卡片狀態 + 先取得 prime（避免 confirm 步驟欄位卸載）
     if (currentStep === "payment" && needsCardForm) {
       const isDepositCardOnly = orderPaymentType === "bank_transfer" && depositPaymentType === "card";
+      // 標記已嘗試送出，之後欄位下方才會顯示錯誤
+      setCardSubmitAttempted(true);
 
       if (!isTapPayReady) {
         const msg = "付款模組載入中，請稍候";
@@ -4401,7 +4417,7 @@ const BookingFlow = () => {
                                     <CheckCircle className="h-4 w-4" />
                                     <span>卡片資訊已驗證</span>
                                   </div>
-                                ) : cardFieldError ? (
+                                ) : cardSubmitAttempted && cardFieldError ? (
                                   <div className="mt-3 flex items-start gap-2 text-sm text-destructive">
                                     <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                                     <span>{cardFieldError}</span>
