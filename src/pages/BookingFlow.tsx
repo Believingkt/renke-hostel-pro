@@ -4365,7 +4365,7 @@ const BookingFlow = () => {
                             label: "線上綁卡",
                             icon: CreditCard,
                             desc: orderPaymentType === "credit_card"
-                              ? "可沿用上方訂單付款的同一張信用卡，入住前一天自動預刷"
+                              ? "沿用上方訂單付款的同一張信用卡，入住前一天自動預刷"
                               : "請於下方輸入綁卡用信用卡資訊，入住前一天自動預刷",
                           },
                         ] as const).map((opt) => {
