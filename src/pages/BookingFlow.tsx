@@ -1128,7 +1128,7 @@ const BookingFlow = () => {
   // 初始化 TapPay SDK - 使用從後端動態載入的設定
   useEffect(() => {
     // 需要 tappayConfig 才能初始化
-    if (!tappayConfig || currentStep !== 'payment' || paymentMethod !== '信用卡') {
+    if (!tappayConfig || currentStep !== 'payment' || !needsCardForm) {
       return;
     }
 
