@@ -78,6 +78,7 @@ export function DepositManagementSection({ orderId, refreshKey, onRefresh }: Pro
   const [refundAmount, setRefundAmount] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [bindLinkCopied, setBindLinkCopied] = useState(false);
+  const [recharging, setRecharging] = useState(false);
 
   const load = async () => {
     setLoading(true);
