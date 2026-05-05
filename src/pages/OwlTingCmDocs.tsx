@@ -413,12 +413,7 @@ const OwlTingCmDocs = () => {
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-4">
-                <Link to="/">
-                  <Button variant="ghost" size="sm" className="gap-2">
-                    <ArrowLeft className="h-4 w-4" />
-                    返回首頁
-                  </Button>
-                </Link>
+                {null}
                 <div>
                   <h1 className="text-xl font-bold">OwlTing Channel Manager API</h1>
                   <p className="text-sm text-muted-foreground">人客多 × 奧丁丁 介接技術文件 v1.0</p>
