@@ -52,12 +52,44 @@ ${indented}
 }
 
 function CodeBlock({ children, label }: { children: string; label?: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(children);
+      setCopied(true);
+      toast.success("已複製到剪貼簿");
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast.error("複製失敗,請手動選取");
+    }
+  };
   return (
-    <div className="rounded-md border bg-muted/40">
-      {label && (
-        <div className="px-3 py-1.5 border-b text-[11px] font-mono text-muted-foreground bg-muted/60">
-          {label}
+    <div className="rounded-md border bg-muted/40 relative group">
+      {label ? (
+        <div className="px-3 py-1.5 border-b text-[11px] font-mono text-muted-foreground bg-muted/60 flex items-center justify-between gap-2">
+          <span className="truncate">{label}</span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 gap-1 text-[11px] -my-1 shrink-0"
+            onClick={handleCopy}
+          >
+            {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+            {copied ? "已複製" : "複製"}
+          </Button>
         </div>
+      ) : (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-6 px-2 gap-1 text-[11px] absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 z-10"
+          onClick={handleCopy}
+        >
+          {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+          {copied ? "已複製" : "複製"}
+        </Button>
       )}
       <pre className="text-[12px] font-mono p-3 overflow-x-auto whitespace-pre-wrap break-all leading-relaxed">
         {children}
