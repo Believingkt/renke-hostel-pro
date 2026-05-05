@@ -3,10 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
-  ArrowLeft, FileText, Lock, Server, Zap, Plug, Activity, Database, Boxes, Tag, Calendar,
+  ArrowLeft, FileText, Lock, Server, Zap, Plug, Activity, Database, Boxes, Tag, Calendar, Copy, Check,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { SEOHead } from "@/components/SEOHead";
+import { useState } from "react";
+import { toast } from "sonner";
 
 const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL as string) ?? "https://YOUR-PROJECT.supabase.co";
 const CM_URL = `${SUPABASE_URL}/functions/v1/owlting-cm`;
