@@ -26,6 +26,8 @@ export default function DepositCardBind() {
   const [bindSuccess, setBindSuccess] = useState(false);
   const [cardLastFour, setCardLastFour] = useState<string | null>(null);
   const [bindError, setBindError] = useState<BindError | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [cardFormKey, setCardFormKey] = useState(0);
   const [orderInfo, setOrderInfo] = useState<{
     orderId: string;
     guestName: string;
@@ -137,12 +139,27 @@ export default function DepositCardBind() {
           },
         });
         window.TPDirect.card.onUpdate((u: any) => setCardValid(u.canGetPrime));
+        setCardValid(false);
       } catch (e) {
         console.error("TapPay setup error:", e);
       }
     }, 200);
     return () => clearTimeout(timer);
-  }, [isTapPayReady]);
+  }, [isTapPayReady, cardFormKey]);
+
+  const handleRetry = () => {
+    setBindError(null);
+    setCardValid(false);
+    setRetryCount((c) => c + 1);
+    // Re-mount the card fields to clear them and allow a fresh prime
+    setCardFormKey((k) => k + 1);
+    try {
+      (window.TPDirect as any)?.card?.reset?.();
+    } catch (e) {
+      console.warn("TapPay reset failed:", e);
+    }
+    toast.info("已重置卡片資料，請重新輸入後再次綁卡");
+  };
 
   const handleBind = async () => {
     if (!window.TPDirect || !cardValid || !tappayConfig || !orderInfo) return;
@@ -263,7 +280,7 @@ export default function DepositCardBind() {
               <CreditCard className="h-5 w-5" />
               信用卡資訊
             </Label>
-            <div className="space-y-3">
+            <div className="space-y-3" key={cardFormKey}>
               <div>
                 <Label className="text-xs text-muted-foreground mb-1 block">卡號</Label>
                 <div id="bind-card-number" className="h-12 px-4 py-3 border rounded-lg bg-white" />
@@ -291,7 +308,19 @@ export default function DepositCardBind() {
               <Alert variant="destructive" className="border-destructive/30 bg-destructive/5">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>{bindError.message}</AlertTitle>
-                {bindError.suggestion && <AlertDescription>{bindError.suggestion}</AlertDescription>}
+                {bindError.suggestion && (
+                  <AlertDescription className="mb-2">{bindError.suggestion}</AlertDescription>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRetry}
+                  disabled={isProcessing}
+                  className="mt-2"
+                >
+                  重新綁卡{retryCount > 0 ? `（第 ${retryCount + 1} 次）` : ""}
+                </Button>
               </Alert>
             )}
           </div>
