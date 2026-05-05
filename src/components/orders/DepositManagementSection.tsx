@@ -285,6 +285,80 @@ export function DepositManagementSection({ orderId, refreshKey, onRefresh }: Pro
           </div>
         )}
 
+        {deposit.deposit_method === "card" && (
+          <div className="rounded-md border p-3 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <div className="text-sm font-medium flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  自動預刷狀態
+                </div>
+                <div
+                  className={
+                    autoChargeStatus.tone === "success"
+                      ? "text-sm text-primary flex items-center gap-1.5"
+                      : autoChargeStatus.tone === "destructive"
+                        ? "text-sm text-destructive flex items-center gap-1.5"
+                        : autoChargeStatus.tone === "warning"
+                          ? "text-sm text-amber-600 flex items-center gap-1.5"
+                          : "text-sm text-muted-foreground flex items-center gap-1.5"
+                  }
+                >
+                  {autoChargeStatus.tone === "success" ? (
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                  ) : autoChargeStatus.tone === "destructive" || autoChargeStatus.tone === "warning" ? (
+                    <AlertCircle className="h-3.5 w-3.5" />
+                  ) : (
+                    <Clock className="h-3.5 w-3.5" />
+                  )}
+                  {autoChargeStatus.label}
+                </div>
+              </div>
+              {token && remainingToCharge > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleAutoRecharge}
+                  disabled={recharging}
+                >
+                  <RefreshCw className={`h-4 w-4 ${recharging ? "animate-spin" : ""}`} />
+                  {recharging ? "處理中..." : "手動重新預刷"}
+                </Button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+              <div className="flex justify-between sm:block">
+                <span className="text-muted-foreground">預定預刷時間</span>
+                <span className="sm:block font-medium tabular-nums">
+                  {scheduledChargeDate
+                    ? format(scheduledChargeDate, "yyyy/MM/dd HH:mm")
+                    : "—"}
+                </span>
+              </div>
+              <div className="flex justify-between sm:block">
+                <span className="text-muted-foreground">實際扣款時間</span>
+                <span className="sm:block font-medium tabular-nums">
+                  {deposit.deposit_charged_at
+                    ? format(new Date(deposit.deposit_charged_at), "yyyy/MM/dd HH:mm")
+                    : "—"}
+                </span>
+              </div>
+              {lastAutoChargeLog && (
+                <div className="flex justify-between sm:block sm:col-span-2">
+                  <span className="text-muted-foreground">最近自動執行</span>
+                  <span className="sm:block font-medium tabular-nums">
+                    {format(new Date(lastAutoChargeLog.created_at), "yyyy/MM/dd HH:mm")}
+                    <span className="ml-2 text-muted-foreground">
+                      ({lastAutoChargeLog.status === "success" ? "成功" : "失敗"})
+                    </span>
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-2">
           {deposit.deposit_method === "card" && remainingToCharge > 0 && token && (
             <Button
