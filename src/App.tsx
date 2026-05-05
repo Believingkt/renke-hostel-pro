@@ -51,6 +51,7 @@ const OgImagePreview = lazy(() => import("./pages/OgImagePreview"));
 const KolApiDocs = lazy(() => import("./pages/KolApiDocs"));
 const PointsApiDocs = lazy(() => import("./pages/PointsApiDocs"));
 const AccommodationApiDocs = lazy(() => import("./pages/AccommodationApiDocs"));
+const OwlTingCmDocs = lazy(() => import("./pages/OwlTingCmDocs"));
 const ApiDocsHub = lazy(() => import("./pages/ApiDocsHub"));
 const ChangePassword = lazy(() => import("./pages/ChangePassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
@@ -169,6 +170,12 @@ function App() {
                     } />
                     <Route path="accommodation-api-docs" element={
                       <Suspense fallback={<FrontendSkeleton />}><AccommodationApiDocs /></Suspense>
+                    } />
+                    <Route path="docs/owlting-cm" element={
+                      <Suspense fallback={<FrontendSkeleton />}><OwlTingCmDocs /></Suspense>
+                    } />
+                    <Route path="api-docs/owlting-cm" element={
+                      <Suspense fallback={<FrontendSkeleton />}><OwlTingCmDocs /></Suspense>
                     } />
                     <Route path="pay" element={
                       <Suspense fallback={<FrontendSkeleton />}><PublicPayment /></Suspense>

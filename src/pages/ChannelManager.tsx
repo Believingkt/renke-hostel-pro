@@ -698,6 +698,9 @@ export default function ChannelManager() {
               </h3>
               <p className="text-xs text-muted-foreground mt-1">
                 以下 SOAP 端點由 OwlTing 呼叫，依 SOAPAction / Body 中的 Root 元素分派四組方法。所有方法共用相同 URL 與 WS-Security 認證。
+                <a href="/docs/owlting-cm" target="_blank" rel="noreferrer" className="ml-1 underline text-primary">
+                  查看完整 API 文件 →
+                </a>
               </p>
             </div>
             <div>

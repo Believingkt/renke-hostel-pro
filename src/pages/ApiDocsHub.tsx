@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Code, Coins, Building2, TrendingUp } from "lucide-react";
+import { ArrowLeft, ArrowRight, Code, Coins, Building2, TrendingUp, Plug } from "lucide-react";
 import { Link } from "react-router-dom";
 import { SEOHead } from "@/components/SEOHead";
 
@@ -25,6 +25,13 @@ const apiDocs = [
     description: "各民宿可透過 API Key 查詢與新增房型（含設施與圖片）。",
     icon: Building2,
     path: "/accommodation-api-docs",
+  },
+  {
+    title: "OwlTing Channel Manager",
+    subtitle: "OwlTing CM SOAP API",
+    description: "提供奧丁丁 Channel Manager 串接的 OTA SOAP 規範 — 房型、庫存、售價、訂單通知。",
+    icon: Plug,
+    path: "/docs/owlting-cm",
   },
 ];
 
