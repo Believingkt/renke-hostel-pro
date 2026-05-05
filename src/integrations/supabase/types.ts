@@ -1795,6 +1795,8 @@ export type Database = {
           order_number: string
           order_source: string
           order_status: string
+          ota_channel: string | null
+          owlting_reservation_id: string | null
           paid_amount: number | null
           payment_link_created_at: string | null
           payment_method: string | null
@@ -1850,6 +1852,8 @@ export type Database = {
           order_number: string
           order_source?: string
           order_status?: string
+          ota_channel?: string | null
+          owlting_reservation_id?: string | null
           paid_amount?: number | null
           payment_link_created_at?: string | null
           payment_method?: string | null
@@ -1905,6 +1909,8 @@ export type Database = {
           order_number?: string
           order_source?: string
           order_status?: string
+          ota_channel?: string | null
+          owlting_reservation_id?: string | null
           paid_amount?: number | null
           payment_link_created_at?: string | null
           payment_method?: string | null
@@ -2042,6 +2048,48 @@ export type Database = {
           remote_password?: string | null
           remote_username?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      owlting_cm_logs: {
+        Row: {
+          accommodation_id: string | null
+          api_method: string
+          created_at: string
+          direction: string
+          echo_token: string | null
+          error_message: string | null
+          hotel_code: string | null
+          id: string
+          request_payload: string | null
+          response_payload: string | null
+          status: string
+        }
+        Insert: {
+          accommodation_id?: string | null
+          api_method: string
+          created_at?: string
+          direction: string
+          echo_token?: string | null
+          error_message?: string | null
+          hotel_code?: string | null
+          id?: string
+          request_payload?: string | null
+          response_payload?: string | null
+          status?: string
+        }
+        Update: {
+          accommodation_id?: string | null
+          api_method?: string
+          created_at?: string
+          direction?: string
+          echo_token?: string | null
+          error_message?: string | null
+          hotel_code?: string | null
+          id?: string
+          request_payload?: string | null
+          response_payload?: string | null
+          status?: string
         }
         Relationships: []
       }
@@ -2635,6 +2683,35 @@ export type Database = {
           },
           {
             foreignKeyName: "pricing_template_applications_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_template_availability: {
+        Row: {
+          date: string
+          is_closed: boolean
+          template_id: string
+          updated_at: string
+        }
+        Insert: {
+          date: string
+          is_closed?: boolean
+          template_id: string
+          updated_at?: string
+        }
+        Update: {
+          date?: string
+          is_closed?: boolean
+          template_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_template_availability_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "pricing_templates"
