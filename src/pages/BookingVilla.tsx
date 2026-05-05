@@ -240,7 +240,7 @@ const BookingVilla = () => {
         style={{ paddingTop: 'env(safe-area-inset-top)' }}
       >
         <div
-          className="max-w-3xl mx-auto h-24 px-3 flex items-center justify-between gap-2"
+          className="max-w-3xl mx-auto h-16 sm:h-20 md:h-24 px-3 flex items-center justify-between gap-2"
           style={{
             paddingLeft: 'max(0.75rem, env(safe-area-inset-left))',
             paddingRight: 'max(0.75rem, env(safe-area-inset-right))',
@@ -259,7 +259,7 @@ const BookingVilla = () => {
             <img
               src={lokezeLogo}
               alt="Lakeze 人客多"
-              className="h-24 max-h-full max-w-full w-auto object-contain"
+              className="h-12 sm:h-16 md:h-24 max-h-full max-w-full w-auto object-contain"
             />
           </Link>
           <div className="flex items-center gap-0.5 shrink-0">
