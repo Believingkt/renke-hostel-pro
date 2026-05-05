@@ -374,6 +374,16 @@ export default function OrderPayment() {
             </div>
           </div>
 
+          {orderInfo?.needsCardBinding && (
+            <Alert className="border-primary/30 bg-primary/5">
+              <ShieldCheck className="h-4 w-4" />
+              <AlertTitle>本次付款將同步完成押金綁卡</AlertTitle>
+              <AlertDescription>
+                此訂單押金為線上綁卡，將使用本次刷卡的同一張卡片進行押金預授權，並於入住前一天自動扣款。
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* 信用卡表單 */}
           <div className="space-y-4">
             <Label className="flex items-center gap-2 text-base">
