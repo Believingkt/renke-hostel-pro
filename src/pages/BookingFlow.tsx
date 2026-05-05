@@ -1199,11 +1199,14 @@ const BookingFlow = () => {
         console.log('TapPay card form elements found, proceeding with setup');
         
         // 設定信用卡表單
+        // 註：欄位由 TapPay iframe 注入（PCI 規範），卡號自動每 4 碼分隔、
+        // 到期日自動 MM / YY 格式化由 SDK 內部處理；外部 JS 無法也不該改寫
+        // iframe 內容，因此格式化完全不影響後端 prime 的有效性驗證。
         window.TPDirect.card.setup({
           fields: {
             number: {
               element: '#card-number',
-              placeholder: '**** **** **** ****'
+              placeholder: '1234 5678 9012 3456'
             },
             expirationDate: {
               element: '#card-expiration-date',
@@ -1217,7 +1220,8 @@ const BookingFlow = () => {
           styles: {
             input: {
               'font-size': '16px',
-              'color': 'rgb(0, 0, 0)'
+              'color': 'rgb(0, 0, 0)',
+              'letter-spacing': '0.5px'
             },
             ':focus': {
               'color': 'rgb(0, 0, 0)'
@@ -1228,6 +1232,12 @@ const BookingFlow = () => {
             '.invalid': {
               'color': 'rgb(239, 68, 68)'
             }
+          },
+          // 失焦時遮罩卡號中間（1234 **** **** 5678），不影響送 prime
+          isMaskCreditCardNumber: true,
+          maskCreditCardNumber: {
+            beginIndex: 4,
+            endIndex: 11
           }
         });
 
