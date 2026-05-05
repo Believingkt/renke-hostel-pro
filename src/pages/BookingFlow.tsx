@@ -288,6 +288,7 @@ const BookingFlow = () => {
   // TapPay 狀態
   const [isTapPayReady, setIsTapPayReady] = useState(false);
   const [cardValid, setCardValid] = useState(false);
+  const [cardFieldError, setCardFieldError] = useState<string | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   // Prime 只能在卡片欄位仍在 DOM 時產生；為了避免「確認頁」欄位卸載導致 getPrime 失敗，
@@ -1240,6 +1241,19 @@ const BookingFlow = () => {
             hasError: update.hasError
           });
           setCardValid(update.canGetPrime);
+          // TapPay status: 0=valid, 1=invalid, 2=incomplete, 3=empty
+          const fieldLabel = (s: number, name: string) => {
+            if (s === 1) return `${name}格式錯誤`;
+            if (s === 2) return `${name}尚未填寫完整`;
+            if (s === 3) return `請輸入${name}`;
+            return null;
+          };
+          const errs = [
+            fieldLabel(update.status.number, "卡號"),
+            fieldLabel(update.status.expiry, "有效期限"),
+            fieldLabel(update.status.ccv, "安全碼"),
+          ].filter(Boolean) as string[];
+          setCardFieldError(update.canGetPrime ? null : (errs[0] ?? null));
           // 卡片內容一變動，就視為需要重新取得 prime
           setTappayPrime(null);
           setTappayPrimeIssuedAt(null);
@@ -1686,7 +1700,11 @@ const BookingFlow = () => {
 
     // 如果選擇信用卡，驗證 TapPay 卡片狀態 + 先取得 prime（避免 confirm 步驟欄位卸載）
     if (currentStep === "payment" && needsCardForm) {
+      const isDepositCardOnly = orderPaymentType === "bank_transfer" && depositPaymentType === "card";
+
       if (!isTapPayReady) {
+        const msg = "付款模組載入中，請稍候";
+        if (isDepositCardOnly) setCardFieldError(msg);
         toast({
           title: "付款模組載入中",
           description: "請稍候付款模組載入完成",
@@ -1696,9 +1714,11 @@ const BookingFlow = () => {
       }
 
       if (!cardValid) {
+        const msg = cardFieldError ?? "請確認卡號、有效期限和安全碼都已正確填寫";
+        if (isDepositCardOnly) setCardFieldError(msg);
         toast({
           title: "請輸入完整的信用卡資訊",
-          description: "請確認卡號、有效期限和安全碼都已正確填寫",
+          description: msg,
           variant: "destructive",
         });
         return;
@@ -1712,6 +1732,9 @@ const BookingFlow = () => {
         });
         return;
       }
+
+      // 通過驗證，清除錯誤
+      setCardFieldError(null);
 
       // 若 prime 已過期或尚未取得，重新請 SDK 產生
       if (!tappayPrime || isPrimeExpired()) {
@@ -4373,12 +4396,17 @@ const BookingFlow = () => {
                                     </div>
                                   </div>
                                 </div>
-                                {cardValid && (
+                                {cardValid ? (
                                   <div className="mt-3 flex items-center gap-2 text-sm text-success">
                                     <CheckCircle className="h-4 w-4" />
                                     <span>卡片資訊已驗證</span>
                                   </div>
-                                )}
+                                ) : cardFieldError ? (
+                                  <div className="mt-3 flex items-start gap-2 text-sm text-destructive">
+                                    <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                                    <span>{cardFieldError}</span>
+                                  </div>
+                                ) : null}
                               </>
                             )}
                           </div>
