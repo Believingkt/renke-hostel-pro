@@ -270,7 +270,13 @@ const BookingFlow = () => {
   const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
   
   // TapPay 設定 - 從後端動態載入
-  const shouldLoadTapPay = paymentMethod === '信用卡';
+  // 需要 TapPay 卡片欄位的情境：
+  // 1. 訂單金額付款方式為信用卡
+  // 2. 訂單為轉帳匯款，但押金選擇線上綁卡（需單獨輸入綁卡用信用卡）
+  const needsCardForm =
+    paymentMethod === '信用卡' ||
+    (orderPaymentType === 'bank_transfer' && depositPaymentType === 'card');
+  const shouldLoadTapPay = needsCardForm;
   const {
     config: tappayConfig,
     loading: tappayConfigLoading,
@@ -1122,7 +1128,7 @@ const BookingFlow = () => {
   // 初始化 TapPay SDK - 使用從後端動態載入的設定
   useEffect(() => {
     // 需要 tappayConfig 才能初始化
-    if (!tappayConfig || currentStep !== 'payment' || paymentMethod !== '信用卡') {
+    if (!tappayConfig || currentStep !== 'payment' || !needsCardForm) {
       return;
     }
 
@@ -1155,11 +1161,11 @@ const BookingFlow = () => {
     };
 
     loadTapPaySDK();
-  }, [currentStep, paymentMethod, tappayConfig]);
+  }, [currentStep, needsCardForm, tappayConfig]);
 
   // 第二步：當 DOM 元素準備好後設定 TapPay 表單
   useEffect(() => {
-    if (!isTapPayReady || currentStep !== 'payment' || paymentMethod !== '信用卡') {
+    if (!isTapPayReady || currentStep !== 'payment' || !needsCardForm) {
       return;
     }
 
@@ -1244,7 +1250,7 @@ const BookingFlow = () => {
     }, 100); // 延遲 100ms 確保 DOM 準備完成
 
     return () => clearTimeout(timer);
-  }, [isTapPayReady, currentStep, paymentMethod]);
+  }, [isTapPayReady, currentStep, needsCardForm]);
 
   const calculateNights = () => {
     if (!checkInDateStr || !checkOutDateStr) return 0;
@@ -1679,7 +1685,7 @@ const BookingFlow = () => {
     }
 
     // 如果選擇信用卡，驗證 TapPay 卡片狀態 + 先取得 prime（避免 confirm 步驟欄位卸載）
-    if (currentStep === "payment" && paymentMethod === '信用卡') {
+    if (currentStep === "payment" && needsCardForm) {
       if (!isTapPayReady) {
         toast({
           title: "付款模組載入中",
@@ -4292,7 +4298,7 @@ const BookingFlow = () => {
                             icon: CreditCard,
                             desc: orderPaymentType === "credit_card"
                               ? "可沿用上方訂單付款的同一張信用卡，入住前一天自動預刷"
-                              : "於訂單成立後由系統發送綁卡連結，入住前一天自動預刷",
+                              : "請於下方輸入綁卡用信用卡資訊，入住前一天自動預刷",
                           },
                         ] as const).map((opt) => {
                           const Icon = opt.icon;
@@ -4318,6 +4324,65 @@ const BookingFlow = () => {
                             </div>
                           );
                         })}
+
+                        {/* TapPay 信用卡表單 - 訂單為轉帳匯款且押金選擇線上綁卡時，於押金區塊輸入卡片資料 */}
+                        {orderPaymentType === "bank_transfer" && depositPaymentType === "card" && (
+                          <div className="mt-4 p-4 border rounded-lg bg-card">
+                            <div className="mb-3">
+                              <p className="text-sm font-medium text-foreground mb-1">請輸入綁卡用信用卡資訊</p>
+                              <p className="text-xs text-muted-foreground">
+                                此卡片僅供押金預刷使用，不會立即扣款。卡片資訊由 TapPay 安全加密處理
+                              </p>
+                            </div>
+                            {tappayConfigLoading ? (
+                              <div className="flex items-center justify-center py-8">
+                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                                <span className="ml-2 text-sm text-muted-foreground">取得付款設定...</span>
+                              </div>
+                            ) : tappayConfigError ? (
+                              <Alert variant="destructive">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertTitle>付款模組載入失敗</AlertTitle>
+                                <AlertDescription>
+                                  <p className="mb-3">{tappayConfigError}</p>
+                                  <Button type="button" variant="outline" size="sm" onClick={() => reloadTapPayConfig()}>
+                                    重新載入
+                                  </Button>
+                                </AlertDescription>
+                              </Alert>
+                            ) : !isTapPayReady ? (
+                              <div className="flex items-center justify-center py-8">
+                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                                <span className="ml-2 text-sm text-muted-foreground">載入付款表單...</span>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="space-y-3">
+                                  <div>
+                                    <Label className="text-xs text-muted-foreground">卡號</Label>
+                                    <div id="card-number" className="tpfield h-10 border rounded-md px-3 bg-background"></div>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                      <Label className="text-xs text-muted-foreground">有效期限</Label>
+                                      <div id="card-expiration-date" className="tpfield h-10 border rounded-md px-3 bg-background"></div>
+                                    </div>
+                                    <div>
+                                      <Label className="text-xs text-muted-foreground">安全碼</Label>
+                                      <div id="card-ccv" className="tpfield h-10 border rounded-md px-3 bg-background"></div>
+                                    </div>
+                                  </div>
+                                </div>
+                                {cardValid && (
+                                  <div className="mt-3 flex items-center gap-2 text-sm text-success">
+                                    <CheckCircle className="h-4 w-4" />
+                                    <span>卡片資訊已驗證</span>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
 
