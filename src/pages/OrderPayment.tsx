@@ -58,7 +58,7 @@ export default function OrderPayment() {
       try {
         const { data, error } = await supabase
           .from("orders")
-          .select("id, guest_name, guest_phone, guest_email, final_price, paid_amount, payment_status, order_status, payment_link_created_at")
+          .select("id, guest_name, guest_phone, guest_email, final_price, paid_amount, payment_status, order_status, payment_link_created_at, deposit_method, deposit_status")
           .eq("order_number", orderNumber)
           .eq("accommodation_id", accommodationId)
           .maybeSingle();
@@ -100,11 +100,19 @@ export default function OrderPayment() {
           return;
         }
 
+        const needsCardBinding =
+          data.deposit_method === "card" &&
+          data.deposit_status !== "card_bound" &&
+          data.deposit_status !== "charged" &&
+          data.deposit_status !== "partially_refunded" &&
+          data.deposit_status !== "refunded";
+
         setOrderInfo({
           guestName: data.guest_name,
           guestPhone: data.guest_phone,
           guestEmail: data.guest_email || "",
           orderId: data.id,
+          needsCardBinding,
         });
 
         // Fetch accommodation name
