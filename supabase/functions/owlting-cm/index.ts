@@ -170,7 +170,20 @@ async function logCm(
 }
 
 // ============== Auth ==============
-async function authenticate(supabase: any, xml: string, hotelCode: string | null) {
+type AuthOverride = { accommodationId: string; hotelCode: string } | null;
+
+async function authenticate(
+  supabase: any,
+  xml: string,
+  hotelCode: string | null,
+  override?: AuthOverride,
+) {
+  if (override) {
+    if (hotelCode && override.hotelCode !== hotelCode) {
+      return { ok: false, msg: `HotelCode ${hotelCode} does not match override` };
+    }
+    return { ok: true, accommodationId: override.accommodationId, hotelCode: override.hotelCode };
+  }
   const { username, password } = extractWsse(xml);
   if (!username || !password) return { ok: false, msg: "Missing WS-Security UsernameToken" };
   const hash = await sha256Hex(password);
