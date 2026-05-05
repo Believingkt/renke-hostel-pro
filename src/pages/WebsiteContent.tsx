@@ -1318,6 +1318,7 @@ const WebsiteContent = () => {
           paymentMethods: Array.isArray(updatedBookingSettings.payment_methods) 
             ? (updatedBookingSettings.payment_methods as string[])
             : [],
+          bankAccountInfo: (updatedBookingSettings as any).bank_account_info || "",
           cancellationPolicy: updatedBookingSettings.cancellation_policy || "",
           checkInNotice: updatedInfo?.check_in_notice || "",
           petPolicy: updatedBookingSettings.pet_policy || "",
