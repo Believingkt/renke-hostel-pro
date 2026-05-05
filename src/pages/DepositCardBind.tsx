@@ -26,6 +26,8 @@ export default function DepositCardBind() {
   const [bindSuccess, setBindSuccess] = useState(false);
   const [cardLastFour, setCardLastFour] = useState<string | null>(null);
   const [bindError, setBindError] = useState<BindError | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [cardFormKey, setCardFormKey] = useState(0);
   const [orderInfo, setOrderInfo] = useState<{
     orderId: string;
     guestName: string;
