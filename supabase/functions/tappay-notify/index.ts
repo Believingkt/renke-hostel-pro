@@ -167,7 +167,7 @@ Deno.serve(async (req) => {
       console.log('[tappay-notify] Searching by rec_trade_id in notes...');
       const { data, error } = await supabase
         .from('orders')
-        .select('id, order_number, final_price, paid_amount, payment_status, notes')
+        .select('id, accommodation_id, order_number, final_price, paid_amount, payment_status, notes, deposit_method, deposit_status')
         .ilike('notes', `%${rec_trade_id}%`)
         .maybeSingle();
 
