@@ -72,6 +72,7 @@ import roomStandard from "@/assets/room-standard.jpg";
 import { createSanitizedHtml } from "@/utils/sanitizeHtml";
 import { getTapPayPrime } from "@/utils/tappayPrime";
 import { DevAccommodationSwitcher } from "@/components/DevAccommodationSwitcher";
+import MobileBottomNav from "@/components/member/MobileBottomNav";
 import AccommodationLogo from "@/components/AccommodationLogo";
 import lokezeLogo from "@/assets/lakeze-portal-logo.png";
 import { getThemeClassByAccommodation } from "@/constants/themes";
