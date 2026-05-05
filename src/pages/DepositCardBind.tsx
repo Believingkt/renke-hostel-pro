@@ -280,7 +280,7 @@ export default function DepositCardBind() {
               <CreditCard className="h-5 w-5" />
               信用卡資訊
             </Label>
-            <div className="space-y-3">
+            <div className="space-y-3" key={cardFormKey}>
               <div>
                 <Label className="text-xs text-muted-foreground mb-1 block">卡號</Label>
                 <div id="bind-card-number" className="h-12 px-4 py-3 border rounded-lg bg-white" />
