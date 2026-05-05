@@ -33,6 +33,7 @@ interface DepositSummary {
   deposit_refunded_at: string | null;
   order_number: string;
   accommodation_id: string;
+  check_in_date: string | null;
 }
 
 interface CardToken {
