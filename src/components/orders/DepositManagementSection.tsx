@@ -232,6 +232,8 @@ export function DepositManagementSection({ orderId, refreshKey, onRefresh }: Pro
         : scheduledChargeDate && scheduledChargeDate.getTime() < Date.now() && deposit.deposit_method === "card" && remainingToCharge > 0
           ? { label: "自動預刷待重試", tone: "warning" }
           : { label: "等待自動預刷", tone: "muted" };
+
+  return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-base flex items-center gap-2">
