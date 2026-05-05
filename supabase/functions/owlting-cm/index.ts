@@ -170,7 +170,20 @@ async function logCm(
 }
 
 // ============== Auth ==============
-async function authenticate(supabase: any, xml: string, hotelCode: string | null) {
+type AuthOverride = { accommodationId: string; hotelCode: string } | null;
+
+async function authenticate(
+  supabase: any,
+  xml: string,
+  hotelCode: string | null,
+  override?: AuthOverride,
+) {
+  if (override) {
+    if (hotelCode && override.hotelCode !== hotelCode) {
+      return { ok: false, msg: `HotelCode ${hotelCode} does not match override` };
+    }
+    return { ok: true, accommodationId: override.accommodationId, hotelCode: override.hotelCode };
+  }
   const { username, password } = extractWsse(xml);
   if (!username || !password) return { ok: false, msg: "Missing WS-Security UsernameToken" };
   const hash = await sha256Hex(password);
@@ -189,9 +202,9 @@ async function authenticate(supabase: any, xml: string, hotelCode: string | null
 
 // ============== Handlers ==============
 
-async function handleAvailRQ(supabase: any, xml: string, echo: string): Promise<Response> {
+async function handleAvailRQ(supabase: any, xml: string, echo: string, override?: AuthOverride): Promise<Response> {
   const hotelCode = attrFirst(xml, "HotelRef", "HotelCode");
-  const auth = await authenticate(supabase, xml, hotelCode);
+  const auth = await authenticate(supabase, xml, hotelCode, override);
   if (!auth.ok) return errorResponse("OTA_HotelAvailRS", echo, auth.msg);
 
   const { data: rooms } = await supabase
@@ -225,9 +238,9 @@ async function handleAvailRQ(supabase: any, xml: string, echo: string): Promise<
   return new Response(resp, { headers: SOAP_HEADERS });
 }
 
-async function handleAvailNotifRQ(supabase: any, xml: string, echo: string): Promise<Response> {
+async function handleAvailNotifRQ(supabase: any, xml: string, echo: string, override?: AuthOverride): Promise<Response> {
   const hotelCode = attrFirst(xml, "AvailStatusMessages", "HotelCode");
-  const auth = await authenticate(supabase, xml, hotelCode);
+  const auth = await authenticate(supabase, xml, hotelCode, override);
   if (!auth.ok) return errorResponse("OTA_HotelAvailNotifRS", echo, auth.msg);
 
   const messages = splitTags(xml, "AvailStatusMessage");
@@ -297,9 +310,9 @@ async function handleAvailNotifRQ(supabase: any, xml: string, echo: string): Pro
   return resp;
 }
 
-async function handleRateAmountNotifRQ(supabase: any, xml: string, echo: string): Promise<Response> {
+async function handleRateAmountNotifRQ(supabase: any, xml: string, echo: string, override?: AuthOverride): Promise<Response> {
   const hotelCode = attrFirst(xml, "RateAmountMessages", "HotelCode");
-  const auth = await authenticate(supabase, xml, hotelCode);
+  const auth = await authenticate(supabase, xml, hotelCode, override);
   if (!auth.ok) return errorResponse("OTA_HotelRateAmountNotifRS", echo, auth.msg);
 
   const messages = splitTags(xml, "RateAmountMessage");
@@ -353,10 +366,10 @@ async function handleRateAmountNotifRQ(supabase: any, xml: string, echo: string)
   return resp;
 }
 
-async function handleResNotifRQ(supabase: any, xml: string, echo: string): Promise<Response> {
+async function handleResNotifRQ(supabase: any, xml: string, echo: string, override?: AuthOverride): Promise<Response> {
   const resStatus = attrFirst(xml, "OTA_HotelResNotifRQ", "ResStatus") ?? "Commit"; // Commit / Modify / Cancel
   const hotelCode = attrFirst(xml, "BasicPropertyInfo", "HotelCode");
-  const auth = await authenticate(supabase, xml, hotelCode);
+  const auth = await authenticate(supabase, xml, hotelCode, override);
   if (!auth.ok) return errorResponse("OTA_HotelResNotifRS", echo, auth.msg);
 
   const reservations = splitTags(xml, "HotelReservation");
@@ -521,15 +534,25 @@ Deno.serve(async (req) => {
     return errorResponse("OTA_GenericRS", "", "Invalid request body", 400);
   }
 
+  // Self-test bypass: caller (owlting-cm-self-test) provides service-role key
+  // + accommodation_id + hotel_code, and we skip WS-Security validation.
+  let override: AuthOverride = null;
+  const selfTestKey = req.headers.get("x-self-test-key");
+  const selfTestAcc = req.headers.get("x-self-test-acc");
+  const selfTestHotel = req.headers.get("x-self-test-hotel");
+  if (selfTestKey && selfTestKey === supabaseServiceKey && selfTestAcc && selfTestHotel) {
+    override = { accommodationId: selfTestAcc, hotelCode: selfTestHotel };
+  }
+
   const root = rootName(xml);
   const echo = extractEcho(xml);
 
   try {
     switch (root) {
-      case "OTA_HotelAvailRQ":           return await handleAvailRQ(supabase, xml, echo);
-      case "OTA_HotelAvailNotifRQ":      return await handleAvailNotifRQ(supabase, xml, echo);
-      case "OTA_HotelRateAmountNotifRQ": return await handleRateAmountNotifRQ(supabase, xml, echo);
-      case "OTA_HotelResNotifRQ":        return await handleResNotifRQ(supabase, xml, echo);
+      case "OTA_HotelAvailRQ":           return await handleAvailRQ(supabase, xml, echo, override);
+      case "OTA_HotelAvailNotifRQ":      return await handleAvailNotifRQ(supabase, xml, echo, override);
+      case "OTA_HotelRateAmountNotifRQ": return await handleRateAmountNotifRQ(supabase, xml, echo, override);
+      case "OTA_HotelResNotifRQ":        return await handleResNotifRQ(supabase, xml, echo, override);
       default:
         return errorResponse("OTA_GenericRS", echo, `Unsupported root element: ${root ?? "unknown"}`, 400);
     }
