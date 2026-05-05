@@ -708,6 +708,84 @@ export default function ChannelManager() {
             </div>
           </div>
 
+          {/* CM SOAP Endpoint (4 個方法共用) */}
+          <div className="border rounded-lg p-4 space-y-3">
+            <div>
+              <h3 className="font-medium flex items-center gap-2">
+                <Plug className="h-4 w-4" />
+                Channel Management SOAP Endpoint
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                以下 SOAP 端點由 OwlTing 呼叫，依 SOAPAction / Body 中的 Root 元素分派四組方法。所有方法共用相同 URL 與 WS-Security 認證。
+              </p>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">SOAP Endpoint URL</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <Input value={cmUrl} readOnly className="font-mono text-xs" />
+                <Button variant="outline" size="sm" onClick={() => copyToClipboard(cmUrl, "CM SOAP Endpoint")}>
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="grid gap-2">
+              {SOAP_METHODS.map((m) => (
+                <div key={m.key} className="flex items-start justify-between gap-3 rounded-md border bg-muted/30 px-3 py-2">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium">{m.name}</div>
+                    <div className="text-xs text-muted-foreground">{m.desc}</div>
+                    <div className="text-[11px] font-mono text-muted-foreground mt-1 break-all">
+                      SOAPAction: "{m.key}"
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyToClipboard(m.key, `SOAPAction ${m.key}`)}
+                    aria-label={`複製 ${m.key}`}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Snapshot REST endpoints (對帳用) */}
+          <div className="border rounded-lg p-4 space-y-3">
+            <div>
+              <h3 className="font-medium flex items-center gap-2">
+                <Activity className="h-4 w-4" />
+                庫存 / 價格對帳 Endpoint
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                供 OwlTing 或內部對帳查詢目前資料庫中的庫存與售價（GET / 需帶 hotel_code 與日期區間）。
+              </p>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">庫存對帳 (type=inventory)</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <Input value={inventoryUrl} readOnly className="font-mono text-xs" />
+                <Button variant="outline" size="sm" onClick={() => copyToClipboard(inventoryUrl, "庫存對帳 URL")}>
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">售價對帳 (type=rates)</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <Input value={ratesUrl} readOnly className="font-mono text-xs" />
+                <Button variant="outline" size="sm" onClick={() => copyToClipboard(ratesUrl, "售價對帳 URL")}>
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            {!owlCred?.hotel_code && (
+              <p className="text-xs text-muted-foreground">
+                ※ 尚未建立 OwlTing 認證，URL 中的 hotel_code 為佔位符，建立認證後會自動帶入。
+              </p>
+            )}
+          </div>
           {/* Username / Password */}
           <div className="border rounded-lg p-4 space-y-3">
             <div className="flex items-start justify-between gap-3 flex-wrap">
