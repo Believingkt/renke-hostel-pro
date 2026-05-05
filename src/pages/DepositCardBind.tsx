@@ -308,7 +308,19 @@ export default function DepositCardBind() {
               <Alert variant="destructive" className="border-destructive/30 bg-destructive/5">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>{bindError.message}</AlertTitle>
-                {bindError.suggestion && <AlertDescription>{bindError.suggestion}</AlertDescription>}
+                {bindError.suggestion && (
+                  <AlertDescription className="mb-2">{bindError.suggestion}</AlertDescription>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRetry}
+                  disabled={isProcessing}
+                  className="mt-2"
+                >
+                  重新綁卡{retryCount > 0 ? `（第 ${retryCount + 1} 次）` : ""}
+                </Button>
               </Alert>
             )}
           </div>
