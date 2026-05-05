@@ -4679,7 +4679,7 @@ const BookingFlow = () => {
             </Card>
 
             {/* Navigation Buttons */}
-            <div className="flex gap-3 sm:gap-4 mt-4 sm:mt-6 sticky bottom-0 bg-background py-3 sm:py-0 sm:static -mx-3 px-3 sm:mx-0 sm:px-0 border-t sm:border-t-0 z-10">
+            <div className="flex gap-3 sm:gap-4 mt-4 sm:mt-6 fixed bottom-0 left-0 right-0 bg-background py-3 px-3 border-t z-40 sm:static sm:bg-transparent sm:py-0 sm:px-0 sm:border-t-0 sm:mx-0 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] sm:pb-0">
               {currentStep !== "dates" && (
                 <Button
                   variant="outline"
