@@ -1669,10 +1669,10 @@ const BookingFlow = () => {
       }
     }
 
-    if (currentStep === "payment" && !paymentMethod) {
+    if (currentStep === "payment" && (!orderPaymentType || !depositPaymentType)) {
       toast({
         title: "請選擇付款方式",
-        description: "請選擇一個付款方式以繼續",
+        description: "請完整選擇訂單金額與押金的付款方式",
         variant: "destructive",
       });
       return;
