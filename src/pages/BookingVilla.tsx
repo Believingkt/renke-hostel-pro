@@ -236,7 +236,7 @@ const BookingVilla = () => {
 
       {/* ── Sticky Header (Trip.com style: floating over hero on scroll-top) ── */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-border">
-        <div className="max-w-3xl mx-auto h-12 px-2 flex items-center justify-between gap-1">
+        <div className="max-w-3xl mx-auto h-24 px-3 flex items-center justify-between gap-2">
           <Button
             variant="ghost"
             size="icon"
