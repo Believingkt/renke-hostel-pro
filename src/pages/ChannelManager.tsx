@@ -119,6 +119,18 @@ export default function ChannelManager() {
   const accId = currentAccommodationId;
   const inboundUrl = `${SUPABASE_URL}/functions/v1/owlting-content`;
   const outboundUrl = `${SUPABASE_URL}/functions/v1/owlting-ari-push`;
+  const cmUrl = `${SUPABASE_URL}/functions/v1/owlting-cm`;
+  const snapshotUrl = `${SUPABASE_URL}/functions/v1/owlting-cm-snapshot`;
+  const hotelCode = owlCred?.hotel_code || "<HOTEL_CODE>";
+  const today = new Date().toISOString().slice(0, 10);
+  const inventoryUrl = `${snapshotUrl}?type=inventory&hotel_code=${hotelCode}&date_from=${today}&date_to=${today}`;
+  const ratesUrl = `${snapshotUrl}?type=rates&hotel_code=${hotelCode}&date_from=${today}&date_to=${today}`;
+  const SOAP_METHODS: Array<{ key: string; name: string; desc: string }> = [
+    { key: "OTA_HotelAvailRQ", name: "① OTA_HotelAvailRQ", desc: "取得房型 / 方案 (AR ID) 清單" },
+    { key: "OTA_HotelAvailNotifRQ", name: "② OTA_HotelAvailNotifRQ", desc: "設定房型庫存數量、房間鎖、方案鎖" },
+    { key: "OTA_HotelRateAmountNotifRQ", name: "③ OTA_HotelRateAmountNotifRQ", desc: "設定房型方案的售價" },
+    { key: "OTA_HotelResNotifRQ", name: "④ OTA_HotelResNotifRQ", desc: "OTA 訂單通知 (Commit / Modify / Cancel)" },
+  ];
 
   useEffect(() => {
     if (!accId) return;
