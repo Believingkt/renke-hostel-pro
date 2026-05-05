@@ -154,7 +154,7 @@ export default function DepositCardBind() {
     // Re-mount the card fields to clear them and allow a fresh prime
     setCardFormKey((k) => k + 1);
     try {
-      window.TPDirect?.card?.reset?.();
+      (window.TPDirect as any)?.card?.reset?.();
     } catch (e) {
       console.warn("TapPay reset failed:", e);
     }
