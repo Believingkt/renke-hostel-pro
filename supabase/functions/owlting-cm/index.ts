@@ -366,10 +366,10 @@ async function handleRateAmountNotifRQ(supabase: any, xml: string, echo: string,
   return resp;
 }
 
-async function handleResNotifRQ(supabase: any, xml: string, echo: string): Promise<Response> {
+async function handleResNotifRQ(supabase: any, xml: string, echo: string, override?: AuthOverride): Promise<Response> {
   const resStatus = attrFirst(xml, "OTA_HotelResNotifRQ", "ResStatus") ?? "Commit"; // Commit / Modify / Cancel
   const hotelCode = attrFirst(xml, "BasicPropertyInfo", "HotelCode");
-  const auth = await authenticate(supabase, xml, hotelCode);
+  const auth = await authenticate(supabase, xml, hotelCode, override);
   if (!auth.ok) return errorResponse("OTA_HotelResNotifRS", echo, auth.msg);
 
   const reservations = splitTags(xml, "HotelReservation");
