@@ -1685,7 +1685,7 @@ const BookingFlow = () => {
     }
 
     // 如果選擇信用卡，驗證 TapPay 卡片狀態 + 先取得 prime（避免 confirm 步驟欄位卸載）
-    if (currentStep === "payment" && paymentMethod === '信用卡') {
+    if (currentStep === "payment" && needsCardForm) {
       if (!isTapPayReady) {
         toast({
           title: "付款模組載入中",
