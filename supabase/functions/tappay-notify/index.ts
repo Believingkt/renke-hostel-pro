@@ -152,7 +152,7 @@ Deno.serve(async (req) => {
     if (order_number) {
       const { data, error } = await supabase
         .from('orders')
-        .select('id, order_number, final_price, paid_amount, payment_status, notes')
+        .select('id, accommodation_id, order_number, final_price, paid_amount, payment_status, notes, deposit_method, deposit_status')
         .eq('order_number', order_number)
         .maybeSingle();
 
