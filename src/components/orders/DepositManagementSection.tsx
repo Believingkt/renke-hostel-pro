@@ -31,6 +31,8 @@ interface DepositSummary {
   deposit_refunded_amount: number;
   deposit_charged_at: string | null;
   deposit_refunded_at: string | null;
+  order_number: string;
+  accommodation_id: string;
 }
 
 interface CardToken {
