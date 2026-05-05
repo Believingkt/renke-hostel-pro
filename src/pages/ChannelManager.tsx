@@ -469,8 +469,35 @@ export default function ChannelManager() {
     }
   }
 
-  const isDefaultChannel = (code: string) =>
-    DEFAULT_CHANNELS.some((d) => d.channel_code === code);
+  async function runSoapSelfTest() {
+    if (!accId) return;
+    if (!owlCred?.hotel_code) {
+      toast({ title: "請先建立 OwlTing 認證", description: "需要 Hotel Code 才能測試", variant: "destructive" });
+      return;
+    }
+    setSoapTesting(true);
+    setSoapResults(null);
+    setSoapExpanded({});
+    try {
+      const { data, error } = await supabase.functions.invoke("owlting-cm-self-test", {
+        body: { accommodation_id: accId },
+      });
+      if (error) throw new Error(error.message);
+      const rows: SoapTestRow[] = data?.results ?? [];
+      setSoapResults(rows);
+      const okCount = rows.filter((r) => r.ok).length;
+      toast({
+        title: okCount === rows.length ? "全部通過" : `${okCount} / ${rows.length} 通過`,
+        description: rows.map((r) => `${r.method}: ${r.ok ? "OK" : "FAIL"}`).join(" · "),
+        variant: okCount === rows.length ? undefined : "destructive",
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: "測試失敗", description: msg, variant: "destructive" });
+    } finally {
+      setSoapTesting(false);
+    }
+  }
 
   async function deleteChannel(channel: OtaChannel) {
     if (!accId) return;
