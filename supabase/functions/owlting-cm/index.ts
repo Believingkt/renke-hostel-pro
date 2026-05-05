@@ -238,9 +238,9 @@ async function handleAvailRQ(supabase: any, xml: string, echo: string, override?
   return new Response(resp, { headers: SOAP_HEADERS });
 }
 
-async function handleAvailNotifRQ(supabase: any, xml: string, echo: string): Promise<Response> {
+async function handleAvailNotifRQ(supabase: any, xml: string, echo: string, override?: AuthOverride): Promise<Response> {
   const hotelCode = attrFirst(xml, "AvailStatusMessages", "HotelCode");
-  const auth = await authenticate(supabase, xml, hotelCode);
+  const auth = await authenticate(supabase, xml, hotelCode, override);
   if (!auth.ok) return errorResponse("OTA_HotelAvailNotifRS", echo, auth.msg);
 
   const messages = splitTags(xml, "AvailStatusMessage");
