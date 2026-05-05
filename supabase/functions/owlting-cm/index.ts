@@ -202,9 +202,9 @@ async function authenticate(
 
 // ============== Handlers ==============
 
-async function handleAvailRQ(supabase: any, xml: string, echo: string): Promise<Response> {
+async function handleAvailRQ(supabase: any, xml: string, echo: string, override?: AuthOverride): Promise<Response> {
   const hotelCode = attrFirst(xml, "HotelRef", "HotelCode");
-  const auth = await authenticate(supabase, xml, hotelCode);
+  const auth = await authenticate(supabase, xml, hotelCode, override);
   if (!auth.ok) return errorResponse("OTA_HotelAvailRS", echo, auth.msg);
 
   const { data: rooms } = await supabase
