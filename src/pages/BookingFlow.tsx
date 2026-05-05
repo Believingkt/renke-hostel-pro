@@ -4677,7 +4677,8 @@ const BookingFlow = () => {
                 )}
               </CardContent>
             </Card>
-
+            {/* 手機版底部固定按鈕佔位 */}
+            <div className="h-32 md:hidden" aria-hidden="true" />
             {/* Navigation Buttons */}
             <div className="flex gap-3 sm:gap-4 mt-4 sm:mt-6 fixed bottom-16 left-0 right-0 bg-background py-3 px-3 border-t z-40 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] md:static md:bottom-auto md:bg-transparent md:py-0 md:px-0 md:border-t-0 md:pb-0">
               {currentStep !== "dates" && (
