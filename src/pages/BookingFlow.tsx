@@ -1255,7 +1255,19 @@ const BookingFlow = () => {
             fieldLabel(update.status.expiry, "有效期限"),
             fieldLabel(update.status.ccv, "安全碼"),
           ].filter(Boolean) as string[];
-          setCardFieldError(update.canGetPrime ? null : (errs[0] ?? null));
+          const nextError = update.canGetPrime ? null : (errs[0] ?? null);
+          // 即時驗證：合法時立即清除錯誤；錯誤訊息以 400ms 去抖更新，避免邊輸入邊跳訊息
+          if (cardErrorDebounceRef.current) {
+            window.clearTimeout(cardErrorDebounceRef.current);
+            cardErrorDebounceRef.current = null;
+          }
+          if (nextError === null) {
+            setCardFieldError(null);
+          } else {
+            cardErrorDebounceRef.current = window.setTimeout(() => {
+              setCardFieldError(nextError);
+            }, 400);
+          }
           // 卡片內容一變動，就視為需要重新取得 prime
           setTappayPrime(null);
           setTappayPrimeIssuedAt(null);
