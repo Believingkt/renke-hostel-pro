@@ -139,12 +139,27 @@ export default function DepositCardBind() {
           },
         });
         window.TPDirect.card.onUpdate((u: any) => setCardValid(u.canGetPrime));
+        setCardValid(false);
       } catch (e) {
         console.error("TapPay setup error:", e);
       }
     }, 200);
     return () => clearTimeout(timer);
-  }, [isTapPayReady]);
+  }, [isTapPayReady, cardFormKey]);
+
+  const handleRetry = () => {
+    setBindError(null);
+    setCardValid(false);
+    setRetryCount((c) => c + 1);
+    // Re-mount the card fields to clear them and allow a fresh prime
+    setCardFormKey((k) => k + 1);
+    try {
+      window.TPDirect?.card?.reset?.();
+    } catch (e) {
+      console.warn("TapPay reset failed:", e);
+    }
+    toast.info("已重置卡片資料，請重新輸入後再次綁卡");
+  };
 
   const handleBind = async () => {
     if (!window.TPDirect || !cardValid || !tappayConfig || !orderInfo) return;
