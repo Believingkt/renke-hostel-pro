@@ -310,9 +310,9 @@ async function handleAvailNotifRQ(supabase: any, xml: string, echo: string, over
   return resp;
 }
 
-async function handleRateAmountNotifRQ(supabase: any, xml: string, echo: string): Promise<Response> {
+async function handleRateAmountNotifRQ(supabase: any, xml: string, echo: string, override?: AuthOverride): Promise<Response> {
   const hotelCode = attrFirst(xml, "RateAmountMessages", "HotelCode");
-  const auth = await authenticate(supabase, xml, hotelCode);
+  const auth = await authenticate(supabase, xml, hotelCode, override);
   if (!auth.ok) return errorResponse("OTA_HotelRateAmountNotifRS", echo, auth.msg);
 
   const messages = splitTags(xml, "RateAmountMessage");
