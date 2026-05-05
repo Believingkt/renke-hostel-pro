@@ -94,9 +94,9 @@ serve(async (req) => {
       );
     }
 
-    const { prime, amount, orderId, cardholder, details, frontendRedirectUrl, backendNotifyUrl } = requestData;
+    const { prime, amount, orderId, cardholder, details, frontendRedirectUrl, backendNotifyUrl, bindCard } = requestData;
 
-    console.log('Processing TapPay payment with 3D Secure:', { orderId, amount, has3DUrls: !!frontendRedirectUrl });
+    console.log('Processing TapPay payment with 3D Secure:', { orderId, amount, has3DUrls: !!frontendRedirectUrl, bindCard: !!bindCard });
 
     const partnerKey = Deno.env.get('TAPPAY_PARTNER_KEY');
     const merchantId = Deno.env.get('TAPPAY_MERCHANT_ID');
@@ -124,7 +124,7 @@ serve(async (req) => {
         name: cardholder.name,
         email: cardholder.email,
       },
-      remember: false,
+      remember: !!bindCard,
       three_domain_secure: true, // Enable 3D Secure
     };
 
