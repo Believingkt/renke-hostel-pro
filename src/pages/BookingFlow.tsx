@@ -4285,6 +4285,7 @@ const BookingFlow = () => {
                       </CardHeader>
                       <CardContent className="space-y-3">
                         {([
+                          { key: "cash", label: "現場現金", icon: Home, desc: "請於辦理入住時現場支付現金 5,000 元押金" },
                           {
                             key: "card",
                             label: "線上綁卡",
@@ -4293,7 +4294,6 @@ const BookingFlow = () => {
                               ? "可沿用上方訂單付款的同一張信用卡，入住前一天自動預刷"
                               : "於訂單成立後由系統發送綁卡連結，入住前一天自動預刷",
                           },
-                          { key: "cash", label: "現場現金", icon: Home, desc: "請於辦理入住時現場支付現金 5,000 元押金" },
                         ] as const).map((opt) => {
                           const Icon = opt.icon;
                           const selected = depositPaymentType === opt.key;
