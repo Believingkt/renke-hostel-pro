@@ -1749,11 +1749,13 @@ const BookingFlow = () => {
         return;
       }
 
-      // 通過驗證，清除錯誤
+      // 通過欄位驗證，清除欄位錯誤（tokenization 結果會再覆寫）
       setCardFieldError(null);
 
-      // 若 prime 已過期或尚未取得，重新請 SDK 產生
-      if (!tappayPrime || isPrimeExpired()) {
+      // 押金線上綁卡：每次「下一步」都先完成 tokenization 取得新 prime
+      // 訂單也是信用卡：若 prime 已過期或尚未取得才重取
+      const mustRefreshPrime = isDepositCardOnly || !tappayPrime || isPrimeExpired();
+      if (mustRefreshPrime) {
         setIsPreparingPrime(true);
         try {
           const prime = await getTapPayPrime();
@@ -1761,10 +1763,24 @@ const BookingFlow = () => {
           setTappayPrimeIssuedAt(Date.now());
           console.log('[TapPay][Booking] Prime prepared for confirm step');
         } catch (err: any) {
-          const msg = err?.message || '取得付款授權失敗，請重新輸入信用卡資訊後再試';
+          const rawMsg = err?.message || '';
+          // 將常見 TapPay 錯誤對應到友善訊息
+          let friendly = rawMsg || '取得付款授權失敗，請重新輸入信用卡資訊後再試';
+          if (/SDK/i.test(rawMsg)) {
+            friendly = '付款模組尚未載入完成，請重新整理頁面後再試';
+          } else if (/逾時|timeout/i.test(rawMsg)) {
+            friendly = '取得付款授權逾時，請檢查網路連線後重試';
+          } else if (/卡號|card.*number/i.test(rawMsg)) {
+            friendly = '卡號格式錯誤，請重新輸入卡號';
+          } else if (/有效期|expir/i.test(rawMsg)) {
+            friendly = '有效期限錯誤，請重新輸入有效期限';
+          } else if (/CCV|CVC|安全碼/i.test(rawMsg)) {
+            friendly = '安全碼錯誤，請重新輸入卡片背面安全碼';
+          }
+          if (isDepositCardOnly) setCardFieldError(friendly);
           toast({
             title: "無法取得付款授權",
-            description: msg,
+            description: friendly,
             variant: "destructive",
           });
           return;
