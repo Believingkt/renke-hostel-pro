@@ -451,30 +451,53 @@ const OwlTingCmDocs = () => {
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <Boxes className="h-5 w-5" /> SOAP Methods
             </h2>
-            {methods.map((m) => (
-              <Card key={m.id} id={m.id}>
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-3 flex-wrap">
-                    <div>
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <span>{m.n}</span>
-                        <code className="font-mono">{m.name}</code>
-                      </CardTitle>
-                      <CardDescription className="mt-1">{m.title} — {m.desc}</CardDescription>
+            <Card>
+              <CardContent className="p-4 text-sm space-y-2">
+                <p className="font-medium">所有 4 組 method 共用的 HTTP Header 規範</p>
+                <ul className="list-disc list-inside text-xs text-muted-foreground space-y-1">
+                  <li><code>POST</code> 至同一個 SOAP Endpoint，依 root 元素分派。</li>
+                  <li><code>Content-Type</code> 必為 <code>text/xml; charset=utf-8</code> (不可使用 <code>application/soap+xml</code>，那是 SOAP 1.2)。</li>
+                  <li><code>SOAPAction</code> 必填且 <strong>需加雙引號</strong>，值為對應 method 名稱 (例：<code>"OTA_HotelAvailRQ"</code>)。</li>
+                  <li><code>Content-Length</code> 由 HTTP client 自動計算，請勿手動填入錯誤值。</li>
+                  <li>建議加上 <code>Accept: text/xml</code> 與唯一的 <code>User-Agent</code> 方便我方 log 追蹤。</li>
+                </ul>
+              </CardContent>
+            </Card>
+            {methods.map((m) => {
+              const fullEnvelope = m.id === "avail" ? m.rq : buildFullEnvelope(m.rq);
+              const curl = `curl -X POST '${CM_URL}' \\
+  -H 'Content-Type: text/xml; charset=utf-8' \\
+  -H 'SOAPAction: "${m.name}"' \\
+  -H 'Accept: text/xml' \\
+  --data-binary @request.xml`;
+              return (
+                <Card key={m.id} id={m.id}>
+                  <CardHeader>
+                    <div className="flex items-start justify-between gap-3 flex-wrap">
+                      <div>
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <span>{m.n}</span>
+                          <code className="font-mono">{m.name}</code>
+                        </CardTitle>
+                        <CardDescription className="mt-1">{m.title} — {m.desc}</CardDescription>
+                      </div>
+                      <Badge variant="outline">SOAPAction: "{m.name}"</Badge>
                     </div>
-                    <Badge variant="outline">SOAPAction: "{m.name}"</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <CodeBlock label="Request Body (omit soap:Envelope/Header for brevity)">{m.rq}</CodeBlock>
-                  <CodeBlock label="Success Response">{m.rs}</CodeBlock>
-                  <ul className="list-disc list-inside text-xs text-muted-foreground space-y-1">
-                    {m.notes.map((n, i) => <li key={i}>{n}</li>)}
-                  </ul>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <CodeBlock label="HTTP Request Headers (可直接貼上)">{buildHttpHeaders(m.name)}</CodeBlock>
+                    <CodeBlock label="Full SOAP Request (含 Envelope + WS-Security Header,可直接貼上)">{fullEnvelope}</CodeBlock>
+                    <CodeBlock label="cURL 範例">{curl}</CodeBlock>
+                    <CodeBlock label="Success Response">{m.rs}</CodeBlock>
+                    <ul className="list-disc list-inside text-xs text-muted-foreground space-y-1">
+                      {m.notes.map((n, i) => <li key={i}>{n}</li>)}
+                    </ul>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </section>
+
 
           {/* Errors */}
           <section className="space-y-4">
