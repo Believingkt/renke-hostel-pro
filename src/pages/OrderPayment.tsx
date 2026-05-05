@@ -34,6 +34,7 @@ export default function OrderPayment() {
     guestPhone: string;
     guestEmail: string;
     orderId: string;
+    needsCardBinding: boolean;
   } | null>(null);
   const [loadingOrder, setLoadingOrder] = useState(true);
   const [orderError, setOrderError] = useState<string | null>(null);
