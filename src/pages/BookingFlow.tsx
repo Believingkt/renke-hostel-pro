@@ -4129,78 +4129,51 @@ const BookingFlow = () => {
                       </CardContent>
                     </Card>
 
-                    {/* 付款方式卡片 */}
+                    {/* 訂單金額 付款方式卡片 */}
                     <Card className="border-2">
                       <CardHeader className="pb-4">
                         <CardTitle className="text-lg font-bold flex items-center gap-2">
                           <CreditCard className="h-5 w-5 text-primary" />
-                          付款方式
+                          訂單金額付款方式
                         </CardTitle>
                         <p className="text-sm text-muted-foreground mt-2">
-                          請選擇您偏好的付款方式
+                          訂單金額 NT$ {finalPrice.toLocaleString()}，請選擇付款方式
                         </p>
                       </CardHeader>
                       <CardContent className="space-y-3">
-                        {/* 顯示所有可用的付款方式（包括信用卡和 LINE Pay） */}
-                        {(() => {
-                          const availableMethods = Array.isArray(bookingSettings?.payment_methods) 
-                            ? bookingSettings.payment_methods
-                            : ['現場付款'];
-                          
-                          // 如果沒有設定付款方式，預設提供「現場付款」
-                          // 暫時隱藏 LINE Pay 選項
-                          const displayMethods = (availableMethods.length > 0 
-                            ? availableMethods 
-                            : ['現場付款']).filter((m: string) => m !== 'LINE Pay');
-                          
-                          return displayMethods.map((method: string) => {
-                            const PaymentIcon = method === '信用卡' ? CreditCard : 
-                                               method === 'LINE Pay' ? Smartphone : 
-                                               Home;
-                            
-                            return (
-                              <div
-                                key={method}
-                                className={`cursor-pointer transition-all rounded-lg border-2 p-4 hover:border-primary/50 ${
-                                  paymentMethod === method
-                                    ? "border-primary bg-primary/5 shadow-sm"
-                                    : "border-border bg-card"
-                                }`}
-                                onClick={() => setPaymentMethod(method)}
-                              >
-                                <div className="flex items-center gap-3">
-                                  <div className={`rounded-full p-2 ${
-                                    paymentMethod === method
-                                      ? "bg-primary/20"
-                                      : "bg-muted"
-                                  }`}>
-                                    <PaymentIcon className={`h-5 w-5 ${
-                                      paymentMethod === method
-                                        ? "text-primary"
-                                        : "text-muted-foreground"
-                                    }`} />
-                                  </div>
-                                  <div className="flex-1">
-                                    <span className={`font-medium text-base ${
-                                      paymentMethod === method
-                                        ? "text-foreground"
-                                        : "text-foreground/80"
-                                    }`}>
-                                      {method}
-                                    </span>
-                                    {/* 訂金提示已移除：線上付款一律收全額 */}
-                                  </div>
-                                  {paymentMethod === method && (
-                                    <CheckCircle className="h-5 w-5 text-primary ml-auto" />
-                                  )}
+                        {([
+                          { key: "credit_card", label: "信用卡", icon: CreditCard, desc: "由 TapPay 安全加密處理" },
+                          { key: "bank_transfer", label: "轉帳匯款", icon: Home, desc: "完成訂單後依顯示帳號匯款" },
+                        ] as const).map((opt) => {
+                          const Icon = opt.icon;
+                          const selected = orderPaymentType === opt.key;
+                          return (
+                            <div
+                              key={opt.key}
+                              className={`cursor-pointer transition-all rounded-lg border-2 p-4 hover:border-primary/50 ${
+                                selected ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-card"
+                              }`}
+                              onClick={() => {
+                                setOrderPaymentType(opt.key);
+                                setPaymentMethod(opt.key === "credit_card" ? "信用卡" : "轉帳匯款");
+                              }}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className={`rounded-full p-2 ${selected ? "bg-primary/20" : "bg-muted"}`}>
+                                  <Icon className={`h-5 w-5 ${selected ? "text-primary" : "text-muted-foreground"}`} />
                                 </div>
+                                <div className="flex-1">
+                                  <span className="font-medium text-base text-foreground">{opt.label}</span>
+                                  <p className="text-xs text-muted-foreground mt-0.5">{opt.desc}</p>
+                                </div>
+                                {selected && <CheckCircle className="h-5 w-5 text-primary ml-auto" />}
                               </div>
-                            );
-                          });
-                        })()}
+                            </div>
+                          );
+                        })}
 
                         {/* TapPay 信用卡表單 */}
-                        {paymentMethod === '信用卡' && (
+                        {orderPaymentType === "credit_card" && (
                           <div className="mt-4 p-4 border rounded-lg bg-card">
                             <div className="mb-3">
                               <p className="text-sm font-medium text-foreground mb-1">請輸入信用卡資訊</p>
@@ -4217,12 +4190,7 @@ const BookingFlow = () => {
                                 <AlertTitle>付款模組載入失敗</AlertTitle>
                                 <AlertDescription>
                                   <p className="mb-3">{tappayConfigError}</p>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => reloadTapPayConfig()}
-                                  >
+                                  <Button type="button" variant="outline" size="sm" onClick={() => reloadTapPayConfig()}>
                                     重新載入
                                   </Button>
                                 </AlertDescription>
@@ -4260,9 +4228,29 @@ const BookingFlow = () => {
                             )}
                           </div>
                         )}
-                        
+
+                        {/* 轉帳匯款 帳戶資訊 */}
+                        {orderPaymentType === "bank_transfer" && (
+                          <div className="mt-4 p-4 border rounded-lg bg-muted/30">
+                            <p className="text-sm font-medium text-foreground mb-2">匯款帳戶資訊</p>
+                            {bookingSettings?.bank_account_info ? (
+                              <pre className="text-sm text-foreground whitespace-pre-wrap break-words font-sans leading-relaxed">
+                                {bookingSettings.bank_account_info}
+                              </pre>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">
+                                訂單成立後，我們將透過 Email 提供匯款帳號資訊，請於 24 小時內完成匯款。
+                              </p>
+                            )}
+                            <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
+                              ・ 請於匯款後保留收據，並於入住時出示。<br />
+                              ・ 若 24 小時內未收到款項，訂單將自動取消。
+                            </p>
+                          </div>
+                        )}
+
                         {/* 付款錯誤提示 */}
-                        {lastPaymentError && paymentMethod && (
+                        {lastPaymentError && orderPaymentType && (
                           <Alert variant="destructive" className="mt-4">
                             <AlertTriangle className="h-4 w-4" />
                             <AlertTitle>付款失敗</AlertTitle>
@@ -4280,19 +4268,65 @@ const BookingFlow = () => {
                       </CardContent>
                     </Card>
 
-                    {/* 訂金說明已移除：所有訂單一律收取全額 */}
+                    {/* 押金 5000 付款方式卡片 */}
+                    <Card className="border-2">
+                      <CardHeader className="pb-4">
+                        <CardTitle className="text-lg font-bold flex items-center gap-2">
+                          <CreditCard className="h-5 w-5 text-primary" />
+                          押金付款方式
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          押金 NT$ {DEPOSIT_AMOUNT.toLocaleString()}，退房確認房內各項設備正常後歸還
+                        </p>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {([
+                          {
+                            key: "card",
+                            label: "線上綁卡（推薦）",
+                            icon: CreditCard,
+                            desc: orderPaymentType === "credit_card"
+                              ? "可沿用上方訂單付款的同一張信用卡，入住前一天自動預刷"
+                              : "於訂單成立後由系統發送綁卡連結，入住前一天自動預刷",
+                          },
+                          { key: "cash", label: "現場現金", icon: Home, desc: "請於辦理入住時現場支付現金 5,000 元押金" },
+                        ] as const).map((opt) => {
+                          const Icon = opt.icon;
+                          const selected = depositPaymentType === opt.key;
+                          return (
+                            <div
+                              key={opt.key}
+                              className={`cursor-pointer transition-all rounded-lg border-2 p-4 hover:border-primary/50 ${
+                                selected ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-card"
+                              }`}
+                              onClick={() => setDepositPaymentType(opt.key)}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className={`rounded-full p-2 ${selected ? "bg-primary/20" : "bg-muted"}`}>
+                                  <Icon className={`h-5 w-5 ${selected ? "text-primary" : "text-muted-foreground"}`} />
+                                </div>
+                                <div className="flex-1">
+                                  <span className="font-medium text-base text-foreground">{opt.label}</span>
+                                  <p className="text-xs text-muted-foreground mt-0.5">{opt.desc}</p>
+                                </div>
+                                {selected && <CheckCircle className="h-5 w-5 text-primary ml-auto" />}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </CardContent>
+                    </Card>
 
                     {/* 提示資訊 */}
-                    {paymentMethod && (
+                    {orderPaymentType && depositPaymentType && (
                       <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
                         <div className="flex gap-3">
                           <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                           <div className="space-y-1">
-                            <p className="text-sm font-medium text-foreground">
-                              付款方式已選擇
-                            </p>
+                            <p className="text-sm font-medium text-foreground">付款方式已選擇</p>
                             <p className="text-xs text-muted-foreground leading-relaxed">
-                              您已選擇「{paymentMethod}」作為付款方式，請確認後繼續下一步
+                              訂單金額：{orderPaymentType === "credit_card" ? "信用卡" : "轉帳匯款"}　|　押金：
+                              {depositPaymentType === "card" ? "線上綁卡" : "現場現金"}
                             </p>
                           </div>
                         </div>
