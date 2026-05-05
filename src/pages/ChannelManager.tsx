@@ -108,6 +108,21 @@ export default function ChannelManager() {
   const [inboundResult, setInboundResult] = useState<TestResult>(null);
   const [outboundResult, setOutboundResult] = useState<TestResult>(null);
 
+  // SOAP self-test state
+  type SoapTestRow = {
+    method: string;
+    label: string;
+    ok: boolean;
+    http_status: number;
+    elapsed_ms: number;
+    summary: string;
+    request: string;
+    response: string;
+  };
+  const [soapTesting, setSoapTesting] = useState(false);
+  const [soapResults, setSoapResults] = useState<SoapTestRow[] | null>(null);
+  const [soapExpanded, setSoapExpanded] = useState<Record<string, boolean>>({});
+
   // 台灣旅圖 state
   const [tmMapping, setTmMapping] = useState<ExternalMapping | null>(null);
   const [tmDialogOpen, setTmDialogOpen] = useState(false);
