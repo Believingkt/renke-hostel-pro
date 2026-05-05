@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CreditCard, RefreshCw, AlertCircle, CheckCircle2, Clock, Banknote } from "lucide-react";
+import { CreditCard, RefreshCw, AlertCircle, CheckCircle2, Clock, Banknote, Link2, Copy, Check } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
