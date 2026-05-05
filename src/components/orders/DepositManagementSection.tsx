@@ -86,7 +86,7 @@ export function DepositManagementSection({ orderId, refreshKey, onRefresh }: Pro
         supabase
           .from("orders")
           .select(
-            "deposit_required_amount, deposit_method, deposit_status, deposit_charged_amount, deposit_refunded_amount, deposit_charged_at, deposit_refunded_at, order_number, accommodation_id",
+            "deposit_required_amount, deposit_method, deposit_status, deposit_charged_amount, deposit_refunded_amount, deposit_charged_at, deposit_refunded_at, order_number, accommodation_id, check_in_date",
           )
           .eq("id", orderId)
           .single(),
