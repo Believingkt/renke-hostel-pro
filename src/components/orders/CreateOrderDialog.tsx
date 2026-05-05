@@ -160,7 +160,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     balance_paid: false,
     notes: "",
     order_source: "",
-    security_deposit_method: "none" as "none" | "cash" | "card",
+    security_deposit_method: "cash" as "cash" | "card",
     security_deposit_amount: 5000,
   });
 
@@ -185,7 +185,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         balance_paid: false,
         notes: "",
         order_source: "",
-        security_deposit_method: "none",
+        security_deposit_method: "cash",
         security_deposit_amount: 5000,
       });
       setSelectedAddons([]);
@@ -809,9 +809,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           : null,
         confirmed_at: form.order_status === "confirmed" ? new Date().toISOString() : null,
         order_source: form.order_source || "manual",
-        deposit_required_amount: form.security_deposit_method !== "none" ? form.security_deposit_amount : 0,
-        deposit_method: form.security_deposit_method !== "none" ? form.security_deposit_method : null,
-        deposit_status: form.security_deposit_method === "none" ? "not_required" : "pending",
+        deposit_required_amount: form.security_deposit_amount,
+        deposit_method: form.security_deposit_method,
+        deposit_status: "pending",
       }).select('id').single();
 
       if (error) throw error;
@@ -1749,7 +1749,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             <Label className="text-sm">收取方式</Label>
             <Select
               value={form.security_deposit_method}
-              onValueChange={(value: "none" | "cash" | "card") =>
+              onValueChange={(value: "cash" | "card") =>
                 setForm({ ...form, security_deposit_method: value })
               }
             >
@@ -1757,7 +1757,6 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">不收取</SelectItem>
                 <SelectItem value="cash">現場現金</SelectItem>
                 <SelectItem value="card">線上綁卡（建立後於訂單詳情完成）</SelectItem>
               </SelectContent>
@@ -1773,7 +1772,6 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               onChange={(e) =>
                 setForm({ ...form, security_deposit_amount: Number(e.target.value) || 0 })
               }
-              disabled={form.security_deposit_method === "none"}
               className="h-12 text-base sm:h-10 sm:text-sm"
             />
           </div>
