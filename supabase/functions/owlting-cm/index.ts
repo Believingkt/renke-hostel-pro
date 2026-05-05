@@ -534,15 +534,25 @@ Deno.serve(async (req) => {
     return errorResponse("OTA_GenericRS", "", "Invalid request body", 400);
   }
 
+  // Self-test bypass: caller (owlting-cm-self-test) provides service-role key
+  // + accommodation_id + hotel_code, and we skip WS-Security validation.
+  let override: AuthOverride = null;
+  const selfTestKey = req.headers.get("x-self-test-key");
+  const selfTestAcc = req.headers.get("x-self-test-acc");
+  const selfTestHotel = req.headers.get("x-self-test-hotel");
+  if (selfTestKey && selfTestKey === supabaseServiceKey && selfTestAcc && selfTestHotel) {
+    override = { accommodationId: selfTestAcc, hotelCode: selfTestHotel };
+  }
+
   const root = rootName(xml);
   const echo = extractEcho(xml);
 
   try {
     switch (root) {
-      case "OTA_HotelAvailRQ":           return await handleAvailRQ(supabase, xml, echo);
-      case "OTA_HotelAvailNotifRQ":      return await handleAvailNotifRQ(supabase, xml, echo);
-      case "OTA_HotelRateAmountNotifRQ": return await handleRateAmountNotifRQ(supabase, xml, echo);
-      case "OTA_HotelResNotifRQ":        return await handleResNotifRQ(supabase, xml, echo);
+      case "OTA_HotelAvailRQ":           return await handleAvailRQ(supabase, xml, echo, override);
+      case "OTA_HotelAvailNotifRQ":      return await handleAvailNotifRQ(supabase, xml, echo, override);
+      case "OTA_HotelRateAmountNotifRQ": return await handleRateAmountNotifRQ(supabase, xml, echo, override);
+      case "OTA_HotelResNotifRQ":        return await handleResNotifRQ(supabase, xml, echo, override);
       default:
         return errorResponse("OTA_GenericRS", echo, `Unsupported root element: ${root ?? "unknown"}`, 400);
     }
