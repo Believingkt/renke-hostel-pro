@@ -255,11 +255,11 @@ const BookingVilla = () => {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <Link to="/booking" className="flex items-center gap-1.5 min-w-0">
+          <Link to="/booking" className="flex items-center gap-1.5 min-w-0 flex-1 justify-center overflow-hidden">
             <img
               src={lokezeLogo}
               alt="Lakeze 人客多"
-              className="h-24 object-contain"
+              className="h-24 max-h-full max-w-full w-auto object-contain"
             />
           </Link>
           <div className="flex items-center gap-0.5 shrink-0">
