@@ -5121,6 +5121,9 @@ const BookingFlow = () => {
       
       {/* 開發環境住宿切換器 */}
       <DevAccommodationSwitcher />
+
+      {/* 手機版底部選單 */}
+      <MobileBottomNav />
     </div>
   );
 };
