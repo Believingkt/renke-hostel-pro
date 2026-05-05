@@ -270,6 +270,73 @@ const SAMPLE_ERROR = `<OTA_HotelAvailRS xmlns="http://www.opentravel.org/OTA/200
   </Errors>
 </OTA_HotelAvailRS>`;
 
+const SAMPLE_ERROR_HOTEL = `<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <OTA_HotelAvailNotifRS xmlns="http://www.opentravel.org/OTA/2003/05"
+        Version="1.0" TimeStamp="2026-05-05T10:00:01Z" EchoToken="inv-001">
+      <Errors>
+        <Error Type="3" Code="450">HotelCode SENSAN not authorized</Error>
+      </Errors>
+    </OTA_HotelAvailNotifRS>
+  </soap:Body>
+</soap:Envelope>`;
+
+const SAMPLE_ERROR_ROOMTYPE = `<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <OTA_HotelAvailNotifRS xmlns="http://www.opentravel.org/OTA/2003/05"
+        Version="1.0" TimeStamp="2026-05-05T10:00:01Z" EchoToken="inv-001">
+      <Errors>
+        <Error Type="3" Code="402">RoomType RT_a1b2c3d4 not found</Error>
+      </Errors>
+    </OTA_HotelAvailNotifRS>
+  </soap:Body>
+</soap:Envelope>`;
+
+const SAMPLE_ERROR_RES_NOTFOUND = `<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <OTA_HotelResNotifRS xmlns="http://www.opentravel.org/OTA/2003/05"
+        Version="1.0" TimeStamp="2026-05-05T10:00:01Z" EchoToken="res-001">
+      <Errors>
+        <Error Type="3" Code="392">Reservation OWLTING-RES-XXXX not found</Error>
+      </Errors>
+    </OTA_HotelResNotifRS>
+  </soap:Body>
+</soap:Envelope>`;
+
+const SAMPLE_SOAP_FAULT = `<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <soap:Fault>
+      <faultcode>soap:Server</faultcode>
+      <faultstring>Internal server error</faultstring>
+      <detail>
+        <ErrorMessage>Database connection timeout</ErrorMessage>
+        <EchoToken>abc-001</EchoToken>
+      </detail>
+    </soap:Fault>
+  </soap:Body>
+</soap:Envelope>`;
+
+const SAMPLE_HTTP_400 = `HTTP/1.1 400 Bad Request
+Content-Type: text/plain; charset=utf-8
+
+Malformed XML: unexpected end of file at line 12 column 3`;
+
+const SAMPLE_HTTP_415 = `HTTP/1.1 415 Unsupported Media Type
+Content-Type: text/plain; charset=utf-8
+
+Content-Type must be text/xml; charset=utf-8`;
+
+const SAMPLE_HTTP_405 = `HTTP/1.1 405 Method Not Allowed
+Allow: POST
+Content-Type: text/plain; charset=utf-8
+
+Only POST is allowed for SOAP endpoint`;
+
+
 const methods = [
   {
     id: "avail",
