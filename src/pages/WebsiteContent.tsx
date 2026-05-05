@@ -1063,6 +1063,7 @@ const WebsiteContent = () => {
               paymentMethods: Array.isArray(bookingSettings?.payment_methods) 
                 ? (bookingSettings.payment_methods as string[])
                 : [],
+              bankAccountInfo: (bookingSettings as any)?.bank_account_info || "",
               cancellationPolicy: bookingSettings?.cancellation_policy || "",
               checkInNotice: checkInNoticeData?.check_in_notice || "",
               petPolicy: bookingSettings?.pet_policy || "",
