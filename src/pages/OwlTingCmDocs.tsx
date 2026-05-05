@@ -413,12 +413,7 @@ const OwlTingCmDocs = () => {
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-4">
-                <Link to="/">
-                  <Button variant="ghost" size="sm" className="gap-2">
-                    <ArrowLeft className="h-4 w-4" />
-                    返回首頁
-                  </Button>
-                </Link>
+                {null}
                 <div>
                   <h1 className="text-xl font-bold">OwlTing Channel Manager API</h1>
                   <p className="text-sm text-muted-foreground">人客多 × 奧丁丁 介接技術文件 v1.0</p>
@@ -831,11 +826,6 @@ const OwlTingCmDocs = () => {
                   <li>建議實作 retry：HTTP 5xx / 網路錯誤可重試，4xx 與 OTA Error 應人工介入。</li>
                   <li>所有 inbound / outbound 流量皆會記錄於 <code>owlting_cm_logs</code>，可向窗口申請查詢。</li>
                 </ul>
-                <Separator className="my-3" />
-                <p className="text-xs text-muted-foreground">
-                  技術窗口請聯絡 <a className="underline" href="mailto:tech@lakeze.com">tech@lakeze.com</a>。
-                  本文件版本：v1.0 (2026-05)。
-                </p>
               </CardContent>
             </Card>
           </section>
