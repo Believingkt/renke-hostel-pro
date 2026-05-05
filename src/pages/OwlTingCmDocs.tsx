@@ -826,11 +826,6 @@ const OwlTingCmDocs = () => {
                   <li>建議實作 retry：HTTP 5xx / 網路錯誤可重試，4xx 與 OTA Error 應人工介入。</li>
                   <li>所有 inbound / outbound 流量皆會記錄於 <code>owlting_cm_logs</code>，可向窗口申請查詢。</li>
                 </ul>
-                <Separator className="my-3" />
-                <p className="text-xs text-muted-foreground">
-                  技術窗口請聯絡 <a className="underline" href="mailto:tech@lakeze.com">tech@lakeze.com</a>。
-                  本文件版本：v1.0 (2026-05)。
-                </p>
               </CardContent>
             </Card>
           </section>
