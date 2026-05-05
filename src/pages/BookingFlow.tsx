@@ -1161,7 +1161,7 @@ const BookingFlow = () => {
     };
 
     loadTapPaySDK();
-  }, [currentStep, paymentMethod, tappayConfig]);
+  }, [currentStep, needsCardForm, tappayConfig]);
 
   // 第二步：當 DOM 元素準備好後設定 TapPay 表單
   useEffect(() => {
