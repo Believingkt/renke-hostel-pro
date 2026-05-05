@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubdomain } from "@/hooks/use-subdomain";
+import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { usePageAnalytics } from "@/hooks/use-page-analytics";
 import { Button } from "@/components/ui/button";
@@ -136,6 +137,7 @@ const BookingFlow = () => {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const { accommodationId, isLoading: subdomainLoading, error: subdomainError } = useSubdomain();
+  const keyboardInset = useKeyboardInset();
   const { 
     checkInDate, 
     setCheckInDate, 
@@ -4678,9 +4680,22 @@ const BookingFlow = () => {
               </CardContent>
             </Card>
             {/* 手機版底部固定按鈕佔位 */}
-            <div className="h-32 md:hidden" aria-hidden="true" />
+            <div
+              className="md:hidden"
+              aria-hidden="true"
+              style={{ height: keyboardInset > 0 ? `${keyboardInset + 80}px` : "8rem" }}
+            />
             {/* Navigation Buttons */}
-            <div className="flex gap-3 sm:gap-4 mt-4 sm:mt-6 fixed bottom-16 left-0 right-0 bg-background py-3 px-3 border-t z-40 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] md:static md:bottom-auto md:bg-transparent md:py-0 md:px-0 md:border-t-0 md:pb-0">
+            <div
+              className="flex gap-3 sm:gap-4 mt-4 sm:mt-6 fixed left-0 right-0 bg-background py-3 px-3 border-t z-40 transition-[bottom] duration-150 md:static md:bottom-auto md:bg-transparent md:py-0 md:px-0 md:border-t-0 md:pb-0"
+              style={{
+                bottom: keyboardInset > 0 ? `${keyboardInset}px` : "4rem",
+                paddingBottom:
+                  keyboardInset > 0
+                    ? "0.75rem"
+                    : "calc(env(safe-area-inset-bottom) + 0.75rem)",
+              }}
+            >
               {currentStep !== "dates" && (
                 <Button
                   variant="outline"
