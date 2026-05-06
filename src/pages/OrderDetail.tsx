@@ -229,6 +229,7 @@ const OrderDetailPage = () => {
   const isSensan = order?.accommodation_id === SENSAN_ACC_ID;
   const isHakuna = order?.accommodation_id === HAKUNA_ACC_ID;
   const exclusiveLabel = isSensan ? "包區" : "包棟";
+  const [roomUnits, setRoomUnits] = useState<RoomUnitOption[]>([]);
   const MAX_TOTAL_ROOMS = isHakuna ? 7 : 6;
   const MAX_DOUBLE_ROOMS = isHakuna ? 2 : 3;
   const MAX_QUAD_ROOMS = isHakuna ? 4 : 3;
