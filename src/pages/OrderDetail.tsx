@@ -220,8 +220,15 @@ const OrderDetailPage = () => {
   const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
   const [orderRooms, setOrderRooms] = useState<OrderRoom[]>([]);
   const [editOrderRooms, setEditOrderRooms] = useState<EditOrderRoom[]>([]);
-  const [editExclusiveDoubleRooms, setEditExclusiveDoubleRooms] = useState(0);
-  const [editExclusiveQuadRooms, setEditExclusiveQuadRooms] = useState(0);
+  const [editExclusiveConfigs, setEditExclusiveConfigs] = useState<Array<{ double: number; quad: number }>>([]);
+  const setExclusiveConfigAt = useCallback((idx: number, patch: Partial<{ double: number; quad: number }>) => {
+    setEditExclusiveConfigs(prev => {
+      const next = [...prev];
+      while (next.length <= idx) next.push({ double: 0, quad: 0 });
+      next[idx] = { ...next[idx], ...patch };
+      return next;
+    });
+  }, []);
   // 只有森山寫照保留「包區」用語，其餘民宿一律使用「包棟」
   const SENSAN_ACC_ID = "5f764d55-ae11-4631-80fe-2e611853deae";
   // 哈庫納馬塔塔：最多 2 雙人房 + 4 四人房 = 6 間
@@ -377,11 +384,15 @@ const OrderDetailPage = () => {
 
   const startEditing = () => {
     if (!order) return;
-    // Parse exclusive package room config from notes
+    // Parse exclusive package room configs from notes (one line per 包棟)
     const notesStr = order.notes || "";
-    const pkgMatch = notesStr.match(/【(?:包區|包棟)房間配置】雙人房\s*(\d+)\s*間、四人房\s*(\d+)\s*間/);
-    setEditExclusiveDoubleRooms(pkgMatch ? parseInt(pkgMatch[1]) : 0);
-    setEditExclusiveQuadRooms(pkgMatch ? parseInt(pkgMatch[2]) : 0);
+    const pkgRegex = /【(?:包區|包棟)房間配置】雙人房\s*(\d+)\s*間、四人房\s*(\d+)\s*間/g;
+    const parsedConfigs: Array<{ double: number; quad: number }> = [];
+    let m: RegExpExecArray | null;
+    while ((m = pkgRegex.exec(notesStr)) !== null) {
+      parsedConfigs.push({ double: parseInt(m[1]) || 0, quad: parseInt(m[2]) || 0 });
+    }
+    setEditExclusiveConfigs(parsedConfigs);
     setEditForm({
       guest_name: order.guest_name || "",
       guest_phone: order.guest_phone || "",
@@ -611,20 +622,23 @@ const OrderDetailPage = () => {
     try {
       const editFinalPriceCalc = editForm.total_price + editForm.addon_total - editForm.discount_amount;
 
-      // If any edited room is an exclusive package, regenerate the [包區房間配置] note line
-      const hasExclusivePackage =
-        editOrderRooms.some(r => roomTypes.find(t => t.id === r.room_type_id)?.is_exclusive_package) ||
-        !!roomTypes.find(t => t.id === editForm.room_type_id)?.is_exclusive_package;
+      // If any edited room is an exclusive package, regenerate one [包區/包棟房間配置] line per 包棟
+      const exclusiveRows = editOrderRooms.filter(r => roomTypes.find(t => t.id === r.room_type_id)?.is_exclusive_package);
       let finalNotes = editForm.notes.trim();
-      // Strip any existing 包區/包棟房間配置 line first
+      // Strip any existing 包區/包棟房間配置 lines first
       finalNotes = finalNotes
         .split("\n")
         .filter(line => !/^【(?:包區|包棟)房間配置】/.test(line.trim()))
         .join("\n")
         .trim();
-      if (hasExclusivePackage && (editExclusiveDoubleRooms > 0 || editExclusiveQuadRooms > 0)) {
-        const pkgLine = `【${exclusiveLabel}房間配置】雙人房 ${editExclusiveDoubleRooms} 間、四人房 ${editExclusiveQuadRooms} 間`;
-        finalNotes = finalNotes ? `${pkgLine}\n${finalNotes}` : pkgLine;
+      if (exclusiveRows.length > 0) {
+        const pkgLines = exclusiveRows.map((_, i) => {
+          const cfg = editExclusiveConfigs[i] || { double: 0, quad: 0 };
+          return `【${exclusiveLabel}房間配置】雙人房 ${cfg.double} 間、四人房 ${cfg.quad} 間`;
+        }).filter(line => /雙人房 [1-9]|四人房 [1-9]/.test(line));
+        if (pkgLines.length > 0) {
+          finalNotes = finalNotes ? `${pkgLines.join("\n")}\n${finalNotes}` : pkgLines.join("\n");
+        }
       }
 
       const updateData: Record<string, any> = {
@@ -1789,11 +1803,15 @@ const OrderDetailPage = () => {
                   {isEditing ? (
                     <>
                       {(() => {
-                        const firstExclusiveId = editOrderRooms.find(r => roomTypes.find(t => t.id === r.room_type_id)?.is_exclusive_package)?.id;
+                        const exclusiveIds = editOrderRooms
+                          .filter(r => roomTypes.find(t => t.id === r.room_type_id)?.is_exclusive_package)
+                          .map(r => r.id);
                         return editOrderRooms.map((or, idx) => {
                           const totalOther = editOrderRooms.reduce((sum, r) => r.id === or.id ? sum : sum + r.quantity, 0);
                           const isThisExclusive = !!roomTypes.find(t => t.id === or.room_type_id)?.is_exclusive_package;
-                          const showExclusiveConfig = isThisExclusive && or.id === firstExclusiveId;
+                          const exclusiveIdx = isThisExclusive ? exclusiveIds.indexOf(or.id) : -1;
+                          const showExclusiveConfig = isThisExclusive;
+                          const cfg = exclusiveIdx >= 0 ? (editExclusiveConfigs[exclusiveIdx] || { double: 0, quad: 0 }) : { double: 0, quad: 0 };
                           return (
                           <div key={or.id} className="space-y-2">
                           <div className="p-2.5 rounded-lg border bg-muted/30 space-y-2">
@@ -1932,7 +1950,7 @@ const OrderDetailPage = () => {
                               <div className="grid grid-cols-2 gap-2">
                                 <div className="space-y-1">
                                   <Label className="text-xs">雙人房間數</Label>
-                                  <Select value={String(editExclusiveDoubleRooms)} onValueChange={(v) => setEditExclusiveDoubleRooms(Number(v))}>
+                                  <Select value={String(cfg.double)} onValueChange={(v) => setExclusiveConfigAt(exclusiveIdx, { double: Number(v) })}>
                                     <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                                     <SelectContent>
                                       {doubleRoomOptions.map(n => (
@@ -1943,7 +1961,7 @@ const OrderDetailPage = () => {
                                 </div>
                                 <div className="space-y-1">
                                   <Label className="text-xs">四人房間數</Label>
-                                  <Select value={String(editExclusiveQuadRooms)} onValueChange={(v) => setEditExclusiveQuadRooms(Number(v))}>
+                                  <Select value={String(cfg.quad)} onValueChange={(v) => setExclusiveConfigAt(exclusiveIdx, { quad: Number(v) })}>
                                     <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                                     <SelectContent>
                                       {quadRoomOptions.map(n => (
@@ -1953,7 +1971,7 @@ const OrderDetailPage = () => {
                                   </Select>
                                 </div>
                               </div>
-                              <p className="text-xs text-muted-foreground">將以備註形式儲存：雙人房 {editExclusiveDoubleRooms} 間、四人房 {editExclusiveQuadRooms} 間</p>
+                              <p className="text-xs text-muted-foreground">將以備註形式儲存：雙人房 {cfg.double} 間、四人房 {cfg.quad} 間</p>
                             </div>
                           )}
                           </div>
@@ -2032,7 +2050,7 @@ const OrderDetailPage = () => {
                       <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1">
                           <Label className="text-xs">雙人房間數</Label>
-                          <Select value={String(editExclusiveDoubleRooms)} onValueChange={(v) => setEditExclusiveDoubleRooms(Number(v))}>
+                          <Select value={String(editExclusiveConfigs[0]?.double || 0)} onValueChange={(v) => setExclusiveConfigAt(0, { double: Number(v) })}>
                             <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               {doubleRoomOptions.map(n => (
@@ -2043,7 +2061,7 @@ const OrderDetailPage = () => {
                         </div>
                         <div className="space-y-1">
                           <Label className="text-xs">四人房間數</Label>
-                          <Select value={String(editExclusiveQuadRooms)} onValueChange={(v) => setEditExclusiveQuadRooms(Number(v))}>
+                          <Select value={String(editExclusiveConfigs[0]?.quad || 0)} onValueChange={(v) => setExclusiveConfigAt(0, { quad: Number(v) })}>
                             <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               {quadRoomOptions.map(n => (
@@ -2053,7 +2071,7 @@ const OrderDetailPage = () => {
                           </Select>
                         </div>
                       </div>
-                      <p className="text-xs text-muted-foreground">將以備註形式儲存：雙人房 {editExclusiveDoubleRooms} 間、四人房 {editExclusiveQuadRooms} 間</p>
+                      <p className="text-xs text-muted-foreground">將以備註形式儲存：雙人房 {editExclusiveConfigs[0]?.double || 0} 間、四人房 {editExclusiveConfigs[0]?.quad || 0} 間</p>
                     </div>
                   </>
                 )}
