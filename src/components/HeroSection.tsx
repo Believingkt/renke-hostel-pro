@@ -246,9 +246,11 @@ const HeroSection = ({
 
   // 載入房間庫存可用日期
   // AVAILABILITY_CACHE_VERSION：每次邏輯有變動時遞增，可強制清除舊版本快取
-  const AVAILABILITY_CACHE_VERSION = 'v8-2026-05-01-hakuna-is-available';
+  const AVAILABILITY_CACHE_VERSION = 'v9-2026-05-06-sensan-strict';
   // 哈庫納馬塔塔住宿 ID:套用「包棟房型 ≥2 個無庫存即關閉整天,散客房型不參與判斷」
   const HAKUNA_ACCOMMODATION_ID = '6b6ac0dc-602b-4dec-9167-7791ac412ba3';
+  // 森山寫照住宿 ID:套用「散客側 AND 包區側 都要至少一個有空才開啟」
+  const SENSAN_ACCOMMODATION_ID = '5f764d55-ae11-4631-80fe-2e611853deae';
 
   useEffect(() => {
     const loadAvailability = async () => {
@@ -337,35 +339,39 @@ const HeroSection = ({
       // - 哈庫納馬塔塔特例:只看包棟房型(is_exclusive_package=true),
       //   若有 2 個(含)以上包棟無庫存或被封鎖,則整天關閉;散客房型不參與判斷
       const isHakuna = accId === HAKUNA_ACCOMMODATION_ID;
+      const isSensan = accId === SENSAN_ACCOMMODATION_ID;
       const packageRoomTypes = roomTypes.filter((rt: any) => rt.is_exclusive_package === true);
+      // 散客房型：非包區
+      const commonRoomTypes = roomTypes.filter((rt: any) => rt.is_exclusive_package !== true);
+
+      const isRoomAvailable = (rt: any, date: string): boolean => {
+        const base = baseIndex.get(`${rt.id}:${date}`);
+        if (base && base.is_available === false) return false;
+        const adj = adjustedIndex.get(`${rt.id}:${date}`);
+        if (!adj) return false;
+        if (adj.is_blocked) return false;
+        return adj.available_rooms > 0;
+      };
 
       const available = new Set<string>();
       for (const date of allDates) {
         if (isHakuna && packageRoomTypes.length > 0) {
-          // 計算當天「無庫存」的包棟房型數量
-          // 條件:未設定/被封鎖/available_rooms<=0/後台 is_available=false
-          const unavailablePackageCount = packageRoomTypes.filter((rt: any) => {
-            const base = baseIndex.get(`${rt.id}:${date}`);
-            if (base && base.is_available === false) return true;
-            const adj = adjustedIndex.get(`${rt.id}:${date}`);
-            if (!adj) return true;
-            if (adj.is_blocked) return true;
-            return adj.available_rooms <= 0;
-          }).length;
-
+          const unavailablePackageCount = packageRoomTypes.filter((rt: any) => !isRoomAvailable(rt, date)).length;
           if (unavailablePackageCount < 2) {
             available.add(date);
           }
           continue;
         }
 
-        const ok = roomTypes.some((rt: any) => {
-          const adj = adjustedIndex.get(`${rt.id}:${date}`);
-          if (!adj) return false;
-          if (adj.is_blocked) return false;
-          return adj.available_rooms > 0;
-        });
+        if (isSensan && packageRoomTypes.length > 0 && commonRoomTypes.length > 0) {
+          // 森山:散客側與包區側都要至少一個有空
+          const commonOk = commonRoomTypes.some((rt: any) => isRoomAvailable(rt, date));
+          const packageOk = packageRoomTypes.some((rt: any) => isRoomAvailable(rt, date));
+          if (commonOk && packageOk) available.add(date);
+          continue;
+        }
 
+        const ok = roomTypes.some((rt: any) => isRoomAvailable(rt, date));
         if (ok) available.add(date);
       }
 
