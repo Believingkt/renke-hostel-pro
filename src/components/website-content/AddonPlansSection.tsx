@@ -356,6 +356,38 @@ export const AddonPlansSection = ({
     }
   };
 
+  const handleRenameClick = (addonType: string) => {
+    setRenameTarget(addonType);
+    setRenameValue(addonType);
+    setRenameError("");
+  };
+
+  const handleConfirmRename = () => {
+    if (!renameTarget) return;
+    const trimmed = renameValue.trim();
+    if (!trimmed) {
+      setRenameError("方案名稱不能為空");
+      return;
+    }
+    if (trimmed === renameTarget) {
+      setRenameTarget(null);
+      return;
+    }
+    const normalized = trimmed.toLowerCase();
+    const isDuplicate = addonPlans.some(
+      p => p.addon_type !== renameTarget && p.addon_type.toLowerCase() === normalized
+    );
+    if (isDuplicate) {
+      setRenameError("已存在相同名稱的方案");
+      return;
+    }
+    const updated = addonPlans.map(p =>
+      p.addon_type === renameTarget ? { ...p, addon_type: trimmed } : p
+    );
+    onUpdate(updated);
+    setRenameTarget(null);
+  };
+
   const AddDialog = isMobile ? (
     <Drawer open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
       <DrawerContent>
