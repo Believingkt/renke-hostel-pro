@@ -334,10 +334,11 @@ const HeroSection = ({
         });
       }
 
-      // 規則:
-      // - 預設:任一房型(散客或包區)仍有可訂庫存(rooms > 0 且未被封鎖)即開啟
-      // - 哈庫納馬塔塔特例:只看包棟房型(is_exclusive_package=true),
-      //   若有 2 個(含)以上包棟無庫存或被封鎖,則整天關閉;散客房型不參與判斷
+      // ===== 前台首頁日曆開啟規則 =====
+      // 預設：任一房型(散客或包區)有空即開啟（寬鬆）
+      // 哈庫納馬塔塔：只看包棟，無空包棟 ≥2 才整天關閉，散客不參與（寬鬆）
+      // 森山：散客至少 1 有空 AND 全部包區都有空才開啟；
+      //       任一包區被訂走 OR 散客全無 → 整天關閉（嚴格）
       const isHakuna = accId === HAKUNA_ACCOMMODATION_ID;
       const isSensan = accId === SENSAN_ACCOMMODATION_ID;
       const packageRoomTypes = roomTypes.filter((rt: any) => rt.is_exclusive_package === true);
