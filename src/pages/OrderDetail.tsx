@@ -1874,6 +1874,7 @@ const OrderDetailPage = () => {
                               </div>
                             </div>
                             {(() => {
+                              if (!isYunxiu) return null;
                               const isPackage = !!roomTypes.find(rt => rt.id === or.room_type_id)?.is_exclusive_package;
                               if (isPackage || or.quantity !== 1) return null;
                               const availableUnits = roomUnits.filter(u => u.room_type_id === or.room_type_id);
