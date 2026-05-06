@@ -1329,7 +1329,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             )}
 
             {/* Add buttons in exclusive mode */}
-            {roomSelections.length > 0 && (
+            {roomSelections.length > 0 && !isSensan && !isHakuna && (
               <div className="flex gap-2 justify-end">
                 <Button type="button" variant="outline" size="sm" onClick={() => addRoomSelection(false)} disabled={roomTypes.filter(r => !r.is_exclusive_package).length === 0} className="h-8 gap-1">
                   <Plus className="h-3.5 w-3.5" />新增散客房
