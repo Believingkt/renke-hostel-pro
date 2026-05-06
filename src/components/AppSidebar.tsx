@@ -34,7 +34,8 @@ import {
   TrendingUp,
   Star,
   ConciergeBell,
-  Plug
+  Plug,
+  FileText
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { PreloadLink } from "@/components/PreloadLink";
@@ -110,6 +111,7 @@ const menuItems = [
   { title: "顧客資料", url: "/admin/customers", icon: Users, moduleKey: "customers" },
   { title: "網紅導購", url: "/admin/discount-codes", icon: Sparkles, moduleKey: "discount_codes" },
   { title: "請款管理", url: "/admin/settlement", icon: Banknote, moduleKey: "settlement" },
+  { title: "業主月結", url: "/admin/owner-settlement", icon: FileText, moduleKey: "owner_settlement" },
   { title: "通路管理", url: "/admin/channel-manager", icon: Plug, moduleKey: "channel_manager" },
   // { title: "流量分析", url: "/admin/analytics", icon: TrendingUp },
   { title: "帳號管理", url: "/admin/accounts", icon: KeyRound, moduleKey: "accounts" },

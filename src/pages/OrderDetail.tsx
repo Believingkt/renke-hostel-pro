@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -89,6 +90,7 @@ interface OrderDetail {
   meal_plan_total: number;
   custom_addon_details: CustomAddonDetail[] | null;
   order_source: string;
+  owner_direct?: boolean;
   room_type_id: string | null;
   room_types: {
     name: string;
@@ -153,6 +155,7 @@ interface EditFormState {
   guest_nationality: string;
   guest_count: number;
   order_source: string;
+  owner_direct: boolean;
   order_status: string;
   payment_status: string;
   deposit_payment_method: string;
@@ -304,6 +307,7 @@ const OrderDetailPage = () => {
     guest_nationality: "",
     guest_count: 1,
     order_source: "",
+    owner_direct: false,
     order_status: "",
     payment_status: "",
     deposit_payment_method: "",
@@ -370,6 +374,7 @@ const OrderDetailPage = () => {
       guest_nationality: order.guest_nationality || "",
       guest_count: order.guest_count || 1,
       order_source: order.order_source || "website",
+      owner_direct: !!order.owner_direct,
       order_status: order.order_status || "pending",
       payment_status: order.payment_status || "unpaid",
       deposit_payment_method: order.deposit_payment_method || "none",
@@ -612,6 +617,7 @@ const OrderDetailPage = () => {
         guest_nationality: editForm.guest_nationality.trim() || null,
         guest_count: editForm.guest_count,
         order_source: editForm.order_source,
+        owner_direct: editForm.owner_direct,
         order_status: editForm.order_status,
         payment_status: editForm.payment_status,
         deposit_payment_method: editForm.deposit_payment_method === "none" ? null : editForm.deposit_payment_method,
@@ -1472,6 +1478,20 @@ const OrderDetailPage = () => {
                   </SelectContent>
                 </Select>
               ) : getOrderSourceBadge(order.order_source)}
+            </div>
+            <Separator />
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">業主自帶客</span>
+              {isEditing ? (
+                <Switch
+                  checked={editForm.owner_direct}
+                  onCheckedChange={(v) => setEditForm(f => ({ ...f, owner_direct: v }))}
+                />
+              ) : (
+                <Badge variant={order.owner_direct ? "default" : "outline"}>
+                  {order.owner_direct ? "是 (不抽成)" : "否"}
+                </Badge>
+              )}
             </div>
             <Separator />
             <div className="flex justify-between items-center gap-2">

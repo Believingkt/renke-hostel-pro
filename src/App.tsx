@@ -80,6 +80,7 @@ const Notifications = lazy(() => import("./pages/Notifications"));
 const DataBackup = lazy(() => import("./pages/DataBackup"));
 const EmailTest = lazy(() => import("./pages/EmailTest"));
 const Settlement = lazy(() => import("./pages/Settlement"));
+const OwnerSettlement = lazy(() => import("./pages/OwnerSettlement"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Reception = lazy(() => import("./pages/Reception"));
 const ChannelManager = lazy(() => import("./pages/ChannelManager"));
@@ -312,6 +313,11 @@ function App() {
                     <Route path="admin/settlement" element={
                       <RequireModule module="settlement">
                         <Suspense fallback={<TableSkeleton rows={8} columns={6} />}><Settlement /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/owner-settlement" element={
+                      <RequireModule module="owner_settlement">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={8} />}><OwnerSettlement /></Suspense>
                       </RequireModule>
                     } />
                     <Route path="admin/email-test" element={

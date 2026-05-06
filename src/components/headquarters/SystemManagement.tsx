@@ -607,6 +607,89 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
             </CardContent>
           </Card>
 
+          {/* 業主月結設定 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                業主月結設定
+              </CardTitle>
+              <CardDescription>
+                設定平台抽成比例與每月行銷費用，套用於所有民宿的「業主月結」報表
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {(() => {
+                const setting = systemSettings.find(s => s.setting_key === "owner_settlement_config");
+                const value = (setting?.setting_value as {
+                  commission_rate?: number;
+                  marketing_fee_base?: number;
+                  marketing_fee_per_extra_property?: number;
+                }) || {};
+                const commission = value.commission_rate ?? 15;
+                const baseFee = value.marketing_fee_base ?? 48000;
+                const extraFee = value.marketing_fee_per_extra_property ?? 3000;
+
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>平台抽成比例 (%)</Label>
+                      <Input
+                        type="number"
+                        defaultValue={commission}
+                        min={0}
+                        max={100}
+                        step={0.1}
+                        onBlur={(e) => {
+                          const v = Number(e.target.value);
+                          if (v !== commission) {
+                            updateSetting("owner_settlement_config", { ...value, commission_rate: v });
+                          }
+                        }}
+                        disabled={savingSettings}
+                      />
+                      <p className="text-xs text-muted-foreground">餐飲費用不抽成</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>每月行銷費 (1 棟，NT$)</Label>
+                      <Input
+                        type="number"
+                        defaultValue={baseFee}
+                        min={0}
+                        step={100}
+                        onBlur={(e) => {
+                          const v = Number(e.target.value);
+                          if (v !== baseFee) {
+                            updateSetting("owner_settlement_config", { ...value, marketing_fee_base: v });
+                          }
+                        }}
+                        disabled={savingSettings}
+                      />
+                      <p className="text-xs text-muted-foreground">業主基本行銷費</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>每多 1 棟加收 (NT$)</Label>
+                      <Input
+                        type="number"
+                        defaultValue={extraFee}
+                        min={0}
+                        step={100}
+                        onBlur={(e) => {
+                          const v = Number(e.target.value);
+                          if (v !== extraFee) {
+                            updateSetting("owner_settlement_config", { ...value, marketing_fee_per_extra_property: v });
+                          }
+                        }}
+                        disabled={savingSettings}
+                      />
+                      <p className="text-xs text-muted-foreground">每多 1 棟自動加上此金額</p>
+                    </div>
+                  </div>
+                );
+              })()}
+            </CardContent>
+          </Card>
+
         </TabsContent>
 
         {/* API Keys Tab */}
