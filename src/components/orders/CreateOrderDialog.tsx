@@ -1410,9 +1410,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                         <SelectValue placeholder="選擇房型" />
                       </SelectTrigger>
                       <SelectContent>
-                        {roomTypes.filter(r => !r.is_exclusive_package).map((rt) => (
+                        {roomTypes.map((rt) => (
                           <SelectItem key={rt.id} value={rt.id}>
-                            {rt.name} (最多{rt.capacity}人)
+                            {rt.is_exclusive_package ? `【${exclusiveLabel}】` : ""}{rt.name} (最多{rt.capacity}人)
                           </SelectItem>
                         ))}
                       </SelectContent>
