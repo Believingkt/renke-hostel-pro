@@ -638,7 +638,7 @@ const OrderDetailPage = () => {
       // Strip any existing 包區/包棟房間配置 lines first
       finalNotes = finalNotes
         .split("\n")
-        .filter(line => !/^【(?:包區|包棟)房間配置】/.test(line.trim()))
+        .filter(line => !/^【\s*(?:包區|包棟)\s*房間配置\s*】/.test(line.trim()))
         .join("\n")
         .trim();
       if (exclusiveRows.length > 0) {
