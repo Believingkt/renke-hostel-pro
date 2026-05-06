@@ -226,8 +226,11 @@ const OrderDetailPage = () => {
   const SENSAN_ACC_ID = "5f764d55-ae11-4631-80fe-2e611853deae";
   // 哈庫納馬塔塔：最多 2 雙人房 + 4 四人房 = 6 間
   const HAKUNA_ACC_ID = "6b6ac0dc-602b-4dec-9167-7791ac412ba3";
+  // 雲岫海景度假會館：唯一啟用「指派房間（散客單元）」功能的民宿
+  const YUNXIU_ACC_ID = "7690a606-6bac-4cd5-a3e7-2fa754b318e8";
   const isSensan = order?.accommodation_id === SENSAN_ACC_ID;
   const isHakuna = order?.accommodation_id === HAKUNA_ACC_ID;
+  const isYunxiu = order?.accommodation_id === YUNXIU_ACC_ID;
   const exclusiveLabel = isSensan ? "包區" : "包棟";
   const [roomUnits, setRoomUnits] = useState<RoomUnitOption[]>([]);
   const MAX_TOTAL_ROOMS = isHakuna ? 7 : 6;
