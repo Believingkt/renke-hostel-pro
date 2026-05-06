@@ -386,12 +386,22 @@ const OrderDetailPage = () => {
     if (!order) return;
     // Parse exclusive package room configs from notes (one line per 包棟)
     const notesStr = order.notes || "";
-    const pkgRegex = /【(?:包區|包棟)房間配置】雙人房\s*(\d+)\s*間、四人房\s*(\d+)\s*間/g;
+    // 逐行擷取「【包區/包棟房間配置】...」，雙人房/四人房數量分別獨立解析，
+    // 容忍分隔符 (、,，/) 與空白差異，缺一邊則視為 0。
+    const pkgLineRegex = /【\s*(?:包區|包棟)\s*房間配置\s*】\s*(.+)/;
     const parsedConfigs: Array<{ double: number; quad: number }> = [];
-    let m: RegExpExecArray | null;
-    while ((m = pkgRegex.exec(notesStr)) !== null) {
-      parsedConfigs.push({ double: parseInt(m[1]) || 0, quad: parseInt(m[2]) || 0 });
-    }
+    notesStr.split(/\r?\n/).forEach(line => {
+      const lm = line.match(pkgLineRegex);
+      if (!lm) return;
+      const body = lm[1];
+      const dm = body.match(/雙人房\s*(\d+)\s*間?/);
+      const qm = body.match(/四人房\s*(\d+)\s*間?/);
+      if (!dm && !qm) return;
+      parsedConfigs.push({
+        double: dm ? parseInt(dm[1]) || 0 : 0,
+        quad: qm ? parseInt(qm[1]) || 0 : 0,
+      });
+    });
     setEditExclusiveConfigs(parsedConfigs);
     setEditForm({
       guest_name: order.guest_name || "",
