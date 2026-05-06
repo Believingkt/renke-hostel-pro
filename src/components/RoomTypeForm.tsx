@@ -32,6 +32,7 @@ import {
   rectSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { RoomUnitsManager } from "@/components/RoomUnitsManager";
 
 interface RoomTypeFormProps {
   accommodationId: string;
