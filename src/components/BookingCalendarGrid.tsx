@@ -394,7 +394,6 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
         if (error) throw error;
       }
       toast.success(newUnitId ? "已指派房間" : "已取消指派");
-      setAssigningEntryId(null);
       await loadData();
     } catch (err: any) {
       console.error(err);
