@@ -156,9 +156,8 @@ serve(async (req) => {
     const externalCheckIn = checkIn.replace(/-/g, '/');
     const externalCheckOut = checkOut.replace(/-/g, '/');
 
-    console.log(`[External API] Calling SearchAll: CID=${mapping.cid_code}, CheckIn=${externalCheckIn}, CheckOut=${externalCheckOut}`);
+    console.log(`[External API] SearchAll: CID=${cidCode}, CheckIn=${externalCheckIn}, CheckOut=${externalCheckOut}, env=${mapping.api_environment}`);
 
-    // Call external distribution API via static-IP proxy
     const apiResponse = await fetchViaProxy(apiUrl, {
       method: 'POST',
       headers: {
@@ -168,7 +167,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         Control: 'SearchAll',
-        CIDCode: mapping.cid_code,
+        CIDCode: cidCode,
         CheckIn: externalCheckIn,
         CheckOut: externalCheckOut,
       }),
