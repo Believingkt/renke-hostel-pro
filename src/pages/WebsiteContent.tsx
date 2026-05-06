@@ -2677,7 +2677,8 @@ const WebsiteContent = () => {
       }
 
       // Save all addon plans
-      for (const plan of addonPlans) {
+      for (let i = 0; i < addonPlans.length; i++) {
+        const plan = addonPlans[i];
         const getDescriptionText = (plan: AddonPlan) => {
           if (plan.addon_type === 'pet') {
             return `每隻 NT$ ${plan.price_per_unit} / 每晚`;
@@ -2700,7 +2701,8 @@ const WebsiteContent = () => {
             weekend_min_quantity: plan.weekend_min_quantity,
             unit_label: plan.unit_label,
             description: getDescriptionText(plan),
-            detailed_description: plan.detailed_description
+            detailed_description: plan.detailed_description,
+            sort_order: i,
           }, {
             onConflict: 'accommodation_id,addon_type'
           });
@@ -2712,7 +2714,9 @@ const WebsiteContent = () => {
       const { data: updatedAddonData } = await supabase
         .from("addon_settings")
         .select("*")
-        .eq("accommodation_id", accommodationId);
+        .eq("accommodation_id", accommodationId)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true });
 
       if (updatedAddonData) {
         const plans: AddonPlan[] = updatedAddonData.map(item => ({
