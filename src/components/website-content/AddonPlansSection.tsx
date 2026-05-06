@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, GripVertical } from "lucide-react";
+import { Plus, Trash2, GripVertical, Pencil } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -123,7 +123,10 @@ interface SortablePlanCardProps {
   onValidate: (addonType: string, fieldName: string, value: string) => void;
   onToggleEnabled?: (addonType: string, enabled: boolean) => Promise<void>;
   onDeleteClick: (addonType: string) => void;
+  onRenameClick: (addonType: string) => void;
 }
+
+const isBuiltInType = (addonType: string) => addonType === 'pet' || addonType === 'meal';
 
 const SortablePlanCard = ({
   plan,
@@ -133,6 +136,7 @@ const SortablePlanCard = ({
   onValidate,
   onToggleEnabled,
   onDeleteClick,
+  onRenameClick,
 }: SortablePlanCardProps) => {
   const {
     attributes,
@@ -150,6 +154,8 @@ const SortablePlanCard = ({
     zIndex: isDragging ? 10 : 'auto' as const,
   };
 
+  const canRename = !isBuiltInType(plan.addon_type);
+
   return (
     <div ref={setNodeRef} style={style}>
       <Card className={isDragging ? 'shadow-lg ring-2 ring-primary/20' : ''}>
@@ -166,6 +172,17 @@ const SortablePlanCard = ({
                 <GripVertical className="h-5 w-5 text-muted-foreground" />
               </button>
               <span>{getDisplayName(plan.addon_type)}</span>
+              {canRename && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                  onClick={() => onRenameClick(plan.addon_type)}
+                  aria-label="編輯方案名稱"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+              )}
             </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
@@ -287,6 +304,9 @@ export const AddonPlansSection = ({
   const [newPlanName, setNewPlanName] = useState("");
   const [newPlanNameError, setNewPlanNameError] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [renameTarget, setRenameTarget] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [renameError, setRenameError] = useState("");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -334,6 +354,38 @@ export const AddonPlansSection = ({
       onDelete(deleteTarget);
       setDeleteTarget(null);
     }
+  };
+
+  const handleRenameClick = (addonType: string) => {
+    setRenameTarget(addonType);
+    setRenameValue(addonType);
+    setRenameError("");
+  };
+
+  const handleConfirmRename = () => {
+    if (!renameTarget) return;
+    const trimmed = renameValue.trim();
+    if (!trimmed) {
+      setRenameError("方案名稱不能為空");
+      return;
+    }
+    if (trimmed === renameTarget) {
+      setRenameTarget(null);
+      return;
+    }
+    const normalized = trimmed.toLowerCase();
+    const isDuplicate = addonPlans.some(
+      p => p.addon_type !== renameTarget && p.addon_type.toLowerCase() === normalized
+    );
+    if (isDuplicate) {
+      setRenameError("已存在相同名稱的方案");
+      return;
+    }
+    const updated = addonPlans.map(p =>
+      p.addon_type === renameTarget ? { ...p, addon_type: trimmed } : p
+    );
+    onUpdate(updated);
+    setRenameTarget(null);
   };
 
   const AddDialog = isMobile ? (
@@ -417,6 +469,7 @@ export const AddonPlansSection = ({
                   onValidate={onValidate}
                   onToggleEnabled={onToggleEnabled}
                   onDeleteClick={setDeleteTarget}
+                  onRenameClick={handleRenameClick}
                 />
               ))}
             </div>
@@ -425,6 +478,28 @@ export const AddonPlansSection = ({
       )}
 
       {AddDialog}
+
+      <Dialog open={!!renameTarget} onOpenChange={(open) => { if (!open) setRenameTarget(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>編輯方案名稱</DialogTitle>
+            <DialogDescription>修改加購方案的顯示名稱</DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <ValidatedInput
+              label="方案名稱"
+              placeholder="例如：接送服務、烤肉方案"
+              value={renameValue}
+              error={renameError}
+              onChange={(value) => { setRenameValue(value); setRenameError(""); }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameTarget(null)}>取消</Button>
+            <Button onClick={handleConfirmRename}>儲存</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
         <AlertDialogContent>
