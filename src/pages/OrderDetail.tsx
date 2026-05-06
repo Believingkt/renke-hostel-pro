@@ -441,6 +441,7 @@ const OrderDetailPage = () => {
           room_price: correctedRoomPrice,
           unit_price: unitPrice,
           template_name: or.template_name,
+          room_unit_id: or.room_unit_id ?? null,
         };
       });
 
