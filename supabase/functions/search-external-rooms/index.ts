@@ -131,9 +131,18 @@ serve(async (req) => {
       );
     }
 
-    // Get API credentials from secrets
-    const accountId = Deno.env.get('EXTERNAL_BOOKING_ACCOUNT_ID');
-    const password = Deno.env.get('EXTERNAL_BOOKING_PASSWORD');
+    // Get API credentials from secrets (prefer TAIWAN_TRAVELMAP_*, fallback to legacy EXTERNAL_BOOKING_*)
+    const accountId = Deno.env.get('TAIWAN_TRAVELMAP_ACCOUNT_ID') || Deno.env.get('EXTERNAL_BOOKING_ACCOUNT_ID');
+    const password = Deno.env.get('TAIWAN_TRAVELMAP_PASSWORD') || Deno.env.get('EXTERNAL_BOOKING_PASSWORD');
+    // Allow secret-based default CID (overrides mapping when mapping.cid_code is empty)
+    const defaultCid = Deno.env.get('TAIWAN_TRAVELMAP_CID');
+    const cidCode = mapping.cid_code || defaultCid;
+    if (!cidCode) {
+      return new Response(
+        JSON.stringify({ error: '尚未設定 CIDCode' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (!accountId || !password) {
       console.error('Missing EXTERNAL_BOOKING_ACCOUNT_ID or EXTERNAL_BOOKING_PASSWORD');
