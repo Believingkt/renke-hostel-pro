@@ -1260,6 +1260,87 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                 )}
               </div>
             )}
+
+            {/* Extra rooms in exclusive mode: 可加散客單間或另一棟包棟 */}
+            {roomSelections.length > 1 && (
+              <div className="space-y-2">
+                <div className="text-xs font-medium text-muted-foreground">額外加房</div>
+                {roomSelections.slice(1).map((sel, idx) => {
+                  const rt = roomTypes.find(r => r.id === sel.room_type_id);
+                  const isExclusive = !!rt?.is_exclusive_package;
+                  return (
+                    <div key={sel.id} className="p-3 border rounded-lg space-y-3 bg-muted/30">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">{isExclusive ? exclusiveLabel : "散客房"} #{idx + 1}</span>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => removeRoomSelection(sel.id)} className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">房型 <span className="text-destructive">*</span></Label>
+                          <Select value={sel.room_type_id} onValueChange={(value) => updateRoomSelection(sel.id, { room_type_id: value })}>
+                            <SelectTrigger className="h-10 text-sm"><SelectValue placeholder="選擇房型" /></SelectTrigger>
+                            <SelectContent>
+                              {roomTypes.map((r) => (
+                                <SelectItem key={r.id} value={r.id}>
+                                  {r.is_exclusive_package ? `【${exclusiveLabel}】` : ""}{r.name} (最多{r.capacity}人)
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">專案</Label>
+                          {sel.filteredTemplates.length > 0 ? (
+                            <Select value={sel.template_id} onValueChange={(value) => {
+                              const t = sel.filteredTemplates.find(t => t.id === value);
+                              updateRoomSelection(sel.id, { template_id: value, template_name: t?.template_name || "" });
+                            }}>
+                              <SelectTrigger className="h-10 text-sm"><SelectValue placeholder="選擇專案" /></SelectTrigger>
+                              <SelectContent>
+                                {sel.filteredTemplates.map((t) => (
+                                  <SelectItem key={t.id} value={t.id}>{t.project_name || t.template_name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (<p className="text-xs text-muted-foreground py-2">無對應專案</p>)}
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">間數</Label>
+                          <div className="flex items-center gap-1.5">
+                            <Button type="button" variant="outline" size="sm" className="h-10 w-10 p-0" onClick={() => changeRoomQuantity(sel.id, -1)} disabled={isExclusive || sel.quantity <= 1}>
+                              <Minus className="h-3.5 w-3.5" />
+                            </Button>
+                            <span className="w-8 text-center text-sm font-medium">{sel.quantity}</span>
+                            <Button type="button" variant="outline" size="sm" className="h-10 w-10 p-0" onClick={() => changeRoomQuantity(sel.id, 1)} disabled={isExclusive}>
+                              <Plus className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      {sel.roomPrice > 0 && (
+                        <div className="text-xs text-right text-muted-foreground">小計：NT$ {sel.roomPrice.toLocaleString()} ({sel.quantity} 間)</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Add buttons in exclusive mode */}
+            {roomSelections.length > 0 && (
+              <div className="flex gap-2 justify-end">
+                <Button type="button" variant="outline" size="sm" onClick={() => addRoomSelection(false)} disabled={roomTypes.filter(r => !r.is_exclusive_package).length === 0} className="h-8 gap-1">
+                  <Plus className="h-3.5 w-3.5" />新增散客房
+                </Button>
+                {roomTypes.some(r => r.is_exclusive_package) && (
+                  <Button type="button" variant="outline" size="sm" onClick={() => addRoomSelection(true)} className="h-8 gap-1">
+                    <Plus className="h-3.5 w-3.5" />再加一棟{exclusiveLabel}
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         )}
 
