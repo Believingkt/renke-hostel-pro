@@ -1268,19 +1268,33 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Badge variant="outline" className="text-xs">
-                共 {totalRoomCount} / {MAX_TOTAL_ROOMS} 間
+                共 {totalRoomCount} 間
               </Badge>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addRoomSelection}
-                disabled={totalRoomCount >= MAX_TOTAL_ROOMS || roomTypes.filter(r => !r.is_exclusive_package).length === 0}
-                className="h-8 gap-1"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                新增房間
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addRoomSelection(false)}
+                  disabled={roomTypes.filter(r => !r.is_exclusive_package).length === 0}
+                  className="h-8 gap-1"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  新增散客房
+                </Button>
+                {roomTypes.some(r => r.is_exclusive_package) && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => addRoomSelection(true)}
+                    className="h-8 gap-1"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    新增{exclusiveLabel}
+                  </Button>
+                )}
+              </div>
             </div>
 
             {roomSelections.length === 0 && (
