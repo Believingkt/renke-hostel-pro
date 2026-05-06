@@ -353,6 +353,17 @@ const HeroSection = ({
         return adj.available_rooms > 0;
       };
 
+      // 森山專用：判斷該房型是否「被訂走」(庫存原本有開,被訂單佔光)
+      // - 庫存沒開 (is_available=false 或無基礎庫存) → 不算被訂走
+      // - 有基礎庫存但 RPC 回傳 available_rooms=0 或 is_blocked=true → 算被訂走
+      const isRoomBookedOut = (rt: any, date: string): boolean => {
+        const base = baseIndex.get(`${rt.id}:${date}`);
+        if (!base || base.is_available === false) return false; // 沒開,不算
+        const adj = adjustedIndex.get(`${rt.id}:${date}`);
+        if (!adj) return false;
+        return adj.is_blocked || adj.available_rooms <= 0;
+      };
+
       const available = new Set<string>();
       for (const date of allDates) {
         if (isHakuna && packageRoomTypes.length > 0) {
@@ -364,12 +375,18 @@ const HeroSection = ({
         }
 
         if (isSensan && packageRoomTypes.length > 0) {
-          // 森山嚴格規則：散客全無 OR 包區任一無 → 整天關閉
-          const commonOk = commonRoomTypes.length === 0
-            ? true
-            : commonRoomTypes.some((rt: any) => isRoomAvailable(rt, date));
-          const allPackagesOk = packageRoomTypes.every((rt: any) => isRoomAvailable(rt, date));
-          if (commonOk && allPackagesOk) available.add(date);
+          // 森山:任一包區「被訂走」→ 關閉
+          //       散客「全部被訂走」→ 關閉
+          //       (庫存沒開不算被訂走)
+          const anyPackageBookedOut = packageRoomTypes.some((rt: any) => isRoomBookedOut(rt, date));
+          if (anyPackageBookedOut) continue;
+
+          if (commonRoomTypes.length > 0) {
+            const allCommonBookedOut = commonRoomTypes.every((rt: any) => isRoomBookedOut(rt, date));
+            if (allCommonBookedOut) continue;
+          }
+
+          available.add(date);
           continue;
         }
 
