@@ -1970,6 +1970,12 @@ const OrderDetailPage = () => {
                                 專案：{or.template_name}
                               </div>
                             )}
+                            {or.room_units && (
+                              <div className="text-xs text-primary">
+                                指派房間：{or.room_units.unit_number}
+                                {or.room_units.nickname ? ` · ${or.room_units.nickname}` : ""}
+                              </div>
+                            )}
                             {displayRoomPrice > 0 && (
                               <div className="text-xs text-muted-foreground text-right">
                                 NT$ {displayRoomPrice.toLocaleString()}
