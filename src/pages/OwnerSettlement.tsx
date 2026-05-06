@@ -65,7 +65,8 @@ const fmt = (n: number) => Math.round(n).toLocaleString("zh-TW");
 
 export default function OwnerSettlement() {
   const { currentAccommodationId } = useAccommodation();
-  const [month, setMonth] = useState<Date>(startOfMonth(new Date()));
+  const [monthStr, setMonthStr] = useState<string>(format(new Date(), "yyyy-MM"));
+  const month = useMemo(() => startOfMonth(parseISO(monthStr + "-01")), [monthStr]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [roomTypes, setRoomTypes] = useState<RoomTypePricing[]>([]);
   const [config, setConfig] = useState<SettlementConfig>({
