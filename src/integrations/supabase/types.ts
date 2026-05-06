@@ -459,6 +459,7 @@ export type Database = {
           max_quantity: number
           min_quantity: number | null
           price_per_unit: number
+          sort_order: number
           unit_label: string
           updated_at: string | null
           weekday_min_quantity: number | null
@@ -475,6 +476,7 @@ export type Database = {
           max_quantity: number
           min_quantity?: number | null
           price_per_unit: number
+          sort_order?: number
           unit_label: string
           updated_at?: string | null
           weekday_min_quantity?: number | null
@@ -491,6 +493,7 @@ export type Database = {
           max_quantity?: number
           min_quantity?: number | null
           price_per_unit?: number
+          sort_order?: number
           unit_label?: string
           updated_at?: string | null
           weekday_min_quantity?: number | null
