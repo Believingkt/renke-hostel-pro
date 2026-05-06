@@ -111,6 +111,8 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
       .select("id, addon_type, description, price_per_unit, unit_label, max_quantity")
       .eq("accommodation_id", currentAccommodationId)
       .eq("enabled", true)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true })
       .then(({ data }) => {
         if (data) setAddonSettings(data);
       });

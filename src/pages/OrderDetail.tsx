@@ -1175,7 +1175,9 @@ const OrderDetailPage = () => {
             .from("addon_settings")
             .select("id, addon_type, description, unit_label, price_per_unit, max_quantity, enabled")
             .eq("accommodation_id", orderData.accommodation_id)
-            .eq("enabled", true);
+            .eq("enabled", true)
+            .order("sort_order", { ascending: true })
+            .order("created_at", { ascending: true });
           if (addonData) setAddonSettings(addonData as AddonSetting[]);
         }
       }

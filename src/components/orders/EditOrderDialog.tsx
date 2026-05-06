@@ -142,7 +142,9 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
           .from("addon_settings")
           .select("id, addon_type, description, price_per_unit, unit_label, enabled, max_quantity")
           .eq("accommodation_id", currentAccommodationId)
-          .eq("enabled", true),
+          .eq("enabled", true)
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: true }),
         supabase
           .from("pricing_templates")
           .select("id, template_name, meal_plans, project_name, room_type_id, price, weekday_price, peak_price, weekend_price")
