@@ -43,12 +43,23 @@ interface OrderRoom {
   order_id: string;
   room_type_id: string;
   quantity: number;
+  room_unit_id: string | null;
+}
+
+interface RoomUnit {
+  id: string;
+  room_type_id: string;
+  unit_number: string;
+  nickname: string | null;
+  display_order: number;
+  is_active: boolean;
 }
 
 // A virtual entry representing one room slot on the calendar
 interface CalendarEntry {
   id: string;
   orderId: string;
+  orderRoomId: string | null;
   order_number: string;
   guest_name: string;
   guest_phone: string;
@@ -57,6 +68,7 @@ interface CalendarEntry {
   order_status: string;
   order_source: string;
   room_type_id: string;
+  room_unit_id: string | null;
   notes: string | null;
 }
 
