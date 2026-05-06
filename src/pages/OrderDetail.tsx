@@ -580,6 +580,11 @@ const OrderDetailPage = () => {
         unit_price: unitPrice,
         template_name: or.template_name,
         room_unit_id: or.room_unit_id ?? null,
+      };
+    });
+    setEditOrderRooms(normalizedRooms);
+    const roomsTotal = normalizedRooms.reduce((sum, r) => sum + r.room_price, 0);
+    setEditForm(f => ({ ...f, total_price: roomsTotal }));
   }, [isEditing, orderRooms]);
 
   useEffect(() => {
