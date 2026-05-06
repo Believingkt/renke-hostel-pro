@@ -1706,6 +1706,7 @@ export type Database = {
           quantity: number
           room_price: number
           room_type_id: string
+          room_unit_id: string | null
           template_id: string | null
           template_name: string | null
         }
@@ -1716,6 +1717,7 @@ export type Database = {
           quantity?: number
           room_price?: number
           room_type_id: string
+          room_unit_id?: string | null
           template_id?: string | null
           template_name?: string | null
         }
@@ -1726,6 +1728,7 @@ export type Database = {
           quantity?: number
           room_price?: number
           room_type_id?: string
+          room_unit_id?: string | null
           template_id?: string | null
           template_name?: string | null
         }
@@ -1742,6 +1745,13 @@ export type Database = {
             columns: ["room_type_id"]
             isOneToOne: false
             referencedRelation: "room_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_rooms_room_unit_id_fkey"
+            columns: ["room_unit_id"]
+            isOneToOne: false
+            referencedRelation: "room_units"
             referencedColumns: ["id"]
           },
           {

@@ -125,7 +125,9 @@ interface OrderRoom {
   quantity: number;
   room_price: number;
   template_name: string | null;
+  room_unit_id?: string | null;
   room_types?: { name: string } | null;
+  room_units?: { unit_number: string; nickname: string | null } | null;
 }
 
 interface EditOrderRoom {
@@ -135,6 +137,17 @@ interface EditOrderRoom {
   room_price: number;
   unit_price: number;
   template_name: string | null;
+  room_unit_id?: string | null;
+}
+
+interface RoomUnitOption {
+  id: string;
+  room_type_id: string;
+  unit_number: string;
+  nickname: string | null;
+  is_active: boolean;
+  occupied_by_order_id?: string | null;
+  occupied_by_order_number?: string | null;
 }
 interface AddonSetting {
   id: string;
@@ -216,6 +229,7 @@ const OrderDetailPage = () => {
   const isSensan = order?.accommodation_id === SENSAN_ACC_ID;
   const isHakuna = order?.accommodation_id === HAKUNA_ACC_ID;
   const exclusiveLabel = isSensan ? "包區" : "包棟";
+  const [roomUnits, setRoomUnits] = useState<RoomUnitOption[]>([]);
   const MAX_TOTAL_ROOMS = isHakuna ? 7 : 6;
   const MAX_DOUBLE_ROOMS = isHakuna ? 2 : 3;
   const MAX_QUAD_ROOMS = isHakuna ? 4 : 3;
@@ -427,6 +441,7 @@ const OrderDetailPage = () => {
           room_price: correctedRoomPrice,
           unit_price: unitPrice,
           template_name: or.template_name,
+          room_unit_id: or.room_unit_id ?? null,
         };
       });
 
@@ -564,6 +579,7 @@ const OrderDetailPage = () => {
         room_price: correctedRoomPrice,
         unit_price: unitPrice,
         template_name: or.template_name,
+        room_unit_id: or.room_unit_id ?? null,
       };
     });
     setEditOrderRooms(normalizedRooms);
@@ -776,13 +792,18 @@ const OrderDetailPage = () => {
         }
 
         // Insert updated rooms
-        const newOrderRooms = editOrderRooms.map(r => ({
-          order_id: order.id,
-          room_type_id: r.room_type_id,
-          quantity: r.quantity,
-          room_price: r.room_price,
-          template_name: r.template_name,
-        }));
+        const newOrderRooms = editOrderRooms.map(r => {
+          const isPackage = !!roomTypes.find(rt => rt.id === r.room_type_id)?.is_exclusive_package;
+          return {
+            order_id: order.id,
+            room_type_id: r.room_type_id,
+            quantity: r.quantity,
+            room_price: r.room_price,
+            template_name: r.template_name,
+            // 包棟不需指派單一房間;quantity > 1 也不指派(只指派單間)
+            room_unit_id: isPackage || r.quantity !== 1 ? null : (r.room_unit_id || null),
+          };
+        });
         const { error: roomsError } = await supabase.from("order_rooms").insert(newOrderRooms);
         if (roomsError) throw roomsError;
       } else {
@@ -1013,7 +1034,7 @@ const OrderDetailPage = () => {
         // Fetch order_rooms (multi-room details)
         const { data: orderRoomsData } = await supabase
           .from("order_rooms")
-          .select("id, room_type_id, quantity, room_price, template_name, room_types(name)")
+          .select("id, room_type_id, quantity, room_price, template_name, room_unit_id, room_types(name), room_units(unit_number, nickname)")
           .eq("order_id", orderId);
         if (orderRoomsData && orderRoomsData.length > 0) {
           setOrderRooms(orderRoomsData as unknown as OrderRoom[]);
@@ -1029,6 +1050,40 @@ const OrderDetailPage = () => {
             .eq("accommodation_id", orderData.accommodation_id)
             .order("display_order", { ascending: true });
           if (rtData) setRoomTypes(rtData);
+
+          // Fetch room units for assignment dropdown (active only)
+          const { data: unitsData } = await supabase
+            .from("room_units" as any)
+            .select("id, room_type_id, unit_number, nickname, is_active")
+            .eq("accommodation_id", orderData.accommodation_id)
+            .eq("is_active", true)
+            .order("display_order", { ascending: true });
+          if (unitsData) {
+            // 查詢同期間已被佔用的 unit
+            const { data: occupiedData } = await supabase
+              .from("order_rooms")
+              .select("room_unit_id, orders!inner(id, order_number, order_status, check_in_date, check_out_date)")
+              .not("room_unit_id", "is", null)
+              .neq("order_id", orderId);
+            const occupiedMap = new Map<string, { id: string; order_number: string }>();
+            ((occupiedData as any) || []).forEach((row: any) => {
+              const o = row.orders;
+              if (!o || o.order_status === "cancelled") return;
+              if (
+                o.check_in_date < orderData.check_out_date &&
+                o.check_out_date > orderData.check_in_date
+              ) {
+                occupiedMap.set(row.room_unit_id, { id: o.id, order_number: o.order_number });
+              }
+            });
+            setRoomUnits(
+              (unitsData as any[]).map((u) => ({
+                ...u,
+                occupied_by_order_id: occupiedMap.get(u.id)?.id || null,
+                occupied_by_order_number: occupiedMap.get(u.id)?.order_number || null,
+              })),
+            );
+          }
 
           // Fetch all pricing templates for this accommodation so edited room rows can
           // resolve the correct room-type-specific inventory price, including holidays.
@@ -1815,6 +1870,37 @@ const OrderDetailPage = () => {
                                 </div>
                               </div>
                             </div>
+                            {(() => {
+                              const isPackage = !!roomTypes.find(rt => rt.id === or.room_type_id)?.is_exclusive_package;
+                              if (isPackage || or.quantity !== 1) return null;
+                              const availableUnits = roomUnits.filter(u => u.room_type_id === or.room_type_id);
+                              if (availableUnits.length === 0) return null;
+                              return (
+                                <div className="space-y-1">
+                                  <Label className="text-xs">指派房間</Label>
+                                  <Select
+                                    value={or.room_unit_id || "none"}
+                                    onValueChange={(v) => setEditOrderRooms(prev => prev.map(r => r.id === or.id ? { ...r, room_unit_id: v === "none" ? null : v } : r))}
+                                  >
+                                    <SelectTrigger className="h-8 text-xs">
+                                      <SelectValue placeholder="尚未指派" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="none">尚未指派</SelectItem>
+                                      {availableUnits.map(u => {
+                                        const occupied = u.occupied_by_order_id && u.id !== or.room_unit_id;
+                                        return (
+                                          <SelectItem key={u.id} value={u.id} disabled={!!occupied}>
+                                            {u.unit_number}{u.nickname ? ` · ${u.nickname}` : ""}
+                                            {occupied ? ` (已被 ${u.occupied_by_order_number} 佔用)` : ""}
+                                          </SelectItem>
+                                        );
+                                      })}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              );
+                            })()}
                             <div className="space-y-1">
                               <Label className="text-xs">金額</Label>
                               <Input
@@ -1882,6 +1968,12 @@ const OrderDetailPage = () => {
                             {or.template_name && (
                               <div className="text-xs text-muted-foreground">
                                 專案：{or.template_name}
+                              </div>
+                            )}
+                            {or.room_units && (
+                              <div className="text-xs text-primary">
+                                指派房間：{or.room_units.unit_number}
+                                {or.room_units.nickname ? ` · ${or.room_units.nickname}` : ""}
                               </div>
                             )}
                             {displayRoomPrice > 0 && (
