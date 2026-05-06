@@ -126,22 +126,41 @@ export function RoomUnitsManager({ roomTypeId, accommodationId, roomCount }: Roo
         return;
       }
 
-      // upsert
-      const payload = units.map((u, idx) => ({
-        ...(u.id.startsWith("new-") ? {} : { id: u.id }),
-        room_type_id: roomTypeId,
-        accommodation_id: accommodationId,
-        unit_number: u.unit_number.trim(),
-        nickname: u.nickname?.trim() || null,
-        display_order: idx,
-        is_active: u.is_active,
-        notes: u.notes,
-      }));
+      // 拆分為新增與更新
+      const toInsert = units
+        .filter((u) => u.id.startsWith("new-"))
+        .map((u, idx) => ({
+          room_type_id: roomTypeId,
+          accommodation_id: accommodationId,
+          unit_number: u.unit_number.trim(),
+          nickname: u.nickname?.trim() || null,
+          display_order: units.indexOf(u),
+          is_active: u.is_active,
+          notes: u.notes,
+        }));
 
-      const { error } = await supabase
-        .from("room_units" as any)
-        .upsert(payload as any);
-      if (error) throw error;
+      const toUpdate = units.filter((u) => !u.id.startsWith("new-"));
+
+      if (toInsert.length > 0) {
+        const { error } = await supabase
+          .from("room_units" as any)
+          .insert(toInsert as any);
+        if (error) throw error;
+      }
+
+      for (const u of toUpdate) {
+        const { error } = await supabase
+          .from("room_units" as any)
+          .update({
+            unit_number: u.unit_number.trim(),
+            nickname: u.nickname?.trim() || null,
+            display_order: units.indexOf(u),
+            is_active: u.is_active,
+            notes: u.notes,
+          })
+          .eq("id", u.id);
+        if (error) throw error;
+      }
 
       toast.success("已儲存房間設定");
       await load();
