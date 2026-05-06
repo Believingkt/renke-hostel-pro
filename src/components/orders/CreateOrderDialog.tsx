@@ -138,6 +138,14 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const [bookingMode, setBookingMode] = useState<"" | "exclusive" | "normal">("");
   const [exclusiveDoubleRooms, setExclusiveDoubleRooms] = useState(0);
   const [exclusiveQuadRooms, setExclusiveQuadRooms] = useState(0);
+  // 額外包棟（roomSelections[1..]）的房間配置，key = selection.id
+  const [extraExclusiveConfigs, setExtraExclusiveConfigs] = useState<Record<string, { double: number; quad: number }>>({});
+  const setExtraExclusiveConfig = useCallback((selId: string, patch: Partial<{ double: number; quad: number }>) => {
+    setExtraExclusiveConfigs(prev => ({
+      ...prev,
+      [selId]: { double: 0, quad: 0, ...(prev[selId] || {}), ...patch },
+    }));
+  }, []);
 
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [filteredTemplates, setFilteredTemplates] = useState<PricingTemplate[]>([]);
