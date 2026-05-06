@@ -246,9 +246,11 @@ const HeroSection = ({
 
   // 載入房間庫存可用日期
   // AVAILABILITY_CACHE_VERSION：每次邏輯有變動時遞增，可強制清除舊版本快取
-  const AVAILABILITY_CACHE_VERSION = 'v8-2026-05-01-hakuna-is-available';
+  const AVAILABILITY_CACHE_VERSION = 'v9-2026-05-06-sensan-strict';
   // 哈庫納馬塔塔住宿 ID:套用「包棟房型 ≥2 個無庫存即關閉整天,散客房型不參與判斷」
   const HAKUNA_ACCOMMODATION_ID = '6b6ac0dc-602b-4dec-9167-7791ac412ba3';
+  // 森山寫照住宿 ID:套用「散客側 AND 包區側 都要至少一個有空才開啟」
+  const SENSAN_ACCOMMODATION_ID = '5f764d55-ae11-4631-80fe-2e611853deae';
 
   useEffect(() => {
     const loadAvailability = async () => {
