@@ -469,6 +469,7 @@ export const AddonPlansSection = ({
                   onValidate={onValidate}
                   onToggleEnabled={onToggleEnabled}
                   onDeleteClick={setDeleteTarget}
+                  onRenameClick={handleRenameClick}
                 />
               ))}
             </div>
@@ -477,6 +478,28 @@ export const AddonPlansSection = ({
       )}
 
       {AddDialog}
+
+      <Dialog open={!!renameTarget} onOpenChange={(open) => { if (!open) setRenameTarget(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>編輯方案名稱</DialogTitle>
+            <DialogDescription>修改加購方案的顯示名稱</DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <ValidatedInput
+              label="方案名稱"
+              placeholder="例如：接送服務、烤肉方案"
+              value={renameValue}
+              error={renameError}
+              onChange={(value) => { setRenameValue(value); setRenameError(""); }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameTarget(null)}>取消</Button>
+            <Button onClick={handleConfirmRename}>儲存</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
         <AlertDialogContent>
