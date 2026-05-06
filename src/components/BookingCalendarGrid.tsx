@@ -685,8 +685,10 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
 
                     {/* Individual booking rows - group orders into "rooms" */}
                     {(() => {
+                      const YUNXIU_ACC_ID = "7690a606-6bac-4cd5-a3e7-2fa754b318e8";
+                      const isYunxiu = accommodationId === YUNXIU_ACC_ID;
                       const rtUnits = roomUnits.filter(u => u.room_type_id === roomType.id);
-                      const useUnits = rtUnits.length > 0 && !roomType.is_exclusive_package;
+                      const useUnits = isYunxiu && rtUnits.length > 0 && !roomType.is_exclusive_package;
 
                       type SlotMeta = { unitId: string | null; label: string; nickname?: string | null };
                       const slots: { meta: SlotMeta; entries: CalendarEntry[] }[] = [];
