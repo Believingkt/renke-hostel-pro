@@ -1924,6 +1924,7 @@ const OrderDetailPage = () => {
                                   setEditOrderRooms(prev => prev.map(r => r.id === or.id ? { ...r, room_price: newPrice, unit_price: r.quantity > 0 ? Math.round(newPrice / r.quantity) : newPrice } : r));
                                 }}
                               />
+                            </div>
                           </div>
                           {showExclusiveConfig && (
                             <div className="p-3 rounded-lg border border-dashed bg-muted/20 space-y-2">
