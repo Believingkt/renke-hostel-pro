@@ -1731,6 +1731,7 @@ const OrderDetailPage = () => {
                         <Badge variant="outline" className="text-xs">
                           共 {editOrderRooms.reduce((sum, r) => sum + r.quantity, 0)} 間
                         </Badge>
+                        {isYunxiu && (
                         <Button
                           type="button"
                           variant="outline"
@@ -1755,7 +1756,8 @@ const OrderDetailPage = () => {
                           <Plus className="h-3 w-3" />
                           新增散客房
                         </Button>
-                        {roomTypes.some(r => r.is_exclusive_package) && (
+                        )}
+                        {isYunxiu && roomTypes.some(r => r.is_exclusive_package) && (
                           <Button
                             type="button"
                             variant="outline"
