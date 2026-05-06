@@ -2050,7 +2050,7 @@ const OrderDetailPage = () => {
                       <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1">
                           <Label className="text-xs">雙人房間數</Label>
-                          <Select value={String(editExclusiveDoubleRooms)} onValueChange={(v) => setEditExclusiveDoubleRooms(Number(v))}>
+                          <Select value={String(editExclusiveConfigs[0]?.double || 0)} onValueChange={(v) => setExclusiveConfigAt(0, { double: Number(v) })}>
                             <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               {doubleRoomOptions.map(n => (
@@ -2061,7 +2061,7 @@ const OrderDetailPage = () => {
                         </div>
                         <div className="space-y-1">
                           <Label className="text-xs">四人房間數</Label>
-                          <Select value={String(editExclusiveQuadRooms)} onValueChange={(v) => setEditExclusiveQuadRooms(Number(v))}>
+                          <Select value={String(editExclusiveConfigs[0]?.quad || 0)} onValueChange={(v) => setExclusiveConfigAt(0, { quad: Number(v) })}>
                             <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               {quadRoomOptions.map(n => (
@@ -2071,7 +2071,7 @@ const OrderDetailPage = () => {
                           </Select>
                         </div>
                       </div>
-                      <p className="text-xs text-muted-foreground">將以備註形式儲存：雙人房 {editExclusiveDoubleRooms} 間、四人房 {editExclusiveQuadRooms} 間</p>
+                      <p className="text-xs text-muted-foreground">將以備註形式儲存：雙人房 {editExclusiveConfigs[0]?.double || 0} 間、四人房 {editExclusiveConfigs[0]?.quad || 0} 間</p>
                     </div>
                   </>
                 )}
