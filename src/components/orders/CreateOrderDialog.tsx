@@ -769,9 +769,21 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         paid_amount: paidAmount,
         notes: (() => {
           let note = form.notes.trim();
+          const pkgLines: string[] = [];
           if (bookingMode === 'exclusive' && (exclusiveDoubleRooms > 0 || exclusiveQuadRooms > 0)) {
-            const roomDetail = `【${exclusiveLabel}房間配置】雙人房 ${exclusiveDoubleRooms} 間、四人房 ${exclusiveQuadRooms} 間`;
-            note = note ? `${roomDetail}\n${note}` : roomDetail;
+            pkgLines.push(`【${exclusiveLabel}房間配置】雙人房 ${exclusiveDoubleRooms} 間、四人房 ${exclusiveQuadRooms} 間`);
+          }
+          // 額外加棟（roomSelections[1..]）的包棟配置
+          roomSelections.slice(1).forEach(sel => {
+            const isExc = !!roomTypes.find(r => r.id === sel.room_type_id)?.is_exclusive_package;
+            if (!isExc) return;
+            const cfg = extraExclusiveConfigs[sel.id];
+            if (cfg && (cfg.double > 0 || cfg.quad > 0)) {
+              pkgLines.push(`【${exclusiveLabel}房間配置】雙人房 ${cfg.double} 間、四人房 ${cfg.quad} 間`);
+            }
+          });
+          if (pkgLines.length > 0) {
+            note = note ? `${pkgLines.join("\n")}\n${note}` : pkgLines.join("\n");
           }
           return note || null;
         })(),
