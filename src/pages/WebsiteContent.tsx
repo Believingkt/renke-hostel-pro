@@ -2688,26 +2688,35 @@ const WebsiteContent = () => {
           return `NT$ ${plan.price_per_unit} / ${plan.unit_label}`;
         };
 
-        const { error } = await supabase
-          .from("addon_settings")
-          .upsert({
-            accommodation_id: accommodationId,
-            addon_type: plan.addon_type,
-            enabled: plan.enabled,
-            price_per_unit: plan.price_per_unit,
-            min_quantity: plan.min_quantity || 0,
-            max_quantity: plan.max_quantity,
-            weekday_min_quantity: plan.weekday_min_quantity,
-            weekend_min_quantity: plan.weekend_min_quantity,
-            unit_label: plan.unit_label,
-            description: getDescriptionText(plan),
-            detailed_description: plan.detailed_description,
-            sort_order: i,
-          }, {
-            onConflict: 'accommodation_id,addon_type'
-          });
+        const payload = {
+          accommodation_id: accommodationId,
+          addon_type: plan.addon_type,
+          enabled: plan.enabled,
+          price_per_unit: plan.price_per_unit,
+          min_quantity: plan.min_quantity || 0,
+          max_quantity: plan.max_quantity,
+          weekday_min_quantity: plan.weekday_min_quantity,
+          weekend_min_quantity: plan.weekend_min_quantity,
+          unit_label: plan.unit_label,
+          description: getDescriptionText(plan),
+          detailed_description: plan.detailed_description,
+          sort_order: i,
+        };
 
-        if (error) throw error;
+        // Use update-by-id when the plan already exists (supports rename),
+        // otherwise insert a new row.
+        if (plan.id) {
+          const { error } = await supabase
+            .from("addon_settings")
+            .update(payload)
+            .eq("id", plan.id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase
+            .from("addon_settings")
+            .insert(payload);
+          if (error) throw error;
+        }
       }
 
       // Reload addon plans
