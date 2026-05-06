@@ -246,9 +246,11 @@ const HeroSection = ({
 
   // 載入房間庫存可用日期
   // AVAILABILITY_CACHE_VERSION：每次邏輯有變動時遞增，可強制清除舊版本快取
-  const AVAILABILITY_CACHE_VERSION = 'v10-2026-05-06-sensan-default';
+  const AVAILABILITY_CACHE_VERSION = 'v11-2026-05-06-sensan-strict-all-pkg';
   // 哈庫納馬塔塔住宿 ID:套用「包棟房型 ≥2 個無庫存即關閉整天,散客房型不參與判斷」
   const HAKUNA_ACCOMMODATION_ID = '6b6ac0dc-602b-4dec-9167-7791ac412ba3';
+  // 森山住宿 ID:嚴格規則「散客全無 OR 包區任一無 → 關閉整天」
+  const SENSAN_ACCOMMODATION_ID = '5f764d55-ae11-4631-80fe-2e611853deae';
 
   useEffect(() => {
     const loadAvailability = async () => {
@@ -337,7 +339,9 @@ const HeroSection = ({
       // - 哈庫納馬塔塔特例:只看包棟房型(is_exclusive_package=true),
       //   若有 2 個(含)以上包棟無庫存或被封鎖,則整天關閉;散客房型不參與判斷
       const isHakuna = accId === HAKUNA_ACCOMMODATION_ID;
+      const isSensan = accId === SENSAN_ACCOMMODATION_ID;
       const packageRoomTypes = roomTypes.filter((rt: any) => rt.is_exclusive_package === true);
+      const commonRoomTypes = roomTypes.filter((rt: any) => rt.is_exclusive_package !== true);
 
       const isRoomAvailable = (rt: any, date: string): boolean => {
         const base = baseIndex.get(`${rt.id}:${date}`);
@@ -355,6 +359,16 @@ const HeroSection = ({
           if (unavailablePackageCount < 2) {
             available.add(date);
           }
+          continue;
+        }
+
+        if (isSensan && packageRoomTypes.length > 0) {
+          // 森山嚴格規則：散客全無 OR 包區任一無 → 整天關閉
+          const commonOk = commonRoomTypes.length === 0
+            ? true
+            : commonRoomTypes.some((rt: any) => isRoomAvailable(rt, date));
+          const allPackagesOk = packageRoomTypes.every((rt: any) => isRoomAvailable(rt, date));
+          if (commonOk && allPackagesOk) available.add(date);
           continue;
         }
 
