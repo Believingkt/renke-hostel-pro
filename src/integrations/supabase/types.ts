@@ -1800,6 +1800,7 @@ export type Database = {
           order_status: string
           ota_channel: string | null
           owlting_reservation_id: string | null
+          owner_direct: boolean
           paid_amount: number | null
           payment_link_created_at: string | null
           payment_method: string | null
@@ -1857,6 +1858,7 @@ export type Database = {
           order_status?: string
           ota_channel?: string | null
           owlting_reservation_id?: string | null
+          owner_direct?: boolean
           paid_amount?: number | null
           payment_link_created_at?: string | null
           payment_method?: string | null
@@ -1914,6 +1916,7 @@ export type Database = {
           order_status?: string
           ota_channel?: string | null
           owlting_reservation_id?: string | null
+          owner_direct?: boolean
           paid_amount?: number | null
           payment_link_created_at?: string | null
           payment_method?: string | null
