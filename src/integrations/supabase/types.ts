@@ -3122,6 +3122,60 @@ export type Database = {
           },
         ]
       }
+      room_units: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          nickname: string | null
+          notes: string | null
+          room_type_id: string
+          unit_number: string
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          nickname?: string | null
+          notes?: string | null
+          room_type_id: string
+          unit_number: string
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          nickname?: string | null
+          notes?: string | null
+          room_type_id?: string
+          unit_number?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_units_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_units_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "room_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       split_records: {
         Row: {
           accommodation_amount: number
