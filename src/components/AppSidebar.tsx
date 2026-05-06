@@ -34,7 +34,8 @@ import {
   TrendingUp,
   Star,
   ConciergeBell,
-  Plug
+  Plug,
+  FileText
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { PreloadLink } from "@/components/PreloadLink";
