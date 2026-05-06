@@ -1,0 +1,1 @@
+UPDATE public.external_hotel_mappings SET api_environment = 'production' WHERE api_environment = 'uat';
