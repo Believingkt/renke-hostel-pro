@@ -337,10 +337,7 @@ const HeroSection = ({
       // - 哈庫納馬塔塔特例:只看包棟房型(is_exclusive_package=true),
       //   若有 2 個(含)以上包棟無庫存或被封鎖,則整天關閉;散客房型不參與判斷
       const isHakuna = accId === HAKUNA_ACCOMMODATION_ID;
-      const isSensan = accId === SENSAN_ACCOMMODATION_ID;
       const packageRoomTypes = roomTypes.filter((rt: any) => rt.is_exclusive_package === true);
-      // 散客房型：非包區
-      const commonRoomTypes = roomTypes.filter((rt: any) => rt.is_exclusive_package !== true);
 
       const isRoomAvailable = (rt: any, date: string): boolean => {
         const base = baseIndex.get(`${rt.id}:${date}`);
@@ -358,14 +355,6 @@ const HeroSection = ({
           if (unavailablePackageCount < 2) {
             available.add(date);
           }
-          continue;
-        }
-
-        if (isSensan && packageRoomTypes.length > 0 && commonRoomTypes.length > 0) {
-          // 森山:散客側與包區側都要至少一個有空
-          const commonOk = commonRoomTypes.some((rt: any) => isRoomAvailable(rt, date));
-          const packageOk = packageRoomTypes.some((rt: any) => isRoomAvailable(rt, date));
-          if (commonOk && packageOk) available.add(date);
           continue;
         }
 
