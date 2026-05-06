@@ -19,6 +19,7 @@ interface BookingCalendarGridProps {
 interface RoomType {
   id: string;
   name: string;
+  capacity: number | null;
   room_count: number | null;
   is_exclusive_package: boolean;
   is_bound_to_exclusive: boolean;
