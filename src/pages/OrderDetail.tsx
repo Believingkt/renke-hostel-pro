@@ -220,8 +220,15 @@ const OrderDetailPage = () => {
   const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
   const [orderRooms, setOrderRooms] = useState<OrderRoom[]>([]);
   const [editOrderRooms, setEditOrderRooms] = useState<EditOrderRoom[]>([]);
-  const [editExclusiveDoubleRooms, setEditExclusiveDoubleRooms] = useState(0);
-  const [editExclusiveQuadRooms, setEditExclusiveQuadRooms] = useState(0);
+  const [editExclusiveConfigs, setEditExclusiveConfigs] = useState<Array<{ double: number; quad: number }>>([]);
+  const setExclusiveConfigAt = useCallback((idx: number, patch: Partial<{ double: number; quad: number }>) => {
+    setEditExclusiveConfigs(prev => {
+      const next = [...prev];
+      while (next.length <= idx) next.push({ double: 0, quad: 0 });
+      next[idx] = { ...next[idx], ...patch };
+      return next;
+    });
+  }, []);
   // 只有森山寫照保留「包區」用語，其餘民宿一律使用「包棟」
   const SENSAN_ACC_ID = "5f764d55-ae11-4631-80fe-2e611853deae";
   // 哈庫納馬塔塔：最多 2 雙人房 + 4 四人房 = 6 間
