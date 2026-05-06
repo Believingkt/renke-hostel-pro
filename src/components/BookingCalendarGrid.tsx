@@ -830,8 +830,8 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                   tip += `\n房型:${roomType.name}`;
                                 }
                                 if (entry.notes) {
-                                  const match = entry.notes.match(/【(?:包區|包棟)房間配置】(.+)/);
-                                  if (match) tip += `\n${match[0]}`;
+                                  const matches = entry.notes.match(/【\s*(?:包區|包棟)\s*房間配置\s*】[^\n]+/g);
+                                  if (matches && matches.length > 0) tip += `\n${matches.join("\n")}`;
                                 }
                                 return tip;
                               })();
