@@ -823,7 +823,12 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                               const tooltipText = (() => {
                                 let tip = `${entry.guest_name} | ${getSourceLabel(entry.order_source)}`;
                                 const unit = rtUnits.find(u => u.id === entry.room_unit_id);
-                                if (unit) tip += `\n房間:${unit.unit_number}${unit.nickname ? ` (${unit.nickname})` : ''}`;
+                                if (unit) {
+                                  tip += `\n房間:${unit.unit_number}${unit.nickname ? ` (${unit.nickname})` : ''}`;
+                                } else {
+                                  // 包棟或未指派散客房：顯示房型名稱
+                                  tip += `\n房型:${roomType.name}`;
+                                }
                                 if (entry.notes) {
                                   const match = entry.notes.match(/【(?:包區|包棟)房間配置】(.+)/);
                                   if (match) tip += `\n${match[0]}`;
