@@ -1837,7 +1837,7 @@ const OrderDetailPage = () => {
                                 <Trash2 className="h-3 w-3" />
                               </Button>
                             </div>
-                            <div className="grid grid-cols-2 gap-2">
+                            <div className={isYunxiu ? "" : "grid grid-cols-2 gap-2"}>
                               <div className="space-y-1">
                                 <Label className="text-xs">房型</Label>
                                 <Select
@@ -1881,32 +1881,34 @@ const OrderDetailPage = () => {
                                   </SelectContent>
                                 </Select>
                               </div>
-                              <div className="space-y-1">
-                                <Label className="text-xs">間數</Label>
-                                <div className="flex items-center gap-1">
-                                  <Button type="button" variant="outline" size="sm" className="h-8 w-8 p-0"
-                                    disabled={or.quantity <= 1 || !!roomTypes.find(rt => rt.id === or.room_type_id)?.is_exclusive_package}
-                                    onClick={() => setEditOrderRooms(prev => prev.map(r => {
-                                      if (r.id !== or.id) return r;
-                                      const newQty = r.quantity - 1;
-                                      return { ...r, quantity: newQty, room_price: Math.round(r.unit_price * newQty) };
-                                    }))}
-                                  >
-                                    <Minus className="h-3 w-3" />
-                                  </Button>
-                                  <span className="w-6 text-center text-sm font-medium">{or.quantity}</span>
-                                  <Button type="button" variant="outline" size="sm" className="h-8 w-8 p-0"
-                                    disabled={!!roomTypes.find(rt => rt.id === or.room_type_id)?.is_exclusive_package}
-                                    onClick={() => setEditOrderRooms(prev => prev.map(r => {
-                                      if (r.id !== or.id) return r;
-                                      const newQty = r.quantity + 1;
-                                      return { ...r, quantity: newQty, room_price: Math.round(r.unit_price * newQty) };
-                                    }))}
-                                  >
-                                    <Plus className="h-3 w-3" />
-                                  </Button>
+                              {!isYunxiu && (
+                                <div className="space-y-1">
+                                  <Label className="text-xs">間數</Label>
+                                  <div className="flex items-center gap-1">
+                                    <Button type="button" variant="outline" size="sm" className="h-8 w-8 p-0"
+                                      disabled={or.quantity <= 1 || !!roomTypes.find(rt => rt.id === or.room_type_id)?.is_exclusive_package}
+                                      onClick={() => setEditOrderRooms(prev => prev.map(r => {
+                                        if (r.id !== or.id) return r;
+                                        const newQty = r.quantity - 1;
+                                        return { ...r, quantity: newQty, room_price: Math.round(r.unit_price * newQty) };
+                                      }))}
+                                    >
+                                      <Minus className="h-3 w-3" />
+                                    </Button>
+                                    <span className="w-6 text-center text-sm font-medium">{or.quantity}</span>
+                                    <Button type="button" variant="outline" size="sm" className="h-8 w-8 p-0"
+                                      disabled={!!roomTypes.find(rt => rt.id === or.room_type_id)?.is_exclusive_package}
+                                      onClick={() => setEditOrderRooms(prev => prev.map(r => {
+                                        if (r.id !== or.id) return r;
+                                        const newQty = r.quantity + 1;
+                                        return { ...r, quantity: newQty, room_price: Math.round(r.unit_price * newQty) };
+                                      }))}
+                                    >
+                                      <Plus className="h-3 w-3" />
+                                    </Button>
+                                  </div>
                                 </div>
-                              </div>
+                              )}
                             </div>
                             <div className="space-y-1">
                               <Label className="text-xs">專案</Label>
