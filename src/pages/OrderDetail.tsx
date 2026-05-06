@@ -1957,7 +1957,7 @@ const OrderDetailPage = () => {
                             </div>
                           )}
                           </div>
-                        );
+                          );
                         });
                       })()}
                     </>
