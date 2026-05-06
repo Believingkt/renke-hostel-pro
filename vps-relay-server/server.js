@@ -1,5 +1,17 @@
 const http = require('http');
+const https = require('https');
+const dns = require('dns');
 const { readFileSync, existsSync } = require('fs');
+
+// Force IPv4 for outbound DNS lookups so target servers see our IPv4 fixed IP
+// (some upstreams whitelist IPv4 only — IPv6 traffic gets rejected as "invalid IP")
+dns.setDefaultResultOrder('ipv4first');
+
+// IPv4-only HTTPS agent for outbound fetch() calls
+const ipv4Agent = new https.Agent({
+  family: 4,
+  keepAlive: true,
+});
 
 // Load .env file manually (no dependencies needed)
 if (existsSync('.env')) {
