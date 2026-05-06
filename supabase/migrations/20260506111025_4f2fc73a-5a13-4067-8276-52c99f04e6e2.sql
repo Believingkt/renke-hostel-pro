@@ -1,0 +1,1 @@
+DELETE FROM orders WHERE order_number IN ('DS9N36T9','BL8S74Z9','EG6U24S2','NA3A46X3') AND accommodation_id = '7690a606-6bac-4cd5-a3e7-2fa754b318e8';
