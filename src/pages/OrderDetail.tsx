@@ -1481,6 +1481,20 @@ const OrderDetailPage = () => {
             </div>
             <Separator />
             <div className="flex justify-between items-center gap-2">
+              <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">業主自帶客</span>
+              {isEditing ? (
+                <Switch
+                  checked={editForm.owner_direct}
+                  onCheckedChange={(v) => setEditForm(f => ({ ...f, owner_direct: v }))}
+                />
+              ) : (
+                <Badge variant={order.owner_direct ? "default" : "outline"}>
+                  {order.owner_direct ? "是 (不抽成)" : "否"}
+                </Badge>
+              )}
+            </div>
+            <Separator />
+            <div className="flex justify-between items-center gap-2">
               <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">訂單狀態</span>
               {isEditing ? (
                 <Select value={editForm.order_status} onValueChange={(v) => setEditForm(f => ({ ...f, order_status: v }))}>
