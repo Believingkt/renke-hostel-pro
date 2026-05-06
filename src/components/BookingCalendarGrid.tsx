@@ -19,6 +19,7 @@ interface BookingCalendarGridProps {
 interface RoomType {
   id: string;
   name: string;
+  capacity: number | null;
   room_count: number | null;
   is_exclusive_package: boolean;
   is_bound_to_exclusive: boolean;
@@ -194,7 +195,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
       const [roomTypesRes, ordersRes, holidaysRes, inventoryRes] = await Promise.all([
         supabase
           .from("room_types")
-          .select("id, name, room_count, is_exclusive_package, is_bound_to_exclusive, bound_exclusive_ids")
+          .select("id, name, capacity, room_count, is_exclusive_package, is_bound_to_exclusive, bound_exclusive_ids")
           .eq("accommodation_id", accommodationId)
           .order("display_order"),
         supabase
@@ -822,17 +823,50 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
 
                               const tooltipText = (() => {
                                 let tip = `${entry.guest_name} | ${getSourceLabel(entry.order_source)}`;
-                                const unit = rtUnits.find(u => u.id === entry.room_unit_id);
-                                if (unit) {
-                                  tip += `\n房間:${unit.unit_number}${unit.nickname ? ` (${unit.nickname})` : ''}`;
+
+                                // 收集該訂單所有房間（包棟顯示房型，散客顯示房間號 + 包棟配置）
+                                const orderAllRooms = orderRooms.filter(or => or.order_id === entry.orderId);
+                                const pkgLines = entry.notes
+                                  ? (entry.notes.match(/【\s*(?:包區|包棟)\s*房間配置\s*】[^\n]+/g) || [])
+                                  : [];
+                                let pkgIdx = 0;
+                                const lines: string[] = [];
+
+                                if (orderAllRooms.length > 0) {
+                                  for (const or of orderAllRooms) {
+                                    const rt = roomTypes.find(r => r.id === or.room_type_id);
+                                    if (!rt) continue;
+                                    if (rt.is_exclusive_package) {
+                                      for (let q = 0; q < or.quantity; q++) {
+                                        lines.push(`房型:${rt.name}${rt.capacity ? `(${rt.capacity}人包棟)` : ''}`);
+                                        if (pkgLines[pkgIdx]) lines.push(pkgLines[pkgIdx]);
+                                        pkgIdx++;
+                                      }
+                                    } else {
+                                      // 散客房：依 quantity 列出指派的房間
+                                      if (or.quantity === 1 && or.room_unit_id) {
+                                        const u = roomUnits.find(x => x.id === or.room_unit_id);
+                                        lines.push(u ? `房間:${u.unit_number}${u.nickname ? `(${u.nickname})` : ''}` : `房型:${rt.name}`);
+                                      } else {
+                                        // 多間散客或未指派
+                                        for (let q = 0; q < or.quantity; q++) {
+                                          lines.push(`房型:${rt.name}`);
+                                        }
+                                      }
+                                    }
+                                  }
                                 } else {
-                                  // 包棟或未指派散客房：顯示房型名稱
-                                  tip += `\n房型:${roomType.name}`;
+                                  // 單房舊訂單 fallback
+                                  const unit = rtUnits.find(u => u.id === entry.room_unit_id);
+                                  if (unit) {
+                                    lines.push(`房間:${unit.unit_number}${unit.nickname ? `(${unit.nickname})` : ''}`);
+                                  } else {
+                                    lines.push(`房型:${roomType.name}`);
+                                  }
+                                  if (pkgLines.length > 0) lines.push(...pkgLines);
                                 }
-                                if (entry.notes) {
-                                  const matches = entry.notes.match(/【\s*(?:包區|包棟)\s*房間配置\s*】[^\n]+/g);
-                                  if (matches && matches.length > 0) tip += `\n${matches.join("\n")}`;
-                                }
+
+                                if (lines.length > 0) tip += `\n${lines.join("\n")}`;
                                 return tip;
                               })();
 
