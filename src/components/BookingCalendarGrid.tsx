@@ -374,6 +374,35 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
     });
   };
 
+  // Assign / unassign a calendar entry to a specific room unit
+  const assignEntryToUnit = async (entry: CalendarEntry, newUnitId: string | null) => {
+    try {
+      if (entry.orderRoomId) {
+        const { error } = await supabase
+          .from("order_rooms")
+          .update({ room_unit_id: newUnitId })
+          .eq("id", entry.orderRoomId);
+        if (error) throw error;
+      } else {
+        // Single-room order without order_rooms row → create one to hold the unit assignment
+        const { error } = await supabase.from("order_rooms").insert({
+          order_id: entry.orderId,
+          room_type_id: entry.room_type_id,
+          quantity: 1,
+          room_unit_id: newUnitId,
+        });
+        if (error) throw error;
+      }
+      toast.success(newUnitId ? "已指派房間" : "已取消指派");
+      setAssigningEntryId(null);
+      await loadData();
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.message || "指派失敗");
+    }
+  };
+
+
   const goToToday = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
