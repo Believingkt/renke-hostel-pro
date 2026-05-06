@@ -1027,7 +1027,7 @@ const OrderDetailPage = () => {
         // Fetch order_rooms (multi-room details)
         const { data: orderRoomsData } = await supabase
           .from("order_rooms")
-          .select("id, room_type_id, quantity, room_price, template_name, room_types(name)")
+          .select("id, room_type_id, quantity, room_price, template_name, room_unit_id, room_types(name), room_units(unit_number, nickname)")
           .eq("order_id", orderId);
         if (orderRoomsData && orderRoomsData.length > 0) {
           setOrderRooms(orderRoomsData as unknown as OrderRoom[]);
@@ -1043,6 +1043,40 @@ const OrderDetailPage = () => {
             .eq("accommodation_id", orderData.accommodation_id)
             .order("display_order", { ascending: true });
           if (rtData) setRoomTypes(rtData);
+
+          // Fetch room units for assignment dropdown (active only)
+          const { data: unitsData } = await supabase
+            .from("room_units" as any)
+            .select("id, room_type_id, unit_number, nickname, is_active")
+            .eq("accommodation_id", orderData.accommodation_id)
+            .eq("is_active", true)
+            .order("display_order", { ascending: true });
+          if (unitsData) {
+            // 查詢同期間已被佔用的 unit
+            const { data: occupiedData } = await supabase
+              .from("order_rooms")
+              .select("room_unit_id, orders!inner(id, order_number, order_status, check_in_date, check_out_date)")
+              .not("room_unit_id", "is", null)
+              .neq("order_id", orderId);
+            const occupiedMap = new Map<string, { id: string; order_number: string }>();
+            ((occupiedData as any) || []).forEach((row: any) => {
+              const o = row.orders;
+              if (!o || o.order_status === "cancelled") return;
+              if (
+                o.check_in_date < orderData.check_out_date &&
+                o.check_out_date > orderData.check_in_date
+              ) {
+                occupiedMap.set(row.room_unit_id, { id: o.id, order_number: o.order_number });
+              }
+            });
+            setRoomUnits(
+              (unitsData as any[]).map((u) => ({
+                ...u,
+                occupied_by_order_id: occupiedMap.get(u.id)?.id || null,
+                occupied_by_order_number: occupiedMap.get(u.id)?.order_number || null,
+              })),
+            );
+          }
 
           // Fetch all pricing templates for this accommodation so edited room rows can
           // resolve the correct room-type-specific inventory price, including holidays.
