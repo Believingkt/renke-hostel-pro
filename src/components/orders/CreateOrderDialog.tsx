@@ -126,10 +126,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   // 哈庫納馬塔塔：7 間房（最多 2 雙人房 + 4 四人房，加上 1 額外房型）
   const HAKUNA_ACC_ID = "6b6ac0dc-602b-4dec-9167-7791ac412ba3";
   const SENSAN_ACC_ID = "5f764d55-ae11-4631-80fe-2e611853deae";
-  const YUNXIU_ACC_ID = "7690a606-6bac-4cd5-a3e7-2fa754b318e8";
   const isHakuna = currentAccommodationId === HAKUNA_ACC_ID;
   const isSensan = currentAccommodationId === SENSAN_ACC_ID;
-  const isYunxiu = currentAccommodationId === YUNXIU_ACC_ID;
   // 只有森山寫照保留「包區」用語，其餘民宿一律使用「包棟」
   const exclusiveLabel = isSensan ? "包區" : "包棟";
   const MAX_TOTAL_ROOMS = isHakuna ? 7 : 6;
