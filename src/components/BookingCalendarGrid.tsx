@@ -686,149 +686,229 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
 
                     {/* Individual booking rows - group orders into "rooms" */}
                     {(() => {
-                      const roomSlots: CalendarEntry[][] = [];
-                      const sortedEntries = [...rtEntries].sort((a, b) => a.check_in_date.localeCompare(b.check_in_date));
-                      
-                      sortedEntries.forEach(entry => {
-                        let placed = false;
-                        for (const slot of roomSlots) {
-                          const lastEntry = slot[slot.length - 1];
-                          if (lastEntry.check_out_date <= entry.check_in_date) {
-                            slot.push(entry);
-                            placed = true;
-                            break;
+                      const rtUnits = roomUnits.filter(u => u.room_type_id === roomType.id);
+                      const useUnits = rtUnits.length > 0 && !roomType.is_exclusive_package;
+
+                      type SlotMeta = { unitId: string | null; label: string; nickname?: string | null };
+                      const slots: { meta: SlotMeta; entries: CalendarEntry[] }[] = [];
+
+                      if (useUnits) {
+                        // One row per unit
+                        for (const u of rtUnits) {
+                          const entries = rtEntries.filter(e => e.room_unit_id === u.id);
+                          slots.push({
+                            meta: { unitId: u.id, label: u.unit_number, nickname: u.nickname },
+                            entries,
+                          });
+                        }
+                        // Unassigned bucket — split with overlap-avoidance like before
+                        const unassigned = rtEntries
+                          .filter(e => !e.room_unit_id)
+                          .sort((a, b) => a.check_in_date.localeCompare(b.check_in_date));
+                        const unassignedRows: CalendarEntry[][] = [];
+                        unassigned.forEach(entry => {
+                          let placed = false;
+                          for (const row of unassignedRows) {
+                            const last = row[row.length - 1];
+                            if (last.check_out_date <= entry.check_in_date) {
+                              row.push(entry);
+                              placed = true;
+                              break;
+                            }
                           }
+                          if (!placed) unassignedRows.push([entry]);
+                        });
+                        if (unassignedRows.length === 0 && unassigned.length === 0) {
+                          // no unassigned bucket needed
+                        } else {
+                          unassignedRows.forEach((row, idx) => {
+                            slots.push({
+                              meta: { unitId: null, label: idx === 0 ? "未指派" : `未指派 ${idx + 1}` },
+                              entries: row,
+                            });
+                          });
                         }
-                        if (!placed) {
-                          roomSlots.push([entry]);
+                      } else {
+                        // Legacy behavior: pack overlapping entries into multiple rows
+                        const sortedEntries = [...rtEntries].sort((a, b) => a.check_in_date.localeCompare(b.check_in_date));
+                        const roomSlots: CalendarEntry[][] = [];
+                        sortedEntries.forEach(entry => {
+                          let placed = false;
+                          for (const slot of roomSlots) {
+                            const lastEntry = slot[slot.length - 1];
+                            if (lastEntry.check_out_date <= entry.check_in_date) {
+                              slot.push(entry);
+                              placed = true;
+                              break;
+                            }
+                          }
+                          if (!placed) roomSlots.push([entry]);
+                        });
+                        const minRows = Math.max(roomCount, roomSlots.length, 1);
+                        for (let i = 0; i < minRows; i++) {
+                          slots.push({
+                            meta: { unitId: null, label: roomCount > 0 ? `${i + 1}` : `#${i + 1}` },
+                            entries: roomSlots[i] || [],
+                          });
                         }
-                      });
+                      }
 
-                      const minRows = Math.max(roomCount, roomSlots.length, 1);
-
-                      const slotRows = Array.from({ length: minRows }, (_, slotIdx) => {
-                        const slotEntries = roomSlots[slotIdx] || [];
-                        
-                        return (
-                          <div key={slotIdx} className="flex border-b last:border-b-0">
-                            <div
-                              className="shrink-0 border-r p-2 pl-8 text-sm flex items-center gap-1 sticky left-0 bg-card z-20"
-                              style={{ width: LEFT_COL_WIDTH, minWidth: LEFT_COL_WIDTH }}
-                            >
-                              <span className="text-muted-foreground">
-                                {roomCount > 0 ? `${slotIdx + 1}` : `#${slotIdx + 1}`}
-                              </span>
-                            </div>
-                            <div className="flex flex-1 relative" style={{ minHeight: 48 }}>
-                              {/* Background date cells */}
-                              {dates.map((date, i) => {
-                                const dateStr = dateStrings[i];
-                                const holiday = holidays.get(dateStr);
-                                const isHoliday = holiday && (holiday.holiday_type === "holiday" || holiday.holiday_type === "compensatory_day_off");
-                                const isSatSun = isWeekend(date);
-                                const isRedDay = (isSatSun || isHoliday) && holiday?.holiday_type !== "work_on_weekend";
-                                const blockedByExclusive = isBlockedByExclusive(roomType.id, dateStr);
-                                return (
-                                  <div
-                                    key={dateStr}
-                                    className={cn(
-                                      "flex-1 border-r last:border-r-0",
-                                      isRedDay && "bg-destructive/5",
-                                      isToday(date) && "bg-primary/5",
-                                    )}
-                                    style={{
-                                      minWidth: DAY_COL_MIN_WIDTH,
-                                      ...(blockedByExclusive
-                                        ? {
-                                            backgroundColor: "hsl(var(--muted) / 0.28)",
-                                            backgroundImage:
-                                              "repeating-linear-gradient(-45deg, transparent, transparent 6px, hsl(var(--border) / 0.8) 6px, hsl(var(--border) / 0.8) 8px)",
-                                          }
-                                        : {}),
-                                    }}
-                                  />
-                                );
-                              })}
-
-                              {/* Order cards positioned absolutely */}
-                              {slotEntries.map(entry => {
-                                const checkInDate = entry.check_in_date;
-                                const checkOutDate = entry.check_out_date;
-                                
-                                const visibleStart = checkInDate < dateStrings[0] ? dateStrings[0] : checkInDate;
-                                const visibleEnd = checkOutDate > dateStrings[dateStrings.length - 1]
-                                  ? format(addDays(parseISO(dateStrings[dateStrings.length - 1]), 1), "yyyy-MM-dd")
-                                  : checkOutDate;
-                                
-                                const startIdx = dateStrings.indexOf(visibleStart);
-                                if (startIdx === -1) return null;
-                                
-                                const endIdx = dateStrings.indexOf(visibleEnd);
-                                const span = endIdx === -1 ? dateStrings.length - startIdx : endIdx - startIdx;
-                                
-                                if (span <= 0) return null;
-
-                                const leftPercent = (startIdx / dayCount) * 100;
-                                const widthPercent = (span / dayCount) * 100;
-                                const isClippedLeft = checkInDate < dateStrings[0];
-                                const isClippedRight = checkOutDate > format(addDays(parseISO(dateStrings[dateStrings.length - 1]), 1), "yyyy-MM-dd");
-
-                                const tooltipText = (() => {
-                                  let tip = `${entry.guest_name} | ${getSourceLabel(entry.order_source)}`;
-                                  if (entry.notes) {
-                                    const match = entry.notes.match(/【(?:包區|包棟)房間配置】(.+)/);
-                                    if (match) tip += `\n${match[0]}`;
-                                  }
-                                  return tip;
-                                })();
-
-                                return (
-                                  <TooltipProvider key={entry.id} delayDuration={100}>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <div
-                                          className={cn(
-                                            "absolute top-1 bottom-1 z-[5] cursor-pointer",
-                                            entry.order_status === 'hold'
-                                              ? "border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200"
-                                              : entry.order_status === 'confirmed'
-                                                ? "border border-emerald-300 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200"
-                                                : entry.order_status === 'checked_in'
-                                                  ? "border border-violet-300 bg-violet-100 dark:bg-violet-900/30 text-violet-800 dark:text-violet-200"
-                                                  : "border border-amber-300 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200",
-                                            "rounded-md flex items-center px-2 gap-1 text-xs overflow-hidden",
-                                            "hover:brightness-95 transition-all",
-                                            isClippedLeft && "rounded-l-none border-l-0",
-                                            isClippedRight && "rounded-r-none border-r-0",
-                                          )}
-                                          style={{
-                                            left: `${leftPercent}%`,
-                                            width: `${widthPercent}%`,
-                                          }}
-                                          onClick={() => navigate(`/admin/orders/${entry.orderId}`, { state: { from: '/admin/room-inventory' } })}
-                                        >
-                                          <span className="shrink-0">{SOURCE_ICONS[entry.order_source] || "📋"}</span>
-                                          <span className="font-medium truncate">{entry.guest_name}</span>
-                                          {span >= 2 && entry.order_source !== 'website' && entry.order_source !== 'manual' && (
-                                            <span className="text-muted-foreground truncate hidden sm:inline">
-                                              {getSourceLabel(entry.order_source)}
-                                            </span>
-                                          )}
-                                        </div>
-                                      </TooltipTrigger>
-                                      <TooltipContent className="text-sm whitespace-pre-line max-w-xs">
-                                        {tooltipText}
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                );
-                              })}
-                            </div>
+                      return slots.map((slot, slotIdx) => (
+                        <div key={`${slot.meta.unitId ?? 'na'}-${slotIdx}`} className="flex border-b last:border-b-0">
+                          <div
+                            className="shrink-0 border-r p-2 pl-8 text-sm flex items-center gap-1 sticky left-0 bg-card z-20"
+                            style={{ width: LEFT_COL_WIDTH, minWidth: LEFT_COL_WIDTH }}
+                          >
+                            <span className={cn(
+                              "font-medium",
+                              slot.meta.unitId === null && useUnits ? "text-muted-foreground italic" : "text-foreground"
+                            )}>
+                              {slot.meta.label}
+                            </span>
+                            {slot.meta.nickname && (
+                              <span className="text-xs text-muted-foreground truncate">· {slot.meta.nickname}</span>
+                            )}
                           </div>
-                        );
-                      });
+                          <div className="flex flex-1 relative" style={{ minHeight: 48 }}>
+                            {/* Background date cells */}
+                            {dates.map((date, i) => {
+                              const dateStr = dateStrings[i];
+                              const holiday = holidays.get(dateStr);
+                              const isHoliday = holiday && (holiday.holiday_type === "holiday" || holiday.holiday_type === "compensatory_day_off");
+                              const isSatSun = isWeekend(date);
+                              const isRedDay = (isSatSun || isHoliday) && holiday?.holiday_type !== "work_on_weekend";
+                              const blockedByExclusive = isBlockedByExclusive(roomType.id, dateStr);
+                              return (
+                                <div
+                                  key={dateStr}
+                                  className={cn(
+                                    "flex-1 border-r last:border-r-0",
+                                    isRedDay && "bg-destructive/5",
+                                    isToday(date) && "bg-primary/5",
+                                  )}
+                                  style={{
+                                    minWidth: DAY_COL_MIN_WIDTH,
+                                    ...(blockedByExclusive
+                                      ? {
+                                          backgroundColor: "hsl(var(--muted) / 0.28)",
+                                          backgroundImage:
+                                            "repeating-linear-gradient(-45deg, transparent, transparent 6px, hsl(var(--border) / 0.8) 6px, hsl(var(--border) / 0.8) 8px)",
+                                        }
+                                      : {}),
+                                  }}
+                                />
+                              );
+                            })}
 
-                      return slotRows;
+                            {/* Order cards positioned absolutely */}
+                            {slot.entries.map(entry => {
+                              const checkInDate = entry.check_in_date;
+                              const checkOutDate = entry.check_out_date;
+                              const visibleStart = checkInDate < dateStrings[0] ? dateStrings[0] : checkInDate;
+                              const visibleEnd = checkOutDate > dateStrings[dateStrings.length - 1]
+                                ? format(addDays(parseISO(dateStrings[dateStrings.length - 1]), 1), "yyyy-MM-dd")
+                                : checkOutDate;
+                              const startIdx = dateStrings.indexOf(visibleStart);
+                              if (startIdx === -1) return null;
+                              const endIdx = dateStrings.indexOf(visibleEnd);
+                              const span = endIdx === -1 ? dateStrings.length - startIdx : endIdx - startIdx;
+                              if (span <= 0) return null;
+
+                              const leftPercent = (startIdx / dayCount) * 100;
+                              const widthPercent = (span / dayCount) * 100;
+                              const isClippedLeft = checkInDate < dateStrings[0];
+                              const isClippedRight = checkOutDate > format(addDays(parseISO(dateStrings[dateStrings.length - 1]), 1), "yyyy-MM-dd");
+
+                              const tooltipText = (() => {
+                                let tip = `${entry.guest_name} | ${getSourceLabel(entry.order_source)}`;
+                                const unit = rtUnits.find(u => u.id === entry.room_unit_id);
+                                if (unit) tip += `\n房間:${unit.unit_number}${unit.nickname ? ` (${unit.nickname})` : ''}`;
+                                if (entry.notes) {
+                                  const match = entry.notes.match(/【(?:包區|包棟)房間配置】(.+)/);
+                                  if (match) tip += `\n${match[0]}`;
+                                }
+                                return tip;
+                              })();
+
+                              // Compute eligible units (no overlap with other entries on this room type)
+                              const eligibleUnits = useUnits
+                                ? rtUnits.filter(u => {
+                                    if (u.id === entry.room_unit_id) return true;
+                                    const conflict = rtEntries.some(other =>
+                                      other.id !== entry.id &&
+                                      other.room_unit_id === u.id &&
+                                      other.check_in_date < entry.check_out_date &&
+                                      other.check_out_date > entry.check_in_date
+                                    );
+                                    return !conflict;
+                                  })
+                                : [];
+
+                              return (
+                                <TooltipProvider key={entry.id} delayDuration={100}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div
+                                        className={cn(
+                                          "absolute top-1 bottom-1 z-[5] cursor-pointer",
+                                          entry.order_status === 'hold'
+                                            ? "border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200"
+                                            : entry.order_status === 'confirmed'
+                                              ? "border border-emerald-300 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200"
+                                              : entry.order_status === 'checked_in'
+                                                ? "border border-violet-300 bg-violet-100 dark:bg-violet-900/30 text-violet-800 dark:text-violet-200"
+                                                : "border border-amber-300 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200",
+                                          "rounded-md flex items-center px-2 gap-1 text-xs overflow-hidden",
+                                          "hover:brightness-95 transition-all",
+                                          isClippedLeft && "rounded-l-none border-l-0",
+                                          isClippedRight && "rounded-r-none border-r-0",
+                                        )}
+                                        style={{
+                                          left: `${leftPercent}%`,
+                                          width: `${widthPercent}%`,
+                                        }}
+                                        onClick={() => navigate(`/admin/orders/${entry.orderId}`, { state: { from: '/admin/room-inventory' } })}
+                                      >
+                                        <span className="shrink-0">{SOURCE_ICONS[entry.order_source] || "📋"}</span>
+                                        <span className="font-medium truncate">{entry.guest_name}</span>
+                                        {span >= 2 && entry.order_source !== 'website' && entry.order_source !== 'manual' && (
+                                          <span className="text-muted-foreground truncate hidden sm:inline">
+                                            {getSourceLabel(entry.order_source)}
+                                          </span>
+                                        )}
+                                        {useUnits && (
+                                          <Select
+                                            value={entry.room_unit_id || "__none__"}
+                                            onValueChange={(v) => assignEntryToUnit(entry, v === "__none__" ? null : v)}
+                                          >
+                                            <SelectTrigger
+                                              onClick={(e) => e.stopPropagation()}
+                                              className="ml-auto h-5 px-1.5 py-0 text-[10px] bg-background/70 border-foreground/20 shrink-0 w-auto gap-1"
+                                            >
+                                              <SelectValue placeholder="指派" />
+                                            </SelectTrigger>
+                                            <SelectContent onClick={(e) => e.stopPropagation()}>
+                                              <SelectItem value="__none__">未指派</SelectItem>
+                                              {eligibleUnits.map(u => (
+                                                <SelectItem key={u.id} value={u.id}>
+                                                  {u.unit_number}{u.nickname ? ` · ${u.nickname}` : ''}
+                                                </SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        )}
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="text-sm whitespace-pre-line max-w-xs">
+                                      {tooltipText}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ));
                     })()}
                   </>
                 )}
