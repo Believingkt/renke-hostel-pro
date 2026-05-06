@@ -230,11 +230,20 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
       if (orderIds.length > 0) {
         const { data: orData } = await supabase
           .from("order_rooms")
-          .select("id, order_id, room_type_id, quantity")
+          .select("id, order_id, room_type_id, quantity, room_unit_id")
           .in("order_id", orderIds);
-        fetchedOrderRooms = orData || [];
+        fetchedOrderRooms = (orData || []) as OrderRoom[];
       }
       setOrderRooms(fetchedOrderRooms);
+
+      // Fetch room units for this accommodation
+      const { data: unitData } = await supabase
+        .from("room_units")
+        .select("id, room_type_id, unit_number, nickname, display_order, is_active")
+        .eq("accommodation_id", accommodationId)
+        .eq("is_active", true)
+        .order("display_order");
+      setRoomUnits((unitData || []) as RoomUnit[]);
 
       // Build calendar entries: expand multi-room orders
       const entries: CalendarEntry[] = [];
@@ -249,6 +258,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
               entries.push({
                 id: `${order.id}_${room.id}_${q}`,
                 orderId: order.id,
+                orderRoomId: room.id,
                 order_number: order.order_number,
                 guest_name: order.guest_name,
                 guest_phone: order.guest_phone,
@@ -257,6 +267,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                 order_status: order.order_status,
                 order_source: order.order_source,
                 room_type_id: room.room_type_id,
+                room_unit_id: room.quantity === 1 ? room.room_unit_id : null,
                 notes: order.notes,
               });
             }
@@ -266,6 +277,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
           entries.push({
             id: order.id,
             orderId: order.id,
+            orderRoomId: null,
             order_number: order.order_number,
             guest_name: order.guest_name,
             guest_phone: order.guest_phone,
@@ -274,6 +286,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
             order_status: order.order_status,
             order_source: order.order_source,
             room_type_id: order.room_type_id,
+            room_unit_id: null,
             notes: order.notes,
           });
         }
