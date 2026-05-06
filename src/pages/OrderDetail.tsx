@@ -1781,7 +1781,9 @@ const OrderDetailPage = () => {
                                   </SelectTrigger>
                                   <SelectContent>
                                     {roomTypes.map(rt => (
-                                      <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
+                                      <SelectItem key={rt.id} value={rt.id}>
+                                        {rt.is_exclusive_package ? `【${exclusiveLabel}】` : ""}{rt.name}
+                                      </SelectItem>
                                     ))}
                                   </SelectContent>
                                 </Select>
@@ -1790,7 +1792,7 @@ const OrderDetailPage = () => {
                                 <Label className="text-xs">間數</Label>
                                 <div className="flex items-center gap-1">
                                   <Button type="button" variant="outline" size="sm" className="h-8 w-8 p-0"
-                                    disabled={or.quantity <= 1}
+                                    disabled={or.quantity <= 1 || !!roomTypes.find(rt => rt.id === or.room_type_id)?.is_exclusive_package}
                                     onClick={() => setEditOrderRooms(prev => prev.map(r => {
                                       if (r.id !== or.id) return r;
                                       const newQty = r.quantity - 1;
@@ -1801,7 +1803,7 @@ const OrderDetailPage = () => {
                                   </Button>
                                   <span className="w-6 text-center text-sm font-medium">{or.quantity}</span>
                                   <Button type="button" variant="outline" size="sm" className="h-8 w-8 p-0"
-                                    disabled={totalOther + or.quantity >= MAX_TOTAL_ROOMS}
+                                    disabled={!!roomTypes.find(rt => rt.id === or.room_type_id)?.is_exclusive_package}
                                     onClick={() => setEditOrderRooms(prev => prev.map(r => {
                                       if (r.id !== or.id) return r;
                                       const newQty = r.quantity + 1;
