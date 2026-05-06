@@ -1932,10 +1932,10 @@ const OrderDetailPage = () => {
                                 </SelectTrigger>
                                 <SelectContent>
                                   <SelectItem value="none">無</SelectItem>
-                                  {roomTemplates
-                                    .filter(t => !(t as any).room_type_id || (t as any).room_type_id === or.room_type_id)
+                                  {allTemplates
+                                    .filter(t => !t.room_type_id || t.room_type_id === or.room_type_id)
                                     .map(t => (
-                                    <SelectItem key={t.id} value={t.template_name}>{t.template_name}</SelectItem>
+                                    <SelectItem key={t.id} value={t.template_name || ""}>{t.template_name}</SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
