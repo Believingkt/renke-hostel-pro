@@ -1669,18 +1669,18 @@ const OrderDetailPage = () => {
                   <div className="flex items-center justify-between">
                     <span className="text-sm md:text-sm text-muted-foreground">預訂房間</span>
                     {isEditing && (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap justify-end">
                         <Badge variant="outline" className="text-xs">
-                          共 {editOrderRooms.reduce((sum, r) => sum + r.quantity, 0)} / {MAX_TOTAL_ROOMS} 間
+                          共 {editOrderRooms.reduce((sum, r) => sum + r.quantity, 0)} 間
                         </Badge>
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
                           className="h-7 gap-1 text-xs"
-                          disabled={editOrderRooms.reduce((sum, r) => sum + r.quantity, 0) >= MAX_TOTAL_ROOMS || roomTypes.length === 0}
+                          disabled={roomTypes.filter(r => !r.is_exclusive_package).length === 0}
                           onClick={async () => {
-                            const rt = roomTypes[0];
+                            const rt = roomTypes.filter(r => !r.is_exclusive_package)[0];
                             if (!rt) return;
                             const dateBasedTotal = await computeRoomTotalByDates(rt.id, null);
                             const suggestedUnitPrice = dateBasedTotal || getSuggestedRoomUnitPrice(rt.id) || rt.base_price;
@@ -1695,8 +1695,33 @@ const OrderDetailPage = () => {
                           }}
                         >
                           <Plus className="h-3 w-3" />
-                          新增
+                          新增散客房
                         </Button>
+                        {roomTypes.some(r => r.is_exclusive_package) && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 gap-1 text-xs"
+                            onClick={async () => {
+                              const rt = roomTypes.filter(r => r.is_exclusive_package)[0];
+                              if (!rt) return;
+                              const dateBasedTotal = await computeRoomTotalByDates(rt.id, null);
+                              const suggestedUnitPrice = dateBasedTotal || getSuggestedRoomUnitPrice(rt.id) || rt.base_price;
+                              setEditOrderRooms(prev => [...prev, {
+                                id: crypto.randomUUID(),
+                                room_type_id: rt.id,
+                                quantity: 1,
+                                room_price: suggestedUnitPrice,
+                                unit_price: suggestedUnitPrice,
+                                template_name: null,
+                              }]);
+                            }}
+                          >
+                            <Plus className="h-3 w-3" />
+                            新增{exclusiveLabel}
+                          </Button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1756,7 +1781,9 @@ const OrderDetailPage = () => {
                                   </SelectTrigger>
                                   <SelectContent>
                                     {roomTypes.map(rt => (
-                                      <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
+                                      <SelectItem key={rt.id} value={rt.id}>
+                                        {rt.is_exclusive_package ? `【${exclusiveLabel}】` : ""}{rt.name}
+                                      </SelectItem>
                                     ))}
                                   </SelectContent>
                                 </Select>
@@ -1765,7 +1792,7 @@ const OrderDetailPage = () => {
                                 <Label className="text-xs">間數</Label>
                                 <div className="flex items-center gap-1">
                                   <Button type="button" variant="outline" size="sm" className="h-8 w-8 p-0"
-                                    disabled={or.quantity <= 1}
+                                    disabled={or.quantity <= 1 || !!roomTypes.find(rt => rt.id === or.room_type_id)?.is_exclusive_package}
                                     onClick={() => setEditOrderRooms(prev => prev.map(r => {
                                       if (r.id !== or.id) return r;
                                       const newQty = r.quantity - 1;
@@ -1776,7 +1803,7 @@ const OrderDetailPage = () => {
                                   </Button>
                                   <span className="w-6 text-center text-sm font-medium">{or.quantity}</span>
                                   <Button type="button" variant="outline" size="sm" className="h-8 w-8 p-0"
-                                    disabled={totalOther + or.quantity >= MAX_TOTAL_ROOMS}
+                                    disabled={!!roomTypes.find(rt => rt.id === or.room_type_id)?.is_exclusive_package}
                                     onClick={() => setEditOrderRooms(prev => prev.map(r => {
                                       if (r.id !== or.id) return r;
                                       const newQty = r.quantity + 1;
