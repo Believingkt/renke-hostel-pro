@@ -298,19 +298,17 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   }, [form.room_type_id, pricingTemplates, getTemplatesForRoomType]);
 
   // Multi-room helpers
-  // 包區(Exclusive Package) 佔用全部 6 間額度
-  const getEffectiveQuantity = useCallback((sel: RoomSelection) => {
-    const rt = roomTypes.find(r => r.id === sel.room_type_id);
-    return rt?.is_exclusive_package ? MAX_TOTAL_ROOMS : sel.quantity;
-  }, [roomTypes]);
+  // 解除間數上限：每筆 selection 各自佔自己的間數，包棟視為 1 棟
+  const getEffectiveQuantity = useCallback((sel: RoomSelection) => sel.quantity, []);
   const totalRoomCount = roomSelections.reduce((sum, s) => sum + getEffectiveQuantity(s), 0);
   const hasExclusivePackage = roomSelections.some(s => roomTypes.find(r => r.id === s.room_type_id)?.is_exclusive_package);
 
-  const addRoomSelection = useCallback(() => {
-    if (totalRoomCount >= MAX_TOTAL_ROOMS) return;
+  const addRoomSelection = useCallback((preferExclusive = false) => {
     const id = crypto.randomUUID();
-    const normalRoomTypes = roomTypes.filter(r => !r.is_exclusive_package);
-    const defaultRoomType = normalRoomTypes[0];
+    const candidates = preferExclusive
+      ? [...roomTypes.filter(r => r.is_exclusive_package), ...roomTypes.filter(r => !r.is_exclusive_package)]
+      : [...roomTypes.filter(r => !r.is_exclusive_package), ...roomTypes.filter(r => r.is_exclusive_package)];
+    const defaultRoomType = candidates[0];
     if (!defaultRoomType) return;
     const templates = getTemplatesForRoomType(defaultRoomType.id);
     setRoomSelections(prev => [...prev, {
@@ -322,42 +320,27 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       roomPrice: 0,
       filteredTemplates: templates,
     }]);
-  }, [roomTypes, totalRoomCount, getTemplatesForRoomType]);
+  }, [roomTypes, getTemplatesForRoomType]);
 
   const removeRoomSelection = useCallback((selId: string) => {
     setRoomSelections(prev => prev.filter(s => s.id !== selId));
   }, []);
 
   const updateRoomSelection = useCallback((selId: string, updates: Partial<RoomSelection>) => {
-    setRoomSelections(prev => {
-      // If changing to an exclusive package, remove all other selections
-      if (updates.room_type_id) {
+    setRoomSelections(prev => prev.map(s => {
+      if (s.id !== selId) return s;
+      const updated = { ...s, ...updates };
+      if (updates.room_type_id && updates.room_type_id !== s.room_type_id) {
+        const templates = getTemplatesForRoomType(updates.room_type_id);
         const newRt = roomTypes.find(r => r.id === updates.room_type_id);
-        if (newRt?.is_exclusive_package) {
-          const templates = getTemplatesForRoomType(updates.room_type_id);
-          const sel = prev.find(s => s.id === selId);
-          return [{
-            ...(sel || prev[0]),
-            ...updates,
-            quantity: 1,
-            filteredTemplates: templates,
-            template_id: templates[0]?.id || "",
-            template_name: templates[0]?.template_name || "",
-          }];
-        }
+        updated.filteredTemplates = templates;
+        updated.template_id = templates[0]?.id || "";
+        updated.template_name = templates[0]?.template_name || "";
+        // 切到包棟時鎖為 1
+        if (newRt?.is_exclusive_package) updated.quantity = 1;
       }
-      return prev.map(s => {
-        if (s.id !== selId) return s;
-        const updated = { ...s, ...updates };
-        if (updates.room_type_id && updates.room_type_id !== s.room_type_id) {
-          const templates = getTemplatesForRoomType(updates.room_type_id);
-          updated.filteredTemplates = templates;
-          updated.template_id = templates[0]?.id || "";
-          updated.template_name = templates[0]?.template_name || "";
-        }
-        return updated;
-      });
-    });
+      return updated;
+    }));
   }, [getTemplatesForRoomType, roomTypes]);
 
   const changeRoomQuantity = useCallback((selId: string, delta: number) => {
@@ -365,14 +348,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       const sel = prev.find(s => s.id === selId);
       if (!sel) return prev;
       const rt = roomTypes.find(r => r.id === sel.room_type_id);
-      if (rt?.is_exclusive_package) return prev; // 包區不可調整數量
+      if (rt?.is_exclusive_package) return prev; // 包棟一筆=1 棟，不可調整
       const newQty = sel.quantity + delta;
-      const otherTotal = prev.reduce((sum, s) => {
-        if (s.id === selId) return sum;
-        const srt = roomTypes.find(r => r.id === s.room_type_id);
-        return sum + (srt?.is_exclusive_package ? MAX_TOTAL_ROOMS : s.quantity);
-      }, 0);
-      if (newQty < 1 || otherTotal + newQty > MAX_TOTAL_ROOMS) return prev;
+      if (newQty < 1) return prev;
       return prev.map(s => s.id === selId ? { ...s, quantity: newQty } : s);
     });
   }, [roomTypes]);
