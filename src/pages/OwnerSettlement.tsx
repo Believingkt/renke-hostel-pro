@@ -120,7 +120,7 @@ export default function OwnerSettlement() {
         }))
       );
       if (configRes.data?.setting_value) {
-        setConfig(configRes.data.setting_value as SettlementConfig);
+        setConfig(configRes.data.setting_value as unknown as SettlementConfig);
       }
       setPropertyCount(accRes.count ?? 1);
       setLoading(false);
@@ -217,7 +217,7 @@ export default function OwnerSettlement() {
         description="每月房務營收結算單，扣除餐飲、平台抽成與行銷費用"
         icon={Banknote}
         action={
-          <MonthPicker value={month} onChange={(d) => d && setMonth(startOfMonth(d))} />
+          <MonthPicker value={monthStr} onChange={(v) => v && v !== "all" && setMonthStr(v)} />
         }
       />
 
