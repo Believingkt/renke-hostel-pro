@@ -125,7 +125,9 @@ interface OrderRoom {
   quantity: number;
   room_price: number;
   template_name: string | null;
+  room_unit_id?: string | null;
   room_types?: { name: string } | null;
+  room_units?: { unit_number: string; nickname: string | null } | null;
 }
 
 interface EditOrderRoom {
@@ -135,6 +137,17 @@ interface EditOrderRoom {
   room_price: number;
   unit_price: number;
   template_name: string | null;
+  room_unit_id?: string | null;
+}
+
+interface RoomUnitOption {
+  id: string;
+  room_type_id: string;
+  unit_number: string;
+  nickname: string | null;
+  is_active: boolean;
+  occupied_by_order_id?: string | null;
+  occupied_by_order_number?: string | null;
 }
 interface AddonSetting {
   id: string;
