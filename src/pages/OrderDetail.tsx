@@ -1870,6 +1870,37 @@ const OrderDetailPage = () => {
                                 </div>
                               </div>
                             </div>
+                            {(() => {
+                              const isPackage = !!roomTypes.find(rt => rt.id === or.room_type_id)?.is_exclusive_package;
+                              if (isPackage || or.quantity !== 1) return null;
+                              const availableUnits = roomUnits.filter(u => u.room_type_id === or.room_type_id);
+                              if (availableUnits.length === 0) return null;
+                              return (
+                                <div className="space-y-1">
+                                  <Label className="text-xs">指派房間</Label>
+                                  <Select
+                                    value={or.room_unit_id || "none"}
+                                    onValueChange={(v) => setEditOrderRooms(prev => prev.map(r => r.id === or.id ? { ...r, room_unit_id: v === "none" ? null : v } : r))}
+                                  >
+                                    <SelectTrigger className="h-8 text-xs">
+                                      <SelectValue placeholder="尚未指派" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="none">尚未指派</SelectItem>
+                                      {availableUnits.map(u => {
+                                        const occupied = u.occupied_by_order_id && u.id !== or.room_unit_id;
+                                        return (
+                                          <SelectItem key={u.id} value={u.id} disabled={!!occupied}>
+                                            {u.unit_number}{u.nickname ? ` · ${u.nickname}` : ""}
+                                            {occupied ? ` (已被 ${u.occupied_by_order_number} 佔用)` : ""}
+                                          </SelectItem>
+                                        );
+                                      })}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              );
+                            })()}
                             <div className="space-y-1">
                               <Label className="text-xs">金額</Label>
                               <Input
