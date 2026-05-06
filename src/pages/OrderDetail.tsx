@@ -1731,6 +1731,7 @@ const OrderDetailPage = () => {
                         <Badge variant="outline" className="text-xs">
                           共 {editOrderRooms.reduce((sum, r) => sum + r.quantity, 0)} 間
                         </Badge>
+                        {isYunxiu && (
                         <Button
                           type="button"
                           variant="outline"
