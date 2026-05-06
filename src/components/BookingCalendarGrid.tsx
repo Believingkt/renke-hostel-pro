@@ -162,7 +162,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
   const [inventory, setInventory] = useState<Map<string, InventoryRecord>>(new Map());
   const [expandedRoomTypes, setExpandedRoomTypes] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
-  const [assigningEntryId, setAssigningEntryId] = useState<string | null>(null);
+  
 
   // Generate date columns
   const dates = useMemo(() => {
