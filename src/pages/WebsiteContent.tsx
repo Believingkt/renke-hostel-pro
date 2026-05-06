@@ -791,7 +791,9 @@ const WebsiteContent = () => {
         const { data: addonData } = await supabase
           .from("addon_settings")
           .select("*")
-          .eq("accommodation_id", infoData.id);
+          .eq("accommodation_id", infoData.id)
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: true });
 
         if (addonData) {
           const plans: AddonPlan[] = addonData.map(item => ({
