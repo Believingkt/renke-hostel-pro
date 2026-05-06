@@ -384,11 +384,15 @@ const OrderDetailPage = () => {
 
   const startEditing = () => {
     if (!order) return;
-    // Parse exclusive package room config from notes
+    // Parse exclusive package room configs from notes (one line per 包棟)
     const notesStr = order.notes || "";
-    const pkgMatch = notesStr.match(/【(?:包區|包棟)房間配置】雙人房\s*(\d+)\s*間、四人房\s*(\d+)\s*間/);
-    setEditExclusiveDoubleRooms(pkgMatch ? parseInt(pkgMatch[1]) : 0);
-    setEditExclusiveQuadRooms(pkgMatch ? parseInt(pkgMatch[2]) : 0);
+    const pkgRegex = /【(?:包區|包棟)房間配置】雙人房\s*(\d+)\s*間、四人房\s*(\d+)\s*間/g;
+    const parsedConfigs: Array<{ double: number; quad: number }> = [];
+    let m: RegExpExecArray | null;
+    while ((m = pkgRegex.exec(notesStr)) !== null) {
+      parsedConfigs.push({ double: parseInt(m[1]) || 0, quad: parseInt(m[2]) || 0 });
+    }
+    setEditExclusiveConfigs(parsedConfigs);
     setEditForm({
       guest_name: order.guest_name || "",
       guest_phone: order.guest_phone || "",
