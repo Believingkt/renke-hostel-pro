@@ -362,6 +362,16 @@ const HeroSection = ({
           continue;
         }
 
+        if (isSensan && packageRoomTypes.length > 0) {
+          // 森山嚴格規則：散客全無 OR 包區任一無 → 整天關閉
+          const commonOk = commonRoomTypes.length === 0
+            ? true
+            : commonRoomTypes.some((rt: any) => isRoomAvailable(rt, date));
+          const allPackagesOk = packageRoomTypes.every((rt: any) => isRoomAvailable(rt, date));
+          if (commonOk && allPackagesOk) available.add(date);
+          continue;
+        }
+
         const ok = roomTypes.some((rt: any) => isRoomAvailable(rt, date));
         if (ok) available.add(date);
       }
