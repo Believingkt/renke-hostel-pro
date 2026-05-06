@@ -123,7 +123,10 @@ interface SortablePlanCardProps {
   onValidate: (addonType: string, fieldName: string, value: string) => void;
   onToggleEnabled?: (addonType: string, enabled: boolean) => Promise<void>;
   onDeleteClick: (addonType: string) => void;
+  onRenameClick: (addonType: string) => void;
 }
+
+const isBuiltInType = (addonType: string) => addonType === 'pet' || addonType === 'meal';
 
 const SortablePlanCard = ({
   plan,
@@ -133,6 +136,7 @@ const SortablePlanCard = ({
   onValidate,
   onToggleEnabled,
   onDeleteClick,
+  onRenameClick,
 }: SortablePlanCardProps) => {
   const {
     attributes,
@@ -150,6 +154,8 @@ const SortablePlanCard = ({
     zIndex: isDragging ? 10 : 'auto' as const,
   };
 
+  const canRename = !isBuiltInType(plan.addon_type);
+
   return (
     <div ref={setNodeRef} style={style}>
       <Card className={isDragging ? 'shadow-lg ring-2 ring-primary/20' : ''}>
@@ -166,6 +172,17 @@ const SortablePlanCard = ({
                 <GripVertical className="h-5 w-5 text-muted-foreground" />
               </button>
               <span>{getDisplayName(plan.addon_type)}</span>
+              {canRename && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                  onClick={() => onRenameClick(plan.addon_type)}
+                  aria-label="編輯方案名稱"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+              )}
             </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
