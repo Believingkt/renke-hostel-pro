@@ -1788,10 +1788,15 @@ const OrderDetailPage = () => {
 
                   {isEditing ? (
                     <>
-                      {editOrderRooms.map((or, idx) => {
-                        const totalOther = editOrderRooms.reduce((sum, r) => r.id === or.id ? sum : sum + r.quantity, 0);
-                        return (
-                          <div key={or.id} className="p-2.5 rounded-lg border bg-muted/30 space-y-2">
+                      {(() => {
+                        const firstExclusiveId = editOrderRooms.find(r => roomTypes.find(t => t.id === r.room_type_id)?.is_exclusive_package)?.id;
+                        return editOrderRooms.map((or, idx) => {
+                          const totalOther = editOrderRooms.reduce((sum, r) => r.id === or.id ? sum : sum + r.quantity, 0);
+                          const isThisExclusive = !!roomTypes.find(t => t.id === or.room_type_id)?.is_exclusive_package;
+                          const showExclusiveConfig = isThisExclusive && or.id === firstExclusiveId;
+                          return (
+                          <div key={or.id} className="space-y-2">
+                          <div className="p-2.5 rounded-lg border bg-muted/30 space-y-2">
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-medium">房間 {idx + 1}</span>
                               <Button
