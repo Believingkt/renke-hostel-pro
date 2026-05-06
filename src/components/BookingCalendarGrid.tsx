@@ -298,22 +298,30 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
     }).length;
   };
 
-  // Check if a date is blocked because an exclusive package is booked
-  // Check if ANY exclusive package has a booking on this date (applies to ALL room types)
-  const isDateBlockedByAnyExclusive = useMemo(() => {
+  // 只有「共用包棟」(is_exclusive_package && is_bound_to_exclusive) 的訂單會鎖定其他房型。
+  // 獨立包棟 (is_exclusive_package && !is_bound_to_exclusive) 不會影響其他房型。
+  const sharedExclusiveBookedDates = useMemo(() => {
     const blockedDates = new Set<string>();
-    const exclusiveTypes = roomTypes.filter(r => r.is_exclusive_package);
+    const sharedExclusiveTypes = roomTypes.filter(r => r.is_exclusive_package && r.is_bound_to_exclusive);
     for (const dateStr of dateStrings) {
-      const hasExclusiveBooking = exclusiveTypes.some(et =>
+      const hasBooking = sharedExclusiveTypes.some(et =>
         calendarEntries.some(e => e.room_type_id === et.id && e.check_in_date <= dateStr && e.check_out_date > dateStr)
       );
-      if (hasExclusiveBooking) blockedDates.add(dateStr);
+      if (hasBooking) blockedDates.add(dateStr);
     }
     return blockedDates;
   }, [roomTypes, calendarEntries, dateStrings]);
 
-  const isBlockedByExclusive = (_roomTypeId: string, dateStr: string): boolean => {
-    return isDateBlockedByAnyExclusive.has(dateStr);
+  const isBlockedByExclusive = (roomTypeId: string, dateStr: string): boolean => {
+    if (!sharedExclusiveBookedDates.has(dateStr)) return false;
+    const rt = roomTypes.find(r => r.id === roomTypeId);
+    if (!rt) return false;
+    // 共用包棟之間互鎖,以及綁定包棟的房型受鎖。
+    // 獨立包棟 / 獨立房間 不受影響。
+    if (rt.is_exclusive_package) {
+      return rt.is_bound_to_exclusive === true; // 只有共用包棟才被其他共用包棟鎖
+    }
+    return rt.is_bound_to_exclusive === true; // 綁定包棟的房間
   };
 
   // Get the set of dates where an exclusive package room type has bookings
