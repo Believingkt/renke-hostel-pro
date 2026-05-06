@@ -144,10 +144,20 @@ async function handleRelay(req, res) {
   console.log(`[${new Date().toISOString()}] RELAY → ${targetUrl}`);
 
   try {
+    // Force IPv4 outbound: undici (Node's fetch) ignores https.Agent, so build a per-request Agent
+    let dispatcher;
+    try {
+      const { Agent: UndiciAgent } = require('undici');
+      dispatcher = new UndiciAgent({ connect: { family: 4 } });
+    } catch (_) {
+      // undici may not be exposed in older Node; ipv4first DNS order above still helps
+    }
+
     const response = await fetch(targetUrl, {
       method: 'POST',
       headers: forwardHeaders,
       body: body,
+      ...(dispatcher ? { dispatcher } : {}),
     });
 
     const responseBody = await response.text();
