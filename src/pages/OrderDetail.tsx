@@ -1803,11 +1803,15 @@ const OrderDetailPage = () => {
                   {isEditing ? (
                     <>
                       {(() => {
-                        const firstExclusiveId = editOrderRooms.find(r => roomTypes.find(t => t.id === r.room_type_id)?.is_exclusive_package)?.id;
+                        const exclusiveIds = editOrderRooms
+                          .filter(r => roomTypes.find(t => t.id === r.room_type_id)?.is_exclusive_package)
+                          .map(r => r.id);
                         return editOrderRooms.map((or, idx) => {
                           const totalOther = editOrderRooms.reduce((sum, r) => r.id === or.id ? sum : sum + r.quantity, 0);
                           const isThisExclusive = !!roomTypes.find(t => t.id === or.room_type_id)?.is_exclusive_package;
-                          const showExclusiveConfig = isThisExclusive && or.id === firstExclusiveId;
+                          const exclusiveIdx = isThisExclusive ? exclusiveIds.indexOf(or.id) : -1;
+                          const showExclusiveConfig = isThisExclusive;
+                          const cfg = exclusiveIdx >= 0 ? (editExclusiveConfigs[exclusiveIdx] || { double: 0, quad: 0 }) : { double: 0, quad: 0 };
                           return (
                           <div key={or.id} className="space-y-2">
                           <div className="p-2.5 rounded-lg border bg-muted/30 space-y-2">
