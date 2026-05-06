@@ -792,13 +792,18 @@ const OrderDetailPage = () => {
         }
 
         // Insert updated rooms
-        const newOrderRooms = editOrderRooms.map(r => ({
-          order_id: order.id,
-          room_type_id: r.room_type_id,
-          quantity: r.quantity,
-          room_price: r.room_price,
-          template_name: r.template_name,
-        }));
+        const newOrderRooms = editOrderRooms.map(r => {
+          const isPackage = !!roomTypes.find(rt => rt.id === r.room_type_id)?.is_exclusive_package;
+          return {
+            order_id: order.id,
+            room_type_id: r.room_type_id,
+            quantity: r.quantity,
+            room_price: r.room_price,
+            template_name: r.template_name,
+            // 包棟不需指派單一房間;quantity > 1 也不指派(只指派單間)
+            room_unit_id: isPackage || r.quantity !== 1 ? null : (r.room_unit_id || null),
+          };
+        });
         const { error: roomsError } = await supabase.from("order_rooms").insert(newOrderRooms);
         if (roomsError) throw roomsError;
       } else {
