@@ -622,20 +622,23 @@ const OrderDetailPage = () => {
     try {
       const editFinalPriceCalc = editForm.total_price + editForm.addon_total - editForm.discount_amount;
 
-      // If any edited room is an exclusive package, regenerate the [包區房間配置] note line
-      const hasExclusivePackage =
-        editOrderRooms.some(r => roomTypes.find(t => t.id === r.room_type_id)?.is_exclusive_package) ||
-        !!roomTypes.find(t => t.id === editForm.room_type_id)?.is_exclusive_package;
+      // If any edited room is an exclusive package, regenerate one [包區/包棟房間配置] line per 包棟
+      const exclusiveRows = editOrderRooms.filter(r => roomTypes.find(t => t.id === r.room_type_id)?.is_exclusive_package);
       let finalNotes = editForm.notes.trim();
-      // Strip any existing 包區/包棟房間配置 line first
+      // Strip any existing 包區/包棟房間配置 lines first
       finalNotes = finalNotes
         .split("\n")
         .filter(line => !/^【(?:包區|包棟)房間配置】/.test(line.trim()))
         .join("\n")
         .trim();
-      if (hasExclusivePackage && (editExclusiveDoubleRooms > 0 || editExclusiveQuadRooms > 0)) {
-        const pkgLine = `【${exclusiveLabel}房間配置】雙人房 ${editExclusiveDoubleRooms} 間、四人房 ${editExclusiveQuadRooms} 間`;
-        finalNotes = finalNotes ? `${pkgLine}\n${finalNotes}` : pkgLine;
+      if (exclusiveRows.length > 0) {
+        const pkgLines = exclusiveRows.map((_, i) => {
+          const cfg = editExclusiveConfigs[i] || { double: 0, quad: 0 };
+          return `【${exclusiveLabel}房間配置】雙人房 ${cfg.double} 間、四人房 ${cfg.quad} 間`;
+        }).filter(line => /雙人房 [1-9]|四人房 [1-9]/.test(line));
+        if (pkgLines.length > 0) {
+          finalNotes = finalNotes ? `${pkgLines.join("\n")}\n${finalNotes}` : pkgLines.join("\n");
+        }
       }
 
       const updateData: Record<string, any> = {
