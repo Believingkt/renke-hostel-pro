@@ -304,6 +304,9 @@ export const AddonPlansSection = ({
   const [newPlanName, setNewPlanName] = useState("");
   const [newPlanNameError, setNewPlanNameError] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [renameTarget, setRenameTarget] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [renameError, setRenameError] = useState("");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
