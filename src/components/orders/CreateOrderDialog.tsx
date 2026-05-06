@@ -1423,18 +1423,6 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                   <Plus className="h-3.5 w-3.5" />
                   新增散客房
                 </Button>
-                {roomTypes.some(r => r.is_exclusive_package) && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => addRoomSelection(true)}
-                    className="h-8 gap-1"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    新增{exclusiveLabel}
-                  </Button>
-                )}
               </div>
             </div>
 
