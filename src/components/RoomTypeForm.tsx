@@ -32,6 +32,7 @@ import {
   rectSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { RoomUnitsManager } from "@/components/RoomUnitsManager";
 
 interface RoomTypeFormProps {
   accommodationId: string;
@@ -515,6 +516,15 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
           </div>
         </CardContent>
       </Card>
+
+      {/* 房間單位管理：僅在編輯既有房型且非包棟時顯示 */}
+      {roomType?.id && !formData.is_exclusive_package && (
+        <RoomUnitsManager
+          roomTypeId={roomType.id}
+          accommodationId={accommodationId}
+          roomCount={parseInt(formData.room_count) || 0}
+        />
+      )}
 
       {/* 關聯設定 */}
       <Card>
