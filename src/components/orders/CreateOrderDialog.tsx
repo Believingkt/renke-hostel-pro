@@ -1468,7 +1468,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                         size="sm"
                         className="h-10 w-10 p-0"
                         onClick={() => changeRoomQuantity(sel.id, 1)}
-                        disabled={totalRoomCount >= MAX_TOTAL_ROOMS}
+                        disabled={!!roomTypes.find(r => r.id === sel.room_type_id)?.is_exclusive_package}
                       >
                         <Plus className="h-3.5 w-3.5" />
                       </Button>
