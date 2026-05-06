@@ -1908,6 +1908,38 @@ const OrderDetailPage = () => {
                                 </div>
                               </div>
                             </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">專案</Label>
+                              <Select
+                                value={or.template_name || "none"}
+                                onValueChange={async (v) => {
+                                  const newTemplate = v === "none" ? "" : v;
+                                  // 重新依新方案計算單間總額
+                                  const dateBasedTotal = await computeRoomTotalByDates(or.room_type_id, newTemplate);
+                                  setEditOrderRooms(prev => prev.map(r => {
+                                    if (r.id !== or.id) return r;
+                                    if (dateBasedTotal > 0) {
+                                      const roomTotal = dateBasedTotal * r.quantity;
+                                      const unitPrice = r.quantity > 0 ? Math.round(roomTotal / r.quantity) : roomTotal;
+                                      return { ...r, template_name: newTemplate, unit_price: unitPrice, room_price: roomTotal };
+                                    }
+                                    return { ...r, template_name: newTemplate };
+                                  }));
+                                }}
+                              >
+                                <SelectTrigger className="h-8 text-xs">
+                                  <SelectValue placeholder="選擇專案" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">無</SelectItem>
+                                  {allTemplates
+                                    .filter(t => !t.room_type_id || t.room_type_id === or.room_type_id)
+                                    .map(t => (
+                                    <SelectItem key={t.id} value={t.template_name || ""}>{t.template_name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
                             {(() => {
                               if (!isYunxiu) return null;
                               const isPackage = !!roomTypes.find(rt => rt.id === or.room_type_id)?.is_exclusive_package;
