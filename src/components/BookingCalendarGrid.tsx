@@ -100,6 +100,7 @@ const SOURCE_ICONS: Record<string, string> = {
   points_starchain: "⭐",
   official_use: "🏛️",
   franchise_diff: "🤝",
+  owner_provided: "🧳",
 };
 
 const SOURCE_LABELS: Record<string, string> = {
