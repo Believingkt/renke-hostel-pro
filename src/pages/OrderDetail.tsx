@@ -203,6 +203,7 @@ const OrderDetailPage = () => {
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
   const [roomTemplates, setRoomTemplates] = useState<(PricingTemplateLite & { room_type_id?: string | null })[]>([]);
+  const [allRoomTemplates, setAllRoomTemplates] = useState<(PricingTemplateLite & { room_type_id?: string | null })[]>([]);
   const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
   const [allTemplates, setAllTemplates] = useState<(PricingTemplateLite & { room_type_id?: string | null })[]>([]);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
@@ -1153,6 +1154,7 @@ const OrderDetailPage = () => {
               ? templatesData.filter((t: any) => t.room_type_id === roomTypeId)
               : templatesData;
             setRoomTemplates(roomTypeTemplates as any);
+            setAllRoomTemplates(templatesData as any);
             // Derive meal plan options from template names
             const derivedPlans: CustomMealPlan[] = [];
             const defaultTemplate = roomTypeTemplates.find(t => (t as any).meal_plans && Array.isArray((t as any).meal_plans) && ((t as any).meal_plans as any[]).length > 0);
@@ -1176,6 +1178,7 @@ const OrderDetailPage = () => {
             setCustomMealPlans(derivedPlans);
           } else {
             setRoomTemplates([]);
+            setAllRoomTemplates([]);
             setCustomMealPlans([]);
           }
 
@@ -1307,7 +1310,7 @@ const OrderDetailPage = () => {
 
   const getTemplateDisplayName = (planId: string | null) => {
     if (!planId) return "-";
-    const template = roomTemplates.find(t => t.id === planId);
+    const template = roomTemplates.find(t => t.id === planId) || allRoomTemplates.find(t => t.id === planId);
     if (template) return template.template_name;
     // Fallback to meal plan display
     return getMealPlanDisplayName(planId);
