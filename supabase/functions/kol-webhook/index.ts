@@ -83,11 +83,18 @@ async function sendInternalOrderEmail(supabase: any, order: any, roomTypeName: s
       return { success: false, error: "RESEND_API_KEY not configured" };
     }
 
+    const toTW = (d: Date) => new Date(d.getTime() + 8 * 60 * 60 * 1000);
     const pad = (n: number) => String(n).padStart(2, "0");
-    const fmtDate = (d: Date) => `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())}`;
-    const fmtDateTime = (d: Date) => `${fmtDate(d)} | ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    const fmtDate = (d: Date) => {
+      const tw = toTW(d);
+      return `${tw.getUTCFullYear()}/${pad(tw.getUTCMonth() + 1)}/${pad(tw.getUTCDate())}`;
+    };
+    const fmtDateTime = (d: Date) => {
+      const tw = toTW(d);
+      return `${tw.getUTCFullYear()}/${pad(tw.getUTCMonth() + 1)}/${pad(tw.getUTCDate())} | ${pad(tw.getUTCHours())}:${pad(tw.getUTCMinutes())}`;
+    };
     const today = new Date();
-    const createdAt = order.created_at ? new Date(order.created_at) : new Date();
+    const orderDate = order.order_date ? new Date(order.order_date) : (order.created_at ? new Date(order.created_at) : new Date());
     const checkIn = new Date(order.check_in_date);
     const checkOut = new Date(order.check_out_date);
     const nights = Math.max(0, Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)));
@@ -95,7 +102,7 @@ async function sendInternalOrderEmail(supabase: any, order: any, roomTypeName: s
     const subject = `【已成立訂單】1筆 - [訂單_${accommodationName} x 星探邀約KOL]`;
     const baseText = `以下 1 筆訂單已成立，批次通知日期 ${fmtDate(today)}
 ===================================================
-訂單日期：${fmtDateTime(createdAt)}
+訂單日期：${fmtDateTime(orderDate)}
 訂單編號:${order.order_number}
 入住日：${order.check_in_date}
 入住天數：${nights}天
@@ -136,17 +143,24 @@ async function sendDiscountCorrectionEmail(supabase: any, order: any, previousDi
       return { success: false, error: "RESEND_API_KEY not configured" };
     }
 
+    const toTW = (d: Date) => new Date(d.getTime() + 8 * 60 * 60 * 1000);
     const pad = (n: number) => String(n).padStart(2, "0");
-    const fmtDate = (d: Date) => `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())}`;
-    const fmtDateTime = (d: Date) => `${fmtDate(d)} | ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    const fmtDate = (d: Date) => {
+      const tw = toTW(d);
+      return `${tw.getUTCFullYear()}/${pad(tw.getUTCMonth() + 1)}/${pad(tw.getUTCDate())}`;
+    };
+    const fmtDateTime = (d: Date) => {
+      const tw = toTW(d);
+      return `${tw.getUTCFullYear()}/${pad(tw.getUTCMonth() + 1)}/${pad(tw.getUTCDate())} | ${pad(tw.getUTCHours())}:${pad(tw.getUTCMinutes())}`;
+    };
     const today = new Date();
-    const createdAt = order.created_at ? new Date(order.created_at) : new Date();
+    const orderDate = order.order_date ? new Date(order.order_date) : (order.created_at ? new Date(order.created_at) : new Date());
 
     const subject = `【折扣碼修正】1筆 - [訂單_${accommodationName} x 星探邀約KOL]`;
     const baseText = `以下 1 筆訂單的折扣代碼已修正，通知日期 ${fmtDate(today)}
 ===================================================
 訂單編號：${order.order_number}
-訂單日期：${fmtDateTime(createdAt)}
+訂單日期：${fmtDateTime(orderDate)}
 原折扣代碼：${previousDiscountCode ?? ""}
 新折扣代碼：${order.discount_code ?? ""}`;
     const text = withShortNamePrefix(baseText, shortName);
@@ -268,6 +282,7 @@ Deno.serve(async (req) => {
           order_status,
           discount_code,
           created_at,
+          order_date,
           accommodation_id,
           order_source,
           room_types:room_type_id (name)
@@ -411,6 +426,7 @@ Deno.serve(async (req) => {
         order_status,
         discount_code,
         created_at,
+        order_date,
         accommodation_id,
         order_source,
         internal_email_sent,
