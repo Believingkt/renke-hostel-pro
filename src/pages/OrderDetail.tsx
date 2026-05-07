@@ -1178,6 +1178,7 @@ const OrderDetailPage = () => {
             setCustomMealPlans(derivedPlans);
           } else {
             setRoomTemplates([]);
+            setAllRoomTemplates([]);
             setCustomMealPlans([]);
           }
 
