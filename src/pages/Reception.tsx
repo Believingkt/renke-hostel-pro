@@ -470,6 +470,7 @@ export default function Reception() {
                     顧客
                   </Th>
                   <Th>房型</Th>
+                  <Th>付款狀態</Th>
                   <Th onClick={() => toggleSort("status")} active={sortKey === "status"}>
                     狀態
                   </Th>
