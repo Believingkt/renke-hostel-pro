@@ -11,7 +11,24 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+
+const PAYMENT_STATUS_OPTIONS: { value: string; label: string; cls: string }[] = [
+  { value: "unpaid", label: "未付款", cls: "bg-destructive/10 text-destructive border-destructive/30" },
+  { value: "deposit_paid", label: "已付訂金", cls: "bg-amber-500/10 text-amber-700 border-amber-500/30 dark:text-amber-400" },
+  { value: "paid", label: "已付清", cls: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400" },
+  { value: "overdue", label: "已逾期", cls: "bg-destructive/10 text-destructive border-destructive/30" },
+  { value: "refunded", label: "已退款", cls: "bg-muted text-muted-foreground border-border" },
+  { value: "partial_refunded", label: "部分退款", cls: "bg-muted text-muted-foreground border-border" },
+];
+
+function paymentLabel(s: string) {
+  return PAYMENT_STATUS_OPTIONS.find((o) => o.value === s)?.label ?? s;
+}
+function paymentCls(s: string) {
+  return PAYMENT_STATUS_OPTIONS.find((o) => o.value === s)?.cls ?? "bg-muted text-muted-foreground border-border";
+}
 
 type ReceptionMode = "checkin" | "checkout";
 type CheckinDay = "yesterday" | "today" | "tomorrow";
@@ -27,6 +44,9 @@ interface ReceptionOrder {
   checked_out_at: string | null;
   order_source: string | null;
   order_status: string;
+  payment_status: string;
+  final_price: number | null;
+  paid_amount: number | null;
   room_type?: { name: string | null } | null;
   rooms?: Array<{ room_type_id: string; quantity: number; room_type?: { name: string | null } | null }>;
 }
@@ -211,7 +231,7 @@ export default function Reception() {
         .select(
           `id, order_number, guest_name, guest_phone,
            check_in_date, check_out_date, checked_in_at, checked_out_at,
-           order_source, order_status,
+           order_source, order_status, payment_status, final_price, paid_amount,
            room_type:room_types ( name ),
            rooms:order_rooms ( room_type_id, quantity, room_type:room_types ( name ) )`
         )
@@ -261,6 +281,30 @@ export default function Reception() {
       await Promise.all([loadOrders(), loadCounts()]);
     } catch (err: any) {
       toast({ title: "操作失敗", description: err.message, variant: "destructive" });
+    } finally {
+      setActingId(null);
+    }
+  };
+
+  const handlePaymentChange = async (o: ReceptionOrder, newStatus: string) => {
+    if (!editable) {
+      toast({ title: "權限不足", description: "您沒有櫃檯接待的編輯權限", variant: "destructive" });
+      return;
+    }
+    if (newStatus === o.payment_status) return;
+    setActingId(o.id);
+    try {
+      const patch: Record<string, unknown> = { payment_status: newStatus };
+      if (newStatus === "paid" && o.final_price != null) {
+        patch.paid_amount = o.final_price;
+      }
+      const { error } = await supabase.from("orders").update(patch).eq("id", o.id);
+      if (error) throw error;
+      // Optimistic local update
+      setOrders((prev) => prev.map((x) => (x.id === o.id ? { ...x, payment_status: newStatus } : x)));
+      toast({ title: "付款狀態已更新", description: paymentLabel(newStatus) });
+    } catch (err: any) {
+      toast({ title: "更新失敗", description: err.message, variant: "destructive" });
     } finally {
       setActingId(null);
     }
@@ -426,6 +470,7 @@ export default function Reception() {
                     顧客
                   </Th>
                   <Th>房型</Th>
+                  <Th>付款狀態</Th>
                   <Th onClick={() => toggleSort("status")} active={sortKey === "status"}>
                     狀態
                   </Th>
@@ -437,13 +482,13 @@ export default function Reception() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">
+                    <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
                       載入中…
                     </td>
                   </tr>
                 ) : sortedFiltered.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">
+                    <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
                       {keyword ? "找不到符合條件的訂單" : "目前沒有需要處理的訂單"}
                     </td>
                   </tr>
@@ -474,6 +519,31 @@ export default function Reception() {
                           )}
                         </td>
                         <td className="px-4 py-3 align-top">{roomLabel(o)}</td>
+                        <td className="px-4 py-3 align-top">
+                          <Select
+                            value={o.payment_status}
+                            onValueChange={(v) => handlePaymentChange(o, v)}
+                            disabled={!editable || acting}
+                          >
+                            <SelectTrigger
+                              className={`h-8 w-[120px] text-xs font-medium ${paymentCls(o.payment_status)}`}
+                            >
+                              <SelectValue>{paymentLabel(o.payment_status)}</SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {PAYMENT_STATUS_OPTIONS.map((opt) => (
+                                <SelectItem key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {o.final_price != null && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              ${(o.paid_amount ?? 0).toLocaleString()} / ${o.final_price.toLocaleString()}
+                            </div>
+                          )}
+                        </td>
                         <td className="px-4 py-3 align-top">
                           <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
                           {mode === "checkin" && o.checked_in_at && (
