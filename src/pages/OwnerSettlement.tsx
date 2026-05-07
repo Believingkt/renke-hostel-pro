@@ -426,7 +426,7 @@ function BreakdownRow({
 }: {
   icon: any;
   label: string;
-  sublabel?: string;
+  sublabel?: React.ReactNode;
   value: number;
   tone: "income" | "neutral" | "subtotal" | "fee" | "final";
   indent?: boolean;
