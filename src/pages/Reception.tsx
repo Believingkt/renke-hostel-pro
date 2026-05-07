@@ -11,7 +11,24 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+
+const PAYMENT_STATUS_OPTIONS: { value: string; label: string; cls: string }[] = [
+  { value: "unpaid", label: "未付款", cls: "bg-destructive/10 text-destructive border-destructive/30" },
+  { value: "deposit_paid", label: "已付訂金", cls: "bg-amber-500/10 text-amber-700 border-amber-500/30 dark:text-amber-400" },
+  { value: "paid", label: "已付清", cls: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400" },
+  { value: "overdue", label: "已逾期", cls: "bg-destructive/10 text-destructive border-destructive/30" },
+  { value: "refunded", label: "已退款", cls: "bg-muted text-muted-foreground border-border" },
+  { value: "partial_refunded", label: "部分退款", cls: "bg-muted text-muted-foreground border-border" },
+];
+
+function paymentLabel(s: string) {
+  return PAYMENT_STATUS_OPTIONS.find((o) => o.value === s)?.label ?? s;
+}
+function paymentCls(s: string) {
+  return PAYMENT_STATUS_OPTIONS.find((o) => o.value === s)?.cls ?? "bg-muted text-muted-foreground border-border";
+}
 
 type ReceptionMode = "checkin" | "checkout";
 type CheckinDay = "yesterday" | "today" | "tomorrow";
