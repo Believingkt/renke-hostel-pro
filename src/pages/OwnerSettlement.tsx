@@ -455,3 +455,25 @@ function BreakdownRow({
   );
 }
 
+function ServiceItem({
+  icon: Icon,
+  title,
+  desc,
+}: {
+  icon: any;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <div className="flex gap-3 p-3 rounded-lg border bg-card hover:bg-muted/40 transition-colors">
+      <div className="shrink-0 h-9 w-9 rounded-md bg-primary/10 text-primary flex items-center justify-center">
+        <Icon className="h-4.5 w-4.5" />
+      </div>
+      <div className="min-w-0">
+        <div className="text-sm font-medium leading-tight">{title}</div>
+        <div className="text-[11px] text-muted-foreground mt-1 leading-snug">{desc}</div>
+      </div>
+    </div>
+  );
+}
+
