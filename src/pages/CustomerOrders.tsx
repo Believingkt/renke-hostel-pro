@@ -176,6 +176,7 @@ const CustomerOrders = () => {
        points_starchain: { label: "星鏈會員", variant: "outline" },
        official_use: { label: "公務使用", variant: "outline" },
        franchise_diff: { label: "加盟價差", variant: "outline" },
+       owner_provided: { label: "業主自帶", variant: "outline" },
     };
     const config = sourceConfig[source] || { label: source || "官網訂房", variant: "default" };
     return <Badge variant={config.variant}>{config.label}</Badge>;
