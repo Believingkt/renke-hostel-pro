@@ -13,7 +13,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { MonthPicker } from "@/components/ui/month-picker";
-import { Banknote, TrendingUp, Utensils, Percent, Megaphone, Wallet, CalendarClock } from "lucide-react";
+import { Banknote, TrendingUp, Utensils, Percent, Megaphone, Wallet, CalendarClock, ArrowRight, Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format, startOfMonth, endOfMonth, addDays, differenceInDays, parseISO, addMonths } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
@@ -216,72 +217,121 @@ export default function OwnerSettlement() {
   const paymentDueDate = format(addMonths(month, 1), "yyyy/MM/10");
 
   return (
+    <TooltipProvider delayDuration={150}>
     <div className="container mx-auto py-6 space-y-6">
       <AdminPageHeader
-        title="業主月結"
-        description={`${monthLabel}房務營收結算單，扣除餐飲、平台抽成與行銷費用`}
+        title="業主收益報告"
+        description={`${monthLabel} 房務營運摘要與業主撥款明細`}
         icon={Banknote}
         action={
           <MonthPicker value={monthStr} onChange={(v) => v && v !== "all" && setMonthStr(v)} />
         }
       />
 
-      {/* 匯款提醒 */}
-      <Card className="border-primary/40 bg-primary/5">
-        <CardContent className="p-4 flex items-center gap-3">
-          <CalendarClock className="h-5 w-5 text-primary shrink-0" />
-          <div className="flex-1">
-            <div className="text-sm font-semibold">
-              匯款提醒：{monthLabel} 結算款請於 <span className="text-primary">{paymentDueDate}（每月 10 號）</span> 前完成匯款
+      {/* Hero：業主實收 */}
+      <Card className="border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
+        <CardContent className="p-6 md:p-8">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+            <div className="space-y-1">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
+                {monthLabel} 業主撥款
+              </div>
+              <div className="text-4xl md:text-5xl font-bold text-primary tabular-nums leading-tight">
+                NT$ {fmt(totals.ownerNet)}
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground pt-1">
+                <CalendarClock className="h-4 w-4" />
+                預計於 <span className="font-semibold text-foreground">{paymentDueDate}</span> 前完成匯款（每月 10 號）
+              </div>
             </div>
-            <div className="text-xs text-muted-foreground mt-0.5">
-              金額：NT$ {fmt(totals.ownerNet)}（業主實收）
+            <div className="grid grid-cols-3 gap-4 md:gap-6 md:text-right text-xs">
+              <div>
+                <div className="text-muted-foreground">本月入住營收</div>
+                <div className="text-base font-semibold tabular-nums mt-0.5">
+                  NT$ {fmt(totals.totalRevenue)}
+                </div>
+              </div>
+              <div>
+                <div className="text-muted-foreground">訂單數</div>
+                <div className="text-base font-semibold tabular-nums mt-0.5">
+                  {rows.length}
+                </div>
+              </div>
+              <div>
+                <div className="text-muted-foreground">本月總夜數</div>
+                <div className="text-base font-semibold tabular-nums mt-0.5">
+                  {rows.reduce((s, r) => s + r.nightsInMonth, 0)}
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* 上方總覽卡片 */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <SummaryCard
-          icon={TrendingUp}
-          label={`${monthShort}入住營收`}
-          value={`NT$ ${fmt(totals.totalRevenue)}`}
-          tone="default"
-        />
-        <SummaryCard
-          icon={Utensils}
-          label={`${monthShort}餐飲費用`}
-          value={`NT$ ${fmt(totals.totalFood)}`}
-          tone="muted"
-        />
-        <SummaryCard
-          icon={Wallet}
-          label={`${monthShort}訂單金額`}
-          value={`NT$ ${fmt(totals.totalCommissionable)}`}
-          tone="muted"
-          hint="折扣後總價 − 餐飲"
-        />
-        <SummaryCard
-          icon={Percent}
-          label={`${monthShort}平台抽成 ${config.commission_rate}%`}
-          value={`-NT$ ${fmt(totals.totalCommission)}`}
-          tone="warning"
-        />
-        <SummaryCard
-          icon={Megaphone}
-          label={`${monthShort}行銷費用 (${propertyCount} 棟)`}
-          value={`-NT$ ${fmt(totals.marketingFee)}`}
-          tone="warning"
-          hint={`基本 ${fmt(config.marketing_fee_base)} + ${Math.max(0, propertyCount - 1)} × ${fmt(config.marketing_fee_per_extra_property)}`}
-        />
-        <SummaryCard
-          icon={Banknote}
-          label={`${monthShort}業主實收`}
-          value={`NT$ ${fmt(totals.ownerNet)}`}
-          tone="primary"
-        />
-      </div>
+      {/* 收益拆解：收入 → 費用 → 實收 */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">本月收益拆解</CardTitle>
+          <CardDescription>從入住營收到業主實際撥款的完整流程</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-1">
+          {/* 收入區 */}
+          <BreakdownRow
+            icon={TrendingUp}
+            label="入住營收"
+            sublabel="本月所有訂單依夜數攤分"
+            value={totals.totalRevenue}
+            tone="income"
+          />
+          <BreakdownRow
+            icon={Utensils}
+            label="餐飲費用"
+            sublabel="不計入平台服務費基礎"
+            value={-totals.totalFood}
+            tone="neutral"
+            indent
+          />
+          <BreakdownRow
+            icon={Wallet}
+            label="訂單金額（房費）"
+            sublabel="入住營收 − 餐飲費用"
+            value={totals.totalCommissionable}
+            tone="subtotal"
+          />
+
+          <div className="h-px bg-border my-2" />
+
+          {/* 服務費用區 */}
+          <div className="text-xs text-muted-foreground font-medium px-3 pt-2 pb-1">
+            平台服務費用
+          </div>
+          <BreakdownRow
+            icon={Percent}
+            label={`平台服務費 ${config.commission_rate}%`}
+            sublabel="含金流處理、客服、系統維運、訂單管理"
+            value={-totals.totalCommission}
+            tone="fee"
+          />
+          <BreakdownRow
+            icon={Megaphone}
+            label={`行銷推廣費（${propertyCount} 棟）`}
+            sublabel={`基本 ${fmt(config.marketing_fee_base)} + ${Math.max(0, propertyCount - 1)} × ${fmt(config.marketing_fee_per_extra_property)}　含 OTA 上架、SEO、廣告投放`}
+            value={-totals.marketingFee}
+            tone="fee"
+          />
+
+          <div className="h-px bg-border my-2" />
+
+          {/* 實收 */}
+          <BreakdownRow
+            icon={Banknote}
+            label="業主實收"
+            sublabel={`占入住營收 ${totals.totalRevenue > 0 ? Math.round((totals.ownerNet / totals.totalRevenue) * 100) : 0}%`}
+            value={totals.ownerNet}
+            tone="final"
+          />
+        </CardContent>
+      </Card>
 
       {/* 訂單明細 */}
       <Card>
