@@ -257,7 +257,7 @@ export default function OwnerSettlement() {
         />
         <SummaryCard
           icon={Wallet}
-          label={`${monthShort}可抽成基礎`}
+          label={`${monthShort}訂單金額`}
           value={`NT$ ${fmt(totals.totalCommissionable)}`}
           tone="muted"
           hint="折扣後總價 − 餐飲"
@@ -306,7 +306,7 @@ export default function OwnerSettlement() {
                   <TableHead className="text-right">本月夜數</TableHead>
                   <TableHead className="text-right tabular-nums">本月營收</TableHead>
                   <TableHead className="text-right tabular-nums">餐飲</TableHead>
-                  <TableHead className="text-right tabular-nums">可抽成基礎</TableHead>
+                  <TableHead className="text-right tabular-nums">訂單金額</TableHead>
                   <TableHead className="text-right tabular-nums">抽成</TableHead>
                   <TableHead>備註</TableHead>
                 </TableRow>
