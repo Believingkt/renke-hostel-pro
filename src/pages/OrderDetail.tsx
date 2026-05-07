@@ -503,8 +503,9 @@ const OrderDetailPage = () => {
     const effectiveTotal = orderRooms.length === 1 && Number(order.total_price || 0) > 0 && savedRoomsTotalForRatio !== Number(order.total_price || 0)
       ? Number(order.total_price || 0)
       : (orderRooms.length > 0 ? savedRoomsTotalForRatio : (order.total_price || 0));
-    const originalFinal = effectiveTotal + ((order.pet_plan_price || 0) + (order.meal_plan_total || 0) + ((order.custom_addon_details as CustomAddonDetail[]) || []).reduce((sum, d) => sum + d.total, 0)) - (order.discount_amount || 0);
-    const existingRatio = originalFinal > 0 ? (order.deposit_amount || 0) / originalFinal : 0;
+    // 訂金比例僅以「房費 - 折扣」為基準，加購方案不影響訂金
+    const originalBase = Math.max(0, effectiveTotal - (order.discount_amount || 0));
+    const existingRatio = originalBase > 0 ? (order.deposit_amount || 0) / originalBase : 0;
     // Fallback to accommodation default deposit ratio when order has no deposit yet
     depositRatioRef.current = existingRatio > 0 ? existingRatio : defaultDepositRatio;
     originalDiscountCode.current = order.discount_code || "";
@@ -525,12 +526,12 @@ const OrderDetailPage = () => {
   useEffect(() => {
     if (!isEditing || depositRatioRef.current <= 0) return;
     if (order && ["deposit_paid", "paid", "fully_paid"].includes(order.payment_status)) return;
-    const newFinal = editForm.total_price + editForm.addon_total - editForm.discount_amount;
-    const newDeposit = Math.max(0, Math.round(newFinal * depositRatioRef.current));
+    const newBase = Math.max(0, editForm.total_price - editForm.discount_amount);
+    const newDeposit = Math.max(0, Math.round(newBase * depositRatioRef.current));
     if (newDeposit !== editForm.deposit_amount) {
       setEditForm(f => ({ ...f, deposit_amount: newDeposit }));
     }
-  }, [isEditing, editForm.total_price, editForm.addon_total, editForm.discount_amount, order?.payment_status]);
+  }, [isEditing, editForm.total_price, editForm.discount_amount, order?.payment_status]);
 
   // Auto-lookup discount code and apply discount amount
   useEffect(() => {
