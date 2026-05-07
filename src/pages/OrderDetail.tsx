@@ -526,12 +526,12 @@ const OrderDetailPage = () => {
   useEffect(() => {
     if (!isEditing || depositRatioRef.current <= 0) return;
     if (order && ["deposit_paid", "paid", "fully_paid"].includes(order.payment_status)) return;
-    const newFinal = editForm.total_price + editForm.addon_total - editForm.discount_amount;
-    const newDeposit = Math.max(0, Math.round(newFinal * depositRatioRef.current));
+    const newBase = Math.max(0, editForm.total_price - editForm.discount_amount);
+    const newDeposit = Math.max(0, Math.round(newBase * depositRatioRef.current));
     if (newDeposit !== editForm.deposit_amount) {
       setEditForm(f => ({ ...f, deposit_amount: newDeposit }));
     }
-  }, [isEditing, editForm.total_price, editForm.addon_total, editForm.discount_amount, order?.payment_status]);
+  }, [isEditing, editForm.total_price, editForm.discount_amount, order?.payment_status]);
 
   // Auto-lookup discount code and apply discount amount
   useEffect(() => {
