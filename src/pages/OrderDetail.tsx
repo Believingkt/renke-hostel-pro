@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation, Link, useSearchParams as useSearchParamsHook } from "react-router-dom";
-import { ArrowLeft, Mail, Home, ShoppingBag, Globe, UserPlus, CreditCard, XCircle, Pencil, Save, X, Minus, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Mail, Home, ShoppingBag, Globe, UserPlus, CreditCard, XCircle, Pencil, Save, X, Minus, Plus, Trash2, LogIn, LogOut } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -91,6 +91,8 @@ interface OrderDetail {
   custom_addon_details: CustomAddonDetail[] | null;
   order_source: string;
   owner_direct?: boolean;
+  checked_in_at?: string | null;
+  checked_out_at?: string | null;
   room_type_id: string | null;
   room_types: {
     name: string;
@@ -907,6 +909,32 @@ const OrderDetailPage = () => {
     }
   };
 
+  const handleCheckinAction = async (action: "checkin" | "undo_checkin" | "checkout" | "undo_checkout") => {
+    if (!order) return;
+    try {
+      const patch: Record<string, string | null> = {};
+      if (action === "checkin") patch.checked_in_at = new Date().toISOString();
+      if (action === "undo_checkin") patch.checked_in_at = null;
+      if (action === "checkout") {
+        patch.checked_out_at = new Date().toISOString();
+        if (!order.checked_in_at) patch.checked_in_at = new Date().toISOString();
+      }
+      if (action === "undo_checkout") patch.checked_out_at = null;
+      const { error } = await supabase.from("orders").update(patch).eq("id", order.id);
+      if (error) throw error;
+      toast({
+        title:
+          action === "checkin" ? "已辦理入住"
+            : action === "checkout" ? "已辦理退房"
+              : action === "undo_checkin" ? "已取消入住記錄"
+                : "已取消退房記錄",
+      });
+      fetchOrder();
+    } catch (err: any) {
+      toast({ title: "操作失敗", description: err.message, variant: "destructive" });
+    }
+  };
+
   const openPriceEditDialog = () => {
     if (!order) return;
     setEditTotalPrice(order.total_price);
@@ -1621,6 +1649,45 @@ const OrderDetailPage = () => {
                 })()
               )}
             </div>
+            {order.order_status !== 'cancelled' && (
+              <>
+                <Separator />
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">入住/退房</span>
+                  <div className="flex items-center gap-2 flex-wrap justify-end">
+                    {order.checked_out_at ? (
+                      <>
+                        <Badge variant="outline" className="text-muted-foreground">
+                          已退房 {format(new Date(order.checked_out_at), "MM-dd HH:mm")}
+                        </Badge>
+                        <Button size="sm" variant="ghost" className="h-8 px-2 text-xs" onClick={() => handleCheckinAction("undo_checkout")}>
+                          取消退房
+                        </Button>
+                      </>
+                    ) : order.checked_in_at ? (
+                      <>
+                        <Badge className="bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400" variant="outline">
+                          已入住 {format(new Date(order.checked_in_at), "MM-dd HH:mm")}
+                        </Badge>
+                        <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => handleCheckinAction("checkout")}>
+                          <LogOut className="h-3.5 w-3.5" /> 辦理退房
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-8 px-2 text-xs" onClick={() => handleCheckinAction("undo_checkin")}>
+                          取消入住
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Badge variant="outline" className="text-primary border-primary/30">尚未入住</Badge>
+                        <Button size="sm" className="h-8 gap-1" onClick={() => handleCheckinAction("checkin")}>
+                          <LogIn className="h-3.5 w-3.5" /> 辦理入住
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
             {(order.deposit_payment_method || isEditing) && (
               <>
                 <Separator />
