@@ -1393,6 +1393,7 @@ const OrderDetailPage = () => {
     { value: "points_starchain", label: "星鏈會員" },
     { value: "official_use", label: "公務使用" },
     { value: "franchise_diff", label: "加盟價差" },
+    { value: "owner_provided", label: "業主自帶" },
   ];
 
   const orderStatusOptions = [
