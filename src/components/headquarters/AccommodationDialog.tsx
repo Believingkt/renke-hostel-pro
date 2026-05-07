@@ -125,6 +125,7 @@ export function AccommodationDialog({
         email: initialData.email || "",
         description: initialData.description || "",
         short_url_alias: initialData.short_url_alias || "",
+        building_count: (initialData as any).building_count ?? 1,
       });
       setHeaderLogoUrl(initialData.header_logo_url || null);
       setFooterLogoUrl(initialData.footer_logo_url || null);
