@@ -250,6 +250,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
           short_url_alias: data.short_url_alias || null,
           short_name: data.short_name || null,
           theme_preset: "default", // 一律使用人客多橘色
+          building_count: Math.max(1, parseInt(String(data.building_count)) || 1),
           is_active: true,
         })
         .select("id")
