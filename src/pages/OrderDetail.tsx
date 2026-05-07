@@ -250,6 +250,24 @@ const OrderDetailPage = () => {
   const quadRoomOptions = Array.from({ length: MAX_QUAD_ROOMS + 1 }, (_, i) => i);
   const [depositRatioRef] = useState<{ current: number }>({ current: 0 });
   const [originalDiscountCode] = useState<{ current: string }>({ current: "" });
+  const [defaultDepositRatio, setDefaultDepositRatio] = useState<number>(0);
+
+  // Load accommodation booking settings (use_deposit / deposit_percentage) for fallback ratio
+  useEffect(() => {
+    if (!order?.accommodation_id) return;
+    (async () => {
+      const { data } = await supabase
+        .from("booking_settings")
+        .select("use_deposit, deposit_percentage")
+        .eq("accommodation_id", order.accommodation_id)
+        .maybeSingle();
+      if (data && data.use_deposit !== false) {
+        setDefaultDepositRatio((data.deposit_percentage ?? 30) / 100);
+      } else {
+        setDefaultDepositRatio(0);
+      }
+    })();
+  }, [order?.accommodation_id]);
   const getRoomUnitPrice = useCallback((roomPrice: number, quantity: number) => {
     return quantity > 0 ? Math.round(roomPrice / quantity) : roomPrice;
   }, []);
