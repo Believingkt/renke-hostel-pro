@@ -123,7 +123,7 @@ export default function OwnerSettlement() {
       if (configRes.data?.setting_value) {
         setConfig(configRes.data.setting_value as unknown as SettlementConfig);
       }
-      setPropertyCount(accRes.count ?? 1);
+      setPropertyCount((accRes.data as any)?.building_count ?? 1);
       setLoading(false);
     })();
     return () => {
