@@ -115,6 +115,7 @@ const SOURCE_LABELS: Record<string, string> = {
    points_starchain: "星鏈會員",
    official_use: "公務使用",
    franchise_diff: "加盟價差",
+   owner_provided: "業主自帶",
 };
 
 const getSourceLabel = (source: string, paymentMethod?: string) => {
