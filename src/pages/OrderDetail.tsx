@@ -1649,6 +1649,45 @@ const OrderDetailPage = () => {
                 })()
               )}
             </div>
+            {order.order_status !== 'cancelled' && (
+              <>
+                <Separator />
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">入住/退房</span>
+                  <div className="flex items-center gap-2 flex-wrap justify-end">
+                    {order.checked_out_at ? (
+                      <>
+                        <Badge variant="outline" className="text-muted-foreground">
+                          已退房 {format(new Date(order.checked_out_at), "MM-dd HH:mm")}
+                        </Badge>
+                        <Button size="sm" variant="ghost" className="h-8 px-2 text-xs" onClick={() => handleCheckinAction("undo_checkout")}>
+                          取消退房
+                        </Button>
+                      </>
+                    ) : order.checked_in_at ? (
+                      <>
+                        <Badge className="bg-emerald-500/10 text-emerald-700 border-emerald-500/30 dark:text-emerald-400" variant="outline">
+                          已入住 {format(new Date(order.checked_in_at), "MM-dd HH:mm")}
+                        </Badge>
+                        <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => handleCheckinAction("checkout")}>
+                          <LogOut className="h-3.5 w-3.5" /> 辦理退房
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-8 px-2 text-xs" onClick={() => handleCheckinAction("undo_checkin")}>
+                          取消入住
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Badge variant="outline" className="text-primary border-primary/30">尚未入住</Badge>
+                        <Button size="sm" className="h-8 gap-1" onClick={() => handleCheckinAction("checkin")}>
+                          <LogIn className="h-3.5 w-3.5" /> 辦理入住
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
             {(order.deposit_payment_method || isEditing) && (
               <>
                 <Separator />
