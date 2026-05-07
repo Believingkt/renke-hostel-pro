@@ -286,6 +286,30 @@ export default function Reception() {
     }
   };
 
+  const handlePaymentChange = async (o: ReceptionOrder, newStatus: string) => {
+    if (!editable) {
+      toast({ title: "權限不足", description: "您沒有櫃檯接待的編輯權限", variant: "destructive" });
+      return;
+    }
+    if (newStatus === o.payment_status) return;
+    setActingId(o.id);
+    try {
+      const patch: Record<string, unknown> = { payment_status: newStatus };
+      if (newStatus === "paid" && o.final_price != null) {
+        patch.paid_amount = o.final_price;
+      }
+      const { error } = await supabase.from("orders").update(patch).eq("id", o.id);
+      if (error) throw error;
+      // Optimistic local update
+      setOrders((prev) => prev.map((x) => (x.id === o.id ? { ...x, payment_status: newStatus } : x)));
+      toast({ title: "付款狀態已更新", description: paymentLabel(newStatus) });
+    } catch (err: any) {
+      toast({ title: "更新失敗", description: err.message, variant: "destructive" });
+    } finally {
+      setActingId(null);
+    }
+  };
+
   const sortedFiltered = useMemo(() => {
     const kw = keyword.trim().toLowerCase();
     let list = orders;
