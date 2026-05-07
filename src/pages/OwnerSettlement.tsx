@@ -368,6 +368,7 @@ export default function OwnerSettlement() {
             <Table className="fixed-table">
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-8"></TableHead>
                   <TableHead>訂單編號</TableHead>
                   <TableHead>訂購人</TableHead>
                   <TableHead>入住 / 退房</TableHead>
@@ -380,49 +381,80 @@ export default function OwnerSettlement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((r) => (
-                  <TableRow
-                    key={r.order.id}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => window.open(`/admin/orders/${r.order.id}`, "_blank")}
-                  >
-                    <TableCell className="font-mono text-xs">
-                      <Link
-                        to={`/admin/orders/${r.order.id}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="text-primary hover:underline"
+                {rows.map((r) => {
+                  const isOpen = expandedId === r.order.id;
+                  return (
+                    <>
+                      <TableRow
+                        key={r.order.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => setExpandedId(isOpen ? null : r.order.id)}
                       >
-                        {r.order.order_number}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">{r.order.guest_name}</TableCell>
-                    <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                      {r.order.check_in_date} → {r.order.check_out_date}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {r.nightsInMonth} / {r.totalNights}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">{fmt(r.monthFinal)}</TableCell>
-                    <TableCell className="text-right tabular-nums text-muted-foreground">
-                      {fmt(r.monthFood)}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {fmt(r.monthCommissionable)}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {r.exempt ? (
-                        <Badge variant="secondary">業主自帶</Badge>
-                      ) : (
-                        <span className="text-destructive">-{fmt(r.commission)}</span>
+                        <TableCell className="text-muted-foreground">
+                          {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">{r.order.order_number}</TableCell>
+                        <TableCell className="whitespace-nowrap">{r.order.guest_name}</TableCell>
+                        <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                          {r.order.check_in_date} → {r.order.check_out_date}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {r.nightsInMonth} / {r.totalNights}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">{fmt(r.monthFinal)}</TableCell>
+                        <TableCell className="text-right tabular-nums text-muted-foreground">
+                          {fmt(r.monthFood)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {fmt(r.monthCommissionable)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {r.exempt ? (
+                            <Badge variant="secondary">業主自帶</Badge>
+                          ) : (
+                            <span className="text-destructive">-{fmt(r.commission)}</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {r.order.owner_direct && (
+                            <Badge variant="outline" className="text-xs">不抽成</Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                      {isOpen && (
+                        <TableRow key={`${r.order.id}-detail`} className="bg-muted/30 hover:bg-muted/30">
+                          <TableCell colSpan={10} className="p-0">
+                            <div className="px-6 py-4 space-y-3">
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                                <DetailItem label="訂單總額" value={`NT$ ${fmt(Number(r.order.total_price || 0))}`} />
+                                <DetailItem label="折扣" value={`-NT$ ${fmt(Number(r.order.discount_amount || 0))}`} />
+                                <DetailItem label="實付金額" value={`NT$ ${fmt(Number(r.order.final_price || 0))}`} />
+                                <DetailItem label="餐飲總額" value={`NT$ ${fmt(Number(r.order.meal_plan_total || 0))}`} />
+                                <DetailItem label="訂單狀態" value={r.order.order_status} />
+                                <DetailItem label="訂單來源" value={r.order.order_source || "—"} />
+                                <DetailItem label="餐型" value={r.order.meal_plan || "—"} />
+                                <DetailItem label="本月攤分比例" value={`${(r.monthRatio * 100).toFixed(1)}%`} />
+                              </div>
+                              <div className="text-xs text-muted-foreground border-t pt-2">
+                                本月營收 = 實付 NT$ {fmt(Number(r.order.final_price || 0))} × {r.nightsInMonth}/{r.totalNights} = NT$ {fmt(r.monthFinal)}
+                                ；訂單金額（房費）= 本月營收 − 餐飲 NT$ {fmt(r.monthFood)} = NT$ {fmt(r.monthCommissionable)}
+                                {!r.exempt && <>；抽成 = NT$ {fmt(r.monthCommissionable)} × {config.commission_rate}% = NT$ {fmt(r.commission)}</>}
+                              </div>
+                              <div>
+                                <Link
+                                  to={`/admin/orders/${r.order.id}`}
+                                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                                >
+                                  開啟完整訂單頁 <ExternalLink className="h-3 w-3" />
+                                </Link>
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
                       )}
-                    </TableCell>
-                    <TableCell>
-                      {r.order.owner_direct && (
-                        <Badge variant="outline" className="text-xs">不抽成</Badge>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                    </>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
