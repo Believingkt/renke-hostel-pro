@@ -399,44 +399,59 @@ export default function OwnerSettlement() {
         </CardContent>
       </Card>
     </div>
+    </TooltipProvider>
   );
 }
 
-function SummaryCard({
+function BreakdownRow({
   icon: Icon,
   label,
+  sublabel,
   value,
-  hint,
   tone,
+  indent,
 }: {
   icon: any;
   label: string;
-  value: string;
-  hint?: string;
-  tone?: "default" | "muted" | "warning" | "primary";
+  sublabel?: string;
+  value: number;
+  tone: "income" | "neutral" | "subtotal" | "fee" | "final";
+  indent?: boolean;
 }) {
-  const toneClass =
-    tone === "primary"
-      ? "border-primary/40 bg-primary/5"
-      : tone === "warning"
-      ? "border-destructive/30"
+  const isNegative = value < 0;
+  const display = `${isNegative ? "−" : ""}NT$ ${fmt(Math.abs(value))}`;
+
+  const valueClass =
+    tone === "final"
+      ? "text-primary font-bold text-xl"
+      : tone === "subtotal"
+      ? "font-semibold"
+      : tone === "fee"
+      ? "text-muted-foreground"
+      : tone === "neutral"
+      ? "text-muted-foreground"
+      : "font-medium";
+
+  const rowClass =
+    tone === "final"
+      ? "bg-primary/5 rounded-md"
+      : tone === "subtotal"
+      ? "bg-muted/40 rounded-md"
       : "";
+
   return (
-    <Card className={toneClass}>
-      <CardContent className="p-4 space-y-1">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Icon className="h-3.5 w-3.5" />
-          <span>{label}</span>
+    <div className={`flex items-center justify-between gap-3 px-3 py-2.5 ${rowClass} ${indent ? "pl-8" : ""}`}>
+      <div className="flex items-center gap-3 min-w-0">
+        <Icon className={`h-4 w-4 shrink-0 ${tone === "final" ? "text-primary" : "text-muted-foreground"}`} />
+        <div className="min-w-0">
+          <div className={`text-sm ${tone === "final" ? "font-semibold" : ""}`}>{label}</div>
+          {sublabel && (
+            <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{sublabel}</div>
+          )}
         </div>
-        <div
-          className={`text-lg font-semibold tabular-nums ${
-            tone === "primary" ? "text-primary" : ""
-          }`}
-        >
-          {value}
-        </div>
-        {hint && <div className="text-[11px] text-muted-foreground">{hint}</div>}
-      </CardContent>
-    </Card>
+      </div>
+      <div className={`tabular-nums shrink-0 ${valueClass}`}>{display}</div>
+    </div>
   );
 }
+
