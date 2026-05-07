@@ -934,6 +934,8 @@ const OrderDetailPage = () => {
       toast({ title: "操作失敗", description: err.message, variant: "destructive" });
     }
   };
+
+  const openPriceEditDialog = () => {
     if (!order) return;
     setEditTotalPrice(order.total_price);
     setEditDiscountAmount(order.discount_amount);
