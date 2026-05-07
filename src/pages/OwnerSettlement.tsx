@@ -211,54 +211,73 @@ export default function OwnerSettlement() {
     return { totalRevenue, totalFood, totalCommissionable, totalCommission, marketingFee, ownerNet };
   }, [rows, config, propertyCount]);
 
+  const monthLabel = format(month, "yyyy 年 M 月", { locale: zhTW });
+  const monthShort = format(month, "M 月", { locale: zhTW });
+  const paymentDueDate = format(addMonths(month, 1), "yyyy/MM/10");
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       <AdminPageHeader
         title="業主月結"
-        description="每月房務營收結算單，扣除餐飲、平台抽成與行銷費用"
+        description={`${monthLabel}房務營收結算單，扣除餐飲、平台抽成與行銷費用`}
         icon={Banknote}
         action={
           <MonthPicker value={monthStr} onChange={(v) => v && v !== "all" && setMonthStr(v)} />
         }
       />
 
+      {/* 匯款提醒 */}
+      <Card className="border-primary/40 bg-primary/5">
+        <CardContent className="p-4 flex items-center gap-3">
+          <CalendarClock className="h-5 w-5 text-primary shrink-0" />
+          <div className="flex-1">
+            <div className="text-sm font-semibold">
+              匯款提醒：{monthLabel} 結算款請於 <span className="text-primary">{paymentDueDate}（每月 10 號）</span> 前完成匯款
+            </div>
+            <div className="text-xs text-muted-foreground mt-0.5">
+              金額：NT$ {fmt(totals.ownerNet)}（業主實收）
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* 上方總覽卡片 */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <SummaryCard
           icon={TrendingUp}
-          label="當月入住營收"
+          label={`${monthShort}入住營收`}
           value={`NT$ ${fmt(totals.totalRevenue)}`}
           tone="default"
         />
         <SummaryCard
           icon={Utensils}
-          label="餐飲費用"
+          label={`${monthShort}餐飲費用`}
           value={`NT$ ${fmt(totals.totalFood)}`}
           tone="muted"
         />
         <SummaryCard
           icon={Wallet}
-          label="可抽成基礎"
+          label={`${monthShort}可抽成基礎`}
           value={`NT$ ${fmt(totals.totalCommissionable)}`}
           tone="muted"
           hint="折扣後總價 − 餐飲"
         />
         <SummaryCard
           icon={Percent}
-          label={`平台抽成 ${config.commission_rate}%`}
+          label={`${monthShort}平台抽成 ${config.commission_rate}%`}
           value={`-NT$ ${fmt(totals.totalCommission)}`}
           tone="warning"
         />
         <SummaryCard
           icon={Megaphone}
-          label={`行銷費用 (${propertyCount} 棟)`}
+          label={`${monthShort}行銷費用 (${propertyCount} 棟)`}
           value={`-NT$ ${fmt(totals.marketingFee)}`}
           tone="warning"
           hint={`基本 ${fmt(config.marketing_fee_base)} + ${Math.max(0, propertyCount - 1)} × ${fmt(config.marketing_fee_per_extra_property)}`}
         />
         <SummaryCard
           icon={Banknote}
-          label="業主實收"
+          label={`${monthShort}業主實收`}
           value={`NT$ ${fmt(totals.ownerNet)}`}
           tone="primary"
         />
