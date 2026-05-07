@@ -91,6 +91,8 @@ interface OrderDetail {
   custom_addon_details: CustomAddonDetail[] | null;
   order_source: string;
   owner_direct?: boolean;
+  checked_in_at?: string | null;
+  checked_out_at?: string | null;
   room_type_id: string | null;
   room_types: {
     name: string;
