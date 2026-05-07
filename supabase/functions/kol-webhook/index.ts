@@ -102,7 +102,7 @@ async function sendInternalOrderEmail(supabase: any, order: any, roomTypeName: s
     const subject = `【已成立訂單】1筆 - [訂單_${accommodationName} x 星探邀約KOL]`;
     const baseText = `以下 1 筆訂單已成立，批次通知日期 ${fmtDate(today)}
 ===================================================
-訂單日期：${fmtDateTime(createdAt)}
+訂單日期：${fmtDateTime(orderDate)}
 訂單編號:${order.order_number}
 入住日：${order.check_in_date}
 入住天數：${nights}天
