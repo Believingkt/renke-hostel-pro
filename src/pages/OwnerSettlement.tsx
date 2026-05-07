@@ -79,6 +79,7 @@ export default function OwnerSettlement() {
   });
   const [propertyCount, setPropertyCount] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!currentAccommodationId) return;
