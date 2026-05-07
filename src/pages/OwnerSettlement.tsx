@@ -531,6 +531,15 @@ function BreakdownRow({
   );
 }
 
+function DetailItem({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div>
+      <div className="text-[11px] text-muted-foreground">{label}</div>
+      <div className="font-medium tabular-nums">{value}</div>
+    </div>
+  );
+}
+
 function ServiceItem({
   icon: Icon,
   title,
