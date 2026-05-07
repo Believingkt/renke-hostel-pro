@@ -132,6 +132,7 @@ interface AccommodationInfo {
   footer_logo_url?: string | null;
   theme_preset?: string | null;
   is_active?: boolean;
+  building_count?: number | null;
   created_at?: string;
 }
 
