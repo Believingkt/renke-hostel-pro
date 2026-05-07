@@ -83,11 +83,18 @@ async function sendInternalOrderEmail(supabase: any, order: any, roomTypeName: s
       return { success: false, error: "RESEND_API_KEY not configured" };
     }
 
+    const toTW = (d: Date) => new Date(d.getTime() + 8 * 60 * 60 * 1000);
     const pad = (n: number) => String(n).padStart(2, "0");
-    const fmtDate = (d: Date) => `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())}`;
-    const fmtDateTime = (d: Date) => `${fmtDate(d)} | ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    const fmtDate = (d: Date) => {
+      const tw = toTW(d);
+      return `${tw.getUTCFullYear()}/${pad(tw.getUTCMonth() + 1)}/${pad(tw.getUTCDate())}`;
+    };
+    const fmtDateTime = (d: Date) => {
+      const tw = toTW(d);
+      return `${tw.getUTCFullYear()}/${pad(tw.getUTCMonth() + 1)}/${pad(tw.getUTCDate())} | ${pad(tw.getUTCHours())}:${pad(tw.getUTCMinutes())}`;
+    };
     const today = new Date();
-    const createdAt = order.created_at ? new Date(order.created_at) : new Date();
+    const orderDate = order.order_date ? new Date(order.order_date) : (order.created_at ? new Date(order.created_at) : new Date());
     const checkIn = new Date(order.check_in_date);
     const checkOut = new Date(order.check_out_date);
     const nights = Math.max(0, Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)));
