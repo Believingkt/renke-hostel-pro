@@ -909,7 +909,31 @@ const OrderDetailPage = () => {
     }
   };
 
-  const openPriceEditDialog = () => {
+  const handleCheckinAction = async (action: "checkin" | "undo_checkin" | "checkout" | "undo_checkout") => {
+    if (!order) return;
+    try {
+      const patch: Record<string, string | null> = {};
+      if (action === "checkin") patch.checked_in_at = new Date().toISOString();
+      if (action === "undo_checkin") patch.checked_in_at = null;
+      if (action === "checkout") {
+        patch.checked_out_at = new Date().toISOString();
+        if (!order.checked_in_at) patch.checked_in_at = new Date().toISOString();
+      }
+      if (action === "undo_checkout") patch.checked_out_at = null;
+      const { error } = await supabase.from("orders").update(patch).eq("id", order.id);
+      if (error) throw error;
+      toast({
+        title:
+          action === "checkin" ? "已辦理入住"
+            : action === "checkout" ? "已辦理退房"
+              : action === "undo_checkin" ? "已取消入住記錄"
+                : "已取消退房記錄",
+      });
+      fetchOrder();
+    } catch (err: any) {
+      toast({ title: "操作失敗", description: err.message, variant: "destructive" });
+    }
+  };
     if (!order) return;
     setEditTotalPrice(order.total_price);
     setEditDiscountAmount(order.discount_amount);
