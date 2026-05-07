@@ -1310,7 +1310,7 @@ const OrderDetailPage = () => {
 
   const getTemplateDisplayName = (planId: string | null) => {
     if (!planId) return "-";
-    const template = roomTemplates.find(t => t.id === planId);
+    const template = roomTemplates.find(t => t.id === planId) || allRoomTemplates.find(t => t.id === planId);
     if (template) return template.template_name;
     // Fallback to meal plan display
     return getMealPlanDisplayName(planId);
