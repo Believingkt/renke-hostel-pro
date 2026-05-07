@@ -482,13 +482,13 @@ export default function Reception() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">
+                    <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
                       載入中…
                     </td>
                   </tr>
                 ) : sortedFiltered.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">
+                    <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
                       {keyword ? "找不到符合條件的訂單" : "目前沒有需要處理的訂單"}
                     </td>
                   </tr>
