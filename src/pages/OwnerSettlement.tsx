@@ -286,9 +286,9 @@ export default function OwnerSettlement() {
       {/* 訂單明細 */}
       <Card>
         <CardHeader>
-          <CardTitle>訂單明細（依入住日逐日攤分至本月）</CardTitle>
+          <CardTitle>{monthLabel}訂單明細（依入住日逐日攤分至本月）</CardTitle>
           <CardDescription>
-            含本月入住的訂單；跨月訂單僅計入本月住宿夜數的比例。已取消訂單不列入。
+            含 {monthLabel} 入住的訂單；跨月訂單僅計入本月住宿夜數的比例。已取消訂單不列入。
           </CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto">
