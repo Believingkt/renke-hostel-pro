@@ -44,6 +44,9 @@ interface ReceptionOrder {
   checked_out_at: string | null;
   order_source: string | null;
   order_status: string;
+  payment_status: string;
+  final_price: number | null;
+  paid_amount: number | null;
   room_type?: { name: string | null } | null;
   rooms?: Array<{ room_type_id: string; quantity: number; room_type?: { name: string | null } | null }>;
 }
