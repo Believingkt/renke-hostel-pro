@@ -380,8 +380,20 @@ export default function OwnerSettlement() {
               </TableHeader>
               <TableBody>
                 {rows.map((r) => (
-                  <TableRow key={r.order.id}>
-                    <TableCell className="font-mono text-xs">{r.order.order_number}</TableCell>
+                  <TableRow
+                    key={r.order.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => window.open(`/admin/orders/${r.order.id}`, "_blank")}
+                  >
+                    <TableCell className="font-mono text-xs">
+                      <Link
+                        to={`/admin/orders/${r.order.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-primary hover:underline"
+                      >
+                        {r.order.order_number}
+                      </Link>
+                    </TableCell>
                     <TableCell className="whitespace-nowrap">{r.order.guest_name}</TableCell>
                     <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                       {r.order.check_in_date} → {r.order.check_out_date}
