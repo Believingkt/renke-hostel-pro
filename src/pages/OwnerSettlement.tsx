@@ -451,7 +451,7 @@ export default function OwnerSettlement() {
                           </TableCell>
                         </TableRow>
                       )}
-                    </>
+                    </React.Fragment>
                   );
                 })}
               </TableBody>
