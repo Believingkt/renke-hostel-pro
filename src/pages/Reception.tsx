@@ -231,7 +231,7 @@ export default function Reception() {
         .select(
           `id, order_number, guest_name, guest_phone,
            check_in_date, check_out_date, checked_in_at, checked_out_at,
-           order_source, order_status,
+           order_source, order_status, payment_status, final_price, paid_amount,
            room_type:room_types ( name ),
            rooms:order_rooms ( room_type_id, quantity, room_type:room_types ( name ) )`
         )
