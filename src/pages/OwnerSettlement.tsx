@@ -106,7 +106,7 @@ export default function OwnerSettlement() {
           .select("setting_value")
           .eq("setting_key", "owner_settlement_config")
           .maybeSingle(),
-        supabase.from("accommodation_info").select("id", { count: "exact", head: true }).eq("is_active", true),
+        supabase.from("accommodation_info").select("building_count").eq("id", currentAccommodationId).maybeSingle(),
       ]);
 
       if (cancelled) return;
