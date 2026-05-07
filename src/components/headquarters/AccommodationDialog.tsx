@@ -144,6 +144,7 @@ export function AccommodationDialog({
         email: "",
         description: "",
         short_url_alias: "",
+        building_count: 1,
       });
       setHeaderLogoUrl(null);
       setFooterLogoUrl(null);
