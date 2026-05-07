@@ -184,6 +184,7 @@ export type Database = {
       accommodation_info: {
         Row: {
           address: string | null
+          building_count: number
           check_in_notice: string | null
           country: string | null
           created_at: string
@@ -246,6 +247,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          building_count?: number
           check_in_notice?: string | null
           country?: string | null
           created_at?: string
@@ -308,6 +310,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          building_count?: number
           check_in_notice?: string | null
           country?: string | null
           created_at?: string

@@ -87,6 +87,7 @@ interface Accommodation {
   header_logo_url: string | null;
   footer_logo_url: string | null;
   is_active: boolean;
+  building_count?: number | null;
   created_at: string;
 }
 
@@ -249,6 +250,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
           short_url_alias: data.short_url_alias || null,
           short_name: data.short_name || null,
           theme_preset: "default", // 一律使用人客多橘色
+          building_count: Math.max(1, parseInt(String(data.building_count)) || 1),
           is_active: true,
         })
         .select("id")
@@ -354,6 +356,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
           short_url_alias: data.short_url_alias || null,
           short_name: data.short_name || null,
           theme_preset: "default", // 一律使用人客多橘色
+          building_count: Math.max(1, parseInt(String(data.building_count)) || 1),
         })
         .eq("id", editingAccommodation.id);
 

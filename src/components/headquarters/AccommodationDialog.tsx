@@ -30,6 +30,7 @@ interface AccommodationFormData {
   email: string;
   description: string;
   short_url_alias: string;
+  building_count: number;
   // 註：theme_preset 已從表單移除，所有民宿一律使用人客多橘色（由 onSubmit handler 在 DB 層強制寫入 "default"）
 }
 
@@ -41,6 +42,7 @@ interface AccommodationDialogProps {
     id?: string;
     header_logo_url?: string | null;
     footer_logo_url?: string | null;
+    building_count?: number;
   };
   isEditing?: boolean;
 }
@@ -79,6 +81,7 @@ export function AccommodationDialog({
     email: "",
     description: "",
     short_url_alias: "",
+    building_count: 1,
   });
   const [generatingShortName, setGeneratingShortName] = useState(false);
 
@@ -122,6 +125,7 @@ export function AccommodationDialog({
         email: initialData.email || "",
         description: initialData.description || "",
         short_url_alias: initialData.short_url_alias || "",
+        building_count: (initialData as any).building_count ?? 1,
       });
       setHeaderLogoUrl(initialData.header_logo_url || null);
       setFooterLogoUrl(initialData.footer_logo_url || null);
@@ -140,6 +144,7 @@ export function AccommodationDialog({
         email: "",
         description: "",
         short_url_alias: "",
+        building_count: 1,
       });
       setHeaderLogoUrl(null);
       setFooterLogoUrl(null);
@@ -695,6 +700,22 @@ export function AccommodationDialog({
                         <span className="font-semibold text-primary ml-1">https://booking.lakeze.com/{formData.short_url_alias}</span>
                       </div>
                     )}
+                  </div>
+
+                  {/* 棟數 */}
+                  <div className="space-y-2">
+                    <Label htmlFor="building_count" className="text-sm font-medium">棟數 *</Label>
+                    <Input
+                      id="building_count"
+                      type="number"
+                      min={1}
+                      step={1}
+                      value={formData.building_count}
+                      onChange={(e) => setFormData({ ...formData, building_count: Math.max(1, parseInt(e.target.value) || 1) })}
+                      disabled={isSubmitting}
+                      className="h-11 w-32"
+                    />
+                    <p className="text-xs text-muted-foreground">用於業主月結報表的行銷費用計算（每多 1 棟加收行銷費）</p>
                   </div>
 
                   {/* Logo 上傳（僅編輯模式） */}
