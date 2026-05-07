@@ -424,6 +424,7 @@ function BreakdownRow({
   label,
   sublabel,
   value,
+  originalValue,
   tone,
   indent,
 }: {
@@ -431,11 +432,17 @@ function BreakdownRow({
   label: string;
   sublabel?: React.ReactNode;
   value: number;
+  originalValue?: number;
   tone: "income" | "neutral" | "subtotal" | "fee" | "final";
   indent?: boolean;
 }) {
   const isNegative = value < 0;
   const display = `${isNegative ? "−" : ""}NT$ ${fmt(Math.abs(value))}`;
+  const showOriginal =
+    typeof originalValue === "number" && Math.abs(originalValue) !== Math.abs(value);
+  const originalDisplay = showOriginal
+    ? `NT$ ${fmt(Math.abs(originalValue!))}`
+    : "";
 
   const valueClass =
     tone === "final"
@@ -466,7 +473,14 @@ function BreakdownRow({
           )}
         </div>
       </div>
-      <div className={`tabular-nums shrink-0 ${valueClass}`}>{display}</div>
+      <div className="flex items-center gap-2 shrink-0">
+        {showOriginal && (
+          <span className="tabular-nums text-xs text-muted-foreground/70 line-through">
+            {originalDisplay}
+          </span>
+        )}
+        <span className={`tabular-nums ${valueClass}`}>{display}</span>
+      </div>
     </div>
   );
 }
