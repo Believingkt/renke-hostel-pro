@@ -1154,6 +1154,7 @@ const OrderDetailPage = () => {
               ? templatesData.filter((t: any) => t.room_type_id === roomTypeId)
               : templatesData;
             setRoomTemplates(roomTypeTemplates as any);
+            setAllRoomTemplates(templatesData as any);
             // Derive meal plan options from template names
             const derivedPlans: CustomMealPlan[] = [];
             const defaultTemplate = roomTypeTemplates.find(t => (t as any).meal_plans && Array.isArray((t as any).meal_plans) && ((t as any).meal_plans as any[]).length > 0);
