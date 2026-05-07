@@ -208,8 +208,10 @@ export default function OwnerSettlement() {
     const marketingFee =
       config.marketing_fee_base +
       Math.max(0, propertyCount - 1) * config.marketing_fee_per_extra_property;
+    // 原價：基本服務 + 每棟星鏈包專案 98,800
+    const marketingFeeOriginal = config.marketing_fee_base + 98800 * Math.max(1, propertyCount);
     const ownerNet = totalRevenue - totalCommission - marketingFee;
-    return { totalRevenue, totalFood, totalCommissionable, totalCommission, marketingFee, ownerNet };
+    return { totalRevenue, totalFood, totalCommissionable, totalCommission, marketingFee, marketingFeeOriginal, ownerNet };
   }, [rows, config, propertyCount]);
 
   const monthLabel = format(month, "yyyy 年 M 月", { locale: zhTW });
@@ -330,6 +332,7 @@ export default function OwnerSettlement() {
               </>
             }
             value={-totals.marketingFee}
+            originalValue={-totals.marketingFeeOriginal}
             tone="fee"
           />
 
@@ -421,6 +424,7 @@ function BreakdownRow({
   label,
   sublabel,
   value,
+  originalValue,
   tone,
   indent,
 }: {
@@ -428,11 +432,17 @@ function BreakdownRow({
   label: string;
   sublabel?: React.ReactNode;
   value: number;
+  originalValue?: number;
   tone: "income" | "neutral" | "subtotal" | "fee" | "final";
   indent?: boolean;
 }) {
   const isNegative = value < 0;
   const display = `${isNegative ? "−" : ""}NT$ ${fmt(Math.abs(value))}`;
+  const showOriginal =
+    typeof originalValue === "number" && Math.abs(originalValue) !== Math.abs(value);
+  const originalDisplay = showOriginal
+    ? `NT$ ${fmt(Math.abs(originalValue!))}`
+    : "";
 
   const valueClass =
     tone === "final"
@@ -463,7 +473,14 @@ function BreakdownRow({
           )}
         </div>
       </div>
-      <div className={`tabular-nums shrink-0 ${valueClass}`}>{display}</div>
+      <div className="flex items-center gap-2 shrink-0">
+        {showOriginal && (
+          <span className="tabular-nums text-xs text-muted-foreground/70 line-through">
+            {originalDisplay}
+          </span>
+        )}
+        <span className={`tabular-nums ${valueClass}`}>{display}</span>
+      </div>
     </div>
   );
 }
