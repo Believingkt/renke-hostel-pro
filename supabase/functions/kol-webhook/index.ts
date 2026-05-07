@@ -143,11 +143,18 @@ async function sendDiscountCorrectionEmail(supabase: any, order: any, previousDi
       return { success: false, error: "RESEND_API_KEY not configured" };
     }
 
+    const toTW = (d: Date) => new Date(d.getTime() + 8 * 60 * 60 * 1000);
     const pad = (n: number) => String(n).padStart(2, "0");
-    const fmtDate = (d: Date) => `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())}`;
-    const fmtDateTime = (d: Date) => `${fmtDate(d)} | ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    const fmtDate = (d: Date) => {
+      const tw = toTW(d);
+      return `${tw.getUTCFullYear()}/${pad(tw.getUTCMonth() + 1)}/${pad(tw.getUTCDate())}`;
+    };
+    const fmtDateTime = (d: Date) => {
+      const tw = toTW(d);
+      return `${tw.getUTCFullYear()}/${pad(tw.getUTCMonth() + 1)}/${pad(tw.getUTCDate())} | ${pad(tw.getUTCHours())}:${pad(tw.getUTCMinutes())}`;
+    };
     const today = new Date();
-    const createdAt = order.created_at ? new Date(order.created_at) : new Date();
+    const orderDate = order.order_date ? new Date(order.order_date) : (order.created_at ? new Date(order.created_at) : new Date());
 
     const subject = `【折扣碼修正】1筆 - [訂單_${accommodationName} x 星探邀約KOL]`;
     const baseText = `以下 1 筆訂單的折扣代碼已修正，通知日期 ${fmtDate(today)}
