@@ -520,6 +520,31 @@ export default function Reception() {
                         </td>
                         <td className="px-4 py-3 align-top">{roomLabel(o)}</td>
                         <td className="px-4 py-3 align-top">
+                          <Select
+                            value={o.payment_status}
+                            onValueChange={(v) => handlePaymentChange(o, v)}
+                            disabled={!editable || acting}
+                          >
+                            <SelectTrigger
+                              className={`h-8 w-[120px] text-xs font-medium ${paymentCls(o.payment_status)}`}
+                            >
+                              <SelectValue>{paymentLabel(o.payment_status)}</SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {PAYMENT_STATUS_OPTIONS.map((opt) => (
+                                <SelectItem key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {o.final_price != null && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              ${(o.paid_amount ?? 0).toLocaleString()} / ${o.final_price.toLocaleString()}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 align-top">
                           <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
                           {mode === "checkin" && o.checked_in_at && (
                             <div className="text-xs text-muted-foreground mt-0.5">
