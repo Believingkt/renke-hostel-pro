@@ -384,9 +384,8 @@ export default function OwnerSettlement() {
                 {rows.map((r) => {
                   const isOpen = expandedId === r.order.id;
                   return (
-                    <>
+                    <React.Fragment key={r.order.id}>
                       <TableRow
-                        key={r.order.id}
                         className="cursor-pointer hover:bg-muted/50"
                         onClick={() => setExpandedId(isOpen ? null : r.order.id)}
                       >
