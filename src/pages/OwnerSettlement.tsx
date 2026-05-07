@@ -308,14 +308,27 @@ export default function OwnerSettlement() {
           <BreakdownRow
             icon={Percent}
             label={`平台服務費 ${config.commission_rate}%`}
-            sublabel="含金流處理、客服、系統維運、訂單管理"
+            sublabel="含金流處理、客服、系統維運、訂單管理、網紅抽成"
             value={-totals.totalCommission}
             tone="fee"
           />
           <BreakdownRow
             icon={Megaphone}
             label={`行銷推廣費（${propertyCount} 棟）`}
-            sublabel={`基本 ${fmt(config.marketing_fee_base)} + ${Math.max(0, propertyCount - 1)} × ${fmt(config.marketing_fee_per_extra_property)}　含 OTA 上架、SEO、廣告投放`}
+            sublabel={
+              <>
+                基本 {fmt(config.marketing_fee_base)} + {Math.max(0, propertyCount - 1)} × {fmt(config.marketing_fee_per_extra_property)}　含 OTA 上架、SEO、廣告投放、
+                <a
+                  href="https://star.lakeze.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline underline-offset-2 hover:opacity-80"
+                >
+                  星鏈計劃
+                </a>
+                （包專案 98,800）
+              </>
+            }
             value={-totals.marketingFee}
             tone="fee"
           />
@@ -413,7 +426,7 @@ function BreakdownRow({
 }: {
   icon: any;
   label: string;
-  sublabel?: string;
+  sublabel?: React.ReactNode;
   value: number;
   tone: "income" | "neutral" | "subtotal" | "fee" | "final";
   indent?: boolean;
