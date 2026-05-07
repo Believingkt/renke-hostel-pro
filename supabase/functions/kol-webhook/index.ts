@@ -160,7 +160,7 @@ async function sendDiscountCorrectionEmail(supabase: any, order: any, previousDi
     const baseText = `以下 1 筆訂單的折扣代碼已修正，通知日期 ${fmtDate(today)}
 ===================================================
 訂單編號：${order.order_number}
-訂單日期：${fmtDateTime(createdAt)}
+訂單日期：${fmtDateTime(orderDate)}
 原折扣代碼：${previousDiscountCode ?? ""}
 新折扣代碼：${order.discount_code ?? ""}`;
     const text = withShortNamePrefix(baseText, shortName);
@@ -282,6 +282,7 @@ Deno.serve(async (req) => {
           order_status,
           discount_code,
           created_at,
+          order_date,
           accommodation_id,
           order_source,
           room_types:room_type_id (name)
@@ -425,6 +426,7 @@ Deno.serve(async (req) => {
         order_status,
         discount_code,
         created_at,
+        order_date,
         accommodation_id,
         order_source,
         internal_email_sent,
