@@ -100,6 +100,7 @@ const SOURCE_ICONS: Record<string, string> = {
   points_starchain: "⭐",
   official_use: "🏛️",
   franchise_diff: "🤝",
+  owner_provided: "🧳",
 };
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -114,6 +115,7 @@ const SOURCE_LABELS: Record<string, string> = {
    points_starchain: "星鏈會員",
    official_use: "公務使用",
    franchise_diff: "加盟價差",
+   owner_provided: "業主自帶",
 };
 
 const getSourceLabel = (source: string, paymentMethod?: string) => {
