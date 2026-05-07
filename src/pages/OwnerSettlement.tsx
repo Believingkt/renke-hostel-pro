@@ -332,6 +332,7 @@ export default function OwnerSettlement() {
               </>
             }
             value={-totals.marketingFee}
+            originalValue={-totals.marketingFeeOriginal}
             tone="fee"
           />
 
