@@ -702,6 +702,22 @@ export function AccommodationDialog({
                     )}
                   </div>
 
+                  {/* 棟數 */}
+                  <div className="space-y-2">
+                    <Label htmlFor="building_count" className="text-sm font-medium">棟數 *</Label>
+                    <Input
+                      id="building_count"
+                      type="number"
+                      min={1}
+                      step={1}
+                      value={formData.building_count}
+                      onChange={(e) => setFormData({ ...formData, building_count: Math.max(1, parseInt(e.target.value) || 1) })}
+                      disabled={isSubmitting}
+                      className="h-11 w-32"
+                    />
+                    <p className="text-xs text-muted-foreground">用於業主月結報表的行銷費用計算（每多 1 棟加收行銷費）</p>
+                  </div>
+
                   {/* Logo 上傳（僅編輯模式） */}
                   {isEditing && initialData?.id && (
                     <>
