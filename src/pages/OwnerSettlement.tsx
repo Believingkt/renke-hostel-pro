@@ -295,7 +295,7 @@ export default function OwnerSettlement() {
           {loading ? (
             <TableSkeleton rows={6} columns={8} />
           ) : rows.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">本月無入住訂單</p>
+            <p className="text-center text-muted-foreground py-8">{monthLabel} 無入住訂單</p>
           ) : (
             <Table className="fixed-table">
               <TableHeader>
