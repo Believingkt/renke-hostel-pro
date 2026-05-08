@@ -185,7 +185,7 @@ Deno.serve(async (req) => {
   // ② OTA_HotelAvailNotifRQ — only if we have a sample room
   if (sampleRoom) {
     const echo = `selftest-availnotif-${Date.now()}`;
-    const roomCode = `RT_${sampleRoom.id.slice(0, 8)}`;
+    const roomCode = String(sampleRoom.numeric_code);
     const xml = envelope(`<OTA_HotelAvailNotifRQ xmlns="http://www.opentravel.org/OTA/2003/05" Version="1.0" TimeStamp="${nowIso()}" EchoToken="${echo}">
       <AvailStatusMessages HotelCode="${hotelCode}">
         <AvailStatusMessage BookingLimit="0">
