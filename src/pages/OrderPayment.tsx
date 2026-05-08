@@ -43,6 +43,8 @@ export default function OrderPayment() {
   const [loadingOrder, setLoadingOrder] = useState(true);
   const [orderError, setOrderError] = useState<string | null>(null);
   const [accName, setAccName] = useState<string>("");
+  const [paymentStatus, setPaymentStatus] = useState<string>("unpaid");
+  const [refreshingStatus, setRefreshingStatus] = useState(false);
 
   const {
     config: tappayConfig,
