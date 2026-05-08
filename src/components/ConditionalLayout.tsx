@@ -192,7 +192,13 @@ export function ConditionalLayout() {
   }
 
   if (!isAdminPage && !isHQPage && !isAuthPage && !isHQAuthPage) {
-    return <Outlet />;
+    return (
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <Outlet />
+      </TooltipProvider>
+    );
   }
 
   if (isAuthPage || isHQAuthPage) {
