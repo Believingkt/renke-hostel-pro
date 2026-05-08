@@ -390,65 +390,81 @@ export default function OrderPayment() {
             </Alert>
           )}
 
-          {/* 信用卡表單 */}
-          <div className="space-y-4">
-            <Label className="flex items-center gap-2 text-base">
-              <CreditCard className="h-5 w-5" />
-              信用卡資訊
-            </Label>
-            <div className="space-y-3">
-              <div>
-                <Label className="text-xs text-muted-foreground mb-1 block">卡號</Label>
-                <div id="order-card-number" className="h-12 px-4 py-3 border rounded-lg bg-white" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs text-muted-foreground mb-1 block">有效期限</Label>
-                  <div id="order-card-expiry" className="h-12 px-4 py-3 border rounded-lg bg-white" />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground mb-1 block">安全碼</Label>
-                  <div id="order-card-ccv" className="h-12 px-4 py-3 border rounded-lg bg-white" />
-                </div>
-              </div>
-            </div>
+          <Tabs defaultValue={orderInfo?.atmInfo ? "atm" : "card"} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="card"><CreditCard className="h-4 w-4 mr-1.5" />信用卡</TabsTrigger>
+              <TabsTrigger value="atm"><Building2 className="h-4 w-4 mr-1.5" />ATM 轉帳</TabsTrigger>
+            </TabsList>
 
-            {(tappayConfigLoading || !isTapPayReady) && !tappayConfigError && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                正在載入付款模組...
+            <TabsContent value="card" className="space-y-4 pt-4">
+              <Label className="flex items-center gap-2 text-base">
+                <CreditCard className="h-5 w-5" />
+                信用卡資訊
+              </Label>
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-1 block">卡號</Label>
+                  <div id="order-card-number" className="h-12 px-4 py-3 border rounded-lg bg-white" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">有效期限</Label>
+                    <div id="order-card-expiry" className="h-12 px-4 py-3 border rounded-lg bg-white" />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">安全碼</Label>
+                    <div id="order-card-ccv" className="h-12 px-4 py-3 border rounded-lg bg-white" />
+                  </div>
+                </div>
               </div>
-            )}
 
-            {paymentError && (
-              <Alert variant="destructive" className="border-destructive/30 bg-destructive/5">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>{paymentError.message}</AlertTitle>
-                {paymentError.suggestion && (
-                  <AlertDescription>{paymentError.suggestion}</AlertDescription>
+              {(tappayConfigLoading || !isTapPayReady) && !tappayConfigError && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  正在載入付款模組...
+                </div>
+              )}
+
+              {paymentError && (
+                <Alert variant="destructive" className="border-destructive/30 bg-destructive/5">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>{paymentError.message}</AlertTitle>
+                  {paymentError.suggestion && (
+                    <AlertDescription>{paymentError.suggestion}</AlertDescription>
+                  )}
+                </Alert>
+              )}
+
+              <Button
+                onClick={handlePayment}
+                disabled={!tappayConfig || !cardValid || isProcessing || !isTapPayReady}
+                className="w-full h-12 text-base"
+                size="lg"
+              >
+                {isProcessing ? (
+                  <><Loader2 className="h-5 w-5 mr-2 animate-spin" />處理中...</>
+                ) : (
+                  <><CreditCard className="h-5 w-5 mr-2" />確認付款 NT$ {amount.toLocaleString()}</>
                 )}
-              </Alert>
-            )}
-          </div>
+              </Button>
+            </TabsContent>
 
-          <Button
-            onClick={handlePayment}
-            disabled={!tappayConfig || !cardValid || isProcessing || !isTapPayReady}
-            className="w-full h-12 text-base"
-            size="lg"
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                處理中...
-              </>
-            ) : (
-              <>
-                <CreditCard className="h-5 w-5 mr-2" />
-                確認付款 NT$ {amount.toLocaleString()}
-              </>
-            )}
-          </Button>
+            <TabsContent value="atm" className="pt-4">
+              {orderInfo && (
+                <AtmPaymentPanel
+                  orderId={orderInfo.orderId}
+                  orderNumber={orderNumber}
+                  amount={amount}
+                  cardholder={{
+                    name: orderInfo.guestName,
+                    email: orderInfo.guestEmail || "no-email@example.com",
+                    phoneNumber: orderInfo.guestPhone,
+                  }}
+                  initialAtmInfo={orderInfo.atmInfo}
+                />
+              )}
+            </TabsContent>
+          </Tabs>
 
           <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
             <ShieldCheck className="h-4 w-4" />
