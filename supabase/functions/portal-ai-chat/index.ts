@@ -459,7 +459,19 @@ serve(async (req) => {
     defaultDate.setDate(defaultDate.getDate() + 30);
     const defaultDateStr = `${defaultDate.getMonth() + 1}/${defaultDate.getDate()}`;
 
+    // 用戶於前端 UI 已選擇的條件（最高優先級，AI 必須直接使用這些值呼叫工具）
+    const isoDate = /^\d{4}-\d{2}-\d{2}$/;
+    const ctxCheckIn = context?.check_in_date && isoDate.test(context.check_in_date) ? context.check_in_date : null;
+    const ctxCheckOut = context?.check_out_date && isoDate.test(context.check_out_date) ? context.check_out_date : null;
+    const ctxGuests = Number.isFinite(context?.guest_count) ? Math.max(1, Math.min(50, Number(context.guest_count))) : null;
+    const ctxRooms = Number.isFinite(context?.room_count) ? Math.max(1, Math.min(20, Number(context.room_count))) : null;
+
+    const userContextBlock = (ctxCheckIn || ctxGuests)
+      ? `\n## 🎯 用戶當前選擇（最高優先，呼叫 get_available_rooms 必須使用這些值，除非用戶明確要求改變）：\n- 入住日期：${ctxCheckIn || '未設定'}\n- 退房日期：${ctxCheckOut || '未設定'}\n- 入住人數：${ctxGuests ?? '未設定'}\n- 房間數：${ctxRooms ?? '未設定'}\n`
+      : '';
+
     const systemPrompt = `你是人客多訂房平台的 AI 管家「小安」，像 ChatGPT 語音助理一樣與客人對話完成訂房。
+${userContextBlock}
 
 ## 🚨 關鍵回覆規則（最重要，必須遵守）：
 - **每次回覆最多 2 句話**，總字數不超過 50 字（含標點）
