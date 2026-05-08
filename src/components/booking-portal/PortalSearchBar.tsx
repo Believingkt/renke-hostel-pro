@@ -416,7 +416,7 @@ const PortalSearchBar = ({
 
           {/* Dates row */}
           <div className="flex gap-2">
-            <Popover open={checkInOpen} onOpenChange={(o) => handleDatePopoverOpenChange(o, setCheckInOpen)}>
+            <Popover open={checkInOpenMobile} onOpenChange={(o) => handleDatePopoverOpenChange(o, setCheckInOpenMobile)}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
