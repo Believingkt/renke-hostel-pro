@@ -278,7 +278,7 @@ const BookingFlow = () => {
   // 2. 訂單為轉帳匯款，但押金選擇線上綁卡（需單獨輸入綁卡用信用卡）
   const needsCardForm =
     paymentMethod === '信用卡' ||
-    (orderPaymentType === 'bank_transfer' && depositPaymentType === 'card');
+    ((orderPaymentType === 'bank_transfer' || orderPaymentType === 'atm') && depositPaymentType === 'card');
   const shouldLoadTapPay = needsCardForm;
   const {
     config: tappayConfig,
