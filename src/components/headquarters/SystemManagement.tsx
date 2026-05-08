@@ -32,6 +32,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { AccommodationApiKeysManagement } from "@/components/headquarters/AccommodationApiKeysManagement";
+import { OwlTingServiceAccountManagement } from "@/components/headquarters/OwlTingServiceAccountManagement";
 import { SystemHealthMonitor } from "@/components/headquarters/SystemHealthMonitor";
 import { 
   ScrollText,
