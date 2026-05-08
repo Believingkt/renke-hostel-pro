@@ -243,31 +243,43 @@ Deno.serve(async (req) => {
       }
 
       if (isSuccess) {
+        // 偵測是否為 ATM 入帳
+        const isAtm = order.atm_rec_trade_id === rec_trade_id
+          || order.payment_method === 'atm'
+          || verifiedRecord?.acquirer === 'TW_TAPPAY_ATM'
+          || verifiedRecord?.pay_info != null;
+
         const currentPaidAmount = order.paid_amount || 0;
         const newPaidAmount = currentPaidAmount + amount;
-        
+
         let newPaymentStatus = order.payment_status;
         if (newPaidAmount >= order.final_price) {
           newPaymentStatus = 'paid';
         } else if (newPaidAmount > 0) {
-          newPaymentStatus = order.payment_status === 'unpaid' ? 'deposit_paid' : 'partial';
+          newPaymentStatus = order.payment_status === 'unpaid' || order.payment_status === 'pending_payment'
+            ? 'deposit_paid' : 'partial';
         }
 
-        const transactionNote = `[3DS Webhook] ${new Date().toISOString()} - 付款成功 NT$${amount} (rec_trade_id: ${rec_trade_id}, auth_code: ${auth_code || 'N/A'})`;
-        const newNotes = order.notes 
+        const tag = isAtm ? '[ATM Webhook]' : '[3DS Webhook]';
+        const transactionNote = `${tag} ${new Date().toISOString()} - 付款成功 NT$${amount} (rec_trade_id: ${rec_trade_id}${auth_code ? `, auth_code: ${auth_code}` : ''})`;
+        const newNotes = order.notes
           ? `${order.notes}\n${transactionNote}`
           : transactionNote;
 
+        const updatePayload: Record<string, unknown> = {
+          payment_status: newPaymentStatus,
+          paid_amount: newPaidAmount,
+          payment_method: isAtm ? 'atm' : 'credit_card_3ds',
+          balance_payment_method: newPaymentStatus === 'paid'
+            ? (isAtm ? 'ATM 虛擬帳號轉帳' : '信用卡(3D驗證)')
+            : null,
+          notes: newNotes,
+          updated_at: new Date().toISOString(),
+        };
+
         const { error: updateError } = await supabase
           .from('orders')
-          .update({
-            payment_status: newPaymentStatus,
-            paid_amount: newPaidAmount,
-            payment_method: 'credit_card_3ds',
-            balance_payment_method: newPaymentStatus === 'paid' ? '信用卡(3D驗證)' : null,
-            notes: newNotes,
-            updated_at: new Date().toISOString(),
-          })
+          .update(updatePayload)
           .eq('id', order.id);
 
         if (updateError) {
