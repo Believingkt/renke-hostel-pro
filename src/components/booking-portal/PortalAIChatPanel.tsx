@@ -351,18 +351,18 @@ const PortalAIChatPanel = () => {
                         type="button"
                         variant="outline"
                         size="icon"
-                        className="h-7 w-7 rounded-full"
+                        className="h-7 w-7 rounded-full text-foreground"
                         onClick={(e) => { e.stopPropagation(); setDefaultGuests(Math.max(1, defaultGuests - 1)); }}
                         disabled={defaultGuests <= 1}
                       >
                         <Minus className="h-3 w-3" />
                       </Button>
-                      <span className="w-8 text-center text-sm font-semibold tabular-nums">{defaultGuests}</span>
+                      <span className="w-8 text-center text-sm font-semibold tabular-nums text-foreground">{defaultGuests}</span>
                       <Button
                         type="button"
                         variant="outline"
                         size="icon"
-                        className="h-7 w-7 rounded-full"
+                        className="h-7 w-7 rounded-full text-foreground"
                         onClick={(e) => { e.stopPropagation(); setDefaultGuests(Math.min(50, defaultGuests + 1)); }}
                         disabled={defaultGuests >= 50}
                       >
