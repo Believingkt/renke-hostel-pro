@@ -80,7 +80,7 @@ export default function OrderPayment() {
           return;
         }
 
-        if (data.order_status === "cancelled") {
+        if (data.order_status === "cancelled" && !data.atm_vacc_no) {
           setOrderError("此訂單已取消");
           setLoadingOrder(false);
           return;
