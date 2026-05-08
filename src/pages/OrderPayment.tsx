@@ -37,6 +37,7 @@ export default function OrderPayment() {
     guestEmail: string;
     orderId: string;
     needsCardBinding: boolean;
+    atmInfo: { vaccNo: string; bankCode?: string | null; expireAt: string; amount: number } | null;
   } | null>(null);
   const [loadingOrder, setLoadingOrder] = useState(true);
   const [orderError, setOrderError] = useState<string | null>(null);
