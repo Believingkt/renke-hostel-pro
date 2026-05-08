@@ -2679,6 +2679,18 @@ const BookingFlow = () => {
         }
       }
 
+      // ATM 虛擬帳號：建單成功後跳轉到付款頁取得虛擬帳號
+      if (orderPaymentType === "atm" && orderData?.order_number) {
+        const params = new URLSearchParams({
+          order_number: orderData.order_number,
+          amount: String(orderData.final_price ?? finalPrice),
+          acc: accommodationId,
+          tab: "atm",
+        });
+        window.location.href = `/pay/order?${params.toString()}`;
+        return;
+      }
+
       // 設置成功狀態，顯示成功頁面
       setSuccessOrderData({
         ...orderData,
