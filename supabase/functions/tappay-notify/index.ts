@@ -149,10 +149,12 @@ Deno.serve(async (req) => {
     let order = null;
     let orderSource = '';
 
+    const SELECT_COLS = 'id, accommodation_id, order_number, final_price, paid_amount, payment_status, notes, deposit_method, deposit_status, atm_rec_trade_id, payment_method';
+
     if (order_number) {
       const { data, error } = await supabase
         .from('orders')
-        .select('id, accommodation_id, order_number, final_price, paid_amount, payment_status, notes, deposit_method, deposit_status')
+        .select(SELECT_COLS)
         .eq('order_number', order_number)
         .maybeSingle();
 
@@ -162,12 +164,25 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Strategy 1b: ATM 入帳對應 atm_rec_trade_id
+    if (!order && rec_trade_id) {
+      const { data, error } = await supabase
+        .from('orders')
+        .select(SELECT_COLS)
+        .eq('atm_rec_trade_id', rec_trade_id)
+        .maybeSingle();
+      if (!error && data) {
+        order = data;
+        orderSource = 'atm_rec_trade_id';
+      }
+    }
+
     // Strategy 2: Search by rec_trade_id in order notes (backup)
     if (!order && rec_trade_id) {
       console.log('[tappay-notify] Searching by rec_trade_id in notes...');
       const { data, error } = await supabase
         .from('orders')
-        .select('id, accommodation_id, order_number, final_price, paid_amount, payment_status, notes, deposit_method, deposit_status')
+        .select(SELECT_COLS)
         .ilike('notes', `%${rec_trade_id}%`)
         .maybeSingle();
 
