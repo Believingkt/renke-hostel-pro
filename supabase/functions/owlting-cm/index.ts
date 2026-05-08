@@ -7,11 +7,15 @@
  *   - OTA_HotelRateAmountNotifRQ-> Update rate plan prices
  *   - OTA_HotelResNotifRQ       -> Receive reservation (Commit / Modify / Cancel)
  *
- * WS-Security UsernameToken auth via owlting_credentials.
- * Code mapping (auto-generated):
+ * WS-Security UsernameToken auth — single shared OwlTing service account
+ * (owlting_service_accounts). Individual property credentials are no longer used.
+ * HotelCode is still mapped to a property via owlting_credentials.hotel_code.
+ *
+ * Code mapping (numeric, auto-assigned, starting at 1001):
  *   HotelCode    = owlting_credentials.hotel_code
- *   RoomTypeCode = "RT_" + room_types.id[0..8]
- *   RatePlanCode = "RP_" + pricing_templates.id[0..8]
+ *   RoomTypeCode = room_types.numeric_code           (e.g. "1001")
+ *   RatePlanCode = pricing_templates.numeric_code    (e.g. "1001")
+ *   InvTypeCode  = same as RoomTypeCode
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
