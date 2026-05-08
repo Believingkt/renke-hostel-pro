@@ -143,6 +143,43 @@ export default function OrderPayment() {
     fetchOrder();
   }, [orderNumber, amount, accommodationId]);
 
+  // Refresh order payment status (manual + realtime)
+  const refreshStatus = async (silent = false) => {
+    if (!orderInfo?.orderId) return;
+    if (!silent) setRefreshingStatus(true);
+    try {
+      const { data } = await supabase
+        .from("orders")
+        .select("payment_status, paid_amount, final_price")
+        .eq("id", orderInfo.orderId)
+        .maybeSingle();
+      if (data) {
+        setPaymentStatus(data.payment_status || "unpaid");
+        if (data.payment_status === "paid" && !silent) {
+          toast.success("已收到入帳通知，訂單已完成付款");
+        }
+      }
+    } finally {
+      if (!silent) setRefreshingStatus(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!orderInfo?.orderId) return;
+    const channel = supabase
+      .channel(`order-pay-${orderInfo.orderId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderInfo.orderId}` },
+        (payload: any) => {
+          const newStatus = payload.new?.payment_status;
+          if (newStatus) setPaymentStatus(newStatus);
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [orderInfo?.orderId]);
+
   // Load TapPay SDK
   useEffect(() => {
     if (!tappayConfig) return;
