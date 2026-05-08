@@ -509,37 +509,63 @@ export default function OrderPayment() {
                   />
 
                   {orderInfo.atmInfo && (
-                    <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-sm font-medium">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                          訂單付款狀態
+                    <>
+                      {/* 匯款步驟指引 */}
+                      <div className="rounded-lg border bg-primary/5 p-4 space-y-3">
+                        <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                          <ListOrdered className="h-4 w-4" />
+                          匯款步驟指引
                         </div>
-                        {paymentStatus === "paid" ? (
-                          <Badge className="bg-green-600 hover:bg-green-600">已付款</Badge>
-                        ) : paymentStatus === "partial" ? (
-                          <Badge variant="secondary">部分付款</Badge>
-                        ) : (
-                          <Badge variant="outline">等待入帳</Badge>
-                        )}
+                        <ol className="space-y-2 text-sm text-muted-foreground list-decimal list-inside">
+                          <li>請使用網路銀行、ATM 或臨櫃匯款至上方虛擬帳號。</li>
+                          <li>確認轉帳金額與訂單金額完全一致（NT$ {amount.toLocaleString()}）。</li>
+                          <li>轉帳完成後，系統約 1–3 個工作日自動確認入帳。</li>
+                        </ol>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        系統收到銀行入帳通知後將自動更新；您也可以手動重新整理。
-                      </p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full"
-                        onClick={() => refreshStatus(false)}
-                        disabled={refreshingStatus}
-                      >
-                        {refreshingStatus ? (
-                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" />查詢中...</>
-                        ) : (
-                          <><RefreshCw className="h-4 w-4 mr-2" />查看訂單狀態</>
-                        )}
-                      </Button>
-                    </div>
+
+                      {/* 轉帳備註 */}
+                      <Alert className="border-amber-200 bg-amber-50">
+                        <Info className="h-4 w-4 text-amber-600" />
+                        <AlertTitle className="text-amber-800">轉帳備註</AlertTitle>
+                        <AlertDescription className="text-amber-700 text-xs space-y-1">
+                          <p>• 請務必輸入正確的「轉帳金額」，多付或少付可能導致入帳失敗。</p>
+                          <p>• 虛擬帳號為一次性專屬帳號，請勿與他人共用或重複轉帳。</p>
+                          <p>• 若逾期未繳款，訂單將自動取消，虛擬帳號隨之失效。</p>
+                        </AlertDescription>
+                      </Alert>
+
+                      <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-sm font-medium">
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                            訂單付款狀態
+                          </div>
+                          {paymentStatus === "paid" ? (
+                            <Badge className="bg-green-600 hover:bg-green-600">已付款</Badge>
+                          ) : paymentStatus === "partial" ? (
+                            <Badge variant="secondary">部分付款</Badge>
+                          ) : (
+                            <Badge variant="outline">等待入帳</Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          系統收到銀行入帳通知後將自動更新；您也可以手動重新整理。
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => refreshStatus(false)}
+                          disabled={refreshingStatus}
+                        >
+                          {refreshingStatus ? (
+                            <><Loader2 className="h-4 w-4 mr-2 animate-spin" />查詢中...</>
+                          ) : (
+                            <><RefreshCw className="h-4 w-4 mr-2" />查看訂單狀態</>
+                          )}
+                        </Button>
+                      </div>
+                    </>
                   )}
                 </>
               )}
