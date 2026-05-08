@@ -3,12 +3,14 @@ import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { CreditCard, Loader2, CheckCircle2, ShieldCheck, AlertTriangle } from "lucide-react";
+import { CreditCard, Loader2, CheckCircle2, ShieldCheck, AlertTriangle, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getTapPayPrime } from "@/utils/tappayPrime";
 import { useTapPayConfig } from "@/hooks/use-tappay-config";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AtmPaymentPanel } from "@/components/payment/AtmPaymentPanel";
 
 interface PaymentError {
   message: string;
@@ -35,6 +37,7 @@ export default function OrderPayment() {
     guestEmail: string;
     orderId: string;
     needsCardBinding: boolean;
+    atmInfo: { vaccNo: string; bankCode?: string | null; expireAt: string; amount: number } | null;
   } | null>(null);
   const [loadingOrder, setLoadingOrder] = useState(true);
   const [orderError, setOrderError] = useState<string | null>(null);
@@ -58,7 +61,7 @@ export default function OrderPayment() {
       try {
         const { data, error } = await supabase
           .from("orders")
-          .select("id, guest_name, guest_phone, guest_email, final_price, paid_amount, payment_status, order_status, payment_link_created_at, deposit_method, deposit_status")
+          .select("id, guest_name, guest_phone, guest_email, final_price, paid_amount, payment_status, order_status, payment_link_created_at, deposit_method, deposit_status, atm_vacc_no, atm_vacc_bank_code, atm_expire_at")
           .eq("order_number", orderNumber)
           .eq("accommodation_id", accommodationId)
           .maybeSingle();
@@ -113,6 +116,9 @@ export default function OrderPayment() {
           guestEmail: data.guest_email || "",
           orderId: data.id,
           needsCardBinding,
+          atmInfo: data.atm_vacc_no && data.atm_expire_at && new Date(data.atm_expire_at) > new Date()
+            ? { vaccNo: data.atm_vacc_no, bankCode: data.atm_vacc_bank_code, expireAt: data.atm_expire_at, amount }
+            : null,
         });
 
         // Fetch accommodation name
@@ -355,7 +361,7 @@ export default function OrderPayment() {
         <CardHeader className="text-center">
           {accName && <p className="text-sm text-muted-foreground mb-1">{accName}</p>}
           <CardTitle className="text-xl">線上付款</CardTitle>
-          <CardDescription>請填寫信用卡資訊完成付款</CardDescription>
+          <CardDescription>選擇付款方式以完成本筆款項</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* 訂單資訊 */}
@@ -384,65 +390,81 @@ export default function OrderPayment() {
             </Alert>
           )}
 
-          {/* 信用卡表單 */}
-          <div className="space-y-4">
-            <Label className="flex items-center gap-2 text-base">
-              <CreditCard className="h-5 w-5" />
-              信用卡資訊
-            </Label>
-            <div className="space-y-3">
-              <div>
-                <Label className="text-xs text-muted-foreground mb-1 block">卡號</Label>
-                <div id="order-card-number" className="h-12 px-4 py-3 border rounded-lg bg-white" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs text-muted-foreground mb-1 block">有效期限</Label>
-                  <div id="order-card-expiry" className="h-12 px-4 py-3 border rounded-lg bg-white" />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground mb-1 block">安全碼</Label>
-                  <div id="order-card-ccv" className="h-12 px-4 py-3 border rounded-lg bg-white" />
-                </div>
-              </div>
-            </div>
+          <Tabs defaultValue={orderInfo?.atmInfo ? "atm" : "card"} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="card"><CreditCard className="h-4 w-4 mr-1.5" />信用卡</TabsTrigger>
+              <TabsTrigger value="atm"><Building2 className="h-4 w-4 mr-1.5" />ATM 轉帳</TabsTrigger>
+            </TabsList>
 
-            {(tappayConfigLoading || !isTapPayReady) && !tappayConfigError && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                正在載入付款模組...
+            <TabsContent value="card" className="space-y-4 pt-4">
+              <Label className="flex items-center gap-2 text-base">
+                <CreditCard className="h-5 w-5" />
+                信用卡資訊
+              </Label>
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-1 block">卡號</Label>
+                  <div id="order-card-number" className="h-12 px-4 py-3 border rounded-lg bg-white" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">有效期限</Label>
+                    <div id="order-card-expiry" className="h-12 px-4 py-3 border rounded-lg bg-white" />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">安全碼</Label>
+                    <div id="order-card-ccv" className="h-12 px-4 py-3 border rounded-lg bg-white" />
+                  </div>
+                </div>
               </div>
-            )}
 
-            {paymentError && (
-              <Alert variant="destructive" className="border-destructive/30 bg-destructive/5">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>{paymentError.message}</AlertTitle>
-                {paymentError.suggestion && (
-                  <AlertDescription>{paymentError.suggestion}</AlertDescription>
+              {(tappayConfigLoading || !isTapPayReady) && !tappayConfigError && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  正在載入付款模組...
+                </div>
+              )}
+
+              {paymentError && (
+                <Alert variant="destructive" className="border-destructive/30 bg-destructive/5">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>{paymentError.message}</AlertTitle>
+                  {paymentError.suggestion && (
+                    <AlertDescription>{paymentError.suggestion}</AlertDescription>
+                  )}
+                </Alert>
+              )}
+
+              <Button
+                onClick={handlePayment}
+                disabled={!tappayConfig || !cardValid || isProcessing || !isTapPayReady}
+                className="w-full h-12 text-base"
+                size="lg"
+              >
+                {isProcessing ? (
+                  <><Loader2 className="h-5 w-5 mr-2 animate-spin" />處理中...</>
+                ) : (
+                  <><CreditCard className="h-5 w-5 mr-2" />確認付款 NT$ {amount.toLocaleString()}</>
                 )}
-              </Alert>
-            )}
-          </div>
+              </Button>
+            </TabsContent>
 
-          <Button
-            onClick={handlePayment}
-            disabled={!tappayConfig || !cardValid || isProcessing || !isTapPayReady}
-            className="w-full h-12 text-base"
-            size="lg"
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                處理中...
-              </>
-            ) : (
-              <>
-                <CreditCard className="h-5 w-5 mr-2" />
-                確認付款 NT$ {amount.toLocaleString()}
-              </>
-            )}
-          </Button>
+            <TabsContent value="atm" className="pt-4">
+              {orderInfo && (
+                <AtmPaymentPanel
+                  orderId={orderInfo.orderId}
+                  orderNumber={orderNumber}
+                  amount={amount}
+                  cardholder={{
+                    name: orderInfo.guestName,
+                    email: orderInfo.guestEmail || "no-email@example.com",
+                    phoneNumber: orderInfo.guestPhone,
+                  }}
+                  initialAtmInfo={orderInfo.atmInfo}
+                />
+              )}
+            </TabsContent>
+          </Tabs>
 
           <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
             <ShieldCheck className="h-4 w-4" />
