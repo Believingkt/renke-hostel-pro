@@ -490,19 +490,58 @@ export default function OrderPayment() {
               </Button>
             </TabsContent>
 
-            <TabsContent value="atm" className="pt-4">
+            <TabsContent value="atm" className="pt-4 space-y-4">
               {orderInfo && (
-                <AtmPaymentPanel
-                  orderId={orderInfo.orderId}
-                  orderNumber={orderNumber}
-                  amount={amount}
-                  cardholder={{
-                    name: orderInfo.guestName,
-                    email: orderInfo.guestEmail || "no-email@example.com",
-                    phoneNumber: orderInfo.guestPhone,
-                  }}
-                  initialAtmInfo={orderInfo.atmInfo}
-                />
+                <>
+                  <AtmPaymentPanel
+                    orderId={orderInfo.orderId}
+                    orderNumber={orderNumber}
+                    amount={amount}
+                    cardholder={{
+                      name: orderInfo.guestName,
+                      email: orderInfo.guestEmail || "no-email@example.com",
+                      phoneNumber: orderInfo.guestPhone,
+                    }}
+                    initialAtmInfo={orderInfo.atmInfo}
+                    onCreated={(info) => {
+                      setOrderInfo((prev) => prev ? { ...prev, atmInfo: info } : prev);
+                    }}
+                  />
+
+                  {orderInfo.atmInfo && (
+                    <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          訂單付款狀態
+                        </div>
+                        {paymentStatus === "paid" ? (
+                          <Badge className="bg-green-600 hover:bg-green-600">已付款</Badge>
+                        ) : paymentStatus === "partial" ? (
+                          <Badge variant="secondary">部分付款</Badge>
+                        ) : (
+                          <Badge variant="outline">等待入帳</Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        系統收到銀行入帳通知後將自動更新；您也可以手動重新整理。
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => refreshStatus(false)}
+                        disabled={refreshingStatus}
+                      >
+                        {refreshingStatus ? (
+                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" />查詢中...</>
+                        ) : (
+                          <><RefreshCw className="h-4 w-4 mr-2" />查看訂單狀態</>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </>
               )}
             </TabsContent>
           </Tabs>
