@@ -2184,6 +2184,39 @@ export type Database = {
         }
         Relationships: []
       }
+      owlting_service_accounts: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          last_used_at: string | null
+          password: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          password: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          password?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
       page_analytics: {
         Row: {
           accommodation_id: string
@@ -2751,6 +2784,7 @@ export type Database = {
           id: string
           is_default: boolean | null
           meal_plans: Json | null
+          numeric_code: number | null
           peak_price: number | null
           price: number | null
           project_description: string | null
@@ -2770,6 +2804,7 @@ export type Database = {
           id?: string
           is_default?: boolean | null
           meal_plans?: Json | null
+          numeric_code?: number | null
           peak_price?: number | null
           price?: number | null
           project_description?: string | null
@@ -2789,6 +2824,7 @@ export type Database = {
           id?: string
           is_default?: boolean | null
           meal_plans?: Json | null
+          numeric_code?: number | null
           peak_price?: number | null
           price?: number | null
           project_description?: string | null
@@ -3082,6 +3118,7 @@ export type Database = {
           is_exclusive_package: boolean
           name: string
           name_en: string | null
+          numeric_code: number | null
           quad_room_count: number | null
           room_count: number | null
           size_sqm: number | null
@@ -3102,6 +3139,7 @@ export type Database = {
           is_exclusive_package?: boolean
           name: string
           name_en?: string | null
+          numeric_code?: number | null
           quad_room_count?: number | null
           room_count?: number | null
           size_sqm?: number | null
@@ -3122,6 +3160,7 @@ export type Database = {
           is_exclusive_package?: boolean
           name?: string
           name_en?: string | null
+          numeric_code?: number | null
           quad_room_count?: number | null
           room_count?: number | null
           size_sqm?: number | null
@@ -3678,6 +3717,22 @@ export type Database = {
       is_admin: { Args: { user_id_param: string }; Returns: boolean }
       is_super_admin: { Args: { user_uuid: string }; Returns: boolean }
       is_user_admin: { Args: { _user_id: string }; Returns: boolean }
+      resolve_pricing_template_by_numeric_code: {
+        Args: { p_accommodation_id: string; p_code: number }
+        Returns: {
+          id: string
+          room_type_id: string
+          template_name: string
+        }[]
+      }
+      resolve_room_type_by_numeric_code: {
+        Args: { p_accommodation_id: string; p_code: number }
+        Returns: {
+          base_price: number
+          id: string
+          name: string
+        }[]
+      }
       staff_can_edit_module: {
         Args: { _accommodation_id: string; _module_key: string }
         Returns: boolean
@@ -3759,6 +3814,10 @@ export type Database = {
           accommodation_id: string
           key_id: string
         }[]
+      }
+      verify_owlting_service_account: {
+        Args: { p_password: string; p_username: string }
+        Returns: boolean
       }
     }
     Enums: {
