@@ -62,6 +62,7 @@ const menuItems = [
       { title: "操作日誌", url: "/hq?tab=system&section=logs", icon: FileText },
       { title: "系統健康監控", url: "/hq?tab=system&section=health", icon: Activity },
       { title: "民宿 API Keys", url: "/hq?tab=system&section=api-keys", icon: FileText },
+      { title: "奧丁丁服務帳號", url: "/hq?tab=system&section=owlting", icon: FileText },
     ]
   },
 ];
