@@ -2590,7 +2590,7 @@ const BookingFlow = () => {
             deposit_payment_method: orderPaymentType === "credit_card" ? "credit_card" : ((orderPaymentType === "bank_transfer" || orderPaymentType === "atm") ? "bank_transfer" : null),
             balance_payment_method: null,
             payment_method: orderPaymentType === "credit_card" ? "信用卡" : (orderPaymentType === "atm" ? "ATM 虛擬帳號" : (orderPaymentType === "bank_transfer" ? "轉帳匯款" : null)),
-            payment_status: paymentTransactionId ? "paid" : "unpaid",
+            payment_status: paymentTransactionId ? "paid" : (orderPaymentType === "atm" ? "pending_payment" : "unpaid"),
             paid_amount: paymentTransactionId ? finalPrice : 0,
             order_status: "pending",
             notes: orderNotes || null,
