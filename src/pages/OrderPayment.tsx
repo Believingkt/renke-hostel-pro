@@ -160,11 +160,12 @@ export default function OrderPayment() {
     try {
       const { data } = await supabase
         .from("orders")
-        .select("payment_status, paid_amount, final_price")
+        .select("payment_status, paid_amount, final_price, order_status, atm_expire_at")
         .eq("id", orderInfo.orderId)
         .maybeSingle();
       if (data) {
         setPaymentStatus(data.payment_status || "unpaid");
+        setOrderStatus(data.order_status || "pending");
         if (data.payment_status === "paid" && !silent) {
           toast.success("已收到入帳通知，訂單已完成付款");
         }
@@ -174,6 +175,12 @@ export default function OrderPayment() {
     }
   };
 
+  // Tick every 30s so timeline reflects expiry without manual refresh
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(t);
+  }, []);
+
   useEffect(() => {
     if (!orderInfo?.orderId) return;
     const channel = supabase
@@ -182,8 +189,12 @@ export default function OrderPayment() {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderInfo.orderId}` },
         (payload: any) => {
-          const newStatus = payload.new?.payment_status;
-          if (newStatus) setPaymentStatus(newStatus);
+          const newPayment = payload.new?.payment_status;
+          const newOrder = payload.new?.order_status;
+          if (newPayment) setPaymentStatus(newPayment);
+          if (newOrder) setOrderStatus(newOrder);
+          // Silent refresh to grab latest fields
+          refreshStatus(true);
         }
       )
       .subscribe();
