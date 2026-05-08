@@ -922,6 +922,9 @@ const Headquarters = () => {
       switch (section) {
         case 'logs': return '記錄系統重要操作，包含用戶、時間和詳細資訊';
         case 'settings': return '設定全平台系統參數';
+        case 'health': return '監控 Edge Function、資料庫與外部服務的健康狀況';
+        case 'api-keys': return '為各民宿產生 API 金鑰，供其後端系統呼叫';
+        case 'owlting': return '管理奧丁丁通路 SOAP API 共用的 WS-Security 服務帳號';
       }
     }
     
