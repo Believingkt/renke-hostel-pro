@@ -39,12 +39,14 @@ export default function OrderPayment() {
     orderId: string;
     needsCardBinding: boolean;
     atmInfo: { vaccNo: string; bankCode?: string | null; expireAt: string; amount: number } | null;
+    atmExpiredInfo: { vaccNo: string; expireAt: string } | null;
   } | null>(null);
   const [loadingOrder, setLoadingOrder] = useState(true);
   const [orderError, setOrderError] = useState<string | null>(null);
   const [accName, setAccName] = useState<string>("");
   const [paymentStatus, setPaymentStatus] = useState<string>("unpaid");
   const [refreshingStatus, setRefreshingStatus] = useState(false);
+  const [reapplying, setReapplying] = useState(false);
 
   const {
     config: tappayConfig,
@@ -113,14 +115,19 @@ export default function OrderPayment() {
           data.deposit_status !== "partially_refunded" &&
           data.deposit_status !== "refunded";
 
+        const atmActive = data.atm_vacc_no && data.atm_expire_at && new Date(data.atm_expire_at) > new Date();
+        const atmExpired = data.atm_vacc_no && data.atm_expire_at && new Date(data.atm_expire_at) <= new Date();
         setOrderInfo({
           guestName: data.guest_name,
           guestPhone: data.guest_phone,
           guestEmail: data.guest_email || "",
           orderId: data.id,
           needsCardBinding,
-          atmInfo: data.atm_vacc_no && data.atm_expire_at && new Date(data.atm_expire_at) > new Date()
+          atmInfo: atmActive
             ? { vaccNo: data.atm_vacc_no, bankCode: data.atm_vacc_bank_code, expireAt: data.atm_expire_at, amount }
+            : null,
+          atmExpiredInfo: atmExpired
+            ? { vaccNo: data.atm_vacc_no, expireAt: data.atm_expire_at }
             : null,
         });
         setPaymentStatus(data.payment_status || "unpaid");
@@ -493,6 +500,57 @@ export default function OrderPayment() {
             <TabsContent value="atm" className="pt-4 space-y-4">
               {orderInfo && (
                 <>
+                  {orderInfo.atmExpiredInfo && (
+                    <Alert variant="destructive" className="border-destructive/30 bg-destructive/5">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle>原虛擬帳號已逾期</AlertTitle>
+                      <AlertDescription className="space-y-2">
+                        <div className="text-xs">
+                          原帳號 <span className="font-mono">{orderInfo.atmExpiredInfo.vaccNo}</span> 已於{" "}
+                          {new Date(orderInfo.atmExpiredInfo.expireAt).toLocaleString("zh-TW", {
+                            dateStyle: "long",
+                            timeStyle: "short",
+                          })}{" "}
+                          失效，請重新申請新的虛擬帳號完成付款。
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={reapplying}
+                          onClick={async () => {
+                            setReapplying(true);
+                            try {
+                              const { error } = await supabase
+                                .from("orders")
+                                .update({
+                                  atm_vacc_no: null,
+                                  atm_vacc_bank_code: null,
+                                  atm_expire_at: null,
+                                  atm_rec_trade_id: null,
+                                })
+                                .eq("id", orderInfo.orderId);
+                              if (error) throw error;
+                              setOrderInfo((prev) =>
+                                prev ? { ...prev, atmInfo: null, atmExpiredInfo: null } : prev,
+                              );
+                              toast.success("已清除舊帳號，請重新選擇銀行申請");
+                            } catch (e: any) {
+                              toast.error("清除舊帳號失敗", { description: e?.message });
+                            } finally {
+                              setReapplying(false);
+                            }
+                          }}
+                        >
+                          {reapplying ? (
+                            <><Loader2 className="h-4 w-4 mr-2 animate-spin" />處理中...</>
+                          ) : (
+                            <><RefreshCw className="h-4 w-4 mr-2" />重新申請新的虛擬帳號</>
+                          )}
+                        </Button>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
                   <AtmPaymentPanel
                     orderId={orderInfo.orderId}
                     orderNumber={orderNumber}
@@ -504,7 +562,7 @@ export default function OrderPayment() {
                     }}
                     initialAtmInfo={orderInfo.atmInfo}
                     onCreated={(info) => {
-                      setOrderInfo((prev) => prev ? { ...prev, atmInfo: info } : prev);
+                      setOrderInfo((prev) => prev ? { ...prev, atmInfo: info, atmExpiredInfo: null } : prev);
                     }}
                   />
 
