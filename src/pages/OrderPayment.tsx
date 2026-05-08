@@ -123,6 +123,7 @@ export default function OrderPayment() {
             ? { vaccNo: data.atm_vacc_no, bankCode: data.atm_vacc_bank_code, expireAt: data.atm_expire_at, amount }
             : null,
         });
+        setPaymentStatus(data.payment_status || "unpaid");
 
         // Fetch accommodation name
         const { data: accData } = await supabase
