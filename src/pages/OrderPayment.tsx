@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { CreditCard, Loader2, CheckCircle2, ShieldCheck, AlertTriangle, Building2, RefreshCw, Clock } from "lucide-react";
+import { CreditCard, Loader2, CheckCircle2, ShieldCheck, AlertTriangle, Building2, RefreshCw, Clock, Info, ListOrdered } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
