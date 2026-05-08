@@ -449,7 +449,7 @@ const OwlTingCmDocs = () => {
                   <Lock className="h-5 w-5 text-primary mt-0.5" />
                   <div>
                     <p className="font-medium text-sm">WS-Security UsernameToken</p>
-                    <p className="text-xs text-muted-foreground">每家民宿一組帳密 (SHA-256)</p>
+                    <p className="text-xs text-muted-foreground">奧丁丁專屬服務帳號（單一）</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 p-3 bg-muted rounded-lg">
