@@ -45,8 +45,10 @@ export default function OrderPayment() {
   const [orderError, setOrderError] = useState<string | null>(null);
   const [accName, setAccName] = useState<string>("");
   const [paymentStatus, setPaymentStatus] = useState<string>("unpaid");
+  const [orderStatus, setOrderStatus] = useState<string>("pending");
   const [refreshingStatus, setRefreshingStatus] = useState(false);
   const [reapplying, setReapplying] = useState(false);
+  const [now, setNow] = useState<number>(() => Date.now());
 
   const {
     config: tappayConfig,
