@@ -66,6 +66,8 @@ const PortalSearchBar = ({
 }: PortalSearchBarProps) => {
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [checkOutOpen, setCheckOutOpen] = useState(false);
+  const [checkInOpenMobile, setCheckInOpenMobile] = useState(false);
+  const [checkOutOpenMobile, setCheckOutOpenMobile] = useState(false);
   const desktopDestinationInputRef = useRef<HTMLInputElement>(null);
   const mobileDestinationInputRef = useRef<HTMLInputElement>(null);
 
@@ -86,14 +88,7 @@ const PortalSearchBar = ({
     nextOpen: boolean,
     setOpen: (open: boolean) => void
   ) => {
-    if (!nextOpen) {
-      setOpen(false);
-      return;
-    }
-
-    requestAnimationFrame(() => {
-      setOpen(true);
-    });
+    setOpen(nextOpen);
   };
 
   // Gating now happens in Popover's onOpenChange (more reliable than onClick).
@@ -107,17 +102,22 @@ const PortalSearchBar = ({
   const handleCheckInSelect = (date: Date | undefined) => {
     onCheckInChange(date);
     setCheckInOpen(false);
+    setCheckInOpenMobile(false);
     if (date) {
       if (checkOut && checkOut <= date) {
         onCheckOutChange(undefined);
       }
-      setTimeout(() => setCheckOutOpen(true), 200);
+      setTimeout(() => {
+        setCheckOutOpen(true);
+        setCheckOutOpenMobile(true);
+      }, 200);
     }
   };
 
   const handleCheckOutSelect = (date: Date | undefined) => {
     onCheckOutChange(date);
     setCheckOutOpen(false);
+    setCheckOutOpenMobile(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -416,7 +416,7 @@ const PortalSearchBar = ({
 
           {/* Dates row */}
           <div className="flex gap-2">
-            <Popover open={checkInOpen} onOpenChange={(o) => handleDatePopoverOpenChange(o, setCheckInOpen)}>
+            <Popover open={checkInOpenMobile} onOpenChange={(o) => handleDatePopoverOpenChange(o, setCheckInOpenMobile)}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -457,7 +457,7 @@ const PortalSearchBar = ({
               </PopoverContent>
             </Popover>
 
-            <Popover open={checkOutOpen} onOpenChange={(o) => handleDatePopoverOpenChange(o, setCheckOutOpen)}>
+            <Popover open={checkOutOpenMobile} onOpenChange={(o) => handleDatePopoverOpenChange(o, setCheckOutOpenMobile)}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
