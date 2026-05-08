@@ -4660,7 +4660,7 @@ const BookingFlow = () => {
                           <div className="flex justify-between items-center">
                             <span className="text-xs text-muted-foreground">訂單金額</span>
                             <span className="font-medium text-sm">
-                              {orderPaymentType === "credit_card" ? "信用卡" : "轉帳匯款"}
+                              {orderPaymentType === "credit_card" ? "信用卡" : (orderPaymentType === "atm" ? "ATM 虛擬帳號" : "轉帳匯款")}
                             </span>
                           </div>
                           <div className="flex justify-between items-center">
