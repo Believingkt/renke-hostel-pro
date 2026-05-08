@@ -177,7 +177,7 @@ const BookingFlow = () => {
   });
   const [paymentMethod, setPaymentMethod] = useState("");
   // 訂單金額付款方式：信用卡 | 轉帳匯款（信用卡沿用 paymentMethod，這裡是上層分類）
-  const [orderPaymentType, setOrderPaymentType] = useState<"credit_card" | "bank_transfer" | "">("");
+  const [orderPaymentType, setOrderPaymentType] = useState<"credit_card" | "bank_transfer" | "atm" | "">("");
   // 押金 5000 付款方式：card（線上綁卡 / 沿用同張卡）| cash（現場現金）
   const [depositPaymentType, setDepositPaymentType] = useState<"card" | "cash" | "">("");
   const [errors, setErrors] = useState<Record<string, string>>({});
