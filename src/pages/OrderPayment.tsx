@@ -133,6 +133,7 @@ export default function OrderPayment() {
             : null,
         });
         setPaymentStatus(data.payment_status || "unpaid");
+        setOrderStatus(data.order_status || "pending");
 
         // Fetch accommodation name
         const { data: accData } = await supabase
