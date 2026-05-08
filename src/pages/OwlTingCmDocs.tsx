@@ -528,11 +528,11 @@ const OwlTingCmDocs = () => {
                   </div>
                   <div className="rounded-md border bg-muted/40 p-3">
                     <p className="text-xs text-muted-foreground">RoomTypeCode</p>
-                    <p className="font-mono text-sm">RT_ + room_types.id 前 8 碼</p>
+                    <p className="font-mono text-sm">純數字（自 1001 起跳）</p>
                   </div>
                   <div className="rounded-md border bg-muted/40 p-3">
                     <p className="text-xs text-muted-foreground">RatePlanCode</p>
-                    <p className="font-mono text-sm">RP_ + pricing_templates.id 前 8 碼</p>
+                    <p className="font-mono text-sm">純數字（自 1001 起跳）</p>
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
