@@ -390,7 +390,7 @@ export default function OrderPayment() {
             </Alert>
           )}
 
-          <Tabs defaultValue={orderInfo?.atmInfo ? "atm" : "card"} className="w-full">
+          <Tabs defaultValue={(searchParams.get("tab") === "atm" || orderInfo?.atmInfo) ? "atm" : "card"} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="card"><CreditCard className="h-4 w-4 mr-1.5" />信用卡</TabsTrigger>
               <TabsTrigger value="atm"><Building2 className="h-4 w-4 mr-1.5" />ATM 轉帳</TabsTrigger>

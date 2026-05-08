@@ -31,6 +31,7 @@ import {
   Smartphone,
   Info,
   ChevronDown,
+  Building2,
 } from "lucide-react";
 import { z } from "zod";
 import {
@@ -177,7 +178,7 @@ const BookingFlow = () => {
   });
   const [paymentMethod, setPaymentMethod] = useState("");
   // 訂單金額付款方式：信用卡 | 轉帳匯款（信用卡沿用 paymentMethod，這裡是上層分類）
-  const [orderPaymentType, setOrderPaymentType] = useState<"credit_card" | "bank_transfer" | "">("");
+  const [orderPaymentType, setOrderPaymentType] = useState<"credit_card" | "bank_transfer" | "atm" | "">("");
   // 押金 5000 付款方式：card（線上綁卡 / 沿用同張卡）| cash（現場現金）
   const [depositPaymentType, setDepositPaymentType] = useState<"card" | "cash" | "">("");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -278,7 +279,7 @@ const BookingFlow = () => {
   // 2. 訂單為轉帳匯款，但押金選擇線上綁卡（需單獨輸入綁卡用信用卡）
   const needsCardForm =
     paymentMethod === '信用卡' ||
-    (orderPaymentType === 'bank_transfer' && depositPaymentType === 'card');
+    ((orderPaymentType === 'bank_transfer' || orderPaymentType === 'atm') && depositPaymentType === 'card');
   const shouldLoadTapPay = needsCardForm;
   const {
     config: tappayConfig,
@@ -1729,7 +1730,7 @@ const BookingFlow = () => {
 
     // 如果選擇信用卡，驗證 TapPay 卡片狀態 + 先取得 prime（避免 confirm 步驟欄位卸載）
     if (currentStep === "payment" && needsCardForm) {
-      const isDepositCardOnly = orderPaymentType === "bank_transfer" && depositPaymentType === "card";
+      const isDepositCardOnly = (orderPaymentType === "bank_transfer" || orderPaymentType === "atm") && depositPaymentType === "card";
       // 標記已嘗試送出，之後欄位下方才會顯示錯誤
       setCardSubmitAttempted(true);
 
@@ -2586,10 +2587,10 @@ const BookingFlow = () => {
             deposit_required_amount: depositPaymentType ? DEPOSIT_AMOUNT : 0,
             deposit_method: depositPaymentType || null,
             deposit_status: depositPaymentType ? "pending" : "not_required",
-            deposit_payment_method: orderPaymentType === "credit_card" ? "credit_card" : (orderPaymentType === "bank_transfer" ? "bank_transfer" : null),
+            deposit_payment_method: orderPaymentType === "credit_card" ? "credit_card" : ((orderPaymentType === "bank_transfer" || orderPaymentType === "atm") ? "bank_transfer" : null),
             balance_payment_method: null,
-            payment_method: orderPaymentType === "credit_card" ? "信用卡" : (orderPaymentType === "bank_transfer" ? "轉帳匯款" : null),
-            payment_status: paymentTransactionId ? "paid" : "unpaid",
+            payment_method: orderPaymentType === "credit_card" ? "信用卡" : (orderPaymentType === "atm" ? "ATM 虛擬帳號" : (orderPaymentType === "bank_transfer" ? "轉帳匯款" : null)),
+            payment_status: paymentTransactionId ? "paid" : (orderPaymentType === "atm" ? "pending_payment" : "unpaid"),
             paid_amount: paymentTransactionId ? finalPrice : 0,
             order_status: "pending",
             notes: orderNotes || null,
@@ -2676,6 +2677,18 @@ const BookingFlow = () => {
           console.error("發送確認郵件時發生錯誤:", emailError);
           emailSent = false;
         }
+      }
+
+      // ATM 虛擬帳號：建單成功後跳轉到付款頁取得虛擬帳號
+      if (orderPaymentType === "atm" && orderData?.order_number) {
+        const params = new URLSearchParams({
+          order_number: orderData.order_number,
+          amount: String(orderData.final_price ?? finalPrice),
+          acc: accommodationId,
+          tab: "atm",
+        });
+        window.location.href = `/pay/order?${params.toString()}`;
+        return;
       }
 
       // 設置成功狀態，顯示成功頁面
@@ -4223,6 +4236,7 @@ const BookingFlow = () => {
                       <CardContent className="space-y-3">
                         {([
                           { key: "credit_card", label: "信用卡", icon: CreditCard, desc: "由 TapPay 安全加密處理" },
+                          { key: "atm", label: "ATM 虛擬帳號轉帳", icon: Building2, desc: "送出訂單後產生專屬虛擬帳號（繳費期限 3 天）" },
                           { key: "bank_transfer", label: "轉帳匯款", icon: Home, desc: "完成訂單後依顯示帳號匯款" },
                         ] as const).map((opt) => {
                           const Icon = opt.icon;
@@ -4235,7 +4249,10 @@ const BookingFlow = () => {
                               }`}
                               onClick={() => {
                                 setOrderPaymentType(opt.key);
-                                setPaymentMethod(opt.key === "credit_card" ? "信用卡" : "轉帳匯款");
+                                setPaymentMethod(
+                                  opt.key === "credit_card" ? "信用卡" :
+                                  opt.key === "atm" ? "ATM 虛擬帳號" : "轉帳匯款"
+                                );
                               }}
                             >
                               <div className="flex items-center gap-3">
@@ -4329,6 +4346,24 @@ const BookingFlow = () => {
                           </div>
                         )}
 
+                        {/* ATM 虛擬帳號 說明 */}
+                        {orderPaymentType === "atm" && (
+                          <div className="mt-4 p-4 border rounded-lg bg-muted/30">
+                            <div className="flex items-start gap-2">
+                              <Building2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                              <div className="space-y-1">
+                                <p className="text-sm font-medium text-foreground">ATM 虛擬帳號轉帳</p>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                  ・ 送出訂單後將跳轉到付款頁面，由 TapPay 開立此筆訂單的專屬虛擬帳號。<br />
+                                  ・ 可使用 ATM、網路銀行或臨櫃方式轉帳。<br />
+                                  ・ 繳費期限 3 天，逾期未繳款訂單將自動取消。<br />
+                                  ・ 系統收到入帳通知後將自動更新訂單狀態。
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         {/* 付款錯誤提示 */}
                         {lastPaymentError && orderPaymentType && (
                           <Alert variant="destructive" className="mt-4">
@@ -4396,7 +4431,7 @@ const BookingFlow = () => {
                         })}
 
                         {/* TapPay 信用卡表單 - 訂單為轉帳匯款且押金選擇線上綁卡時，於押金區塊輸入卡片資料 */}
-                        {orderPaymentType === "bank_transfer" && depositPaymentType === "card" && (
+                        {(orderPaymentType === "bank_transfer" || orderPaymentType === "atm") && depositPaymentType === "card" && (
                           <div className="mt-4 p-4 border rounded-lg bg-card">
                             <div className="mb-3">
                               <p className="text-sm font-medium text-foreground mb-1">請輸入綁卡用信用卡資訊</p>
@@ -4469,7 +4504,7 @@ const BookingFlow = () => {
                           <div className="space-y-1">
                             <p className="text-sm font-medium text-foreground">付款方式已選擇</p>
                             <p className="text-xs text-muted-foreground leading-relaxed">
-                              訂單金額：{orderPaymentType === "credit_card" ? "信用卡" : "轉帳匯款"}　|　押金：
+                              訂單金額：{orderPaymentType === "credit_card" ? "信用卡" : (orderPaymentType === "atm" ? "ATM 虛擬帳號" : "轉帳匯款")}　|　押金：
                               {depositPaymentType === "card" ? "線上綁卡" : "現場現金"}
                             </p>
                           </div>
@@ -4637,7 +4672,7 @@ const BookingFlow = () => {
                           <div className="flex justify-between items-center">
                             <span className="text-xs text-muted-foreground">訂單金額</span>
                             <span className="font-medium text-sm">
-                              {orderPaymentType === "credit_card" ? "信用卡" : "轉帳匯款"}
+                              {orderPaymentType === "credit_card" ? "信用卡" : (orderPaymentType === "atm" ? "ATM 虛擬帳號" : "轉帳匯款")}
                             </span>
                           </div>
                           <div className="flex justify-between items-center">
