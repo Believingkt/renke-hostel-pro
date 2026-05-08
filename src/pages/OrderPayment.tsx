@@ -3,12 +3,14 @@ import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { CreditCard, Loader2, CheckCircle2, ShieldCheck, AlertTriangle } from "lucide-react";
+import { CreditCard, Loader2, CheckCircle2, ShieldCheck, AlertTriangle, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getTapPayPrime } from "@/utils/tappayPrime";
 import { useTapPayConfig } from "@/hooks/use-tappay-config";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AtmPaymentPanel } from "@/components/payment/AtmPaymentPanel";
 
 interface PaymentError {
   message: string;
