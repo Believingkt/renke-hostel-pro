@@ -218,8 +218,8 @@ Deno.serve(async (req) => {
   // ③ OTA_HotelRateAmountNotifRQ
   if (sampleRoom && samplePlan) {
     const echo = `selftest-rate-${Date.now()}`;
-    const roomCode = `RT_${sampleRoom.id.slice(0, 8)}`;
-    const planCode = `RP_${samplePlan.id.slice(0, 8)}`;
+    const roomCode = String(sampleRoom.numeric_code);
+    const planCode = String(samplePlan.numeric_code);
     const xml = envelope(`<OTA_HotelRateAmountNotifRQ xmlns="http://www.opentravel.org/OTA/2003/05" Version="1.0" TimeStamp="${nowIso()}" EchoToken="${echo}">
       <RateAmountMessages HotelCode="${hotelCode}">
         <RateAmountMessage>
