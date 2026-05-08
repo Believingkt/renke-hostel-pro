@@ -190,20 +190,27 @@ async function authenticate(
     }
     return { ok: true, accommodationId: override.accommodationId, hotelCode: override.hotelCode };
   }
+
+  // 1. Validate WS-Security UsernameToken against the shared OwlTing service account
   const { username, password } = extractWsse(xml);
   if (!username || !password) return { ok: false, msg: "Missing WS-Security UsernameToken" };
-  const hash = await sha256Hex(password);
-  const { data } = await supabase
+
+  const { data: ok, error: rpcErr } = await supabase.rpc("verify_owlting_service_account", {
+    p_username: username,
+    p_password: password,
+  });
+  if (rpcErr || !ok) return { ok: false, msg: "Invalid service account credentials" };
+
+  // 2. Resolve HotelCode -> accommodation_id (still per-property mapping)
+  if (!hotelCode) return { ok: false, msg: "Missing HotelCode" };
+  const { data: prop } = await supabase
     .from("owlting_credentials")
-    .select("accommodation_id, hotel_code, password_hash, is_active")
-    .eq("username", username)
+    .select("accommodation_id, hotel_code, is_active")
+    .eq("hotel_code", hotelCode)
     .maybeSingle();
-  if (!data || !data.is_active) return { ok: false, msg: "Invalid credentials" };
-  if (data.password_hash !== hash) return { ok: false, msg: "Invalid credentials" };
-  if (hotelCode && data.hotel_code !== hotelCode) {
-    return { ok: false, msg: `HotelCode ${hotelCode} not authorized for this user` };
-  }
-  return { ok: true, accommodationId: data.accommodation_id, hotelCode: data.hotel_code };
+  if (!prop || !prop.is_active) return { ok: false, msg: `HotelCode ${hotelCode} not registered` };
+
+  return { ok: true, accommodationId: prop.accommodation_id, hotelCode: prop.hotel_code };
 }
 
 // ============== Handlers ==============
