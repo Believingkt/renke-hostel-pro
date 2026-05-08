@@ -130,7 +130,7 @@ Deno.serve(async (req) => {
   // Pick a sample room type + rate plan for ②③
   const { data: rooms } = await admin
     .from("room_types")
-    .select("id,name")
+    .select("id,name,numeric_code")
     .eq("accommodation_id", accommodationId)
     .order("display_order", { ascending: true })
     .limit(1);
@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
 
   const { data: plans } = await admin
     .from("pricing_templates")
-    .select("id,template_name,room_type_id")
+    .select("id,template_name,room_type_id,numeric_code")
     .eq("accommodation_id", accommodationId)
     .limit(5);
   const samplePlan =
