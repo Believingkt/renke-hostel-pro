@@ -126,28 +126,30 @@ function genOrderNumber(): string {
   return s;
 }
 
-// resolve RoomTypeCode -> room_types.id by uuid prefix
+// resolve RoomTypeCode (numeric, e.g. "1001") -> room_types
 async function resolveRoomType(supabase: any, accId: string, code: string): Promise<{ id: string; name: string } | null> {
-  if (!code?.startsWith("RT_")) return null;
-  const prefix = code.slice(3).toLowerCase();
+  if (!code) return null;
+  const num = parseInt(code, 10);
+  if (!Number.isFinite(num)) return null;
   const { data } = await supabase
     .from("room_types")
     .select("id,name")
     .eq("accommodation_id", accId)
-    .ilike("id", `${prefix}%`)
-    .limit(1);
-  return data?.[0] ?? null;
+    .eq("numeric_code", num)
+    .maybeSingle();
+  return data ?? null;
 }
 async function resolveRatePlan(supabase: any, accId: string, code: string): Promise<{ id: string; template_name: string; room_type_id: string | null } | null> {
-  if (!code?.startsWith("RP_")) return null;
-  const prefix = code.slice(3).toLowerCase();
+  if (!code) return null;
+  const num = parseInt(code, 10);
+  if (!Number.isFinite(num)) return null;
   const { data } = await supabase
     .from("pricing_templates")
     .select("id,template_name,room_type_id")
     .eq("accommodation_id", accId)
-    .ilike("id", `${prefix}%`)
-    .limit(1);
-  return data?.[0] ?? null;
+    .eq("numeric_code", num)
+    .maybeSingle();
+  return data ?? null;
 }
 
 async function logCm(
