@@ -48,7 +48,9 @@ import {
   GripVertical,
   Calendar,
   Download,
-  Handshake
+  Handshake,
+  Activity,
+  Plug
 } from "lucide-react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
@@ -850,6 +852,9 @@ const Headquarters = () => {
       switch (section) {
         case 'logs': return '操作日誌';
         case 'settings': return '系統設定';
+        case 'health': return '系統健康監控';
+        case 'api-keys': return '民宿 API Keys';
+        case 'owlting': return '奧丁丁服務帳號';
       }
     }
     
@@ -882,6 +887,9 @@ const Headquarters = () => {
         case 'logs': return FileText;
         case 'backup': return Database;
         case 'settings': return Settings;
+        case 'health': return Activity;
+        case 'api-keys': return FileText;
+        case 'owlting': return Plug;
       }
     }
     
@@ -914,6 +922,9 @@ const Headquarters = () => {
       switch (section) {
         case 'logs': return '記錄系統重要操作，包含用戶、時間和詳細資訊';
         case 'settings': return '設定全平台系統參數';
+        case 'health': return '監控 Edge Function、資料庫與外部服務的健康狀況';
+        case 'api-keys': return '為各民宿產生 API 金鑰，供其後端系統呼叫';
+        case 'owlting': return '管理奧丁丁通路 SOAP API 共用的 WS-Security 服務帳號';
       }
     }
     

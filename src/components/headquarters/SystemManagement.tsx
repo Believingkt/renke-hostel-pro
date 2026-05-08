@@ -32,6 +32,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { AccommodationApiKeysManagement } from "@/components/headquarters/AccommodationApiKeysManagement";
+import { OwlTingServiceAccountManagement } from "@/components/headquarters/OwlTingServiceAccountManagement";
 import { SystemHealthMonitor } from "@/components/headquarters/SystemHealthMonitor";
 import { 
   ScrollText,
@@ -699,6 +700,10 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
 
         <TabsContent value="api-keys" className="space-y-4">
           <AccommodationApiKeysManagement />
+        </TabsContent>
+
+        <TabsContent value="owlting" className="space-y-4">
+          <OwlTingServiceAccountManagement />
         </TabsContent>
       </Tabs>
     </div>
