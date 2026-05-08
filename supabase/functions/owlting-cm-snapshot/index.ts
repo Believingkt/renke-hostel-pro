@@ -60,8 +60,8 @@ Deno.serve(async (req) => {
   const accId = cred.accommodation_id;
 
   const [roomsRes, plansRes, ripRes, lockRes] = await Promise.all([
-    supabase.from("room_types").select("id,name").eq("accommodation_id", accId).order("display_order"),
-    supabase.from("pricing_templates").select("id,template_name,room_type_id").eq("accommodation_id", accId),
+    supabase.from("room_types").select("id,name,numeric_code").eq("accommodation_id", accId).order("display_order"),
+    supabase.from("pricing_templates").select("id,template_name,room_type_id,numeric_code").eq("accommodation_id", accId),
     supabase.from("room_inventory_pricing")
       .select("room_type_id, pricing_template_id, date, price, available_rooms, is_available")
       .gte("date", dateFrom).lte("date", dateTo),
@@ -71,13 +71,13 @@ Deno.serve(async (req) => {
   ]);
 
   const rooms = (roomsRes.data ?? []).map((r: any) => ({
-    code: `RT_${r.id.slice(0, 8)}`, room_type_id: r.id, name: r.name,
+    code: String(r.numeric_code), room_type_id: r.id, name: r.name,
   }));
   const roomById = new Map(rooms.map((r) => [r.room_type_id, r.code]));
   const accRoomIds = new Set(rooms.map((r) => r.room_type_id));
 
   const ratePlans = (plansRes.data ?? []).map((p: any) => ({
-    code: `RP_${p.id.slice(0, 8)}`, template_id: p.id, name: p.template_name, room_type_id: p.room_type_id,
+    code: String(p.numeric_code), template_id: p.id, name: p.template_name, room_type_id: p.room_type_id,
   }));
   const planById = new Map(ratePlans.map((p) => [p.template_id, p.code]));
   const lockSet = new Set((lockRes.data ?? []).filter((l: any) => l.is_closed).map((l: any) => `${l.template_id}|${l.date}`));
