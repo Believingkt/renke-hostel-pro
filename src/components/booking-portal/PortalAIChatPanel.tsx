@@ -94,6 +94,12 @@ const PortalAIChatPanel = () => {
         },
         body: JSON.stringify({
           messages: newMessages.slice(-20).map((m) => ({ role: m.role, content: m.content })),
+          context: {
+            check_in_date: format(checkIn, "yyyy-MM-dd"),
+            check_out_date: format(checkOut, "yyyy-MM-dd"),
+            guest_count: defaultGuests,
+            room_count: defaultRooms,
+          },
         }),
       });
 
@@ -399,8 +405,10 @@ const PortalAIChatPanel = () => {
                   style={{ background: "hsl(25, 70%, 55%)" }}
                   onClick={() => {
                     const nights = Math.max(1, Math.round((checkOut.getTime() - checkIn.getTime()) / 86400000));
+                    const inIso = format(checkIn, "yyyy-MM-dd");
+                    const outIso = format(checkOut, "yyyy-MM-dd");
                     sendMessage(
-                      `我要訂 ${format(checkIn, "M/d", { locale: zhTW })} 入住、${format(checkOut, "M/d", { locale: zhTW })} 退房（共 ${nights} 晚） · ${defaultGuests} 人 · ${defaultRooms} 間房 · 宜蘭`
+                      `幫我查 ${inIso} 入住、${outIso} 退房（共 ${nights} 晚），${defaultGuests} 人 ${defaultRooms} 間房，宜蘭，列出可預訂房型`
                     );
                   }}
                   disabled={isLoading}
