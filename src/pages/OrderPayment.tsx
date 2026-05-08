@@ -60,7 +60,7 @@ export default function OrderPayment() {
       try {
         const { data, error } = await supabase
           .from("orders")
-          .select("id, guest_name, guest_phone, guest_email, final_price, paid_amount, payment_status, order_status, payment_link_created_at, deposit_method, deposit_status")
+          .select("id, guest_name, guest_phone, guest_email, final_price, paid_amount, payment_status, order_status, payment_link_created_at, deposit_method, deposit_status, atm_vacc_no, atm_vacc_bank_code, atm_expire_at")
           .eq("order_number", orderNumber)
           .eq("accommodation_id", accommodationId)
           .maybeSingle();
