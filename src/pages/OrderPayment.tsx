@@ -39,15 +39,14 @@ export default function OrderPayment() {
     orderId: string;
     needsCardBinding: boolean;
     atmInfo: { vaccNo: string; bankCode?: string | null; expireAt: string; amount: number } | null;
-    atmExpired: boolean;
-    atmExpiredAt: string | null;
-    orderCancelled: boolean;
+    atmExpiredInfo: { vaccNo: string; expireAt: string } | null;
   } | null>(null);
   const [loadingOrder, setLoadingOrder] = useState(true);
   const [orderError, setOrderError] = useState<string | null>(null);
   const [accName, setAccName] = useState<string>("");
   const [paymentStatus, setPaymentStatus] = useState<string>("unpaid");
   const [refreshingStatus, setRefreshingStatus] = useState(false);
+  const [reapplying, setReapplying] = useState(false);
 
   const {
     config: tappayConfig,
