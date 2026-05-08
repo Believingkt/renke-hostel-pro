@@ -46,8 +46,8 @@ export function AtmPaymentPanel({
     setSdkReady(false);
     setupDone.current = false;
     const ensure = () => {
-      if (window.TPDirect) {
-        try { window.TPDirect.setupSDK(config.appId, config.appKey, config.env); } catch {}
+      if (TP()) {
+        try { TP().setupSDK(config.appId, config.appKey, config.env); } catch {}
         setSdkReady(true);
         return;
       }
@@ -58,7 +58,7 @@ export function AtmPaymentPanel({
       s.async = true;
       s.dataset.tpSdk = "1";
       s.onload = () => {
-        try { window.TPDirect?.setupSDK(config.appId, config.appKey, config.env); } catch {}
+        try { TP()?.setupSDK(config.appId, config.appKey, config.env); } catch {}
         setSdkReady(true);
       };
       s.onerror = () => setError("無法載入付款模組");
@@ -72,13 +72,13 @@ export function AtmPaymentPanel({
     if (!sdkReady || atmInfo) return;
     if (setupDone.current) return;
     const t = setTimeout(() => {
-      if (!window.TPDirect?.atm?.setup) {
+      if (!TP()?.atm?.setup) {
         setError("此付款方式尚未啟用，請聯繫業者");
         return;
       }
       try {
-        window.TPDirect.atm.setup({ el: `#${FIELD_PREFIX}-form` });
-        window.TPDirect.atm.onUpdate((u: any) => setBankValid(!!u?.canGetPrime));
+        TP().atm.setup({ el: `#${FIELD_PREFIX}-form` });
+        TP().atm.onUpdate((u: any) => setBankValid(!!u?.canGetPrime));
         setupDone.current = true;
       } catch (e) {
         console.error("[AtmPaymentPanel] setup error", e);
@@ -89,13 +89,13 @@ export function AtmPaymentPanel({
   }, [sdkReady, atmInfo]);
 
   const handleCreate = async () => {
-    if (!window.TPDirect?.atm?.getPrime) return;
+    if (!TP()?.atm?.getPrime) return;
     setProcessing(true);
     setError(null);
     try {
       const prime: string = await new Promise((resolve, reject) => {
         const to = setTimeout(() => reject(new Error("取得 Prime 逾時")), 15000);
-        window.TPDirect.atm.getPrime((r: any) => {
+        TP().atm.getPrime((r: any) => {
           clearTimeout(to);
           if (!r || r.status !== 0) return reject(new Error(r?.msg || "取得 Prime 失敗"));
           const p = r?.bank?.prime || r?.prime;
