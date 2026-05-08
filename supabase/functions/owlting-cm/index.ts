@@ -222,22 +222,22 @@ async function handleAvailRQ(supabase: any, xml: string, echo: string, override?
 
   const { data: rooms } = await supabase
     .from("room_types")
-    .select("id,name")
+    .select("id,name,numeric_code")
     .eq("accommodation_id", auth.accommodationId)
     .order("display_order", { ascending: true });
 
   const { data: templates } = await supabase
     .from("pricing_templates")
-    .select("id,template_name,room_type_id")
+    .select("id,template_name,room_type_id,numeric_code")
     .eq("accommodation_id", auth.accommodationId);
 
   const stays = (rooms ?? []).map((r: any) => {
     const plans = (templates ?? []).filter((t: any) => !t.room_type_id || t.room_type_id === r.id);
     const planXml = plans.map((p: any) =>
-      `<RatePlan RatePlanCode="RP_${p.id.slice(0, 8)}"><RatePlanDescription Name="${xmlEscape(p.template_name)}"/></RatePlan>`,
+      `<RatePlan RatePlanCode="${p.numeric_code}"><RatePlanDescription Name="${xmlEscape(p.template_name)}"/></RatePlan>`,
     ).join("");
     return `<RoomStay>
-      <RoomTypes><RoomType RoomTypeCode="RT_${r.id.slice(0, 8)}"><RoomDescription Name="${xmlEscape(r.name)}"/></RoomType></RoomTypes>
+      <RoomTypes><RoomType RoomTypeCode="${r.numeric_code}"><RoomDescription Name="${xmlEscape(r.name)}"/></RoomType></RoomTypes>
       <RatePlans>${planXml}</RatePlans>
     </RoomStay>`;
   }).join("");
