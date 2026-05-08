@@ -700,6 +700,10 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
         <TabsContent value="api-keys" className="space-y-4">
           <AccommodationApiKeysManagement />
         </TabsContent>
+
+        <TabsContent value="owlting" className="space-y-4">
+          <OwlTingServiceAccountManagement />
+        </TabsContent>
       </Tabs>
     </div>
   );
