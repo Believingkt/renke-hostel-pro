@@ -102,17 +102,22 @@ const PortalSearchBar = ({
   const handleCheckInSelect = (date: Date | undefined) => {
     onCheckInChange(date);
     setCheckInOpen(false);
+    setCheckInOpenMobile(false);
     if (date) {
       if (checkOut && checkOut <= date) {
         onCheckOutChange(undefined);
       }
-      setTimeout(() => setCheckOutOpen(true), 200);
+      setTimeout(() => {
+        setCheckOutOpen(true);
+        setCheckOutOpenMobile(true);
+      }, 200);
     }
   };
 
   const handleCheckOutSelect = (date: Date | undefined) => {
     onCheckOutChange(date);
     setCheckOutOpen(false);
+    setCheckOutOpenMobile(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
