@@ -116,6 +116,9 @@ export default function OrderPayment() {
           guestEmail: data.guest_email || "",
           orderId: data.id,
           needsCardBinding,
+          atmInfo: data.atm_vacc_no && data.atm_expire_at && new Date(data.atm_expire_at) > new Date()
+            ? { vaccNo: data.atm_vacc_no, bankCode: data.atm_vacc_bank_code, expireAt: data.atm_expire_at, amount }
+            : null,
         });
 
         // Fetch accommodation name
