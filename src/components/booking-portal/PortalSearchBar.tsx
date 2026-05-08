@@ -86,14 +86,7 @@ const PortalSearchBar = ({
     nextOpen: boolean,
     setOpen: (open: boolean) => void
   ) => {
-    if (!nextOpen) {
-      setOpen(false);
-      return;
-    }
-
-    requestAnimationFrame(() => {
-      setOpen(true);
-    });
+    setOpen(nextOpen);
   };
 
   // Gating now happens in Popover's onOpenChange (more reliable than onClick).
