@@ -23,10 +23,11 @@ interface Message {
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/portal-ai-chat`;
 
-// 智慧預設值：今日 +30 天、宜蘭
+// 智慧預設值：明天入住、宜蘭
 function getSmartDefault() {
   const d = new Date();
-  d.setDate(d.getDate() + 30);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 1);
   return {
     date: d,
     dateLabel: `${d.getMonth() + 1}/${d.getDate()}`,
