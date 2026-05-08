@@ -45,8 +45,10 @@ export default function OrderPayment() {
   const [orderError, setOrderError] = useState<string | null>(null);
   const [accName, setAccName] = useState<string>("");
   const [paymentStatus, setPaymentStatus] = useState<string>("unpaid");
+  const [orderStatus, setOrderStatus] = useState<string>("pending");
   const [refreshingStatus, setRefreshingStatus] = useState(false);
   const [reapplying, setReapplying] = useState(false);
+  const [now, setNow] = useState<number>(() => Date.now());
 
   const {
     config: tappayConfig,
@@ -78,7 +80,7 @@ export default function OrderPayment() {
           return;
         }
 
-        if (data.order_status === "cancelled") {
+        if (data.order_status === "cancelled" && !data.atm_vacc_no) {
           setOrderError("此訂單已取消");
           setLoadingOrder(false);
           return;
@@ -131,6 +133,7 @@ export default function OrderPayment() {
             : null,
         });
         setPaymentStatus(data.payment_status || "unpaid");
+        setOrderStatus(data.order_status || "pending");
 
         // Fetch accommodation name
         const { data: accData } = await supabase
@@ -157,11 +160,12 @@ export default function OrderPayment() {
     try {
       const { data } = await supabase
         .from("orders")
-        .select("payment_status, paid_amount, final_price")
+        .select("payment_status, paid_amount, final_price, order_status, atm_expire_at")
         .eq("id", orderInfo.orderId)
         .maybeSingle();
       if (data) {
         setPaymentStatus(data.payment_status || "unpaid");
+        setOrderStatus(data.order_status || "pending");
         if (data.payment_status === "paid" && !silent) {
           toast.success("已收到入帳通知，訂單已完成付款");
         }
@@ -171,6 +175,12 @@ export default function OrderPayment() {
     }
   };
 
+  // Tick every 30s so timeline reflects expiry without manual refresh
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(t);
+  }, []);
+
   useEffect(() => {
     if (!orderInfo?.orderId) return;
     const channel = supabase
@@ -179,8 +189,12 @@ export default function OrderPayment() {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderInfo.orderId}` },
         (payload: any) => {
-          const newStatus = payload.new?.payment_status;
-          if (newStatus) setPaymentStatus(newStatus);
+          const newPayment = payload.new?.payment_status;
+          const newOrder = payload.new?.order_status;
+          if (newPayment) setPaymentStatus(newPayment);
+          if (newOrder) setOrderStatus(newOrder);
+          // Silent refresh to grab latest fields
+          refreshStatus(true);
         }
       )
       .subscribe();
@@ -592,37 +606,103 @@ export default function OrderPayment() {
                         </AlertDescription>
                       </Alert>
 
-                      <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 text-sm font-medium">
-                            <Clock className="h-4 w-4 text-muted-foreground" />
-                            訂單付款狀態
+                      {(() => {
+                        const expAt = orderInfo.atmInfo?.expireAt
+                          ? new Date(orderInfo.atmInfo.expireAt).getTime()
+                          : orderInfo.atmExpiredInfo?.expireAt
+                            ? new Date(orderInfo.atmExpiredInfo.expireAt).getTime()
+                            : null;
+                        const isPaid = paymentStatus === "paid" || paymentStatus === "partial";
+                        const isCancelled = orderStatus === "cancelled";
+                        const isExpired = !isPaid && !isCancelled && expAt !== null && now >= expAt;
+                        const isWaiting = !isPaid && !isCancelled && !isExpired;
+
+                        type Step = { key: string; label: string; sub?: string; state: "done" | "current" | "future" | "error" };
+                        const steps: Step[] = [
+                          { key: "created", label: "虛擬帳號已建立", state: "done" },
+                          {
+                            key: "waiting",
+                            label: isPaid ? "已收到入帳" : "等待銀行入帳",
+                            sub: !isPaid && expAt ? `期限 ${new Date(expAt).toLocaleString("zh-TW", { dateStyle: "short", timeStyle: "short" })}` : undefined,
+                            state: isPaid ? "done" : isWaiting ? "current" : "future",
+                          },
+                        ];
+                        if (isPaid) {
+                          steps.push({ key: "paid", label: paymentStatus === "paid" ? "付款完成" : "部分付款", state: "done" });
+                        } else if (isCancelled) {
+                          steps.push({ key: "cancelled", label: "訂單已取消", state: "error" });
+                        } else if (isExpired) {
+                          steps.push({ key: "expired", label: "虛擬帳號已到期", sub: "請重新申請", state: "error" });
+                        } else {
+                          steps.push({ key: "done", label: "付款完成", state: "future" });
+                        }
+
+                        return (
+                          <div className="rounded-lg border bg-muted/30 p-4 space-y-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 text-sm font-medium">
+                                <Clock className="h-4 w-4 text-muted-foreground" />
+                                訂單付款狀態
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2"
+                                onClick={() => refreshStatus(false)}
+                                disabled={refreshingStatus}
+                              >
+                                {refreshingStatus ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <RefreshCw className="h-3.5 w-3.5" />
+                                )}
+                              </Button>
+                            </div>
+                            <ol className="relative space-y-4">
+                              {steps.map((s, i) => {
+                                const isLast = i === steps.length - 1;
+                                const dotCls =
+                                  s.state === "done"
+                                    ? "bg-green-600 border-green-600 text-white"
+                                    : s.state === "current"
+                                      ? "bg-primary border-primary text-primary-foreground animate-pulse"
+                                      : s.state === "error"
+                                        ? "bg-destructive border-destructive text-destructive-foreground"
+                                        : "bg-muted border-muted-foreground/30 text-muted-foreground";
+                                const lineCls =
+                                  s.state === "done"
+                                    ? "bg-green-600"
+                                    : s.state === "error"
+                                      ? "bg-destructive"
+                                      : "bg-border";
+                                const labelCls =
+                                  s.state === "future"
+                                    ? "text-muted-foreground"
+                                    : s.state === "error"
+                                      ? "text-destructive font-medium"
+                                      : "text-foreground font-medium";
+                                return (
+                                  <li key={s.key} className="flex gap-3 relative">
+                                    <div className="flex flex-col items-center">
+                                      <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center text-[10px] ${dotCls}`}>
+                                        {s.state === "done" ? <CheckCircle2 className="h-3 w-3" /> : s.state === "error" ? <AlertTriangle className="h-3 w-3" /> : i + 1}
+                                      </div>
+                                      {!isLast && <div className={`w-0.5 flex-1 mt-1 min-h-[14px] ${lineCls}`} />}
+                                    </div>
+                                    <div className="pb-1 -mt-0.5">
+                                      <div className={`text-sm ${labelCls}`}>{s.label}</div>
+                                      {s.sub && <div className="text-xs text-muted-foreground mt-0.5">{s.sub}</div>}
+                                    </div>
+                                  </li>
+                                );
+                              })}
+                            </ol>
+                            <p className="text-xs text-muted-foreground">
+                              系統收到銀行入帳通知後將自動更新狀態。
+                            </p>
                           </div>
-                          {paymentStatus === "paid" ? (
-                            <Badge className="bg-green-600 hover:bg-green-600">已付款</Badge>
-                          ) : paymentStatus === "partial" ? (
-                            <Badge variant="secondary">部分付款</Badge>
-                          ) : (
-                            <Badge variant="outline">等待入帳</Badge>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          系統收到銀行入帳通知後將自動更新；您也可以手動重新整理。
-                        </p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full"
-                          onClick={() => refreshStatus(false)}
-                          disabled={refreshingStatus}
-                        >
-                          {refreshingStatus ? (
-                            <><Loader2 className="h-4 w-4 mr-2 animate-spin" />查詢中...</>
-                          ) : (
-                            <><RefreshCw className="h-4 w-4 mr-2" />查看訂單狀態</>
-                          )}
-                        </Button>
-                      </div>
+                        );
+                      })()}
                     </>
                   )}
                 </>
