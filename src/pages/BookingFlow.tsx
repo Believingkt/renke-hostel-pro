@@ -31,6 +31,7 @@ import {
   Smartphone,
   Info,
   ChevronDown,
+  Building2,
 } from "lucide-react";
 import { z } from "zod";
 import {
