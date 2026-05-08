@@ -501,14 +501,15 @@ const OwlTingCmDocs = () => {
             <Card>
               <CardContent className="p-4 space-y-3 text-sm">
                 <p>
-                  每家民宿會由人客多後台建立一組獨立的 <strong>Hotel Code / Username / Password</strong>，密碼以 SHA-256 加密儲存。
-                  奧丁丁需在每筆 SOAP Request 的 <code>{`<soap:Header>`}</code> 中加入下列 WS-Security 區塊：
+                  人客多會發給奧丁丁<strong>一組專屬服務帳號</strong>（<code>Username / Password</code>）。
+                  此帳號獨立於民宿業者帳號，不會洩漏任何業者密碼。奧丁丁需在每筆 SOAP Request 的 <code>{`<soap:Header>`}</code> 中加入下列 WS-Security 區塊：
                 </p>
                 <CodeBlock label="SOAP Header">{SAMPLE_AUTH_HEADER}</CodeBlock>
                 <ul className="list-disc list-inside text-muted-foreground space-y-1 text-xs">
-                  <li>Password 採 <strong>PasswordText</strong>，明文傳輸 (TLS 已加密整段流量)。</li>
-                  <li>Body 中所帶的 HotelCode 必須與該帳號授權的 hotel_code 一致，否則回傳 <code>HotelCode not authorized</code>。</li>
-                  <li>密碼可由民宿端隨時於人客多後台輪替，輪替後請更新奧丁丁端設定。</li>
+                  <li>Password 採 <strong>PasswordText</strong>，明文傳輸（TLS 已加密整段流量）。</li>
+                  <li>Body 中的 <code>HotelCode</code> 用來識別目標民宿；HotelCode 對應的民宿須已在人客多後台註冊（owlting_credentials）。</li>
+                  <li>單一服務帳號可存取所有授權民宿，無需為每家民宿維護不同密碼。</li>
+                  <li>若需輪替密碼，由人客多管理者在後台更新後通知奧丁丁即可。</li>
                 </ul>
               </CardContent>
             </Card>
