@@ -885,6 +885,9 @@ const Headquarters = () => {
         case 'logs': return FileText;
         case 'backup': return Database;
         case 'settings': return Settings;
+        case 'health': return Activity;
+        case 'api-keys': return FileText;
+        case 'owlting': return Plug;
       }
     }
     
