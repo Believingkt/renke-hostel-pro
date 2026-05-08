@@ -134,12 +134,12 @@ const SAMPLE_AVAIL_RS = `<?xml version="1.0" encoding="UTF-8"?>
       <RoomStays>
         <RoomStay>
           <RoomTypes>
-            <RoomType RoomTypeCode="RT_a1b2c3d4">
+            <RoomType RoomTypeCode="1001">
               <RoomDescription Name="雙人房"/>
             </RoomType>
           </RoomTypes>
           <RatePlans>
-            <RatePlan RatePlanCode="RP_e5f6g7h8">
+            <RatePlan RatePlanCode="1001">
               <RatePlanDescription Name="標準方案"/>
             </RatePlan>
           </RatePlans>
@@ -155,20 +155,20 @@ const SAMPLE_AVAIL_NOTIF_RQ = `<OTA_HotelAvailNotifRQ xmlns="http://www.opentrav
     <!-- ① 設定庫存數量：BookingLimit=N -->
     <AvailStatusMessage BookingLimit="3">
       <StatusApplicationControl Start="2026-06-01" End="2026-06-30"
-          InvTypeCode="RT_a1b2c3d4"/>
+          InvTypeCode="1001"/>
     </AvailStatusMessage>
 
     <!-- ② 房間鎖：RestrictionStatus -->
     <AvailStatusMessage>
       <StatusApplicationControl Start="2026-06-01" End="2026-06-05"
-          InvTypeCode="RT_a1b2c3d4"/>
+          InvTypeCode="1001"/>
       <RestrictionStatus Status="Close"/>
     </AvailStatusMessage>
 
     <!-- ③ 方案鎖：RestrictionStatus + RatePlanCode -->
     <AvailStatusMessage>
       <StatusApplicationControl Start="2026-07-01" End="2026-07-10"
-          InvTypeCode="RT_a1b2c3d4" RatePlanCode="RP_e5f6g7h8"/>
+          InvTypeCode="1001" RatePlanCode="1001"/>
       <RestrictionStatus Status="Close"/>
     </AvailStatusMessage>
   </AvailStatusMessages>
@@ -184,7 +184,7 @@ const SAMPLE_RATE_RQ = `<OTA_HotelRateAmountNotifRQ xmlns="http://www.opentravel
   <RateAmountMessages HotelCode="SENSAN">
     <RateAmountMessage>
       <StatusApplicationControl Start="2026-06-01" End="2026-06-30"
-          InvTypeCode="RT_a1b2c3d4" RatePlanCode="RP_e5f6g7h8"/>
+          InvTypeCode="1001" RatePlanCode="1001"/>
       <Rates>
         <Rate>
           <BaseByGuestAmts>
@@ -210,10 +210,10 @@ const SAMPLE_RES_COMMIT_RQ = `<OTA_HotelResNotifRQ xmlns="http://www.opentravel.
       <RoomStays>
         <RoomStay>
           <RoomTypes>
-            <RoomType RoomTypeCode="RT_a1b2c3d4" NumberOfUnits="1"/>
+            <RoomType RoomTypeCode="1001" NumberOfUnits="1"/>
           </RoomTypes>
           <RatePlans>
-            <RatePlan RatePlanCode="RP_e5f6g7h8"/>
+            <RatePlan RatePlanCode="1001"/>
           </RatePlans>
           <GuestCounts>
             <GuestCount AgeQualifyingCode="10" Count="2"/>
@@ -288,7 +288,7 @@ const SAMPLE_ERROR_ROOMTYPE = `<?xml version="1.0" encoding="UTF-8"?>
     <OTA_HotelAvailNotifRS xmlns="http://www.opentravel.org/OTA/2003/05"
         Version="1.0" TimeStamp="2026-05-05T10:00:01Z" EchoToken="inv-001">
       <Errors>
-        <Error Type="3" Code="402">RoomType RT_a1b2c3d4 not found</Error>
+        <Error Type="3" Code="402">RoomType 1001 not found</Error>
       </Errors>
     </OTA_HotelAvailNotifRS>
   </soap:Body>
@@ -712,13 +712,13 @@ const OwlTingCmDocs = () => {
                         <td className="px-2 py-1.5 font-mono">402</td>
                         <td className="px-2 py-1.5 font-mono">3</td>
                         <td className="px-2 py-1.5 font-mono">RoomType not found</td>
-                        <td className="px-2 py-1.5 text-muted-foreground">InvTypeCode 不存在 (RT_xxxxxxxx)</td>
+                        <td className="px-2 py-1.5 text-muted-foreground">InvTypeCode 不存在 (1001)</td>
                       </tr>
                       <tr className="border-b">
                         <td className="px-2 py-1.5 font-mono">402</td>
                         <td className="px-2 py-1.5 font-mono">3</td>
                         <td className="px-2 py-1.5 font-mono">RatePlan not found</td>
-                        <td className="px-2 py-1.5 text-muted-foreground">RatePlanCode 不存在 (RP_xxxxxxxx)</td>
+                        <td className="px-2 py-1.5 text-muted-foreground">RatePlanCode 不存在 (1001)</td>
                       </tr>
                       <tr className="border-b">
                         <td className="px-2 py-1.5 font-mono">392</td>
@@ -804,8 +804,8 @@ const OwlTingCmDocs = () => {
                 <CodeBlock label="Response Sample (inventory)">{`{
   "hotel_code": "SENSAN",
   "items": [
-    { "date": "2026-06-01", "room_type_code": "RT_a1b2c3d4", "available_rooms": 3, "is_available": true },
-    { "date": "2026-06-02", "room_type_code": "RT_a1b2c3d4", "available_rooms": 0, "is_available": false }
+    { "date": "2026-06-01", "room_type_code": "1001", "available_rooms": 3, "is_available": true },
+    { "date": "2026-06-02", "room_type_code": "1001", "available_rooms": 0, "is_available": false }
   ]
 }`}</CodeBlock>
               </CardContent>
