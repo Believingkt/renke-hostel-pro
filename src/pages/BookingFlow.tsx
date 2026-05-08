@@ -4223,6 +4223,7 @@ const BookingFlow = () => {
                       <CardContent className="space-y-3">
                         {([
                           { key: "credit_card", label: "信用卡", icon: CreditCard, desc: "由 TapPay 安全加密處理" },
+                          { key: "atm", label: "ATM 虛擬帳號轉帳", icon: Building2, desc: "送出訂單後產生專屬虛擬帳號（繳費期限 3 天）" },
                           { key: "bank_transfer", label: "轉帳匯款", icon: Home, desc: "完成訂單後依顯示帳號匯款" },
                         ] as const).map((opt) => {
                           const Icon = opt.icon;
@@ -4235,7 +4236,10 @@ const BookingFlow = () => {
                               }`}
                               onClick={() => {
                                 setOrderPaymentType(opt.key);
-                                setPaymentMethod(opt.key === "credit_card" ? "信用卡" : "轉帳匯款");
+                                setPaymentMethod(
+                                  opt.key === "credit_card" ? "信用卡" :
+                                  opt.key === "atm" ? "ATM 虛擬帳號" : "轉帳匯款"
+                                );
                               }}
                             >
                               <div className="flex items-center gap-3">
