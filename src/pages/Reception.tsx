@@ -526,7 +526,7 @@ export default function Reception() {
                             disabled={!editable || acting}
                           >
                             <SelectTrigger
-                              className={`h-8 w-[120px] text-xs font-medium ${paymentCls(o.payment_status)}`}
+                              className={`h-8 w-[140px] text-xs font-medium [&>span]:truncate-0 ${paymentCls(o.payment_status)}`}
                             >
                               <SelectValue>{paymentLabel(o.payment_status)}</SelectValue>
                             </SelectTrigger>
