@@ -3,7 +3,8 @@ import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { CreditCard, Loader2, CheckCircle2, ShieldCheck, AlertTriangle, Building2 } from "lucide-react";
+import { CreditCard, Loader2, CheckCircle2, ShieldCheck, AlertTriangle, Building2, RefreshCw, Clock } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getTapPayPrime } from "@/utils/tappayPrime";
@@ -42,6 +43,8 @@ export default function OrderPayment() {
   const [loadingOrder, setLoadingOrder] = useState(true);
   const [orderError, setOrderError] = useState<string | null>(null);
   const [accName, setAccName] = useState<string>("");
+  const [paymentStatus, setPaymentStatus] = useState<string>("unpaid");
+  const [refreshingStatus, setRefreshingStatus] = useState(false);
 
   const {
     config: tappayConfig,
@@ -120,6 +123,7 @@ export default function OrderPayment() {
             ? { vaccNo: data.atm_vacc_no, bankCode: data.atm_vacc_bank_code, expireAt: data.atm_expire_at, amount }
             : null,
         });
+        setPaymentStatus(data.payment_status || "unpaid");
 
         // Fetch accommodation name
         const { data: accData } = await supabase
@@ -138,6 +142,43 @@ export default function OrderPayment() {
 
     fetchOrder();
   }, [orderNumber, amount, accommodationId]);
+
+  // Refresh order payment status (manual + realtime)
+  const refreshStatus = async (silent = false) => {
+    if (!orderInfo?.orderId) return;
+    if (!silent) setRefreshingStatus(true);
+    try {
+      const { data } = await supabase
+        .from("orders")
+        .select("payment_status, paid_amount, final_price")
+        .eq("id", orderInfo.orderId)
+        .maybeSingle();
+      if (data) {
+        setPaymentStatus(data.payment_status || "unpaid");
+        if (data.payment_status === "paid" && !silent) {
+          toast.success("已收到入帳通知，訂單已完成付款");
+        }
+      }
+    } finally {
+      if (!silent) setRefreshingStatus(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!orderInfo?.orderId) return;
+    const channel = supabase
+      .channel(`order-pay-${orderInfo.orderId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderInfo.orderId}` },
+        (payload: any) => {
+          const newStatus = payload.new?.payment_status;
+          if (newStatus) setPaymentStatus(newStatus);
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [orderInfo?.orderId]);
 
   // Load TapPay SDK
   useEffect(() => {
@@ -449,19 +490,58 @@ export default function OrderPayment() {
               </Button>
             </TabsContent>
 
-            <TabsContent value="atm" className="pt-4">
+            <TabsContent value="atm" className="pt-4 space-y-4">
               {orderInfo && (
-                <AtmPaymentPanel
-                  orderId={orderInfo.orderId}
-                  orderNumber={orderNumber}
-                  amount={amount}
-                  cardholder={{
-                    name: orderInfo.guestName,
-                    email: orderInfo.guestEmail || "no-email@example.com",
-                    phoneNumber: orderInfo.guestPhone,
-                  }}
-                  initialAtmInfo={orderInfo.atmInfo}
-                />
+                <>
+                  <AtmPaymentPanel
+                    orderId={orderInfo.orderId}
+                    orderNumber={orderNumber}
+                    amount={amount}
+                    cardholder={{
+                      name: orderInfo.guestName,
+                      email: orderInfo.guestEmail || "no-email@example.com",
+                      phoneNumber: orderInfo.guestPhone,
+                    }}
+                    initialAtmInfo={orderInfo.atmInfo}
+                    onCreated={(info) => {
+                      setOrderInfo((prev) => prev ? { ...prev, atmInfo: info } : prev);
+                    }}
+                  />
+
+                  {orderInfo.atmInfo && (
+                    <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          訂單付款狀態
+                        </div>
+                        {paymentStatus === "paid" ? (
+                          <Badge className="bg-green-600 hover:bg-green-600">已付款</Badge>
+                        ) : paymentStatus === "partial" ? (
+                          <Badge variant="secondary">部分付款</Badge>
+                        ) : (
+                          <Badge variant="outline">等待入帳</Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        系統收到銀行入帳通知後將自動更新；您也可以手動重新整理。
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => refreshStatus(false)}
+                        disabled={refreshingStatus}
+                      >
+                        {refreshingStatus ? (
+                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" />查詢中...</>
+                        ) : (
+                          <><RefreshCw className="h-4 w-4 mr-2" />查看訂單狀態</>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </>
               )}
             </TabsContent>
           </Tabs>
