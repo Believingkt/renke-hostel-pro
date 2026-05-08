@@ -1772,6 +1772,11 @@ export type Database = {
       orders: {
         Row: {
           accommodation_id: string
+          atm_bank_transaction_id: string | null
+          atm_expire_at: string | null
+          atm_rec_trade_id: string | null
+          atm_vacc_bank_code: string | null
+          atm_vacc_no: string | null
           balance_payment_method: string | null
           cancelled_at: string | null
           check_in_date: string
@@ -1830,6 +1835,11 @@ export type Database = {
         }
         Insert: {
           accommodation_id: string
+          atm_bank_transaction_id?: string | null
+          atm_expire_at?: string | null
+          atm_rec_trade_id?: string | null
+          atm_vacc_bank_code?: string | null
+          atm_vacc_no?: string | null
           balance_payment_method?: string | null
           cancelled_at?: string | null
           check_in_date: string
@@ -1888,6 +1898,11 @@ export type Database = {
         }
         Update: {
           accommodation_id?: string
+          atm_bank_transaction_id?: string | null
+          atm_expire_at?: string | null
+          atm_rec_trade_id?: string | null
+          atm_vacc_bank_code?: string | null
+          atm_vacc_no?: string | null
           balance_payment_method?: string | null
           cancelled_at?: string | null
           check_in_date?: string
