@@ -134,12 +134,12 @@ const SAMPLE_AVAIL_RS = `<?xml version="1.0" encoding="UTF-8"?>
       <RoomStays>
         <RoomStay>
           <RoomTypes>
-            <RoomType RoomTypeCode="RT_a1b2c3d4">
+            <RoomType RoomTypeCode="1001">
               <RoomDescription Name="雙人房"/>
             </RoomType>
           </RoomTypes>
           <RatePlans>
-            <RatePlan RatePlanCode="RP_e5f6g7h8">
+            <RatePlan RatePlanCode="1001">
               <RatePlanDescription Name="標準方案"/>
             </RatePlan>
           </RatePlans>
@@ -155,20 +155,20 @@ const SAMPLE_AVAIL_NOTIF_RQ = `<OTA_HotelAvailNotifRQ xmlns="http://www.opentrav
     <!-- ① 設定庫存數量：BookingLimit=N -->
     <AvailStatusMessage BookingLimit="3">
       <StatusApplicationControl Start="2026-06-01" End="2026-06-30"
-          InvTypeCode="RT_a1b2c3d4"/>
+          InvTypeCode="1001"/>
     </AvailStatusMessage>
 
     <!-- ② 房間鎖：RestrictionStatus -->
     <AvailStatusMessage>
       <StatusApplicationControl Start="2026-06-01" End="2026-06-05"
-          InvTypeCode="RT_a1b2c3d4"/>
+          InvTypeCode="1001"/>
       <RestrictionStatus Status="Close"/>
     </AvailStatusMessage>
 
     <!-- ③ 方案鎖：RestrictionStatus + RatePlanCode -->
     <AvailStatusMessage>
       <StatusApplicationControl Start="2026-07-01" End="2026-07-10"
-          InvTypeCode="RT_a1b2c3d4" RatePlanCode="RP_e5f6g7h8"/>
+          InvTypeCode="1001" RatePlanCode="1001"/>
       <RestrictionStatus Status="Close"/>
     </AvailStatusMessage>
   </AvailStatusMessages>
@@ -184,7 +184,7 @@ const SAMPLE_RATE_RQ = `<OTA_HotelRateAmountNotifRQ xmlns="http://www.opentravel
   <RateAmountMessages HotelCode="SENSAN">
     <RateAmountMessage>
       <StatusApplicationControl Start="2026-06-01" End="2026-06-30"
-          InvTypeCode="RT_a1b2c3d4" RatePlanCode="RP_e5f6g7h8"/>
+          InvTypeCode="1001" RatePlanCode="1001"/>
       <Rates>
         <Rate>
           <BaseByGuestAmts>
@@ -210,10 +210,10 @@ const SAMPLE_RES_COMMIT_RQ = `<OTA_HotelResNotifRQ xmlns="http://www.opentravel.
       <RoomStays>
         <RoomStay>
           <RoomTypes>
-            <RoomType RoomTypeCode="RT_a1b2c3d4" NumberOfUnits="1"/>
+            <RoomType RoomTypeCode="1001" NumberOfUnits="1"/>
           </RoomTypes>
           <RatePlans>
-            <RatePlan RatePlanCode="RP_e5f6g7h8"/>
+            <RatePlan RatePlanCode="1001"/>
           </RatePlans>
           <GuestCounts>
             <GuestCount AgeQualifyingCode="10" Count="2"/>
@@ -288,7 +288,7 @@ const SAMPLE_ERROR_ROOMTYPE = `<?xml version="1.0" encoding="UTF-8"?>
     <OTA_HotelAvailNotifRS xmlns="http://www.opentravel.org/OTA/2003/05"
         Version="1.0" TimeStamp="2026-05-05T10:00:01Z" EchoToken="inv-001">
       <Errors>
-        <Error Type="3" Code="402">RoomType RT_a1b2c3d4 not found</Error>
+        <Error Type="3" Code="402">RoomType 1001 not found</Error>
       </Errors>
     </OTA_HotelAvailNotifRS>
   </soap:Body>
@@ -449,7 +449,7 @@ const OwlTingCmDocs = () => {
                   <Lock className="h-5 w-5 text-primary mt-0.5" />
                   <div>
                     <p className="font-medium text-sm">WS-Security UsernameToken</p>
-                    <p className="text-xs text-muted-foreground">每家民宿一組帳密 (SHA-256)</p>
+                    <p className="text-xs text-muted-foreground">奧丁丁專屬服務帳號（單一）</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 p-3 bg-muted rounded-lg">
@@ -501,14 +501,15 @@ const OwlTingCmDocs = () => {
             <Card>
               <CardContent className="p-4 space-y-3 text-sm">
                 <p>
-                  每家民宿會由人客多後台建立一組獨立的 <strong>Hotel Code / Username / Password</strong>，密碼以 SHA-256 加密儲存。
-                  奧丁丁需在每筆 SOAP Request 的 <code>{`<soap:Header>`}</code> 中加入下列 WS-Security 區塊：
+                  人客多會發給奧丁丁<strong>一組專屬服務帳號</strong>（<code>Username / Password</code>）。
+                  此帳號獨立於民宿業者帳號，不會洩漏任何業者密碼。奧丁丁需在每筆 SOAP Request 的 <code>{`<soap:Header>`}</code> 中加入下列 WS-Security 區塊：
                 </p>
                 <CodeBlock label="SOAP Header">{SAMPLE_AUTH_HEADER}</CodeBlock>
                 <ul className="list-disc list-inside text-muted-foreground space-y-1 text-xs">
-                  <li>Password 採 <strong>PasswordText</strong>，明文傳輸 (TLS 已加密整段流量)。</li>
-                  <li>Body 中所帶的 HotelCode 必須與該帳號授權的 hotel_code 一致，否則回傳 <code>HotelCode not authorized</code>。</li>
-                  <li>密碼可由民宿端隨時於人客多後台輪替，輪替後請更新奧丁丁端設定。</li>
+                  <li>Password 採 <strong>PasswordText</strong>，明文傳輸（TLS 已加密整段流量）。</li>
+                  <li>Body 中的 <code>HotelCode</code> 用來識別目標民宿；HotelCode 對應的民宿須已在人客多後台註冊（owlting_credentials）。</li>
+                  <li>單一服務帳號可存取所有授權民宿，無需為每家民宿維護不同密碼。</li>
+                  <li>若需輪替密碼，由人客多管理者在後台更新後通知奧丁丁即可。</li>
                 </ul>
               </CardContent>
             </Card>
@@ -528,11 +529,11 @@ const OwlTingCmDocs = () => {
                   </div>
                   <div className="rounded-md border bg-muted/40 p-3">
                     <p className="text-xs text-muted-foreground">RoomTypeCode</p>
-                    <p className="font-mono text-sm">RT_ + room_types.id 前 8 碼</p>
+                    <p className="font-mono text-sm">純數字（自 1001 起跳）</p>
                   </div>
                   <div className="rounded-md border bg-muted/40 p-3">
                     <p className="text-xs text-muted-foreground">RatePlanCode</p>
-                    <p className="font-mono text-sm">RP_ + pricing_templates.id 前 8 碼</p>
+                    <p className="font-mono text-sm">純數字（自 1001 起跳）</p>
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -712,13 +713,13 @@ const OwlTingCmDocs = () => {
                         <td className="px-2 py-1.5 font-mono">402</td>
                         <td className="px-2 py-1.5 font-mono">3</td>
                         <td className="px-2 py-1.5 font-mono">RoomType not found</td>
-                        <td className="px-2 py-1.5 text-muted-foreground">InvTypeCode 不存在 (RT_xxxxxxxx)</td>
+                        <td className="px-2 py-1.5 text-muted-foreground">InvTypeCode 不存在 (1001)</td>
                       </tr>
                       <tr className="border-b">
                         <td className="px-2 py-1.5 font-mono">402</td>
                         <td className="px-2 py-1.5 font-mono">3</td>
                         <td className="px-2 py-1.5 font-mono">RatePlan not found</td>
-                        <td className="px-2 py-1.5 text-muted-foreground">RatePlanCode 不存在 (RP_xxxxxxxx)</td>
+                        <td className="px-2 py-1.5 text-muted-foreground">RatePlanCode 不存在 (1001)</td>
                       </tr>
                       <tr className="border-b">
                         <td className="px-2 py-1.5 font-mono">392</td>
@@ -804,8 +805,8 @@ const OwlTingCmDocs = () => {
                 <CodeBlock label="Response Sample (inventory)">{`{
   "hotel_code": "SENSAN",
   "items": [
-    { "date": "2026-06-01", "room_type_code": "RT_a1b2c3d4", "available_rooms": 3, "is_available": true },
-    { "date": "2026-06-02", "room_type_code": "RT_a1b2c3d4", "available_rooms": 0, "is_available": false }
+    { "date": "2026-06-01", "room_type_code": "1001", "available_rooms": 3, "is_available": true },
+    { "date": "2026-06-02", "room_type_code": "1001", "available_rooms": 0, "is_available": false }
   ]
 }`}</CodeBlock>
               </CardContent>

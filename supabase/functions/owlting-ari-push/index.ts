@@ -316,7 +316,7 @@ Deno.serve(async (req) => {
   // Load room types
   let roomQuery = supabase
     .from("room_types")
-    .select("id, name, room_count, base_price")
+    .select("id, name, room_count, base_price, numeric_code")
     .eq("accommodation_id", accommodation_id);
   if (room_type_ids && room_type_ids.length > 0) {
     roomQuery = roomQuery.in("id", room_type_ids);
@@ -350,17 +350,19 @@ Deno.serve(async (req) => {
     });
   }
 
+  // NOTE: room_type_id field carries the OUTBOUND CODE for OwlTing — we send numeric_code (e.g. "1001")
   const invRows: Array<{ room_type_id: string; date: string; available: number }> = [];
   const rateRows: Array<{ room_type_id: string; date: string; price: number }> = [];
 
   for (const rt of roomTypes as any[]) {
     const defaultAvail = rt.room_count ?? 0;
     const defaultPrice = rt.base_price ?? 0;
+    const code = String(rt.numeric_code);
     for (const d of dates) {
       const ov = overrideMap.get(`${rt.id}|${d}`);
       const avail = ov?.is_available === false ? 0 : (ov?.available ?? defaultAvail);
-      invRows.push({ room_type_id: rt.id, date: d, available: avail });
-      rateRows.push({ room_type_id: rt.id, date: d, price: ov?.price ?? defaultPrice });
+      invRows.push({ room_type_id: code, date: d, available: avail });
+      rateRows.push({ room_type_id: code, date: d, price: ov?.price ?? defaultPrice });
     }
   }
 

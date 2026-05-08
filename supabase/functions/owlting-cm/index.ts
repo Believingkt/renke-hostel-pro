@@ -7,11 +7,15 @@
  *   - OTA_HotelRateAmountNotifRQ-> Update rate plan prices
  *   - OTA_HotelResNotifRQ       -> Receive reservation (Commit / Modify / Cancel)
  *
- * WS-Security UsernameToken auth via owlting_credentials.
- * Code mapping (auto-generated):
+ * WS-Security UsernameToken auth — single shared OwlTing service account
+ * (owlting_service_accounts). Individual property credentials are no longer used.
+ * HotelCode is still mapped to a property via owlting_credentials.hotel_code.
+ *
+ * Code mapping (numeric, auto-assigned, starting at 1001):
  *   HotelCode    = owlting_credentials.hotel_code
- *   RoomTypeCode = "RT_" + room_types.id[0..8]
- *   RatePlanCode = "RP_" + pricing_templates.id[0..8]
+ *   RoomTypeCode = room_types.numeric_code           (e.g. "1001")
+ *   RatePlanCode = pricing_templates.numeric_code    (e.g. "1001")
+ *   InvTypeCode  = same as RoomTypeCode
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
@@ -122,28 +126,30 @@ function genOrderNumber(): string {
   return s;
 }
 
-// resolve RoomTypeCode -> room_types.id by uuid prefix
+// resolve RoomTypeCode (numeric, e.g. "1001") -> room_types
 async function resolveRoomType(supabase: any, accId: string, code: string): Promise<{ id: string; name: string } | null> {
-  if (!code?.startsWith("RT_")) return null;
-  const prefix = code.slice(3).toLowerCase();
+  if (!code) return null;
+  const num = parseInt(code, 10);
+  if (!Number.isFinite(num)) return null;
   const { data } = await supabase
     .from("room_types")
     .select("id,name")
     .eq("accommodation_id", accId)
-    .ilike("id", `${prefix}%`)
-    .limit(1);
-  return data?.[0] ?? null;
+    .eq("numeric_code", num)
+    .maybeSingle();
+  return data ?? null;
 }
 async function resolveRatePlan(supabase: any, accId: string, code: string): Promise<{ id: string; template_name: string; room_type_id: string | null } | null> {
-  if (!code?.startsWith("RP_")) return null;
-  const prefix = code.slice(3).toLowerCase();
+  if (!code) return null;
+  const num = parseInt(code, 10);
+  if (!Number.isFinite(num)) return null;
   const { data } = await supabase
     .from("pricing_templates")
     .select("id,template_name,room_type_id")
     .eq("accommodation_id", accId)
-    .ilike("id", `${prefix}%`)
-    .limit(1);
-  return data?.[0] ?? null;
+    .eq("numeric_code", num)
+    .maybeSingle();
+  return data ?? null;
 }
 
 async function logCm(
@@ -184,20 +190,27 @@ async function authenticate(
     }
     return { ok: true, accommodationId: override.accommodationId, hotelCode: override.hotelCode };
   }
+
+  // 1. Validate WS-Security UsernameToken against the shared OwlTing service account
   const { username, password } = extractWsse(xml);
   if (!username || !password) return { ok: false, msg: "Missing WS-Security UsernameToken" };
-  const hash = await sha256Hex(password);
-  const { data } = await supabase
+
+  const { data: ok, error: rpcErr } = await supabase.rpc("verify_owlting_service_account", {
+    p_username: username,
+    p_password: password,
+  });
+  if (rpcErr || !ok) return { ok: false, msg: "Invalid service account credentials" };
+
+  // 2. Resolve HotelCode -> accommodation_id (still per-property mapping)
+  if (!hotelCode) return { ok: false, msg: "Missing HotelCode" };
+  const { data: prop } = await supabase
     .from("owlting_credentials")
-    .select("accommodation_id, hotel_code, password_hash, is_active")
-    .eq("username", username)
+    .select("accommodation_id, hotel_code, is_active")
+    .eq("hotel_code", hotelCode)
     .maybeSingle();
-  if (!data || !data.is_active) return { ok: false, msg: "Invalid credentials" };
-  if (data.password_hash !== hash) return { ok: false, msg: "Invalid credentials" };
-  if (hotelCode && data.hotel_code !== hotelCode) {
-    return { ok: false, msg: `HotelCode ${hotelCode} not authorized for this user` };
-  }
-  return { ok: true, accommodationId: data.accommodation_id, hotelCode: data.hotel_code };
+  if (!prop || !prop.is_active) return { ok: false, msg: `HotelCode ${hotelCode} not registered` };
+
+  return { ok: true, accommodationId: prop.accommodation_id, hotelCode: prop.hotel_code };
 }
 
 // ============== Handlers ==============
@@ -209,22 +222,22 @@ async function handleAvailRQ(supabase: any, xml: string, echo: string, override?
 
   const { data: rooms } = await supabase
     .from("room_types")
-    .select("id,name")
+    .select("id,name,numeric_code")
     .eq("accommodation_id", auth.accommodationId)
     .order("display_order", { ascending: true });
 
   const { data: templates } = await supabase
     .from("pricing_templates")
-    .select("id,template_name,room_type_id")
+    .select("id,template_name,room_type_id,numeric_code")
     .eq("accommodation_id", auth.accommodationId);
 
   const stays = (rooms ?? []).map((r: any) => {
     const plans = (templates ?? []).filter((t: any) => !t.room_type_id || t.room_type_id === r.id);
     const planXml = plans.map((p: any) =>
-      `<RatePlan RatePlanCode="RP_${p.id.slice(0, 8)}"><RatePlanDescription Name="${xmlEscape(p.template_name)}"/></RatePlan>`,
+      `<RatePlan RatePlanCode="${p.numeric_code}"><RatePlanDescription Name="${xmlEscape(p.template_name)}"/></RatePlan>`,
     ).join("");
     return `<RoomStay>
-      <RoomTypes><RoomType RoomTypeCode="RT_${r.id.slice(0, 8)}"><RoomDescription Name="${xmlEscape(r.name)}"/></RoomType></RoomTypes>
+      <RoomTypes><RoomType RoomTypeCode="${r.numeric_code}"><RoomDescription Name="${xmlEscape(r.name)}"/></RoomType></RoomTypes>
       <RatePlans>${planXml}</RatePlans>
     </RoomStay>`;
   }).join("");

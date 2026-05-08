@@ -130,7 +130,7 @@ Deno.serve(async (req) => {
   // Pick a sample room type + rate plan for ②③
   const { data: rooms } = await admin
     .from("room_types")
-    .select("id,name")
+    .select("id,name,numeric_code")
     .eq("accommodation_id", accommodationId)
     .order("display_order", { ascending: true })
     .limit(1);
@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
 
   const { data: plans } = await admin
     .from("pricing_templates")
-    .select("id,template_name,room_type_id")
+    .select("id,template_name,room_type_id,numeric_code")
     .eq("accommodation_id", accommodationId)
     .limit(5);
   const samplePlan =
@@ -185,7 +185,7 @@ Deno.serve(async (req) => {
   // ② OTA_HotelAvailNotifRQ — only if we have a sample room
   if (sampleRoom) {
     const echo = `selftest-availnotif-${Date.now()}`;
-    const roomCode = `RT_${sampleRoom.id.slice(0, 8)}`;
+    const roomCode = String(sampleRoom.numeric_code);
     const xml = envelope(`<OTA_HotelAvailNotifRQ xmlns="http://www.opentravel.org/OTA/2003/05" Version="1.0" TimeStamp="${nowIso()}" EchoToken="${echo}">
       <AvailStatusMessages HotelCode="${hotelCode}">
         <AvailStatusMessage BookingLimit="0">
@@ -218,8 +218,8 @@ Deno.serve(async (req) => {
   // ③ OTA_HotelRateAmountNotifRQ
   if (sampleRoom && samplePlan) {
     const echo = `selftest-rate-${Date.now()}`;
-    const roomCode = `RT_${sampleRoom.id.slice(0, 8)}`;
-    const planCode = `RP_${samplePlan.id.slice(0, 8)}`;
+    const roomCode = String(sampleRoom.numeric_code);
+    const planCode = String(samplePlan.numeric_code);
     const xml = envelope(`<OTA_HotelRateAmountNotifRQ xmlns="http://www.opentravel.org/OTA/2003/05" Version="1.0" TimeStamp="${nowIso()}" EchoToken="${echo}">
       <RateAmountMessages HotelCode="${hotelCode}">
         <RateAmountMessage>
