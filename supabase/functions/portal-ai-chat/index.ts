@@ -657,9 +657,7 @@ ${accListStr}
                           lines.push('');
                         }
                       }
-                      if (unavailable.length > 0 && available.length > 0) {
-                        lines.push('❌ 以下房型該日期已滿：' + unavailable.map((r: any) => `${r.accommodation_name}-${r.name}`).join('、'));
-                      } else if (unavailable.length > 0 && available.length === 0) {
+                      if (unavailable.length > 0 && available.length === 0) {
                         lines.push('很抱歉，所選日期的所有房型皆已額滿 😔');
                       }
 
