@@ -50,7 +50,7 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    let { messages } = body;
+    let { messages, context } = body;
 
     if (!Array.isArray(messages)) {
       return new Response(JSON.stringify({ error: "訊息格式錯誤" }), {
