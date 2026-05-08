@@ -1603,15 +1603,19 @@ const BookingFlow = () => {
 
       // 如果可用性資料已載入，檢查是否有任何可訂房型
       if (roomTypes.length > 0 && Object.keys(roomAvailability).length > 0) {
-        const hasAvailable = roomTypes.some(room => {
+        // 若已預先選定房型（如 URL 帶 roomId），僅檢查該房型；否則檢查所有房型
+        const roomsToCheck = selectedRoom ? [selectedRoom] : roomTypes;
+        const hasAvailable = roomsToCheck.some(room => {
           const avail = roomAvailability[room.id];
           if (!avail) return false;
           return !avail.isBlocked && !avail.hasMissingPricing && !avail.hasNoAvailability;
         });
         if (!hasAvailable) {
           toast({
-            title: "所選日期無可預訂房型",
-            description: "您選擇的日期目前沒有可預訂的房型，請嘗試其他日期。",
+            title: selectedRoom ? "所選房型於此日期無空房" : "所選日期無可預訂房型",
+            description: selectedRoom
+              ? `「${selectedRoom.name}」於 ${checkInDateStr} ~ ${checkOutDateStr} 已無庫存，請改選其他日期或房型。`
+              : "您選擇的日期目前沒有可預訂的房型，請嘗試其他日期。",
             variant: "destructive",
           });
           return;
