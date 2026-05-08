@@ -457,7 +457,7 @@ const PortalSearchBar = ({
               </PopoverContent>
             </Popover>
 
-            <Popover open={checkOutOpen} onOpenChange={(o) => handleDatePopoverOpenChange(o, setCheckOutOpen)}>
+            <Popover open={checkOutOpenMobile} onOpenChange={(o) => handleDatePopoverOpenChange(o, setCheckOutOpenMobile)}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
