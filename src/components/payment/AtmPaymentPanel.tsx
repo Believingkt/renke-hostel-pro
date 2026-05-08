@@ -8,9 +8,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useTapPayConfig } from "@/hooks/use-tappay-config";
 
-declare global {
-  interface Window { TPDirect?: any }
-}
+const TP = (): any => (typeof window !== "undefined" ? (window as any).TPDirect : undefined);
 
 interface AtmInfo {
   vaccNo: string;
