@@ -66,6 +66,8 @@ const PortalSearchBar = ({
 }: PortalSearchBarProps) => {
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [checkOutOpen, setCheckOutOpen] = useState(false);
+  const [checkInOpenMobile, setCheckInOpenMobile] = useState(false);
+  const [checkOutOpenMobile, setCheckOutOpenMobile] = useState(false);
   const desktopDestinationInputRef = useRef<HTMLInputElement>(null);
   const mobileDestinationInputRef = useRef<HTMLInputElement>(null);
 
