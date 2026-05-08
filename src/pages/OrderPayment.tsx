@@ -115,14 +115,19 @@ export default function OrderPayment() {
           data.deposit_status !== "partially_refunded" &&
           data.deposit_status !== "refunded";
 
+        const atmActive = data.atm_vacc_no && data.atm_expire_at && new Date(data.atm_expire_at) > new Date();
+        const atmExpired = data.atm_vacc_no && data.atm_expire_at && new Date(data.atm_expire_at) <= new Date();
         setOrderInfo({
           guestName: data.guest_name,
           guestPhone: data.guest_phone,
           guestEmail: data.guest_email || "",
           orderId: data.id,
           needsCardBinding,
-          atmInfo: data.atm_vacc_no && data.atm_expire_at && new Date(data.atm_expire_at) > new Date()
+          atmInfo: atmActive
             ? { vaccNo: data.atm_vacc_no, bankCode: data.atm_vacc_bank_code, expireAt: data.atm_expire_at, amount }
+            : null,
+          atmExpiredInfo: atmExpired
+            ? { vaccNo: data.atm_vacc_no, expireAt: data.atm_expire_at }
             : null,
         });
         setPaymentStatus(data.payment_status || "unpaid");
