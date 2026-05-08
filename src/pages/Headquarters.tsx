@@ -850,6 +850,9 @@ const Headquarters = () => {
       switch (section) {
         case 'logs': return '操作日誌';
         case 'settings': return '系統設定';
+        case 'health': return '系統健康監控';
+        case 'api-keys': return '民宿 API Keys';
+        case 'owlting': return '奧丁丁服務帳號';
       }
     }
     
