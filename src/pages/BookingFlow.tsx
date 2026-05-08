@@ -1528,7 +1528,6 @@ const BookingFlow = () => {
   };
 
   const handleNextStep = async () => {
-    console.log('[handleNextStep] step=', currentStep, 'checkIn=', checkInDate, 'checkOut=', checkOutDate, 'roomTypes=', roomTypes.length, 'avail keys=', Object.keys(roomAvailability).length, 'isChecking=', isCheckingAvailability, 'selectedRoom=', selectedRoom?.id);
     // 驗證當前步驟
     if (currentStep === "dates") {
       // 強化日期驗證
