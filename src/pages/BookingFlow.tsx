@@ -4334,6 +4334,24 @@ const BookingFlow = () => {
                           </div>
                         )}
 
+                        {/* ATM 虛擬帳號 說明 */}
+                        {orderPaymentType === "atm" && (
+                          <div className="mt-4 p-4 border rounded-lg bg-muted/30">
+                            <div className="flex items-start gap-2">
+                              <Building2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                              <div className="space-y-1">
+                                <p className="text-sm font-medium text-foreground">ATM 虛擬帳號轉帳</p>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                  ・ 送出訂單後將跳轉到付款頁面，由 TapPay 開立此筆訂單的專屬虛擬帳號。<br />
+                                  ・ 可使用 ATM、網路銀行或臨櫃方式轉帳。<br />
+                                  ・ 繳費期限 3 天，逾期未繳款訂單將自動取消。<br />
+                                  ・ 系統收到入帳通知後將自動更新訂單狀態。
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         {/* 付款錯誤提示 */}
                         {lastPaymentError && orderPaymentType && (
                           <Alert variant="destructive" className="mt-4">
