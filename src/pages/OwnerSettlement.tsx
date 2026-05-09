@@ -338,12 +338,20 @@ export default function OwnerSettlement() {
             tone="fee"
           />
 
+          <BreakdownRow
+            icon={Wallet}
+            label="平台費用合計"
+            sublabel={`服務費 + 行銷推廣費　占入住營收 ${totals.totalRevenue > 0 ? Math.round(((totals.totalCommission + totals.marketingFee) / totals.totalRevenue) * 100) : 0}%`}
+            value={-(totals.totalCommission + totals.marketingFee)}
+            tone="subtotal"
+          />
+
           <div className="h-px bg-border my-2" />
 
           {/* 實收 */}
           <BreakdownRow
             icon={Banknote}
-            label="業主實收"
+            label="業主淨收益"
             sublabel={`占入住營收 ${totals.totalRevenue > 0 ? Math.round((totals.ownerNet / totals.totalRevenue) * 100) : 0}%`}
             value={totals.ownerNet}
             tone="final"
