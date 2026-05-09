@@ -238,7 +238,7 @@ export default function OwnerSettlement() {
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
             <div className="space-y-1">
               <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
-                {monthLabel} 業主撥款
+                {monthLabel} 業主淨收益
               </div>
               <div className="text-4xl md:text-5xl font-bold text-primary tabular-nums leading-tight">
                 NT$ {fmt(totals.ownerNet)}
@@ -272,7 +272,61 @@ export default function OwnerSettlement() {
         </CardContent>
       </Card>
 
-      {/* 收益拆解：收入 → 費用 → 實收 */}
+      {/* 收益歸屬一覽：業主 vs 平台 */}
+      {totals.totalRevenue > 0 && (() => {
+        const platformTotal = totals.totalCommission + totals.marketingFee;
+        const ownerPct = Math.max(0, Math.min(100, (totals.ownerNet / totals.totalRevenue) * 100));
+        const platformPct = Math.max(0, Math.min(100, (platformTotal / totals.totalRevenue) * 100));
+        const foodPct = Math.max(0, 100 - ownerPct - platformPct);
+        return (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">本月收益歸屬</CardTitle>
+              <CardDescription>本月入住營收 NT$ {fmt(totals.totalRevenue)} 的分配比例</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted">
+                <div className="bg-primary" style={{ width: `${ownerPct}%` }} title={`業主淨收益 ${ownerPct.toFixed(1)}%`} />
+                <div className="bg-muted-foreground/40" style={{ width: `${platformPct}%` }} title={`平台費用 ${platformPct.toFixed(1)}%`} />
+                {foodPct > 0 && (
+                  <div className="bg-muted-foreground/15" style={{ width: `${foodPct}%` }} title={`餐飲費用 ${foodPct.toFixed(1)}%`} />
+                )}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Banknote className="h-3.5 w-3.5 text-primary" />
+                    業主淨收益
+                  </div>
+                  <div className="mt-1 text-2xl font-bold text-primary tabular-nums">
+                    NT$ {fmt(totals.ownerNet)}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-1">
+                    占入住營收 {ownerPct.toFixed(1)}%
+                  </div>
+                </div>
+                <div className="rounded-lg border bg-card p-4">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Wallet className="h-3.5 w-3.5" />
+                    應付平台總費用
+                  </div>
+                  <div className="mt-1 text-2xl font-bold tabular-nums">
+                    NT$ {fmt(platformTotal)}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                    <span>服務費 {config.commission_rate}%：NT$ {fmt(totals.totalCommission)}</span>
+                    <span>行銷推廣費：NT$ {fmt(totals.marketingFee)}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="text-[11px] text-muted-foreground leading-relaxed">
+                平台費用已內含金流、客服、系統維運、OTA 上架、SEO、廣告投放、星鏈計劃等服務，無其他隱藏成本。
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
+
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">本月收益拆解</CardTitle>
@@ -338,12 +392,20 @@ export default function OwnerSettlement() {
             tone="fee"
           />
 
+          <BreakdownRow
+            icon={Wallet}
+            label="平台費用合計"
+            sublabel={`服務費 + 行銷推廣費　占入住營收 ${totals.totalRevenue > 0 ? Math.round(((totals.totalCommission + totals.marketingFee) / totals.totalRevenue) * 100) : 0}%`}
+            value={-(totals.totalCommission + totals.marketingFee)}
+            tone="subtotal"
+          />
+
           <div className="h-px bg-border my-2" />
 
           {/* 實收 */}
           <BreakdownRow
             icon={Banknote}
-            label="業主實收"
+            label="業主淨收益"
             sublabel={`占入住營收 ${totals.totalRevenue > 0 ? Math.round((totals.ownerNet / totals.totalRevenue) * 100) : 0}%`}
             value={totals.ownerNet}
             tone="final"
