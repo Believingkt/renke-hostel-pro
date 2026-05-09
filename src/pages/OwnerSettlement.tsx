@@ -238,7 +238,7 @@ export default function OwnerSettlement() {
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
             <div className="space-y-1">
               <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
-                {monthLabel} 業主撥款
+                {monthLabel} 業主淨收益
               </div>
               <div className="text-4xl md:text-5xl font-bold text-primary tabular-nums leading-tight">
                 NT$ {fmt(totals.ownerNet)}
