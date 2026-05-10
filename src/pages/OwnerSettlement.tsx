@@ -243,10 +243,6 @@ export default function OwnerSettlement() {
               <div className="text-4xl md:text-5xl font-bold text-primary tabular-nums leading-tight">
                 NT$ {fmt(totals.ownerNet)}
               </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground pt-1">
-                <CalendarClock className="h-4 w-4" />
-                預計於 <span className="font-semibold text-foreground">{paymentDueDate}</span> 前完成匯款（每月 10 號）
-              </div>
             </div>
             <div className="grid grid-cols-3 gap-4 md:gap-6 md:text-right text-xs">
               <div>
