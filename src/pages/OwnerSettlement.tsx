@@ -313,6 +313,10 @@ export default function OwnerSettlement() {
                     <span>服務費 {config.commission_rate}%：NT$ {fmt(totals.totalCommission)}</span>
                     <span>行銷推廣費：NT$ {fmt(totals.marketingFee)}</span>
                   </div>
+                  <div className="mt-2 pt-2 border-t flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <CalendarClock className="h-3.5 w-3.5" />
+                    請於 <span className="font-semibold text-foreground">{paymentDueDate}</span> 前完成匯款（每月 10 號）
+                  </div>
                 </div>
               </div>
               <div className="text-[11px] text-muted-foreground leading-relaxed">
