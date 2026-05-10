@@ -19,6 +19,15 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { format, startOfMonth, endOfMonth, addDays, differenceInDays, parseISO, addMonths } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
+import { getOrderStatusLabel, getOrderSourceConfig } from "@/utils/orderHelpers";
+
+const MEAL_PLAN_LABEL: Record<string, string> = {
+  no_meal: "不含餐",
+  breakfast: "含早餐",
+  "2_meals": "兩餐（早晚餐）",
+  "3_meals": "三餐（早午晚）",
+  custom: "客製餐型",
+};
 
 interface Order {
   id: string;
@@ -243,10 +252,6 @@ export default function OwnerSettlement() {
               <div className="text-4xl md:text-5xl font-bold text-primary tabular-nums leading-tight">
                 NT$ {fmt(totals.ownerNet)}
               </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground pt-1">
-                <CalendarClock className="h-4 w-4" />
-                預計於 <span className="font-semibold text-foreground">{paymentDueDate}</span> 前完成匯款（每月 10 號）
-              </div>
             </div>
             <div className="grid grid-cols-3 gap-4 md:gap-6 md:text-right text-xs">
               <div>
@@ -316,6 +321,10 @@ export default function OwnerSettlement() {
                   <div className="text-[11px] text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
                     <span>服務費 {config.commission_rate}%：NT$ {fmt(totals.totalCommission)}</span>
                     <span>行銷推廣費：NT$ {fmt(totals.marketingFee)}</span>
+                  </div>
+                  <div className="mt-2 pt-2 border-t flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <CalendarClock className="h-3.5 w-3.5" />
+                    請於 <span className="font-semibold text-foreground">{paymentDueDate}</span> 前完成匯款（每月 10 號）
                   </div>
                 </div>
               </div>
@@ -491,9 +500,9 @@ export default function OwnerSettlement() {
                                 <DetailItem label="折扣" value={`-NT$ ${fmt(Number(r.order.discount_amount || 0))}`} />
                                 <DetailItem label="實付金額" value={`NT$ ${fmt(Number(r.order.final_price || 0))}`} />
                                 <DetailItem label="餐飲總額" value={`NT$ ${fmt(Number(r.order.meal_plan_total || 0))}`} />
-                                <DetailItem label="訂單狀態" value={r.order.order_status} />
-                                <DetailItem label="訂單來源" value={r.order.order_source || "—"} />
-                                <DetailItem label="餐型" value={r.order.meal_plan || "—"} />
+                                <DetailItem label="訂單狀態" value={getOrderStatusLabel(r.order.order_status)} />
+                                <DetailItem label="訂單來源" value={getOrderSourceConfig(r.order.order_source).label} />
+                                <DetailItem label="餐型" value={r.order.meal_plan ? (MEAL_PLAN_LABEL[r.order.meal_plan] || r.order.meal_plan) : "—"} />
                                 <DetailItem label="本月攤分比例" value={`${(r.monthRatio * 100).toFixed(1)}%`} />
                               </div>
                               <div className="text-xs text-muted-foreground border-t pt-2">
