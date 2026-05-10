@@ -500,9 +500,9 @@ export default function OwnerSettlement() {
                                 <DetailItem label="折扣" value={`-NT$ ${fmt(Number(r.order.discount_amount || 0))}`} />
                                 <DetailItem label="實付金額" value={`NT$ ${fmt(Number(r.order.final_price || 0))}`} />
                                 <DetailItem label="餐飲總額" value={`NT$ ${fmt(Number(r.order.meal_plan_total || 0))}`} />
-                                <DetailItem label="訂單狀態" value={r.order.order_status} />
-                                <DetailItem label="訂單來源" value={r.order.order_source || "—"} />
-                                <DetailItem label="餐型" value={r.order.meal_plan || "—"} />
+                                <DetailItem label="訂單狀態" value={getOrderStatusLabel(r.order.order_status)} />
+                                <DetailItem label="訂單來源" value={getOrderSourceConfig(r.order.order_source).label} />
+                                <DetailItem label="餐型" value={r.order.meal_plan ? (MEAL_PLAN_LABEL[r.order.meal_plan] || r.order.meal_plan) : "—"} />
                                 <DetailItem label="本月攤分比例" value={`${(r.monthRatio * 100).toFixed(1)}%`} />
                               </div>
                               <div className="text-xs text-muted-foreground border-t pt-2">
