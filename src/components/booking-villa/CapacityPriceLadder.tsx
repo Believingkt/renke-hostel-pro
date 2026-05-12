@@ -491,6 +491,7 @@ interface PriceCardProps {
   biggerExtraTotal?: number;
   biggerPerPersonSaved?: number;
   holidayDiff?: number;
+  term?: string;
 }
 
 const PriceCard = ({
