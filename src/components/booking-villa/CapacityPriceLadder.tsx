@@ -691,6 +691,7 @@ const PriceLadderTable = ({
             {perPersonList.map(({ tier, perPerson }) => {
               const isRecommended = tier.guestCount === recommendedGuestCount;
               const isCheapest = perPerson === cheapestPerPerson;
+              const isMatched = tier.guestCount === matchedGuestCount;
               // 條形比例：最便宜=100%，最貴=30%
               const ratio = 1 - (perPerson - cheapestPerPerson) / range;
               const barWidth = `${Math.round(30 + ratio * 70)}%`;
@@ -698,12 +699,13 @@ const PriceLadderTable = ({
                 <tr
                   key={tier.guestCount}
                   className={cn(
-                    "border-t border-border/40",
-                    isCheapest && "bg-[hsl(25,70%,97%)]"
+                    "border-t border-border/40 transition-colors",
+                    isMatched && "bg-[hsl(25,70%,93%)] ring-2 ring-inset ring-[hsl(25,70%,55%)]",
+                    !isMatched && isCheapest && "bg-[hsl(25,70%,97%)]"
                   )}
                 >
                   <td className="px-3 py-1.5">
-                    <span className="inline-flex items-center gap-1">
+                    <span className="inline-flex items-center gap-1 flex-wrap">
                       <span className="font-semibold text-foreground">{tier.guestCount} 人</span>
                       {tier.isFewPeople && (
                         <span
@@ -719,6 +721,14 @@ const PriceLadderTable = ({
                           style={{ background: "hsl(25, 70%, 50%)" }}
                         >
                           最划算
+                        </span>
+                      )}
+                      {isMatched && selectedGuestCount && (
+                        <span
+                          className="text-[9px] font-bold px-1 py-px rounded leading-none text-white"
+                          style={{ background: "hsl(140, 50%, 40%)" }}
+                        >
+                          ← 你的 {selectedGuestCount} 人
                         </span>
                       )}
                     </span>
