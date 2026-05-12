@@ -476,6 +476,8 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
           type: result.discount_type as "percentage" | "amount",
           value: result.discount_value
         });
+        // 套用折扣碼後清除手動折扣覆寫，讓計算值生效
+        setManualDiscountStr(null);
         toast({
           title: "折扣代碼已套用",
           description: `已套用 ${
