@@ -510,6 +510,7 @@ const PriceCard = ({
   biggerExtraTotal = 0,
   biggerPerPersonSaved = 0,
   holidayDiff = 0,
+  term = "包區",
 }: PriceCardProps) => {
   const perPerson = Math.round(opt.totalPrice / opt.guestCount / safeNights);
 
