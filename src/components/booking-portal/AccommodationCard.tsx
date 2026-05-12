@@ -232,9 +232,9 @@ const AccommodationCard = ({ data, onClick, hasDateFilter, nights }: Props) => {
                   </>
                 ) : totalPrice > 0 ? (
                   <>
-                    <div className="flex items-baseline gap-1 leading-none">
+                    <div className="flex items-baseline flex-wrap gap-x-1 leading-none">
                       <span className="text-[10px] text-muted-foreground">
-                        {data.min_capacity} 人起
+                        {data.min_capacity} 人
                       </span>
                       <span
                         className="font-bold text-base sm:text-lg"
@@ -242,15 +242,23 @@ const AccommodationCard = ({ data, onClick, hasDateFilter, nights }: Props) => {
                       >
                         NT${totalPrice.toLocaleString()}
                       </span>
-                      <span className="text-[10px] text-muted-foreground">起</span>
+                      {data.max_price && data.max_price !== totalPrice && (
+                        <>
+                          <span className="text-[11px] text-muted-foreground">~</span>
+                          <span className="text-[11px] sm:text-sm font-semibold text-foreground/70">
+                            NT${data.max_price.toLocaleString()}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">
+                            （{data.max_capacity_price_capacity} 人）
+                          </span>
+                        </>
+                      )}
                     </div>
-                    {data.max_price && data.max_price !== totalPrice && (
-                      <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">
-                        {data.max_capacity_price_capacity} 人整棟 NT${data.max_price.toLocaleString()}
-                      </p>
-                    )}
                     <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">
-                      {hasDateFilter && nights > 1 ? `共 ${nights} 晚` : "每晚"}
+                      {hasDateFilter && nights > 1 ? `共 ${nights} 晚總價區間` : "每晚價格區間"}
+                      {perPerson && (
+                        <> · 約 NT${perPerson.toLocaleString()}/人</>
+                      )}
                     </p>
                   </>
                 ) : (
