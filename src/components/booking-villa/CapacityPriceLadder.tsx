@@ -76,16 +76,7 @@ const TIER_LABELS: Record<PricingTier, { short: string; full: string; hint: stri
 };
 
 function detectTierByDate(date: Date | null | undefined): PricingTier {
-  if (!date) {
-    const day = new Date().getDay();
-    if (day === 6) return "weekend";
-    if (day === 5 || day === 0) return "friday_sunday";
-    return "weekday";
-  }
-  const day = date.getDay();
-  if (day === 6) return "weekend"; // 週六
-  if (day === 5 || day === 0) return "friday_sunday"; // 週五/週日
-  return "weekday"; // 週一~四
+  return detectTierByDateShared(date);
 }
 
 const CapacityPriceLadder = ({ roomTypes, onSelect, nights, checkIn }: Props) => {
