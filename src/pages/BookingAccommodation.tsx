@@ -224,7 +224,19 @@ const BookingAccommodation = () => {
                 <AboutSection key="about" description={info.description} accommodationId={info.id} customTitle={titles.title} customSubtitle={titles.subtitle} />
               );
             case 'rooms':
-              return info.show_rooms_section !== false && (
+              if (info.show_rooms_section === false) return null;
+              if (hasPackages) {
+                return (
+                  <PackagesSection
+                    key="rooms"
+                    accommodationId={info.id}
+                    packages={packages}
+                    customTitle={titles.title}
+                    customSubtitle={titles.subtitle}
+                  />
+                );
+              }
+              return (
                 <RoomsSection key="rooms" roomTypes={secondaryData?.roomTypes || []} sectionDescription={info.description} customTitle={titles.title} customSubtitle={titles.subtitle} />
               );
             case 'facilities':
