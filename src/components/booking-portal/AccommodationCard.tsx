@@ -154,24 +154,51 @@ const AccommodationCard = ({ data, onClick, hasDateFilter, nights }: Props) => {
             </span>
           </div>
 
-          {/* Sensan: 包區方案徽章 */}
-          {isSensan && (
-            <div className="mb-1.5 flex items-center gap-1 px-1.5 py-1 rounded border"
-              style={{
-                background: "hsl(25, 70%, 97%)",
-                borderColor: "hsl(25, 60%, 85%)",
-              }}
-            >
-              <Package className="h-3 w-3 shrink-0" style={{ color: "hsl(25, 70%, 45%)" }} />
-              <span className="text-[10px] sm:text-[11px] leading-tight font-semibold" style={{ color: "hsl(25, 70%, 35%)" }}>
-                包區方案 6 / 8 / 12 / 14 / 16 / 18 人
-              </span>
-            </div>
-          )}
+          {/* Sensan: 包區方案迷你階梯條 — 高亮匹配人數 */}
+          {isSensan && (() => {
+            const SENSAN_TIERS = [6, 8, 12, 14, 16, 18];
+            // 找剛好容納 matched_guests 的人數段
+            const matchedTier = data.matched_guests
+              ? SENSAN_TIERS.find((g) => g >= (data.matched_guests as number)) ?? null
+              : null;
+            return (
+              <div
+                className="mb-1.5 px-1.5 py-1 rounded border"
+                style={{
+                  background: "hsl(25, 70%, 97%)",
+                  borderColor: "hsl(25, 60%, 85%)",
+                }}
+              >
+                <div className="flex items-center gap-1 mb-1">
+                  <Package className="h-3 w-3 shrink-0" style={{ color: "hsl(25, 70%, 45%)" }} />
+                  <span className="text-[10px] font-semibold" style={{ color: "hsl(25, 70%, 35%)" }}>
+                    包區方案
+                  </span>
+                </div>
+                <div className="flex gap-0.5">
+                  {SENSAN_TIERS.map((g) => {
+                    const active = g === matchedTier;
+                    return (
+                      <div
+                        key={g}
+                        className="flex-1 text-center text-[9px] sm:text-[10px] font-semibold rounded-sm py-0.5 leading-none"
+                        style={{
+                          background: active ? "hsl(25, 70%, 50%)" : "hsl(25, 70%, 92%)",
+                          color: active ? "white" : "hsl(25, 70%, 40%)",
+                        }}
+                      >
+                        {g}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
 
-          {/* Feature tags */}
+          {/* Feature tags — desktop only to reduce mobile density */}
           {!isSensan && data.feature_tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mb-2">
+            <div className="hidden sm:flex flex-wrap gap-1 mb-2">
               {data.feature_tags.slice(0, 3).map((tag) => (
                 <span
                   key={tag}
