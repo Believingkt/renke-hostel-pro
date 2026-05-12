@@ -621,7 +621,7 @@ const BookingFlow = () => {
         setCustomMealPlans([]);
       }
     }
-  }, [selectedRoom, allPricingTemplates]);
+  }, [selectedRoom, allPricingTemplates, checkInDate, checkOutDate, publicHolidays]);
 
   // Read checkIn/checkOut/adults/children from URL params and set in context
   useEffect(() => {
