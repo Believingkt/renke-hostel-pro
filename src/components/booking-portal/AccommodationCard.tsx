@@ -251,18 +251,9 @@ const AccommodationCard = ({ data, onClick, hasDateFilter, nights }: Props) => {
                 }}
               >
                 查看
-            <Button
-              size="sm"
-              className="h-7 px-2 text-[11px] gap-0.5 shrink-0 text-white rounded-md"
-              style={{ background: "hsl(25, 70%, 50%)" }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onClick();
-              }}
-            >
-              查看
-              <ChevronRight className="h-3 w-3" />
-            </Button>
+                <ChevronRight className="h-3 w-3" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
