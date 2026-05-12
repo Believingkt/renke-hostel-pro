@@ -81,7 +81,7 @@ function detectTierByDate(date: Date | null | undefined): PricingTier {
   return detectTierByDateShared(date);
 }
 
-const CapacityPriceLadder = ({ roomTypes, onSelect, nights, checkIn }: Props) => {
+const CapacityPriceLadder = ({ roomTypes, onSelect, nights, checkIn, selectedGuestCount = null }: Props) => {
   const [activeTier, setActiveTier] = useState<PricingTier>(() => detectTierByDate(checkIn));
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [showIncludes, setShowIncludes] = useState(false);
