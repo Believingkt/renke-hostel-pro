@@ -39,6 +39,7 @@ import {
   bookingFlowDateSchema as dateValidationSchema,
 } from "@/lib/schemas/booking";
 import { format, formatISO, addMonths, endOfMonth } from "date-fns";
+import { classifyDayTier } from "@/utils/templatePriceResolver";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import {
@@ -349,6 +350,10 @@ const BookingFlow = () => {
     meal_plans: any[] | null;
     mealCount: number; // 0,1 → price, 2 → price_2_meals, 3 → price_3_meals
     room_type_id: string | null;
+    weekday_price: number | null;
+    peak_price: number | null;
+    weekend_price: number | null;
+    price: number | null;
   }
   const [allPricingTemplates, setAllPricingTemplates] = useState<PricingTemplateOption[]>([]);
   const [pricingTemplates, setPricingTemplates] = useState<PricingTemplateOption[]>([]);
@@ -515,7 +520,7 @@ const BookingFlow = () => {
         // 獲取所有價格方案（專案模板）
         const { data: allTemplatesData } = await supabase
           .from("pricing_templates")
-          .select("id, template_name, project_name, meal_plans, display_order, room_type_id")
+          .select("id, template_name, project_name, meal_plans, display_order, room_type_id, weekday_price, peak_price, weekend_price, price")
           .eq("accommodation_id", accommodationId)
           .order("display_order", { ascending: true });
 
@@ -535,6 +540,10 @@ const BookingFlow = () => {
               meal_plans: meals,
               mealCount,
               room_type_id: t.room_type_id,
+              weekday_price: t.weekday_price ?? null,
+              peak_price: t.peak_price ?? null,
+              weekend_price: t.weekend_price ?? null,
+              price: t.price ?? null,
             };
           });
           setAllPricingTemplates(templates);
@@ -555,24 +564,52 @@ const BookingFlow = () => {
     loadData();
   }, [accommodationId, subdomainLoading, toast]);
 
-  // 當選擇房型變化時，篩選對應的專案模板
+  // 當選擇房型 / 日期 / 國定假日變化時，篩選對應的專案模板
+  // 規則：若任一晚對應的 tier 價格 ≤ 0（且無 fallback），該方案視為當期不販售→隱藏
   useEffect(() => {
     if (allPricingTemplates.length === 0) return;
-    
+
     let filtered: PricingTemplateOption[];
     if (selectedRoom) {
-      // 優先顯示與該房型關聯的專案
       filtered = allPricingTemplates.filter(t => t.room_type_id === selectedRoom.id);
-      // 若無關聯專案，回退顯示未指定房型的專案
       if (filtered.length === 0) {
         filtered = allPricingTemplates.filter(t => !t.room_type_id);
       }
     } else {
       filtered = allPricingTemplates;
     }
-    
+
+    // 依入住日期 tier 過濾「當期不販售」方案
+    if (checkInDate && checkOutDate) {
+      const nights = Math.max(0, Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / 86400000));
+      if (nights > 0) {
+        const holidaySet = new Set(publicHolidays);
+        const tiers: Array<"weekday" | "peak" | "weekend"> = [];
+        for (let i = 0; i < nights; i++) {
+          const d = new Date(checkInDate);
+          d.setDate(d.getDate() + i);
+          tiers.push(classifyDayTier(d, holidaySet));
+        }
+        const tierPrice = (t: PricingTemplateOption, tier: "weekday" | "peak" | "weekend") => {
+          if (tier === "weekend") return t.weekend_price ?? t.price ?? 0;
+          if (tier === "peak") return t.peak_price ?? t.weekday_price ?? t.price ?? 0;
+          return t.weekday_price ?? t.price ?? 0;
+        };
+        filtered = filtered.filter(t => {
+          // 若三個 tier 與 price 都未設定（全 null/0），代表使用 base row，不在此處過濾
+          const hasAnyTierPrice =
+            (t.weekday_price ?? 0) > 0 ||
+            (t.peak_price ?? 0) > 0 ||
+            (t.weekend_price ?? 0) > 0 ||
+            (t.price ?? 0) > 0;
+          if (!hasAnyTierPrice) return true;
+          return tiers.every(tier => tierPrice(t, tier) > 0);
+        });
+      }
+    }
+
     setPricingTemplates(filtered);
-    
+
     // 如果當前選中的模板不在篩選結果中，重新選擇第一個
     if (filtered.length > 0 && (!selectedTemplate || !filtered.find(t => t.id === selectedTemplate.id))) {
       const defaultTemplate = filtered[0];
@@ -584,7 +621,7 @@ const BookingFlow = () => {
         setCustomMealPlans([]);
       }
     }
-  }, [selectedRoom, allPricingTemplates]);
+  }, [selectedRoom, allPricingTemplates, checkInDate, checkOutDate, publicHolidays]);
 
   // Read checkIn/checkOut/adults/children from URL params and set in context
   useEffect(() => {
