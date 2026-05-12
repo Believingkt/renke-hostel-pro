@@ -65,7 +65,7 @@ const PackagesSection = ({
       <div className="max-w-5xl mx-auto px-4">
         <div className="text-center mb-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
-            {customTitle || "包棟方案"}
+            {customTitle || "銷售方案"}
           </h2>
           <p className="text-sm sm:text-base text-muted-foreground">
             {customSubtitle || "請選擇最適合您的人數方案"}

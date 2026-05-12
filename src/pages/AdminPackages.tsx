@@ -231,8 +231,8 @@ const AdminPackages = () => {
   return (
     <div className="p-4 sm:p-6 space-y-4">
       <AdminPageHeader
-        title="包棟方案"
-        description="設定民宿首頁訂房區顯示的包棟方案。啟用後，前台會以方案卡取代房型列表。"
+        title="銷售方案"
+        description="設定民宿首頁訂房區顯示的銷售方案。啟用後，前台會以方案卡取代房型列表。"
         action={
           <Button onClick={openCreate} className="gap-1.5">
             <Plus className="h-4 w-4" />
@@ -243,7 +243,7 @@ const AdminPackages = () => {
 
       {packages.length === 0 ? (
         <div className="border border-dashed rounded-lg p-12 text-center text-muted-foreground">
-          尚未建立任何包棟方案。點右上角「新增方案」開始。
+          尚未建立任何銷售方案。點右上角「新增方案」開始。
         </div>
       ) : (
         <div className="space-y-2">
@@ -318,7 +318,7 @@ const AdminPackages = () => {
               <Input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="例：悠活包棟方案"
+                placeholder="例：悠活銷售方案"
               />
             </div>
 
@@ -558,7 +558,7 @@ const AdminPackages = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>刪除方案？</AlertDialogTitle>
             <AlertDialogDescription>
-              此動作無法復原。確定要刪除此包棟方案嗎？
+              此動作無法復原。確定要刪除此銷售方案嗎？
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

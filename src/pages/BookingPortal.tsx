@@ -589,7 +589,7 @@ const BookingPortal = () => {
     });
 
     const cards: AccommodationCardData[] = [];
-    // 「包棟方案」(如「12 人包區」) 為虛擬人數方案，不計入實際房間數
+    // 「銷售方案」(如「12 人包區」) 為虛擬人數方案，不計入實際房間數
     const isVillaPlan = (r: RoomTypeResult) =>
       /包棟|包區|whole|villa/i.test(r.name) || r.capacity >= 8;
 
@@ -685,7 +685,7 @@ const BookingPortal = () => {
       const minCapacity = realRooms.length > 0
         ? totalRooms
         : Math.min(...rts.map((r) => r.capacity));
-      // 最多人數 = 包棟方案最大 capacity，或所有真實房 capacity 加總
+      // 最多人數 = 銷售方案最大 capacity，或所有真實房 capacity 加總
       const maxFromVilla = villaPlans.length > 0
         ? Math.max(...villaPlans.map((r) => r.capacity))
         : 0;

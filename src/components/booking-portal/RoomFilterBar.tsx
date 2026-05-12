@@ -53,7 +53,7 @@ const RoomFilterBar = ({
       .filter((price) => price > 0);
 
     const dataMax = prices.length > 0 ? Math.max(...prices) : 20000;
-    // 上限至少 70,000，讓使用者能涵蓋森山等高價包棟方案
+    // 上限至少 70,000，讓使用者能涵蓋森山等高價銷售方案
     return Math.max(dataMax, 70000);
   }, [roomTypes]);
 

@@ -105,7 +105,7 @@ const CapacityPriceLadder = ({
 }: Props) => {
   const TERM = isSensan ? "包區" : "包棟";
   const TIER_HINT: Record<PricingTier, string> = {
-    weekday: isSensan ? "含少人包區早鳥優惠" : "標準包棟方案",
+    weekday: isSensan ? "含少人包區早鳥優惠" : "標準銷售方案",
     friday_sunday: `標準${TERM}方案`,
     weekend: `假日${TERM}方案`,
   };
