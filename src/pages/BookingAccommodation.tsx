@@ -28,6 +28,8 @@ import BookingFooter from "@/components/BookingFooter";
 import MobileBottomNav from "@/components/member/MobileBottomNav";
 import { CustomSectionDisplay, SingleCustomSection, CustomSection } from "@/components/CustomSectionDisplay";
 import OtherChannelsSection from "@/components/OtherChannelsSection";
+import PackagesSection from "@/components/PackagesSection";
+import { useAccommodationPackages } from "@/hooks/use-accommodation-packages";
 
 const BookingAccommodation = () => {
   const { accId } = useParams<{ accId: string }>();
