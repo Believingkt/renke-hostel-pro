@@ -508,6 +508,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
   const handleRemoveDiscount = () => {
     setAppliedDiscount(null);
     setDiscountCode("");
+    setManualDiscountStr(null);
     toast({
       title: "已移除折扣",
       description: "折扣代碼已清除",
