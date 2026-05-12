@@ -425,10 +425,12 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
             <Input
               id="list-edit-discount-code"
               type="text"
-              placeholder="選填"
-              disabled={isDiscountLocked}
+              placeholder="選填，輸入後失焦自動套用"
+              disabled={isDiscountLocked || isValidatingCode}
               value={editDiscountCode}
               onChange={(e) => setEditDiscountCode(e.target.value)}
+              onBlur={handleValidateDiscountCode}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLInputElement).blur(); } }}
             />
           </div>
 
