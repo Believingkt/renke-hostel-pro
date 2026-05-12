@@ -722,7 +722,7 @@ const BookingPortal = () => {
           : minNightly;
 
       // 起價方案 = 用最少房間（即剛好放得下 minCapacity 人）
-      const startFit = fitGuests(realRooms, minCapacity);
+      const startFit = fitGuests(realRooms, minCapacity, roomNightlyPrice);
       const startNightly = startFit?.nightly ?? minNightly;
       const startTotal =
         startNightly !== null && hasDateFilter && nights > 0
@@ -742,7 +742,7 @@ const BookingPortal = () => {
           : fullVillaNightly;
 
       // 對應使用者選的人數
-      const matchedFit = adults > 0 ? fitGuests(realRooms, adults) : null;
+      const matchedFit = adults > 0 ? fitGuests(realRooms, adults, roomNightlyPrice) : null;
       const matchedNightly = matchedFit?.nightly ?? null;
       const matchedTotal =
         matchedNightly !== null && hasDateFilter && nights > 0
