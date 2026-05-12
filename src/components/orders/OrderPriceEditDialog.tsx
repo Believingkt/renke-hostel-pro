@@ -166,6 +166,54 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
     });
   };
 
+  // 自動驗證並帶入折扣金額（折扣碼變更後失焦觸發）
+  const [isValidatingCode, setIsValidatingCode] = useState(false);
+  const handleValidateDiscountCode = async () => {
+    if (!order || isDiscountLocked) return;
+    const code = editDiscountCode.trim().toUpperCase();
+    if (!code) return;
+    // 若與訂單原有折扣碼相同且金額未變動，不重複驗證
+    if (code === (order.discount_code || "").toUpperCase() && editDiscountAmount === order.discount_amount) {
+      return;
+    }
+    setIsValidatingCode(true);
+    try {
+      const { data, error } = await supabase.rpc('validate_discount_code', {
+        p_code: code,
+        p_accommodation_id: currentAccommodationId,
+        p_order_amount: editTotalPrice,
+        p_room_type_id: order.room_types?.id || null,
+        p_check_in_date: order.check_in_date || null,
+      });
+      if (error) throw error;
+      const result = (data as any[])?.[0];
+      if (result?.is_valid) {
+        const calc = result.discount_type === "percentage"
+          ? Math.round(editTotalPrice * (Number(result.discount_value) / 100))
+          : Number(result.discount_value);
+        setEditDiscountAmountStr(String(calc));
+        setEditDiscountCode(code);
+        toast({
+          title: "折扣碼已套用",
+          description: result.discount_type === "percentage"
+            ? `${result.discount_value}% 折扣（NT$ ${calc.toLocaleString()}）`
+            : `NT$ ${calc.toLocaleString()} 折扣`,
+        });
+      } else {
+        toast({
+          title: "折扣碼無效",
+          description: result?.message || "請確認代碼或有效期限",
+          variant: "destructive",
+        });
+      }
+    } catch (e) {
+      console.error("validate discount code failed", e);
+    } finally {
+      setIsValidatingCode(false);
+    }
+  };
+
+
   const handleSave = async () => {
     if (!order) return;
     if (editFinalPrice < 0) {
