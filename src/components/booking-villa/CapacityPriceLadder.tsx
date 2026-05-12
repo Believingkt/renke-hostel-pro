@@ -53,38 +53,12 @@ interface Props {
   checkIn?: Date | null;
 }
 
-type PricingTier = "weekday" | "friday_sunday" | "weekend";
-
-interface TierPrice {
-  guestCount: number;
-  original: number;
-  sale: number;
-  roomAllocation: string;
-  isFewPeople?: boolean;
-}
-
-const PRICING_TABLE: Record<PricingTier, TierPrice[]> = {
-  weekday: [
-    { guestCount: 6, original: 18000, sale: 14999, roomAllocation: "雙人房 3 間", isFewPeople: true },
-    { guestCount: 8, original: 24000, sale: 19999, roomAllocation: "雙人房 1 間 · 四人房 2 間", isFewPeople: true },
-    { guestCount: 12, original: 47000, sale: 35250, roomAllocation: "四人房 3 間" },
-    { guestCount: 14, original: 54000, sale: 40500, roomAllocation: "雙人房 1 間 · 四人房 3 間" },
-    { guestCount: 16, original: 57000, sale: 42750, roomAllocation: "雙人房 2 間 · 四人房 3 間" },
-    { guestCount: 18, original: 60000, sale: 45000, roomAllocation: "雙人房 3 間 · 四人房 3 間" },
-  ],
-  friday_sunday: [
-    { guestCount: 12, original: 47000, sale: 35250, roomAllocation: "四人房 3 間" },
-    { guestCount: 14, original: 54000, sale: 40500, roomAllocation: "雙人房 1 間 · 四人房 3 間" },
-    { guestCount: 16, original: 57000, sale: 42750, roomAllocation: "雙人房 2 間 · 四人房 3 間" },
-    { guestCount: 18, original: 60000, sale: 45000, roomAllocation: "雙人房 3 間 · 四人房 3 間" },
-  ],
-  weekend: [
-    { guestCount: 12, original: 58000, sale: 43500, roomAllocation: "四人房 3 間" },
-    { guestCount: 14, original: 66000, sale: 49500, roomAllocation: "雙人房 1 間 · 四人房 3 間" },
-    { guestCount: 16, original: 69000, sale: 51750, roomAllocation: "雙人房 2 間 · 四人房 3 間" },
-    { guestCount: 18, original: 72000, sale: 54000, roomAllocation: "雙人房 3 間 · 四人房 3 間" },
-  ],
-};
+import {
+  SENSAN_PRICING_TABLE as PRICING_TABLE,
+  detectSensanTierByDate as detectTierByDateShared,
+  type SensanPricingTier as PricingTier,
+  type SensanTierPrice as TierPrice,
+} from "@/lib/sensan-pricing";
 
 const PLAN_INCLUDES = [
   { icon: <Ticket className="h-3.5 w-3.5" />, label: "星夢森林劇場門票" },
