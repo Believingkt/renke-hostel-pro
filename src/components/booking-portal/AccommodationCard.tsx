@@ -66,7 +66,7 @@ const AccommodationCard = ({ data, onClick, hasDateFilter, nights }: Props) => {
       : null;
   const isUrgent =
     hasDateFilter && data.available_rooms !== null && data.available_rooms <= 2;
-
+  const isSensan = isSensanAccommodation(data.name);
   return (
     <Card
       className="overflow-hidden cursor-pointer border-border/60 hover:border-border hover:shadow-md transition-all bg-card"
