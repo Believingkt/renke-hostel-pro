@@ -314,6 +314,7 @@ const CapacityPriceLadder = ({
           </div>
         )}
       </Card>
+      )}
 
       {/* ── 少人包區（平日才開放） ── */}
       {activeTier === "weekday" && fewPeopleTiers.length > 0 && (
