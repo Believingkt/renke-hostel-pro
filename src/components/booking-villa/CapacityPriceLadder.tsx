@@ -350,6 +350,7 @@ const CapacityPriceLadder = ({
                 nights={nights}
                 safeNights={safeNights}
                 accent="few"
+                term={TERM}
                 onSelect={onSelect}
                 isExpanded={expandedKey === `few-${tier.guestCount}`}
                 onToggle={() =>
