@@ -26,6 +26,12 @@ import {
   BedDouble,
   MessageCircle,
 } from "lucide-react";
+import {
+  isSensanAccommodation,
+  detectSensanTierByDate,
+  pickSensanTier,
+  getSensanRangeForTier,
+} from "@/lib/sensan-pricing";
 
 interface AccommodationInfo {
   id: string;
