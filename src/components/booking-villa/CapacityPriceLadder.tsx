@@ -61,6 +61,8 @@ interface Props {
   includesTitle?: string;
   /** 是否開放「少人包區」區塊（預設 true，森山以外可關閉） */
   enableFewPeople?: boolean;
+  /** 是否為森山（影響「包區/包棟」用詞，預設 true 保留森山文案） */
+  isSensan?: boolean;
 }
 
 import {
