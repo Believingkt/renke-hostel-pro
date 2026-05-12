@@ -417,6 +417,7 @@ const BookingVilla = () => {
             planIncludes={customIncludes}
             includesTitle={customIncludesTitle}
             enableFewPeople={isSensan}
+            isSensan={isSensan}
           />
         </section>
 

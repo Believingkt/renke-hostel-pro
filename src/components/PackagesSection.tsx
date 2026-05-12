@@ -24,7 +24,7 @@ const TAG_LABEL: Record<string, { label: string; tone: "primary" | "soft" | "dar
   best_value: { label: "最划算", tone: "primary" },
   early_bird: { label: "早鳥優惠", tone: "soft" },
   meal_included: { label: "一泊二食", tone: "dark" },
-  few_people: { label: "少人數包區", tone: "soft" },
+  few_people: { label: "少人數包棟", tone: "soft" },
 };
 
 const PackagesSection = ({
@@ -65,7 +65,7 @@ const PackagesSection = ({
       <div className="max-w-5xl mx-auto px-4">
         <div className="text-center mb-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
-            {customTitle || "包區方案"}
+            {customTitle || "包棟方案"}
           </h2>
           <p className="text-sm sm:text-base text-muted-foreground">
             {customSubtitle || "請選擇最適合您的人數方案"}

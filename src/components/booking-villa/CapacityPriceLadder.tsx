@@ -61,6 +61,8 @@ interface Props {
   includesTitle?: string;
   /** 是否開放「少人包區」區塊（預設 true，森山以外可關閉） */
   enableFewPeople?: boolean;
+  /** 是否為森山（影響「包區/包棟」用詞，預設 true 保留森山文案） */
+  isSensan?: boolean;
 }
 
 import {
@@ -99,7 +101,14 @@ const CapacityPriceLadder = ({
   planIncludes,
   includesTitle,
   enableFewPeople = true,
+  isSensan = true,
 }: Props) => {
+  const TERM = isSensan ? "包區" : "包棟";
+  const TIER_HINT: Record<PricingTier, string> = {
+    weekday: isSensan ? "含少人包區早鳥優惠" : "標準包棟方案",
+    friday_sunday: `標準${TERM}方案`,
+    weekend: `假日${TERM}方案`,
+  };
   const PRICING_TABLE = pricingTable || DEFAULT_PRICING_TABLE;
   const PLAN_INCLUDES = useMemo(() => {
     if (!planIncludes) return DEFAULT_PLAN_INCLUDES;
@@ -142,7 +151,7 @@ const CapacityPriceLadder = ({
     return {
       guestCount: tier.guestCount,
       roomTypeId: tier.roomTypeId || matched?.id || `virtual-${tier.guestCount}`,
-      roomTypeName: tier.planName || matched?.name || `${tier.guestCount} 人包區方案`,
+      roomTypeName: tier.planName || matched?.name || `${tier.guestCount} 人${TERM}方案`,
       totalPrice,
       originalPrice,
       discountPercent,
@@ -181,7 +190,7 @@ const CapacityPriceLadder = ({
   }
 
   const safeNights = Math.max(1, nights);
-  const tierLabel = TIER_LABELS[activeTier];
+  const tierLabel = { ...TIER_LABELS[activeTier], hint: TIER_HINT[activeTier] };
   const otherTiers = (Object.keys(TIER_LABELS) as PricingTier[]).filter((t) => t !== activeTier);
 
   // 平日的少人包區，在旺日/假日要顯示為「禁用態」說明
@@ -341,6 +350,7 @@ const CapacityPriceLadder = ({
                 nights={nights}
                 safeNights={safeNights}
                 accent="few"
+                term={TERM}
                 onSelect={onSelect}
                 isExpanded={expandedKey === `few-${tier.guestCount}`}
                 onToggle={() =>
@@ -394,7 +404,7 @@ const CapacityPriceLadder = ({
             一泊二食
           </span>
           <p className="text-[12px] font-semibold text-foreground">
-            {tierLabel.short}標準包區方案
+            {tierLabel.short}標準{TERM}方案
           </p>
         </div>
 
@@ -437,6 +447,7 @@ const CapacityPriceLadder = ({
               nights={nights}
               safeNights={safeNights}
               accent="standard"
+              term={TERM}
               onSelect={onSelect}
               isExpanded={expandedKey === `std-${tier.guestCount}`}
               onToggle={() =>
@@ -482,6 +493,7 @@ interface PriceCardProps {
   biggerExtraTotal?: number;
   biggerPerPersonSaved?: number;
   holidayDiff?: number;
+  term?: string;
 }
 
 const PriceCard = ({
@@ -500,6 +512,7 @@ const PriceCard = ({
   biggerExtraTotal = 0,
   biggerPerPersonSaved = 0,
   holidayDiff = 0,
+  term = "包區",
 }: PriceCardProps) => {
   const perPerson = Math.round(opt.totalPrice / opt.guestCount / safeNights);
 
@@ -540,7 +553,7 @@ const PriceCard = ({
 
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-sm text-foreground">
-            {opt.guestCount} 人包區
+            {opt.guestCount} 人{term}
           </p>
           <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
             {tier.roomAllocation}
