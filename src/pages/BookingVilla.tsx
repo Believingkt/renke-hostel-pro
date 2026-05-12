@@ -378,7 +378,10 @@ const BookingVilla = () => {
           />
         )}
 
-        {/* ── 4. Capacity × Price Plans (核心 CTA) ── */}
+        {/* ── 4. 即時空房日曆 ── */}
+        <VillaAvailabilityCalendar accommodationId={info.id} />
+
+        {/* ── 5. Capacity × Price Plans (核心 CTA) ── */}
         <section className="py-4 bg-background">
           <div className="px-4 mb-3 flex items-end justify-between">
             <div>
