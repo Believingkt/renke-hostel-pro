@@ -127,6 +127,15 @@ const CapacityPriceLadder = ({ roomTypes, onSelect, nights, checkIn, selectedGue
     ).guestCount;
   }, [standardTiers]);
 
+  // 對應「搜尋條輸入人數」的最佳階梯：找剛好容納得下的最小方案
+  const matchedGuestCount = useMemo(() => {
+    if (!selectedGuestCount || selectedGuestCount <= 0) return null;
+    const sorted = [...currentTiers].sort((a, b) => a.guestCount - b.guestCount);
+    return (
+      sorted.find((t) => t.guestCount >= selectedGuestCount)?.guestCount ?? null
+    );
+  }, [currentTiers, selectedGuestCount]);
+
   if (roomTypes.length === 0) {
     return (
       <div className="px-4 py-6 text-center text-sm text-muted-foreground">
