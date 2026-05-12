@@ -589,5 +589,117 @@ const PriceCard = ({
   );
 };
 
+interface PriceLadderTableProps {
+  tiers: TierPrice[];
+  safeNights: number;
+  recommendedGuestCount: number | null;
+}
+
+const PriceLadderTable = ({ tiers, safeNights, recommendedGuestCount }: PriceLadderTableProps) => {
+  if (tiers.length === 0) return null;
+
+  // 以最高人數方案的每人/晚作為「最低基準」，比例越高代表越貴
+  const perPersonList = tiers.map((t) => ({
+    tier: t,
+    perPerson: Math.round(t.sale / t.guestCount / safeNights),
+  }));
+  const cheapestPerPerson = Math.min(...perPersonList.map((x) => x.perPerson));
+  const mostExpensivePerPerson = Math.max(...perPersonList.map((x) => x.perPerson));
+  const range = Math.max(1, mostExpensivePerPerson - cheapestPerPerson);
+
+  return (
+    <Card className="overflow-hidden border-border/60">
+      <div className="px-3 py-2 border-b border-border/50 flex items-center gap-1.5"
+        style={{ background: "hsl(25, 70%, 97%)" }}
+      >
+        <TrendingDown className="h-3.5 w-3.5" style={{ color: "hsl(25, 70%, 40%)" }} />
+        <p className="text-[12px] font-semibold text-foreground">人數越多 · 平均每人越划算</p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-[11px] tabular-nums">
+          <thead>
+            <tr className="bg-muted/30 text-muted-foreground">
+              <th className="text-left px-3 py-1.5 font-medium">人數</th>
+              <th className="text-right px-2 py-1.5 font-medium whitespace-nowrap">
+                {safeNights > 1 ? `總價 / ${safeNights} 晚` : "總價 / 晚"}
+              </th>
+              <th className="text-right px-3 py-1.5 font-medium whitespace-nowrap">每人 / 晚</th>
+            </tr>
+          </thead>
+          <tbody>
+            {perPersonList.map(({ tier, perPerson }) => {
+              const isRecommended = tier.guestCount === recommendedGuestCount;
+              const isCheapest = perPerson === cheapestPerPerson;
+              // 條形比例：最便宜=100%，最貴=30%
+              const ratio = 1 - (perPerson - cheapestPerPerson) / range;
+              const barWidth = `${Math.round(30 + ratio * 70)}%`;
+              return (
+                <tr
+                  key={tier.guestCount}
+                  className={cn(
+                    "border-t border-border/40",
+                    isCheapest && "bg-[hsl(25,70%,97%)]"
+                  )}
+                >
+                  <td className="px-3 py-1.5">
+                    <span className="inline-flex items-center gap-1">
+                      <span className="font-semibold text-foreground">{tier.guestCount} 人</span>
+                      {tier.isFewPeople && (
+                        <span
+                          className="text-[9px] font-bold px-1 py-px rounded leading-none text-white"
+                          style={{ background: "hsl(0, 75%, 50%)" }}
+                        >
+                          早鳥
+                        </span>
+                      )}
+                      {isRecommended && (
+                        <span
+                          className="text-[9px] font-bold px-1 py-px rounded leading-none text-white"
+                          style={{ background: "hsl(25, 70%, 50%)" }}
+                        >
+                          最划算
+                        </span>
+                      )}
+                    </span>
+                  </td>
+                  <td className="px-2 py-1.5 text-right text-foreground/80">
+                    NT${(tier.sale * safeNights).toLocaleString()}
+                  </td>
+                  <td className="px-3 py-1.5 text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <div className="hidden sm:block w-16 h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: barWidth,
+                            background: isCheapest
+                              ? "hsl(0, 75%, 50%)"
+                              : "hsl(25, 70%, 55%)",
+                          }}
+                        />
+                      </div>
+                      <span
+                        className={cn(
+                          "font-bold whitespace-nowrap",
+                          isCheapest ? "text-base" : "text-[12px]"
+                        )}
+                        style={{
+                          color: isCheapest ? "hsl(0, 75%, 50%)" : "hsl(25, 70%, 35%)",
+                        }}
+                      >
+                        NT${perPerson.toLocaleString()}
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  );
+};
+
 export default CapacityPriceLadder;
 export type { CapacityOption };
