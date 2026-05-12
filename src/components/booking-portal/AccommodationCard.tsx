@@ -173,41 +173,84 @@ const AccommodationCard = ({ data, onClick, hasDateFilter, nights }: Props) => {
           )}
 
           {/* Price block — push to bottom */}
-          <div className="mt-auto flex items-end justify-between gap-2 pt-1">
-            <div className="min-w-0">
-              {data.discount_percent !== null && data.original_price && (
-                <div className="flex items-center gap-1 mb-0.5">
-                  <span className="text-[10px] line-through text-muted-foreground">
-                    NT${data.original_price.toLocaleString()}
-                  </span>
-                  <span
-                    className="text-[10px] font-semibold px-1 rounded"
-                    style={{ background: "hsl(0, 75%, 96%)", color: "hsl(0, 75%, 45%)" }}
-                  >
-                    -{data.discount_percent}%
-                  </span>
-                </div>
-              )}
-              {totalPrice > 0 ? (
-                <>
-                  <p
-                    className="font-bold text-base sm:text-lg leading-none"
-                    style={{ color: "hsl(0, 75%, 50%)" }}
-                  >
-                    NT${totalPrice.toLocaleString()}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">
-                    {hasDateFilter && nights > 1 ? `共 ${nights} 晚 · ` : "每晚 · "}
-                    全棟
-                    {perPerson && (
-                      <> · 平均每人 NT${perPerson.toLocaleString()}</>
+          <div className="mt-auto pt-1">
+            {/* Matched plan (when guest count selected and fits) */}
+            {data.matched_guests && data.matched_total_price && data.matched_rooms ? (
+              <div className="mb-1.5 flex items-center gap-1.5 px-1.5 py-1 rounded"
+                style={{ background: "hsl(140, 50%, 96%)" }}
+              >
+                <Sparkles className="h-3 w-3 shrink-0" style={{ color: "hsl(140, 50%, 35%)" }} />
+                <span className="text-[10px] leading-tight" style={{ color: "hsl(140, 50%, 25%)" }}>
+                  <span className="font-bold">{data.matched_guests} 人方案</span>
+                  <span className="opacity-70"> · 開 {data.matched_rooms} 間</span>
+                </span>
+              </div>
+            ) : data.matched_guests && data.max_capacity > 0 && data.matched_guests > data.max_capacity ? (
+              <div className="mb-1.5 flex items-center gap-1.5 px-1.5 py-1 rounded bg-muted">
+                <span className="text-[10px] text-muted-foreground leading-tight">
+                  超過最多 {data.max_capacity} 人 · 請洽客服
+                </span>
+              </div>
+            ) : null}
+
+            <div className="flex items-end justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                {data.matched_guests && data.matched_total_price ? (
+                  <>
+                    <p
+                      className="font-bold text-base sm:text-lg leading-none"
+                      style={{ color: "hsl(0, 75%, 50%)" }}
+                    >
+                      NT${data.matched_total_price.toLocaleString()}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">
+                      {hasDateFilter && nights > 1 ? `共 ${nights} 晚` : "每晚"}
+                      {data.matched_guests > 0 && (
+                        <> · 平均每人 NT${Math.round(
+                          data.matched_total_price /
+                            data.matched_guests /
+                            (hasDateFilter && nights > 0 ? nights : 1)
+                        ).toLocaleString()}</>
+                      )}
+                    </p>
+                  </>
+                ) : totalPrice > 0 ? (
+                  <>
+                    <div className="flex items-baseline gap-1 leading-none">
+                      <span className="text-[10px] text-muted-foreground">
+                        {data.min_capacity} 人起
+                      </span>
+                      <span
+                        className="font-bold text-base sm:text-lg"
+                        style={{ color: "hsl(0, 75%, 50%)" }}
+                      >
+                        NT${totalPrice.toLocaleString()}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">起</span>
+                    </div>
+                    {data.max_price && data.max_price !== totalPrice && (
+                      <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">
+                        {data.max_capacity_price_capacity} 人整棟 NT${data.max_price.toLocaleString()}
+                      </p>
                     )}
-                  </p>
-                </>
-              ) : (
-                <p className="text-xs text-muted-foreground">價格電洽</p>
-              )}
-            </div>
+                    <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">
+                      {hasDateFilter && nights > 1 ? `共 ${nights} 晚` : "每晚"}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-xs text-muted-foreground">價格電洽</p>
+                )}
+              </div>
+              <Button
+                size="sm"
+                className="h-7 px-2 text-[11px] gap-0.5 shrink-0 text-white rounded-md"
+                style={{ background: "hsl(25, 70%, 50%)" }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClick();
+                }}
+              >
+                查看
             <Button
               size="sm"
               className="h-7 px-2 text-[11px] gap-0.5 shrink-0 text-white rounded-md"
