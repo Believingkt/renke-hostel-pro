@@ -24,7 +24,7 @@ const TAG_LABEL: Record<string, { label: string; tone: "primary" | "soft" | "dar
   best_value: { label: "最划算", tone: "primary" },
   early_bird: { label: "早鳥優惠", tone: "soft" },
   meal_included: { label: "一泊二食", tone: "dark" },
-  few_people: { label: "少人數包區", tone: "soft" },
+  few_people: { label: "少人數包棟", tone: "soft" },
 };
 
 const PackagesSection = ({
