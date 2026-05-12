@@ -127,14 +127,17 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const HAKUNA_ACC_ID = "6b6ac0dc-602b-4dec-9167-7791ac412ba3";
   const SENSAN_ACC_ID = "5f764d55-ae11-4631-80fe-2e611853deae";
   const YUNXIU_ACC_ID = "7690a606-6bac-4cd5-a3e7-2fa754b318e8";
+  // 奧莉薇雅：8 雙人房 + 1 四人房 = 9 間房
+  const OLIVIA_ACC_ID = "74d064f4-1f8c-47e8-9be0-f0a596bbe6f8";
   const isHakuna = currentAccommodationId === HAKUNA_ACC_ID;
   const isSensan = currentAccommodationId === SENSAN_ACC_ID;
   const isYunxiu = currentAccommodationId === YUNXIU_ACC_ID;
+  const isOlivia = currentAccommodationId === OLIVIA_ACC_ID;
   // 只有森山寫照保留「包區」用語，其餘民宿一律使用「包棟」
   const exclusiveLabel = isSensan ? "包區" : "包棟";
-  const MAX_TOTAL_ROOMS = isHakuna ? 7 : 6;
-  const MAX_DOUBLE_ROOMS = isHakuna ? 2 : 3;
-  const MAX_QUAD_ROOMS = isHakuna ? 4 : 3;
+  const MAX_TOTAL_ROOMS = isHakuna ? 7 : isOlivia ? 9 : 6;
+  const MAX_DOUBLE_ROOMS = isHakuna ? 2 : isOlivia ? 8 : 3;
+  const MAX_QUAD_ROOMS = isHakuna ? 4 : isOlivia ? 1 : 3;
 
   // Booking mode: "exclusive" (包棟) or "normal" (非包棟) or "" (not yet selected)
   const [bookingMode, setBookingMode] = useState<"" | "exclusive" | "normal">("");
