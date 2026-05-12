@@ -192,15 +192,47 @@ const AccommodationCard = ({ data, onClick, hasDateFilter, nights }: Props) => {
           <div className="mt-auto pt-1">
             {/* Matched plan (when guest count selected and fits) */}
             {data.matched_guests && data.matched_total_price && data.matched_rooms ? (
-              <div className="mb-1.5 flex items-center gap-1.5 px-1.5 py-1 rounded"
-                style={{ background: "hsl(140, 50%, 96%)" }}
-              >
-                <Sparkles className="h-3 w-3 shrink-0" style={{ color: "hsl(140, 50%, 35%)" }} />
-                <span className="text-[10px] leading-tight" style={{ color: "hsl(140, 50%, 25%)" }}>
-                  <span className="font-bold">{data.matched_guests} 人方案</span>
-                  <span className="opacity-70"> · 開 {data.matched_rooms} 間</span>
-                </span>
-              </div>
+              (() => {
+                const savedVsVilla =
+                  data.max_price && data.max_price > data.matched_total_price
+                    ? data.max_price - data.matched_total_price
+                    : 0;
+                const savedRooms =
+                  data.total_rooms > data.matched_rooms
+                    ? data.total_rooms - data.matched_rooms
+                    : 0;
+                return (
+                  <div
+                    className="mb-1.5 px-1.5 py-1 rounded"
+                    style={{ background: "hsl(140, 50%, 96%)" }}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles
+                        className="h-3 w-3 shrink-0"
+                        style={{ color: "hsl(140, 50%, 35%)" }}
+                      />
+                      <span
+                        className="text-[10px] leading-tight"
+                        style={{ color: "hsl(140, 50%, 25%)" }}
+                      >
+                        <span className="font-bold">{data.matched_guests} 人方案</span>
+                        <span className="opacity-70"> · 開 {data.matched_rooms} 間</span>
+                      </span>
+                    </div>
+                    {savedVsVilla > 0 && (
+                      <p
+                        className="text-[10px] mt-0.5 leading-tight pl-4"
+                        style={{ color: "hsl(140, 50%, 30%)" }}
+                      >
+                        比整棟省 <span className="font-bold">NT${savedVsVilla.toLocaleString()}</span>
+                        {savedRooms > 0 && (
+                          <span className="opacity-70">（少開 {savedRooms} 間）</span>
+                        )}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()
             ) : data.matched_guests && data.max_capacity > 0 && data.matched_guests > data.max_capacity ? (
               <div className="mb-1.5 flex items-center gap-1.5 px-1.5 py-1 rounded bg-muted">
                 <span className="text-[10px] text-muted-foreground leading-tight">
