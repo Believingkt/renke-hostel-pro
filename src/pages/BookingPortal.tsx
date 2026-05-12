@@ -467,9 +467,13 @@ const BookingPortal = () => {
       );
     }
 
-    // Availability filter
+    // Availability filter — 森山忽略散客庫存判定，永遠保留
     if (hasDateFilter) {
-      result = result.filter((rt) => rt.available_rooms !== null && rt.available_rooms > 0);
+      result = result.filter(
+        (rt) =>
+          isSensanAccommodation(rt.accommodation_name) ||
+          (rt.available_rooms !== null && rt.available_rooms > 0)
+      );
     }
 
     // Region filter
