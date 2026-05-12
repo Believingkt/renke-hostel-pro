@@ -403,7 +403,7 @@ const CapacityPriceLadder = ({
             一泊二食
           </span>
           <p className="text-[12px] font-semibold text-foreground">
-            {tierLabel.short}標準包區方案
+            {tierLabel.short}標準{TERM}方案
           </p>
         </div>
 
