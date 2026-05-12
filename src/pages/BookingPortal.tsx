@@ -865,7 +865,12 @@ const BookingPortal = () => {
     if (children) params.set("children", String(children));
     if (rooms) params.set("rooms", String(rooms));
     const qs = params.toString();
-    navigate(`/booking/villa/${accId}${qs ? `?${qs}` : ""}`);
+    // 僅森山使用包區階梯詳情頁（CapacityPriceLadder 為森山專屬硬編碼價目）
+    // 其他住宿走標準訂房頁
+    const acc = accommodations.find((a) => a.id === accId);
+    const useVilla = isSensanAccommodation(acc?.name);
+    const path = useVilla ? `/booking/villa/${accId}` : `/booking/${accId}`;
+    navigate(`${path}${qs ? `?${qs}` : ""}`);
   };
 
   const clearFilters = () => {

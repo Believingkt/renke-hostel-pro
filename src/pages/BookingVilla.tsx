@@ -29,6 +29,7 @@ import VillaOverviewBar from "@/components/booking-villa/VillaOverviewBar";
 import CapacityPriceLadder, {
   type CapacityOption,
 } from "@/components/booking-villa/CapacityPriceLadder";
+import { isSensanAccommodation } from "@/lib/sensan-pricing";
 
 import FacilitiesSection from "@/components/FacilitiesSection";
 import LocationSection from "@/components/LocationSection";
@@ -71,6 +72,14 @@ const BookingVilla = () => {
   useEffect(() => {
     if (accId) setCurrentAccommodationId(accId);
   }, [accId, setCurrentAccommodationId]);
+
+  // 防呆：非森山住宿不應走包區階梯頁（CapacityPriceLadder 為森山硬編碼），自動導向標準訂房頁
+  useEffect(() => {
+    if (info && !isSensanAccommodation(info.name)) {
+      const qs = searchParams.toString();
+      navigate(`/booking/${info.id}${qs ? `?${qs}` : ""}`, { replace: true });
+    }
+  }, [info, navigate, searchParams]);
 
   // Auth state for header
   useEffect(() => {
