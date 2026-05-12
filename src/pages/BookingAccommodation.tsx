@@ -49,6 +49,9 @@ const BookingAccommodation = () => {
     refetch,
   } = useAccommodationCache(accId || null);
 
+  const { packages } = useAccommodationPackages(accId || null);
+  const hasPackages = packages.length > 0;
+
   const themeClass = info?.theme_preset ? getThemeClass(info.theme_preset) : '';
 
   usePageAnalytics({ accommodationId: accId || null, enabled: !!accId && !!info });
