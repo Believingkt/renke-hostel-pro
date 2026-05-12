@@ -51,6 +51,8 @@ interface Props {
   nights: number;
   /** 用戶在搜尋條選的入住日期；用來自動判定時段 */
   checkIn?: Date | null;
+  /** 用戶在搜尋條輸入的人數；用來高亮對應的階梯 */
+  selectedGuestCount?: number | null;
 }
 
 import {
