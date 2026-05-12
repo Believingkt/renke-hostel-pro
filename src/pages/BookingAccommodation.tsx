@@ -94,11 +94,12 @@ const BookingAccommodation = () => {
 
   // 若該民宿已設定包區方案 → 自動導向 BookingVilla（森山風格階梯卡 UI）
   useEffect(() => {
+    if (packagesLoading) return;
     if (accId && hasPackages) {
       const qs = searchParams.toString();
       navigate(`/booking/villa/${accId}${qs ? `?${qs}` : ""}`, { replace: true });
     }
-  }, [accId, hasPackages, navigate, searchParams]);
+  }, [accId, hasPackages, navigate, searchParams, packagesLoading]);
 
   useEffect(() => {
     const checkAuth = async () => {
