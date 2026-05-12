@@ -29,6 +29,7 @@ import VillaOverviewBar from "@/components/booking-villa/VillaOverviewBar";
 import CapacityPriceLadder, {
   type CapacityOption,
 } from "@/components/booking-villa/CapacityPriceLadder";
+import { isSensanAccommodation } from "@/lib/sensan-pricing";
 
 import FacilitiesSection from "@/components/FacilitiesSection";
 import LocationSection from "@/components/LocationSection";
