@@ -175,14 +175,14 @@ const AdminPackages = () => {
       room_allocation: form.room_allocation.trim() || null,
       applicable_tiers: form.applicable_tiers,
       tags: form.tags,
-      includes: form.includes,
+      includes: form.includes as any,
       primary_room_type_id: form.primary_room_type_id === NONE ? null : form.primary_room_type_id,
       display_order: form.display_order,
       enabled: form.enabled,
     };
     const { error } = editing
       ? await supabase.from("accommodation_packages").update(payload).eq("id", editing.id)
-      : await supabase.from("accommodation_packages").insert(payload);
+      : await supabase.from("accommodation_packages").insert([payload]);
     setSaving(false);
     if (error) {
       toast({ title: "儲存失敗", description: error.message, variant: "destructive" });
