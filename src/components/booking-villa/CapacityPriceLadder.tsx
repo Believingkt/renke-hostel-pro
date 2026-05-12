@@ -358,6 +358,17 @@ const CapacityPriceLadder = ({ roomTypes, onSelect, nights, checkIn }: Props) =>
           const smallerPerPerson = smallerTier
             ? Math.round(smallerTier.sale / smallerTier.guestCount)
             : null;
+          // 「往上跳一級」：找下一個更高人數的方案
+          const biggerTier = standardTiers
+            .filter((t) => t.guestCount > tier.guestCount)
+            .sort((a, b) => a.guestCount - b.guestCount)[0];
+          const biggerExtraTotal = biggerTier
+            ? (biggerTier.sale - tier.sale) * safeNights
+            : 0;
+          const biggerPerPersonSaved = biggerTier
+            ? Math.round(tier.sale / tier.guestCount) -
+              Math.round(biggerTier.sale / biggerTier.guestCount)
+            : 0;
           // 假日差價：同人數的 weekend 方案 sale - 當前 tier sale
           const weekendSame = PRICING_TABLE.weekend.find(
             (t) => t.guestCount === tier.guestCount
@@ -384,6 +395,9 @@ const CapacityPriceLadder = ({ roomTypes, onSelect, nights, checkIn }: Props) =>
               }
               smallerPerPerson={smallerPerPerson}
               smallerGuestCount={smallerTier?.guestCount ?? null}
+              biggerGuestCount={biggerTier?.guestCount ?? null}
+              biggerExtraTotal={biggerExtraTotal}
+              biggerPerPersonSaved={biggerPerPersonSaved}
               holidayDiff={holidayDiff}
             />
           );
@@ -413,6 +427,9 @@ interface PriceCardProps {
   onToggle: () => void;
   smallerPerPerson?: number | null;
   smallerGuestCount?: number | null;
+  biggerGuestCount?: number | null;
+  biggerExtraTotal?: number;
+  biggerPerPersonSaved?: number;
   holidayDiff?: number;
 }
 
@@ -428,6 +445,9 @@ const PriceCard = ({
   onToggle,
   smallerPerPerson = null,
   smallerGuestCount = null,
+  biggerGuestCount = null,
+  biggerExtraTotal = 0,
+  biggerPerPersonSaved = 0,
   holidayDiff = 0,
 }: PriceCardProps) => {
   const perPerson = Math.round(opt.totalPrice / opt.guestCount / safeNights);
@@ -554,6 +574,26 @@ const PriceCard = ({
               <Plus className="h-3 w-3 shrink-0 text-muted-foreground" />
               <p className="text-[10.5px] leading-tight text-muted-foreground">
                 改假日入住 <span className="font-medium text-foreground">+NT${holidayDiff.toLocaleString()}</span>（同人數）
+              </p>
+            </div>
+          )}
+
+          {biggerGuestCount && biggerExtraTotal > 0 && biggerPerPersonSaved > 0 && (
+            <div
+              className="flex items-center gap-1.5 mt-1 px-1.5 py-1 rounded"
+              style={{ background: "hsl(25, 70%, 95%)" }}
+            >
+              <TrendingDown className="h-3 w-3 shrink-0" style={{ color: "hsl(25, 70%, 40%)" }} />
+              <p className="text-[10.5px] leading-tight" style={{ color: "hsl(25, 70%, 30%)" }}>
+                再揪
+                <span className="font-bold mx-0.5">
+                  {biggerGuestCount - opt.guestCount} 人
+                </span>
+                升級到 {biggerGuestCount} 人方案，
+                只多
+                <span className="font-bold mx-0.5">NT${biggerExtraTotal.toLocaleString()}</span>
+                ，每人省
+                <span className="font-bold mx-0.5">NT${biggerPerPersonSaved.toLocaleString()}/晚</span>
               </p>
             </div>
           )}
