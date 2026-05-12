@@ -294,7 +294,7 @@ const CapacityPriceLadder = ({
             <UtensilsCrossed className="h-4 w-4" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-[13px] text-foreground">一泊二食 · 含 6 項體驗</p>
+            <p className="font-semibold text-[13px] text-foreground">{includesTitle || `一泊二食 · 含 ${PLAN_INCLUDES.length} 項體驗`}</p>
             <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
               點此查看方案完整內容
             </p>
