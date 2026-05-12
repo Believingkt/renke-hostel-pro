@@ -20,6 +20,7 @@ import {
   Minus,
   Plus,
   Loader2,
+  Sparkles,
 } from "lucide-react";
 
 interface PortalSearchBarProps {
@@ -197,20 +198,10 @@ const PortalSearchBar = ({
           </Button>
         </div>
       </div>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium">房間數</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" className="h-7 w-7 rounded-full" onClick={() => onRoomsChange(Math.max(1, rooms - 1))} disabled={rooms <= 1}>
-            <Minus className="h-3 w-3" />
-          </Button>
-          <span className="w-6 text-center text-sm font-medium">{rooms}</span>
-          <Button variant="outline" size="icon" className="h-7 w-7 rounded-full" onClick={() => onRoomsChange(Math.min(10, rooms + 1))} disabled={rooms >= 10}>
-            <Plus className="h-3 w-3" />
-          </Button>
-        </div>
-      </div>
+      <p className="text-[11px] text-muted-foreground leading-relaxed pt-2 border-t border-border/40">
+        <Sparkles className="inline h-3 w-3 mr-1 -mt-0.5" style={{ color: "hsl(25, 70%, 50%)" }} />
+        系統會依人數自動推薦最少房間數
+      </p>
     </div>
   );
 
