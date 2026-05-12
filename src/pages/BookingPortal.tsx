@@ -596,7 +596,8 @@ const BookingPortal = () => {
     // 貪婪法：以最少房間數，從最大 capacity 房型開始填，回傳開房數與每晚總價
     const fitGuests = (
       realRooms: RoomTypeResult[],
-      guests: number
+      guests: number,
+      getNightlyPrice: (room: RoomTypeResult) => number = (room) => room.date_price ?? room.base_price,
     ): { rooms: number; nightly: number; capacity: number } | null => {
       if (guests <= 0 || realRooms.length === 0) return null;
       const sorted = [...realRooms].sort((a, b) => b.capacity - a.capacity);
@@ -606,7 +607,7 @@ const BookingPortal = () => {
       let nightly = 0;
       for (const rt of sorted) {
         const stock = rt.room_count ?? 1;
-        const unitPrice = rt.date_price ?? rt.base_price;
+        const unitPrice = getNightlyPrice(rt);
         for (let i = 0; i < stock && remaining > 0; i++) {
           openRooms += 1;
           capacity += rt.capacity;
