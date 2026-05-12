@@ -376,6 +376,11 @@ const BookingVilla = () => {
             onSelect={handleSelectOption}
             nights={nights}
             checkIn={checkIn}
+            selectedGuestCount={
+              searchParams.get("adults")
+                ? parseInt(searchParams.get("adults") || "0", 10) || null
+                : null
+            }
           />
         </section>
 
