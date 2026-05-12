@@ -276,7 +276,8 @@ const CapacityPriceLadder = ({
         selectedGuestCount={selectedGuestCount}
       />
 
-      {/* ── 一泊二食 包含內容（折疊） ── */}
+      {/* ── 一泊二食 包含內容（折疊；無 includes 則隱藏） ── */}
+      {PLAN_INCLUDES.length > 0 && (
       <Card className="overflow-hidden border-border/60">
         <button
           type="button"
