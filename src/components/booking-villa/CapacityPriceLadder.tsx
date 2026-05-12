@@ -53,16 +53,24 @@ interface Props {
   checkIn?: Date | null;
   /** 用戶在搜尋條輸入的人數；用來高亮對應的階梯 */
   selectedGuestCount?: number | null;
+  /** 自訂價目表（非森山民宿透過 accommodation_packages 帶入） */
+  pricingTable?: Record<PricingTier, TierPrice[]>;
+  /** 自訂「含...內容」清單（非森山可帶入） */
+  planIncludes?: string[];
+  /** 「一泊二食」標題（自訂顯示，預設保留森山文案） */
+  includesTitle?: string;
+  /** 是否開放「少人包區」區塊（預設 true，森山以外可關閉） */
+  enableFewPeople?: boolean;
 }
 
 import {
-  SENSAN_PRICING_TABLE as PRICING_TABLE,
+  SENSAN_PRICING_TABLE as DEFAULT_PRICING_TABLE,
   detectSensanTierByDate as detectTierByDateShared,
   type SensanPricingTier as PricingTier,
   type SensanTierPrice as TierPrice,
 } from "@/lib/sensan-pricing";
 
-const PLAN_INCLUDES = [
+const DEFAULT_PLAN_INCLUDES = [
   { icon: <Ticket className="h-3.5 w-3.5" />, label: "星夢森林劇場門票" },
   { icon: <Camera className="h-3.5 w-3.5" />, label: "寫照體驗（棚拍）" },
   { icon: <Coffee className="h-3.5 w-3.5" />, label: "迎賓下午茶" },
