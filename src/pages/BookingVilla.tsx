@@ -97,11 +97,12 @@ const BookingVilla = () => {
 
   // 防呆：非森山且沒有設定任何包區方案的民宿，回到標準訂房頁
   useEffect(() => {
+    if (packagesLoading) return;
     if (info && !isSensanAccommodation(info.name) && packages.length === 0) {
       const qs = searchParams.toString();
       navigate(`/booking/${info.id}${qs ? `?${qs}` : ""}`, { replace: true });
     }
-  }, [info, navigate, searchParams, packages.length]);
+  }, [info, navigate, searchParams, packages.length, packagesLoading]);
 
   // Auth state for header
   useEffect(() => {
