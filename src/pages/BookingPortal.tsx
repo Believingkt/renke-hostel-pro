@@ -130,6 +130,8 @@ const BookingPortal = () => {
   const [accommodations, setAccommodations] = useState<AccommodationInfo[]>([]);
   const [roomTypes, setRoomTypes] = useState<RoomTypeResult[]>([]);
   const [facilities, setFacilities] = useState<FacilityRow[]>([]);
+  const [pricingTemplates, setPricingTemplates] = useState<PricingTemplateRow[]>([]);
+  const [publicHolidays, setPublicHolidays] = useState<PublicHolidayRow[]>([]);
   const [extraBedByAcc, setExtraBedByAcc] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -188,7 +190,7 @@ const BookingPortal = () => {
   const fetchData = async () => {
     try {
       // Fetch accommodations and room types in parallel
-      const [{ data: accs }, { data: rooms }, { data: roomPhotos }, { data: heroPhotos }, { data: facs }, { data: addons }] = await Promise.all([
+      const [{ data: accs }, { data: rooms }, { data: roomPhotos }, { data: heroPhotos }, { data: facs }, { data: addons }, { data: templates }, { data: holidays }] = await Promise.all([
         supabase
           .from("accommodation_info")
           .select("id, name, region_1, region_2, type, address, country")
@@ -215,6 +217,13 @@ const BookingPortal = () => {
           .from("addon_settings")
           .select("accommodation_id, addon_type, unit_label, max_quantity, enabled")
           .eq("enabled", true),
+        supabase
+          .from("pricing_templates")
+          .select("accommodation_id, room_type_id, template_name, price, weekday_price, peak_price, weekend_price")
+          .order("display_order", { ascending: true }),
+        supabase
+          .from("public_holidays")
+          .select("accommodation_id, holiday_date"),
       ]);
 
       if (!accs || !rooms) return;
@@ -269,6 +278,8 @@ const BookingPortal = () => {
       setAccommodations(accsWithPhotos);
       setRoomTypes(results);
       setFacilities(facs || []);
+      setPricingTemplates((templates || []) as PricingTemplateRow[]);
+      setPublicHolidays((holidays || []) as PublicHolidayRow[]);
 
       // Aggregate extra-bed capacity per accommodation from addon_settings.
       // Heuristic: any enabled addon whose addon_type or unit_label indicates a bed/extra person.
