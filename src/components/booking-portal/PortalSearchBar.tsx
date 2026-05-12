@@ -9,6 +9,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -145,6 +146,27 @@ const PortalSearchBar = ({
 
   const renderGuestPicker = () => (
     <div className="space-y-4">
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-sm font-medium">總人數</p>
+          <span className="text-sm font-semibold" style={{ color: "hsl(25, 70%, 45%)" }}>
+            {adults + children} 人
+          </span>
+        </div>
+        <Slider
+          value={[adults]}
+          min={1}
+          max={20}
+          step={1}
+          onValueChange={(v) => onAdultsChange(v[0])}
+          className="mt-1"
+        />
+        <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+          <span>1</span>
+          <span>10</span>
+          <span>20</span>
+        </div>
+      </div>
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium">大人</p>
