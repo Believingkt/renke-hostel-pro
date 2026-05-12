@@ -745,7 +745,7 @@ const BookingPortal = () => {
       final.sort((a, b) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999));
     }
     return final;
-  }, [filtered, accommodations, facilities, extraBedByAcc, hasDateFilter, nights, filters.minCapacity, filters.sortBy, adults]);
+  }, [filtered, accommodations, facilities, extraBedByAcc, hasDateFilter, nights, filters.minCapacity, filters.maxPrice, filters.sortBy, adults, checkIn]);
 
   const handleAccClick = (accId: string) => {
     const params = new URLSearchParams();
