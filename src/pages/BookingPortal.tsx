@@ -489,13 +489,9 @@ const BookingPortal = () => {
     // Capacity filter is applied at the aggregated (per-accommodation) level
     // below, so we don't filter individual room types out here.
 
-    // Price filter
-    if (filters.maxPrice > 0) {
-      result = result.filter((rt) => {
-        const price = rt.date_price ?? rt.base_price;
-        return price <= filters.maxPrice;
-      });
-    }
+    // Price filter is applied at the aggregated (per-accommodation) level below,
+    // so the slider reflects the same per-stay price shown on each card
+    // (incl. 森山的 SENSAN_PRICING_TABLE 起價).
 
     // Sort
     if (filters.sortBy !== "default") {
@@ -719,6 +715,18 @@ const BookingPortal = () => {
       final = final.filter((c) => c.max_capacity >= filters.minCapacity);
     }
 
+    // Apply price filter at the whole-villa level — compare per-night 起價，
+    // 與滑桿（每晚最高價格）一致。card.min_price 在已選日期時為「整段總價」，
+    // 需除以夜數還原成每晚單價。
+    if (filters.maxPrice > 0) {
+      const stayDivisor = hasDateFilter && nights > 0 ? nights : 1;
+      final = final.filter((c) => {
+        if (c.min_price == null) return true;
+        const nightly = c.min_price / stayDivisor;
+        return nightly <= filters.maxPrice;
+      });
+    }
+
     // Sort
     if (filters.sortBy !== "default") {
       final = [...final].sort((a, b) => {
@@ -737,7 +745,7 @@ const BookingPortal = () => {
       final.sort((a, b) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999));
     }
     return final;
-  }, [filtered, accommodations, facilities, extraBedByAcc, hasDateFilter, nights, filters.minCapacity, filters.sortBy, adults]);
+  }, [filtered, accommodations, facilities, extraBedByAcc, hasDateFilter, nights, filters.minCapacity, filters.maxPrice, filters.sortBy, adults, checkIn]);
 
   const handleAccClick = (accId: string) => {
     const params = new URLSearchParams();
