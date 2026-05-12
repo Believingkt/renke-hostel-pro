@@ -190,11 +190,11 @@ const VillaAvailabilityCalendar = ({ accommodationId }: Props) => {
         <h2 className="text-base font-bold text-foreground">即時空房日曆</h2>
         <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
           <span className="flex items-center gap-1">
-            <span className="inline-block w-2.5 h-2.5 rounded-sm bg-primary/15 border border-primary/40" />
+            <span className="inline-block w-2.5 h-2.5 rounded-sm bg-emerald-500/15 border border-emerald-600/50" />
             可訂
           </span>
           <span className="flex items-center gap-1">
-            <span className="inline-block w-2.5 h-2.5 rounded-sm bg-destructive/10 border border-destructive/30" />
+            <span className="inline-block w-2.5 h-2.5 rounded-sm bg-muted-foreground/30 border border-muted-foreground/50" />
             已滿
           </span>
         </div>
@@ -256,8 +256,8 @@ const VillaAvailabilityCalendar = ({ accommodationId }: Props) => {
                 isPast
                   ? "bg-transparent text-muted-foreground/30 border-transparent"
                   : isAvail
-                    ? "bg-primary/10 text-foreground border-primary/40"
-                    : "bg-destructive/5 text-destructive/70 border-destructive/30",
+                    ? "bg-emerald-500/10 text-emerald-900 dark:text-emerald-100 border-emerald-600/50"
+                    : "bg-muted-foreground/20 text-muted-foreground/70 border-muted-foreground/30",
                 isToday && !isPast && "ring-2 ring-primary",
               )}
               title={
@@ -268,7 +268,7 @@ const VillaAvailabilityCalendar = ({ accommodationId }: Props) => {
                     : `${format(day, "M/d")} 已滿`
               }
             >
-              <span className={cn(!isPast && !isAvail && "line-through decoration-destructive/60")}>
+              <span className={cn(!isPast && !isAvail && "line-through decoration-muted-foreground/60")}>
                 {format(day, "d")}
               </span>
               {!isPast && !isAvail && (
