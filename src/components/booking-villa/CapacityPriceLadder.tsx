@@ -427,6 +427,9 @@ interface PriceCardProps {
   onToggle: () => void;
   smallerPerPerson?: number | null;
   smallerGuestCount?: number | null;
+  biggerGuestCount?: number | null;
+  biggerExtraTotal?: number;
+  biggerPerPersonSaved?: number;
   holidayDiff?: number;
 }
 
@@ -442,6 +445,9 @@ const PriceCard = ({
   onToggle,
   smallerPerPerson = null,
   smallerGuestCount = null,
+  biggerGuestCount = null,
+  biggerExtraTotal = 0,
+  biggerPerPersonSaved = 0,
   holidayDiff = 0,
 }: PriceCardProps) => {
   const perPerson = Math.round(opt.totalPrice / opt.guestCount / safeNights);
