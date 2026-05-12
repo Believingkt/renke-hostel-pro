@@ -232,8 +232,8 @@ const AdminPackages = () => {
     <div className="p-4 sm:p-6 space-y-4">
       <AdminPageHeader
         title="包區方案"
-        subtitle="設定民宿首頁訂房區顯示的包區方案。啟用後，前台會以方案卡取代房型列表。"
-        actions={
+        description="設定民宿首頁訂房區顯示的包區方案。啟用後，前台會以方案卡取代房型列表。"
+        action={
           <Button onClick={openCreate} className="gap-1.5">
             <Plus className="h-4 w-4" />
             新增方案
