@@ -154,8 +154,23 @@ const AccommodationCard = ({ data, onClick, hasDateFilter, nights }: Props) => {
             </span>
           </div>
 
+          {/* Sensan: 包區方案徽章 */}
+          {isSensan && (
+            <div className="mb-1.5 flex items-center gap-1 px-1.5 py-1 rounded border"
+              style={{
+                background: "hsl(25, 70%, 97%)",
+                borderColor: "hsl(25, 60%, 85%)",
+              }}
+            >
+              <Package className="h-3 w-3 shrink-0" style={{ color: "hsl(25, 70%, 45%)" }} />
+              <span className="text-[10px] sm:text-[11px] leading-tight font-semibold" style={{ color: "hsl(25, 70%, 35%)" }}>
+                包區方案 6 / 8 / 12 / 14 / 16 / 18 人
+              </span>
+            </div>
+          )}
+
           {/* Feature tags */}
-          {data.feature_tags.length > 0 && (
+          {!isSensan && data.feature_tags.length > 0 && (
             <div className="flex flex-wrap gap-1 mb-2">
               {data.feature_tags.slice(0, 3).map((tag) => (
                 <span
