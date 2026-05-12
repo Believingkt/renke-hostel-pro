@@ -528,6 +528,33 @@ const BookingPortal = () => {
     // 「包棟方案」(如「12 人包區」) 為虛擬人數方案，不計入實際房間數
     const isVillaPlan = (r: RoomTypeResult) =>
       /包棟|包區|whole|villa/i.test(r.name) || r.capacity >= 8;
+
+    // 貪婪法：以最少房間數，從最大 capacity 房型開始填，回傳開房數與每晚總價
+    const fitGuests = (
+      realRooms: RoomTypeResult[],
+      guests: number
+    ): { rooms: number; nightly: number; capacity: number } | null => {
+      if (guests <= 0 || realRooms.length === 0) return null;
+      const sorted = [...realRooms].sort((a, b) => b.capacity - a.capacity);
+      let remaining = guests;
+      let openRooms = 0;
+      let capacity = 0;
+      let nightly = 0;
+      for (const rt of sorted) {
+        const stock = rt.room_count ?? 1;
+        const unitPrice = rt.date_price ?? rt.base_price;
+        for (let i = 0; i < stock && remaining > 0; i++) {
+          openRooms += 1;
+          capacity += rt.capacity;
+          nightly += unitPrice;
+          remaining -= rt.capacity;
+        }
+        if (remaining <= 0) break;
+      }
+      if (remaining > 0) return null;
+      return { rooms: openRooms, nightly, capacity };
+    };
+
     byAcc.forEach((rts, accId) => {
       const acc = accMap.get(accId);
       if (!acc) return;
@@ -562,6 +589,34 @@ const BookingPortal = () => {
           ? minNightly * nights
           : minNightly;
 
+      // 起價方案 = 用最少房間（即剛好放得下 minCapacity 人）
+      const startFit = fitGuests(realRooms, minCapacity);
+      const startNightly = startFit?.nightly ?? minNightly;
+      const startTotal =
+        startNightly !== null && hasDateFilter && nights > 0
+          ? startNightly * nights
+          : startNightly;
+
+      // 全棟方案 = 開所有真實房（總價 = 全部 base_price 加總 × room_count）
+      const fullVillaNightly = realRooms.length > 0
+        ? realRooms.reduce(
+            (s, r) => s + (r.date_price ?? r.base_price) * (r.room_count ?? 1),
+            0
+          )
+        : null;
+      const fullVillaTotal =
+        fullVillaNightly !== null && hasDateFilter && nights > 0
+          ? fullVillaNightly * nights
+          : fullVillaNightly;
+
+      // 對應使用者選的人數
+      const matchedFit = adults > 0 ? fitGuests(realRooms, adults) : null;
+      const matchedNightly = matchedFit?.nightly ?? null;
+      const matchedTotal =
+        matchedNightly !== null && hasDateFilter && nights > 0
+          ? matchedNightly * nights
+          : matchedNightly;
+
       // 製造「原價→折扣→售價」效果（預設 15%；無 min_price 則略過）
       const discountPercent = totalForStay && totalForStay > 0 ? 15 : null;
       const originalPrice = totalForStay && discountPercent
@@ -582,9 +637,15 @@ const BookingPortal = () => {
         max_capacity: maxCapacity,
         extra_bed_count: extraBedByAcc.get(accId) || 0,
         feature_tags: deriveFeatureTags(facByAcc.get(accId) ?? []),
-        min_price: totalForStay,
+        min_price: startTotal ?? totalForStay,
         original_price: originalPrice,
         discount_percent: discountPercent,
+        max_price: fullVillaTotal,
+        max_capacity_price_capacity: maxFromReal || maxCapacity,
+        matched_guests: adults > 0 ? adults : null,
+        matched_capacity: matchedFit?.capacity ?? null,
+        matched_rooms: matchedFit?.rooms ?? null,
+        matched_total_price: matchedTotal,
         available_rooms: hasDateFilter
           ? rts.reduce((s, r) => s + (r.available_rooms ?? 0), 0)
           : null,
@@ -615,7 +676,7 @@ const BookingPortal = () => {
       final.sort((a, b) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999));
     }
     return final;
-  }, [filtered, accommodations, facilities, extraBedByAcc, hasDateFilter, nights, filters.minCapacity, filters.sortBy]);
+  }, [filtered, accommodations, facilities, extraBedByAcc, hasDateFilter, nights, filters.minCapacity, filters.sortBy, adults]);
 
   const handleAccClick = (accId: string) => {
     const params = new URLSearchParams();
