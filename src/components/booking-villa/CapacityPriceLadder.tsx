@@ -51,6 +51,8 @@ interface Props {
   nights: number;
   /** 用戶在搜尋條選的入住日期；用來自動判定時段 */
   checkIn?: Date | null;
+  /** 用戶在搜尋條輸入的人數；用來高亮對應的階梯 */
+  selectedGuestCount?: number | null;
 }
 
 import {
@@ -79,7 +81,7 @@ function detectTierByDate(date: Date | null | undefined): PricingTier {
   return detectTierByDateShared(date);
 }
 
-const CapacityPriceLadder = ({ roomTypes, onSelect, nights, checkIn }: Props) => {
+const CapacityPriceLadder = ({ roomTypes, onSelect, nights, checkIn, selectedGuestCount = null }: Props) => {
   const [activeTier, setActiveTier] = useState<PricingTier>(() => detectTierByDate(checkIn));
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [showIncludes, setShowIncludes] = useState(false);
@@ -124,6 +126,15 @@ const CapacityPriceLadder = ({ roomTypes, onSelect, nights, checkIn }: Props) =>
       cur.sale / cur.guestCount < best.sale / best.guestCount ? cur : best
     ).guestCount;
   }, [standardTiers]);
+
+  // 對應「搜尋條輸入人數」的最佳階梯：找剛好容納得下的最小方案
+  const matchedGuestCount = useMemo(() => {
+    if (!selectedGuestCount || selectedGuestCount <= 0) return null;
+    const sorted = [...currentTiers].sort((a, b) => a.guestCount - b.guestCount);
+    return (
+      sorted.find((t) => t.guestCount >= selectedGuestCount)?.guestCount ?? null
+    );
+  }, [currentTiers, selectedGuestCount]);
 
   if (roomTypes.length === 0) {
     return (
@@ -225,6 +236,8 @@ const CapacityPriceLadder = ({ roomTypes, onSelect, nights, checkIn }: Props) =>
         tiers={currentTiers}
         safeNights={safeNights}
         recommendedGuestCount={recommendedGuestCount}
+        matchedGuestCount={matchedGuestCount}
+        selectedGuestCount={selectedGuestCount}
       />
 
       {/* ── 一泊二食 包含內容（折疊） ── */}
@@ -633,9 +646,17 @@ interface PriceLadderTableProps {
   tiers: TierPrice[];
   safeNights: number;
   recommendedGuestCount: number | null;
+  matchedGuestCount?: number | null;
+  selectedGuestCount?: number | null;
 }
 
-const PriceLadderTable = ({ tiers, safeNights, recommendedGuestCount }: PriceLadderTableProps) => {
+const PriceLadderTable = ({
+  tiers,
+  safeNights,
+  recommendedGuestCount,
+  matchedGuestCount = null,
+  selectedGuestCount = null,
+}: PriceLadderTableProps) => {
   if (tiers.length === 0) return null;
 
   // 以最高人數方案的每人/晚作為「最低基準」，比例越高代表越貴
@@ -670,6 +691,7 @@ const PriceLadderTable = ({ tiers, safeNights, recommendedGuestCount }: PriceLad
             {perPersonList.map(({ tier, perPerson }) => {
               const isRecommended = tier.guestCount === recommendedGuestCount;
               const isCheapest = perPerson === cheapestPerPerson;
+              const isMatched = tier.guestCount === matchedGuestCount;
               // 條形比例：最便宜=100%，最貴=30%
               const ratio = 1 - (perPerson - cheapestPerPerson) / range;
               const barWidth = `${Math.round(30 + ratio * 70)}%`;
@@ -677,12 +699,13 @@ const PriceLadderTable = ({ tiers, safeNights, recommendedGuestCount }: PriceLad
                 <tr
                   key={tier.guestCount}
                   className={cn(
-                    "border-t border-border/40",
-                    isCheapest && "bg-[hsl(25,70%,97%)]"
+                    "border-t border-border/40 transition-colors",
+                    isMatched && "bg-[hsl(25,70%,93%)] ring-2 ring-inset ring-[hsl(25,70%,55%)]",
+                    !isMatched && isCheapest && "bg-[hsl(25,70%,97%)]"
                   )}
                 >
                   <td className="px-3 py-1.5">
-                    <span className="inline-flex items-center gap-1">
+                    <span className="inline-flex items-center gap-1 flex-wrap">
                       <span className="font-semibold text-foreground">{tier.guestCount} 人</span>
                       {tier.isFewPeople && (
                         <span
@@ -698,6 +721,14 @@ const PriceLadderTable = ({ tiers, safeNights, recommendedGuestCount }: PriceLad
                           style={{ background: "hsl(25, 70%, 50%)" }}
                         >
                           最划算
+                        </span>
+                      )}
+                      {isMatched && selectedGuestCount && (
+                        <span
+                          className="text-[9px] font-bold px-1 py-px rounded leading-none text-white"
+                          style={{ background: "hsl(140, 50%, 40%)" }}
+                        >
+                          ← 你的 {selectedGuestCount} 人
                         </span>
                       )}
                     </span>
