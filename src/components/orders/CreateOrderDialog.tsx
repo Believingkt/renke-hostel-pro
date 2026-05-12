@@ -732,6 +732,24 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         }
       }
       const totals = getTotals();
+
+      // 防呆：若房費總額為 0，提醒使用者（通常是該房型在該日期沒有設定專案/庫存價）
+      if (totals.roomTotal <= 0) {
+        const missing = roomSelections
+          .map(sel => roomTypes.find(r => r.id === sel.room_type_id)?.name)
+          .filter(Boolean)
+          .join("、");
+        const proceed = window.confirm(
+          `偵測到房費為 NT$ 0（${missing || "所選房型"}在該日期沒有可用價格）。\n\n` +
+          `請先到「房價管理」為該房型設定專案價/庫存價，或在訂單建立後到訂單詳情手動修改金額。\n\n` +
+          `仍要以 NT$ 0 建立訂單嗎？`
+        );
+        if (!proceed) {
+          setIsSaving(false);
+          return;
+        }
+      }
+
       const depositAmount = useDeposit ? Math.round(totals.final * (depositPct / 100)) : 0;
       const balanceAmount = totals.final - depositAmount;
 
