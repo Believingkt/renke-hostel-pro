@@ -20,6 +20,7 @@ import {
   Minus,
   Plus,
   Loader2,
+  Sparkles,
 } from "lucide-react";
 
 interface PortalSearchBarProps {
