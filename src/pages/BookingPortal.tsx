@@ -709,7 +709,13 @@ const BookingPortal = () => {
           .filter((p): p is number => p !== null);
         if (candidates.length > 0) templatePriceByRoom.set(rt.id, Math.min(...candidates));
       }
-      const roomNightlyPrice = (r: RoomTypeResult) => r.date_price ?? templatePriceByRoom.get(r.id) ?? r.base_price;
+      const roomNightlyPrice = (r: RoomTypeResult) => asPositivePrice(r.date_price) ?? templatePriceByRoom.get(r.id) ?? r.base_price;
+      const packageOptions = (villaPlans.length > 0 ? villaPlans : rts)
+        .map((room) => ({
+          room,
+          nightly: templatePriceByRoom.get(room.id) ?? asPositivePrice(room.date_price) ?? asPositivePrice(room.base_price),
+        }))
+        .filter((item): item is { room: RoomTypeResult; nightly: number } => item.nightly !== null);
 
       // Per-night minimum: prefer searched date price, then project/template price, then base_price
       const nightlyPrices = rts
@@ -723,7 +729,10 @@ const BookingPortal = () => {
 
       // 起價方案 = 用最少房間（即剛好放得下 minCapacity 人）
       const startFit = fitGuests(realRooms, minCapacity, roomNightlyPrice);
-      const startNightly = startFit?.nightly ?? minNightly;
+      const startPackage = packageOptions.length > 0
+        ? [...packageOptions].sort((a, b) => a.nightly - b.nightly)[0]
+        : null;
+      const startNightly = startPackage?.nightly ?? startFit?.nightly ?? minNightly;
       const startTotal =
         startNightly !== null && hasDateFilter && nights > 0
           ? startNightly * nights
@@ -743,7 +752,12 @@ const BookingPortal = () => {
 
       // 對應使用者選的人數
       const matchedFit = adults > 0 ? fitGuests(realRooms, adults, roomNightlyPrice) : null;
-      const matchedNightly = matchedFit?.nightly ?? null;
+      const matchedPackage = adults > 0 && packageOptions.length > 0
+        ? [...packageOptions]
+            .filter((item) => item.room.capacity >= adults)
+            .sort((a, b) => a.room.capacity - b.room.capacity || a.nightly - b.nightly)[0] ?? null
+        : null;
+      const matchedNightly = matchedPackage?.nightly ?? matchedFit?.nightly ?? null;
       const matchedTotal =
         matchedNightly !== null && hasDateFilter && nights > 0
           ? matchedNightly * nights
