@@ -30,6 +30,11 @@ import CapacityPriceLadder, {
   type CapacityOption,
 } from "@/components/booking-villa/CapacityPriceLadder";
 import { isSensanAccommodation } from "@/lib/sensan-pricing";
+import {
+  useAccommodationPackages,
+  buildPricingTableFromPackages,
+  aggregateIncludesFromPackages,
+} from "@/hooks/use-accommodation-packages";
 
 import FacilitiesSection from "@/components/FacilitiesSection";
 import LocationSection from "@/components/LocationSection";
@@ -73,13 +78,30 @@ const BookingVilla = () => {
     if (accId) setCurrentAccommodationId(accId);
   }, [accId, setCurrentAccommodationId]);
 
-  // 防呆：非森山住宿不應走包區階梯頁（CapacityPriceLadder 為森山硬編碼），自動導向標準訂房頁
+  // 載入該民宿的包區方案（非森山民宿透過資料驅動使用同一套階梯卡 UI）
+  const { packages } = useAccommodationPackages(accId || null);
+  const isSensan = info ? isSensanAccommodation(info.name) : false;
+  const customPricingTable = useMemo(() => {
+    if (isSensan || packages.length === 0) return undefined;
+    return buildPricingTableFromPackages(packages);
+  }, [isSensan, packages]);
+  const customIncludes = useMemo(() => {
+    if (isSensan || packages.length === 0) return undefined;
+    return aggregateIncludesFromPackages(packages);
+  }, [isSensan, packages]);
+  const customIncludesTitle = useMemo(() => {
+    if (isSensan || packages.length === 0) return undefined;
+    const count = customIncludes?.length || 0;
+    return count > 0 ? `方案內容 · 含 ${count} 項` : "方案內容";
+  }, [isSensan, packages, customIncludes]);
+
+  // 防呆：非森山且沒有設定任何包區方案的民宿，回到標準訂房頁
   useEffect(() => {
-    if (info && !isSensanAccommodation(info.name)) {
+    if (info && !isSensanAccommodation(info.name) && packages.length === 0) {
       const qs = searchParams.toString();
       navigate(`/booking/${info.id}${qs ? `?${qs}` : ""}`, { replace: true });
     }
-  }, [info, navigate, searchParams]);
+  }, [info, navigate, searchParams, packages.length]);
 
   // Auth state for header
   useEffect(() => {
@@ -390,6 +412,10 @@ const BookingVilla = () => {
                 ? parseInt(searchParams.get("adults") || "0", 10) || null
                 : null
             }
+            pricingTable={customPricingTable}
+            planIncludes={customIncludes}
+            includesTitle={customIncludesTitle}
+            enableFewPeople={isSensan}
           />
         </section>
 
@@ -514,18 +540,24 @@ const BookingVilla = () => {
             <p className="text-[10px] text-muted-foreground leading-none mb-0.5">
               {checkIn && checkOut ? `共 ${nights} 晚 · 包棟起` : "包棟起"}
             </p>
-            {villaStats &&
-              (secondaryData?.roomTypes?.length || 0) > 0 && (
+            {(() => {
+              const pkgMin = packages.length > 0
+                ? Math.min(...packages.map((p) => p.sale_price))
+                : null;
+              const roomMin = (secondaryData?.roomTypes?.length || 0) > 0
+                ? Math.min(...secondaryData!.roomTypes.map((r: any) => r.base_price))
+                : null;
+              const display = pkgMin ?? roomMin;
+              if (display == null) return null;
+              return (
                 <p
                   className="font-bold text-base leading-none"
                   style={{ color: "hsl(0, 75%, 50%)" }}
                 >
-                  NT$
-                  {Math.min(
-                    ...secondaryData!.roomTypes.map((r: any) => r.base_price)
-                  ).toLocaleString()}
+                  NT${display.toLocaleString()}
                 </p>
-              )}
+              );
+            })()}
           </div>
           <Button
             className="h-11 px-6 text-sm font-bold text-white rounded-full"

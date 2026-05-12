@@ -53,16 +53,24 @@ interface Props {
   checkIn?: Date | null;
   /** 用戶在搜尋條輸入的人數；用來高亮對應的階梯 */
   selectedGuestCount?: number | null;
+  /** 自訂價目表（非森山民宿透過 accommodation_packages 帶入） */
+  pricingTable?: Record<PricingTier, TierPrice[]>;
+  /** 自訂「含...內容」清單（非森山可帶入） */
+  planIncludes?: string[];
+  /** 「一泊二食」標題（自訂顯示，預設保留森山文案） */
+  includesTitle?: string;
+  /** 是否開放「少人包區」區塊（預設 true，森山以外可關閉） */
+  enableFewPeople?: boolean;
 }
 
 import {
-  SENSAN_PRICING_TABLE as PRICING_TABLE,
+  SENSAN_PRICING_TABLE as DEFAULT_PRICING_TABLE,
   detectSensanTierByDate as detectTierByDateShared,
   type SensanPricingTier as PricingTier,
   type SensanTierPrice as TierPrice,
 } from "@/lib/sensan-pricing";
 
-const PLAN_INCLUDES = [
+const DEFAULT_PLAN_INCLUDES = [
   { icon: <Ticket className="h-3.5 w-3.5" />, label: "星夢森林劇場門票" },
   { icon: <Camera className="h-3.5 w-3.5" />, label: "寫照體驗（棚拍）" },
   { icon: <Coffee className="h-3.5 w-3.5" />, label: "迎賓下午茶" },
@@ -81,7 +89,26 @@ function detectTierByDate(date: Date | null | undefined): PricingTier {
   return detectTierByDateShared(date);
 }
 
-const CapacityPriceLadder = ({ roomTypes, onSelect, nights, checkIn, selectedGuestCount = null }: Props) => {
+const CapacityPriceLadder = ({
+  roomTypes,
+  onSelect,
+  nights,
+  checkIn,
+  selectedGuestCount = null,
+  pricingTable,
+  planIncludes,
+  includesTitle,
+  enableFewPeople = true,
+}: Props) => {
+  const PRICING_TABLE = pricingTable || DEFAULT_PRICING_TABLE;
+  const PLAN_INCLUDES = useMemo(() => {
+    if (!planIncludes) return DEFAULT_PLAN_INCLUDES;
+    return planIncludes.map((label) => ({
+      icon: <Sparkles className="h-3.5 w-3.5" />,
+      label,
+    }));
+  }, [planIncludes]);
+
   const [activeTier, setActiveTier] = useState<PricingTier>(() => detectTierByDate(checkIn));
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [showIncludes, setShowIncludes] = useState(false);
@@ -95,7 +122,12 @@ const CapacityPriceLadder = ({ roomTypes, onSelect, nights, checkIn, selectedGue
   const fallbackRoomType = roomTypes[0];
 
   const buildOption = (tier: TierPrice, isRecommended: boolean): CapacityOption => {
+    // 優先用 tier 自己綁的 roomTypeId（資料驅動），否則 fallback 到容量匹配
+    const boundRoomType = tier.roomTypeId
+      ? roomTypes.find((rt) => rt.id === tier.roomTypeId)
+      : null;
     const matched =
+      boundRoomType ||
       roomTypes.find((rt) => rt.capacity === tier.guestCount) ||
       roomTypes.find((rt) => rt.capacity >= tier.guestCount) ||
       fallbackRoomType;
@@ -103,12 +135,14 @@ const CapacityPriceLadder = ({ roomTypes, onSelect, nights, checkIn, selectedGue
     const safeNights = Math.max(1, nights);
     const totalPrice = tier.sale * safeNights;
     const originalPrice = tier.original * safeNights;
-    const discountPercent = Math.round(((tier.original - tier.sale) / tier.original) * 100);
+    const discountPercent = tier.original > tier.sale
+      ? Math.round(((tier.original - tier.sale) / tier.original) * 100)
+      : 0;
 
     return {
       guestCount: tier.guestCount,
-      roomTypeId: matched?.id || `virtual-${tier.guestCount}`,
-      roomTypeName: matched?.name || `${tier.guestCount} 人包區方案`,
+      roomTypeId: tier.roomTypeId || matched?.id || `virtual-${tier.guestCount}`,
+      roomTypeName: tier.planName || matched?.name || `${tier.guestCount} 人包區方案`,
       totalPrice,
       originalPrice,
       discountPercent,
@@ -117,8 +151,10 @@ const CapacityPriceLadder = ({ roomTypes, onSelect, nights, checkIn, selectedGue
   };
 
   const currentTiers = PRICING_TABLE[activeTier];
-  const fewPeopleTiers = currentTiers.filter((t) => t.isFewPeople);
-  const standardTiers = currentTiers.filter((t) => !t.isFewPeople);
+  const fewPeopleTiers = enableFewPeople ? currentTiers.filter((t) => t.isFewPeople) : [];
+  const standardTiers = enableFewPeople
+    ? currentTiers.filter((t) => !t.isFewPeople)
+    : currentTiers;
 
   const recommendedGuestCount = useMemo(() => {
     if (standardTiers.length === 0) return null;
@@ -240,7 +276,8 @@ const CapacityPriceLadder = ({ roomTypes, onSelect, nights, checkIn, selectedGue
         selectedGuestCount={selectedGuestCount}
       />
 
-      {/* ── 一泊二食 包含內容（折疊） ── */}
+      {/* ── 一泊二食 包含內容（折疊；無 includes 則隱藏） ── */}
+      {PLAN_INCLUDES.length > 0 && (
       <Card className="overflow-hidden border-border/60">
         <button
           type="button"
@@ -258,7 +295,7 @@ const CapacityPriceLadder = ({ roomTypes, onSelect, nights, checkIn, selectedGue
             <UtensilsCrossed className="h-4 w-4" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-[13px] text-foreground">一泊二食 · 含 6 項體驗</p>
+            <p className="font-semibold text-[13px] text-foreground">{includesTitle || `一泊二食 · 含 ${PLAN_INCLUDES.length} 項體驗`}</p>
             <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
               點此查看方案完整內容
             </p>
@@ -277,6 +314,7 @@ const CapacityPriceLadder = ({ roomTypes, onSelect, nights, checkIn, selectedGue
           </div>
         )}
       </Card>
+      )}
 
       {/* ── 少人包區（平日才開放） ── */}
       {activeTier === "weekday" && fewPeopleTiers.length > 0 && (
