@@ -577,6 +577,26 @@ const PriceCard = ({
               </p>
             </div>
           )}
+
+          {biggerGuestCount && biggerExtraTotal > 0 && biggerPerPersonSaved > 0 && (
+            <div
+              className="flex items-center gap-1.5 mt-1 px-1.5 py-1 rounded"
+              style={{ background: "hsl(25, 70%, 95%)" }}
+            >
+              <TrendingDown className="h-3 w-3 shrink-0" style={{ color: "hsl(25, 70%, 40%)" }} />
+              <p className="text-[10.5px] leading-tight" style={{ color: "hsl(25, 70%, 30%)" }}>
+                再揪
+                <span className="font-bold mx-0.5">
+                  {biggerGuestCount - opt.guestCount} 人
+                </span>
+                升級到 {biggerGuestCount} 人方案，
+                只多
+                <span className="font-bold mx-0.5">NT${biggerExtraTotal.toLocaleString()}</span>
+                ，每人省
+                <span className="font-bold mx-0.5">NT${biggerPerPersonSaved.toLocaleString()}/晚</span>
+              </p>
+            </div>
+          )}
         </div>
       )}
 
