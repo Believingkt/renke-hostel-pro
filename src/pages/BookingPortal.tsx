@@ -715,6 +715,18 @@ const BookingPortal = () => {
       final = final.filter((c) => c.max_capacity >= filters.minCapacity);
     }
 
+    // Apply price filter at the whole-villa level — compare per-night 起價，
+    // 與滑桿（每晚最高價格）一致。card.min_price 在已選日期時為「整段總價」，
+    // 需除以夜數還原成每晚單價。
+    if (filters.maxPrice > 0) {
+      const stayDivisor = hasDateFilter && nights > 0 ? nights : 1;
+      final = final.filter((c) => {
+        if (c.min_price == null) return true;
+        const nightly = c.min_price / stayDivisor;
+        return nightly <= filters.maxPrice;
+      });
+    }
+
     // Sort
     if (filters.sortBy !== "default") {
       final = [...final].sort((a, b) => {
