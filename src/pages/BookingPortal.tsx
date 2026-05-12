@@ -740,6 +740,27 @@ const BookingPortal = () => {
           default: return 0;
         }
       });
+    } else if (adults > 0) {
+      // 智慧排序：有輸入人數時，依「最符合人數」優先
+      // 1) 容量足夠者優先（max_capacity >= adults）
+      // 2) 有 matched 試算者優先
+      // 3) 容量越接近人數越前面（避免大材小用）
+      // 4) matched 總價低者優先；無 matched 用 min_price
+      const score = (c: typeof final[number]) => {
+        const fits = c.max_capacity >= adults ? 0 : 1;
+        const hasMatch = c.matched_total_price ? 0 : 1;
+        const capDelta = Math.max(0, c.max_capacity - adults);
+        const price = c.matched_total_price ?? c.min_price ?? Infinity;
+        return [fits, hasMatch, capDelta, price] as const;
+      };
+      final = [...final].sort((a, b) => {
+        const sa = score(a);
+        const sb = score(b);
+        for (let i = 0; i < sa.length; i++) {
+          if (sa[i] !== sb[i]) return (sa[i] as number) - (sb[i] as number);
+        }
+        return 0;
+      });
     } else {
       const order = new Map(accommodations.map((a, i) => [a.id, i]));
       final.sort((a, b) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999));
