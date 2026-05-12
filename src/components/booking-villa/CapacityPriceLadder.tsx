@@ -551,7 +551,7 @@ const PriceCard = ({
 
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-sm text-foreground">
-            {opt.guestCount} 人包區
+            {opt.guestCount} 人{term}
           </p>
           <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
             {tier.roomAllocation}
