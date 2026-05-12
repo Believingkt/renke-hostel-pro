@@ -694,9 +694,25 @@ const BookingPortal = () => {
       );
       const maxCapacity = Math.max(maxFromVilla, maxFromReal);
 
-      // Per-night minimum: prefer date_price (when search done) over base_price
+      const templatesForAcc = pricingTemplates.filter((t) => t.accommodation_id === accId);
+      const holidaySet = new Set(
+        publicHolidays
+          .filter((h) => !h.accommodation_id || h.accommodation_id === accId)
+          .map((h) => h.holiday_date)
+      );
+      const templatePriceByRoom = new Map<string, number>();
+      for (const rt of rts) {
+        const candidates = templatesForAcc
+          .filter((t) => t.room_type_id === rt.id || t.room_type_id === null)
+          .map((t) => getTemplatePriceForDate(t, checkIn ?? null, holidaySet))
+          .filter((p): p is number => p !== null);
+        if (candidates.length > 0) templatePriceByRoom.set(rt.id, Math.min(...candidates));
+      }
+      const roomNightlyPrice = (r: RoomTypeResult) => r.date_price ?? templatePriceByRoom.get(r.id) ?? r.base_price;
+
+      // Per-night minimum: prefer searched date price, then project/template price, then base_price
       const nightlyPrices = rts
-        .map((r) => r.date_price ?? r.base_price)
+        .map((r) => roomNightlyPrice(r))
         .filter((p) => p > 0);
       const minNightly = nightlyPrices.length ? Math.min(...nightlyPrices) : null;
       const totalForStay =
@@ -715,7 +731,7 @@ const BookingPortal = () => {
       // 全棟方案 = 開所有真實房（總價 = 全部 base_price 加總 × room_count）
       const fullVillaNightly = realRooms.length > 0
         ? realRooms.reduce(
-            (s, r) => s + (r.date_price ?? r.base_price) * (r.room_count ?? 1),
+            (s, r) => s + roomNightlyPrice(r) * (r.room_count ?? 1),
             0
           )
         : null;
@@ -824,7 +840,7 @@ const BookingPortal = () => {
       final.sort((a, b) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999));
     }
     return final;
-  }, [filtered, accommodations, facilities, extraBedByAcc, hasDateFilter, nights, filters.minCapacity, filters.maxPrice, filters.sortBy, adults, checkIn]);
+  }, [filtered, accommodations, facilities, extraBedByAcc, pricingTemplates, publicHolidays, hasDateFilter, nights, filters.minCapacity, filters.maxPrice, filters.sortBy, adults, checkIn]);
 
   const handleAccClick = (accId: string) => {
     const params = new URLSearchParams();
