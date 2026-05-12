@@ -412,6 +412,10 @@ const BookingVilla = () => {
                 ? parseInt(searchParams.get("adults") || "0", 10) || null
                 : null
             }
+            pricingTable={customPricingTable}
+            planIncludes={customIncludes}
+            includesTitle={customIncludesTitle}
+            enableFewPeople={isSensan}
           />
         </section>
 
