@@ -358,6 +358,17 @@ const CapacityPriceLadder = ({ roomTypes, onSelect, nights, checkIn }: Props) =>
           const smallerPerPerson = smallerTier
             ? Math.round(smallerTier.sale / smallerTier.guestCount)
             : null;
+          // 「往上跳一級」：找下一個更高人數的方案
+          const biggerTier = standardTiers
+            .filter((t) => t.guestCount > tier.guestCount)
+            .sort((a, b) => a.guestCount - b.guestCount)[0];
+          const biggerExtraTotal = biggerTier
+            ? (biggerTier.sale - tier.sale) * safeNights
+            : 0;
+          const biggerPerPersonSaved = biggerTier
+            ? Math.round(tier.sale / tier.guestCount) -
+              Math.round(biggerTier.sale / biggerTier.guestCount)
+            : 0;
           // 假日差價：同人數的 weekend 方案 sale - 當前 tier sale
           const weekendSame = PRICING_TABLE.weekend.find(
             (t) => t.guestCount === tier.guestCount
@@ -384,6 +395,9 @@ const CapacityPriceLadder = ({ roomTypes, onSelect, nights, checkIn }: Props) =>
               }
               smallerPerPerson={smallerPerPerson}
               smallerGuestCount={smallerTier?.guestCount ?? null}
+              biggerGuestCount={biggerTier?.guestCount ?? null}
+              biggerExtraTotal={biggerExtraTotal}
+              biggerPerPersonSaved={biggerPerPersonSaved}
               holidayDiff={holidayDiff}
             />
           );
