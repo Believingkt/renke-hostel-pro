@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Users, ChevronRight, BedDouble, Home } from "lucide-react";
+import { MapPin, Users, ChevronRight, BedDouble, Home, Sparkles } from "lucide-react";
 
 export interface AccommodationCardData {
   id: string;
@@ -23,14 +23,26 @@ export interface AccommodationCardData {
   extra_bed_count: number;
   /** 包棟特色標籤（最多 3 個） */
   feature_tags: string[];
-  /** 每晚最低總價（含日期過濾時為實際區間最低，否則為 base_price 最低） */
+  /** 起價（最少人數方案） */
   min_price: number | null;
+  /** 全棟整包價（最大人數方案） */
+  max_price: number | null;
+  /** max_price 對應人數 */
+  max_capacity_price_capacity: number;
   /** 原價（如有折扣顯示，用於 strikethrough） */
   original_price: number | null;
   /** 折扣百分比（如有折扣才顯示） */
   discount_percent: number | null;
   /** 有日期過濾時的剩餘房間數（min across stay dates） */
   available_rooms: number | null;
+  /** 使用者選擇的人數（搜尋條），>0 才有 matched 資料 */
+  matched_guests: number | null;
+  /** 對應人數試算所需房間數 */
+  matched_rooms: number | null;
+  /** 對應人數試算可容納總人數（≥ matched_guests） */
+  matched_capacity: number | null;
+  /** 對應人數試算總價（含 nights 計算） */
+  matched_total_price: number | null;
 }
 
 interface Props {
