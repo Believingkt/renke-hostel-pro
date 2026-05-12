@@ -39,6 +39,7 @@ import {
   bookingFlowDateSchema as dateValidationSchema,
 } from "@/lib/schemas/booking";
 import { format, formatISO, addMonths, endOfMonth } from "date-fns";
+import { classifyDayTier } from "@/utils/templatePriceResolver";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import {
