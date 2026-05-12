@@ -32,6 +32,7 @@ import {
   pickSensanTier,
   getSensanRangeForTier,
 } from "@/lib/sensan-pricing";
+import { classifyDayTier } from "@/utils/templatePriceResolver";
 
 interface AccommodationInfo {
   id: string;
@@ -49,6 +50,52 @@ interface FacilityRow {
   category: string;
   facility_name: string;
 }
+
+interface PricingTemplateRow {
+  accommodation_id: string;
+  room_type_id: string | null;
+  template_name: string;
+  price: number | null;
+  weekday_price: number | null;
+  peak_price: number | null;
+  weekend_price: number | null;
+}
+
+interface PublicHolidayRow {
+  accommodation_id: string | null;
+  holiday_date: string;
+}
+
+const asPositivePrice = (value: number | null | undefined) =>
+  typeof value === "number" && value > 0 ? value : null;
+
+const getTemplateFallbackPrice = (template: PricingTemplateRow) => {
+  const candidates = [
+    template.weekday_price,
+    template.peak_price,
+    template.weekend_price,
+    template.price,
+  ]
+    .map(asPositivePrice)
+    .filter((p): p is number => p !== null);
+  return candidates.length ? Math.min(...candidates) : null;
+};
+
+const getTemplatePriceForDate = (
+  template: PricingTemplateRow,
+  date: Date | null | undefined,
+  holidaySet: Set<string>,
+) => {
+  if (!date) return getTemplateFallbackPrice(template);
+  const tier = classifyDayTier(date, holidaySet);
+  const value =
+    tier === "weekend"
+      ? template.weekend_price ?? template.price
+      : tier === "peak"
+        ? template.peak_price ?? template.price ?? template.weekday_price
+        : template.weekday_price ?? template.price;
+  return asPositivePrice(value);
+};
 
 // Map facility keywords -> 包棟特色標籤
 const FEATURE_TAG_RULES: Array<{ test: (name: string) => boolean; label: string }> = [
@@ -83,6 +130,8 @@ const BookingPortal = () => {
   const [accommodations, setAccommodations] = useState<AccommodationInfo[]>([]);
   const [roomTypes, setRoomTypes] = useState<RoomTypeResult[]>([]);
   const [facilities, setFacilities] = useState<FacilityRow[]>([]);
+  const [pricingTemplates, setPricingTemplates] = useState<PricingTemplateRow[]>([]);
+  const [publicHolidays, setPublicHolidays] = useState<PublicHolidayRow[]>([]);
   const [extraBedByAcc, setExtraBedByAcc] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -141,7 +190,7 @@ const BookingPortal = () => {
   const fetchData = async () => {
     try {
       // Fetch accommodations and room types in parallel
-      const [{ data: accs }, { data: rooms }, { data: roomPhotos }, { data: heroPhotos }, { data: facs }, { data: addons }] = await Promise.all([
+      const [{ data: accs }, { data: rooms }, { data: roomPhotos }, { data: heroPhotos }, { data: facs }, { data: addons }, { data: templates }, { data: holidays }] = await Promise.all([
         supabase
           .from("accommodation_info")
           .select("id, name, region_1, region_2, type, address, country")
@@ -168,6 +217,13 @@ const BookingPortal = () => {
           .from("addon_settings")
           .select("accommodation_id, addon_type, unit_label, max_quantity, enabled")
           .eq("enabled", true),
+        supabase
+          .from("pricing_templates")
+          .select("accommodation_id, room_type_id, template_name, price, weekday_price, peak_price, weekend_price")
+          .order("display_order", { ascending: true }),
+        supabase
+          .from("public_holidays")
+          .select("accommodation_id, holiday_date"),
       ]);
 
       if (!accs || !rooms) return;
@@ -222,6 +278,8 @@ const BookingPortal = () => {
       setAccommodations(accsWithPhotos);
       setRoomTypes(results);
       setFacilities(facs || []);
+      setPricingTemplates((templates || []) as PricingTemplateRow[]);
+      setPublicHolidays((holidays || []) as PublicHolidayRow[]);
 
       // Aggregate extra-bed capacity per accommodation from addon_settings.
       // Heuristic: any enabled addon whose addon_type or unit_label indicates a bed/extra person.
@@ -538,7 +596,8 @@ const BookingPortal = () => {
     // 貪婪法：以最少房間數，從最大 capacity 房型開始填，回傳開房數與每晚總價
     const fitGuests = (
       realRooms: RoomTypeResult[],
-      guests: number
+      guests: number,
+      getNightlyPrice: (room: RoomTypeResult) => number = (room) => room.date_price ?? room.base_price,
     ): { rooms: number; nightly: number; capacity: number } | null => {
       if (guests <= 0 || realRooms.length === 0) return null;
       const sorted = [...realRooms].sort((a, b) => b.capacity - a.capacity);
@@ -548,7 +607,7 @@ const BookingPortal = () => {
       let nightly = 0;
       for (const rt of sorted) {
         const stock = rt.room_count ?? 1;
-        const unitPrice = rt.date_price ?? rt.base_price;
+        const unitPrice = getNightlyPrice(rt);
         for (let i = 0; i < stock && remaining > 0; i++) {
           openRooms += 1;
           capacity += rt.capacity;
@@ -636,9 +695,31 @@ const BookingPortal = () => {
       );
       const maxCapacity = Math.max(maxFromVilla, maxFromReal);
 
-      // Per-night minimum: prefer date_price (when search done) over base_price
+      const templatesForAcc = pricingTemplates.filter((t) => t.accommodation_id === accId);
+      const holidaySet = new Set(
+        publicHolidays
+          .filter((h) => !h.accommodation_id || h.accommodation_id === accId)
+          .map((h) => h.holiday_date)
+      );
+      const templatePriceByRoom = new Map<string, number>();
+      for (const rt of rts) {
+        const candidates = templatesForAcc
+          .filter((t) => t.room_type_id === rt.id || t.room_type_id === null)
+          .map((t) => getTemplatePriceForDate(t, checkIn ?? null, holidaySet))
+          .filter((p): p is number => p !== null);
+        if (candidates.length > 0) templatePriceByRoom.set(rt.id, Math.min(...candidates));
+      }
+      const roomNightlyPrice = (r: RoomTypeResult) => asPositivePrice(r.date_price) ?? templatePriceByRoom.get(r.id) ?? r.base_price;
+      const packageOptions = (villaPlans.length > 0 ? villaPlans : rts)
+        .map((room) => ({
+          room,
+          nightly: templatePriceByRoom.get(room.id) ?? asPositivePrice(room.date_price) ?? asPositivePrice(room.base_price),
+        }))
+        .filter((item): item is { room: RoomTypeResult; nightly: number } => item.nightly !== null);
+
+      // Per-night minimum: prefer searched date price, then project/template price, then base_price
       const nightlyPrices = rts
-        .map((r) => r.date_price ?? r.base_price)
+        .map((r) => roomNightlyPrice(r))
         .filter((p) => p > 0);
       const minNightly = nightlyPrices.length ? Math.min(...nightlyPrices) : null;
       const totalForStay =
@@ -647,8 +728,11 @@ const BookingPortal = () => {
           : minNightly;
 
       // 起價方案 = 用最少房間（即剛好放得下 minCapacity 人）
-      const startFit = fitGuests(realRooms, minCapacity);
-      const startNightly = startFit?.nightly ?? minNightly;
+      const startFit = fitGuests(realRooms, minCapacity, roomNightlyPrice);
+      const startPackage = packageOptions.length > 0
+        ? [...packageOptions].sort((a, b) => a.nightly - b.nightly)[0]
+        : null;
+      const startNightly = startPackage?.nightly ?? startFit?.nightly ?? minNightly;
       const startTotal =
         startNightly !== null && hasDateFilter && nights > 0
           ? startNightly * nights
@@ -657,7 +741,7 @@ const BookingPortal = () => {
       // 全棟方案 = 開所有真實房（總價 = 全部 base_price 加總 × room_count）
       const fullVillaNightly = realRooms.length > 0
         ? realRooms.reduce(
-            (s, r) => s + (r.date_price ?? r.base_price) * (r.room_count ?? 1),
+            (s, r) => s + roomNightlyPrice(r) * (r.room_count ?? 1),
             0
           )
         : null;
@@ -667,8 +751,13 @@ const BookingPortal = () => {
           : fullVillaNightly;
 
       // 對應使用者選的人數
-      const matchedFit = adults > 0 ? fitGuests(realRooms, adults) : null;
-      const matchedNightly = matchedFit?.nightly ?? null;
+      const matchedFit = adults > 0 ? fitGuests(realRooms, adults, roomNightlyPrice) : null;
+      const matchedPackage = adults > 0 && packageOptions.length > 0
+        ? [...packageOptions]
+            .filter((item) => item.room.capacity >= adults)
+            .sort((a, b) => a.room.capacity - b.room.capacity || a.nightly - b.nightly)[0] ?? null
+        : null;
+      const matchedNightly = matchedPackage?.nightly ?? matchedFit?.nightly ?? null;
       const matchedTotal =
         matchedNightly !== null && hasDateFilter && nights > 0
           ? matchedNightly * nights
@@ -766,7 +855,7 @@ const BookingPortal = () => {
       final.sort((a, b) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999));
     }
     return final;
-  }, [filtered, accommodations, facilities, extraBedByAcc, hasDateFilter, nights, filters.minCapacity, filters.maxPrice, filters.sortBy, adults, checkIn]);
+  }, [filtered, accommodations, facilities, extraBedByAcc, pricingTemplates, publicHolidays, hasDateFilter, nights, filters.minCapacity, filters.maxPrice, filters.sortBy, adults, checkIn]);
 
   const handleAccClick = (accId: string) => {
     const params = new URLSearchParams();
