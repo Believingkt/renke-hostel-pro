@@ -1,7 +1,8 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Users, ChevronRight, BedDouble, Home, Sparkles } from "lucide-react";
+import { MapPin, Users, ChevronRight, BedDouble, Home, Sparkles, Package } from "lucide-react";
+import { isSensanAccommodation } from "@/lib/sensan-pricing";
 
 export interface AccommodationCardData {
   id: string;
