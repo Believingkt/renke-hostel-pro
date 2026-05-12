@@ -28,6 +28,8 @@ import BookingFooter from "@/components/BookingFooter";
 import MobileBottomNav from "@/components/member/MobileBottomNav";
 import { CustomSectionDisplay, SingleCustomSection, CustomSection } from "@/components/CustomSectionDisplay";
 import OtherChannelsSection from "@/components/OtherChannelsSection";
+import PackagesSection from "@/components/PackagesSection";
+import { useAccommodationPackages } from "@/hooks/use-accommodation-packages";
 
 const BookingAccommodation = () => {
   const { accId } = useParams<{ accId: string }>();
@@ -46,6 +48,9 @@ const BookingAccommodation = () => {
     error: dataError,
     refetch,
   } = useAccommodationCache(accId || null);
+
+  const { packages } = useAccommodationPackages(accId || null);
+  const hasPackages = packages.length > 0;
 
   const themeClass = info?.theme_preset ? getThemeClass(info.theme_preset) : '';
 
@@ -219,7 +224,19 @@ const BookingAccommodation = () => {
                 <AboutSection key="about" description={info.description} accommodationId={info.id} customTitle={titles.title} customSubtitle={titles.subtitle} />
               );
             case 'rooms':
-              return info.show_rooms_section !== false && (
+              if (info.show_rooms_section === false) return null;
+              if (hasPackages) {
+                return (
+                  <PackagesSection
+                    key="rooms"
+                    accommodationId={info.id}
+                    packages={packages}
+                    customTitle={titles.title}
+                    customSubtitle={titles.subtitle}
+                  />
+                );
+              }
+              return (
                 <RoomsSection key="rooms" roomTypes={secondaryData?.roomTypes || []} sectionDescription={info.description} customTitle={titles.title} customSubtitle={titles.subtitle} />
               );
             case 'facilities':
