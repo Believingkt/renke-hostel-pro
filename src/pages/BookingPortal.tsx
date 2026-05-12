@@ -489,13 +489,9 @@ const BookingPortal = () => {
     // Capacity filter is applied at the aggregated (per-accommodation) level
     // below, so we don't filter individual room types out here.
 
-    // Price filter
-    if (filters.maxPrice > 0) {
-      result = result.filter((rt) => {
-        const price = rt.date_price ?? rt.base_price;
-        return price <= filters.maxPrice;
-      });
-    }
+    // Price filter is applied at the aggregated (per-accommodation) level below,
+    // so the slider reflects the same per-stay price shown on each card
+    // (incl. 森山的 SENSAN_PRICING_TABLE 起價).
 
     // Sort
     if (filters.sortBy !== "default") {
