@@ -26,6 +26,12 @@ import {
   BedDouble,
   MessageCircle,
 } from "lucide-react";
+import {
+  isSensanAccommodation,
+  detectSensanTierByDate,
+  pickSensanTier,
+  getSensanRangeForTier,
+} from "@/lib/sensan-pricing";
 
 interface AccommodationInfo {
   id: string;
@@ -461,9 +467,13 @@ const BookingPortal = () => {
       );
     }
 
-    // Availability filter
+    // Availability filter — 森山忽略散客庫存判定，永遠保留
     if (hasDateFilter) {
-      result = result.filter((rt) => rt.available_rooms !== null && rt.available_rooms > 0);
+      result = result.filter(
+        (rt) =>
+          isSensanAccommodation(rt.accommodation_name) ||
+          (rt.available_rooms !== null && rt.available_rooms > 0)
+      );
     }
 
     // Region filter
@@ -559,11 +569,62 @@ const BookingPortal = () => {
       const acc = accMap.get(accId);
       if (!acc) return;
 
+      const isSensan = isSensanAccommodation(acc.name);
+
       const realRooms = rts.filter((r) => !isVillaPlan(r));
       const villaPlans = rts.filter((r) => isVillaPlan(r));
       const baseRooms = realRooms.length > 0 ? realRooms : rts;
 
       const totalRooms = baseRooms.reduce((s, r) => s + (r.room_count ?? 1), 0);
+
+      // ── 森山專用：以 SENSAN_PRICING_TABLE 為價格來源；忽略散客邏輯 ──
+      if (isSensan) {
+        const tier = detectSensanTierByDate(checkIn ?? null);
+        const { min: minTier, max: maxTier } = getSensanRangeForTier(tier);
+        const matchedTier = adults > 0 ? pickSensanTier(adults, tier) : null;
+        const safeNights = Math.max(1, nights);
+        const stayMul = hasDateFilter && nights > 0 ? safeNights : 1;
+
+        const startTotal = minTier.sale * stayMul;
+        const fullVillaTotal = maxTier.sale * stayMul;
+        const matchedTotal = matchedTier ? matchedTier.sale * stayMul : null;
+        const originalForStart = minTier.original * stayMul;
+        const discountPercent = Math.round(
+          ((minTier.original - minTier.sale) / minTier.original) * 100
+        );
+
+        cards.push({
+          id: acc.id,
+          name: acc.name,
+          type: acc.type,
+          region_1: acc.region_1,
+          region_2: acc.region_2,
+          country: acc.country,
+          hero_photo_url: acc.hero_photo_url ?? null,
+          total_rooms: totalRooms,
+          room_type_count: rts.length,
+          // 森山以包區方案為單位：最低 6 人、最高 18 人
+          min_capacity: minTier.guestCount,
+          max_capacity: maxTier.guestCount,
+          extra_bed_count: extraBedByAcc.get(accId) || 0,
+          feature_tags: deriveFeatureTags(facByAcc.get(accId) ?? []),
+          min_price: startTotal,
+          original_price: originalForStart,
+          discount_percent: discountPercent,
+          max_price: fullVillaTotal,
+          max_capacity_price_capacity: maxTier.guestCount,
+          matched_guests: adults > 0 ? adults : null,
+          matched_capacity: matchedTier?.guestCount ?? null,
+          // 森山是整棟方案，沒有「開幾間」的概念，固定顯示 1 個方案
+          matched_rooms: matchedTier ? 1 : null,
+          matched_total_price: matchedTotal,
+          // 森山忽略散客庫存判定，列表卡不再因散客缺房而消失
+          available_rooms: hasDateFilter ? 1 : null,
+        });
+        return;
+      }
+
+      // ── 一般民宿：以 room_types 庫存推導 ──
       // 最少人數 = 真實房間數（一間至少容納 1 人 = 包棟最低人數的概念）
       // 退回房型最小 capacity 若無真實房型
       const minCapacity = realRooms.length > 0
