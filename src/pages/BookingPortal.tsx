@@ -32,6 +32,7 @@ import {
   pickSensanTier,
   getSensanRangeForTier,
 } from "@/lib/sensan-pricing";
+import { classifyDayTier } from "@/utils/templatePriceResolver";
 
 interface AccommodationInfo {
   id: string;
@@ -49,6 +50,52 @@ interface FacilityRow {
   category: string;
   facility_name: string;
 }
+
+interface PricingTemplateRow {
+  accommodation_id: string;
+  room_type_id: string | null;
+  template_name: string;
+  price: number | null;
+  weekday_price: number | null;
+  peak_price: number | null;
+  weekend_price: number | null;
+}
+
+interface PublicHolidayRow {
+  accommodation_id: string | null;
+  holiday_date: string;
+}
+
+const asPositivePrice = (value: number | null | undefined) =>
+  typeof value === "number" && value > 0 ? value : null;
+
+const getTemplateFallbackPrice = (template: PricingTemplateRow) => {
+  const candidates = [
+    template.weekday_price,
+    template.peak_price,
+    template.weekend_price,
+    template.price,
+  ]
+    .map(asPositivePrice)
+    .filter((p): p is number => p !== null);
+  return candidates.length ? Math.min(...candidates) : null;
+};
+
+const getTemplatePriceForDate = (
+  template: PricingTemplateRow,
+  date: Date | null | undefined,
+  holidaySet: Set<string>,
+) => {
+  if (!date) return getTemplateFallbackPrice(template);
+  const tier = classifyDayTier(date, holidaySet);
+  const value =
+    tier === "weekend"
+      ? template.weekend_price ?? template.price
+      : tier === "peak"
+        ? template.peak_price ?? template.price ?? template.weekday_price
+        : template.weekday_price ?? template.price;
+  return asPositivePrice(value);
+};
 
 // Map facility keywords -> 包棟特色標籤
 const FEATURE_TAG_RULES: Array<{ test: (name: string) => boolean; label: string }> = [
