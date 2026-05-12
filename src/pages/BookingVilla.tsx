@@ -540,18 +540,24 @@ const BookingVilla = () => {
             <p className="text-[10px] text-muted-foreground leading-none mb-0.5">
               {checkIn && checkOut ? `共 ${nights} 晚 · 包棟起` : "包棟起"}
             </p>
-            {villaStats &&
-              (secondaryData?.roomTypes?.length || 0) > 0 && (
+            {(() => {
+              const pkgMin = packages.length > 0
+                ? Math.min(...packages.map((p) => p.sale_price))
+                : null;
+              const roomMin = (secondaryData?.roomTypes?.length || 0) > 0
+                ? Math.min(...secondaryData!.roomTypes.map((r: any) => r.base_price))
+                : null;
+              const display = pkgMin ?? roomMin;
+              if (display == null) return null;
+              return (
                 <p
                   className="font-bold text-base leading-none"
                   style={{ color: "hsl(0, 75%, 50%)" }}
                 >
-                  NT$
-                  {Math.min(
-                    ...secondaryData!.roomTypes.map((r: any) => r.base_price)
-                  ).toLocaleString()}
+                  NT${display.toLocaleString()}
                 </p>
-              )}
+              );
+            })()}
           </div>
           <Button
             className="h-11 px-6 text-sm font-bold text-white rounded-full"
