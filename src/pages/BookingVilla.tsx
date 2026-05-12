@@ -78,13 +78,30 @@ const BookingVilla = () => {
     if (accId) setCurrentAccommodationId(accId);
   }, [accId, setCurrentAccommodationId]);
 
-  // 防呆：非森山住宿不應走包區階梯頁（CapacityPriceLadder 為森山硬編碼），自動導向標準訂房頁
+  // 載入該民宿的包區方案（非森山民宿透過資料驅動使用同一套階梯卡 UI）
+  const { packages } = useAccommodationPackages(accId || null);
+  const isSensan = info ? isSensanAccommodation(info.name) : false;
+  const customPricingTable = useMemo(() => {
+    if (isSensan || packages.length === 0) return undefined;
+    return buildPricingTableFromPackages(packages);
+  }, [isSensan, packages]);
+  const customIncludes = useMemo(() => {
+    if (isSensan || packages.length === 0) return undefined;
+    return aggregateIncludesFromPackages(packages);
+  }, [isSensan, packages]);
+  const customIncludesTitle = useMemo(() => {
+    if (isSensan || packages.length === 0) return undefined;
+    const count = customIncludes?.length || 0;
+    return count > 0 ? `方案內容 · 含 ${count} 項` : "方案內容";
+  }, [isSensan, packages, customIncludes]);
+
+  // 防呆：非森山且沒有設定任何包區方案的民宿，回到標準訂房頁
   useEffect(() => {
-    if (info && !isSensanAccommodation(info.name)) {
+    if (info && !isSensanAccommodation(info.name) && packages.length === 0) {
       const qs = searchParams.toString();
       navigate(`/booking/${info.id}${qs ? `?${qs}` : ""}`, { replace: true });
     }
-  }, [info, navigate, searchParams]);
+  }, [info, navigate, searchParams, packages.length]);
 
   // Auth state for header
   useEffect(() => {
