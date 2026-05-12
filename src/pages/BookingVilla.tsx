@@ -26,6 +26,7 @@ import lokezeLogo from "@/assets/lakeze-portal-logo.png";
 
 import VillaPhotoCarousel from "@/components/booking-villa/VillaPhotoCarousel";
 import VillaOverviewBar from "@/components/booking-villa/VillaOverviewBar";
+import VillaAvailabilityCalendar from "@/components/booking-villa/VillaAvailabilityCalendar";
 import CapacityPriceLadder, {
   type CapacityOption,
 } from "@/components/booking-villa/CapacityPriceLadder";
