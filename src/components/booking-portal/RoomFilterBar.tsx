@@ -52,7 +52,9 @@ const RoomFilterBar = ({
       .map((rt) => rt.date_price ?? rt.base_price)
       .filter((price) => price > 0);
 
-    return prices.length > 0 ? Math.max(...prices) : 20000;
+    const dataMax = prices.length > 0 ? Math.max(...prices) : 20000;
+    // 上限至少 70,000，讓使用者能涵蓋森山等高價包棟方案
+    return Math.max(dataMax, 70000);
   }, [roomTypes]);
 
   const sliderStep = useMemo(() => {
