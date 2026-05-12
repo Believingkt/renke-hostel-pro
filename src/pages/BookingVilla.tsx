@@ -79,7 +79,7 @@ const BookingVilla = () => {
   }, [accId, setCurrentAccommodationId]);
 
   // 載入該民宿的包區方案（非森山民宿透過資料驅動使用同一套階梯卡 UI）
-  const { packages } = useAccommodationPackages(accId || null);
+  const { packages, loading: packagesLoading } = useAccommodationPackages(accId || null);
   const isSensan = info ? isSensanAccommodation(info.name) : false;
   const customPricingTable = useMemo(() => {
     if (isSensan || packages.length === 0) return undefined;
