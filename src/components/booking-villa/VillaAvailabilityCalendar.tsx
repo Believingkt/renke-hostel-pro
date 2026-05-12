@@ -194,7 +194,7 @@ const VillaAvailabilityCalendar = ({ accommodationId }: Props) => {
             可訂
           </span>
           <span className="flex items-center gap-1">
-            <span className="inline-block w-2.5 h-2.5 rounded-sm bg-muted border border-border" />
+            <span className="inline-block w-2.5 h-2.5 rounded-sm bg-destructive/10 border border-destructive/30" />
             已滿
           </span>
         </div>
@@ -252,12 +252,12 @@ const VillaAvailabilityCalendar = ({ accommodationId }: Props) => {
             <div
               key={dateStr}
               className={cn(
-                "aspect-square rounded-md flex items-center justify-center text-[13px] font-medium border transition-colors",
+                "relative aspect-square rounded-md flex flex-col items-center justify-center text-[13px] font-medium border transition-colors",
                 isPast
                   ? "bg-transparent text-muted-foreground/30 border-transparent"
                   : isAvail
                     ? "bg-primary/10 text-foreground border-primary/40"
-                    : "bg-muted text-muted-foreground/60 border-border line-through",
+                    : "bg-destructive/5 text-destructive/70 border-destructive/30",
                 isToday && !isPast && "ring-2 ring-primary",
               )}
               title={
@@ -268,7 +268,12 @@ const VillaAvailabilityCalendar = ({ accommodationId }: Props) => {
                     : `${format(day, "M/d")} 已滿`
               }
             >
-              {format(day, "d")}
+              <span className={cn(!isPast && !isAvail && "line-through decoration-destructive/60")}>
+                {format(day, "d")}
+              </span>
+              {!isPast && !isAvail && (
+                <span className="text-[9px] leading-none mt-0.5 font-semibold tracking-tight">已滿</span>
+              )}
             </div>
           );
         })}
