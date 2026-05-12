@@ -190,7 +190,7 @@ const CapacityPriceLadder = ({
   }
 
   const safeNights = Math.max(1, nights);
-  const tierLabel = TIER_LABELS[activeTier];
+  const tierLabel = { ...TIER_LABELS[activeTier], hint: TIER_HINT[activeTier] };
   const otherTiers = (Object.keys(TIER_LABELS) as PricingTier[]).filter((t) => t !== activeTier);
 
   // 平日的少人包區，在旺日/假日要顯示為「禁用態」說明
