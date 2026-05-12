@@ -236,6 +236,8 @@ const CapacityPriceLadder = ({ roomTypes, onSelect, nights, checkIn, selectedGue
         tiers={currentTiers}
         safeNights={safeNights}
         recommendedGuestCount={recommendedGuestCount}
+        matchedGuestCount={matchedGuestCount}
+        selectedGuestCount={selectedGuestCount}
       />
 
       {/* ── 一泊二食 包含內容（折疊） ── */}
