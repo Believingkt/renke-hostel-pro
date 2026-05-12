@@ -646,9 +646,17 @@ interface PriceLadderTableProps {
   tiers: TierPrice[];
   safeNights: number;
   recommendedGuestCount: number | null;
+  matchedGuestCount?: number | null;
+  selectedGuestCount?: number | null;
 }
 
-const PriceLadderTable = ({ tiers, safeNights, recommendedGuestCount }: PriceLadderTableProps) => {
+const PriceLadderTable = ({
+  tiers,
+  safeNights,
+  recommendedGuestCount,
+  matchedGuestCount = null,
+  selectedGuestCount = null,
+}: PriceLadderTableProps) => {
   if (tiers.length === 0) return null;
 
   // 以最高人數方案的每人/晚作為「最低基準」，比例越高代表越貴
