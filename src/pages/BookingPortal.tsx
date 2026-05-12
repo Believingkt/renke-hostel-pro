@@ -528,6 +528,33 @@ const BookingPortal = () => {
     // 「包棟方案」(如「12 人包區」) 為虛擬人數方案，不計入實際房間數
     const isVillaPlan = (r: RoomTypeResult) =>
       /包棟|包區|whole|villa/i.test(r.name) || r.capacity >= 8;
+
+    // 貪婪法：以最少房間數，從最大 capacity 房型開始填，回傳開房數與每晚總價
+    const fitGuests = (
+      realRooms: RoomTypeResult[],
+      guests: number
+    ): { rooms: number; nightly: number; capacity: number } | null => {
+      if (guests <= 0 || realRooms.length === 0) return null;
+      const sorted = [...realRooms].sort((a, b) => b.capacity - a.capacity);
+      let remaining = guests;
+      let openRooms = 0;
+      let capacity = 0;
+      let nightly = 0;
+      for (const rt of sorted) {
+        const stock = rt.room_count ?? 1;
+        const unitPrice = rt.date_price ?? rt.base_price;
+        for (let i = 0; i < stock && remaining > 0; i++) {
+          openRooms += 1;
+          capacity += rt.capacity;
+          nightly += unitPrice;
+          remaining -= rt.capacity;
+        }
+        if (remaining <= 0) break;
+      }
+      if (remaining > 0) return null;
+      return { rooms: openRooms, nightly, capacity };
+    };
+
     byAcc.forEach((rts, accId) => {
       const acc = accMap.get(accId);
       if (!acc) return;
