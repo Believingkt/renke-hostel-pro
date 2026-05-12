@@ -220,6 +220,13 @@ const CapacityPriceLadder = ({ roomTypes, onSelect, nights, checkIn }: Props) =>
         </Popover>
       </div>
 
+      {/* ── 人數價目階梯表（一眼比較划算度） ── */}
+      <PriceLadderTable
+        tiers={currentTiers}
+        safeNights={safeNights}
+        recommendedGuestCount={recommendedGuestCount}
+      />
+
       {/* ── 一泊二食 包含內容（折疊） ── */}
       <Card className="overflow-hidden border-border/60">
         <button
