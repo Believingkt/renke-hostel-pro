@@ -101,7 +101,14 @@ const CapacityPriceLadder = ({
   planIncludes,
   includesTitle,
   enableFewPeople = true,
+  isSensan = true,
 }: Props) => {
+  const TERM = isSensan ? "包區" : "包棟";
+  const TIER_HINT: Record<PricingTier, string> = {
+    weekday: isSensan ? "含少人包區早鳥優惠" : "標準包棟方案",
+    friday_sunday: `標準${TERM}方案`,
+    weekend: `假日${TERM}方案`,
+  };
   const PRICING_TABLE = pricingTable || DEFAULT_PRICING_TABLE;
   const PLAN_INCLUDES = useMemo(() => {
     if (!planIncludes) return DEFAULT_PLAN_INCLUDES;
