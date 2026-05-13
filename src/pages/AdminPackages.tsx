@@ -66,6 +66,8 @@ interface FormState {
   subtitle: string;
   guest_count: number;
   guest_count_max: number | null;
+  child_count_max: number | null;
+  child_age_note: string;
   original_price: number | null;
   sale_price: number;
   room_allocation: string;
@@ -82,6 +84,8 @@ const emptyForm = (): FormState => ({
   subtitle: "",
   guest_count: 2,
   guest_count_max: null,
+  child_count_max: null,
+  child_age_note: "",
   original_price: null,
   sale_price: 0,
   room_allocation: "",
@@ -131,6 +135,8 @@ const AdminPackages = () => {
       subtitle: pkg.subtitle ?? "",
       guest_count: pkg.guest_count,
       guest_count_max: pkg.guest_count_max,
+      child_count_max: pkg.child_count_max,
+      child_age_note: pkg.child_age_note ?? "",
       original_price: pkg.original_price,
       sale_price: pkg.sale_price,
       room_allocation: pkg.room_allocation ?? "",
@@ -151,6 +157,8 @@ const AdminPackages = () => {
       subtitle: pkg.subtitle ?? "",
       guest_count: pkg.guest_count,
       guest_count_max: pkg.guest_count_max,
+      child_count_max: pkg.child_count_max,
+      child_age_note: pkg.child_age_note ?? "",
       original_price: pkg.original_price,
       sale_price: pkg.sale_price,
       room_allocation: pkg.room_allocation ?? "",
@@ -190,6 +198,8 @@ const AdminPackages = () => {
       subtitle: form.subtitle.trim() || null,
       guest_count: form.guest_count,
       guest_count_max: form.guest_count_max,
+      child_count_max: form.child_count_max,
+      child_age_note: form.child_age_note.trim() || null,
       original_price: form.original_price,
       sale_price: form.sale_price,
       room_allocation: form.room_allocation.trim() || null,
@@ -379,6 +389,32 @@ const AdminPackages = () => {
                     })
                   }
                   placeholder="例：10"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>兒童人數上限（選填）</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={form.child_count_max ?? ""}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      child_count_max: e.target.value ? parseInt(e.target.value, 10) : null,
+                    })
+                  }
+                  placeholder="例：2"
+                />
+              </div>
+              <div>
+                <Label>兒童年齡備註（選填）</Label>
+                <Input
+                  value={form.child_age_note}
+                  onChange={(e) => setForm({ ...form, child_age_note: e.target.value })}
+                  placeholder="例：6 歲以下不佔床"
                 />
               </div>
             </div>
