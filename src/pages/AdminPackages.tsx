@@ -218,6 +218,9 @@ const AdminPackages = () => {
       primary_room_type_id: form.primary_room_type_id === NONE ? null : form.primary_room_type_id,
       display_order: form.display_order,
       enabled: form.enabled,
+      excluded_date_ranges: (form.excluded_date_ranges || []).filter(
+        (r) => r.start && r.end && r.start <= r.end
+      ) as any,
     };
     const { error } = editing
       ? await supabase.from("accommodation_packages").update(payload).eq("id", editing.id)
