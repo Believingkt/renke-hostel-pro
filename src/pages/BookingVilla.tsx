@@ -33,6 +33,7 @@ import CapacityPriceLadder, {
 import { isSensanAccommodation } from "@/lib/sensan-pricing";
 import {
   useAccommodationPackages,
+  useAccommodationHolidays,
   buildPricingTableFromPackages,
   aggregateIncludesFromPackages,
   detectTierByDate,
