@@ -382,6 +382,7 @@ export type Database = {
           created_at: string
           display_order: number
           enabled: boolean
+          excluded_date_ranges: Json
           guest_count: number
           guest_count_max: number | null
           id: string
@@ -403,6 +404,7 @@ export type Database = {
           created_at?: string
           display_order?: number
           enabled?: boolean
+          excluded_date_ranges?: Json
           guest_count?: number
           guest_count_max?: number | null
           id?: string
@@ -424,6 +426,7 @@ export type Database = {
           created_at?: string
           display_order?: number
           enabled?: boolean
+          excluded_date_ranges?: Json
           guest_count?: number
           guest_count_max?: number | null
           id?: string
