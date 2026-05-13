@@ -201,7 +201,7 @@ export function buildPricingTableFromPackages(
       subtitle: pkg.subtitle,
       guestCountMax: pkg.guest_count_max,
       childCountMax: pkg.child_count_max,
-      childAgeNote: pkg.child_age_note,
+      guestCountLabel: pkg.guest_count_label,
       tags: pkg.tags || [],
       includes: pkg.includes || [],
     };
