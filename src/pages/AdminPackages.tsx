@@ -312,6 +312,9 @@ const AdminPackages = () => {
               <Button variant="ghost" size="icon" onClick={() => openEdit(pkg)}>
                 <Pencil className="h-4 w-4" />
               </Button>
+              <Button variant="ghost" size="icon" onClick={() => handleCopy(pkg)}>
+                <Copy className="h-4 w-4" />
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
