@@ -166,14 +166,21 @@ Deno.serve(async (req) => {
           );
         }
 
-        // Generate new API key
+        // Generate new API key (returned to caller ONCE)
         const newApiKey = generateApiKey();
+        const newApiKeyHash = await sha256Hex(newApiKey);
+        const newApiKeyPrefix = newApiKey.slice(0, 12);
 
-        // Upsert into discount_code_secrets
+        // Upsert into discount_code_secrets (store hash only)
         const { error: upsertErr } = await supabase
           .from('discount_code_secrets')
           .upsert(
-            { discount_code_id: dc.id, api_key: newApiKey, updated_at: new Date().toISOString() },
+            {
+              discount_code_id: dc.id,
+              api_key_hash: newApiKeyHash,
+              api_key_prefix: newApiKeyPrefix,
+              updated_at: new Date().toISOString(),
+            },
             { onConflict: 'discount_code_id' }
           );
 
@@ -191,7 +198,9 @@ Deno.serve(async (req) => {
             success: true,
             discount_code: dc.code,
             name: dc.name,
-            api_key: newApiKey
+            api_key: newApiKey,
+            api_key_prefix: newApiKeyPrefix,
+            message: '請妥善保存此 API Key，離開後將無法再次查看',
           }),
           { headers: { ...manageCorsHeaders, 'Content-Type': 'application/json' } }
         );
