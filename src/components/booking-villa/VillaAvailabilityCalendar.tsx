@@ -142,8 +142,15 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
       const available = new Set<string>();
       for (const date of allDates) {
         if (isHakuna && roomTypes.length > 0) {
-          // 哈庫納：任一有訂單（被訂走）→ 整天關閉
+          // 哈庫納：
+          // 條件1: 任一有訂單（被訂走）→ 整天關閉
           if (roomTypes.some((rt) => isRoomBookedOut(rt, date))) continue;
+          // 條件2: 庫存關閉2個以上 → 整天關閉
+          const closedCount = roomTypes.filter((rt) => {
+            const base = baseIndex.get(`${rt.id}:${date}`);
+            return !base || base.is_available === false;
+          }).length;
+          if (closedCount >= 2) continue;
           available.add(date);
           continue;
         }
