@@ -733,31 +733,90 @@ const PriceCard = ({
         );
       })()}
 
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggle();
-        }}
-        className={cn(
-          "w-full px-3.5 py-1.5 flex items-center justify-between border-t border-border/50 text-[11px] font-medium transition-colors",
-          isExpanded ? "bg-muted/40 text-foreground" : "bg-muted/20 text-muted-foreground hover:bg-muted/40"
-        )}
-        aria-expanded={isExpanded}
-      >
-        <span className="flex items-center gap-1.5">
-          <BedDouble className="h-3 w-3" />
-          {isExpanded ? "收合房型分配" : "查看房型分配"}
-        </span>
-        <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isExpanded && "rotate-180")} />
-      </button>
+      {(() => {
+        const allIncludes = tier.includes || [];
+        const hasMoreIncludes = allIncludes.length > 2;
+        const hasChildInfo = !!(tier.childCountMax || tier.childAgeNote);
+        const hasExtra = hasMoreIncludes || hasChildInfo;
+        return (
+          <>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggle();
+              }}
+              className={cn(
+                "w-full px-3.5 py-1.5 flex items-center justify-between border-t border-border/50 text-[11px] font-medium transition-colors",
+                isExpanded ? "bg-muted/40 text-foreground" : "bg-muted/20 text-muted-foreground hover:bg-muted/40"
+              )}
+              aria-expanded={isExpanded}
+            >
+              <span className="flex items-center gap-1.5">
+                <BedDouble className="h-3 w-3" />
+                {isExpanded ? "收合方案明細" : hasExtra ? "查看方案明細" : "查看房型分配"}
+              </span>
+              <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isExpanded && "rotate-180")} />
+            </button>
 
-      {isExpanded && (
-        <div className="border-t border-border/50 bg-muted/10 px-3.5 py-2.5">
-          <p className="text-[11px] text-muted-foreground mb-1">本方案配置：</p>
-          <p className="text-[12px] font-medium text-foreground">{tier.roomAllocation}</p>
-        </div>
-      )}
+            {isExpanded && (
+              <div className="border-t border-border/50 bg-muted/10 px-3.5 py-2.5 space-y-2.5">
+                <div>
+                  <p className="text-[11px] text-muted-foreground mb-1">房型分配</p>
+                  <p className="text-[12px] font-medium text-foreground">{tier.roomAllocation}</p>
+                </div>
+
+                {hasChildInfo && (
+                  <div>
+                    <p className="text-[11px] text-muted-foreground mb-1 flex items-center gap-1">
+                      <Baby className="h-3 w-3" /> 兒童
+                    </p>
+                    <p className="text-[12px] text-foreground">
+                      {tier.childCountMax ? `最多可加 ${tier.childCountMax} 位兒童` : ""}
+                      {tier.childCountMax && tier.childAgeNote ? "・" : ""}
+                      {tier.childAgeNote || ""}
+                    </p>
+                  </div>
+                )}
+
+                {allIncludes.length > 0 && (
+                  <div>
+                    <p className="text-[11px] text-muted-foreground mb-1">附加說明</p>
+                    <ul className="space-y-1">
+                      {allIncludes.map((inc, i) => {
+                        const Icon = inc.available === "yes" ? Check : inc.available === "no" ? X : Plus;
+                        const color =
+                          inc.available === "yes"
+                            ? "hsl(140, 50%, 35%)"
+                            : inc.available === "no"
+                              ? "hsl(0, 60%, 55%)"
+                              : "hsl(25, 70%, 45%)";
+                        const textCls =
+                          inc.available === "no"
+                            ? "text-muted-foreground line-through"
+                            : "text-foreground";
+                        return (
+                          <li key={i} className="flex items-start gap-1.5">
+                            <Icon className="h-3 w-3 mt-0.5 shrink-0" style={{ color }} />
+                            <span className={`text-[11.5px] leading-tight ${textCls}`}>
+                              {inc.text}
+                              {inc.price_note && (
+                                <span className="text-muted-foreground ml-1">
+                                  ({inc.price_note})
+                                </span>
+                              )}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        );
+      })()}
     </Card>
   );
 };
