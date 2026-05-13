@@ -161,13 +161,12 @@ serve(async (req) => {
 
         let roomTypesQuery = supabase
           .from('room_types')
-          .select('id, name, description, base_price, capacity, size_sqm, room_count, accommodation_id, display_order, room_photos(photo_url, display_order)')
+          .select('id, name, description, base_price, capacity, size_sqm, room_count, accommodation_id, display_order, is_exclusive_package, is_bound_to_exclusive, room_photos(photo_url, display_order)')
           .order('display_order');
 
         if (targetAccId && UUID_REGEX.test(targetAccId)) {
           roomTypesQuery = roomTypesQuery.eq('accommodation_id', targetAccId);
         } else {
-          // Only include rooms from active accommodations
           const activeIds = accommodationList.map(a => a.id);
           if (activeIds.length > 0) {
             roomTypesQuery = roomTypesQuery.in('accommodation_id', activeIds);
@@ -184,6 +183,61 @@ serve(async (req) => {
         }
 
         const roomTypeIds = roomTypes.map((rt: any) => rt.id);
+        const accIds = Array.from(new Set(roomTypes.map((rt: any) => rt.accommodation_id)));
+
+        // ===== 共用:取 pricing_templates(同前台 BookingPortal) =====
+        const { data: templatesData } = await supabase
+          .from('pricing_templates')
+          .select('accommodation_id, room_type_id, template_name, price, weekday_price, peak_price, weekend_price')
+          .in('accommodation_id', accIds);
+        const templates = templatesData || [];
+
+        // 三段式日別分類(同 templatePriceResolver.classifyDayTier)
+        const classifyDayTier = (date: Date, holidaySet: Set<string>): "weekday" | "peak" | "weekend" => {
+          const yyyy = date.getFullYear();
+          const mm = String(date.getMonth() + 1).padStart(2, "0");
+          const dd = String(date.getDate()).padStart(2, "0");
+          const key = `${yyyy}-${mm}-${dd}`;
+          if (holidaySet.has(key)) return "weekend";
+          const day = date.getDay();
+          if (day === 6) return "weekend";
+          if (day === 5 || day === 0) return "peak";
+          return "weekday";
+        };
+
+        // 依日期/節假日選出單日 template 價(同 BookingPortal.getTemplatePriceForDate)
+        const templatePriceForDate = (
+          t: any,
+          dateStr: string,
+          holidaySet: Set<string>,
+        ): number | null => {
+          const tier = classifyDayTier(new Date(dateStr + "T00:00:00"), holidaySet);
+          let v: number | null | undefined;
+          if (tier === "weekend") v = t.weekend_price ?? t.price;
+          else if (tier === "peak") v = t.peak_price ?? t.price ?? t.weekday_price;
+          else v = t.weekday_price ?? t.price;
+          return v && v > 0 ? Number(v) : null;
+        };
+
+        // 每房型每日的「應收價」: 取所有適用模板的最小值,fallback 到 base_price
+        const resolveNightlyPrice = (
+          rt: any,
+          dateStr: string,
+          holidaySet: Set<string>,
+          dateOverridePrice: number | null,
+        ): number | null => {
+          // 1) 該日庫存底表如有自訂 price → 最高優先(維持原本前台「date_price」概念)
+          if (dateOverridePrice && dateOverridePrice > 0) return dateOverridePrice;
+          // 2) 比對所有適用模板取最小
+          const candidates = templates
+            .filter((t: any) => t.accommodation_id === rt.accommodation_id)
+            .filter((t: any) => t.room_type_id === rt.id || t.room_type_id === null)
+            .map((t: any) => templatePriceForDate(t, dateStr, holidaySet))
+            .filter((p: number | null): p is number => p !== null && p > 0);
+          if (candidates.length > 0) return Math.min(...candidates);
+          // 3) base_price fallback
+          return rt.base_price && rt.base_price > 0 ? Number(rt.base_price) : null;
+        };
 
         if (hasDateRange) {
           const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
@@ -203,17 +257,61 @@ serve(async (req) => {
             cur.setDate(cur.getDate() + 1);
           }
 
+          // 國定假日(三段式日別需要)
+          const { data: holidayRows } = await supabase
+            .from('public_holidays')
+            .select('holiday_date, accommodation_id')
+            .gte('holiday_date', args.check_in_date)
+            .lt('holiday_date', args.check_out_date);
+          const holidaySetByAcc = new Map<string, Set<string>>();
+          for (const accId of accIds) {
+            const set = new Set<string>(
+              (holidayRows || [])
+                .filter((h: any) => !h.accommodation_id || h.accommodation_id === accId)
+                .map((h: any) => h.holiday_date),
+            );
+            holidaySetByAcc.set(accId, set);
+          }
+
+          // 基礎庫存(取 is_available 與 自訂 price 覆寫)
           const { data: rangeInventory } = await supabase
             .from('room_inventory_pricing')
-            .select('room_type_id, date, price, is_available, available_rooms')
+            .select('room_type_id, date, price, is_available')
             .in('room_type_id', roomTypeIds)
+            .is('pricing_template_id', null)
             .gte('date', args.check_in_date)
             .lt('date', args.check_out_date);
 
-          const inventoryByRoomDate = new Map<string, any>();
+          const baseIndex = new Map<string, { is_available: boolean; price: number | null }>();
           rangeInventory?.forEach((inv: any) => {
-            inventoryByRoomDate.set(`${inv.room_type_id}:${inv.date}`, inv);
+            baseIndex.set(`${inv.room_type_id}:${inv.date}`, {
+              is_available: inv.is_available !== false,
+              price: inv.price && inv.price > 0 ? Number(inv.price) : null,
+            });
           });
+
+          // 每個房型呼叫 RPC 取調整後庫存(扣除訂單 + 包區互斥) — 與前台日曆一致
+          const adjustedResults = await Promise.all(
+            roomTypes.map(async (rt: any) => {
+              const { data } = await supabase.rpc('get_adjusted_room_inventory_batch', {
+                p_room_type_id: rt.id,
+                p_dates: datesToCheck,
+                p_accommodation_id: rt.accommodation_id,
+              });
+              return { roomTypeId: rt.id, rows: (data as any[]) || [] };
+            }),
+          );
+          const adjustedIndex = new Map<string, { available_rooms: number; is_blocked: boolean }>();
+          for (const { roomTypeId, rows } of adjustedResults) {
+            for (const row of rows) {
+              const dateKey = (row as any).date_value ?? (row as any).date;
+              if (!dateKey) continue;
+              adjustedIndex.set(`${roomTypeId}:${dateKey}`, {
+                available_rooms: row.available_rooms ?? 0,
+                is_blocked: row.is_blocked === true,
+              });
+            }
+          }
 
           return {
             check_in_date: args.check_in_date,
@@ -221,18 +319,27 @@ serve(async (req) => {
             nights: datesToCheck.length,
             rooms: roomTypes.map((rt: any) => {
               const acc = accommodationMap.get(rt.accommodation_id);
+              const holidaySet = holidaySetByAcc.get(rt.accommodation_id) || new Set<string>();
               let totalPrice = 0;
               let allAvailable = true;
               const unavailableDates: string[] = [];
 
               for (const date of datesToCheck) {
-                const inv = inventoryByRoomDate.get(`${rt.id}:${date}`);
-                if (!inv || inv.is_available === false || inv.available_rooms <= 0 || !inv.price || inv.price <= 0) {
+                const base = baseIndex.get(`${rt.id}:${date}`);
+                const adj = adjustedIndex.get(`${rt.id}:${date}`);
+                // 庫存沒開、無底表、被訂走 → 不可訂
+                if (!base || base.is_available === false || !adj || adj.is_blocked || adj.available_rooms <= 0) {
                   allAvailable = false;
                   unavailableDates.push(date);
                   continue;
                 }
-                totalPrice += Number(inv.price);
+                const nightly = resolveNightlyPrice(rt, date, holidaySet, base.price);
+                if (!nightly || nightly <= 0) {
+                  allAvailable = false;
+                  unavailableDates.push(date);
+                  continue;
+                }
+                totalPrice += nightly;
               }
 
               return {
@@ -245,6 +352,7 @@ serve(async (req) => {
                 base_price: rt.base_price,
                 description: rt.description,
                 size_sqm: rt.size_sqm,
+                is_exclusive_package: rt.is_exclusive_package === true,
                 photos: rt.room_photos?.sort((a: any, b: any) => a.display_order - b.display_order).map((p: any) => p.photo_url).slice(0, 1) || [],
                 is_available_for_range: allAvailable,
                 unavailable_dates: unavailableDates,
@@ -254,31 +362,61 @@ serve(async (req) => {
           };
         }
 
-        // No dates: return price range
+        // ===== 無日期:回傳價格區間(改用模板 + 90 天庫存最小/最大) =====
         const today = new Date().toISOString().split('T')[0];
         const futureDate = new Date();
         futureDate.setDate(futureDate.getDate() + 90);
         const futureDateStr = futureDate.toISOString().split('T')[0];
 
+        // 90 天國定假日
+        const { data: holidayRows90 } = await supabase
+          .from('public_holidays')
+          .select('holiday_date, accommodation_id')
+          .gte('holiday_date', today)
+          .lte('holiday_date', futureDateStr);
+        const holidaySetByAcc90 = new Map<string, Set<string>>();
+        for (const accId of accIds) {
+          holidaySetByAcc90.set(
+            accId,
+            new Set<string>(
+              (holidayRows90 || [])
+                .filter((h: any) => !h.accommodation_id || h.accommodation_id === accId)
+                .map((h: any) => h.holiday_date),
+            ),
+          );
+        }
+
+        // 取 90 天底表自訂價(僅有效庫存日)
         const { data: inventoryPrices } = await supabase
           .from('room_inventory_pricing')
-          .select('room_type_id, price')
+          .select('room_type_id, date, price, is_available')
           .in('room_type_id', roomTypeIds)
+          .is('pricing_template_id', null)
           .gte('date', today)
-          .lte('date', futureDateStr)
-          .eq('is_available', true)
-          .gt('available_rooms', 0);
+          .lte('date', futureDateStr);
 
-        const pricesByRoom: Record<string, number[]> = {};
+        const overrideByRoomDate = new Map<string, number>();
+        const validDatesByRoom = new Map<string, string[]>();
         inventoryPrices?.forEach((inv: any) => {
-          if (!pricesByRoom[inv.room_type_id]) pricesByRoom[inv.room_type_id] = [];
-          if (inv.price) pricesByRoom[inv.room_type_id].push(inv.price);
+          if (inv.is_available === false) return;
+          if (!validDatesByRoom.has(inv.room_type_id)) validDatesByRoom.set(inv.room_type_id, []);
+          validDatesByRoom.get(inv.room_type_id)!.push(inv.date);
+          if (inv.price && inv.price > 0) {
+            overrideByRoomDate.set(`${inv.room_type_id}:${inv.date}`, Number(inv.price));
+          }
         });
 
         return {
           rooms: roomTypes.map((rt: any) => {
             const acc = accommodationMap.get(rt.accommodation_id);
-            const prices = pricesByRoom[rt.id] || [];
+            const holidaySet = holidaySetByAcc90.get(rt.accommodation_id) || new Set<string>();
+            const dates = validDatesByRoom.get(rt.id) || [];
+            const prices: number[] = [];
+            for (const d of dates) {
+              const override = overrideByRoomDate.get(`${rt.id}:${d}`) || null;
+              const p = resolveNightlyPrice(rt, d, holidaySet, override);
+              if (p && p > 0) prices.push(p);
+            }
             return {
               id: rt.id,
               name: rt.name,
@@ -290,6 +428,7 @@ serve(async (req) => {
               max_price: prices.length ? Math.max(...prices) : rt.base_price,
               description: rt.description,
               size_sqm: rt.size_sqm,
+              is_exclusive_package: rt.is_exclusive_package === true,
               photos: rt.room_photos?.sort((a: any, b: any) => a.display_order - b.display_order).map((p: any) => p.photo_url).slice(0, 1) || [],
             };
           }),
