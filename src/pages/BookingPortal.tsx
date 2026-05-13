@@ -1102,60 +1102,132 @@ const BookingPortal = () => {
         </div>
       </section>
 
-      {/* ── Featured Accommodations ── */}
-      <section className="max-w-7xl mx-auto px-3 sm:px-4 pb-6 sm:pb-8">
-        <h2 className="text-lg sm:text-xl font-bold text-foreground mb-3 sm:mb-4">精選民宿</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
-          {accommodations.map((acc) => {
-            const roomCount = roomTypes.filter((r) => r.accommodation_id === acc.id).length;
-            const minPrice = roomTypes
-              .filter((r) => r.accommodation_id === acc.id)
-              .reduce((min, r) => Math.min(min, r.base_price), Infinity);
-            const location = acc.country === "台灣" || !acc.country
-              ? [acc.region_1, acc.region_2].filter(Boolean).join(" ")
-              : [acc.country, acc.region_1, acc.region_2].filter(Boolean).join(" ");
-            return (
-              <Card
-                key={acc.id}
-                className="group overflow-hidden border-none shadow-sm hover:shadow-lg transition-all cursor-pointer"
-                onClick={() => handleAccClick(acc.id)}
-              >
-                <div className="aspect-[4/3] overflow-hidden bg-muted">
-                  {acc.hero_photo_url ? (
-                    <img
-                      src={acc.hero_photo_url}
-                      alt={acc.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-secondary">
-                      <BedDouble className="h-10 w-10 text-muted-foreground/40" />
-                    </div>
-                  )}
-                </div>
-                <CardContent className="p-2.5 sm:p-3">
-                  <p className="font-semibold text-foreground text-sm truncate">{acc.name}</p>
-                  {location && (
-                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                      <MapPin className="h-3 w-3 shrink-0" />
-                      {location}
-                    </p>
-                  )}
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-sm text-muted-foreground">{roomCount} 種房型</span>
-                    {minPrice !== Infinity && (
-                      <span className="text-sm font-bold text-primary">
-                        NT$ {minPrice.toLocaleString()} <span className="text-sm font-normal text-muted-foreground">起</span>
-                      </span>
+      {/* ── Featured Accommodations — Magazine Style ── */}
+      {accommodations.length > 0 && (() => {
+        const serif = { fontFamily: "'Noto Serif TC', serif" } as const;
+        const featured = accommodations.slice(0, 5);
+        const [hero, secondary, ...rest] = featured;
+        const locOf = (a: AccommodationInfo) =>
+          a.country === "台灣" || !a.country
+            ? [a.region_1, a.region_2].filter(Boolean).join(" · ")
+            : [a.country, a.region_1, a.region_2].filter(Boolean).join(" · ");
+        const minPriceOf = (id: string) => {
+          const ps = roomTypes.filter((r) => r.accommodation_id === id).map((r) => r.base_price).filter((p) => p > 0);
+          return ps.length ? Math.min(...ps) : null;
+        };
+        return (
+          <section className="max-w-7xl mx-auto px-3 sm:px-4 pt-2 pb-10 sm:pb-14">
+            {/* Editorial header */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 sm:mb-12 gap-4">
+              <div className="space-y-1.5">
+                <span className="text-primary font-medium tracking-[0.2em] uppercase text-xs">Selected Retreats</span>
+                <h2 style={serif} className="text-3xl sm:text-4xl md:text-5xl text-foreground leading-tight">精選民宿</h2>
+              </div>
+              <div className="hidden md:block h-px flex-grow mx-8 bg-border mb-3" />
+              <span className="text-muted-foreground text-sm">探索深度旅宿的質感生活</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-10 items-start">
+              {/* Hero feature */}
+              {hero && (
+                <div className="md:col-span-7 group cursor-pointer" onClick={() => handleAccClick(hero.id)}>
+                  <div className="relative aspect-[4/3] overflow-hidden rounded-sm mb-4 sm:mb-6 bg-muted">
+                    {hero.hero_photo_url ? (
+                      <img src={hero.hero_photo_url} alt={hero.name} loading="lazy"
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-secondary">
+                        <BedDouble className="h-12 w-12 text-muted-foreground/40" />
+                      </div>
+                    )}
+                    {locOf(hero) && (
+                      <div className="absolute top-4 left-4 sm:top-6 sm:left-6">
+                        <span className="backdrop-blur-md bg-white/85 px-3 py-1.5 sm:px-4 sm:py-2 text-xs font-medium tracking-wider text-foreground rounded-full">
+                          {locOf(hero)}
+                        </span>
+                      </div>
                     )}
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      </section>
+                  <div className="flex justify-between items-start gap-4">
+                    <h3 style={serif} className="text-xl sm:text-2xl md:text-3xl text-foreground group-hover:text-primary transition-colors">
+                      {hero.name}
+                    </h3>
+                    {minPriceOf(hero.id) != null && (
+                      <div className="text-right shrink-0">
+                        <span className="text-base sm:text-xl font-medium text-primary whitespace-nowrap">
+                          NT$ {minPriceOf(hero.id)!.toLocaleString()}
+                          <span className="text-xs font-normal text-muted-foreground"> 起</span>
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Vertical secondary, offset down on desktop */}
+              {secondary && (
+                <div className="md:col-span-5 md:pt-16 lg:pt-24 group cursor-pointer" onClick={() => handleAccClick(secondary.id)}>
+                  <div className="relative aspect-[3/4] overflow-hidden rounded-sm mb-4 sm:mb-6 bg-muted">
+                    {secondary.hero_photo_url ? (
+                      <img src={secondary.hero_photo_url} alt={secondary.name} loading="lazy"
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-secondary">
+                        <BedDouble className="h-12 w-12 text-muted-foreground/40" />
+                      </div>
+                    )}
+                    {secondary.type && (
+                      <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6">
+                        <div className="bg-primary text-primary-foreground px-3 py-2 rounded-sm">
+                          <p className="text-[10px] uppercase tracking-tighter opacity-80 leading-none mb-0.5">Type</p>
+                          <p style={serif} className="text-base leading-none">{secondary.type}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    {locOf(secondary) && (
+                      <span className="text-primary/80 text-xs font-semibold tracking-widest uppercase">
+                        {locOf(secondary)}
+                      </span>
+                    )}
+                    <h3 style={serif} className="text-lg sm:text-xl md:text-2xl text-foreground group-hover:text-primary transition-colors">
+                      {secondary.name}
+                    </h3>
+                    {minPriceOf(secondary.id) != null && (
+                      <p className="text-sm text-muted-foreground">
+                        NT$ <span className="font-semibold text-foreground">{minPriceOf(secondary.id)!.toLocaleString()}</span> 起
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Bottom row of squares */}
+              {rest.map((acc) => (
+                <div key={acc.id} className="md:col-span-4 group cursor-pointer" onClick={() => handleAccClick(acc.id)}>
+                  <div className="relative aspect-square overflow-hidden rounded-sm mb-3 sm:mb-4 bg-muted">
+                    {acc.hero_photo_url ? (
+                      <img src={acc.hero_photo_url} alt={acc.name} loading="lazy"
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-secondary">
+                        <BedDouble className="h-10 w-10 text-muted-foreground/40" />
+                      </div>
+                    )}
+                  </div>
+                  <h3 style={serif} className="text-lg sm:text-xl text-foreground mb-0.5 group-hover:text-primary transition-colors">
+                    {acc.name}
+                  </h3>
+                  {locOf(acc) && (
+                    <p className="text-sm text-muted-foreground">{locOf(acc)}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        );
+      })()}
 
       {/* ── Filters & Room Type List ── */}
       <section id="room-list-section" className="max-w-7xl mx-auto px-3 sm:px-4 pb-12 sm:pb-16">
