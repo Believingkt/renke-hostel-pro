@@ -66,6 +66,7 @@ interface FormState {
   name: string;
   subtitle: string;
   guest_count: number;
+  guest_count_label: string;
   guest_count_max: number | null;
   child_count_max: number | null;
   child_age_note: string;
@@ -84,7 +85,8 @@ interface FormState {
 const emptyForm = (): FormState => ({
   name: "",
   subtitle: "",
-  guest_count: 2,
+    guest_count: 2,
+    guest_count_label: "",
   guest_count_max: null,
   child_count_max: null,
   child_age_note: "",
@@ -137,6 +139,7 @@ const AdminPackages = () => {
       name: pkg.name,
       subtitle: pkg.subtitle ?? "",
       guest_count: pkg.guest_count,
+      guest_count_label: pkg.guest_count_label ?? "",
       guest_count_max: pkg.guest_count_max,
       child_count_max: pkg.child_count_max,
       child_age_note: pkg.child_age_note ?? "",
@@ -162,6 +165,7 @@ const AdminPackages = () => {
       name: `${pkg.name} - 複製`,
       subtitle: pkg.subtitle ?? "",
       guest_count: pkg.guest_count,
+      guest_count_label: pkg.guest_count_label ?? "",
       guest_count_max: pkg.guest_count_max,
       child_count_max: pkg.child_count_max,
       child_age_note: pkg.child_age_note ?? "",
