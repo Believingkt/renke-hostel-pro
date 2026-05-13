@@ -15,6 +15,7 @@ export interface AccommodationPackage {
   name: string;
   subtitle: string | null;
   guest_count: number;
+  guest_count_label: string | null;
   guest_count_max: number | null;
   child_count_max: number | null;
   child_age_note: string | null;
