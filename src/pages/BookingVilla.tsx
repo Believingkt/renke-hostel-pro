@@ -119,6 +119,26 @@ const BookingVilla = () => {
   const nights =
     checkIn && checkOut ? Math.max(1, differenceInDays(checkOut, checkIn)) : 1;
 
+  // 過濾掉「不適用日期區間」涵蓋入住日的方案；未選日期則顯示全部
+  const visiblePackages = useMemo(() => {
+    if (!checkIn) return packages;
+    return packages.filter((p) => !isPackageExcludedOnDate(p, checkIn));
+  }, [packages, checkIn]);
+
+  const customPricingTable = useMemo(() => {
+    if (visiblePackages.length === 0) return undefined;
+    return buildPricingTableFromPackages(visiblePackages);
+  }, [visiblePackages]);
+  const customIncludes = useMemo(() => {
+    if (visiblePackages.length === 0) return undefined;
+    return aggregateIncludesFromPackages(visiblePackages);
+  }, [visiblePackages]);
+  const customIncludesTitle = useMemo(() => {
+    if (visiblePackages.length === 0) return undefined;
+    const count = customIncludes?.length || 0;
+    return count > 0 ? `方案內容 · 含 ${count} 項` : "方案內容";
+  }, [visiblePackages, customIncludes]);
+
   // Combined photo gallery (hero + gallery, mixed)
   const allPhotos = useMemo(() => {
     return [...heroPhotos, ...galleryPhotos].map((p: any) => ({
