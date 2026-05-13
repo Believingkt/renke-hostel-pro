@@ -108,6 +108,12 @@ export function buildPricingTableFromPackages(
       isFewPeople: pkg.tags?.includes("early_bird") || pkg.tags?.includes("few_people"),
       roomTypeId: pkg.primary_room_type_id || undefined,
       planName: pkg.name,
+      subtitle: pkg.subtitle,
+      guestCountMax: pkg.guest_count_max,
+      childCountMax: pkg.child_count_max,
+      childAgeNote: pkg.child_age_note,
+      tags: pkg.tags || [],
+      includes: pkg.includes || [],
     };
     for (const tier of pkg.applicable_tiers) {
       table[tier].push(tierPrice);
