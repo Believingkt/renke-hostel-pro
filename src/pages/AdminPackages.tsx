@@ -37,7 +37,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, GripVertical, Check, X, MinusCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, Copy, GripVertical, Check, X, MinusCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 
@@ -139,6 +139,26 @@ const AdminPackages = () => {
       includes: pkg.includes ?? [],
       primary_room_type_id: pkg.primary_room_type_id ?? NONE,
       display_order: pkg.display_order,
+      enabled: pkg.enabled,
+    });
+    setOpen(true);
+  };
+
+  const handleCopy = (pkg: AccommodationPackage) => {
+    setEditing(null);
+    setForm({
+      name: `${pkg.name} - 複製`,
+      subtitle: pkg.subtitle ?? "",
+      guest_count: pkg.guest_count,
+      guest_count_max: pkg.guest_count_max,
+      original_price: pkg.original_price,
+      sale_price: pkg.sale_price,
+      room_allocation: pkg.room_allocation ?? "",
+      applicable_tiers: pkg.applicable_tiers,
+      tags: [...pkg.tags],
+      includes: pkg.includes ? pkg.includes.map((inc) => ({ ...inc })) : [],
+      primary_room_type_id: pkg.primary_room_type_id ?? NONE,
+      display_order: (packages[packages.length - 1]?.display_order ?? 0) + 1,
       enabled: pkg.enabled,
     });
     setOpen(true);
@@ -291,6 +311,9 @@ const AdminPackages = () => {
               <Switch checked={pkg.enabled} onCheckedChange={() => toggleEnabled(pkg)} />
               <Button variant="ghost" size="icon" onClick={() => openEdit(pkg)}>
                 <Pencil className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => handleCopy(pkg)}>
+                <Copy className="h-4 w-4" />
               </Button>
               <Button
                 variant="ghost"
