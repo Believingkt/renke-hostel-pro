@@ -469,6 +469,118 @@ const AdminPackages = () => {
               </div>
             </div>
 
+            {/* 分日型價格覆寫 */}
+            <div className="rounded-lg border border-dashed p-3 space-y-2 bg-muted/20">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div>
+                  <Label className="text-sm">分日型價格（選填）</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    為平日／旺日／假日各自設定不同價格。未設定的日型自動沿用上方預設售價／原價。
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {TIER_OPTIONS.filter((o) => !form.tier_prices?.[o.value]).map((opt) => (
+                    <Button
+                      key={opt.value}
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        setForm((f) => ({
+                          ...f,
+                          tier_prices: {
+                            ...f.tier_prices,
+                            [opt.value]: {
+                              original: f.original_price ?? null,
+                              sale: f.sale_price || 0,
+                            },
+                          },
+                        }))
+                      }
+                    >
+                      <Plus className="h-3.5 w-3.5 mr-1" />
+                      {opt.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              {Object.keys(form.tier_prices || {}).length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  尚未設定任何分日型價格，所有適用日將使用上方預設售價／原價。
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {TIER_OPTIONS.filter((o) => form.tier_prices?.[o.value]).map((opt) => {
+                    const entry = form.tier_prices[opt.value]!;
+                    return (
+                      <div
+                        key={opt.value}
+                        className="grid grid-cols-[90px_1fr_1fr_auto] gap-2 items-center"
+                      >
+                        <span className="text-sm font-medium">{opt.label}</span>
+                        <div>
+                          <Input
+                            type="number"
+                            min={0}
+                            placeholder="原價（選填）"
+                            value={entry.original ?? ""}
+                            onChange={(e) =>
+                              setForm((f) => ({
+                                ...f,
+                                tier_prices: {
+                                  ...f.tier_prices,
+                                  [opt.value]: {
+                                    ...f.tier_prices[opt.value]!,
+                                    original: e.target.value
+                                      ? parseFloat(e.target.value)
+                                      : null,
+                                  },
+                                },
+                              }))
+                            }
+                          />
+                        </div>
+                        <div>
+                          <Input
+                            type="number"
+                            min={0}
+                            placeholder="售價"
+                            value={entry.sale}
+                            onChange={(e) =>
+                              setForm((f) => ({
+                                ...f,
+                                tier_prices: {
+                                  ...f.tier_prices,
+                                  [opt.value]: {
+                                    ...f.tier_prices[opt.value]!,
+                                    sale: parseFloat(e.target.value) || 0,
+                                  },
+                                },
+                              }))
+                            }
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() =>
+                            setForm((f) => {
+                              const next = { ...f.tier_prices };
+                              delete next[opt.value];
+                              return { ...f, tier_prices: next };
+                            })
+                          }
+                        >
+                          <MinusCircle className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             <div>
               <Label>房型分配（用逗號分隔）</Label>
               <Input
