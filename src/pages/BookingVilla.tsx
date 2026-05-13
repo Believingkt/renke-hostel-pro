@@ -379,7 +379,25 @@ const BookingVilla = () => {
         )}
 
         {/* ── 4. 即時空房日曆 ── */}
-        <VillaAvailabilityCalendar accommodationId={info.id} />
+        <VillaAvailabilityCalendar
+          accommodationId={info.id}
+          selectedDate={checkIn}
+          onSelectDate={(d) => {
+            const next = new Date(d);
+            next.setDate(next.getDate() + 1);
+            const fmt = (x: Date) => formatISO(x, { representation: "date" });
+            const params = new URLSearchParams(searchParams);
+            params.set("checkIn", fmt(d));
+            params.set("checkOut", fmt(next));
+            setSearchParams(params, { replace: true });
+            // 滾動到「選擇人數方案」
+            requestAnimationFrame(() => {
+              document
+                .getElementById("capacity-price-section")
+                ?.scrollIntoView({ behavior: "smooth", block: "start" });
+            });
+          }}
+        />
 
         {/* ── 5. Capacity × Price Plans (核心 CTA) ── */}
         <section className="py-4 bg-background">
