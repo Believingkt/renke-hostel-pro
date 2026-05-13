@@ -6,6 +6,7 @@ import {
   type AccommodationPackage,
   type PackageTier,
   type PackageInclude,
+  type PackageDateRange,
 } from "@/hooks/use-accommodation-packages";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
