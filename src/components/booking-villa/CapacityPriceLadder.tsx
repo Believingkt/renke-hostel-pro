@@ -598,7 +598,7 @@ const PriceCard = ({
             </div>
           )}
           <p className="font-semibold text-sm text-foreground line-clamp-1">
-            {tier.planName || `${opt.guestCount} 人${term}`}
+            {tier.planName || opt.guestCountLabel || `${opt.guestCount} 人${term}`}
           </p>
           {tier.subtitle && (
             <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
@@ -900,7 +900,7 @@ const PriceLadderTable = ({
                 >
                   <td className="px-3 py-1.5">
                     <span className="inline-flex items-center gap-1 flex-wrap">
-                      <span className="font-semibold text-foreground">{tier.guestCount} 人</span>
+                      <span className="font-semibold text-foreground">{tier.guestCountLabel || `${tier.guestCount} 人`}</span>
                       {tier.isFewPeople && (
                         <span
                           className="text-[9px] font-bold px-1 py-px rounded leading-none text-white"
