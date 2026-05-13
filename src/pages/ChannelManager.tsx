@@ -71,7 +71,6 @@ interface OwlTingEndpoint {
   id: string;
   endpoint_url: string;
   remote_username: string | null;
-  remote_password: string | null;
   environment: string;
   is_active: boolean;
   last_pushed_at: string | null;
@@ -295,7 +294,7 @@ export default function ChannelManager() {
         .maybeSingle(),
       supabase
         .from("owlting_ari_endpoints")
-        .select("id,endpoint_url,remote_username,remote_password,environment,is_active,last_pushed_at")
+        .select("id,endpoint_url,remote_username,environment,is_active,last_pushed_at")
         .eq("accommodation_id", accId)
         .maybeSingle(),
     ]);
@@ -353,7 +352,7 @@ export default function ChannelManager() {
     setEndpointForm({
       endpoint_url: owlEndpoint?.endpoint_url || "",
       remote_username: owlEndpoint?.remote_username || "",
-      remote_password: owlEndpoint?.remote_password || "",
+      remote_password: "",
       environment: owlEndpoint?.environment || "test",
     });
     setEndpointDialogOpen(true);
@@ -367,14 +366,23 @@ export default function ChannelManager() {
       return;
     }
     setEndpointSaving(true);
-    const payload = {
+    const payload: {
+      accommodation_id: string;
+      endpoint_url: string;
+      remote_username: string | null;
+      environment: string;
+      is_active: boolean;
+      remote_password?: string | null;
+    } = {
       accommodation_id: accId,
       endpoint_url: url,
       remote_username: endpointForm.remote_username.trim() || null,
-      remote_password: endpointForm.remote_password || null,
       environment: endpointForm.environment,
       is_active: true,
     };
+    if (!owlEndpoint || endpointForm.remote_password.trim()) {
+      payload.remote_password = endpointForm.remote_password || null;
+    }
     const { error } = owlEndpoint
       ? await supabase.from("owlting_ari_endpoints").update(payload).eq("id", owlEndpoint.id)
       : await supabase.from("owlting_ari_endpoints").insert(payload);
@@ -1142,6 +1150,11 @@ export default function ChannelManager() {
                   onChange={(e) => setEndpointForm((f) => ({ ...f, remote_password: e.target.value }))}
                   autoComplete="new-password"
                 />
+                {owlEndpoint && (
+                  <p className="text-xs text-muted-foreground">
+                    已安全保存；留空會保留目前密碼，輸入新值才會更新。
+                  </p>
+                )}
               </div>
             </div>
             <div className="space-y-2">
