@@ -1107,6 +1107,7 @@ const BookingPortal = () => {
         const serif = { fontFamily: "'Noto Serif TC', serif" } as const;
         const featured = accommodations.slice(0, 5);
         const [hero, secondary, ...rest] = featured;
+        const others = [secondary, ...rest].filter(Boolean) as AccommodationInfo[];
         const locOf = (a: AccommodationInfo) =>
           a.country === "台灣" || !a.country
             ? [a.region_1, a.region_2].filter(Boolean).join(" · ")
@@ -1118,7 +1119,7 @@ const BookingPortal = () => {
         return (
           <section className="max-w-7xl mx-auto px-3 sm:px-4 pt-2 pb-10 sm:pb-14">
             {/* Editorial header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 sm:mb-12 gap-4">
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 sm:mb-8 md:mb-12 gap-4">
               <div className="space-y-1.5">
                 <span className="text-primary font-medium tracking-[0.2em] uppercase text-xs">Selected Retreats</span>
                 <h2 style={serif} className="text-3xl sm:text-4xl md:text-5xl text-foreground leading-tight">精選民宿</h2>
@@ -1127,7 +1128,82 @@ const BookingPortal = () => {
               <span className="text-muted-foreground text-sm">探索深度旅宿的質感生活</span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-10 items-start">
+            {/* ── Mobile: Hero card + horizontal scroll ── */}
+            <div className="md:hidden space-y-6">
+              {/* Hero card */}
+              {hero && (
+                <div className="group cursor-pointer" onClick={() => handleAccClick(hero.id)}>
+                  <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-muted shadow-lg">
+                    {hero.hero_photo_url ? (
+                      <img src={hero.hero_photo_url} alt={hero.name} loading="lazy"
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-secondary">
+                        <BedDouble className="h-12 w-12 text-muted-foreground/40" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                    <div className="absolute bottom-0 left-0 p-4 w-full">
+                      <span className="inline-block px-2.5 py-0.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full mb-1.5 uppercase tracking-wider">
+                        Featured
+                      </span>
+                      <h3 className="text-white text-lg font-bold leading-tight">{hero.name}</h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-white/70 text-xs">{locOf(hero)}</span>
+                        {minPriceOf(hero.id) != null && (
+                          <>
+                            <span className="w-1 h-1 bg-white/30 rounded-full" />
+                            <span className="text-primary font-bold text-sm">NT$ {minPriceOf(hero.id)!.toLocaleString()}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Horizontal scroll strip */}
+              {others.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-3 px-1">
+                    <h4 className="text-xs font-black text-muted-foreground tracking-widest uppercase">更多質感嚴選</h4>
+                  </div>
+                  <div
+                    className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-3 px-3"
+                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                  >
+                    {others.map((acc) => (
+                      <div key={acc.id} className="flex-none w-[180px] snap-start cursor-pointer group" onClick={() => handleAccClick(acc.id)}>
+                        <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-muted shadow-md">
+                          {acc.hero_photo_url ? (
+                            <img src={acc.hero_photo_url} alt={acc.name} loading="lazy"
+                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-secondary">
+                              <BedDouble className="h-10 w-10 text-muted-foreground/40" />
+                            </div>
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                          <div className="absolute bottom-0 p-3 w-full">
+                            <h4 className="text-white font-bold text-sm leading-tight">{acc.name}</h4>
+                            <div className="flex justify-between items-center mt-1">
+                              <span className="text-white/80 text-[10px]">{locOf(acc)}</span>
+                              {minPriceOf(acc.id) != null && (
+                                <span className="text-primary font-bold text-xs">NT$ {minPriceOf(acc.id)!.toLocaleString()}</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="flex-none w-4" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ── Desktop: Magazine grid ── */}
+            <div className="hidden md:grid md:grid-cols-12 gap-6 md:gap-10 items-start">
               {/* Hero feature */}
               {hero && (
                 <div className="md:col-span-7 group cursor-pointer" onClick={() => handleAccClick(hero.id)}>
