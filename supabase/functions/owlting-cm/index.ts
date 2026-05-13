@@ -193,14 +193,12 @@ async function authenticate(
 
   // 1. Validate WS-Security UsernameToken against the shared OwlTing service account
   const { username, password } = extractWsse(xml);
-  console.log("[owlting-cm] WSSE extracted:", JSON.stringify({ username, passwordLen: password?.length, passwordPreview: password?.slice(0, 3) }));
   if (!username || !password) return { ok: false, msg: "Missing WS-Security UsernameToken" };
 
   const { data: ok, error: rpcErr } = await supabase.rpc("verify_owlting_service_account", {
     p_username: username,
     p_password: password,
   });
-  console.log("[owlting-cm] verify result:", JSON.stringify({ ok, rpcErr }));
   if (rpcErr || !ok) return { ok: false, msg: "Invalid service account credentials" };
 
   // 2. Resolve HotelCode -> accommodation_id (still per-property mapping)
