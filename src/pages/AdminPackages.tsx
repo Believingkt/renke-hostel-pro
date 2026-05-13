@@ -226,6 +226,11 @@ const AdminPackages = () => {
       excluded_date_ranges: (form.excluded_date_ranges || []).filter(
         (r) => r.start && r.end && r.start <= r.end
       ) as any,
+      tier_prices: Object.fromEntries(
+        Object.entries(form.tier_prices || {}).filter(
+          ([, v]) => v && typeof v.sale === "number" && !Number.isNaN(v.sale)
+        )
+      ) as any,
     };
     const { error } = editing
       ? await supabase.from("accommodation_packages").update(payload).eq("id", editing.id)
