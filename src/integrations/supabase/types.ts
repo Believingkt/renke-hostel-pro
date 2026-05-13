@@ -384,7 +384,6 @@ export type Database = {
           enabled: boolean
           excluded_date_ranges: Json
           guest_count: number
-          guest_count_label: string | null
           guest_count_max: number | null
           id: string
           includes: Json
@@ -407,7 +406,6 @@ export type Database = {
           enabled?: boolean
           excluded_date_ranges?: Json
           guest_count?: number
-          guest_count_label?: string | null
           guest_count_max?: number | null
           id?: string
           includes?: Json
@@ -430,7 +428,6 @@ export type Database = {
           enabled?: boolean
           excluded_date_ranges?: Json
           guest_count?: number
-          guest_count_label?: string | null
           guest_count_max?: number | null
           id?: string
           includes?: Json

@@ -1,1 +1,0 @@
-ALTER TABLE public.accommodation_packages ADD COLUMN guest_count_label TEXT;

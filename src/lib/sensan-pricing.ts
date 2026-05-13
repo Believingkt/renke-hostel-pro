@@ -23,8 +23,7 @@ export interface SensanTierPrice {
   subtitle?: string | null;
   /** 人數上限 */
   guestCountMax?: number | null;
-  /** 人數顯示文字（可覆蓋 guestCount 的預設 "N 人" 顯示） */
-  guestCountLabel?: string | null;
+  /** 兒童相關 */
   childCountMax?: number | null;
   childAgeNote?: string | null;
   /** 標籤 */
