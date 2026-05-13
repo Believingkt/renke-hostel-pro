@@ -5,6 +5,7 @@ import {
   type AccommodationPackage,
   type PackageTier,
   detectTierByDate,
+  getPackagePriceForTier,
   useAccommodationHolidays,
 } from "@/hooks/use-accommodation-packages";
 
@@ -82,11 +83,22 @@ const PackagesSection = ({
 
         <div className="space-y-4 sm:space-y-6">
           {visible.map((pkg) => {
+            const { original: tierOriginal, sale: tierSale } = getPackagePriceForTier(
+              pkg,
+              currentTier
+            );
             const discount =
-              pkg.original_price && pkg.original_price > pkg.sale_price
-                ? Math.round(((pkg.original_price - pkg.sale_price) / pkg.original_price) * 100)
+              tierOriginal && tierOriginal > tierSale
+                ? Math.round(((tierOriginal - tierSale) / tierOriginal) * 100)
                 : null;
-            const perPerson = Math.round(pkg.sale_price / Math.max(1, pkg.guest_count));
+            const perPerson = Math.round(tierSale / Math.max(1, pkg.guest_count));
+
+            // 蒐集所有適用日型的價格，若不只一種則顯示分日型價格列
+            const tierBreakdown = pkg.applicable_tiers
+              .map((t) => ({ tier: t, ...getPackagePriceForTier(pkg, t) }));
+            const hasMultiplePrices =
+              tierBreakdown.length > 1 &&
+              new Set(tierBreakdown.map((b) => b.sale)).size > 1;
             return (
               <div
                 key={pkg.id}
@@ -194,10 +206,10 @@ const PackagesSection = ({
 
                 {/* Right: Price + CTA */}
                 <div className="p-5 md:w-1/4 bg-muted/30 flex flex-col justify-center items-center md:items-end text-center md:text-right border-t md:border-t-0 md:border-l border-border">
-                  {pkg.original_price && pkg.original_price > pkg.sale_price && (
+                  {tierOriginal && tierOriginal > tierSale && (
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs text-muted-foreground line-through">
-                        NT$ {pkg.original_price.toLocaleString()}
+                        NT$ {tierOriginal.toLocaleString()}
                       </span>
                       {discount && (
                         <span className="text-xs font-bold text-rose-500">-{discount}%</span>
@@ -207,12 +219,24 @@ const PackagesSection = ({
                   <div className="flex items-baseline gap-1">
                     <span className="text-xs font-bold text-foreground">NT$</span>
                     <span className="text-2xl sm:text-3xl font-black text-foreground tabular-nums">
-                      {pkg.sale_price.toLocaleString()}
+                      {tierSale.toLocaleString()}
                     </span>
                   </div>
                   <p className="text-xs text-[hsl(25,70%,50%)] font-medium mt-1">
                     每人約 ${perPerson.toLocaleString()}
                   </p>
+                  {hasMultiplePrices && (
+                    <ul className="mt-2 w-full text-[11px] text-muted-foreground space-y-0.5 md:text-right">
+                      {tierBreakdown.map((b) => (
+                        <li key={b.tier} className="flex md:justify-end gap-1.5 tabular-nums">
+                          <span>{TIER_LABEL[b.tier]}</span>
+                          <span className="text-foreground font-medium">
+                            ${b.sale.toLocaleString()}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                   <button
                     onClick={() => handleSelect(pkg)}
                     className="mt-3 w-full py-2.5 px-5 bg-[hsl(25,70%,50%)] hover:bg-[hsl(25,70%,45%)] text-white text-sm font-bold rounded-xl transition-colors"

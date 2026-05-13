@@ -395,6 +395,7 @@ export type Database = {
           sale_price: number
           subtitle: string | null
           tags: string[]
+          tier_prices: Json
           updated_at: string
         }
         Insert: {
@@ -418,6 +419,7 @@ export type Database = {
           sale_price: number
           subtitle?: string | null
           tags?: string[]
+          tier_prices?: Json
           updated_at?: string
         }
         Update: {
@@ -441,6 +443,7 @@ export type Database = {
           sale_price?: number
           subtitle?: string | null
           tags?: string[]
+          tier_prices?: Json
           updated_at?: string
         }
         Relationships: [

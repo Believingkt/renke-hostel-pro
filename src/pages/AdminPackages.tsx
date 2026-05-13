@@ -7,6 +7,7 @@ import {
   type PackageTier,
   type PackageInclude,
   type PackageDateRange,
+  type PackageTierPrices,
 } from "@/hooks/use-accommodation-packages";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -79,6 +80,7 @@ interface FormState {
   display_order: number;
   enabled: boolean;
   excluded_date_ranges: PackageDateRange[];
+  tier_prices: PackageTierPrices;
 }
 
 const emptyForm = (): FormState => ({
@@ -98,6 +100,7 @@ const emptyForm = (): FormState => ({
   display_order: 0,
   enabled: true,
   excluded_date_ranges: [],
+  tier_prices: {},
 });
 
 const AdminPackages = () => {
@@ -152,6 +155,7 @@ const AdminPackages = () => {
       excluded_date_ranges: Array.isArray(pkg.excluded_date_ranges)
         ? pkg.excluded_date_ranges.map((r) => ({ ...r }))
         : [],
+      tier_prices: pkg.tier_prices ? { ...pkg.tier_prices } : {},
     });
     setOpen(true);
   };
@@ -177,6 +181,7 @@ const AdminPackages = () => {
       excluded_date_ranges: Array.isArray(pkg.excluded_date_ranges)
         ? pkg.excluded_date_ranges.map((r) => ({ ...r }))
         : [],
+      tier_prices: pkg.tier_prices ? { ...pkg.tier_prices } : {},
     });
     setOpen(true);
   };
@@ -220,6 +225,11 @@ const AdminPackages = () => {
       enabled: form.enabled,
       excluded_date_ranges: (form.excluded_date_ranges || []).filter(
         (r) => r.start && r.end && r.start <= r.end
+      ) as any,
+      tier_prices: Object.fromEntries(
+        Object.entries(form.tier_prices || {}).filter(
+          ([, v]) => v && typeof v.sale === "number" && !Number.isNaN(v.sale)
+        )
       ) as any,
     };
     const { error } = editing
@@ -457,6 +467,118 @@ const AdminPackages = () => {
                   }
                 />
               </div>
+            </div>
+
+            {/* 分日型價格覆寫 */}
+            <div className="rounded-lg border border-dashed p-3 space-y-2 bg-muted/20">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div>
+                  <Label className="text-sm">分日型價格（選填）</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    為平日／旺日／假日各自設定不同價格。未設定的日型自動沿用上方預設售價／原價。
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {TIER_OPTIONS.filter((o) => !form.tier_prices?.[o.value]).map((opt) => (
+                    <Button
+                      key={opt.value}
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        setForm((f) => ({
+                          ...f,
+                          tier_prices: {
+                            ...f.tier_prices,
+                            [opt.value]: {
+                              original: f.original_price ?? null,
+                              sale: f.sale_price || 0,
+                            },
+                          },
+                        }))
+                      }
+                    >
+                      <Plus className="h-3.5 w-3.5 mr-1" />
+                      {opt.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              {Object.keys(form.tier_prices || {}).length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  尚未設定任何分日型價格，所有適用日將使用上方預設售價／原價。
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {TIER_OPTIONS.filter((o) => form.tier_prices?.[o.value]).map((opt) => {
+                    const entry = form.tier_prices[opt.value]!;
+                    return (
+                      <div
+                        key={opt.value}
+                        className="grid grid-cols-[90px_1fr_1fr_auto] gap-2 items-center"
+                      >
+                        <span className="text-sm font-medium">{opt.label}</span>
+                        <div>
+                          <Input
+                            type="number"
+                            min={0}
+                            placeholder="原價（選填）"
+                            value={entry.original ?? ""}
+                            onChange={(e) =>
+                              setForm((f) => ({
+                                ...f,
+                                tier_prices: {
+                                  ...f.tier_prices,
+                                  [opt.value]: {
+                                    ...f.tier_prices[opt.value]!,
+                                    original: e.target.value
+                                      ? parseFloat(e.target.value)
+                                      : null,
+                                  },
+                                },
+                              }))
+                            }
+                          />
+                        </div>
+                        <div>
+                          <Input
+                            type="number"
+                            min={0}
+                            placeholder="售價"
+                            value={entry.sale}
+                            onChange={(e) =>
+                              setForm((f) => ({
+                                ...f,
+                                tier_prices: {
+                                  ...f.tier_prices,
+                                  [opt.value]: {
+                                    ...f.tier_prices[opt.value]!,
+                                    sale: parseFloat(e.target.value) || 0,
+                                  },
+                                },
+                              }))
+                            }
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() =>
+                            setForm((f) => {
+                              const next = { ...f.tier_prices };
+                              delete next[opt.value];
+                              return { ...f, tier_prices: next };
+                            })
+                          }
+                        >
+                          <MinusCircle className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div>
