@@ -270,6 +270,8 @@ export const PartnerManagement = forwardRef<PartnerManagementRef>((_, ref) => {
     toast.success("報表已匯出");
   };
 
+  const [newKeyPlaintext, setNewKeyPlaintext] = useState<{ key: string; partnerName: string } | null>(null);
+
   const handleCreate = async () => {
     if (!formName.trim() || !formCode.trim()) {
       toast.error("請填寫平台名稱和代碼");
@@ -277,9 +279,12 @@ export const PartnerManagement = forwardRef<PartnerManagementRef>((_, ref) => {
     }
 
     setIsSubmitting(true);
+    const { plaintext, hash, prefix } = await generateApiKey("ppk_");
     const { error } = await supabase.from("points_platform_partners").insert({
       platform_name: formName.trim(),
       platform_code: formCode.trim().toLowerCase(),
+      api_key_hash: hash,
+      api_key_prefix: prefix,
       point_to_currency_rate: parseFloat(formRate) || 1,
       contact_email: formEmail.trim() || null,
       webhook_url: formWebhook.trim() || null,
@@ -296,9 +301,26 @@ export const PartnerManagement = forwardRef<PartnerManagementRef>((_, ref) => {
       toast.success("合作夥伴已建立");
       setShowCreateDialog(false);
       resetForm();
+      setNewKeyPlaintext({ key: plaintext, partnerName: formName.trim() });
       loadPartners();
     }
     setIsSubmitting(false);
+  };
+
+  const rotateApiKey = async (partner: Partner) => {
+    if (!confirm(`確定要為「${partner.platform_name}」輪替 API Key？舊金鑰將立即失效。`)) return;
+    const { plaintext, hash, prefix } = await generateApiKey("ppk_");
+    const { error } = await supabase
+      .from("points_platform_partners")
+      .update({ api_key_hash: hash, api_key_prefix: prefix })
+      .eq("id", partner.id);
+    if (error) {
+      toast.error("輪替失敗：" + error.message);
+      return;
+    }
+    toast.success("API Key 已輪替");
+    setNewKeyPlaintext({ key: plaintext, partnerName: partner.platform_name });
+    loadPartners();
   };
 
   const toggleActive = async (partner: Partner) => {
