@@ -65,6 +65,8 @@ interface Props {
   enableFewPeople?: boolean;
   /** 是否為森山（影響「包區/包棟」用詞，預設 true 保留森山文案） */
   isSensan?: boolean;
+  /** 判斷某日期是否為國定假日（含補假），命中即視為假日 tier */
+  isHolidayDate?: (date: Date | null | undefined) => boolean;
 }
 
 import {
