@@ -66,6 +66,7 @@ interface FormState {
   name: string;
   subtitle: string;
   guest_count: number;
+  guest_count_label: string;
   guest_count_max: number | null;
   child_count_max: number | null;
   child_age_note: string;
@@ -84,7 +85,8 @@ interface FormState {
 const emptyForm = (): FormState => ({
   name: "",
   subtitle: "",
-  guest_count: 2,
+    guest_count: 2,
+    guest_count_label: "",
   guest_count_max: null,
   child_count_max: null,
   child_age_note: "",
@@ -137,6 +139,7 @@ const AdminPackages = () => {
       name: pkg.name,
       subtitle: pkg.subtitle ?? "",
       guest_count: pkg.guest_count,
+      guest_count_label: pkg.guest_count_label ?? "",
       guest_count_max: pkg.guest_count_max,
       child_count_max: pkg.child_count_max,
       child_age_note: pkg.child_age_note ?? "",
@@ -162,6 +165,7 @@ const AdminPackages = () => {
       name: `${pkg.name} - 複製`,
       subtitle: pkg.subtitle ?? "",
       guest_count: pkg.guest_count,
+      guest_count_label: pkg.guest_count_label ?? "",
       guest_count_max: pkg.guest_count_max,
       child_count_max: pkg.child_count_max,
       child_age_note: pkg.child_age_note ?? "",
@@ -201,11 +205,15 @@ const AdminPackages = () => {
       return;
     }
     setSaving(true);
+    // 從 guest_count_label 自動解析第一個數字，用於排序與內部邏輯；解析不到則保留原值（編輯）或預設 2（新增）
+    const parsedGuestCount = parseInt(form.guest_count_label.match(/\d+/)?.[0] || "0", 10);
+    const finalGuestCount = parsedGuestCount > 0 ? parsedGuestCount : (editing ? form.guest_count : 2);
     const payload = {
       accommodation_id: currentAccommodationId,
       name: form.name.trim(),
       subtitle: form.subtitle.trim() || null,
-      guest_count: form.guest_count,
+      guest_count: finalGuestCount,
+      guest_count_label: form.guest_count_label.trim() || null,
       guest_count_max: form.guest_count_max,
       child_count_max: form.child_count_max,
       child_age_note: form.child_age_note.trim() || null,
@@ -299,9 +307,9 @@ const AdminPackages = () => {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-semibold truncate">{pkg.name}</span>
                   <span className="text-xs text-muted-foreground">
-                    {pkg.guest_count} 人
+                    {pkg.guest_count_label || `${pkg.guest_count} 人`}
                     {pkg.guest_count_max && pkg.guest_count_max !== pkg.guest_count
-                      ? `~${pkg.guest_count_max}`
+                      ? ` ~ ${pkg.guest_count_max} 人`
                       : ""}
                   </span>
                   {pkg.tags.map((t) => (
@@ -380,12 +388,11 @@ const AdminPackages = () => {
               <div>
                 <Label>建議人數 *</Label>
                 <Input
-                  type="number"
-                  min={1}
-                  value={form.guest_count}
+                  value={form.guest_count_label}
                   onChange={(e) =>
-                    setForm({ ...form, guest_count: parseInt(e.target.value, 10) || 1 })
+                    setForm({ ...form, guest_count_label: e.target.value })
                   }
+                  placeholder="例：12人、6-10人、2大2小"
                 />
               </div>
               <div>

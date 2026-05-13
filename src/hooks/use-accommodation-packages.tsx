@@ -15,6 +15,7 @@ export interface AccommodationPackage {
   name: string;
   subtitle: string | null;
   guest_count: number;
+  guest_count_label: string | null;
   guest_count_max: number | null;
   child_count_max: number | null;
   child_age_note: string | null;
@@ -200,7 +201,7 @@ export function buildPricingTableFromPackages(
       subtitle: pkg.subtitle,
       guestCountMax: pkg.guest_count_max,
       childCountMax: pkg.child_count_max,
-      childAgeNote: pkg.child_age_note,
+      guestCountLabel: pkg.guest_count_label,
       tags: pkg.tags || [],
       includes: pkg.includes || [],
     };

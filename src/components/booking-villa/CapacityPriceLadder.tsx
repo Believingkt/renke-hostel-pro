@@ -39,6 +39,7 @@ interface RoomType {
 
 interface CapacityOption {
   guestCount: number;
+  guestCountLabel?: string | null;
   roomTypeId: string;
   roomTypeName: string;
   totalPrice: number;
@@ -161,6 +162,7 @@ const CapacityPriceLadder = ({
 
     return {
       guestCount: tier.guestCount,
+      guestCountLabel: tier.guestCountLabel,
       roomTypeId: tier.roomTypeId || matched?.id || `virtual-${tier.guestCount}`,
       roomTypeName: tier.planName || matched?.name || `${tier.guestCount} 人${TERM}方案`,
       totalPrice,
@@ -563,9 +565,11 @@ const PriceCard = ({
         >
           <Users className="h-4 w-4 mb-0.5" style={{ color: accentColor }} />
           <span className="font-bold text-base leading-none" style={{ color: accentText }}>
-            {opt.guestCount}
+            {opt.guestCountLabel || opt.guestCount}
           </span>
-          <span className="text-[9px] mt-0.5" style={{ color: accentText }}>人</span>
+          {!opt.guestCountLabel && (
+            <span className="text-[9px] mt-0.5" style={{ color: accentText }}>人</span>
+          )}
         </div>
 
         <div className="flex-1 min-w-0">
@@ -594,7 +598,7 @@ const PriceCard = ({
             </div>
           )}
           <p className="font-semibold text-sm text-foreground line-clamp-1">
-            {tier.planName || `${opt.guestCount} 人${term}`}
+            {tier.planName || opt.guestCountLabel || `${opt.guestCount} 人${term}`}
           </p>
           {tier.subtitle && (
             <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
@@ -896,7 +900,7 @@ const PriceLadderTable = ({
                 >
                   <td className="px-3 py-1.5">
                     <span className="inline-flex items-center gap-1 flex-wrap">
-                      <span className="font-semibold text-foreground">{tier.guestCount} 人</span>
+                      <span className="font-semibold text-foreground">{tier.guestCountLabel || `${tier.guestCount} 人`}</span>
                       {tier.isFewPeople && (
                         <span
                           className="text-[9px] font-bold px-1 py-px rounded leading-none text-white"
