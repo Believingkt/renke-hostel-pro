@@ -205,12 +205,30 @@ const AdminPackages = () => {
       return;
     }
     setSaving(true);
+    // 從 guest_count_label 自動解析第一個數字，用於排序與內部邏輯
+    const parsedGuestCount = parseInt(form.guest_count_label.match(/\d+/)?.[0] || "0", 10);
     const payload = {
       accommodation_id: currentAccommodationId,
       name: form.name.trim(),
       subtitle: form.subtitle.trim() || null,
-      guest_count: form.guest_count,
+      guest_count: parsedGuestCount || form.guest_count,
+      guest_count_label: form.guest_count_label.trim() || null,
       guest_count_max: form.guest_count_max,
+      child_count_max: form.child_count_max,
+      child_age_note: form.child_age_note.trim() || null,
+      original_price: form.original_price,
+      sale_price: form.sale_price,
+      room_allocation: form.room_allocation.trim() || null,
+      applicable_tiers: form.applicable_tiers,
+      tags: form.tags,
+      includes: form.includes as any,
+      primary_room_type_id: form.primary_room_type_id === NONE ? null : form.primary_room_type_id,
+      display_order: form.display_order,
+      enabled: form.enabled,
+      excluded_date_ranges: (form.excluded_date_ranges || []).filter(
+        (r) => r.start && r.end && r.start <= r.end
+      ) as any,
+    };
       child_count_max: form.child_count_max,
       child_age_note: form.child_age_note.trim() || null,
       original_price: form.original_price,
@@ -303,9 +321,9 @@ const AdminPackages = () => {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-semibold truncate">{pkg.name}</span>
                   <span className="text-xs text-muted-foreground">
-                    {pkg.guest_count} 人
+                    {pkg.guest_count_label || `${pkg.guest_count} 人`}
                     {pkg.guest_count_max && pkg.guest_count_max !== pkg.guest_count
-                      ? `~${pkg.guest_count_max}`
+                      ? ` ~ ${pkg.guest_count_max} 人`
                       : ""}
                   </span>
                   {pkg.tags.map((t) => (
