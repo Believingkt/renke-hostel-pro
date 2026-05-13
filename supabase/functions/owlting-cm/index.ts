@@ -91,10 +91,10 @@ function extractEcho(xml: string): string {
 
 // extract username/password from WS-Security
 function extractWsse(xml: string): { username: string | null; password: string | null } {
-  const u = /<wsse:Username[^>]*>([\s\S]*?)<\/wsse:Username>/.exec(xml)
-        ?? /<Username[^>]*>([\s\S]*?)<\/Username>/.exec(xml);
-  const p = /<wsse:Password[^>]*>([\s\S]*?)<\/wsse:Password>/.exec(xml)
-        ?? /<Password[^>]*>([\s\S]*?)<\/Password>/.exec(xml);
+  const u = /<wsse:Username(?:\s[^>]*)?>([\s\S]*?)<\/wsse:Username>/.exec(xml)
+        ?? /<Username(?:\s[^>]*)?>([\s\S]*?)<\/Username>/.exec(xml);
+  const p = /<wsse:Password(?:\s[^>]*)?>([\s\S]*?)<\/wsse:Password>/.exec(xml)
+        ?? /<Password(?:\s[^>]*)?>([\s\S]*?)<\/Password>/.exec(xml);
   return { username: u ? u[1].trim() : null, password: p ? p[1].trim() : null };
 }
 
