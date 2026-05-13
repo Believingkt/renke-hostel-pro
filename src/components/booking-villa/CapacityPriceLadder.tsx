@@ -542,7 +542,7 @@ const PriceCard = ({
       <button
         type="button"
         onClick={() => onSelect(opt)}
-        className="w-full text-left p-3.5 flex items-center gap-3 hover:bg-muted/30 transition-colors"
+        className="w-full text-left p-3.5 flex items-start gap-3 hover:bg-muted/30 transition-colors"
       >
         <div
           className="shrink-0 w-14 h-14 rounded-xl flex flex-col items-center justify-center"
@@ -558,15 +558,51 @@ const PriceCard = ({
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm text-foreground">
-            {opt.guestCount} 人{term}
+          {/* 標籤列（最划算已用右上 ribbon，不重複顯示） */}
+          {tier.tags && tier.tags.filter((t) => t !== "best_value").length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-1">
+              {tier.tags
+                .filter((t) => t !== "best_value")
+                .map((tag) => {
+                  const map: Record<string, string> = {
+                    early_bird: "早鳥優惠",
+                    meal_included: "一泊二食",
+                    few_people: "少人數包棟",
+                  };
+                  const label = map[tag] || tag;
+                  return (
+                    <span
+                      key={tag}
+                      className="text-[9px] font-bold px-1.5 py-px rounded leading-none"
+                      style={{ background: accentBgMid, color: accentText }}
+                    >
+                      {label}
+                    </span>
+                  );
+                })}
+            </div>
+          )}
+          <p className="font-semibold text-sm text-foreground line-clamp-1">
+            {tier.planName || `${opt.guestCount} 人${term}`}
           </p>
+          {tier.subtitle && (
+            <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
+              {tier.subtitle}
+            </p>
+          )}
           <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
             {tier.roomAllocation}
           </p>
-          <p className="text-[10px] mt-1" style={{ color: accentText }}>
-            平均每人 NT${perPerson.toLocaleString()}/晚
-          </p>
+          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+            <p className="text-[10px]" style={{ color: accentText }}>
+              平均每人 NT${perPerson.toLocaleString()}/晚
+            </p>
+            {tier.guestCountMax && tier.guestCountMax > opt.guestCount && (
+              <span className="text-[10px] text-muted-foreground">
+                · 上限 {tier.guestCountMax} 人
+              </span>
+            )}
+          </div>
         </div>
 
         <div className={`text-right shrink-0 ${opt.isRecommended ? "pt-5" : ""}`}>
@@ -602,73 +638,100 @@ const PriceCard = ({
         </div>
       </button>
 
-      {/* ── 站內比價列：含內容 / 加購 / 對照少人方案 ── */}
-      {accent === "standard" && (
-        <div
-          className="border-t border-border/50 px-3 py-2 space-y-1.5"
-          style={{ background: "hsl(140, 25%, 97%)" }}
-        >
-          {smallerPerPerson && smallerGuestCount && smallerPerPerson > Math.round(opt.totalPrice / opt.guestCount / safeNights) && (
-            <div className="flex items-center gap-1.5">
-              <TrendingDown className="h-3 w-3 shrink-0" style={{ color: "hsl(0, 75%, 45%)" }} />
-              <p className="text-[10.5px] leading-tight text-foreground">
-                每人僅
-                <span className="font-bold mx-0.5" style={{ color: "hsl(0, 75%, 45%)" }}>
-                  NT${Math.round(opt.totalPrice / opt.guestCount / safeNights).toLocaleString()}
-                </span>
-                / 晚，比 {smallerGuestCount} 人方案
-                <span className="font-bold mx-0.5" style={{ color: "hsl(0, 75%, 45%)" }}>
-                  省 NT${(smallerPerPerson - Math.round(opt.totalPrice / opt.guestCount / safeNights)).toLocaleString()} / 人
-                </span>
-              </p>
-            </div>
-          )}
+      {/* ── 站內比價列：含內容（精簡 2~3 行） ── */}
+      {accent === "standard" && (() => {
+        // 用方案的 includes（過濾掉 no），最多 2 行；其餘進可展開區
+        const yesItems = (tier.includes || []).filter((i) => i.available !== "no");
+        const useDataIncludes = yesItems.length > 0;
+        return (
+          <div
+            className="border-t border-border/50 px-3 py-2 space-y-1.5"
+            style={{ background: "hsl(140, 25%, 97%)" }}
+          >
+            {smallerPerPerson && smallerGuestCount && smallerPerPerson > Math.round(opt.totalPrice / opt.guestCount / safeNights) && (
+              <div className="flex items-center gap-1.5">
+                <TrendingDown className="h-3 w-3 shrink-0" style={{ color: "hsl(0, 75%, 45%)" }} />
+                <p className="text-[10.5px] leading-tight text-foreground">
+                  每人僅
+                  <span className="font-bold mx-0.5" style={{ color: "hsl(0, 75%, 45%)" }}>
+                    NT${Math.round(opt.totalPrice / opt.guestCount / safeNights).toLocaleString()}
+                  </span>
+                  / 晚，比 {smallerGuestCount} 人方案
+                  <span className="font-bold mx-0.5" style={{ color: "hsl(0, 75%, 45%)" }}>
+                    省 NT${(smallerPerPerson - Math.round(opt.totalPrice / opt.guestCount / safeNights)).toLocaleString()} / 人
+                  </span>
+                </p>
+              </div>
+            )}
 
-          <div className="flex items-center gap-1.5">
-            <Check className="h-3 w-3 shrink-0" style={{ color: "hsl(140, 50%, 35%)" }} />
-            <p className="text-[10.5px] leading-tight text-foreground">
-              <span className="font-medium">早餐已含</span>
-              <span className="text-muted-foreground"> · 等值 NT$2,400 已包進總價</span>
-            </p>
+            {useDataIncludes ? (
+              yesItems.slice(0, 2).map((inc, i) => {
+                const isOptional = inc.available === "optional";
+                const Icon = isOptional ? Plus : Check;
+                return (
+                  <div key={i} className="flex items-center gap-1.5">
+                    <Icon
+                      className="h-3 w-3 shrink-0"
+                      style={{ color: isOptional ? "hsl(25, 70%, 45%)" : "hsl(140, 50%, 35%)" }}
+                    />
+                    <p className="text-[10.5px] leading-tight text-foreground line-clamp-1">
+                      <span className="font-medium">{inc.text}</span>
+                      {inc.price_note && (
+                        <span className="text-muted-foreground"> · {inc.price_note}</span>
+                      )}
+                    </p>
+                  </div>
+                );
+              })
+            ) : (
+              <>
+                <div className="flex items-center gap-1.5">
+                  <Check className="h-3 w-3 shrink-0" style={{ color: "hsl(140, 50%, 35%)" }} />
+                  <p className="text-[10.5px] leading-tight text-foreground">
+                    <span className="font-medium">早餐已含</span>
+                    <span className="text-muted-foreground"> · 等值 NT$2,400 已包進總價</span>
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Plus className="h-3 w-3 shrink-0 text-muted-foreground" />
+                  <p className="text-[10.5px] leading-tight text-muted-foreground">
+                    加床 <span className="font-medium text-foreground">+NT$3,500 / 床</span>（如需要）
+                  </p>
+                </div>
+              </>
+            )}
+
+            {holidayDiff > 0 && (
+              <div className="flex items-center gap-1.5">
+                <Plus className="h-3 w-3 shrink-0 text-muted-foreground" />
+                <p className="text-[10.5px] leading-tight text-muted-foreground">
+                  改假日入住 <span className="font-medium text-foreground">+NT${holidayDiff.toLocaleString()}</span>（同人數）
+                </p>
+              </div>
+            )}
+
+            {biggerGuestCount && biggerExtraTotal > 0 && biggerPerPersonSaved > 0 && (
+              <div
+                className="flex items-center gap-1.5 mt-1 px-1.5 py-1 rounded"
+                style={{ background: "hsl(25, 70%, 95%)" }}
+              >
+                <TrendingDown className="h-3 w-3 shrink-0" style={{ color: "hsl(25, 70%, 40%)" }} />
+                <p className="text-[10.5px] leading-tight" style={{ color: "hsl(25, 70%, 30%)" }}>
+                  再揪
+                  <span className="font-bold mx-0.5">
+                    {biggerGuestCount - opt.guestCount} 人
+                  </span>
+                  升級到 {biggerGuestCount} 人方案，
+                  只多
+                  <span className="font-bold mx-0.5">NT${biggerExtraTotal.toLocaleString()}</span>
+                  ，每人省
+                  <span className="font-bold mx-0.5">NT${biggerPerPersonSaved.toLocaleString()}/晚</span>
+                </p>
+              </div>
+            )}
           </div>
-
-          <div className="flex items-center gap-1.5">
-            <Plus className="h-3 w-3 shrink-0 text-muted-foreground" />
-            <p className="text-[10.5px] leading-tight text-muted-foreground">
-              加床 <span className="font-medium text-foreground">+NT$3,500 / 床</span>（如需要）
-            </p>
-          </div>
-
-          {holidayDiff > 0 && (
-            <div className="flex items-center gap-1.5">
-              <Plus className="h-3 w-3 shrink-0 text-muted-foreground" />
-              <p className="text-[10.5px] leading-tight text-muted-foreground">
-                改假日入住 <span className="font-medium text-foreground">+NT${holidayDiff.toLocaleString()}</span>（同人數）
-              </p>
-            </div>
-          )}
-
-          {biggerGuestCount && biggerExtraTotal > 0 && biggerPerPersonSaved > 0 && (
-            <div
-              className="flex items-center gap-1.5 mt-1 px-1.5 py-1 rounded"
-              style={{ background: "hsl(25, 70%, 95%)" }}
-            >
-              <TrendingDown className="h-3 w-3 shrink-0" style={{ color: "hsl(25, 70%, 40%)" }} />
-              <p className="text-[10.5px] leading-tight" style={{ color: "hsl(25, 70%, 30%)" }}>
-                再揪
-                <span className="font-bold mx-0.5">
-                  {biggerGuestCount - opt.guestCount} 人
-                </span>
-                升級到 {biggerGuestCount} 人方案，
-                只多
-                <span className="font-bold mx-0.5">NT${biggerExtraTotal.toLocaleString()}</span>
-                ，每人省
-                <span className="font-bold mx-0.5">NT${biggerPerPersonSaved.toLocaleString()}/晚</span>
-              </p>
-            </div>
-          )}
-        </div>
-      )}
+        );
+      })()}
 
       <button
         type="button"
