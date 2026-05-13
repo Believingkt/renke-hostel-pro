@@ -66,6 +66,8 @@ interface FormState {
   subtitle: string;
   guest_count: number;
   guest_count_max: number | null;
+  child_count_max: number | null;
+  child_age_note: string;
   original_price: number | null;
   sale_price: number;
   room_allocation: string;
