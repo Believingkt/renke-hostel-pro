@@ -36,6 +36,7 @@ import {
   buildPricingTableFromPackages,
   aggregateIncludesFromPackages,
   detectTierByDate,
+  isPackageExcludedOnDate,
 } from "@/hooks/use-accommodation-packages";
 
 import FacilitiesSection from "@/components/FacilitiesSection";
@@ -83,19 +84,6 @@ const BookingVilla = () => {
   // 載入該民宿的包區方案（非森山民宿透過資料驅動使用同一套階梯卡 UI）
   const { packages, loading: packagesLoading } = useAccommodationPackages(accId || null);
   const isSensan = info ? isSensanAccommodation(info.name) : false;
-  const customPricingTable = useMemo(() => {
-    if (packages.length === 0) return undefined;
-    return buildPricingTableFromPackages(packages);
-  }, [packages]);
-  const customIncludes = useMemo(() => {
-    if (packages.length === 0) return undefined;
-    return aggregateIncludesFromPackages(packages);
-  }, [packages]);
-  const customIncludesTitle = useMemo(() => {
-    if (packages.length === 0) return undefined;
-    const count = customIncludes?.length || 0;
-    return count > 0 ? `方案內容 · 含 ${count} 項` : "方案內容";
-  }, [packages, customIncludes]);
 
   // 防呆：非森山且沒有設定任何包區方案的民宿，回到標準訂房頁
   useEffect(() => {
@@ -130,6 +118,26 @@ const BookingVilla = () => {
   const checkOut = checkOutStr ? new Date(checkOutStr) : null;
   const nights =
     checkIn && checkOut ? Math.max(1, differenceInDays(checkOut, checkIn)) : 1;
+
+  // 過濾掉「不適用日期區間」涵蓋入住日的方案；未選日期則顯示全部
+  const visiblePackages = useMemo(() => {
+    if (!checkIn) return packages;
+    return packages.filter((p) => !isPackageExcludedOnDate(p, checkIn));
+  }, [packages, checkIn]);
+
+  const customPricingTable = useMemo(() => {
+    if (visiblePackages.length === 0) return undefined;
+    return buildPricingTableFromPackages(visiblePackages);
+  }, [visiblePackages]);
+  const customIncludes = useMemo(() => {
+    if (visiblePackages.length === 0) return undefined;
+    return aggregateIncludesFromPackages(visiblePackages);
+  }, [visiblePackages]);
+  const customIncludesTitle = useMemo(() => {
+    if (visiblePackages.length === 0) return undefined;
+    const count = customIncludes?.length || 0;
+    return count > 0 ? `方案內容 · 含 ${count} 項` : "方案內容";
+  }, [visiblePackages, customIncludes]);
 
   // Combined photo gallery (hero + gallery, mixed)
   const allPhotos = useMemo(() => {
@@ -563,10 +571,10 @@ const BookingVilla = () => {
         <div className="flex items-center gap-3">
           <div className="flex-1 min-w-0">
             {(() => {
-              let candidatePkgs = packages;
-              if (packages.length > 0 && checkIn) {
+              let candidatePkgs = visiblePackages;
+              if (visiblePackages.length > 0 && checkIn) {
                 const tier = detectTierByDate(checkIn);
-                const tierPkgs = packages.filter((p) => p.applicable_tiers.includes(tier));
+                const tierPkgs = visiblePackages.filter((p) => p.applicable_tiers.includes(tier));
                 if (tierPkgs.length > 0) candidatePkgs = tierPkgs;
               }
               const cheapestPkg = candidatePkgs.length > 0

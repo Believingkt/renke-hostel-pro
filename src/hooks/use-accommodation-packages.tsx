@@ -27,6 +27,12 @@ export interface AccommodationPackage {
   primary_room_type_id: string | null;
   display_order: number;
   enabled: boolean;
+  excluded_date_ranges: PackageDateRange[];
+}
+
+export interface PackageDateRange {
+  start: string; // YYYY-MM-DD
+  end: string;   // YYYY-MM-DD (inclusive)
 }
 
 export function detectTierByDate(date: Date | null | undefined): PackageTier {
@@ -35,6 +41,28 @@ export function detectTierByDate(date: Date | null | undefined): PackageTier {
   if (day === 6) return "weekend";
   if (day === 5 || day === 0) return "friday_sunday";
   return "weekday";
+}
+
+/** 將日期格式化為 YYYY-MM-DD（以本地時區） */
+function formatLocalDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** 判斷某入住日是否落在方案的「不適用日期區間」內（含起訖日） */
+export function isPackageExcludedOnDate(
+  pkg: Pick<AccommodationPackage, "excluded_date_ranges">,
+  date: Date | null | undefined
+): boolean {
+  if (!date) return false;
+  const ranges = pkg.excluded_date_ranges || [];
+  if (ranges.length === 0) return false;
+  const target = formatLocalDate(date);
+  return ranges.some(
+    (r) => r && r.start && r.end && target >= r.start && target <= r.end
+  );
 }
 
 export function useAccommodationPackages(accommodationId: string | null, opts?: { onlyEnabled?: boolean }) {
@@ -62,7 +90,14 @@ export function useAccommodationPackages(accommodationId: string | null, opts?: 
       setError(error.message);
       setPackages([]);
     } else {
-      setPackages((data || []) as any);
+      setPackages(
+        ((data || []) as any[]).map((p) => ({
+          ...p,
+          excluded_date_ranges: Array.isArray(p.excluded_date_ranges)
+            ? p.excluded_date_ranges
+            : [],
+        })) as AccommodationPackage[]
+      );
     }
     setLoading(false);
   }, [accommodationId, opts?.onlyEnabled]);
