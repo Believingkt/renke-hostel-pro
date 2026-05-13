@@ -84,6 +84,7 @@ const BookingVilla = () => {
 
   // 載入該民宿的包區方案（非森山民宿透過資料驅動使用同一套階梯卡 UI）
   const { packages, loading: packagesLoading } = useAccommodationPackages(accId || null);
+  const { isHolidayDate } = useAccommodationHolidays(accId || null);
   const isSensan = info ? isSensanAccommodation(info.name) : false;
 
   // 防呆：非森山且沒有設定任何包區方案的民宿，回到標準訂房頁
