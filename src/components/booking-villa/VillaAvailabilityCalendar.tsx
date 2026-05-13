@@ -245,22 +245,29 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
           const isPast = isBefore(day, today) && !isSameDay(day, today);
           const isAvail = availableDates.has(dateStr);
           const isToday = isSameDay(day, today);
+          const isSelected = !!selectedDate && isSameDay(day, selectedDate);
 
           if (!inMonth) {
             return <div key={dateStr} className="aspect-square" />;
           }
 
+          const clickable = !isPast && isAvail && !!onSelectDate;
+
           return (
-            <div
+            <button
+              type="button"
               key={dateStr}
+              disabled={!clickable}
+              onClick={clickable ? () => onSelectDate!(day) : undefined}
               className={cn(
                 "relative aspect-square rounded-md flex flex-col items-center justify-center text-[13px] font-medium border transition-colors",
                 isPast
-                  ? "bg-transparent text-muted-foreground/30 border-transparent"
+                  ? "bg-transparent text-muted-foreground/30 border-transparent cursor-default"
                   : isAvail
-                    ? "bg-emerald-500/10 text-emerald-900 dark:text-emerald-100 border-emerald-600/50"
-                    : "bg-muted-foreground/20 text-muted-foreground/70 border-muted-foreground/30",
-                isToday && !isPast && "ring-2 ring-primary",
+                    ? "bg-emerald-500/10 text-emerald-900 dark:text-emerald-100 border-emerald-600/50 hover:bg-emerald-500/20 active:scale-95"
+                    : "bg-muted-foreground/20 text-muted-foreground/70 border-muted-foreground/30 cursor-not-allowed",
+                isToday && !isPast && !isSelected && "ring-2 ring-primary/60",
+                isSelected && "ring-2 ring-primary bg-primary/15 border-primary",
               )}
               title={
                 isPast
