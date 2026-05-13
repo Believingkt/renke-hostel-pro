@@ -70,6 +70,55 @@ export function isPackageExcludedOnDate(
   );
 }
 
+/**
+ * 抓取該民宿設定的「國定假日」清單，回傳 isHolidayDate(date) 判斷函式。
+ * 視為假日的類型：'holiday'（國定假日）與 'compensatory_day_off'（補假）。
+ * 'work_on_weekend'（補班日）不視為假日。
+ */
+export function useAccommodationHolidays(accommodationId: string | null) {
+  const [holidaySet, setHolidaySet] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      if (!accommodationId) {
+        setHolidaySet(new Set());
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("public_holidays")
+        .select("holiday_date, holiday_type")
+        .eq("accommodation_id", accommodationId)
+        .in("holiday_type", ["holiday", "compensatory_day_off"]);
+      if (cancelled) return;
+      if (error) {
+        console.error("載入國定假日失敗:", error);
+        setHolidaySet(new Set());
+      } else {
+        setHolidaySet(new Set((data || []).map((h: any) => h.holiday_date)));
+      }
+      setLoading(false);
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [accommodationId]);
+
+  const isHolidayDate = useCallback(
+    (date: Date | null | undefined): boolean => {
+      if (!date) return false;
+      return holidaySet.has(formatLocalDate(date));
+    },
+    [holidaySet]
+  );
+
+  return { isHolidayDate, holidaySet, loading };
+}
+
 export function useAccommodationPackages(accommodationId: string | null, opts?: { onlyEnabled?: boolean }) {
   const [packages, setPackages] = useState<AccommodationPackage[]>([]);
   const [loading, setLoading] = useState(true);
