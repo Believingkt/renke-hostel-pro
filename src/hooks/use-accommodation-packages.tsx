@@ -35,8 +35,13 @@ export interface PackageDateRange {
   end: string;   // YYYY-MM-DD (inclusive)
 }
 
-export function detectTierByDate(date: Date | null | undefined): PackageTier {
+export function detectTierByDate(
+  date: Date | null | undefined,
+  isHoliday?: boolean
+): PackageTier {
   const d = date ?? new Date();
+  // 國定假日（含補假）視為假日
+  if (isHoliday) return "weekend";
   const day = d.getDay();
   if (day === 6) return "weekend";
   if (day === 5 || day === 0) return "friday_sunday";
@@ -63,6 +68,55 @@ export function isPackageExcludedOnDate(
   return ranges.some(
     (r) => r && r.start && r.end && target >= r.start && target <= r.end
   );
+}
+
+/**
+ * 抓取該民宿設定的「國定假日」清單，回傳 isHolidayDate(date) 判斷函式。
+ * 視為假日的類型：'holiday'（國定假日）與 'compensatory_day_off'（補假）。
+ * 'work_on_weekend'（補班日）不視為假日。
+ */
+export function useAccommodationHolidays(accommodationId: string | null) {
+  const [holidaySet, setHolidaySet] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      if (!accommodationId) {
+        setHolidaySet(new Set());
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("public_holidays")
+        .select("holiday_date, holiday_type")
+        .eq("accommodation_id", accommodationId)
+        .in("holiday_type", ["holiday", "compensatory_day_off"]);
+      if (cancelled) return;
+      if (error) {
+        console.error("載入國定假日失敗:", error);
+        setHolidaySet(new Set());
+      } else {
+        setHolidaySet(new Set((data || []).map((h: any) => h.holiday_date)));
+      }
+      setLoading(false);
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [accommodationId]);
+
+  const isHolidayDate = useCallback(
+    (date: Date | null | undefined): boolean => {
+      if (!date) return false;
+      return holidaySet.has(formatLocalDate(date));
+    },
+    [holidaySet]
+  );
+
+  return { isHolidayDate, holidaySet, loading };
 }
 
 export function useAccommodationPackages(accommodationId: string | null, opts?: { onlyEnabled?: boolean }) {

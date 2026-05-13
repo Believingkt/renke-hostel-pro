@@ -65,6 +65,8 @@ interface Props {
   enableFewPeople?: boolean;
   /** 是否為森山（影響「包區/包棟」用詞，預設 true 保留森山文案） */
   isSensan?: boolean;
+  /** 判斷某日期是否為國定假日（含補假），命中即視為假日 tier */
+  isHolidayDate?: (date: Date | null | undefined) => boolean;
 }
 
 import {
@@ -89,7 +91,11 @@ const TIER_LABELS: Record<PricingTier, { short: string; full: string; hint: stri
   weekend: { short: "假日", full: "週六、國定假日", hint: "假日包區方案", emoji: "🎉" },
 };
 
-function detectTierByDate(date: Date | null | undefined): PricingTier {
+function detectTierByDate(
+  date: Date | null | undefined,
+  isHoliday?: boolean
+): PricingTier {
+  if (isHoliday) return "weekend";
   return detectTierByDateShared(date);
 }
 
@@ -104,6 +110,7 @@ const CapacityPriceLadder = ({
   includesTitle,
   enableFewPeople = true,
   isSensan = true,
+  isHolidayDate,
 }: Props) => {
   const TERM = isSensan ? "包區" : "包棟";
   const TIER_HINT: Record<PricingTier, string> = {
@@ -120,15 +127,17 @@ const CapacityPriceLadder = ({
     }));
   }, [planIncludes]);
 
-  const [activeTier, setActiveTier] = useState<PricingTier>(() => detectTierByDate(checkIn));
+  const [activeTier, setActiveTier] = useState<PricingTier>(() =>
+    detectTierByDate(checkIn, isHolidayDate?.(checkIn))
+  );
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [showIncludes, setShowIncludes] = useState(false);
   const [otherTierOpen, setOtherTierOpen] = useState(false);
 
   // 入住日變動時自動切到對應時段
   useEffect(() => {
-    setActiveTier(detectTierByDate(checkIn));
-  }, [checkIn]);
+    setActiveTier(detectTierByDate(checkIn, isHolidayDate?.(checkIn)));
+  }, [checkIn, isHolidayDate]);
 
   const fallbackRoomType = roomTypes[0];
 

@@ -5,6 +5,7 @@ import {
   type AccommodationPackage,
   type PackageTier,
   detectTierByDate,
+  useAccommodationHolidays,
 } from "@/hooks/use-accommodation-packages";
 
 interface PackagesSectionProps {
@@ -39,7 +40,8 @@ const PackagesSection = ({
   const checkInStr = searchParams.get("checkIn");
   const checkOutStr = searchParams.get("checkOut");
   const checkIn = checkInStr ? new Date(checkInStr) : null;
-  const currentTier = detectTierByDate(checkIn);
+  const { isHolidayDate } = useAccommodationHolidays(accommodationId);
+  const currentTier = detectTierByDate(checkIn, checkIn ? isHolidayDate(checkIn) : false);
 
   const visible = useMemo(() => {
     return packages

@@ -33,6 +33,7 @@ import CapacityPriceLadder, {
 import { isSensanAccommodation } from "@/lib/sensan-pricing";
 import {
   useAccommodationPackages,
+  useAccommodationHolidays,
   buildPricingTableFromPackages,
   aggregateIncludesFromPackages,
   detectTierByDate,
@@ -83,6 +84,7 @@ const BookingVilla = () => {
 
   // 載入該民宿的包區方案（非森山民宿透過資料驅動使用同一套階梯卡 UI）
   const { packages, loading: packagesLoading } = useAccommodationPackages(accId || null);
+  const { isHolidayDate } = useAccommodationHolidays(accId || null);
   const isSensan = info ? isSensanAccommodation(info.name) : false;
 
   // 防呆：非森山且沒有設定任何包區方案的民宿，回到標準訂房頁
@@ -449,6 +451,7 @@ const BookingVilla = () => {
             includesTitle={customIncludesTitle}
             enableFewPeople={isSensan || packages.some((p) => (p.tags || []).some((t) => t === "early_bird" || t === "few_people"))}
             isSensan={isSensan}
+            isHolidayDate={isHolidayDate}
           />
         </section>
 
@@ -573,7 +576,7 @@ const BookingVilla = () => {
             {(() => {
               let candidatePkgs = visiblePackages;
               if (visiblePackages.length > 0 && checkIn) {
-                const tier = detectTierByDate(checkIn);
+                const tier = detectTierByDate(checkIn, isHolidayDate(checkIn));
                 const tierPkgs = visiblePackages.filter((p) => p.applicable_tiers.includes(tier));
                 if (tierPkgs.length > 0) candidatePkgs = tierPkgs;
               }
