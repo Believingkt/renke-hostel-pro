@@ -562,45 +562,39 @@ const BookingVilla = () => {
       >
         <div className="flex items-center gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] text-muted-foreground leading-none mb-0.5">
-              {(() => {
-                const parts: string[] = [];
-                if (checkIn && checkOut) parts.push(`共 ${nights} 晚`);
-                if (villaStats) {
-                  parts.push(`包棟${villaStats.minCapacity}人起`);
-                } else {
-                  parts.push("包棟起");
-                }
-                return parts.join(" · ");
-              })()}
-            </p>
             {(() => {
-              let pkgMin: number | null = null;
-              if (packages.length > 0) {
-                if (checkIn) {
-                  const tier = detectTierByDate(checkIn);
-                  const tierPkgs = packages.filter((p) =>
-                    p.applicable_tiers.includes(tier)
-                  );
-                  pkgMin = tierPkgs.length > 0
-                    ? Math.min(...tierPkgs.map((p) => p.sale_price))
-                    : Math.min(...packages.map((p) => p.sale_price));
-                } else {
-                  pkgMin = Math.min(...packages.map((p) => p.sale_price));
-                }
+              let candidatePkgs = packages;
+              if (packages.length > 0 && checkIn) {
+                const tier = detectTierByDate(checkIn);
+                const tierPkgs = packages.filter((p) => p.applicable_tiers.includes(tier));
+                if (tierPkgs.length > 0) candidatePkgs = tierPkgs;
               }
+              const cheapestPkg = candidatePkgs.length > 0
+                ? candidatePkgs.reduce((min, p) => (p.sale_price < min.sale_price ? p : min), candidatePkgs[0])
+                : null;
+              const pkgMin = cheapestPkg?.sale_price ?? null;
               const roomMin = (secondaryData?.roomTypes?.length || 0) > 0
                 ? Math.min(...secondaryData!.roomTypes.map((r: any) => r.base_price))
                 : null;
               const display = pkgMin ?? roomMin;
-              if (display == null) return null;
+              const guestCount = cheapestPkg?.guest_count ?? villaStats?.minCapacity ?? null;
+              const parts: string[] = [];
+              if (checkIn && checkOut) parts.push(`共 ${nights} 晚`);
+              parts.push(guestCount ? `包棟${guestCount}人起` : "包棟起");
               return (
-                <p
-                  className="font-bold text-base leading-none"
-                  style={{ color: "hsl(0, 75%, 50%)" }}
-                >
-                  NT${display.toLocaleString()}
-                </p>
+                <>
+                  <p className="text-[10px] text-muted-foreground leading-none mb-0.5">
+                    {parts.join(" · ")}
+                  </p>
+                  {display != null && (
+                    <p
+                      className="font-bold text-base leading-none"
+                      style={{ color: "hsl(0, 75%, 50%)" }}
+                    >
+                      NT${display.toLocaleString()}
+                    </p>
+                  )}
+                </>
               );
             })()}
           </div>
