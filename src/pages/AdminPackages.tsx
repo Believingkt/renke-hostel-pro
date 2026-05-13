@@ -144,6 +144,26 @@ const AdminPackages = () => {
     setOpen(true);
   };
 
+  const handleCopy = (pkg: AccommodationPackage) => {
+    setEditing(null);
+    setForm({
+      name: `${pkg.name} - 複製`,
+      subtitle: pkg.subtitle ?? "",
+      guest_count: pkg.guest_count,
+      guest_count_max: pkg.guest_count_max,
+      original_price: pkg.original_price,
+      sale_price: pkg.sale_price,
+      room_allocation: pkg.room_allocation ?? "",
+      applicable_tiers: pkg.applicable_tiers,
+      tags: [...pkg.tags],
+      includes: pkg.includes ? pkg.includes.map((inc) => ({ ...inc })) : [],
+      primary_room_type_id: pkg.primary_room_type_id ?? NONE,
+      display_order: (packages[packages.length - 1]?.display_order ?? 0) + 1,
+      enabled: pkg.enabled,
+    });
+    setOpen(true);
+  };
+
   const toggleEnabled = async (pkg: AccommodationPackage) => {
     const { error } = await supabase
       .from("accommodation_packages")
