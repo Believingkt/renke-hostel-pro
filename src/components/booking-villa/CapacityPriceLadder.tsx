@@ -162,6 +162,7 @@ const CapacityPriceLadder = ({
 
     return {
       guestCount: tier.guestCount,
+      guestCountLabel: tier.guestCountLabel,
       roomTypeId: tier.roomTypeId || matched?.id || `virtual-${tier.guestCount}`,
       roomTypeName: tier.planName || matched?.name || `${tier.guestCount} 人${TERM}方案`,
       totalPrice,
