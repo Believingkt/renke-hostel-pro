@@ -1150,6 +1150,11 @@ export default function ChannelManager() {
                   onChange={(e) => setEndpointForm((f) => ({ ...f, remote_password: e.target.value }))}
                   autoComplete="new-password"
                 />
+                {owlEndpoint && (
+                  <p className="text-xs text-muted-foreground">
+                    已安全保存；留空會保留目前密碼，輸入新值才會更新。
+                  </p>
+                )}
               </div>
             </div>
             <div className="space-y-2">
