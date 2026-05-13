@@ -566,9 +566,20 @@ const BookingVilla = () => {
               {checkIn && checkOut ? `共 ${nights} 晚 · 包棟起` : "包棟起"}
             </p>
             {(() => {
-              const pkgMin = packages.length > 0
-                ? Math.min(...packages.map((p) => p.sale_price))
-                : null;
+              let pkgMin: number | null = null;
+              if (packages.length > 0) {
+                if (checkIn) {
+                  const tier = detectTierByDate(checkIn);
+                  const tierPkgs = packages.filter((p) =>
+                    p.applicable_tiers.includes(tier)
+                  );
+                  pkgMin = tierPkgs.length > 0
+                    ? Math.min(...tierPkgs.map((p) => p.sale_price))
+                    : Math.min(...packages.map((p) => p.sale_price));
+                } else {
+                  pkgMin = Math.min(...packages.map((p) => p.sale_price));
+                }
+              }
               const roomMin = (secondaryData?.roomTypes?.length || 0) > 0
                 ? Math.min(...secondaryData!.roomTypes.map((r: any) => r.base_price))
                 : null;
