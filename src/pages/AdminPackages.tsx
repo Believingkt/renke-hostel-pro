@@ -84,6 +84,8 @@ const emptyForm = (): FormState => ({
   subtitle: "",
   guest_count: 2,
   guest_count_max: null,
+  child_count_max: null,
+  child_age_note: "",
   original_price: null,
   sale_price: 0,
   room_allocation: "",
