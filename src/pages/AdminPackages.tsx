@@ -155,6 +155,7 @@ const AdminPackages = () => {
       excluded_date_ranges: Array.isArray(pkg.excluded_date_ranges)
         ? pkg.excluded_date_ranges.map((r) => ({ ...r }))
         : [],
+      tier_prices: pkg.tier_prices ? { ...pkg.tier_prices } : {},
     });
     setOpen(true);
   };
