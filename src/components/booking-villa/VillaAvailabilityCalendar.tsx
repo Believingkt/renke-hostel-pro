@@ -268,7 +268,7 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
               disabled={!clickable}
               onClick={clickable ? () => onSelectDate!(day) : undefined}
               className={cn(
-                "relative min-h-[40px] sm:min-h-[48px] md:min-h-[56px] lg:min-h-[64px] rounded-md flex flex-col items-center justify-center text-sm sm:text-base md:text-lg lg:text-xl font-medium border transition-colors",
+                "relative aspect-square rounded-md flex flex-col items-center justify-center text-sm sm:text-base md:text-lg font-medium border transition-colors",
                 isPast
                   ? "bg-transparent text-muted-foreground/30 border-transparent cursor-default"
                   : isAvail
