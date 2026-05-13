@@ -90,7 +90,14 @@ export function useAccommodationPackages(accommodationId: string | null, opts?: 
       setError(error.message);
       setPackages([]);
     } else {
-      setPackages((data || []) as any);
+      setPackages(
+        ((data || []) as any[]).map((p) => ({
+          ...p,
+          excluded_date_ranges: Array.isArray(p.excluded_date_ranges)
+            ? p.excluded_date_ranges
+            : [],
+        })) as AccommodationPackage[]
+      );
     }
     setLoading(false);
   }, [accommodationId, opts?.onlyEnabled]);
