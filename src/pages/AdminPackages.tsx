@@ -387,12 +387,11 @@ const AdminPackages = () => {
               <div>
                 <Label>建議人數 *</Label>
                 <Input
-                  type="number"
-                  min={1}
-                  value={form.guest_count}
+                  value={form.guest_count_label}
                   onChange={(e) =>
-                    setForm({ ...form, guest_count: parseInt(e.target.value, 10) || 1 })
+                    setForm({ ...form, guest_count_label: e.target.value })
                   }
+                  placeholder="例：12人、6-10人、2大2小"
                 />
               </div>
               <div>
