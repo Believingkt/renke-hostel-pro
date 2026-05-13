@@ -83,11 +83,22 @@ const PackagesSection = ({
 
         <div className="space-y-4 sm:space-y-6">
           {visible.map((pkg) => {
+            const { original: tierOriginal, sale: tierSale } = getPackagePriceForTier(
+              pkg,
+              currentTier
+            );
             const discount =
-              pkg.original_price && pkg.original_price > pkg.sale_price
-                ? Math.round(((pkg.original_price - pkg.sale_price) / pkg.original_price) * 100)
+              tierOriginal && tierOriginal > tierSale
+                ? Math.round(((tierOriginal - tierSale) / tierOriginal) * 100)
                 : null;
-            const perPerson = Math.round(pkg.sale_price / Math.max(1, pkg.guest_count));
+            const perPerson = Math.round(tierSale / Math.max(1, pkg.guest_count));
+
+            // 蒐集所有適用日型的價格，若不只一種則顯示分日型價格列
+            const tierBreakdown = pkg.applicable_tiers
+              .map((t) => ({ tier: t, ...getPackagePriceForTier(pkg, t) }));
+            const hasMultiplePrices =
+              tierBreakdown.length > 1 &&
+              new Set(tierBreakdown.map((b) => b.sale)).size > 1;
             return (
               <div
                 key={pkg.id}
