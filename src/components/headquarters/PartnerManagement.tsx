@@ -25,7 +25,8 @@ import {
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth, subMonths, addMonths } from "date-fns";
 import { zhTW } from "date-fns/locale";
-import { Plus, Copy, Eye, EyeOff, Loader2, Trash2, ExternalLink, Handshake, FileText, ArrowDownUp, ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { Plus, Copy, Loader2, Trash2, ExternalLink, Handshake, FileText, ArrowDownUp, ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, Download, RefreshCw, KeyRound } from "lucide-react";
+import { generateApiKey } from "@/utils/hashSecret";
 import { EmptyState } from "@/components/EmptyState";
 import * as XLSX from "xlsx";
 
@@ -56,7 +57,7 @@ interface Partner {
   id: string;
   platform_name: string;
   platform_code: string;
-  api_key: string;
+  api_key_prefix: string | null;
   is_active: boolean;
   point_to_currency_rate: number;
   webhook_url: string | null;
