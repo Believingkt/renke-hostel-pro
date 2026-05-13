@@ -3,6 +3,12 @@
 
 export type SensanPricingTier = "weekday" | "friday_sunday" | "weekend";
 
+export interface SensanTierIncludeItem {
+  text: string;
+  available: "yes" | "no" | "optional";
+  price_note?: string;
+}
+
 export interface SensanTierPrice {
   guestCount: number;
   original: number;
@@ -13,6 +19,17 @@ export interface SensanTierPrice {
   roomTypeId?: string;
   /** 可選：方案名稱（資料驅動時可帶入，沒帶就 fallback "{n} 人包區方案"） */
   planName?: string;
+  /** 副標 */
+  subtitle?: string | null;
+  /** 人數上限 */
+  guestCountMax?: number | null;
+  /** 兒童相關 */
+  childCountMax?: number | null;
+  childAgeNote?: string | null;
+  /** 標籤 */
+  tags?: string[];
+  /** 附加說明 */
+  includes?: SensanTierIncludeItem[];
 }
 
 export const SENSAN_PRICING_TABLE: Record<SensanPricingTier, SensanTierPrice[]> = {
