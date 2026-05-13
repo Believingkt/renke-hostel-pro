@@ -301,7 +301,7 @@ Deno.serve(async (req) => {
           .select(`
             id, code, name, discount_type, discount_value, 
             is_active, used_count, usage_limit, commission_rate,
-            discount_code_secrets (api_key, updated_at)
+            discount_code_secrets (api_key_hash, api_key_prefix, updated_at)
           `)
           .order('created_at', { ascending: false });
 
@@ -321,7 +321,8 @@ Deno.serve(async (req) => {
           used_count: c.used_count,
           usage_limit: c.usage_limit,
           commission_rate: c.commission_rate,
-          has_api_key: !!c.discount_code_secrets?.api_key,
+          has_api_key: !!c.discount_code_secrets?.api_key_hash,
+          api_key_prefix: c.discount_code_secrets?.api_key_prefix || null,
           api_key_updated_at: c.discount_code_secrets?.updated_at || null
         }));
 
