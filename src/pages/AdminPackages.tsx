@@ -100,6 +100,7 @@ const emptyForm = (): FormState => ({
   display_order: 0,
   enabled: true,
   excluded_date_ranges: [],
+  tier_prices: {},
 });
 
 const AdminPackages = () => {
