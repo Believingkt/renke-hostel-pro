@@ -198,6 +198,8 @@ const AdminPackages = () => {
       subtitle: form.subtitle.trim() || null,
       guest_count: form.guest_count,
       guest_count_max: form.guest_count_max,
+      child_count_max: form.child_count_max,
+      child_age_note: form.child_age_note.trim() || null,
       original_price: form.original_price,
       sale_price: form.sale_price,
       room_allocation: form.room_allocation.trim() || null,
