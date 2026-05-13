@@ -78,6 +78,7 @@ interface FormState {
   primary_room_type_id: string;
   display_order: number;
   enabled: boolean;
+  excluded_date_ranges: PackageDateRange[];
 }
 
 const emptyForm = (): FormState => ({
@@ -96,6 +97,7 @@ const emptyForm = (): FormState => ({
   primary_room_type_id: NONE,
   display_order: 0,
   enabled: true,
+  excluded_date_ranges: [],
 });
 
 const AdminPackages = () => {
