@@ -22,6 +22,8 @@ const SENSAN_ACCOMMODATION_ID = "5f764d55-ae11-4631-80fe-2e611853deae";
 
 interface Props {
   accommodationId: string;
+  selectedDate?: Date | null;
+  onSelectDate?: (date: Date) => void;
 }
 
 /**
@@ -32,7 +34,7 @@ interface Props {
  *  - 其他: 任一房型有空即開啟
  * 只顯示「是否可訂」(綠/灰)，不顯示價格。
  */
-const VillaAvailabilityCalendar = ({ accommodationId }: Props) => {
+const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate }: Props) => {
   const [monthOffset, setMonthOffset] = useState(0);
   const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
   const [hasInventory, setHasInventory] = useState<boolean | null>(null);
@@ -243,22 +245,29 @@ const VillaAvailabilityCalendar = ({ accommodationId }: Props) => {
           const isPast = isBefore(day, today) && !isSameDay(day, today);
           const isAvail = availableDates.has(dateStr);
           const isToday = isSameDay(day, today);
+          const isSelected = !!selectedDate && isSameDay(day, selectedDate);
 
           if (!inMonth) {
             return <div key={dateStr} className="aspect-square" />;
           }
 
+          const clickable = !isPast && isAvail && !!onSelectDate;
+
           return (
-            <div
+            <button
+              type="button"
               key={dateStr}
+              disabled={!clickable}
+              onClick={clickable ? () => onSelectDate!(day) : undefined}
               className={cn(
                 "relative aspect-square rounded-md flex flex-col items-center justify-center text-[13px] font-medium border transition-colors",
                 isPast
-                  ? "bg-transparent text-muted-foreground/30 border-transparent"
+                  ? "bg-transparent text-muted-foreground/30 border-transparent cursor-default"
                   : isAvail
-                    ? "bg-emerald-500/10 text-emerald-900 dark:text-emerald-100 border-emerald-600/50"
-                    : "bg-muted-foreground/20 text-muted-foreground/70 border-muted-foreground/30",
-                isToday && !isPast && "ring-2 ring-primary",
+                    ? "bg-emerald-500/10 text-emerald-900 dark:text-emerald-100 border-emerald-600/50 hover:bg-emerald-500/20 active:scale-95"
+                    : "bg-muted-foreground/20 text-muted-foreground/70 border-muted-foreground/30 cursor-not-allowed",
+                isToday && !isPast && !isSelected && "ring-2 ring-primary/60",
+                isSelected && "ring-2 ring-primary bg-primary/15 border-primary",
               )}
               title={
                 isPast
@@ -274,7 +283,7 @@ const VillaAvailabilityCalendar = ({ accommodationId }: Props) => {
               {!isPast && !isAvail && (
                 <span className="text-[9px] leading-none mt-0.5 font-semibold tracking-tight">已滿</span>
               )}
-            </div>
+            </button>
           );
         })}
       </div>
