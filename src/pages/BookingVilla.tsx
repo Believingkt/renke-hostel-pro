@@ -400,7 +400,7 @@ const BookingVilla = () => {
         />
 
         {/* ── 5. Capacity × Price Plans (核心 CTA) ── */}
-        <section className="py-4 bg-background">
+        <section id="capacity-price-section" className="py-4 bg-background">
           <div className="px-4 mb-3 flex items-end justify-between">
             <div>
               <h2 className="text-base font-bold text-foreground">
