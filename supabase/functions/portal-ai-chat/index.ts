@@ -98,7 +98,7 @@ serve(async (req) => {
     const tools = [
       {
         name: "get_available_rooms",
-        description: "查詢所有民宿或指定民宿的可用房型和價格。",
+        description: "查詢所有民宿或指定民宿的可用房型和價格。若用戶提供入住人數，務必傳入 guest_count 以過濾不足容納的房型。",
         input_schema: {
           type: "object",
           properties: {
@@ -106,6 +106,7 @@ serve(async (req) => {
             check_in_date: { type: "string", description: "入住日期 YYYY-MM-DD（選填）" },
             check_out_date: { type: "string", description: "退房日期 YYYY-MM-DD（選填）" },
             room_type_id: { type: "string", description: "房型 ID（選填）" },
+            guest_count: { type: "number", description: "入住人數（選填）。提供時只回傳 capacity >= guest_count 的房型" },
           },
           required: [],
         },
