@@ -35,6 +35,7 @@ import {
   useAccommodationPackages,
   buildPricingTableFromPackages,
   aggregateIncludesFromPackages,
+  detectTierByDate,
 } from "@/hooks/use-accommodation-packages";
 
 import FacilitiesSection from "@/components/FacilitiesSection";
