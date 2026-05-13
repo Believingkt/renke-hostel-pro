@@ -25,6 +25,7 @@ import {
   Search,
   BedDouble,
   MessageCircle,
+  ChevronRight,
 } from "lucide-react";
 import {
   isSensanAccommodation,
