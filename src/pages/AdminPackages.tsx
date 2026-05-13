@@ -395,6 +395,32 @@ const AdminPackages = () => {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
+                <Label>兒童人數上限（選填）</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={form.child_count_max ?? ""}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      child_count_max: e.target.value ? parseInt(e.target.value, 10) : null,
+                    })
+                  }
+                  placeholder="例：2"
+                />
+              </div>
+              <div>
+                <Label>兒童年齡備註（選填）</Label>
+                <Input
+                  value={form.child_age_note}
+                  onChange={(e) => setForm({ ...form, child_age_note: e.target.value })}
+                  placeholder="例：6 歲以下不佔床"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
                 <Label>原價（選填，劃掉用）</Label>
                 <Input
                   type="number"
