@@ -22,6 +22,8 @@ const SENSAN_ACCOMMODATION_ID = "5f764d55-ae11-4631-80fe-2e611853deae";
 
 interface Props {
   accommodationId: string;
+  selectedDate?: Date | null;
+  onSelectDate?: (date: Date) => void;
 }
 
 /**
