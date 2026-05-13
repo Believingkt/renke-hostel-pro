@@ -277,7 +277,7 @@ Deno.serve(async (req) => {
 
         const { error: updateErr } = await supabase
           .from('discount_code_secrets')
-          .update({ api_key: null, updated_at: new Date().toISOString() })
+          .update({ api_key_hash: null, api_key_prefix: null, updated_at: new Date().toISOString() })
           .eq('discount_code_id', dc.id);
 
         if (updateErr) {
