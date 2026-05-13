@@ -80,6 +80,7 @@ interface FormState {
   display_order: number;
   enabled: boolean;
   excluded_date_ranges: PackageDateRange[];
+  tier_prices: PackageTierPrices;
 }
 
 const emptyForm = (): FormState => ({
