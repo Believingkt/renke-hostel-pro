@@ -48,7 +48,7 @@ import MobileBottomNav from "@/components/member/MobileBottomNav";
 const BookingVilla = () => {
   const { accId } = useParams<{ accId: string }>();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { setCurrentAccommodationId } = useAccommodation();
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
