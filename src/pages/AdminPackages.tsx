@@ -229,21 +229,6 @@ const AdminPackages = () => {
         (r) => r.start && r.end && r.start <= r.end
       ) as any,
     };
-      child_count_max: form.child_count_max,
-      child_age_note: form.child_age_note.trim() || null,
-      original_price: form.original_price,
-      sale_price: form.sale_price,
-      room_allocation: form.room_allocation.trim() || null,
-      applicable_tiers: form.applicable_tiers,
-      tags: form.tags,
-      includes: form.includes as any,
-      primary_room_type_id: form.primary_room_type_id === NONE ? null : form.primary_room_type_id,
-      display_order: form.display_order,
-      enabled: form.enabled,
-      excluded_date_ranges: (form.excluded_date_ranges || []).filter(
-        (r) => r.start && r.end && r.start <= r.end
-      ) as any,
-    };
     const { error } = editing
       ? await supabase.from("accommodation_packages").update(payload).eq("id", editing.id)
       : await supabase.from("accommodation_packages").insert([payload]);
