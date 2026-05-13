@@ -511,88 +511,6 @@ const AdminPackages = () => {
             </div>
 
             <div>
-              <Label>標籤</Label>
-              <div className="flex flex-wrap gap-3 mt-2">
-                {TAG_OPTIONS.map((opt) => (
-                  <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
-                    <Checkbox
-                      checked={form.tags.includes(opt.value)}
-                      onCheckedChange={(c) => {
-                        setForm((f) => ({
-                          ...f,
-                          tags: c
-                            ? [...f.tags, opt.value]
-                            : f.tags.filter((t) => t !== opt.value),
-                        }));
-                      }}
-                    />
-                    <span className="text-sm">{opt.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label>附加說明</Label>
-                <Button type="button" size="sm" variant="outline" onClick={addInclude}>
-                  <Plus className="h-3.5 w-3.5 mr-1" />
-                  新增
-                </Button>
-              </div>
-              <div className="space-y-2">
-                {form.includes.map((inc, i) => (
-                  <div key={i} className="flex gap-2 items-start">
-                    <Select
-                      value={inc.available}
-                      onValueChange={(v: any) => updateInclude(i, { available: v })}
-                    >
-                      <SelectTrigger className="w-[100px] shrink-0">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="yes">
-                          <span className="flex items-center gap-1.5">
-                            <Check className="h-3.5 w-3.5 text-emerald-500" />包含
-                          </span>
-                        </SelectItem>
-                        <SelectItem value="optional">
-                          <span className="flex items-center gap-1.5">
-                            <Plus className="h-3.5 w-3.5 text-[hsl(25,70%,50%)]" />可選
-                          </span>
-                        </SelectItem>
-                        <SelectItem value="no">
-                          <span className="flex items-center gap-1.5">
-                            <X className="h-3.5 w-3.5 text-rose-400" />不含
-                          </span>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      value={inc.text}
-                      onChange={(e) => updateInclude(i, { text: e.target.value })}
-                      placeholder="例：包含田園精緻早餐"
-                    />
-                    <Input
-                      value={inc.price_note ?? ""}
-                      onChange={(e) => updateInclude(i, { price_note: e.target.value })}
-                      placeholder="備註（選填）"
-                      className="w-[140px] shrink-0"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeInclude(i)}
-                    >
-                      <MinusCircle className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
               <div className="flex items-center justify-between mb-2">
                 <div>
                   <Label>不適用日期區間</Label>
@@ -667,6 +585,13 @@ const AdminPackages = () => {
                       </Button>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <Label>標籤</Label>
+...
                 </div>
               )}
             </div>
