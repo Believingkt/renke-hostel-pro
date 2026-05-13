@@ -141,9 +141,10 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
 
       const available = new Set<string>();
       for (const date of allDates) {
-        if (isHakuna && packageRoomTypes.length > 0) {
-          const unavailable = packageRoomTypes.filter((rt) => !isRoomAvailable(rt, date)).length;
-          if (unavailable < 2) available.add(date);
+        if (isHakuna && roomTypes.length > 0) {
+          // 哈庫納：任一有訂單（被訂走）→ 整天關閉
+          if (roomTypes.some((rt) => isRoomBookedOut(rt, date))) continue;
+          available.add(date);
           continue;
         }
         if (isSensan && packageRoomTypes.length > 0) {

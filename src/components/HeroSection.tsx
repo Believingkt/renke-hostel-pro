@@ -366,11 +366,10 @@ const HeroSection = ({
 
       const available = new Set<string>();
       for (const date of allDates) {
-        if (isHakuna && packageRoomTypes.length > 0) {
-          const unavailablePackageCount = packageRoomTypes.filter((rt: any) => !isRoomAvailable(rt, date)).length;
-          if (unavailablePackageCount < 2) {
-            available.add(date);
-          }
+        if (isHakuna && roomTypes.length > 0) {
+          // 哈庫納：任一有訂單（被訂走）→ 整天關閉
+          if (roomTypes.some((rt: any) => isRoomBookedOut(rt, date))) continue;
+          available.add(date);
           continue;
         }
 
