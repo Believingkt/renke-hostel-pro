@@ -232,7 +232,7 @@ Deno.serve(async (req) => {
 
         const { data: secrets } = await supabase
           .from('discount_code_secrets')
-          .select('api_key, created_at, updated_at')
+          .select('api_key_prefix, api_key_hash, created_at, updated_at')
           .eq('discount_code_id', dc.id)
           .single();
 
@@ -241,10 +241,11 @@ Deno.serve(async (req) => {
             success: true,
             discount_code: dc.code,
             name: dc.name,
-            api_key: secrets?.api_key || null,
-            has_key: !!secrets?.api_key,
+            api_key_prefix: secrets?.api_key_prefix || null,
+            has_key: !!secrets?.api_key_hash,
             created_at: secrets?.created_at,
-            updated_at: secrets?.updated_at
+            updated_at: secrets?.updated_at,
+            note: 'API Key 已雜湊儲存，無法回顯。如遺失請重新產生。'
           }),
           { headers: { ...manageCorsHeaders, 'Content-Type': 'application/json' } }
         );
