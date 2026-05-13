@@ -16,6 +16,8 @@ export interface AccommodationPackage {
   subtitle: string | null;
   guest_count: number;
   guest_count_max: number | null;
+  child_count_max: number | null;
+  child_age_note: string | null;
   original_price: number | null;
   sale_price: number;
   room_allocation: string | null;
