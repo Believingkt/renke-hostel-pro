@@ -121,8 +121,10 @@ function dateRange(start: string, end: string): string[] {
 
 function genOrderNumber(): string {
   const alphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const buf = new Uint8Array(8);
+  crypto.getRandomValues(buf);
   let s = "";
-  for (let i = 0; i < 8; i++) s += alphabet[Math.floor(Math.random() * alphabet.length)];
+  for (let i = 0; i < 8; i++) s += alphabet[buf[i] % alphabet.length];
   return s;
 }
 
