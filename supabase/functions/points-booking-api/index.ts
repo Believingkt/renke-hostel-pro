@@ -1131,11 +1131,19 @@ function getDayTypeForDate(
 
 function generateOrderNumber(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const buf = new Uint8Array(8);
+  crypto.getRandomValues(buf);
   let result = "";
   for (let i = 0; i < 8; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
+    result += chars.charAt(buf[i] % chars.length);
   }
   return result;
+}
+
+async function sha256Hex(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 function normalizePhoneE164(phone: string): string {
