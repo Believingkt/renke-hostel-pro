@@ -592,6 +592,85 @@ const AdminPackages = () => {
               </div>
             </div>
 
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <Label>不適用日期區間</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    入住日落在區間內（含起訖日）時，此方案不會出現在前台。
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    setForm((f) => ({
+                      ...f,
+                      excluded_date_ranges: [
+                        ...f.excluded_date_ranges,
+                        { start: "", end: "" },
+                      ],
+                    }))
+                  }
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  新增區間
+                </Button>
+              </div>
+              {form.excluded_date_ranges.length === 0 ? (
+                <p className="text-xs text-muted-foreground">尚未設定，方案任何日期皆適用。</p>
+              ) : (
+                <div className="space-y-2">
+                  {form.excluded_date_ranges.map((r, i) => (
+                    <div key={i} className="flex gap-2 items-center">
+                      <Input
+                        type="date"
+                        value={r.start}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            excluded_date_ranges: f.excluded_date_ranges.map((x, idx) =>
+                              idx === i ? { ...x, start: e.target.value } : x
+                            ),
+                          }))
+                        }
+                      />
+                      <span className="text-muted-foreground text-sm shrink-0">至</span>
+                      <Input
+                        type="date"
+                        value={r.end}
+                        min={r.start || undefined}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            excluded_date_ranges: f.excluded_date_ranges.map((x, idx) =>
+                              idx === i ? { ...x, end: e.target.value } : x
+                            ),
+                          }))
+                        }
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() =>
+                          setForm((f) => ({
+                            ...f,
+                            excluded_date_ranges: f.excluded_date_ranges.filter(
+                              (_, idx) => idx !== i
+                            ),
+                          }))
+                        }
+                      >
+                        <MinusCircle className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-2 gap-3 items-end">
               <div>
                 <Label>排序</Label>
