@@ -575,7 +575,7 @@ const BookingVilla = () => {
             {(() => {
               let candidatePkgs = visiblePackages;
               if (visiblePackages.length > 0 && checkIn) {
-                const tier = detectTierByDate(checkIn);
+                const tier = detectTierByDate(checkIn, isHolidayDate(checkIn));
                 const tierPkgs = visiblePackages.filter((p) => p.applicable_tiers.includes(tier));
                 if (tierPkgs.length > 0) candidatePkgs = tierPkgs;
               }
