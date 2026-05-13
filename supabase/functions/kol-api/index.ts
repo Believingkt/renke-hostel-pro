@@ -665,14 +665,13 @@ Deno.serve(async (req) => {
         success: true,
         message: '網紅 API - 需要 API 金鑰驗證',
         authentication: {
-          method: '請在請求頭中添加 x-api-key 或在 URL 參數中添加 api_key',
-          example_header: 'x-api-key: YOUR_API_KEY',
-          example_url: '/kol-api/orders?code=YOUR_CODE&api_key=YOUR_API_KEY'
+          method: '請在請求頭中添加 x-api-key',
+          example_header: 'x-api-key: YOUR_API_KEY'
         },
         endpoints: {
-          orders: '/kol-api/orders?code=YOUR_CODE&api_key=YOUR_API_KEY',
-          stats: '/kol-api/stats?code=YOUR_CODE&api_key=YOUR_API_KEY',
-          commission: '/kol-api/commission?code=YOUR_CODE&api_key=YOUR_API_KEY'
+          orders: '/kol-api/orders?code=YOUR_CODE',
+          stats: '/kol-api/stats?code=YOUR_CODE',
+          commission: '/kol-api/commission?code=YOUR_CODE'
         },
         rate_limit: {
           limit: RATE_LIMIT_MAX,
