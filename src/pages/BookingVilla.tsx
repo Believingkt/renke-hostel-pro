@@ -563,7 +563,16 @@ const BookingVilla = () => {
         <div className="flex items-center gap-3">
           <div className="flex-1 min-w-0">
             <p className="text-[10px] text-muted-foreground leading-none mb-0.5">
-              {checkIn && checkOut ? `共 ${nights} 晚 · 包棟起` : "包棟起"}
+              {(() => {
+                const parts: string[] = [];
+                if (checkIn && checkOut) parts.push(`共 ${nights} 晚`);
+                if (villaStats) {
+                  parts.push(`包棟${villaStats.minCapacity}人起`);
+                } else {
+                  parts.push("包棟起");
+                }
+                return parts.join(" · ");
+              })()}
             </p>
             {(() => {
               let pkgMin: number | null = null;
