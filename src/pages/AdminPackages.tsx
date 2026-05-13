@@ -205,8 +205,9 @@ const AdminPackages = () => {
       return;
     }
     setSaving(true);
-    // 從 guest_count_label 自動解析第一個數字，用於排序與內部邏輯
+    // 從 guest_count_label 自動解析第一個數字，用於排序與內部邏輯；解析不到則保留原值（編輯）或預設 2（新增）
     const parsedGuestCount = parseInt(form.guest_count_label.match(/\d+/)?.[0] || "0", 10);
+    const finalGuestCount = parsedGuestCount > 0 ? parsedGuestCount : (editing ? form.guest_count : 2);
     const payload = {
       accommodation_id: currentAccommodationId,
       name: form.name.trim(),
