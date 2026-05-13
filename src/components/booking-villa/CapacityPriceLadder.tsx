@@ -39,6 +39,7 @@ interface RoomType {
 
 interface CapacityOption {
   guestCount: number;
+  guestCountLabel?: string | null;
   roomTypeId: string;
   roomTypeName: string;
   totalPrice: number;
