@@ -1105,7 +1105,7 @@ const BookingPortal = () => {
       {/* ── Featured Accommodations — Magazine Style ── */}
       {accommodations.length > 0 && (() => {
         const serif = { fontFamily: "'Noto Serif TC', serif" } as const;
-        const featured = accommodations.slice(0, 5);
+        const featured = accommodations;
         const [hero, secondary, ...rest] = featured;
         const others = [secondary, ...rest].filter(Boolean) as AccommodationInfo[];
         // Mobile horizontal strip: include every accommodation except the hero
