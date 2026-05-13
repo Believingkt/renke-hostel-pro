@@ -212,7 +212,7 @@ const AdminPackages = () => {
       accommodation_id: currentAccommodationId,
       name: form.name.trim(),
       subtitle: form.subtitle.trim() || null,
-      guest_count: parsedGuestCount || form.guest_count,
+      guest_count: finalGuestCount,
       guest_count_label: form.guest_count_label.trim() || null,
       guest_count_max: form.guest_count_max,
       child_count_max: form.child_count_max,
