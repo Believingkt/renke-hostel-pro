@@ -10,13 +10,21 @@ function generateApiKey(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   const segments = [];
   for (let s = 0; s < 4; s++) {
+    const buf = new Uint8Array(8);
+    crypto.getRandomValues(buf);
     let segment = '';
     for (let i = 0; i < 8; i++) {
-      segment += chars.charAt(Math.floor(Math.random() * chars.length));
+      segment += chars.charAt(buf[i] % chars.length);
     }
     segments.push(segment);
   }
   return `kol_${segments.join('_')}`;
+}
+
+async function sha256Hex(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 // Rate limiting: 100 requests per hour per API key
