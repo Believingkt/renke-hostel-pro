@@ -431,10 +431,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch API key from the secure secrets table
+    // Fetch API key hash from the secure secrets table
     const { data: secrets, error: secretsError } = await supabase
       .from('discount_code_secrets')
-      .select('api_key')
+      .select('api_key_hash')
       .eq('discount_code_id', discountData.id)
       .single();
 
@@ -442,25 +442,24 @@ Deno.serve(async (req) => {
       console.error('[KOL-API] Error fetching secrets:', secretsError);
     }
 
-    const storedApiKey = secrets?.api_key;
+    const storedHash = secrets?.api_key_hash;
 
-    // Verify API key matches
-    if (!storedApiKey) {
+    // Verify API key matches (constant-time-ish via hash compare)
+    if (!storedHash) {
       console.log('[KOL-API] No API key configured for discount code:', discountCode);
-      // Record failed attempt for enumeration protection
       recordFailedAttempt(discountCode);
       return new Response(
-        JSON.stringify({ error: '驗證失敗' }), // Generic error to prevent enumeration
+        JSON.stringify({ error: '驗證失敗' }),
         { status: 401, headers: { ...corsHeaders, ...rateLimitHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (storedApiKey !== apiKey) {
+    const incomingHash = await sha256Hex(apiKey);
+    if (storedHash !== incomingHash) {
       console.log('[KOL-API] Invalid API key attempt for code:', discountCode);
-      // Record failed attempt for enumeration protection
       recordFailedAttempt(discountCode);
       return new Response(
-        JSON.stringify({ error: '驗證失敗' }), // Generic error to prevent enumeration
+        JSON.stringify({ error: '驗證失敗' }),
         { status: 401, headers: { ...corsHeaders, ...rateLimitHeaders, 'Content-Type': 'application/json' } }
       );
     }
