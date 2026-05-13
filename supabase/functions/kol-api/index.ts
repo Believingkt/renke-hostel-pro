@@ -340,7 +340,7 @@ Deno.serve(async (req) => {
 
     // ========== KOL Data Endpoints (existing) ==========
     const discountCode = url.searchParams.get('code');
-    const apiKey = req.headers.get('x-api-key') || url.searchParams.get('api_key');
+    const apiKey = req.headers.get('x-api-key');
 
     // Validate required parameters
     if (!discountCode) {
@@ -353,7 +353,7 @@ Deno.serve(async (req) => {
     if (!apiKey) {
       console.log('[KOL-API] Missing API key for code:', discountCode);
       return new Response(
-        JSON.stringify({ error: '缺少必要參數：api_key。請在請求頭中添加 x-api-key 或在 URL 參數中添加 api_key' }),
+        JSON.stringify({ error: '缺少必要參數：api_key。請在請求頭中添加 x-api-key' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
