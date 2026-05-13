@@ -91,7 +91,11 @@ const TIER_LABELS: Record<PricingTier, { short: string; full: string; hint: stri
   weekend: { short: "假日", full: "週六、國定假日", hint: "假日包區方案", emoji: "🎉" },
 };
 
-function detectTierByDate(date: Date | null | undefined): PricingTier {
+function detectTierByDate(
+  date: Date | null | undefined,
+  isHoliday?: boolean
+): PricingTier {
+  if (isHoliday) return "weekend";
   return detectTierByDateShared(date);
 }
 
