@@ -35,8 +35,13 @@ export interface PackageDateRange {
   end: string;   // YYYY-MM-DD (inclusive)
 }
 
-export function detectTierByDate(date: Date | null | undefined): PackageTier {
+export function detectTierByDate(
+  date: Date | null | undefined,
+  isHoliday?: boolean
+): PackageTier {
   const d = date ?? new Date();
+  // 國定假日（含補假）視為假日
+  if (isHoliday) return "weekend";
   const day = d.getDay();
   if (day === 6) return "weekend";
   if (day === 5 || day === 0) return "friday_sunday";
