@@ -5,6 +5,7 @@ import {
   type AccommodationPackage,
   type PackageTier,
   detectTierByDate,
+  getPackagePriceForTier,
   useAccommodationHolidays,
 } from "@/hooks/use-accommodation-packages";
 
