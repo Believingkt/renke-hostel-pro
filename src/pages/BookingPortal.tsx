@@ -25,6 +25,7 @@ import {
   Search,
   BedDouble,
   MessageCircle,
+  ChevronRight,
 } from "lucide-react";
 import {
   isSensanAccommodation,
@@ -43,6 +44,8 @@ interface AccommodationInfo {
   address: string | null;
   country: string | null;
   hero_photo_url?: string | null;
+  about_title?: string | null;
+  about_description?: string | null;
 }
 
 interface FacilityRow {
@@ -190,7 +193,7 @@ const BookingPortal = () => {
   const fetchData = async () => {
     try {
       // Fetch accommodations and room types in parallel
-      const [{ data: accs }, { data: rooms }, { data: roomPhotos }, { data: heroPhotos }, { data: facs }, { data: addons }, { data: templates }, { data: holidays }] = await Promise.all([
+      const [{ data: accs }, { data: rooms }, { data: roomPhotos }, { data: heroPhotos }, { data: facs }, { data: addons }, { data: templates }, { data: holidays }, { data: aboutSections }] = await Promise.all([
         supabase
           .from("accommodation_info")
           .select("id, name, region_1, region_2, type, address, country")
@@ -224,6 +227,9 @@ const BookingPortal = () => {
         supabase
           .from("public_holidays")
           .select("accommodation_id, holiday_date"),
+        supabase
+          .from("about_section")
+          .select("accommodation_id, section_title, section_description"),
       ]);
 
       if (!accs || !rooms) return;
@@ -236,9 +242,16 @@ const BookingPortal = () => {
         }
       });
 
+      const aboutMap = new Map<string, { title: string | null; description: string | null }>();
+      aboutSections?.forEach((s: any) => {
+        if (s.accommodation_id) aboutMap.set(s.accommodation_id, { title: s.section_title, description: s.section_description });
+      });
+
       const accsWithPhotos: AccommodationInfo[] = accs.map((a) => ({
         ...a,
         hero_photo_url: heroPhotoMap.get(a.id) || null,
+        about_title: aboutMap.get(a.id)?.title ?? null,
+        about_description: aboutMap.get(a.id)?.description ?? null,
       }));
 
       const accMap = new Map(accsWithPhotos.map((a) => [a.id, a]));
@@ -1240,6 +1253,27 @@ const BookingPortal = () => {
                       </div>
                     )}
                   </div>
+                  {(hero.about_title || hero.about_description) && (
+                    <div className="mt-5 sm:mt-6 max-w-xl">
+                      {hero.about_title && (
+                        <p style={serif} className="text-primary text-lg sm:text-xl mb-2 leading-snug">
+                          {hero.about_title}
+                        </p>
+                      )}
+                      {hero.about_description && (
+                        <p className="text-sm sm:text-base text-muted-foreground leading-relaxed line-clamp-5">
+                          {hero.about_description}
+                        </p>
+                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); handleAccClick(hero.id); }}
+                        className="inline-flex items-center gap-1 mt-3 text-xs font-semibold tracking-widest uppercase text-primary hover:gap-2 transition-all"
+                      >
+                        探索此處 <ChevronRight className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
