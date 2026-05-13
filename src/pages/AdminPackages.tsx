@@ -174,6 +174,9 @@ const AdminPackages = () => {
       primary_room_type_id: pkg.primary_room_type_id ?? NONE,
       display_order: (packages[packages.length - 1]?.display_order ?? 0) + 1,
       enabled: pkg.enabled,
+      excluded_date_ranges: Array.isArray(pkg.excluded_date_ranges)
+        ? pkg.excluded_date_ranges.map((r) => ({ ...r }))
+        : [],
     });
     setOpen(true);
   };
