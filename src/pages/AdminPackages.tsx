@@ -157,6 +157,8 @@ const AdminPackages = () => {
       subtitle: pkg.subtitle ?? "",
       guest_count: pkg.guest_count,
       guest_count_max: pkg.guest_count_max,
+      child_count_max: pkg.child_count_max,
+      child_age_note: pkg.child_age_note ?? "",
       original_price: pkg.original_price,
       sale_price: pkg.sale_price,
       room_allocation: pkg.room_allocation ?? "",
