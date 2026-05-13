@@ -173,19 +173,15 @@ const KolDiscountDetail = () => {
   const handleRegenerateApiKey = async () => {
     setIsRegenerating(true);
     try {
-      const newApiKey = generateApiKey();
+      const { generateApiKey: genKey } = await import("@/utils/hashSecret");
+      const { plaintext, hash, prefix } = await genKey("kol_");
       const { error } = await supabase
         .from("discount_code_secrets")
-        .update({ api_key: newApiKey, updated_at: new Date().toISOString() })
+        .update({ api_key_hash: hash, api_key_prefix: prefix, updated_at: new Date().toISOString() })
         .eq("discount_code_id", discountCodeId!);
-
       if (error) throw error;
-
-      setApiKey(newApiKey);
-      toast({
-        title: "API 金鑰已重新產生",
-        description: "請複製新的 API 金鑰並更新您的應用程式",
-      });
+      setApiKey(plaintext);
+      toast({ title: "API 金鑰已重新產生", description: "請立即複製，關閉後將無法再次查看" });
     } catch (error) {
       console.error("Error regenerating API key:", error);
       toast({ title: "重新產生失敗", variant: "destructive" });
@@ -198,17 +194,12 @@ const KolDiscountDetail = () => {
   const fetchApiKey = async () => {
     setIsLoadingApiKey(true);
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("discount_code_secrets")
-        .select("api_key")
+        .select("api_key_prefix")
         .eq("discount_code_id", discountCodeId!)
         .single();
-
-      if (!error && data) {
-        setApiKey(data.api_key);
-      }
-    } catch (error) {
-      console.error("Error fetching API key:", error);
+      setApiKey(data?.api_key_prefix ? `${data.api_key_prefix}…••••（已雜湊，按重新產生取得新金鑰）` : null);
     } finally {
       setIsLoadingApiKey(false);
     }
