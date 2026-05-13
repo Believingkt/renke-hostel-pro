@@ -567,7 +567,7 @@ const PriceCard = ({
           </p>
         </div>
 
-        <div className="text-right shrink-0">
+        <div className={`text-right shrink-0 ${opt.isRecommended ? "pt-5" : ""}`}>
           <div className="flex items-center justify-end gap-1 mb-0.5">
             <span className="text-[10px] line-through text-muted-foreground">
               NT${opt.originalPrice.toLocaleString()}
