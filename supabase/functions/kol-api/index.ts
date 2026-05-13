@@ -10,13 +10,21 @@ function generateApiKey(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   const segments = [];
   for (let s = 0; s < 4; s++) {
+    const buf = new Uint8Array(8);
+    crypto.getRandomValues(buf);
     let segment = '';
     for (let i = 0; i < 8; i++) {
-      segment += chars.charAt(Math.floor(Math.random() * chars.length));
+      segment += chars.charAt(buf[i] % chars.length);
     }
     segments.push(segment);
   }
   return `kol_${segments.join('_')}`;
+}
+
+async function sha256Hex(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 // Rate limiting: 100 requests per hour per API key
@@ -158,14 +166,21 @@ Deno.serve(async (req) => {
           );
         }
 
-        // Generate new API key
+        // Generate new API key (returned to caller ONCE)
         const newApiKey = generateApiKey();
+        const newApiKeyHash = await sha256Hex(newApiKey);
+        const newApiKeyPrefix = newApiKey.slice(0, 12);
 
-        // Upsert into discount_code_secrets
+        // Upsert into discount_code_secrets (store hash only)
         const { error: upsertErr } = await supabase
           .from('discount_code_secrets')
           .upsert(
-            { discount_code_id: dc.id, api_key: newApiKey, updated_at: new Date().toISOString() },
+            {
+              discount_code_id: dc.id,
+              api_key_hash: newApiKeyHash,
+              api_key_prefix: newApiKeyPrefix,
+              updated_at: new Date().toISOString(),
+            },
             { onConflict: 'discount_code_id' }
           );
 
@@ -183,7 +198,9 @@ Deno.serve(async (req) => {
             success: true,
             discount_code: dc.code,
             name: dc.name,
-            api_key: newApiKey
+            api_key: newApiKey,
+            api_key_prefix: newApiKeyPrefix,
+            message: '請妥善保存此 API Key，離開後將無法再次查看',
           }),
           { headers: { ...manageCorsHeaders, 'Content-Type': 'application/json' } }
         );
@@ -215,7 +232,7 @@ Deno.serve(async (req) => {
 
         const { data: secrets } = await supabase
           .from('discount_code_secrets')
-          .select('api_key, created_at, updated_at')
+          .select('api_key_prefix, api_key_hash, created_at, updated_at')
           .eq('discount_code_id', dc.id)
           .single();
 
@@ -224,10 +241,11 @@ Deno.serve(async (req) => {
             success: true,
             discount_code: dc.code,
             name: dc.name,
-            api_key: secrets?.api_key || null,
-            has_key: !!secrets?.api_key,
+            api_key_prefix: secrets?.api_key_prefix || null,
+            has_key: !!secrets?.api_key_hash,
             created_at: secrets?.created_at,
-            updated_at: secrets?.updated_at
+            updated_at: secrets?.updated_at,
+            note: 'API Key 已雜湊儲存，無法回顯。如遺失請重新產生。'
           }),
           { headers: { ...manageCorsHeaders, 'Content-Type': 'application/json' } }
         );
@@ -259,7 +277,7 @@ Deno.serve(async (req) => {
 
         const { error: updateErr } = await supabase
           .from('discount_code_secrets')
-          .update({ api_key: null, updated_at: new Date().toISOString() })
+          .update({ api_key_hash: null, api_key_prefix: null, updated_at: new Date().toISOString() })
           .eq('discount_code_id', dc.id);
 
         if (updateErr) {
@@ -283,7 +301,7 @@ Deno.serve(async (req) => {
           .select(`
             id, code, name, discount_type, discount_value, 
             is_active, used_count, usage_limit, commission_rate,
-            discount_code_secrets (api_key, updated_at)
+            discount_code_secrets (api_key_hash, api_key_prefix, updated_at)
           `)
           .order('created_at', { ascending: false });
 
@@ -303,7 +321,8 @@ Deno.serve(async (req) => {
           used_count: c.used_count,
           usage_limit: c.usage_limit,
           commission_rate: c.commission_rate,
-          has_api_key: !!c.discount_code_secrets?.api_key,
+          has_api_key: !!c.discount_code_secrets?.api_key_hash,
+          api_key_prefix: c.discount_code_secrets?.api_key_prefix || null,
           api_key_updated_at: c.discount_code_secrets?.updated_at || null
         }));
 
@@ -321,7 +340,7 @@ Deno.serve(async (req) => {
 
     // ========== KOL Data Endpoints (existing) ==========
     const discountCode = url.searchParams.get('code');
-    const apiKey = req.headers.get('x-api-key') || url.searchParams.get('api_key');
+    const apiKey = req.headers.get('x-api-key');
 
     // Validate required parameters
     if (!discountCode) {
@@ -334,7 +353,7 @@ Deno.serve(async (req) => {
     if (!apiKey) {
       console.log('[KOL-API] Missing API key for code:', discountCode);
       return new Response(
-        JSON.stringify({ error: '缺少必要參數：api_key。請在請求頭中添加 x-api-key 或在 URL 參數中添加 api_key' }),
+        JSON.stringify({ error: '缺少必要參數：api_key。請在請求頭中添加 x-api-key' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -412,10 +431,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch API key from the secure secrets table
+    // Fetch API key hash from the secure secrets table
     const { data: secrets, error: secretsError } = await supabase
       .from('discount_code_secrets')
-      .select('api_key')
+      .select('api_key_hash')
       .eq('discount_code_id', discountData.id)
       .single();
 
@@ -423,25 +442,24 @@ Deno.serve(async (req) => {
       console.error('[KOL-API] Error fetching secrets:', secretsError);
     }
 
-    const storedApiKey = secrets?.api_key;
+    const storedHash = secrets?.api_key_hash;
 
-    // Verify API key matches
-    if (!storedApiKey) {
+    // Verify API key matches (constant-time-ish via hash compare)
+    if (!storedHash) {
       console.log('[KOL-API] No API key configured for discount code:', discountCode);
-      // Record failed attempt for enumeration protection
       recordFailedAttempt(discountCode);
       return new Response(
-        JSON.stringify({ error: '驗證失敗' }), // Generic error to prevent enumeration
+        JSON.stringify({ error: '驗證失敗' }),
         { status: 401, headers: { ...corsHeaders, ...rateLimitHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (storedApiKey !== apiKey) {
+    const incomingHash = await sha256Hex(apiKey);
+    if (storedHash !== incomingHash) {
       console.log('[KOL-API] Invalid API key attempt for code:', discountCode);
-      // Record failed attempt for enumeration protection
       recordFailedAttempt(discountCode);
       return new Response(
-        JSON.stringify({ error: '驗證失敗' }), // Generic error to prevent enumeration
+        JSON.stringify({ error: '驗證失敗' }),
         { status: 401, headers: { ...corsHeaders, ...rateLimitHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -647,14 +665,13 @@ Deno.serve(async (req) => {
         success: true,
         message: '網紅 API - 需要 API 金鑰驗證',
         authentication: {
-          method: '請在請求頭中添加 x-api-key 或在 URL 參數中添加 api_key',
-          example_header: 'x-api-key: YOUR_API_KEY',
-          example_url: '/kol-api/orders?code=YOUR_CODE&api_key=YOUR_API_KEY'
+          method: '請在請求頭中添加 x-api-key',
+          example_header: 'x-api-key: YOUR_API_KEY'
         },
         endpoints: {
-          orders: '/kol-api/orders?code=YOUR_CODE&api_key=YOUR_API_KEY',
-          stats: '/kol-api/stats?code=YOUR_CODE&api_key=YOUR_API_KEY',
-          commission: '/kol-api/commission?code=YOUR_CODE&api_key=YOUR_API_KEY'
+          orders: '/kol-api/orders?code=YOUR_CODE',
+          stats: '/kol-api/stats?code=YOUR_CODE',
+          commission: '/kol-api/commission?code=YOUR_CODE'
         },
         rate_limit: {
           limit: RATE_LIMIT_MAX,

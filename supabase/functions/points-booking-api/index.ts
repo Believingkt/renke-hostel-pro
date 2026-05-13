@@ -31,10 +31,11 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Missing x-platform-key header" }, 401);
     }
 
+    const apiKeyHash = await sha256Hex(apiKey);
     const { data: partner, error: partnerError } = await supabase
       .from("points_platform_partners")
       .select("id, platform_name, platform_code, point_to_currency_rate, is_active, webhook_url")
-      .eq("api_key", apiKey)
+      .eq("api_key_hash", apiKeyHash)
       .maybeSingle();
 
     if (partnerError || !partner) {
@@ -1131,11 +1132,19 @@ function getDayTypeForDate(
 
 function generateOrderNumber(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const buf = new Uint8Array(8);
+  crypto.getRandomValues(buf);
   let result = "";
   for (let i = 0; i < 8; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
+    result += chars.charAt(buf[i] % chars.length);
   }
   return result;
+}
+
+async function sha256Hex(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 function normalizePhoneE164(phone: string): string {
