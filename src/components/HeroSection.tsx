@@ -366,9 +366,16 @@ const HeroSection = ({
 
       const available = new Set<string>();
       for (const date of allDates) {
-        if (isHakuna && roomTypes.length > 0) {
-          // 哈庫納：任一有訂單（被訂走）→ 整天關閉
-          if (roomTypes.some((rt: any) => isRoomBookedOut(rt, date))) continue;
+        if (isHakuna && packageRoomTypes.length > 0) {
+          // 哈庫納（散客房不計入）：
+          // 條件1: 任一包棟有訂單（被訂走）→ 整天關閉
+          if (packageRoomTypes.some((rt: any) => isRoomBookedOut(rt, date))) continue;
+          // 條件2: 包棟庫存關閉 ≥2 → 整天關閉
+          const closedCount = packageRoomTypes.filter((rt: any) => {
+            const base = baseIndex.get(`${rt.id}:${date}`);
+            return !base || base.is_available === false;
+          }).length;
+          if (closedCount >= 2) continue;
           available.add(date);
           continue;
         }
