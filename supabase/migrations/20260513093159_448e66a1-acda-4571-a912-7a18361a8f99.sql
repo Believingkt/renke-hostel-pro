@@ -1,0 +1,1 @@
+UPDATE public.owlting_service_accounts SET password='OwlTing#Lakeze2026!Relay' WHERE username='owlting_partner';
