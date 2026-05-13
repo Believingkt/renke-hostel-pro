@@ -571,10 +571,10 @@ const BookingVilla = () => {
         <div className="flex items-center gap-3">
           <div className="flex-1 min-w-0">
             {(() => {
-              let candidatePkgs = packages;
-              if (packages.length > 0 && checkIn) {
+              let candidatePkgs = visiblePackages;
+              if (visiblePackages.length > 0 && checkIn) {
                 const tier = detectTierByDate(checkIn);
-                const tierPkgs = packages.filter((p) => p.applicable_tiers.includes(tier));
+                const tierPkgs = visiblePackages.filter((p) => p.applicable_tiers.includes(tier));
                 if (tierPkgs.length > 0) candidatePkgs = tierPkgs;
               }
               const cheapestPkg = candidatePkgs.length > 0
