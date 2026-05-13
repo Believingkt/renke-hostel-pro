@@ -1252,6 +1252,27 @@ const BookingPortal = () => {
                       </div>
                     )}
                   </div>
+                  {(hero.about_title || hero.about_description) && (
+                    <div className="mt-5 sm:mt-6 max-w-xl">
+                      {hero.about_title && (
+                        <p style={serif} className="text-primary text-lg sm:text-xl mb-2 leading-snug">
+                          {hero.about_title}
+                        </p>
+                      )}
+                      {hero.about_description && (
+                        <p className="text-sm sm:text-base text-muted-foreground leading-relaxed line-clamp-5">
+                          {hero.about_description}
+                        </p>
+                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); handleAccClick(hero.id); }}
+                        className="inline-flex items-center gap-1 mt-3 text-xs font-semibold tracking-widest uppercase text-primary hover:gap-2 transition-all"
+                      >
+                        探索此處 <ChevronRight className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
