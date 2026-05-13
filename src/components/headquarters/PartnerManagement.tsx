@@ -25,7 +25,8 @@ import {
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth, subMonths, addMonths } from "date-fns";
 import { zhTW } from "date-fns/locale";
-import { Plus, Copy, Eye, EyeOff, Loader2, Trash2, ExternalLink, Handshake, FileText, ArrowDownUp, ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { Plus, Copy, Loader2, Trash2, ExternalLink, Handshake, FileText, ArrowDownUp, ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, Download, RefreshCw, KeyRound } from "lucide-react";
+import { generateApiKey } from "@/utils/hashSecret";
 import { EmptyState } from "@/components/EmptyState";
 import * as XLSX from "xlsx";
 
@@ -56,7 +57,7 @@ interface Partner {
   id: string;
   platform_name: string;
   platform_code: string;
-  api_key: string;
+  api_key_prefix: string | null;
   is_active: boolean;
   point_to_currency_rate: number;
   webhook_url: string | null;
@@ -269,6 +270,8 @@ export const PartnerManagement = forwardRef<PartnerManagementRef>((_, ref) => {
     toast.success("報表已匯出");
   };
 
+  const [newKeyPlaintext, setNewKeyPlaintext] = useState<{ key: string; partnerName: string } | null>(null);
+
   const handleCreate = async () => {
     if (!formName.trim() || !formCode.trim()) {
       toast.error("請填寫平台名稱和代碼");
@@ -276,9 +279,12 @@ export const PartnerManagement = forwardRef<PartnerManagementRef>((_, ref) => {
     }
 
     setIsSubmitting(true);
+    const { plaintext, hash, prefix } = await generateApiKey("ppk_");
     const { error } = await supabase.from("points_platform_partners").insert({
       platform_name: formName.trim(),
       platform_code: formCode.trim().toLowerCase(),
+      api_key_hash: hash,
+      api_key_prefix: prefix,
       point_to_currency_rate: parseFloat(formRate) || 1,
       contact_email: formEmail.trim() || null,
       webhook_url: formWebhook.trim() || null,
@@ -295,9 +301,26 @@ export const PartnerManagement = forwardRef<PartnerManagementRef>((_, ref) => {
       toast.success("合作夥伴已建立");
       setShowCreateDialog(false);
       resetForm();
+      setNewKeyPlaintext({ key: plaintext, partnerName: formName.trim() });
       loadPartners();
     }
     setIsSubmitting(false);
+  };
+
+  const rotateApiKey = async (partner: Partner) => {
+    if (!confirm(`確定要為「${partner.platform_name}」輪替 API Key？舊金鑰將立即失效。`)) return;
+    const { plaintext, hash, prefix } = await generateApiKey("ppk_");
+    const { error } = await supabase
+      .from("points_platform_partners")
+      .update({ api_key_hash: hash, api_key_prefix: prefix })
+      .eq("id", partner.id);
+    if (error) {
+      toast.error("輪替失敗：" + error.message);
+      return;
+    }
+    toast.success("API Key 已輪替");
+    setNewKeyPlaintext({ key: plaintext, partnerName: partner.platform_name });
+    loadPartners();
   };
 
   const toggleActive = async (partner: Partner) => {
@@ -728,24 +751,17 @@ export const PartnerManagement = forwardRef<PartnerManagementRef>((_, ref) => {
                       <TableCell>1 點 = {p.point_to_currency_rate} 元</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1.5">
-                          <code className="text-xs bg-muted px-1.5 py-0.5 rounded max-w-[200px] truncate">
-                            {visibleKeys.has(p.id) ? p.api_key : maskKey(p.api_key)}
+                          <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                            {p.api_key_prefix ? `${p.api_key_prefix}…••••` : "—"}
                           </code>
                           <Button
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6"
-                            onClick={() => toggleKeyVisibility(p.id)}
+                            title="輪替 API Key"
+                            onClick={() => rotateApiKey(p)}
                           >
-                            {visibleKeys.has(p.id) ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => copyApiKey(p.api_key)}
-                          >
-                            <Copy className="h-3.5 w-3.5" />
+                            <RefreshCw className="h-3.5 w-3.5" />
                           </Button>
                         </div>
                       </TableCell>

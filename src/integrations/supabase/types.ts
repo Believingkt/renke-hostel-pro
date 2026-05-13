@@ -1269,7 +1269,8 @@ export type Database = {
       }
       discount_code_secrets: {
         Row: {
-          api_key: string | null
+          api_key_hash: string | null
+          api_key_prefix: string | null
           created_at: string
           discount_code_id: string
           id: string
@@ -1278,7 +1279,8 @@ export type Database = {
           webhook_url: string | null
         }
         Insert: {
-          api_key?: string | null
+          api_key_hash?: string | null
+          api_key_prefix?: string | null
           created_at?: string
           discount_code_id: string
           id?: string
@@ -1287,7 +1289,8 @@ export type Database = {
           webhook_url?: string | null
         }
         Update: {
-          api_key?: string | null
+          api_key_hash?: string | null
+          api_key_prefix?: string | null
           created_at?: string
           discount_code_id?: string
           id?: string
@@ -2296,7 +2299,7 @@ export type Database = {
           id: string
           is_active: boolean
           last_used_at: string | null
-          password: string
+          password_hash: string
           updated_at: string
           username: string
         }
@@ -2306,7 +2309,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           last_used_at?: string | null
-          password: string
+          password_hash: string
           updated_at?: string
           username: string
         }
@@ -2316,7 +2319,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           last_used_at?: string | null
-          password?: string
+          password_hash?: string
           updated_at?: string
           username?: string
         }
@@ -2675,7 +2678,8 @@ export type Database = {
       }
       points_platform_partners: {
         Row: {
-          api_key: string
+          api_key_hash: string
+          api_key_prefix: string | null
           contact_email: string | null
           created_at: string
           id: string
@@ -2689,7 +2693,8 @@ export type Database = {
           webhook_url: string | null
         }
         Insert: {
-          api_key?: string
+          api_key_hash: string
+          api_key_prefix?: string | null
           contact_email?: string | null
           created_at?: string
           id?: string
@@ -2703,7 +2708,8 @@ export type Database = {
           webhook_url?: string | null
         }
         Update: {
-          api_key?: string
+          api_key_hash?: string
+          api_key_prefix?: string | null
           contact_email?: string | null
           created_at?: string
           id?: string

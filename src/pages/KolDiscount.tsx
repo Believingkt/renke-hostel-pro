@@ -245,18 +245,19 @@ const KolDiscount = () => {
   const handleRegenerateApiKey = async (discountCodeId: string) => {
     setRegeneratingApiKeyId(discountCodeId);
     try {
-      const newApiKey = generateApiKey();
-      // Update API key in the secure secrets table
+      const { generateApiKey: genKey } = await import("@/utils/hashSecret");
+      const { plaintext, hash, prefix } = await genKey("kol_");
       const { error } = await supabase
         .from("discount_code_secrets")
-        .update({ api_key: newApiKey, updated_at: new Date().toISOString() })
+        .update({ api_key_hash: hash, api_key_prefix: prefix, updated_at: new Date().toISOString() })
         .eq("discount_code_id", discountCodeId);
 
       if (error) throw error;
 
+      try { await navigator.clipboard.writeText(plaintext); } catch {}
       toast({
-        title: "API 金鑰已重新產生",
-        description: "請複製新的 API 金鑰並更新您的應用程式",
+        title: "API 金鑰已重新產生並複製",
+        description: `新金鑰：${plaintext}（僅顯示一次，已複製到剪貼簿）`,
       });
       fetchDiscountCodes();
     } catch (error) {
@@ -317,7 +318,8 @@ const KolDiscount = () => {
     }
 
     const code = customCode.trim().toUpperCase() || generateCode();
-    const apiKey = generateApiKey();
+    const { generateApiKey: genKey } = await import("@/utils/hashSecret");
+    const { plaintext: apiKey, hash: apiKeyHash, prefix: apiKeyPrefix } = await genKey("kol_");
 
     try {
       // Insert discount code WITHOUT sensitive fields
@@ -339,12 +341,11 @@ const KolDiscount = () => {
 
       if (error) throw error;
 
-      // Insert API key into the secure secrets table
-      // Note: There's a trigger that auto-creates the secrets record, but we need to update it with the API key
+      // Insert API key hash into the secure secrets table
       if (newCode) {
         const { error: secretsError } = await supabase
           .from("discount_code_secrets")
-          .update({ api_key: apiKey, updated_at: new Date().toISOString() })
+          .update({ api_key_hash: apiKeyHash, api_key_prefix: apiKeyPrefix, updated_at: new Date().toISOString() })
           .eq("discount_code_id", newCode.id);
         
         if (secretsError) {
@@ -352,9 +353,10 @@ const KolDiscount = () => {
         }
       }
 
+      try { await navigator.clipboard.writeText(apiKey); } catch {}
       toast({
         title: "折扣碼新增成功",
-        description: `折扣碼：${code}`,
+        description: `折扣碼：${code}．API 金鑰：${apiKey}（僅顯示一次，已複製）`,
       });
 
       setOpen(false);
@@ -458,14 +460,14 @@ const KolDiscount = () => {
     try {
       const { data: secrets, error } = await supabase
         .from("discount_code_secrets")
-        .select("webhook_url, webhook_secret, api_key")
+        .select("webhook_url, webhook_secret")
         .eq("discount_code_id", code.id)
         .single();
       
       if (!error && secrets) {
         setWebhookUrl(secrets.webhook_url || "");
         setWebhookSecret(secrets.webhook_secret);
-        setEditingCodeSecrets(secrets as DiscountCodeSecrets);
+        setEditingCodeSecrets({ ...secrets, api_key: null } as unknown as DiscountCodeSecrets);
       } else {
         setWebhookUrl("");
         setWebhookSecret(null);
