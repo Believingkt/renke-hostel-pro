@@ -98,7 +98,7 @@ serve(async (req) => {
     const tools = [
       {
         name: "get_available_rooms",
-        description: "查詢所有民宿或指定民宿的可用房型和價格。",
+        description: "查詢所有民宿或指定民宿的可用房型和價格。若用戶提供入住人數，務必傳入 guest_count 以過濾不足容納的房型。",
         input_schema: {
           type: "object",
           properties: {
@@ -106,6 +106,7 @@ serve(async (req) => {
             check_in_date: { type: "string", description: "入住日期 YYYY-MM-DD（選填）" },
             check_out_date: { type: "string", description: "退房日期 YYYY-MM-DD（選填）" },
             room_type_id: { type: "string", description: "房型 ID（選填）" },
+            guest_count: { type: "number", description: "入住人數（選填）。提供時只回傳 capacity >= guest_count 的房型" },
           },
           required: [],
         },
@@ -177,10 +178,34 @@ serve(async (req) => {
           roomTypesQuery = roomTypesQuery.eq('id', args.room_type_id);
         }
 
-        const { data: roomTypes } = await roomTypesQuery;
-        if (!roomTypes || roomTypes.length === 0) {
+        const { data: roomTypesRaw } = await roomTypesQuery;
+        if (!roomTypesRaw || roomTypesRaw.length === 0) {
           return { rooms: [], check_in_date: args?.check_in_date || null, check_out_date: args?.check_out_date || null };
         }
+
+        // 依 guest_count 過濾不足容納的房型
+        const guestCountFilter = Number(args?.guest_count);
+        const filteredByCapacity = (guestCountFilter && guestCountFilter > 0)
+          ? roomTypesRaw.filter((rt: any) => (rt.capacity ?? 0) >= guestCountFilter)
+          : roomTypesRaw;
+
+        if (filteredByCapacity.length === 0) {
+          return {
+            rooms: [],
+            check_in_date: args?.check_in_date || null,
+            check_out_date: args?.check_out_date || null,
+            message: `查無容納 ${guestCountFilter} 人以上的房型`,
+          };
+        }
+
+        // 排序:先按民宿(沿用 accommodationList 的 display_order),再按房型 display_order
+        const accOrderIndex = new Map(accommodationList.map((a, i) => [a.id, i]));
+        const roomTypes = [...filteredByCapacity].sort((a: any, b: any) => {
+          const ai = accOrderIndex.get(a.accommodation_id) ?? 999;
+          const bi = accOrderIndex.get(b.accommodation_id) ?? 999;
+          if (ai !== bi) return ai - bi;
+          return (a.display_order ?? 0) - (b.display_order ?? 0);
+        });
 
         const roomTypeIds = roomTypes.map((rt: any) => rt.id);
         const accIds = Array.from(new Set(roomTypes.map((rt: any) => rt.accommodation_id)));
@@ -606,7 +631,7 @@ serve(async (req) => {
     const ctxRooms = Number.isFinite(context?.room_count) ? Math.max(1, Math.min(20, Number(context.room_count))) : null;
 
     const userContextBlock = (ctxCheckIn || ctxGuests)
-      ? `\n## 🎯 用戶當前選擇（最高優先，呼叫 get_available_rooms 必須使用這些值，除非用戶明確要求改變）：\n- 入住日期：${ctxCheckIn || '未設定'}\n- 退房日期：${ctxCheckOut || '未設定'}\n- 入住人數：${ctxGuests ?? '未設定'}\n- 房間數：${ctxRooms ?? '未設定'}\n`
+      ? `\n## 🎯 用戶當前選擇（最高優先，呼叫 get_available_rooms 必須使用這些值，除非用戶明確要求改變）：\n- 入住日期：${ctxCheckIn || '未設定'}\n- 退房日期：${ctxCheckOut || '未設定'}\n- 入住人數：${ctxGuests ?? '未設定'}（呼叫 get_available_rooms 時必須以此值傳入 guest_count，過濾不足容納的房型）\n- 房間數：${ctxRooms ?? '未設定'}\n`
       : '';
 
     const systemPrompt = `你是人客多訂房平台的 AI 管家「小安」，像 ChatGPT 語音助理一樣與客人對話完成訂房。
