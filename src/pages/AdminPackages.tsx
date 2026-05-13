@@ -37,7 +37,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, GripVertical, Check, X, MinusCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, Copy, GripVertical, Check, X, MinusCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 
