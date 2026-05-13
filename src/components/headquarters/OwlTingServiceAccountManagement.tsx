@@ -10,25 +10,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Copy, Plug, Trash2, Eye, EyeOff, RefreshCw } from "lucide-react";
+import { Copy, Plug, Trash2, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
+import { generatePassword, sha256Hex } from "@/utils/hashSecret";
 
 interface ServiceAccount {
   id: string;
   username: string;
-  password: string;
   is_active: boolean;
   description: string | null;
   last_used_at: string | null;
   created_at: string;
-}
-
-function generatePassword(): string {
-  const arr = new Uint8Array(24);
-  crypto.getRandomValues(arr);
-  return btoa(String.fromCharCode(...arr))
-    .replace(/[+/=]/g, "")
-    .slice(0, 32);
 }
 
 export function OwlTingServiceAccountManagement() {
@@ -38,8 +30,8 @@ export function OwlTingServiceAccountManagement() {
   const [formUsername, setFormUsername] = useState("owlting_partner");
   const [formPassword, setFormPassword] = useState("");
   const [formDescription, setFormDescription] = useState("");
-  const [visibleIds, setVisibleIds] = useState<Set<string>>(new Set());
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [revealed, setRevealed] = useState<{ username: string; password: string } | null>(null);
 
   useEffect(() => {
     loadAccounts();
@@ -49,7 +41,7 @@ export function OwlTingServiceAccountManagement() {
     setLoading(true);
     const { data, error } = await supabase
       .from("owlting_service_accounts")
-      .select("*")
+      .select("id, username, is_active, description, last_used_at, created_at")
       .order("created_at", { ascending: false });
     if (error) toast.error("載入失敗：" + error.message);
     else setAccounts((data || []) as ServiceAccount[]);
@@ -61,9 +53,10 @@ export function OwlTingServiceAccountManagement() {
       toast.error("請輸入帳號與密碼");
       return;
     }
+    const password_hash = await sha256Hex(formPassword.trim());
     const { error } = await supabase.from("owlting_service_accounts").insert({
       username: formUsername.trim(),
-      password: formPassword.trim(),
+      password_hash,
       description: formDescription.trim() || null,
     });
     if (error) {
@@ -72,6 +65,7 @@ export function OwlTingServiceAccountManagement() {
     }
     toast.success("已建立服務帳號");
     setCreateOpen(false);
+    setRevealed({ username: formUsername.trim(), password: formPassword.trim() });
     setFormUsername("owlting_partner");
     setFormPassword("");
     setFormDescription("");
@@ -91,17 +85,19 @@ export function OwlTingServiceAccountManagement() {
   };
 
   const rotatePassword = async (acc: ServiceAccount) => {
+    if (!confirm(`確定要為「${acc.username}」輪替密碼？舊密碼將立即失效。`)) return;
     const newPass = generatePassword();
+    const password_hash = await sha256Hex(newPass);
     const { error } = await supabase
       .from("owlting_service_accounts")
-      .update({ password: newPass })
+      .update({ password_hash })
       .eq("id", acc.id);
     if (error) {
       toast.error("輪替失敗：" + error.message);
       return;
     }
     toast.success("密碼已輪替");
-    setVisibleIds((prev) => new Set(prev).add(acc.id));
+    setRevealed({ username: acc.username, password: newPass });
     loadAccounts();
   };
 
@@ -114,15 +110,6 @@ export function OwlTingServiceAccountManagement() {
       loadAccounts();
     }
     setDeleteId(null);
-  };
-
-  const toggleVisible = (id: string) => {
-    setVisibleIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
   };
 
   const copy = (text: string) => {
@@ -141,7 +128,7 @@ export function OwlTingServiceAccountManagement() {
                 奧丁丁 (OwlTing) 服務帳號
               </CardTitle>
               <CardDescription>
-                管理奧丁丁通路 SOAP API 共用憑證（WS-Security UsernameToken / PasswordText）。
+                管理奧丁丁通路 SOAP API 共用憑證（WS-Security UsernameToken / PasswordText）。密碼僅以雜湊形式儲存，無法回查；如需新密碼請按「輪替」。
                 <Link to="/owlting-cm-docs" className="ml-2 text-primary underline">
                   查看 API 文件
                 </Link>
@@ -185,17 +172,7 @@ export function OwlTingServiceAccountManagement() {
                   <TableRow key={acc.id}>
                     <TableCell className="font-mono">{acc.username}</TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1">
-                        <span className="font-mono text-xs">
-                          {visibleIds.has(acc.id) ? acc.password : "••••••••••••"}
-                        </span>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => toggleVisible(acc.id)}>
-                          {visibleIds.has(acc.id) ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copy(acc.password)}>
-                          <Copy className="h-3 w-3" />
-                        </Button>
-                      </div>
+                      <span className="font-mono text-xs text-muted-foreground">••••••••（已雜湊）</span>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -230,7 +207,7 @@ export function OwlTingServiceAccountManagement() {
           <DialogHeader>
             <DialogTitle>新增奧丁丁服務帳號</DialogTitle>
             <DialogDescription>
-              將此 Username / Password 提供給奧丁丁，用於 SOAP API 的 WS-Security UsernameToken 認證。
+              將此 Username / Password 提供給奧丁丁，用於 SOAP API 的 WS-Security UsernameToken 認證。儲存後密碼將以雜湊保存，無法再次查看。
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -249,7 +226,7 @@ export function OwlTingServiceAccountManagement() {
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground">建議使用系統產生的高熵密碼。</p>
+              <p className="text-xs text-muted-foreground">儲存後將無法再次查看，請先複製。</p>
             </div>
             <div className="space-y-2">
               <Label>備註（選填）</Label>
@@ -263,6 +240,37 @@ export function OwlTingServiceAccountManagement() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>取消</Button>
             <Button onClick={handleCreate}>建立</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!revealed} onOpenChange={(v) => !v && setRevealed(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>請立即複製此密碼</DialogTitle>
+            <DialogDescription>
+              密碼僅顯示一次，關閉視窗後將無法再次查看（資料庫只保存雜湊值）。
+            </DialogDescription>
+          </DialogHeader>
+          {revealed && (
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs">Username</Label>
+                <code className="block bg-muted p-2 rounded text-sm font-mono">{revealed.username}</code>
+              </div>
+              <div>
+                <Label className="text-xs">Password</Label>
+                <div className="flex gap-2">
+                  <code className="block bg-muted p-2 rounded text-sm font-mono flex-1 break-all">{revealed.password}</code>
+                  <Button variant="outline" size="icon" onClick={() => copy(revealed.password)}>
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setRevealed(null)}>已複製，關閉</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
