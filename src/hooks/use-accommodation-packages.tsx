@@ -28,11 +28,37 @@ export interface AccommodationPackage {
   display_order: number;
   enabled: boolean;
   excluded_date_ranges: PackageDateRange[];
+  tier_prices: PackageTierPrices;
 }
 
 export interface PackageDateRange {
   start: string; // YYYY-MM-DD
   end: string;   // YYYY-MM-DD (inclusive)
+}
+
+export interface PackageTierPriceEntry {
+  original: number | null;
+  sale: number;
+}
+
+export type PackageTierPrices = Partial<Record<PackageTier, PackageTierPriceEntry>>;
+
+/** 取得方案在指定日型的價格（若無覆寫則回傳預設原價/售價） */
+export function getPackagePriceForTier(
+  pkg: Pick<AccommodationPackage, "tier_prices" | "original_price" | "sale_price">,
+  tier: PackageTier
+): PackageTierPriceEntry {
+  const override = pkg.tier_prices?.[tier];
+  if (override && typeof override.sale === "number") {
+    return {
+      original: override.original ?? null,
+      sale: override.sale,
+    };
+  }
+  return {
+    original: pkg.original_price ?? null,
+    sale: pkg.sale_price,
+  };
 }
 
 export function detectTierByDate(
