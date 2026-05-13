@@ -565,9 +565,11 @@ const PriceCard = ({
         >
           <Users className="h-4 w-4 mb-0.5" style={{ color: accentColor }} />
           <span className="font-bold text-base leading-none" style={{ color: accentText }}>
-            {opt.guestCount}
+            {opt.guestCountLabel || opt.guestCount}
           </span>
-          <span className="text-[9px] mt-0.5" style={{ color: accentText }}>人</span>
+          {!opt.guestCountLabel && (
+            <span className="text-[9px] mt-0.5" style={{ color: accentText }}>人</span>
+          )}
         </div>
 
         <div className="flex-1 min-w-0">
