@@ -232,12 +232,12 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 mb-1">
+      <div className="grid grid-cols-7 gap-1 mb-1 sm:mb-2">
         {weekdayLabels.map((w, i) => (
           <div
             key={w}
             className={cn(
-              "text-center text-[11px] font-medium py-1",
+              "text-center text-xs sm:text-sm font-medium py-1",
               i === 0 || i === 6 ? "text-primary/80" : "text-muted-foreground",
             )}
           >
@@ -246,7 +246,7 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-1 sm:gap-1.5 md:gap-2">
         {days.map((day) => {
           const dateStr = formatISO(day, { representation: "date" });
           const inMonth = day >= monthStart && day <= monthEnd;
@@ -268,7 +268,7 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
               disabled={!clickable}
               onClick={clickable ? () => onSelectDate!(day) : undefined}
               className={cn(
-                "relative aspect-square rounded-md flex flex-col items-center justify-center text-[13px] font-medium border transition-colors",
+                "relative min-h-[40px] sm:min-h-[48px] md:min-h-[56px] lg:min-h-[64px] rounded-md flex flex-col items-center justify-center text-sm sm:text-base md:text-lg lg:text-xl font-medium border transition-colors",
                 isPast
                   ? "bg-transparent text-muted-foreground/30 border-transparent cursor-default"
                   : isAvail
@@ -289,7 +289,7 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
                 {format(day, "d")}
               </span>
               {!isPast && !isAvail && (
-                <span className="text-[9px] leading-none mt-0.5 font-semibold tracking-tight">已滿</span>
+                <span className="text-[10px] sm:text-xs md:text-sm leading-none mt-0.5 font-semibold tracking-tight">已滿</span>
               )}
             </button>
           );
