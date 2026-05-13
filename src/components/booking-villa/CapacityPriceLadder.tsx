@@ -193,8 +193,12 @@ const CapacityPriceLadder = ({
   const tierLabel = { ...TIER_LABELS[activeTier], hint: TIER_HINT[activeTier] };
   const otherTiers = (Object.keys(TIER_LABELS) as PricingTier[]).filter((t) => t !== activeTier);
 
-  // 平日的少人包區，在旺日/假日要顯示為「禁用態」說明
-  const showDisabledFewPeopleNote = activeTier !== "weekday";
+  // 平日的少人包區，在旺日/假日要顯示為「禁用態」說明（僅當該民宿有設定少人包區方案時才顯示）
+  const hasAnyFewPeopleConfigured = useMemo(
+    () => (Object.values(PRICING_TABLE) as TierPrice[][]).some((tiers) => tiers.some((t) => t.isFewPeople)),
+    [PRICING_TABLE]
+  );
+  const showDisabledFewPeopleNote = enableFewPeople && hasAnyFewPeopleConfigured && activeTier !== "weekday";
 
   return (
     <div className="space-y-3 px-4">

@@ -420,7 +420,7 @@ const BookingVilla = () => {
             pricingTable={customPricingTable}
             planIncludes={customIncludes}
             includesTitle={customIncludesTitle}
-            enableFewPeople={isSensan}
+            enableFewPeople={isSensan || packages.some((p) => (p.tags || []).some((t) => t === "early_bird" || t === "few_people"))}
             isSensan={isSensan}
           />
         </section>
