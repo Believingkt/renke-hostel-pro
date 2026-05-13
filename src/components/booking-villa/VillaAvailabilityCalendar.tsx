@@ -232,12 +232,12 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 mb-1">
+      <div className="grid grid-cols-7 gap-1 mb-1 sm:mb-2">
         {weekdayLabels.map((w, i) => (
           <div
             key={w}
             className={cn(
-              "text-center text-[11px] font-medium py-1",
+              "text-center text-xs sm:text-sm font-medium py-1",
               i === 0 || i === 6 ? "text-primary/80" : "text-muted-foreground",
             )}
           >
