@@ -377,6 +377,8 @@ export type Database = {
         Row: {
           accommodation_id: string
           applicable_tiers: string[]
+          child_age_note: string | null
+          child_count_max: number | null
           created_at: string
           display_order: number
           enabled: boolean
@@ -396,6 +398,8 @@ export type Database = {
         Insert: {
           accommodation_id: string
           applicable_tiers?: string[]
+          child_age_note?: string | null
+          child_count_max?: number | null
           created_at?: string
           display_order?: number
           enabled?: boolean
@@ -415,6 +419,8 @@ export type Database = {
         Update: {
           accommodation_id?: string
           applicable_tiers?: string[]
+          child_age_note?: string | null
+          child_count_max?: number | null
           created_at?: string
           display_order?: number
           enabled?: boolean
