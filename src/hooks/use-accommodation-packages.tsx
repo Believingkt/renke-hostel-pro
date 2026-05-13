@@ -176,6 +176,10 @@ export function useAccommodationPackages(accommodationId: string | null, opts?: 
           excluded_date_ranges: Array.isArray(p.excluded_date_ranges)
             ? p.excluded_date_ranges
             : [],
+          tier_prices:
+            p.tier_prices && typeof p.tier_prices === "object" && !Array.isArray(p.tier_prices)
+              ? p.tier_prices
+              : {},
         })) as AccommodationPackage[]
       );
     }
