@@ -1108,6 +1108,8 @@ const BookingPortal = () => {
         const featured = accommodations.slice(0, 5);
         const [hero, secondary, ...rest] = featured;
         const others = [secondary, ...rest].filter(Boolean) as AccommodationInfo[];
+        // Mobile horizontal strip: include every accommodation except the hero
+        const mobileOthers = accommodations.filter((a) => !hero || a.id !== hero.id);
         const locOf = (a: AccommodationInfo) =>
           a.country === "台灣" || !a.country
             ? [a.region_1, a.region_2].filter(Boolean).join(" · ")
@@ -1163,16 +1165,17 @@ const BookingPortal = () => {
               )}
 
               {/* Horizontal scroll strip */}
-              {others.length > 0 && (
+              {mobileOthers.length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-3 px-1">
                     <h4 className="text-xs font-black text-muted-foreground tracking-widest uppercase">更多質感嚴選</h4>
+                    <span className="text-[10px] text-muted-foreground">← 滑動查看 →</span>
                   </div>
                   <div
                     className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-3 px-3"
                     style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                   >
-                    {others.map((acc) => (
+                    {mobileOthers.map((acc) => (
                       <div key={acc.id} className="flex-none w-[180px] snap-start cursor-pointer group" onClick={() => handleAccClick(acc.id)}>
                         <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-muted shadow-md">
                           {acc.hero_photo_url ? (
