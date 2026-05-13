@@ -120,7 +120,7 @@ const PackagesSection = ({
                       {pkg.name}
                     </h3>
                     <p className="text-base font-medium text-[hsl(25,70%,50%)]">
-                      建議 {pkg.guest_count} 人
+                      {pkg.guest_count_label || `建議 ${pkg.guest_count} 人`}
                       {pkg.guest_count_max && pkg.guest_count_max !== pkg.guest_count
                         ? ` (上限 ${pkg.guest_count_max} 人)`
                         : ""}
