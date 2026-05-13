@@ -178,10 +178,34 @@ serve(async (req) => {
           roomTypesQuery = roomTypesQuery.eq('id', args.room_type_id);
         }
 
-        const { data: roomTypes } = await roomTypesQuery;
-        if (!roomTypes || roomTypes.length === 0) {
+        const { data: roomTypesRaw } = await roomTypesQuery;
+        if (!roomTypesRaw || roomTypesRaw.length === 0) {
           return { rooms: [], check_in_date: args?.check_in_date || null, check_out_date: args?.check_out_date || null };
         }
+
+        // 依 guest_count 過濾不足容納的房型
+        const guestCountFilter = Number(args?.guest_count);
+        const filteredByCapacity = (guestCountFilter && guestCountFilter > 0)
+          ? roomTypesRaw.filter((rt: any) => (rt.capacity ?? 0) >= guestCountFilter)
+          : roomTypesRaw;
+
+        if (filteredByCapacity.length === 0) {
+          return {
+            rooms: [],
+            check_in_date: args?.check_in_date || null,
+            check_out_date: args?.check_out_date || null,
+            message: `查無容納 ${guestCountFilter} 人以上的房型`,
+          };
+        }
+
+        // 排序:先按民宿(沿用 accommodationList 的 display_order),再按房型 display_order
+        const accOrderIndex = new Map(accommodationList.map((a, i) => [a.id, i]));
+        const roomTypes = [...filteredByCapacity].sort((a: any, b: any) => {
+          const ai = accOrderIndex.get(a.accommodation_id) ?? 999;
+          const bi = accOrderIndex.get(b.accommodation_id) ?? 999;
+          if (ai !== bi) return ai - bi;
+          return (a.display_order ?? 0) - (b.display_order ?? 0);
+        });
 
         const roomTypeIds = roomTypes.map((rt: any) => rt.id);
         const accIds = Array.from(new Set(roomTypes.map((rt: any) => rt.accommodation_id)));
