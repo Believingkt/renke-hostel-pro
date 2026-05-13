@@ -31,10 +31,11 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Missing x-platform-key header" }, 401);
     }
 
+    const apiKeyHash = await sha256Hex(apiKey);
     const { data: partner, error: partnerError } = await supabase
       .from("points_platform_partners")
       .select("id, platform_name, platform_code, point_to_currency_rate, is_active, webhook_url")
-      .eq("api_key", apiKey)
+      .eq("api_key_hash", apiKeyHash)
       .maybeSingle();
 
     if (partnerError || !partner) {
