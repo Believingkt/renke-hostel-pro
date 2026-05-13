@@ -283,7 +283,7 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
               {!isPast && !isAvail && (
                 <span className="text-[9px] leading-none mt-0.5 font-semibold tracking-tight">已滿</span>
               )}
-            </div>
+            </button>
           );
         })}
       </div>
