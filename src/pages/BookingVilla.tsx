@@ -84,19 +84,6 @@ const BookingVilla = () => {
   // 載入該民宿的包區方案（非森山民宿透過資料驅動使用同一套階梯卡 UI）
   const { packages, loading: packagesLoading } = useAccommodationPackages(accId || null);
   const isSensan = info ? isSensanAccommodation(info.name) : false;
-  const customPricingTable = useMemo(() => {
-    if (packages.length === 0) return undefined;
-    return buildPricingTableFromPackages(packages);
-  }, [packages]);
-  const customIncludes = useMemo(() => {
-    if (packages.length === 0) return undefined;
-    return aggregateIncludesFromPackages(packages);
-  }, [packages]);
-  const customIncludesTitle = useMemo(() => {
-    if (packages.length === 0) return undefined;
-    const count = customIncludes?.length || 0;
-    return count > 0 ? `方案內容 · 含 ${count} 項` : "方案內容";
-  }, [packages, customIncludes]);
 
   // 防呆：非森山且沒有設定任何包區方案的民宿，回到標準訂房頁
   useEffect(() => {
