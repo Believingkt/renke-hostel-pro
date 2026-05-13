@@ -751,24 +751,17 @@ export const PartnerManagement = forwardRef<PartnerManagementRef>((_, ref) => {
                       <TableCell>1 點 = {p.point_to_currency_rate} 元</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1.5">
-                          <code className="text-xs bg-muted px-1.5 py-0.5 rounded max-w-[200px] truncate">
-                            {visibleKeys.has(p.id) ? p.api_key : maskKey(p.api_key)}
+                          <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                            {p.api_key_prefix ? `${p.api_key_prefix}…••••` : "—"}
                           </code>
                           <Button
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6"
-                            onClick={() => toggleKeyVisibility(p.id)}
+                            title="輪替 API Key"
+                            onClick={() => rotateApiKey(p)}
                           >
-                            {visibleKeys.has(p.id) ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => copyApiKey(p.api_key)}
-                          >
-                            <Copy className="h-3.5 w-3.5" />
+                            <RefreshCw className="h-3.5 w-3.5" />
                           </Button>
                         </div>
                       </TableCell>
