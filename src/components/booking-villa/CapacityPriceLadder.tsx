@@ -127,15 +127,17 @@ const CapacityPriceLadder = ({
     }));
   }, [planIncludes]);
 
-  const [activeTier, setActiveTier] = useState<PricingTier>(() => detectTierByDate(checkIn));
+  const [activeTier, setActiveTier] = useState<PricingTier>(() =>
+    detectTierByDate(checkIn, isHolidayDate?.(checkIn))
+  );
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [showIncludes, setShowIncludes] = useState(false);
   const [otherTierOpen, setOtherTierOpen] = useState(false);
 
   // 入住日變動時自動切到對應時段
   useEffect(() => {
-    setActiveTier(detectTierByDate(checkIn));
-  }, [checkIn]);
+    setActiveTier(detectTierByDate(checkIn, isHolidayDate?.(checkIn)));
+  }, [checkIn, isHolidayDate]);
 
   const fallbackRoomType = roomTypes[0];
 
