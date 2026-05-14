@@ -1,14 +1,38 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, Building2, Copy, CheckCircle2, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Loader2, Building2, Copy, CheckCircle2, AlertTriangle, ShieldCheck, RotateCcw, RefreshCw, LifeBuoy } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useTapPayConfig } from "@/hooks/use-tappay-config";
 
 const TP = (): any => (typeof window !== "undefined" ? (window as any).TPDirect : undefined);
+
+/** 把 TapPay / Edge Function 錯誤訊息轉成友善文案 + 建議行動 */
+function classifyAtmError(raw: string): { title: string; suggestion: string; canRetrySamePrime: boolean } {
+  const m = (raw || "").toLowerCase();
+  if (/timeout|逾時/.test(m)) {
+    return { title: "連線逾時", suggestion: "請檢查網路後重試。", canRetrySamePrime: false };
+  }
+  if (/prime/.test(m)) {
+    return { title: "付款授權失效", suggestion: "請重新選擇銀行後再試。", canRetrySamePrime: false };
+  }
+  if (/bank|銀行/.test(m)) {
+    return { title: "銀行資訊有誤", suggestion: "請重新選擇銀行。", canRetrySamePrime: false };
+  }
+  if (/network|fetch|failed to fetch/.test(m)) {
+    return { title: "網路連線異常", suggestion: "請確認網路後重試。", canRetrySamePrime: true };
+  }
+  if (/amount|金額/.test(m)) {
+    return { title: "金額異常", suggestion: "請聯繫客服協助處理。", canRetrySamePrime: false };
+  }
+  if (/未啟用|not enabled|disabled/.test(m)) {
+    return { title: "付款方式尚未啟用", suggestion: "請聯繫業者開通 ATM 收款。", canRetrySamePrime: false };
+  }
+  return { title: raw || "建立虛擬帳號失敗", suggestion: "請重新選擇銀行後再試一次，若仍失敗請聯繫客服。", canRetrySamePrime: false };
+}
 
 interface AtmInfo {
   vaccNo: string;
