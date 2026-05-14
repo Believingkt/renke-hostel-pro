@@ -126,7 +126,24 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                     <td className="px-4 py-3 text-sm">{order.check_in_date}</td>
                     <td className="px-4 py-3 text-sm">{order.check_out_date}</td>
                     <td className="px-4 py-3 text-sm font-medium">
-                      NT$ {order.final_price.toLocaleString()}
+                      <div>NT$ {order.final_price.toLocaleString()}</div>
+                      {order.paid_amount > 0 && order.paid_amount < order.final_price && (
+                        <div className="text-xs text-muted-foreground font-normal">
+                          已付 NT$ {order.paid_amount.toLocaleString()}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm whitespace-nowrap">
+                      {(() => {
+                        const m = getOrderPaymentMethod(order);
+                        if (!m) return <span className="text-muted-foreground">—</span>;
+                        return (
+                          <span className="inline-flex items-center gap-1">
+                            <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
+                            {getPaymentMethodLabel(m)}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-3 text-sm">
                       {onChangeOrderSource ? (
