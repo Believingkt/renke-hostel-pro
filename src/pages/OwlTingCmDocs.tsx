@@ -202,48 +202,88 @@ const SAMPLE_RATE_RS = `<OTA_HotelRateAmountNotifRS xmlns="http://www.opentravel
 </OTA_HotelRateAmountNotifRS>`;
 
 const SAMPLE_RES_COMMIT_RQ = `<OTA_HotelResNotifRQ xmlns="http://www.opentravel.org/OTA/2003/05"
-    Version="1.0" TimeStamp="2026-05-05T10:00:00Z" EchoToken="res-001"
+    Version="1.0" TimeStamp="2026-05-14T10:30:00+08:00" EchoToken="LAKEZE-20260514-103000-0001"
     ResStatus="Commit">
+  <POS>
+    <Source>
+      <RequestorID Type="22" ID="LAKEZE" />
+      <BookingChannel Type="7" Primary="true">
+        <CompanyName Code="LAKEZE">人客多</CompanyName>
+      </BookingChannel>
+    </Source>
+  </POS>
   <HotelReservations>
-    <HotelReservation>
-      <UniqueID Type="14" ID="OWLTING-RES-20260505-0001"/>
+    <HotelReservation CreateDateTime="2026-05-14T10:30:00+08:00" ResStatus="Commit">
+      <UniqueID Type="14" ID="LAKEZE-20260615-000123" />
       <RoomStays>
         <RoomStay>
           <RoomTypes>
-            <RoomType RoomTypeCode="1001" NumberOfUnits="1"/>
+            <RoomType RoomTypeCode="9001" NumberOfUnits="1" />
           </RoomTypes>
           <RatePlans>
-            <RatePlan RatePlanCode="1001"/>
+            <RatePlan RatePlanCode="9102" />
           </RatePlans>
+          <RoomRates>
+            <RoomRate RoomTypeCode="9001" RatePlanCode="9102" NumberOfUnits="1">
+              <Rates>
+                <Rate EffectiveDate="2026-06-15" ExpireDate="2026-06-16">
+                  <Base AmountAfterTax="2400.00" CurrencyCode="TWD" />
+                </Rate>
+                <Rate EffectiveDate="2026-06-16" ExpireDate="2026-06-17">
+                  <Base AmountAfterTax="2400.00" CurrencyCode="TWD" />
+                </Rate>
+              </Rates>
+            </RoomRate>
+          </RoomRates>
           <GuestCounts>
-            <GuestCount AgeQualifyingCode="10" Count="2"/>
+            <GuestCount AgeQualifyingCode="10" Count="2" />
           </GuestCounts>
-          <TimeSpan Start="2026-06-15" End="2026-06-17"/>
-          <Total AmountAfterTax="7600" CurrencyCode="TWD"/>
-          <BasicPropertyInfo HotelCode="SENSAN"/>
-          <Comments>
-            <Comment Name="Source"><Text>Booking.com</Text></Comment>
-          </Comments>
+          <TimeSpan Start="2026-06-15" End="2026-06-17" />
+          <Total AmountAfterTax="4800.00" CurrencyCode="TWD" />
+          <BasicPropertyInfo HotelCode="LAKEZE-TEST-001" />
+          <ResGuestRPHs>
+            <ResGuestRPH RPH="1" />
+          </ResGuestRPHs>
         </RoomStay>
       </RoomStays>
       <ResGuests>
-        <ResGuest>
+        <ResGuest ResGuestRPH="1" PrimaryIndicator="true">
           <Profiles>
             <ProfileInfo>
-              <Profile>
+              <Profile ProfileType="1">
                 <Customer>
                   <PersonName>
-                    <GivenName>三郎</GivenName>
-                    <Surname>山田</Surname>
+                    <GivenName>家豪</GivenName>
+                    <Surname>陳</Surname>
                   </PersonName>
-                  <Telephone PhoneNumber="+886912345678"/>
-                  <Email>guest@example.com</Email>
+                  <Telephone PhoneTechType="1" PhoneNumber="0912-345-678" />
+                  <Email>chen.chiahao.test@example.com</Email>
                 </Customer>
               </Profile>
             </ProfileInfo>
           </Profiles>
         </ResGuest>
       </ResGuests>
+      <ResGlobalInfo>
+        <HotelReservationIDs>
+          <HotelReservationID ResID_Type="14" ResID_Value="LAKEZE-20260615-000123" ResID_Source="LAKEZE" />
+        </HotelReservationIDs>
+        <Total AmountAfterTax="4800.00" CurrencyCode="TWD" />
+        <Profiles>
+          <ProfileInfo>
+            <Profile ProfileType="1">
+              <Customer>
+                <PersonName>
+                  <GivenName>家豪</GivenName>
+                  <Surname>陳</Surname>
+                </PersonName>
+                <Telephone PhoneTechType="1" PhoneNumber="0912-345-678" />
+                <Email>chen.chiahao.test@example.com</Email>
+              </Customer>
+            </Profile>
+          </ProfileInfo>
+        </Profiles>
+      </ResGlobalInfo>
     </HotelReservation>
   </HotelReservations>
 </OTA_HotelResNotifRQ>`;
@@ -394,7 +434,8 @@ const methods = [
       "ResStatus='Modify' → 以 UniqueID 找到既有訂單後更新。",
       "ResStatus='Cancel' → 以 UniqueID 找到既有訂單後將狀態設為已取消。",
       "UniqueID 必須是 OwlTing 端唯一識別 (例如 Booking.com 的 ReservationID)。",
-      "Comments/Comment[Name='Source'] 會被存為 ota_channel (booking / agoda / trip / expedia)。",
+      "<POS>/<Source>/<BookingChannel>/<CompanyName> 會被存為 ota_channel (來源平台名稱)。",
+      "訂購人資訊優先讀取 <ResGuests>/<ResGuest PrimaryIndicator='true'>，其次回退至 <ResGlobalInfo>/<Profiles>。",
       "我方不再次驗證庫存與價格，完全信任 OwlTing 在通知前已完成扣減。",
     ],
   },
