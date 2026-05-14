@@ -122,6 +122,7 @@ export default function AtmBookingSuccess() {
   const [error, setError] = useState<string | null>(null);
   const [paidDetected, setPaidDetected] = useState(false);
   const [redirectIn, setRedirectIn] = useState(5);
+  const [dismissed, setDismissed] = useState(false);
   const redirectedRef = useRef(false);
 
   const isPaid = (o: OrderRow | null) =>
