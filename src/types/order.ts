@@ -15,6 +15,12 @@ export interface Order {
   final_price: number;
   deposit_amount: number;
   paid_amount: number;
+  payment_method: string | null;
+  deposit_payment_method: string | null;
+  balance_payment_method: string | null;
+  atm_vacc_no: string | null;
+  atm_vacc_bank_code: string | null;
+  atm_expire_at: string | null;
   notes: string | null;
   order_date: string;
   guest_count: number;
