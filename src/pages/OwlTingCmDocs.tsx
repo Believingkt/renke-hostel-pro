@@ -288,6 +288,114 @@ const SAMPLE_RES_COMMIT_RQ = `<OTA_HotelResNotifRQ xmlns="http://www.opentravel.
   </HotelReservations>
 </OTA_HotelResNotifRQ>`;
 
+const SAMPLE_RES_MODIFY_RQ = `<OTA_HotelResNotifRQ xmlns="http://www.opentravel.org/OTA/2003/05"
+    Version="1.0" TimeStamp="2026-05-14T15:00:00+08:00" EchoToken="LAKEZE-20260514-150000-0002"
+    ResStatus="Modify">
+  <POS>
+    <Source>
+      <RequestorID Type="22" ID="LAKEZE" />
+      <BookingChannel Type="7" Primary="true">
+        <CompanyName Code="LAKEZE">人客多</CompanyName>
+      </BookingChannel>
+    </Source>
+  </POS>
+  <HotelReservations>
+    <HotelReservation LastModifyDateTime="2026-05-14T15:00:00+08:00" ResStatus="Modify">
+      <UniqueID Type="14" ID="LAKEZE-20260615-000123" />
+      <RoomStays>
+        <RoomStay>
+          <RoomTypes>
+            <RoomType RoomTypeCode="9001" NumberOfUnits="1" />
+          </RoomTypes>
+          <RatePlans>
+            <RatePlan RatePlanCode="9102" />
+          </RatePlans>
+          <RoomRates>
+            <RoomRate RoomTypeCode="9001" RatePlanCode="9102" NumberOfUnits="1">
+              <Rates>
+                <Rate EffectiveDate="2026-06-15" ExpireDate="2026-06-16">
+                  <Base AmountAfterTax="2400.00" CurrencyCode="TWD" />
+                </Rate>
+                <Rate EffectiveDate="2026-06-16" ExpireDate="2026-06-17">
+                  <Base AmountAfterTax="2400.00" CurrencyCode="TWD" />
+                </Rate>
+                <Rate EffectiveDate="2026-06-17" ExpireDate="2026-06-18">
+                  <Base AmountAfterTax="2400.00" CurrencyCode="TWD" />
+                </Rate>
+              </Rates>
+            </RoomRate>
+          </RoomRates>
+          <GuestCounts>
+            <GuestCount AgeQualifyingCode="10" Count="2" />
+          </GuestCounts>
+          <TimeSpan Start="2026-06-15" End="2026-06-18" />
+          <Total AmountAfterTax="7200.00" CurrencyCode="TWD" />
+          <BasicPropertyInfo HotelCode="LAKEZE-TEST-001" />
+          <ResGuestRPHs>
+            <ResGuestRPH RPH="1" />
+          </ResGuestRPHs>
+        </RoomStay>
+      </RoomStays>
+      <ResGuests>
+        <ResGuest ResGuestRPH="1" PrimaryIndicator="true">
+          <Profiles>
+            <ProfileInfo>
+              <Profile ProfileType="1">
+                <Customer>
+                  <PersonName>
+                    <GivenName>家豪</GivenName>
+                    <Surname>陳</Surname>
+                  </PersonName>
+                  <Telephone PhoneTechType="1" PhoneNumber="0912-345-678" />
+                  <Email>chen.chiahao.test@example.com</Email>
+                </Customer>
+              </Profile>
+            </ProfileInfo>
+          </Profiles>
+        </ResGuest>
+      </ResGuests>
+      <ResGlobalInfo>
+        <HotelReservationIDs>
+          <HotelReservationID ResID_Type="14" ResID_Value="LAKEZE-20260615-000123" ResID_Source="LAKEZE" />
+        </HotelReservationIDs>
+        <Total AmountAfterTax="7200.00" CurrencyCode="TWD" />
+        <Profiles>
+          <ProfileInfo>
+            <Profile ProfileType="1">
+              <Customer>
+                <PersonName>
+                  <GivenName>家豪</GivenName>
+                  <Surname>陳</Surname>
+                </PersonName>
+                <Telephone PhoneTechType="1" PhoneNumber="0912-345-678" />
+                <Email>chen.chiahao.test@example.com</Email>
+              </Customer>
+            </Profile>
+          </ProfileInfo>
+        </Profiles>
+      </ResGlobalInfo>
+    </HotelReservation>
+  </HotelReservations>
+</OTA_HotelResNotifRQ>`;
+
+const SAMPLE_RES_CANCEL_RQ = `<OTA_HotelResNotifRQ xmlns="http://www.opentravel.org/OTA/2003/05"
+    Version="1.0" TimeStamp="2026-05-15T09:00:00+08:00" EchoToken="LAKEZE-20260515-090000-0003"
+    ResStatus="Cancel">
+  <POS>
+    <Source>
+      <RequestorID Type="22" ID="LAKEZE" />
+      <BookingChannel Type="7" Primary="true">
+        <CompanyName Code="LAKEZE">人客多</CompanyName>
+      </BookingChannel>
+    </Source>
+  </POS>
+  <HotelReservations>
+    <HotelReservation LastModifyDateTime="2026-05-15T09:00:00+08:00" ResStatus="Cancel">
+      <UniqueID Type="14" ID="LAKEZE-20260615-000123" />
+    </HotelReservation>
+  </HotelReservations>
+</OTA_HotelResNotifRQ>`;
+
 const SAMPLE_RES_RS = `<OTA_HotelResNotifRS xmlns="http://www.opentravel.org/OTA/2003/05"
     Version="1.0" TimeStamp="2026-05-05T10:00:01Z" EchoToken="res-001">
   <Success/>
