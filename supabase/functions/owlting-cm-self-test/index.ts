@@ -38,6 +38,20 @@ function envelope(body: string): string {
 </soap:Envelope>`;
 }
 
+/**
+ * 依奧丁丁規格產生 <HotelReservation> 起始標籤的屬性字串。
+ * 規則 (請任何 outbound XML 產生器都遵守):
+ *   - 一律加 ResStatus 屬性
+ *   - ResStatus="Commit"            -> 加 CreateDateTime
+ *   - ResStatus="Modify" / "Cancel" -> 加 LastModifyDateTime
+ */
+function hotelReservationAttrs(resStatus: "Commit" | "Modify" | "Cancel", isoTs: string): string {
+  const tsAttr = resStatus === "Commit"
+    ? `CreateDateTime="${isoTs}"`
+    : `LastModifyDateTime="${isoTs}"`;
+  return `${tsAttr} ResStatus="${resStatus}"`;
+}
+
 async function dispatch(xml: string, hotelCode: string, accommodationId: string) {
   const started = performance.now();
   const r = await fetch(CM_URL, {
@@ -254,9 +268,10 @@ Deno.serve(async (req) => {
   {
     const echo = `selftest-res-${Date.now()}`;
     const fakeId = `SELFTEST-${Date.now()}`;
-    const xml = envelope(`<OTA_HotelResNotifRQ xmlns="http://www.opentravel.org/OTA/2003/05" Version="1.0" TimeStamp="${nowIso()}" EchoToken="${echo}" ResStatus="Cancel">
+    const ts = nowIso();
+    const xml = envelope(`<OTA_HotelResNotifRQ xmlns="http://www.opentravel.org/OTA/2003/05" Version="1.0" TimeStamp="${ts}" EchoToken="${echo}" ResStatus="Cancel">
       <HotelReservations>
-        <HotelReservation>
+        <HotelReservation ${hotelReservationAttrs("Cancel", ts)}>
           <UniqueID Type="14" ID="${fakeId}"/>
           <RoomStays>
             <RoomStay>
