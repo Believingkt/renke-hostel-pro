@@ -187,6 +187,9 @@ function App() {
                     <Route path="pay/order" element={
                       <Suspense fallback={<FrontendSkeleton />}><OrderPayment /></Suspense>
                     } />
+                    <Route path="booking/atm-info" element={
+                      <Suspense fallback={<FrontendSkeleton />}><AtmBookingSuccess /></Suspense>
+                    } />
                     <Route path="pay/bind-card" element={
                       <Suspense fallback={<FrontendSkeleton />}><DepositCardBind /></Suspense>
                     } />
