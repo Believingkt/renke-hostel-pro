@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Building2, Copy, CheckCircle2, AlertTriangle, ShieldCheck, RotateCcw, RefreshCw, LifeBuoy } from "lucide-react";
 import { toast } from "sonner";
@@ -51,8 +50,6 @@ interface Props {
   onCreated?: (info: AtmInfo) => void;
 }
 
-const FIELD_PREFIX = "atm-pay-panel";
-
 export function AtmPaymentPanel({
   orderId, orderNumber, amount, cardholder, initialAtmInfo, onCreated,
 }: Props) {
@@ -69,20 +66,21 @@ export function AtmPaymentPanel({
     if (!config) return;
     setSdkReady(false);
     const ensure = () => {
-      if (TP()) {
+      if (TP()?.virtualAccount?.getPrime) {
         try { TP().setupSDK(config.appId, config.appKey, config.env); } catch {}
-        setSdkReady(!!TP()?.virtualAccount?.getPrime);
+        setSdkReady(true);
         return;
       }
-      const existing = document.querySelector('script[data-tp-sdk]');
+      const existing = document.querySelector('script[data-tp-sdk="atm"]');
       if (existing) { existing.addEventListener('load', ensure as any); return; }
       const s = document.createElement("script");
       s.src = "https://js.tappaysdk.com/sdk/tpdirect/v5.19.2";
       s.async = true;
-      s.dataset.tpSdk = "1";
+      s.dataset.tpSdk = "atm";
       s.onload = () => {
         try { TP()?.setupSDK(config.appId, config.appKey, config.env); } catch {}
-        setSdkReady(!!TP()?.virtualAccount?.getPrime);
+        if (TP()?.virtualAccount?.getPrime) setSdkReady(true);
+        else setError("此付款方式尚未啟用，請聯繫業者");
       };
       s.onerror = () => setError("無法載入付款模組");
       document.body.appendChild(s);
