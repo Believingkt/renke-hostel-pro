@@ -12,6 +12,7 @@ import { useTapPayConfig } from "@/hooks/use-tappay-config";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AtmPaymentPanel } from "@/components/payment/AtmPaymentPanel";
+import { getPaymentOriginForAccommodation, redirectToPaymentOrigin } from "@/utils/paymentDomain";
 
 interface PaymentError {
   message: string;
@@ -55,6 +56,19 @@ export default function OrderPayment() {
     loading: tappayConfigLoading,
     error: tappayConfigError,
   } = useTapPayConfig(!loadingOrder && !orderError);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!accommodationId) return;
+
+    getPaymentOriginForAccommodation(accommodationId).then((origin) => {
+      if (!cancelled) redirectToPaymentOrigin(origin);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accommodationId]);
 
   // Fetch order info
   useEffect(() => {
