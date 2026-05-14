@@ -160,6 +160,71 @@ export default function AtmBookingSuccess() {
     };
   }, [orderNumber]);
 
+  // Auto-refresh: realtime + polling fallback. When payment confirmed, redirect.
+  useEffect(() => {
+    if (!order?.id) return;
+    if (isPaid(order) && !paidDetected) setPaidDetected(true);
+    if (paidDetected) return;
+
+    const refetch = async () => {
+      const { data } = await supabase
+        .from("orders")
+        .select(
+          "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, final_price, paid_amount, payment_status, order_status, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, accommodation_id",
+        )
+        .eq("id", order.id)
+        .maybeSingle();
+      if (data) {
+        setOrder(data as OrderRow);
+        if (isPaid(data as OrderRow)) {
+          setPaidDetected(true);
+          toast.success("已收到您的匯款，訂單付款完成！");
+        }
+      }
+    };
+
+    const channel = supabase
+      .channel(`atm-order-${order.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${order.id}` },
+        (payload) => {
+          const next = payload.new as OrderRow;
+          setOrder((prev) => ({ ...(prev as OrderRow), ...next }));
+          if (isPaid(next)) {
+            setPaidDetected(true);
+            toast.success("已收到您的匯款，訂單付款完成！");
+          }
+        },
+      )
+      .subscribe();
+
+    const pollId = setInterval(refetch, 15000);
+    const visHandler = () => {
+      if (document.visibilityState === "visible") refetch();
+    };
+    document.addEventListener("visibilitychange", visHandler);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(pollId);
+      document.removeEventListener("visibilitychange", visHandler);
+    };
+  }, [order?.id, paidDetected]);
+
+  // Countdown then redirect once payment detected
+  useEffect(() => {
+    if (!paidDetected) return;
+    if (redirectedRef.current) return;
+    if (redirectIn <= 0) {
+      goViewOrder();
+      return;
+    }
+    const id = setTimeout(() => setRedirectIn((s) => s - 1), 1000);
+    return () => clearTimeout(id);
+  }, [paidDetected, redirectIn]);
+
+
   const nights = useMemo(() => {
     if (!order) return 0;
     const a = new Date(order.check_in_date).getTime();
