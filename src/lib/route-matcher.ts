@@ -54,6 +54,7 @@ export const BOOKING_ALLOWED_PREFIXES = [
 export const ALWAYS_ALLOWED_PATHS = [
   ...HQ_PATHS,
   ...AUTH_PATHS,
+  "/admin",
 ] as const;
 
 /**
