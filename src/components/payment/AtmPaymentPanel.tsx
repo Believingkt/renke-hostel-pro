@@ -50,6 +50,10 @@ interface AtmInfo {
   amount: number;
 }
 
+const BANK_NAMES: Record<string, string> = {
+  "822": "中國信託商業銀行",
+};
+
 interface Props {
   orderId: string;
   orderNumber: string;
@@ -171,6 +175,7 @@ export function AtmPaymentPanel({
   if (atmInfo) {
     const exp = new Date(atmInfo.expireAt);
     const expStr = exp.toLocaleString("zh-TW", { dateStyle: "long", timeStyle: "short" });
+    const bankName = atmInfo.bankCode ? BANK_NAMES[atmInfo.bankCode] : null;
     return (
       <Card className="border-primary/30">
         <CardContent className="p-5 space-y-4">
@@ -184,7 +189,7 @@ export function AtmPaymentPanel({
           <div className="grid gap-3 text-sm">
             <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-4 py-3">
               <div>
-                <div className="text-xs text-muted-foreground">銀行代碼</div>
+                <div className="text-xs text-muted-foreground">銀行代碼{bankName ? `（${bankName}）` : ""}</div>
                 <div className="font-mono text-base font-semibold">{atmInfo.bankCode || "—"}</div>
               </div>
               {atmInfo.bankCode && (
@@ -231,7 +236,7 @@ export function AtmPaymentPanel({
           ATM 虛擬帳號轉帳
         </div>
         <p className="text-xs text-muted-foreground mt-1">
-          請選擇您要使用的轉帳銀行，系統將為此筆訂單開立專屬虛擬帳號（繳費期限 3 天）。
+          系統將自動指派轉帳銀行代碼，並為此筆訂單開立專屬虛擬帳號（繳費期限 3 天）。
         </p>
       </div>
       {(configLoading || !sdkReady) && !configError && !error && (
