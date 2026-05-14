@@ -261,7 +261,10 @@ export default function AtmBookingSuccess() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {!atmActive && (
+            {order.atm_expire_at && (
+              <AtmDeadlineAlert expireAt={order.atm_expire_at} />
+            )}
+            {!atmActive && !order.atm_expire_at && (
               <Alert className="mb-4 border-primary/30 bg-primary/5">
                 <Info className="h-4 w-4" />
                 <AlertTitle className="text-sm">請選擇您要使用的轉帳銀行</AlertTitle>
