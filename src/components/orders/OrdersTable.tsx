@@ -92,7 +92,7 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
           <tbody>
             {orders.length === 0 ? (
               <tr>
-                <td colSpan={11} className="p-0">
+                <td colSpan={12} className="p-0">
                   <div className="py-8">
                     <EmptyState
                       icon={ShoppingCart}
