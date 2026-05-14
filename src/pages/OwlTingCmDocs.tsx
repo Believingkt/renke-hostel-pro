@@ -614,13 +614,14 @@ const methods = [
     rq: SAMPLE_RES_COMMIT_RQ,
     extraRqs: [
       { label: "Modify Request 範例 (延長住宿)", xml: SAMPLE_RES_MODIFY_RQ },
-      { label: "Cancel Request 範例 (最小欄位)", xml: SAMPLE_RES_CANCEL_RQ },
+      { label: "Cancel Request 範例 (完整訂單結構)", xml: SAMPLE_RES_CANCEL_RQ },
     ],
     rs: SAMPLE_RES_RS,
     notes: [
       "ResStatus='Commit' → 建立訂單，回傳人客多端訂單編號 (8 碼，A-Z2-9)。",
       "ResStatus='Modify' → 以 UniqueID 找到既有訂單後更新。",
       "ResStatus='Cancel' → 以 UniqueID 找到既有訂單後將狀態設為已取消。",
+      "三種 ResStatus (Commit / Modify / Cancel) 都必須帶完整 reservation body — RoomStays、ResGuests、ResGlobalInfo 一個都不能少。Cancel 不可只送 UniqueID，奧丁丁需要完整 body 來交叉驗證、釋放庫存、保留取消快照。",
       "<HotelReservation> 上必須帶 ResStatus 屬性；ResStatus='Commit' 時加 CreateDateTime，ResStatus='Modify' / 'Cancel' 時改加 LastModifyDateTime (ISO 8601)。",
       "UniqueID 必須是 OwlTing 端唯一識別 (例如 Booking.com 的 ReservationID)。",
       "<POS>/<Source>/<BookingChannel>/<CompanyName> 會被存為 ota_channel (來源平台名稱)。",
