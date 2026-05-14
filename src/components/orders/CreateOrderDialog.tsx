@@ -1865,7 +1865,6 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                 <SelectItem value="credit_card">信用卡</SelectItem>
                 <SelectItem value="line_pay">LINE Pay</SelectItem>
                 <SelectItem value="atm">ATM 虛擬帳號</SelectItem>
-                <SelectItem value="bank_transfer">轉帳匯款</SelectItem>
                 <SelectItem value="cash">現金</SelectItem>
                 <SelectItem value="monthly">月結</SelectItem>
               </SelectContent>
@@ -1883,7 +1882,6 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               <SelectItem value="credit_card">信用卡</SelectItem>
               <SelectItem value="line_pay">LINE Pay</SelectItem>
               <SelectItem value="atm">ATM 虛擬帳號</SelectItem>
-              <SelectItem value="bank_transfer">轉帳匯款</SelectItem>
               <SelectItem value="cash">現金</SelectItem>
               <SelectItem value="monthly">月結</SelectItem>
             </SelectContent>
