@@ -4523,7 +4523,7 @@ const BookingFlow = () => {
                           <div className="space-y-1">
                             <p className="text-sm font-medium text-foreground">付款方式已選擇</p>
                             <p className="text-xs text-muted-foreground leading-relaxed">
-                              訂單金額：{orderPaymentType === "credit_card" ? "信用卡" : (orderPaymentType === "atm" ? "ATM 虛擬帳號" : "轉帳匯款")}　|　押金：
+                              訂單金額：{orderPaymentType === "credit_card" ? "信用卡" : "ATM 虛擬帳號"}　|　押金：
                               {depositPaymentType === "card" ? "線上綁卡" : "現場現金"}
                             </p>
                           </div>
