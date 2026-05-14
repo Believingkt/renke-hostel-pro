@@ -394,7 +394,12 @@ async function handleResNotifRQ(supabase: any, xml: string, echo: string, overri
   for (const r of reservations) {
     // 訂單編號 (UniqueID @ID,排除 BasicPropertyInfo)
     const uniqueId = attrFirst(r, "UniqueID", "ID") ?? "";
-    const otaName = (/<CompanyName>([\s\S]*?)<\/CompanyName>/.exec(r)?.[1] ?? "").trim();
+    // CompanyName: new XML places it under <POS>/<Source>/<BookingChannel>; legacy placed it inside <HotelReservation>
+    const otaName = (
+      /<CompanyName\b[^>]*>([\s\S]*?)<\/CompanyName>/.exec(r)?.[1]
+      ?? /<CompanyName\b[^>]*>([\s\S]*?)<\/CompanyName>/.exec(xml)?.[1]
+      ?? ""
+    ).trim();
     const roomStay = splitTags(r, "RoomStay")[0] ?? "";
     const roomRate = /<RoomRate\b[^>]*>/.exec(roomStay)?.[0] ?? "";
     const roomTypeCode = attrFirst(roomRate, "RoomRate", "RoomTypeCode") ?? attrFirst(roomStay, "RoomType", "RoomTypeCode");
@@ -419,14 +424,36 @@ async function handleResNotifRQ(supabase: any, xml: string, echo: string, overri
       return n || 2;
     })();
 
-    // 訂購人
-    const purchaserGiven = (/<ResGlobalInfo>[\s\S]*?<GivenName>([\s\S]*?)<\/GivenName>/.exec(r)?.[1] ?? "").trim();
-    const purchaserSur = (/<ResGlobalInfo>[\s\S]*?<Surname>([\s\S]*?)<\/Surname>/.exec(r)?.[1] ?? "").trim();
-    const purchaserPhone = attrFirst(/<ResGlobalInfo>[\s\S]*?<Telephone\b[^>]*>/.exec(r)?.[0] ?? "", "Telephone", "PhoneNumber") ?? "";
-    const purchaserEmail = (/<ResGlobalInfo>[\s\S]*?<Email>([\s\S]*?)<\/Email>/.exec(r)?.[1] ?? "").trim();
+    // 訂購人 — 新格式放在 <ResGuests>/<ResGuest>/<Profiles>/<ProfileInfo>/<Profile>/<Customer>
+    // 優先使用 PrimaryIndicator="true" 的 ResGuest，否則用第一個；若都找不到，回退到 <ResGlobalInfo>
+    const resGuests = splitTags(r, "ResGuest");
+    const primaryGuest =
+      resGuests.find((g) => /PrimaryIndicator\s*=\s*"true"/i.test(g.slice(0, 200))) ??
+      resGuests[0] ?? "";
+    const fromGuest = (re: RegExp) => (re.exec(primaryGuest)?.[1] ?? "").trim();
+    const fromGlobal = (re: RegExp) => (re.exec(/<ResGlobalInfo>[\s\S]*?<\/ResGlobalInfo>/.exec(r)?.[0] ?? "")?.[1] ?? "").trim();
+    const purchaserGiven =
+      fromGuest(/<GivenName>([\s\S]*?)<\/GivenName>/) ||
+      fromGlobal(/<GivenName>([\s\S]*?)<\/GivenName>/);
+    const purchaserSur =
+      fromGuest(/<Surname>([\s\S]*?)<\/Surname>/) ||
+      fromGlobal(/<Surname>([\s\S]*?)<\/Surname>/);
+    const purchaserPhone =
+      attrFirst(/<Telephone\b[^>]*\/?>/.exec(primaryGuest)?.[0] ?? "", "Telephone", "PhoneNumber") ||
+      attrFirst(/<ResGlobalInfo>[\s\S]*?<Telephone\b[^>]*\/?>/.exec(r)?.[0] ?? "", "Telephone", "PhoneNumber") ||
+      "";
+    const purchaserEmail =
+      fromGuest(/<Email>([\s\S]*?)<\/Email>/) ||
+      fromGlobal(/<Email>([\s\S]*?)<\/Email>/);
 
-    // 特殊需求
-    const requests = attrAll(roomStay, "SpecialRequest", "Name").join("; ");
+    // 特殊需求：相容 SpecialRequest 與 <Comments>/<Comment>/<Text>
+    const specialReqs = attrAll(roomStay, "SpecialRequest", "Name");
+    const commentTexts = Array.from(
+      (/<ResGlobalInfo>[\s\S]*?<\/ResGlobalInfo>/.exec(r)?.[0] ?? "").matchAll(
+        /<Text>([\s\S]*?)<\/Text>/g,
+      ),
+    ).map((m) => m[1].trim()).filter(Boolean);
+    const requests = [...specialReqs, ...commentTexts].filter(Boolean).join("; ");
 
     // ----- handle by ResStatus -----
     if (resStatus === "Cancel") {
