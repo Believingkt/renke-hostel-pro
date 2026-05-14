@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import {
   Clock,
   Info,
   Home,
+  Timer,
 } from "lucide-react";
 import { AtmPaymentPanel } from "@/components/payment/AtmPaymentPanel";
 
@@ -36,6 +37,77 @@ interface OrderRow {
   atm_vacc_bank_code: string | null;
   atm_expire_at: string | null;
   accommodation_id: string | null;
+}
+
+function formatCountdown(ms: number) {
+  if (ms <= 0) return { expired: true as const, text: "已逾期" };
+  const days = Math.floor(ms / 86400000);
+  const hours = Math.floor((ms % 86400000) / 3600000);
+  const minutes = Math.floor((ms % 3600000) / 60000);
+  const seconds = Math.floor((ms % 60000) / 1000);
+  const parts: string[] = [];
+  if (days > 0) parts.push(`${days} 天`);
+  if (hours > 0 || days > 0) parts.push(`${hours} 小時`);
+  parts.push(`${minutes} 分`);
+  if (days === 0 && hours === 0) parts.push(`${seconds} 秒`);
+  return { expired: false as const, text: parts.join(" ") };
+}
+
+function AtmDeadlineAlert({ expireAt }: { expireAt: string }) {
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const deadline = new Date(expireAt).getTime();
+  const diff = deadline - now;
+  const { expired, text } = formatCountdown(diff);
+
+  if (expired) {
+    return (
+      <Alert variant="destructive" className="mb-4">
+        <AlertTriangle className="h-5 w-5" />
+        <AlertTitle className="text-sm font-semibold">繳費期限已過</AlertTitle>
+        <AlertDescription className="text-xs leading-relaxed">
+          此虛擬帳號已於 {new Date(expireAt).toLocaleString("zh-TW")} 逾期。訂單可能已被自動取消，房間庫存已釋出。如已匯款請聯繫客服處理。
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  const urgent = diff < 3600000; // < 1 hour
+  const warning = diff < 86400000; // < 1 day
+
+  return (
+    <div
+      className={`mb-4 rounded-lg border px-4 py-3 flex items-start gap-3 ${
+        urgent
+          ? "border-destructive bg-destructive/10 text-destructive"
+          : warning
+          ? "border-amber-400 bg-amber-50 text-amber-900"
+          : "border-primary/40 bg-primary/5 text-primary"
+      }`}
+    >
+      <Timer className={`h-5 w-5 shrink-0 mt-0.5 ${urgent ? "animate-pulse" : ""}`} />
+      <div>
+        <div className="text-sm font-semibold">
+          {urgent
+            ? "⚠️ 繳費期限即將到期"
+            : warning
+            ? "繳費期限將至，請盡速匯款"
+            : "繳費期限倒數計時"}
+        </div>
+        <div className={`text-lg font-bold mt-1 font-mono ${urgent ? "animate-pulse" : ""}`}>
+          {text}
+        </div>
+        <div className="text-xs mt-1 opacity-80">
+          期限：{new Date(expireAt).toLocaleString("zh-TW")}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function AtmBookingSuccess() {
