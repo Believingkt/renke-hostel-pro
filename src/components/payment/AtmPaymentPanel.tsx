@@ -1,14 +1,38 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, Building2, Copy, CheckCircle2, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Loader2, Building2, Copy, CheckCircle2, AlertTriangle, ShieldCheck, RotateCcw, RefreshCw, LifeBuoy } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useTapPayConfig } from "@/hooks/use-tappay-config";
 
 const TP = (): any => (typeof window !== "undefined" ? (window as any).TPDirect : undefined);
+
+/** 把 TapPay / Edge Function 錯誤訊息轉成友善文案 + 建議行動 */
+function classifyAtmError(raw: string): { title: string; suggestion: string; canRetrySamePrime: boolean } {
+  const m = (raw || "").toLowerCase();
+  if (/timeout|逾時/.test(m)) {
+    return { title: "連線逾時", suggestion: "請檢查網路後重試。", canRetrySamePrime: false };
+  }
+  if (/prime/.test(m)) {
+    return { title: "付款授權失效", suggestion: "請重新選擇銀行後再試。", canRetrySamePrime: false };
+  }
+  if (/bank|銀行/.test(m)) {
+    return { title: "銀行資訊有誤", suggestion: "請重新選擇銀行。", canRetrySamePrime: false };
+  }
+  if (/network|fetch|failed to fetch/.test(m)) {
+    return { title: "網路連線異常", suggestion: "請確認網路後重試。", canRetrySamePrime: true };
+  }
+  if (/amount|金額/.test(m)) {
+    return { title: "金額異常", suggestion: "請聯繫客服協助處理。", canRetrySamePrime: false };
+  }
+  if (/未啟用|not enabled|disabled/.test(m)) {
+    return { title: "付款方式尚未啟用", suggestion: "請聯繫業者開通 ATM 收款。", canRetrySamePrime: false };
+  }
+  return { title: raw || "建立虛擬帳號失敗", suggestion: "請重新選擇銀行後再試一次，若仍失敗請聯繫客服。", canRetrySamePrime: false };
+}
 
 interface AtmInfo {
   vaccNo: string;
@@ -38,6 +62,9 @@ export function AtmPaymentPanel({
   const [processing, setProcessing] = useState(false);
   const [atmInfo, setAtmInfo] = useState<AtmInfo | null>(initialAtmInfo || null);
   const [error, setError] = useState<string | null>(null);
+  const [errorDetail, setErrorDetail] = useState<{ title: string; suggestion: string; canRetrySamePrime: boolean } | null>(null);
+  const [attemptCount, setAttemptCount] = useState(0);
+  const [resetNonce, setResetNonce] = useState(0);
   const setupDone = useRef(false);
 
   // 載入 SDK
@@ -70,10 +97,10 @@ export function AtmPaymentPanel({
   // 已有虛擬帳號 → 不需設定欄位
   useEffect(() => {
     if (!sdkReady || atmInfo) return;
-    if (setupDone.current) return;
     const t = setTimeout(() => {
       if (!TP()?.atm?.setup) {
         setError("此付款方式尚未啟用，請聯繫業者");
+        setErrorDetail(classifyAtmError("付款方式未啟用"));
         return;
       }
       try {
@@ -83,15 +110,30 @@ export function AtmPaymentPanel({
       } catch (e) {
         console.error("[AtmPaymentPanel] setup error", e);
         setError("付款模組初始化失敗");
+        setErrorDetail(classifyAtmError("付款模組初始化失敗"));
       }
     }, 200);
     return () => clearTimeout(t);
-  }, [sdkReady, atmInfo]);
+  }, [sdkReady, atmInfo, resetNonce]);
+
+  /** 重置銀行選單：重新 mount TPDirect ATM iframe */
+  const resetBankPicker = useCallback(() => {
+    setBankValid(false);
+    setError(null);
+    setErrorDetail(null);
+    setupDone.current = false;
+    // 清空 iframe 容器內容，避免重複 setup 衝突
+    const el = document.getElementById(`${FIELD_PREFIX}-form`);
+    if (el) el.innerHTML = "";
+    setResetNonce((n) => n + 1);
+    toast.info("已重置銀行選單，請重新選擇");
+  }, []);
 
   const handleCreate = async () => {
     if (!TP()?.atm?.getPrime) return;
     setProcessing(true);
     setError(null);
+    setErrorDetail(null);
     try {
       const prime: string = await new Promise((resolve, reject) => {
         const to = setTimeout(() => reject(new Error("取得 Prime 逾時")), 15000);
@@ -116,12 +158,17 @@ export function AtmPaymentPanel({
         amount: data.amount ?? amount,
       };
       setAtmInfo(info);
+      setAttemptCount(0);
       onCreated?.(info);
       toast.success("已開立虛擬帳號");
     } catch (e: any) {
       console.error(e);
-      setError(e?.message || "建立失敗");
-      toast.error("建立虛擬帳號失敗", { description: e?.message });
+      const msg = e?.message || "建立失敗";
+      const detail = classifyAtmError(msg);
+      setError(msg);
+      setErrorDetail(detail);
+      setAttemptCount((c) => c + 1);
+      toast.error(detail.title, { description: detail.suggestion });
     } finally {
       setProcessing(false);
     }
@@ -210,8 +257,36 @@ export function AtmPaymentPanel({
       {(configError || error) && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>{error || configError}</AlertTitle>
-          <AlertDescription>請稍後再試或聯繫客服。</AlertDescription>
+          <AlertTitle>{errorDetail?.title || error || configError}</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <p className="text-sm">{errorDetail?.suggestion || "請稍後再試或聯繫客服。"}</p>
+            {attemptCount > 0 && (
+              <p className="text-xs opacity-80">已嘗試 {attemptCount} 次{attemptCount >= 2 ? "，建議聯繫客服協助處理" : ""}</p>
+            )}
+            <div className="flex flex-wrap gap-2 pt-1">
+              {errorDetail?.canRetrySamePrime && (
+                <Button type="button" size="sm" variant="outline" onClick={handleCreate} disabled={processing}>
+                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                  重試
+                </Button>
+              )}
+              <Button type="button" size="sm" variant="outline" onClick={resetBankPicker} disabled={processing}>
+                <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                重新選銀行
+              </Button>
+              {attemptCount >= 2 && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => window.open("tel:0987654321", "_self")}
+                >
+                  <LifeBuoy className="h-3.5 w-3.5 mr-1.5" />
+                  聯繫客服
+                </Button>
+              )}
+            </div>
+          </AlertDescription>
         </Alert>
       )}
       <Button
@@ -220,6 +295,7 @@ export function AtmPaymentPanel({
         className="w-full h-12 text-base"
       >
         {processing ? (<><Loader2 className="h-5 w-5 mr-2 animate-spin" />開立中...</>) :
+          error ? (<><RefreshCw className="h-5 w-5 mr-2" />重新取得虛擬帳號 NT$ {amount.toLocaleString()}</>) :
           (<><Building2 className="h-5 w-5 mr-2" />取得虛擬帳號 NT$ {amount.toLocaleString()}</>)}
       </Button>
       <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
