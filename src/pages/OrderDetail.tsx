@@ -1472,7 +1472,7 @@ const OrderDetailPage = () => {
     { value: "none", label: "無" },
     { value: "credit_card", label: "信用卡" },
     { value: "line_pay", label: "LINE Pay" },
-    { value: "bank_transfer", label: "轉帳匯款" },
+    { value: "atm", label: "ATM 虛擬帳號" },
     { value: "cash", label: "現金" },
     { value: "monthly", label: "月結" },
   ];

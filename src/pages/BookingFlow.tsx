@@ -178,8 +178,8 @@ const BookingFlow = () => {
     notes: "",
   });
   const [paymentMethod, setPaymentMethod] = useState("");
-  // 訂單金額付款方式：信用卡 | 轉帳匯款（信用卡沿用 paymentMethod，這裡是上層分類）
-  const [orderPaymentType, setOrderPaymentType] = useState<"credit_card" | "bank_transfer" | "atm" | "">("");
+  // 訂單金額付款方式：信用卡 | ATM 虛擬帳號（信用卡沿用 paymentMethod，這裡是上層分類）
+  const [orderPaymentType, setOrderPaymentType] = useState<"credit_card" | "atm" | "">("");
   // 押金 5000 付款方式：card（線上綁卡 / 沿用同張卡）| cash（現場現金）
   const [depositPaymentType, setDepositPaymentType] = useState<"card" | "cash" | "">("");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -277,10 +277,10 @@ const BookingFlow = () => {
   // TapPay 設定 - 從後端動態載入
   // 需要 TapPay 卡片欄位的情境：
   // 1. 訂單金額付款方式為信用卡
-  // 2. 訂單為轉帳匯款，但押金選擇線上綁卡（需單獨輸入綁卡用信用卡）
+  // 2. 訂單為 ATM 虛擬帳號，但押金選擇線上綁卡（需單獨輸入綁卡用信用卡）
   const needsCardForm =
     paymentMethod === '信用卡' ||
-    ((orderPaymentType === 'bank_transfer' || orderPaymentType === 'atm') && depositPaymentType === 'card');
+    (orderPaymentType === 'atm' && depositPaymentType === 'card');
   const shouldLoadTapPay = needsCardForm;
   const {
     config: tappayConfig,
@@ -1771,7 +1771,7 @@ const BookingFlow = () => {
 
     // 如果選擇信用卡，驗證 TapPay 卡片狀態 + 先取得 prime（避免 confirm 步驟欄位卸載）
     if (currentStep === "payment" && needsCardForm) {
-      const isDepositCardOnly = (orderPaymentType === "bank_transfer" || orderPaymentType === "atm") && depositPaymentType === "card";
+      const isDepositCardOnly = orderPaymentType === "atm" && depositPaymentType === "card";
       // 標記已嘗試送出，之後欄位下方才會顯示錯誤
       setCardSubmitAttempted(true);
 
@@ -2628,9 +2628,9 @@ const BookingFlow = () => {
             deposit_required_amount: depositPaymentType ? DEPOSIT_AMOUNT : 0,
             deposit_method: depositPaymentType || null,
             deposit_status: depositPaymentType ? "pending" : "not_required",
-            deposit_payment_method: orderPaymentType === "credit_card" ? "credit_card" : ((orderPaymentType === "bank_transfer" || orderPaymentType === "atm") ? "bank_transfer" : null),
+            deposit_payment_method: orderPaymentType === "credit_card" ? "credit_card" : (orderPaymentType === "atm" ? "bank_transfer" : null),
             balance_payment_method: null,
-            payment_method: orderPaymentType === "credit_card" ? "信用卡" : (orderPaymentType === "atm" ? "ATM 虛擬帳號" : (orderPaymentType === "bank_transfer" ? "轉帳匯款" : null)),
+            payment_method: orderPaymentType === "credit_card" ? "信用卡" : (orderPaymentType === "atm" ? "ATM 虛擬帳號" : null),
             payment_status: paymentTransactionId ? "paid" : (orderPaymentType === "atm" ? "pending_payment" : "unpaid"),
             paid_amount: paymentTransactionId ? finalPrice : 0,
             order_status: "pending",
@@ -4290,8 +4290,7 @@ const BookingFlow = () => {
                               onClick={() => {
                                 setOrderPaymentType(opt.key);
                                 setPaymentMethod(
-                                  opt.key === "credit_card" ? "信用卡" :
-                                  opt.key === "atm" ? "ATM 虛擬帳號" : "轉帳匯款"
+                                  opt.key === "credit_card" ? "信用卡" : "ATM 虛擬帳號"
                                 );
                               }}
                             >
@@ -4363,26 +4362,6 @@ const BookingFlow = () => {
                                 )}
                               </>
                             )}
-                          </div>
-                        )}
-
-                        {/* 轉帳匯款 帳戶資訊 */}
-                        {orderPaymentType === "bank_transfer" && (
-                          <div className="mt-4 p-4 border rounded-lg bg-muted/30">
-                            <p className="text-sm font-medium text-foreground mb-2">匯款帳戶資訊</p>
-                            {bookingSettings?.bank_account_info ? (
-                              <pre className="text-sm text-foreground whitespace-pre-wrap break-words font-sans leading-relaxed">
-                                {bookingSettings.bank_account_info}
-                              </pre>
-                            ) : (
-                              <p className="text-sm text-muted-foreground">
-                                訂單成立後，我們將透過 Email 提供匯款帳號資訊，請於 24 小時內完成匯款。
-                              </p>
-                            )}
-                            <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
-                              ・ 請於匯款後保留收據，並於入住時出示。<br />
-                              ・ 若 24 小時內未收到款項，訂單將自動取消。
-                            </p>
                           </div>
                         )}
 
@@ -4470,8 +4449,8 @@ const BookingFlow = () => {
                           );
                         })}
 
-                        {/* TapPay 信用卡表單 - 訂單為轉帳匯款且押金選擇線上綁卡時，於押金區塊輸入卡片資料 */}
-                        {(orderPaymentType === "bank_transfer" || orderPaymentType === "atm") && depositPaymentType === "card" && (
+                        {/* TapPay 信用卡表單 - 訂單為 ATM 虛擬帳號且押金選擇線上綁卡時，於押金區塊輸入卡片資料 */}
+                        {orderPaymentType === "atm" && depositPaymentType === "card" && (
                           <div className="mt-4 p-4 border rounded-lg bg-card">
                             <div className="mb-3">
                               <p className="text-sm font-medium text-foreground mb-1">請輸入綁卡用信用卡資訊</p>
@@ -4544,7 +4523,7 @@ const BookingFlow = () => {
                           <div className="space-y-1">
                             <p className="text-sm font-medium text-foreground">付款方式已選擇</p>
                             <p className="text-xs text-muted-foreground leading-relaxed">
-                              訂單金額：{orderPaymentType === "credit_card" ? "信用卡" : (orderPaymentType === "atm" ? "ATM 虛擬帳號" : "轉帳匯款")}　|　押金：
+                              訂單金額：{orderPaymentType === "credit_card" ? "信用卡" : "ATM 虛擬帳號"}　|　押金：
                               {depositPaymentType === "card" ? "線上綁卡" : "現場現金"}
                             </p>
                           </div>
@@ -4712,7 +4691,7 @@ const BookingFlow = () => {
                           <div className="flex justify-between items-center">
                             <span className="text-xs text-muted-foreground">訂單金額</span>
                             <span className="font-medium text-sm">
-                              {orderPaymentType === "credit_card" ? "信用卡" : (orderPaymentType === "atm" ? "ATM 虛擬帳號" : "轉帳匯款")}
+                              {orderPaymentType === "credit_card" ? "信用卡" : "ATM 虛擬帳號"}
                             </span>
                           </div>
                           <div className="flex justify-between items-center">
