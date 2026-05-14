@@ -4366,26 +4366,6 @@ const BookingFlow = () => {
                           </div>
                         )}
 
-                        {/* 轉帳匯款 帳戶資訊 */}
-                        {orderPaymentType === "bank_transfer" && (
-                          <div className="mt-4 p-4 border rounded-lg bg-muted/30">
-                            <p className="text-sm font-medium text-foreground mb-2">匯款帳戶資訊</p>
-                            {bookingSettings?.bank_account_info ? (
-                              <pre className="text-sm text-foreground whitespace-pre-wrap break-words font-sans leading-relaxed">
-                                {bookingSettings.bank_account_info}
-                              </pre>
-                            ) : (
-                              <p className="text-sm text-muted-foreground">
-                                訂單成立後，我們將透過 Email 提供匯款帳號資訊，請於 24 小時內完成匯款。
-                              </p>
-                            )}
-                            <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
-                              ・ 請於匯款後保留收據，並於入住時出示。<br />
-                              ・ 若 24 小時內未收到款項，訂單將自動取消。
-                            </p>
-                          </div>
-                        )}
-
                         {/* ATM 虛擬帳號 說明 */}
                         {orderPaymentType === "atm" && (
                           <div className="mt-4 p-4 border rounded-lg bg-muted/30">
