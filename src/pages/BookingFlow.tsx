@@ -4278,7 +4278,6 @@ const BookingFlow = () => {
                         {([
                           { key: "credit_card", label: "信用卡", icon: CreditCard, desc: "由 TapPay 安全加密處理" },
                           { key: "atm", label: "ATM 虛擬帳號轉帳", icon: Building2, desc: "送出訂單後產生專屬虛擬帳號（繳費期限 3 天）" },
-                          { key: "bank_transfer", label: "轉帳匯款", icon: Home, desc: "完成訂單後依顯示帳號匯款" },
                         ] as const).map((opt) => {
                           const Icon = opt.icon;
                           const selected = orderPaymentType === opt.key;
