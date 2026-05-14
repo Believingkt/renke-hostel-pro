@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -119,6 +120,18 @@ export default function AtmBookingSuccess() {
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<OrderRow | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [paidDetected, setPaidDetected] = useState(false);
+  const [redirectIn, setRedirectIn] = useState(5);
+  const [dismissed, setDismissed] = useState(false);
+  const redirectedRef = useRef(false);
+
+  const isPaid = (o: OrderRow | null) =>
+    !!o && (o.payment_status === "paid" || o.payment_status === "partial_paid" || o.order_status === "confirmed");
+
+  const goViewOrder = () => {
+    redirectedRef.current = true;
+    navigate(`/member/orders`);
+  };
 
   useEffect(() => {
     let alive = true;
@@ -147,6 +160,71 @@ export default function AtmBookingSuccess() {
       alive = false;
     };
   }, [orderNumber]);
+
+  // Auto-refresh: realtime + polling fallback. When payment confirmed, redirect.
+  useEffect(() => {
+    if (!order?.id) return;
+    if (isPaid(order) && !paidDetected) setPaidDetected(true);
+    if (paidDetected) return;
+
+    const refetch = async () => {
+      const { data } = await supabase
+        .from("orders")
+        .select(
+          "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, final_price, paid_amount, payment_status, order_status, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, accommodation_id",
+        )
+        .eq("id", order.id)
+        .maybeSingle();
+      if (data) {
+        setOrder(data as OrderRow);
+        if (isPaid(data as OrderRow)) {
+          setPaidDetected(true);
+          toast.success("已收到您的匯款，訂單付款完成！");
+        }
+      }
+    };
+
+    const channel = supabase
+      .channel(`atm-order-${order.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${order.id}` },
+        (payload) => {
+          const next = payload.new as OrderRow;
+          setOrder((prev) => ({ ...(prev as OrderRow), ...next }));
+          if (isPaid(next)) {
+            setPaidDetected(true);
+            toast.success("已收到您的匯款，訂單付款完成！");
+          }
+        },
+      )
+      .subscribe();
+
+    const pollId = setInterval(refetch, 15000);
+    const visHandler = () => {
+      if (document.visibilityState === "visible") refetch();
+    };
+    document.addEventListener("visibilitychange", visHandler);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(pollId);
+      document.removeEventListener("visibilitychange", visHandler);
+    };
+  }, [order?.id, paidDetected]);
+
+  // Countdown then redirect once payment detected
+  useEffect(() => {
+    if (!paidDetected || dismissed) return;
+    if (redirectedRef.current) return;
+    if (redirectIn <= 0) {
+      goViewOrder();
+      return;
+    }
+    const id = setTimeout(() => setRedirectIn((s) => s - 1), 1000);
+    return () => clearTimeout(id);
+  }, [paidDetected, redirectIn, dismissed]);
+
 
   const nights = useMemo(() => {
     if (!order) return 0;
@@ -194,6 +272,24 @@ export default function AtmBookingSuccess() {
   return (
     <div className="min-h-screen bg-muted/20 py-6 md:py-10 px-4">
       <div className="max-w-3xl mx-auto space-y-6">
+        {paidDetected && !dismissed && (
+          <Alert className="border-primary/50 bg-primary/5">
+            <CheckCircle2 className="h-5 w-5 text-primary" />
+            <AlertTitle className="text-base font-semibold text-primary">
+              付款完成！訂單已確認
+            </AlertTitle>
+            <AlertDescription className="text-sm space-y-2">
+              <div>系統已收到您的匯款，將於 {redirectIn} 秒後自動為您前往「我的訂單」頁面。</div>
+              <div className="flex gap-2 pt-1">
+                <Button size="sm" onClick={goViewOrder}>立即查看訂單</Button>
+                <Button size="sm" variant="outline" onClick={() => setDismissed(true)}>
+                  留在此頁
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* 成功標題 */}
         <div className="text-center space-y-3">
           <div className="inline-flex items-center justify-center h-14 w-14 rounded-full bg-primary/10">
