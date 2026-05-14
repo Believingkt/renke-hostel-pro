@@ -224,10 +224,6 @@ export function AtmPaymentPanel({
           請選擇您要使用的轉帳銀行，系統將為此筆訂單開立專屬虛擬帳號（繳費期限 3 天）。
         </p>
       </div>
-      <div className="space-y-2">
-        <Label className="text-xs text-muted-foreground">轉帳銀行</Label>
-        <div id={`${FIELD_PREFIX}-form`} className="min-h-[3rem] px-4 py-3 border rounded-lg bg-background" />
-      </div>
       {(configLoading || !sdkReady) && !configError && !error && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
