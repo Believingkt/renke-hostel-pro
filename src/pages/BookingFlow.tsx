@@ -2720,15 +2720,13 @@ const BookingFlow = () => {
         }
       }
 
-      // ATM 虛擬帳號：建單成功後跳轉到付款頁取得虛擬帳號
+      // ATM 虛擬帳號：建單成功後跳轉到專屬 ATM 匯款資訊頁
       if (orderPaymentType === "atm" && orderData?.order_number) {
         const params = new URLSearchParams({
           order_number: orderData.order_number,
-          amount: String(orderData.final_price ?? finalPrice),
           acc: accommodationId,
-          tab: "atm",
         });
-        window.location.href = `/pay/order?${params.toString()}`;
+        window.location.href = `/booking/atm-info?${params.toString()}`;
         return;
       }
 
