@@ -1771,7 +1771,7 @@ const BookingFlow = () => {
 
     // 如果選擇信用卡，驗證 TapPay 卡片狀態 + 先取得 prime（避免 confirm 步驟欄位卸載）
     if (currentStep === "payment" && needsCardForm) {
-      const isDepositCardOnly = (orderPaymentType === "bank_transfer" || orderPaymentType === "atm") && depositPaymentType === "card";
+      const isDepositCardOnly = orderPaymentType === "atm" && depositPaymentType === "card";
       // 標記已嘗試送出，之後欄位下方才會顯示錯誤
       setCardSubmitAttempted(true);
 
