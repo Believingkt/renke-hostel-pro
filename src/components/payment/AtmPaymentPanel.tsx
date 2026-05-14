@@ -273,7 +273,7 @@ export function AtmPaymentPanel({
       )}
       <Button
         onClick={handleCreate}
-        disabled={!sdkReady || !bankValid || processing}
+        disabled={!sdkReady || processing}
         className="w-full h-12 text-base"
       >
         {processing ? (<><Loader2 className="h-5 w-5 mr-2 animate-spin" />開立中...</>) :
