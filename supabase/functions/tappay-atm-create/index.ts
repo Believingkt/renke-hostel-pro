@@ -157,16 +157,21 @@ serve(async (req) => {
 
     // 若已有未過期的虛擬帳號，直接回傳
     if (order.atm_vacc_no && order.atm_expire_at && new Date(order.atm_expire_at).getTime() > Date.now()) {
-      const { data: full } = await supabase
-        .from("orders")
-        .select("atm_vacc_no, atm_vacc_bank_code, atm_expire_at")
-        .eq("id", order.id).maybeSingle();
+      let bankCode = order.atm_vacc_bank_code;
+      if (!bankCode && order.atm_rec_trade_id) {
+        const envRaw = Deno.env.get("TAPPAY_ENV");
+        const env = envRaw === "sandbox" ? "sandbox" : "production";
+        const baseUrl = env === "sandbox" ? "https://sandbox.tappaysdk.com" : "https://prod.tappaysdk.com";
+        const fromRecord = extractAtmInfo(await queryTapPayRecord(`${baseUrl}/tpc/transaction/query`, partnerKey, order.atm_rec_trade_id));
+        bankCode = fromRecord.bankCode || null;
+        if (bankCode) await supabase.from("orders").update({ atm_vacc_bank_code: bankCode, updated_at: new Date().toISOString() }).eq("id", order.id);
+      }
       return new Response(JSON.stringify({
         success: true,
         reused: true,
-        vaccNo: full?.atm_vacc_no,
-        bankCode: full?.atm_vacc_bank_code,
-        expireAt: full?.atm_expire_at,
+        vaccNo: order.atm_vacc_no,
+        bankCode,
+        expireAt: order.atm_expire_at,
         amount: data.amount,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -241,16 +246,7 @@ serve(async (req) => {
         expireDateStr = expireDateStr || fromRecord.expireDateStr;
       }
     }
-    let expireAt: Date;
-    if (expireDateStr && /^\d{8}$/.test(expireDateStr)) {
-      // 設為當日 23:59:59 台北時間（UTC+8 → UTC 15:59:59）
-      const y = expireDateStr.substring(0, 4);
-      const m = expireDateStr.substring(4, 6);
-      const d = expireDateStr.substring(6, 8);
-      expireAt = new Date(`${y}-${m}-${d}T15:59:59.000Z`);
-    } else {
-      expireAt = new Date(Date.now() + expireDays * 86400_000);
-    }
+    const expireAt = parseTapPayExpireAt(expireDateStr, expireDays);
 
     if (!vaccNo) {
       return new Response(JSON.stringify({ success: false, message: "TapPay 未回傳虛擬帳號" }), {
