@@ -17,6 +17,7 @@
  *                                  returns a structured response.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { validateOutboundResNotifXml } from "../_shared/owltingResValidator.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -361,21 +362,36 @@ Deno.serve(async (req) => {
         </HotelReservation>
       </HotelReservations>
     </OTA_HotelResNotifRQ>`);
-    const r = await dispatch(xml, hotelCode, accommodationId);
-    // Reachability test: any structured response (200) means endpoint is alive.
-    const reachable = r.status === 200 && /<OTA_HotelResNotifRS\b/.test(r.body);
-    results.push({
-      method: "OTA_HotelResNotifRQ",
-      label: `④ 訂單通知 — Cancel 測試 (使用假 ID ${fakeId})`,
-      ok: reachable,
-      http_status: r.status,
-      elapsed_ms: r.elapsed_ms,
-      summary: reachable
-        ? "端點可達 — 已收到 OTA_HotelResNotifRS 回應 (假訂單預期不會真的被取消)"
-        : `端點異常 — HTTP ${r.status}`,
-      request: xml,
-      response: r.body,
-    });
+    // Outbound structural guard — refuse to dispatch if Cancel body is malformed.
+    const validation = validateOutboundResNotifXml(xml);
+    if (!validation.ok) {
+      results.push({
+        method: "OTA_HotelResNotifRQ",
+        label: `④ 訂單通知 — Cancel 測試 (使用假 ID ${fakeId})`,
+        ok: false,
+        http_status: 0,
+        elapsed_ms: 0,
+        summary: `已拒絕送出 — Cancel XML 結構不完整：\n  - ${validation.errors.join("\n  - ")}`,
+        request: xml,
+        response: "",
+      });
+    } else {
+      const r = await dispatch(xml, hotelCode, accommodationId);
+      // Reachability test: any structured response (200) means endpoint is alive.
+      const reachable = r.status === 200 && /<OTA_HotelResNotifRS\b/.test(r.body);
+      results.push({
+        method: "OTA_HotelResNotifRQ",
+        label: `④ 訂單通知 — Cancel 測試 (使用假 ID ${fakeId})`,
+        ok: reachable,
+        http_status: r.status,
+        elapsed_ms: r.elapsed_ms,
+        summary: reachable
+          ? "端點可達 — 已收到 OTA_HotelResNotifRS 回應 (假訂單預期不會真的被取消)"
+          : `端點異常 — HTTP ${r.status}`,
+        request: xml,
+        response: r.body,
+      });
+    }
   }
 
   return new Response(JSON.stringify({ results }), {
