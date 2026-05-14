@@ -296,6 +296,7 @@ export default function OrderPayment() {
           ? "+886" + orderInfo.guestPhone.substring(1)
           : "+886" + orderInfo.guestPhone;
 
+      const baseUrl = await getPaymentOriginForAccommodation(accommodationId);
       const { data, error } = await supabase.functions.invoke("process-tappay-payment", {
         body: {
           prime,
@@ -307,7 +308,7 @@ export default function OrderPayment() {
             email: orderInfo.guestEmail || "no-email@example.com",
           },
           details: `訂單 ${orderNumber} 付款`,
-          frontendRedirectUrl: `${window.location.origin}/payment-result?order_number=${orderNumber}&amount=${amount}&source=link`,
+          frontendRedirectUrl: `${baseUrl}/payment-result?order_number=${orderNumber}&amount=${amount}&source=link`,
           bindCard: orderInfo.needsCardBinding,
         },
       });
