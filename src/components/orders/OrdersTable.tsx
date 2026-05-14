@@ -336,12 +336,43 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                   </div>
 
                   {/* 金額 */}
-                  <div className="flex items-center justify-between text-sm mb-3">
+                  <div className="flex items-center justify-between text-sm mb-2">
                     <div className="flex items-center">
                       <DollarSign className="w-4 h-4 mr-1 text-muted-foreground" />
                       <span className="text-muted-foreground">實收金額:</span>
                     </div>
                     <span className="font-semibold text-base">NT$ {order.final_price.toLocaleString()}</span>
+                  </div>
+
+                  {/* 已付金額 */}
+                  {order.paid_amount > 0 && order.paid_amount < order.final_price && (
+                    <div className="flex items-center justify-between text-sm mb-2">
+                      <span className="text-muted-foreground pl-5">已付:</span>
+                      <span className="font-medium">NT$ {order.paid_amount.toLocaleString()}</span>
+                    </div>
+                  )}
+
+                  {/* 付款方式與付款狀態 */}
+                  <div className="flex items-center justify-between text-sm mb-3">
+                    <div className="flex items-center">
+                      <CreditCard className="w-4 h-4 mr-1 text-muted-foreground" />
+                      <span className="text-muted-foreground mr-2">付款方式:</span>
+                      <span className="font-medium">
+                        {getPaymentMethodLabel(getOrderPaymentMethod(order)) || "—"}
+                      </span>
+                    </div>
+                    {onChangePaymentStatus && order.order_status !== 'cancelled' ? (
+                      <button
+                        onClick={() => onChangePaymentStatus(order)}
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border cursor-pointer hover:opacity-80 transition-opacity ${paymentStatusConfig.className}`}
+                      >
+                        {paymentStatusConfig.label}
+                      </button>
+                    ) : (
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${paymentStatusConfig.className}`}>
+                        {paymentStatusConfig.label}
+                      </span>
+                    )}
                   </div>
 
                   {/* 操作按鈕 */}
