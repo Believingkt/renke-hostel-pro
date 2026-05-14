@@ -26,10 +26,10 @@ function classifyAtmError(raw: string): { title: string; suggestion: string; can
     return { title: "連線逾時", suggestion: "請檢查網路後重試。", canRetrySamePrime: false };
   }
   if (/prime/.test(m)) {
-    return { title: "付款授權失效", suggestion: "請重新選擇銀行後再試。", canRetrySamePrime: false };
+    return { title: "付款授權失效", suggestion: "請重新取得虛擬帳號。", canRetrySamePrime: false };
   }
   if (/bank|銀行/.test(m)) {
-    return { title: "銀行資訊有誤", suggestion: "請重新選擇銀行。", canRetrySamePrime: false };
+    return { title: "銀行資訊有誤", suggestion: "請重新取得虛擬帳號。", canRetrySamePrime: false };
   }
   if (/network|fetch|failed to fetch/.test(m)) {
     return { title: "網路連線異常", suggestion: "請確認網路後重試。", canRetrySamePrime: true };
@@ -40,7 +40,7 @@ function classifyAtmError(raw: string): { title: string; suggestion: string; can
   if (/未啟用|not enabled|disabled/.test(m)) {
     return { title: "付款方式尚未啟用", suggestion: "請聯繫業者開通 ATM 收款。", canRetrySamePrime: false };
   }
-  return { title: raw || "建立虛擬帳號失敗", suggestion: "請重新選擇銀行後再試一次，若仍失敗請聯繫客服。", canRetrySamePrime: false };
+  return { title: raw || "建立虛擬帳號失敗", suggestion: "請重新取得虛擬帳號，若仍失敗請聯繫客服。", canRetrySamePrime: false };
 }
 
 interface AtmInfo {
@@ -49,6 +49,10 @@ interface AtmInfo {
   expireAt: string;
   amount: number;
 }
+
+const BANK_NAMES: Record<string, string> = {
+  "822": "中國信託商業銀行",
+};
 
 interface Props {
   orderId: string;
@@ -171,6 +175,7 @@ export function AtmPaymentPanel({
   if (atmInfo) {
     const exp = new Date(atmInfo.expireAt);
     const expStr = exp.toLocaleString("zh-TW", { dateStyle: "long", timeStyle: "short" });
+    const bankName = atmInfo.bankCode ? BANK_NAMES[atmInfo.bankCode] : null;
     return (
       <Card className="border-primary/30">
         <CardContent className="p-5 space-y-4">
@@ -184,7 +189,7 @@ export function AtmPaymentPanel({
           <div className="grid gap-3 text-sm">
             <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-4 py-3">
               <div>
-                <div className="text-xs text-muted-foreground">銀行代碼</div>
+                <div className="text-xs text-muted-foreground">銀行代碼{bankName ? `（${bankName}）` : ""}</div>
                 <div className="font-mono text-base font-semibold">{atmInfo.bankCode || "—"}</div>
               </div>
               {atmInfo.bankCode && (
@@ -231,7 +236,7 @@ export function AtmPaymentPanel({
           ATM 虛擬帳號轉帳
         </div>
         <p className="text-xs text-muted-foreground mt-1">
-          請選擇您要使用的轉帳銀行，系統將為此筆訂單開立專屬虛擬帳號（繳費期限 3 天）。
+          系統將自動指派轉帳銀行代碼，並為此筆訂單開立專屬虛擬帳號（繳費期限 3 天）。
         </p>
       </div>
       {(configLoading || !sdkReady) && !configError && !error && (
@@ -259,7 +264,7 @@ export function AtmPaymentPanel({
               {errorDetail?.title !== "付款網域設定不符" && errorDetail?.title !== "付款設定未完成" && (
                 <Button type="button" size="sm" variant="outline" onClick={resetBankPicker} disabled={processing}>
                 <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
-                重新選銀行
+                重新取得
                 </Button>
               )}
               {attemptCount >= 2 && (

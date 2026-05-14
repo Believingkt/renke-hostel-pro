@@ -562,7 +562,7 @@ export default function OrderPayment() {
                               setOrderInfo((prev) =>
                                 prev ? { ...prev, atmInfo: null, atmExpiredInfo: null } : prev,
                               );
-                              toast.success("已清除舊帳號，請重新選擇銀行申請");
+                              toast.success("已清除舊帳號，請重新取得虛擬帳號");
                             } catch (e: any) {
                               toast.error("清除舊帳號失敗", { description: e?.message });
                             } finally {
