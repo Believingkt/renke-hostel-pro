@@ -54,6 +54,29 @@ function extractAtmInfo(payload: any) {
   return { vaccNo: undefined, bankCode: undefined, expireDateStr: undefined };
 }
 
+async function queryTapPayRecord(queryEndpoint: string, partnerKey: string, recTradeId?: string) {
+  if (!recTradeId) return null;
+  try {
+    const resp = await fetch(queryEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": partnerKey },
+      body: JSON.stringify({ partner_key: partnerKey, filters: { rec_trade_id: recTradeId } }),
+    });
+    const result = await resp.json();
+    const record = result?.trade_records?.[0] ?? null;
+    console.log("[tappay-atm-create] query fallback:", {
+      status: result?.status,
+      msg: result?.msg,
+      hasRecord: Boolean(record),
+      recordKeys: record ? Object.keys(record) : [],
+    });
+    return record;
+  } catch (e) {
+    console.warn("[tappay-atm-create] query fallback failed:", e);
+    return null;
+  }
+}
+
 function validate(d: any): string | null {
   if (!d?.prime || typeof d.prime !== "string" || d.prime.length < 10) return "Invalid prime";
   if (typeof d.amount !== "number" || !Number.isInteger(d.amount) || d.amount <= 0 || d.amount > 10_000_000)
