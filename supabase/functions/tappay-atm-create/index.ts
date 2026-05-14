@@ -27,12 +27,13 @@ function normalizePhoneE164(phone: string): string {
 function pickFirstString(...values: unknown[]): string | undefined {
   for (const value of values) {
     if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number" && Number.isFinite(value)) return String(value);
   }
   return undefined;
 }
 
 function extractAtmInfo(payload: any) {
-  const sources = [payload?.pay_info, payload?.virtual_account, payload?.atm_info, payload?.bank_info, payload];
+  const sources = [payload?.payee_info, payload?.pay_info, payload?.virtual_account, payload?.atm_info, payload?.bank_info, payload];
   for (const src of sources) {
     if (!src || typeof src !== "object") continue;
     const vaccNo = pickFirstString(
@@ -40,15 +41,20 @@ function extractAtmInfo(payload: any) {
       src.vacc_no,
       src.virtual_account,
       src.virtual_account_no,
+      src.virtual_account_number,
       src.account,
       src.account_no,
+      src.account_number,
+      src.bank_account,
+      src.bank_account_no,
+      src.payment_no,
       src.payment_account,
     );
     if (!vaccNo) continue;
     return {
       vaccNo,
-      bankCode: pickFirstString(src.bank_code, src.bank_id, src.bank, src.bank_no),
-      expireDateStr: pickFirstString(src.expire_date, src.expired_date, src.expire_at, src.expired_at),
+      bankCode: pickFirstString(src.bank_code, src.bank_id, src.bank, src.bank_no, src.bank_number, src.bank_code_no),
+      expireDateStr: pickFirstString(src.expire_date, src.expired_date, src.expire_at, src.expired_at, src.due_date, src.payment_deadline),
     };
   }
   return { vaccNo: undefined, bankCode: undefined, expireDateStr: undefined };
@@ -192,7 +198,9 @@ serve(async (req) => {
       msg: result.msg,
       rec_trade_id: result.rec_trade_id,
       keys: Object.keys(result || {}),
-      pay_info: result.pay_info,
+      hasPayeeInfo: Boolean(result.payee_info),
+      payeeInfoKeys: result.payee_info && typeof result.payee_info === "object" ? Object.keys(result.payee_info) : [],
+      hasPayInfo: Boolean(result.pay_info),
     });
 
     if (result.status !== 0) {
