@@ -12,6 +12,16 @@ const TP = (): any => (typeof window !== "undefined" ? (window as any).TPDirect 
 /** 把 TapPay / Edge Function 錯誤訊息轉成友善文案 + 建議行動 */
 function classifyAtmError(raw: string): { title: string; suggestion: string; canRetrySamePrime: boolean } {
   const m = (raw || "").toLowerCase();
+  if (/app name mismatch|app.*mismatch|status\s*12|網域|domain|bundle/.test(m)) {
+    return {
+      title: "付款網域設定不符",
+      suggestion: "目前付款頁網址尚未加入 TapPay 允許網域，請使用正式付款連結，或聯繫客服確認付款網域設定。",
+      canRetrySamePrime: false,
+    };
+  }
+  if (/app id not found|app key mismatch|credentials|app.*key|status\s*11|status\s*16/.test(m)) {
+    return { title: "付款設定未完成", suggestion: "請聯繫客服確認 TapPay 付款設定。", canRetrySamePrime: false };
+  }
   if (/timeout|逾時/.test(m)) {
     return { title: "連線逾時", suggestion: "請檢查網路後重試。", canRetrySamePrime: false };
   }
@@ -119,7 +129,7 @@ export function AtmPaymentPanel({
           clearTimeout(to);
           const r = result ?? err;
           if (err && result) return reject(new Error(err?.msg || err?.message || "取得 Prime 失敗"));
-          if (!r || r.status !== 0) return reject(new Error(r?.msg || "取得 Prime 失敗"));
+          if (!r || r.status !== 0) return reject(new Error(r?.msg ? `${r.msg} (status ${r.status})` : "取得 Prime 失敗"));
           const p = r?.prime;
           if (!p) return reject(new Error("Prime 格式錯誤"));
           resolve(p);
@@ -246,10 +256,12 @@ export function AtmPaymentPanel({
                   重試
                 </Button>
               )}
-              <Button type="button" size="sm" variant="outline" onClick={resetBankPicker} disabled={processing}>
+              {errorDetail?.title !== "付款網域設定不符" && errorDetail?.title !== "付款設定未完成" && (
+                <Button type="button" size="sm" variant="outline" onClick={resetBankPicker} disabled={processing}>
                 <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
                 重新選銀行
-              </Button>
+                </Button>
+              )}
               {attemptCount >= 2 && (
                 <Button
                   type="button"
