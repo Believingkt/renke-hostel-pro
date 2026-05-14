@@ -257,8 +257,36 @@ export function AtmPaymentPanel({
       {(configError || error) && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>{error || configError}</AlertTitle>
-          <AlertDescription>請稍後再試或聯繫客服。</AlertDescription>
+          <AlertTitle>{errorDetail?.title || error || configError}</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <p className="text-sm">{errorDetail?.suggestion || "請稍後再試或聯繫客服。"}</p>
+            {attemptCount > 0 && (
+              <p className="text-xs opacity-80">已嘗試 {attemptCount} 次{attemptCount >= 2 ? "，建議聯繫客服協助處理" : ""}</p>
+            )}
+            <div className="flex flex-wrap gap-2 pt-1">
+              {errorDetail?.canRetrySamePrime && (
+                <Button type="button" size="sm" variant="outline" onClick={handleCreate} disabled={processing}>
+                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                  重試
+                </Button>
+              )}
+              <Button type="button" size="sm" variant="outline" onClick={resetBankPicker} disabled={processing}>
+                <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                重新選銀行
+              </Button>
+              {attemptCount >= 2 && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => window.open("tel:0987654321", "_self")}
+                >
+                  <LifeBuoy className="h-3.5 w-3.5 mr-1.5" />
+                  聯繫客服
+                </Button>
+              )}
+            </div>
+          </AlertDescription>
         </Alert>
       )}
       <Button
@@ -267,6 +295,7 @@ export function AtmPaymentPanel({
         className="w-full h-12 text-base"
       >
         {processing ? (<><Loader2 className="h-5 w-5 mr-2 animate-spin" />開立中...</>) :
+          error ? (<><RefreshCw className="h-5 w-5 mr-2" />重新取得虛擬帳號 NT$ {amount.toLocaleString()}</>) :
           (<><Building2 className="h-5 w-5 mr-2" />取得虛擬帳號 NT$ {amount.toLocaleString()}</>)}
       </Button>
       <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
