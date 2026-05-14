@@ -738,6 +738,9 @@ const OwlTingCmDocs = () => {
                   <CardContent className="space-y-3">
                     <CodeBlock label="HTTP Request Headers (可直接貼上)">{buildHttpHeaders(m.name)}</CodeBlock>
                     <CodeBlock label="Full SOAP Request (含 Envelope + WS-Security Header,可直接貼上)">{fullEnvelope}</CodeBlock>
+                    {(m as any).extraRqs?.map((extra: { label: string; xml: string }, i: number) => (
+                      <CodeBlock key={i} label={extra.label}>{buildFullEnvelope(extra.xml)}</CodeBlock>
+                    ))}
                     <CodeBlock label="cURL 範例">{curl}</CodeBlock>
                     <CodeBlock label="Success Response">{m.rs}</CodeBlock>
                     <ul className="list-disc list-inside text-xs text-muted-foreground space-y-1">
