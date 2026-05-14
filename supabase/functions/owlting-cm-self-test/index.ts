@@ -44,6 +44,11 @@ function envelope(body: string): string {
  *   - 一律加 ResStatus 屬性
  *   - ResStatus="Commit"            -> 加 CreateDateTime
  *   - ResStatus="Modify" / "Cancel" -> 加 LastModifyDateTime
+ *
+ * ⚠️ 重要：三種 ResStatus (Commit / Modify / Cancel) 都必須帶完整 reservation body —
+ * RoomStays、ResGuests、ResGlobalInfo 一個都不能少。
+ * Cancel 不可只送 UniqueID — 奧丁丁需要完整 body 來交叉驗證、釋放庫存、保留取消快照。
+ * 此 helper 只負責 <HotelReservation> 起始標籤的屬性，body 內容請由呼叫端組完整。
  */
 function hotelReservationAttrs(resStatus: "Commit" | "Modify" | "Cancel", isoTs: string): string {
   const tsAttr = resStatus === "Commit"
@@ -264,20 +269,95 @@ Deno.serve(async (req) => {
     });
   }
 
-  // ④ OTA_HotelResNotifRQ — Cancel a fake reservation; verifies endpoint reachability
+  // ④ OTA_HotelResNotifRQ — Cancel a fake reservation; verifies endpoint reachability.
+  // ⚠️ Cancel 必須帶完整 reservation body (RoomStays / ResGuests / ResGlobalInfo)，
+  //    不可只送 UniqueID。奧丁丁需要完整 body 才能交叉驗證、釋放庫存、保留取消快照。
   {
     const echo = `selftest-res-${Date.now()}`;
     const fakeId = `SELFTEST-${Date.now()}`;
     const ts = nowIso();
+    const stayStart = date;
+    const stayEndDate = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    const roomCode = sampleRoom ? String(sampleRoom.numeric_code) : "9001";
+    const planCode = samplePlan ? String(samplePlan.numeric_code) : "9101";
     const xml = envelope(`<OTA_HotelResNotifRQ xmlns="http://www.opentravel.org/OTA/2003/05" Version="1.0" TimeStamp="${ts}" EchoToken="${echo}" ResStatus="Cancel">
+      <POS>
+        <Source>
+          <RequestorID Type="22" ID="LAKEZE"/>
+          <BookingChannel Type="7" Primary="true">
+            <CompanyName Code="LAKEZE">人客多</CompanyName>
+          </BookingChannel>
+        </Source>
+      </POS>
       <HotelReservations>
         <HotelReservation ${hotelReservationAttrs("Cancel", ts)}>
           <UniqueID Type="14" ID="${fakeId}"/>
           <RoomStays>
             <RoomStay>
+              <RoomTypes>
+                <RoomType RoomTypeCode="${roomCode}" NumberOfUnits="1"/>
+              </RoomTypes>
+              <RatePlans>
+                <RatePlan RatePlanCode="${planCode}"/>
+              </RatePlans>
+              <RoomRates>
+                <RoomRate RoomTypeCode="${roomCode}" RatePlanCode="${planCode}" NumberOfUnits="1">
+                  <Rates>
+                    <Rate EffectiveDate="${stayStart}" ExpireDate="${stayEndDate}">
+                      <Base AmountAfterTax="1.00" CurrencyCode="TWD"/>
+                    </Rate>
+                  </Rates>
+                </RoomRate>
+              </RoomRates>
+              <GuestCounts>
+                <GuestCount AgeQualifyingCode="10" Count="1"/>
+              </GuestCounts>
+              <TimeSpan Start="${stayStart}" End="${stayEndDate}"/>
+              <Total AmountAfterTax="1.00" CurrencyCode="TWD"/>
               <BasicPropertyInfo HotelCode="${hotelCode}"/>
+              <ResGuestRPHs>
+                <ResGuestRPH RPH="1"/>
+              </ResGuestRPHs>
             </RoomStay>
           </RoomStays>
+          <ResGuests>
+            <ResGuest ResGuestRPH="1" PrimaryIndicator="true">
+              <Profiles>
+                <ProfileInfo>
+                  <Profile ProfileType="1">
+                    <Customer>
+                      <PersonName>
+                        <GivenName>SelfTest</GivenName>
+                        <Surname>Cancel</Surname>
+                      </PersonName>
+                      <Telephone PhoneTechType="1" PhoneNumber="0900-000-000"/>
+                      <Email>selftest-cancel@example.com</Email>
+                    </Customer>
+                  </Profile>
+                </ProfileInfo>
+              </Profiles>
+            </ResGuest>
+          </ResGuests>
+          <ResGlobalInfo>
+            <HotelReservationIDs>
+              <HotelReservationID ResID_Type="14" ResID_Value="${fakeId}" ResID_Source="LAKEZE"/>
+            </HotelReservationIDs>
+            <Total AmountAfterTax="1.00" CurrencyCode="TWD"/>
+            <Profiles>
+              <ProfileInfo>
+                <Profile ProfileType="1">
+                  <Customer>
+                    <PersonName>
+                      <GivenName>SelfTest</GivenName>
+                      <Surname>Cancel</Surname>
+                    </PersonName>
+                    <Telephone PhoneTechType="1" PhoneNumber="0900-000-000"/>
+                    <Email>selftest-cancel@example.com</Email>
+                  </Customer>
+                </Profile>
+              </ProfileInfo>
+            </Profiles>
+          </ResGlobalInfo>
         </HotelReservation>
       </HotelReservations>
     </OTA_HotelResNotifRQ>`);
