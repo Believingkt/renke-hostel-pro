@@ -58,35 +58,31 @@ export function AtmPaymentPanel({
 }: Props) {
   const { config, loading: configLoading, error: configError } = useTapPayConfig(true);
   const [sdkReady, setSdkReady] = useState(false);
-  const [bankValid, setBankValid] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [atmInfo, setAtmInfo] = useState<AtmInfo | null>(initialAtmInfo || null);
   const [error, setError] = useState<string | null>(null);
   const [errorDetail, setErrorDetail] = useState<{ title: string; suggestion: string; canRetrySamePrime: boolean } | null>(null);
   const [attemptCount, setAttemptCount] = useState(0);
-  const [resetNonce, setResetNonce] = useState(0);
-  const setupDone = useRef(false);
 
   // 載入 SDK
   useEffect(() => {
     if (!config) return;
     setSdkReady(false);
-    setupDone.current = false;
     const ensure = () => {
       if (TP()) {
         try { TP().setupSDK(config.appId, config.appKey, config.env); } catch {}
-        setSdkReady(true);
+        setSdkReady(!!TP()?.virtualAccount?.getPrime);
         return;
       }
       const existing = document.querySelector('script[data-tp-sdk]');
       if (existing) { existing.addEventListener('load', ensure as any); return; }
       const s = document.createElement("script");
-      s.src = "https://js.tappaysdk.com/sdk/tpdirect/v5.18.0";
+      s.src = "https://js.tappaysdk.com/sdk/tpdirect/v5.19.2";
       s.async = true;
       s.dataset.tpSdk = "1";
       s.onload = () => {
         try { TP()?.setupSDK(config.appId, config.appKey, config.env); } catch {}
-        setSdkReady(true);
+        setSdkReady(!!TP()?.virtualAccount?.getPrime);
       };
       s.onerror = () => setError("無法載入付款模組");
       document.body.appendChild(s);
@@ -94,39 +90,23 @@ export function AtmPaymentPanel({
     ensure();
   }, [config]);
 
-  // 已有虛擬帳號 → 不需設定欄位
+  // 已有虛擬帳號 → 不需檢查 ATM getPrime
   useEffect(() => {
     if (!sdkReady || atmInfo) return;
     const t = setTimeout(() => {
-      if (!TP()?.virtualAccount?.setup) {
+      if (!TP()?.virtualAccount?.getPrime) {
         setError("此付款方式尚未啟用，請聯繫業者");
         setErrorDetail(classifyAtmError("付款方式未啟用"));
-        return;
-      }
-      try {
-        TP().virtualAccount.setup({ el: `#${FIELD_PREFIX}-form` });
-        TP().virtualAccount.onUpdate((u: any) => setBankValid(!!u?.canGetPrime));
-        setupDone.current = true;
-      } catch (e) {
-        console.error("[AtmPaymentPanel] setup error", e);
-        setError("付款模組初始化失敗");
-        setErrorDetail(classifyAtmError("付款模組初始化失敗"));
       }
     }, 200);
     return () => clearTimeout(t);
-  }, [sdkReady, atmInfo, resetNonce]);
+  }, [sdkReady, atmInfo]);
 
   /** 重置銀行選單：重新 mount TPDirect ATM iframe */
   const resetBankPicker = useCallback(() => {
-    setBankValid(false);
     setError(null);
     setErrorDetail(null);
-    setupDone.current = false;
-    // 清空 iframe 容器內容，避免重複 setup 衝突
-    const el = document.getElementById(`${FIELD_PREFIX}-form`);
-    if (el) el.innerHTML = "";
-    setResetNonce((n) => n + 1);
-    toast.info("已重置銀行選單，請重新選擇");
+    toast.info("已重置付款模組，請重新取得虛擬帳號");
   }, []);
 
   const handleCreate = async () => {
@@ -137,10 +117,12 @@ export function AtmPaymentPanel({
     try {
       const prime: string = await new Promise((resolve, reject) => {
         const to = setTimeout(() => reject(new Error("取得 Prime 逾時")), 15000);
-        TP().virtualAccount.getPrime((r: any) => {
+        TP().virtualAccount.getPrime((err: any, result?: any) => {
           clearTimeout(to);
+          const r = result ?? err;
+          if (err && result) return reject(new Error(err?.msg || err?.message || "取得 Prime 失敗"));
           if (!r || r.status !== 0) return reject(new Error(r?.msg || "取得 Prime 失敗"));
-          const p = r?.bank?.prime || r?.prime;
+          const p = r?.prime;
           if (!p) return reject(new Error("Prime 格式錯誤"));
           resolve(p);
         });
