@@ -268,9 +268,10 @@ Deno.serve(async (req) => {
   {
     const echo = `selftest-res-${Date.now()}`;
     const fakeId = `SELFTEST-${Date.now()}`;
-    const xml = envelope(`<OTA_HotelResNotifRQ xmlns="http://www.opentravel.org/OTA/2003/05" Version="1.0" TimeStamp="${nowIso()}" EchoToken="${echo}" ResStatus="Cancel">
+    const ts = nowIso();
+    const xml = envelope(`<OTA_HotelResNotifRQ xmlns="http://www.opentravel.org/OTA/2003/05" Version="1.0" TimeStamp="${ts}" EchoToken="${echo}" ResStatus="Cancel">
       <HotelReservations>
-        <HotelReservation>
+        <HotelReservation ${hotelReservationAttrs("Cancel", ts)}>
           <UniqueID Type="14" ID="${fakeId}"/>
           <RoomStays>
             <RoomStay>
