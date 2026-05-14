@@ -1315,6 +1315,7 @@ const OrderDetailPage = () => {
     if (!method) return "-";
     const methodMap: Record<string, string> = {
       credit_card: "信用卡",
+      atm: "ATM 虛擬帳號",
       line_pay: "LINE Pay",
       bank_transfer: "轉帳匯款",
       cash: "現金",
