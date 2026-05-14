@@ -215,7 +215,7 @@ export default function AtmBookingSuccess() {
 
   // Countdown then redirect once payment detected
   useEffect(() => {
-    if (!paidDetected) return;
+    if (!paidDetected || dismissed) return;
     if (redirectedRef.current) return;
     if (redirectIn <= 0) {
       goViewOrder();
@@ -223,7 +223,7 @@ export default function AtmBookingSuccess() {
     }
     const id = setTimeout(() => setRedirectIn((s) => s - 1), 1000);
     return () => clearTimeout(id);
-  }, [paidDetected, redirectIn]);
+  }, [paidDetected, redirectIn, dismissed]);
 
 
   const nights = useMemo(() => {
