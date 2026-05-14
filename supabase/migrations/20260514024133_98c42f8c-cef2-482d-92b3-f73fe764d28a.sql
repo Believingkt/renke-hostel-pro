@@ -1,0 +1,1 @@
+UPDATE public.external_hotel_mappings SET accommodation_id = '4ee31aca-5641-4d05-80e2-1c67626be83d' WHERE cid_code = '1149' AND accommodation_id = '5f764d55-ae11-4631-80fe-2e611853deae';
