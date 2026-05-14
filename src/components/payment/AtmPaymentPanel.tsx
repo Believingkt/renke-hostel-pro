@@ -97,10 +97,10 @@ export function AtmPaymentPanel({
   // 已有虛擬帳號 → 不需設定欄位
   useEffect(() => {
     if (!sdkReady || atmInfo) return;
-    if (setupDone.current) return;
     const t = setTimeout(() => {
       if (!TP()?.atm?.setup) {
         setError("此付款方式尚未啟用，請聯繫業者");
+        setErrorDetail(classifyAtmError("付款方式未啟用"));
         return;
       }
       try {
@@ -110,15 +110,30 @@ export function AtmPaymentPanel({
       } catch (e) {
         console.error("[AtmPaymentPanel] setup error", e);
         setError("付款模組初始化失敗");
+        setErrorDetail(classifyAtmError("付款模組初始化失敗"));
       }
     }, 200);
     return () => clearTimeout(t);
-  }, [sdkReady, atmInfo]);
+  }, [sdkReady, atmInfo, resetNonce]);
+
+  /** 重置銀行選單：重新 mount TPDirect ATM iframe */
+  const resetBankPicker = useCallback(() => {
+    setBankValid(false);
+    setError(null);
+    setErrorDetail(null);
+    setupDone.current = false;
+    // 清空 iframe 容器內容，避免重複 setup 衝突
+    const el = document.getElementById(`${FIELD_PREFIX}-form`);
+    if (el) el.innerHTML = "";
+    setResetNonce((n) => n + 1);
+    toast.info("已重置銀行選單，請重新選擇");
+  }, []);
 
   const handleCreate = async () => {
     if (!TP()?.atm?.getPrime) return;
     setProcessing(true);
     setError(null);
+    setErrorDetail(null);
     try {
       const prime: string = await new Promise((resolve, reject) => {
         const to = setTimeout(() => reject(new Error("取得 Prime 逾時")), 15000);
@@ -143,12 +158,17 @@ export function AtmPaymentPanel({
         amount: data.amount ?? amount,
       };
       setAtmInfo(info);
+      setAttemptCount(0);
       onCreated?.(info);
       toast.success("已開立虛擬帳號");
     } catch (e: any) {
       console.error(e);
-      setError(e?.message || "建立失敗");
-      toast.error("建立虛擬帳號失敗", { description: e?.message });
+      const msg = e?.message || "建立失敗";
+      const detail = classifyAtmError(msg);
+      setError(msg);
+      setErrorDetail(detail);
+      setAttemptCount((c) => c + 1);
+      toast.error(detail.title, { description: detail.suggestion });
     } finally {
       setProcessing(false);
     }
