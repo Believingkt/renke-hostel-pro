@@ -4290,8 +4290,7 @@ const BookingFlow = () => {
                               onClick={() => {
                                 setOrderPaymentType(opt.key);
                                 setPaymentMethod(
-                                  opt.key === "credit_card" ? "信用卡" :
-                                  opt.key === "atm" ? "ATM 虛擬帳號" : "轉帳匯款"
+                                  opt.key === "credit_card" ? "信用卡" : "ATM 虛擬帳號"
                                 );
                               }}
                             >
