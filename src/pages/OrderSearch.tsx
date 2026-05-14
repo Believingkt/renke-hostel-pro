@@ -132,17 +132,12 @@ const OrderSearch = () => {
       return;
     }
 
-    if (!accommodationId) {
-      toast.error("無法取得住宿資訊");
-      return;
-    }
-
     setIsSearching(true);
     setOrderData(null);
     setSearchAttempted(true);
 
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("orders")
         .select(`
           id,
@@ -168,10 +163,14 @@ const OrderSearch = () => {
             name
           )
         `)
-        .eq("accommodation_id", accommodationId)
         .eq("order_number", orderNumber.trim())
-        .eq("guest_phone", phone.trim())
-        .maybeSingle();
+        .eq("guest_phone", phone.trim());
+
+      if (accommodationId) {
+        query = query.eq("accommodation_id", accommodationId);
+      }
+
+      const { data, error } = await query.maybeSingle();
 
       if (error) throw error;
 
