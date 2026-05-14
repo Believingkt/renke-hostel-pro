@@ -2452,6 +2452,78 @@ const OrderDetailPage = () => {
         </Card>
       </div>
 
+      {/* ATM 虛擬帳號資訊 */}
+      {(() => {
+        const o = order as any;
+        if (!o?.atm_vacc_no) return null;
+        const expireAt = o.atm_expire_at ? new Date(o.atm_expire_at) : null;
+        const isExpired = expireAt ? expireAt.getTime() <= Date.now() : false;
+        const copyToClipboard = async (text: string, label: string) => {
+          try {
+            await navigator.clipboard.writeText(text);
+            toast({ title: "已複製", description: `${label}已複製到剪貼簿` });
+          } catch {
+            toast({ title: "複製失敗", variant: "destructive" });
+          }
+        };
+        return (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg md:text-lg flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-primary" />
+                ATM 虛擬帳號
+                {isExpired ? (
+                  <Badge variant="outline" className="text-destructive border-destructive/30">已逾期</Badge>
+                ) : (
+                  <Badge variant="outline" className="text-primary border-primary/30">有效</Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-sm text-muted-foreground flex-shrink-0">銀行代碼</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono font-semibold text-base">{o.atm_vacc_bank_code || "—"}</span>
+                  {o.atm_vacc_bank_code && (
+                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => copyToClipboard(o.atm_vacc_bank_code, "銀行代碼")}>
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <Separator />
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-sm text-muted-foreground flex-shrink-0">虛擬帳號</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono font-semibold text-base tracking-wider">{o.atm_vacc_no}</span>
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => copyToClipboard(o.atm_vacc_no, "虛擬帳號")}>
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+              <Separator />
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-sm text-muted-foreground flex-shrink-0">應繳金額</span>
+                <span className="font-semibold text-base text-primary">
+                  NT$ {Math.max(0, (order.final_price || 0) - (order.paid_amount || 0)).toLocaleString()}
+                </span>
+              </div>
+              {expireAt && (
+                <>
+                  <Separator />
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="text-sm text-muted-foreground flex-shrink-0">繳費期限</span>
+                    <span className={`font-medium text-sm ${isExpired ? "text-destructive" : ""}`}>
+                      {format(expireAt, "yyyy-MM-dd HH:mm")}
+                    </span>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })()}
+
       {/* 押金管理 */}
       {order && <DepositManagementSection orderId={order.id} />}
 
