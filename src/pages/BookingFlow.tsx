@@ -4450,8 +4450,8 @@ const BookingFlow = () => {
                           );
                         })}
 
-                        {/* TapPay 信用卡表單 - 訂單為轉帳匯款且押金選擇線上綁卡時，於押金區塊輸入卡片資料 */}
-                        {(orderPaymentType === "bank_transfer" || orderPaymentType === "atm") && depositPaymentType === "card" && (
+                        {/* TapPay 信用卡表單 - 訂單為 ATM 虛擬帳號且押金選擇線上綁卡時，於押金區塊輸入卡片資料 */}
+                        {orderPaymentType === "atm" && depositPaymentType === "card" && (
                           <div className="mt-4 p-4 border rounded-lg bg-card">
                             <div className="mb-3">
                               <p className="text-sm font-medium text-foreground mb-1">請輸入綁卡用信用卡資訊</p>
