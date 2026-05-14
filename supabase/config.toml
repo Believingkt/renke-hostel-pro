@@ -131,3 +131,6 @@ verify_jwt = false
 
 [functions.owlting-cm-snapshot]
 verify_jwt = false
+
+[functions.owlting-order-push]
+verify_jwt = true
