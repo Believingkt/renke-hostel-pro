@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { getPaymentOriginForAccommodation } from "@/utils/paymentDomain";
 
 interface Props {
   orderId: string;
@@ -434,7 +435,8 @@ export function DepositManagementSection({ orderId, refreshKey, onRefresh }: Pro
               size="sm"
               variant="outline"
               onClick={async () => {
-                const link = `${window.location.origin}/pay/bind-card?order_number=${encodeURIComponent(deposit.order_number)}&acc=${encodeURIComponent(deposit.accommodation_id)}`;
+                const baseUrl = await getPaymentOriginForAccommodation(deposit.accommodation_id);
+                const link = `${baseUrl}/pay/bind-card?order_number=${encodeURIComponent(deposit.order_number)}&acc=${encodeURIComponent(deposit.accommodation_id)}`;
                 try {
                   await navigator.clipboard.writeText(link);
                 } catch {
