@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Link2, Copy, Check, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
+import { getPaymentOriginForAccommodation } from "@/utils/paymentDomain";
 
 interface OnlinePaymentDialogProps {
   open: boolean;
@@ -75,10 +76,18 @@ export function OnlinePaymentDialog({
       return;
     }
 
+    let cancelled = false;
     const accId = order.accommodation_id || '';
-    const baseUrl = window.location.origin;
-    const link = `${baseUrl}/pay/order?order_number=${encodeURIComponent(order.order_number)}&amount=${paymentAmount}&acc=${encodeURIComponent(accId)}`;
-    setGeneratedLink(link);
+
+    getPaymentOriginForAccommodation(accId).then((baseUrl) => {
+      if (cancelled) return;
+      const link = `${baseUrl}/pay/order?order_number=${encodeURIComponent(order.order_number)}&amount=${paymentAmount}&acc=${encodeURIComponent(accId)}`;
+      setGeneratedLink(link);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [order, paymentAmount]);
 
   // 重置狀態
