@@ -62,6 +62,9 @@ export function AtmPaymentPanel({
   const [processing, setProcessing] = useState(false);
   const [atmInfo, setAtmInfo] = useState<AtmInfo | null>(initialAtmInfo || null);
   const [error, setError] = useState<string | null>(null);
+  const [errorDetail, setErrorDetail] = useState<{ title: string; suggestion: string; canRetrySamePrime: boolean } | null>(null);
+  const [attemptCount, setAttemptCount] = useState(0);
+  const [resetNonce, setResetNonce] = useState(0);
   const setupDone = useRef(false);
 
   // 載入 SDK
