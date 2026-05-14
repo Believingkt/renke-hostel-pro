@@ -53,11 +53,30 @@ function extractAtmInfo(payload: any) {
     if (!vaccNo) continue;
     return {
       vaccNo,
-      bankCode: pickFirstString(src.bank_code, src.bank_id, src.bank, src.bank_no, src.bank_number, src.bank_code_no),
-      expireDateStr: pickFirstString(src.expire_date, src.expired_date, src.expire_at, src.expired_at, src.due_date, src.payment_deadline),
+      bankCode: pickFirstString(src.vacc_bank_code, src.bank_code, src.bank_id, src.bank, src.bank_no, src.bank_number, src.bank_code_no),
+      expireDateStr: pickFirstString(src.expire_time, src.expire_date, src.expired_date, src.expire_at, src.expired_at, src.due_date, src.payment_deadline),
     };
   }
   return { vaccNo: undefined, bankCode: undefined, expireDateStr: undefined };
+}
+
+function parseTapPayExpireAt(expireDateStr: string | undefined, expireDays: number): Date {
+  if (expireDateStr && /^\d{14}$/.test(expireDateStr)) {
+    const y = expireDateStr.substring(0, 4);
+    const m = expireDateStr.substring(4, 6);
+    const d = expireDateStr.substring(6, 8);
+    const hh = expireDateStr.substring(8, 10);
+    const mm = expireDateStr.substring(10, 12);
+    const ss = expireDateStr.substring(12, 14);
+    return new Date(`${y}-${m}-${d}T${hh}:${mm}:${ss}+08:00`);
+  }
+  if (expireDateStr && /^\d{8}$/.test(expireDateStr)) {
+    const y = expireDateStr.substring(0, 4);
+    const m = expireDateStr.substring(4, 6);
+    const d = expireDateStr.substring(6, 8);
+    return new Date(`${y}-${m}-${d}T23:59:59+08:00`);
+  }
+  return new Date(Date.now() + expireDays * 86400_000);
 }
 
 async function queryTapPayRecord(queryEndpoint: string, partnerKey: string, recTradeId?: string) {
@@ -119,7 +138,7 @@ serve(async (req) => {
     );
     const { data: order, error: orderErr } = await supabase
       .from("orders")
-      .select("id, order_number, final_price, paid_amount, payment_status, order_status, atm_vacc_no, atm_expire_at")
+      .select("id, order_number, final_price, paid_amount, payment_status, order_status, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, atm_rec_trade_id")
       .eq("id", data.orderId)
       .maybeSingle();
     if (orderErr || !order) {
