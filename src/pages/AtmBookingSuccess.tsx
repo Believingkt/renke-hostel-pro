@@ -120,6 +120,17 @@ export default function AtmBookingSuccess() {
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<OrderRow | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [paidDetected, setPaidDetected] = useState(false);
+  const [redirectIn, setRedirectIn] = useState(5);
+  const redirectedRef = useRef(false);
+
+  const isPaid = (o: OrderRow | null) =>
+    !!o && (o.payment_status === "paid" || o.payment_status === "partial_paid" || o.order_status === "confirmed");
+
+  const goViewOrder = () => {
+    redirectedRef.current = true;
+    navigate(`/member/orders`);
+  };
 
   useEffect(() => {
     let alive = true;
