@@ -4,8 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { Order, CustomMealPlan } from "@/types/order";
-import { getPaymentStatusConfig, getOrderStatusConfig, getOrderSourceConfig, getEffectivePaymentStatus } from "@/utils/orderHelpers";
-import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCart, Edit, Eye, Utensils, Globe, UserPlus } from "lucide-react";
+import { getPaymentStatusConfig, getOrderStatusConfig, getOrderSourceConfig, getEffectivePaymentStatus, getPaymentMethodLabel, getOrderPaymentMethod } from "@/utils/orderHelpers";
+import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCart, Edit, Eye, Utensils, Globe, UserPlus, CreditCard } from "lucide-react";
 import { OrderQuickPreview } from "./OrderQuickPreview";
 import { EmptyState } from "@/components/EmptyState";
 
@@ -72,6 +72,9 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
               <SortableHeader field="check_in_date">入住日期</SortableHeader>
               <SortableHeader field="check_out_date">退房日期</SortableHeader>
               <SortableHeader field="final_price">實收金額</SortableHeader>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground whitespace-nowrap">
+                付款方式
+              </th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">
                 來源
               </th>
@@ -89,7 +92,7 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
           <tbody>
             {orders.length === 0 ? (
               <tr>
-                <td colSpan={11} className="p-0">
+                <td colSpan={12} className="p-0">
                   <div className="py-8">
                     <EmptyState
                       icon={ShoppingCart}
@@ -123,7 +126,24 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                     <td className="px-4 py-3 text-sm">{order.check_in_date}</td>
                     <td className="px-4 py-3 text-sm">{order.check_out_date}</td>
                     <td className="px-4 py-3 text-sm font-medium">
-                      NT$ {order.final_price.toLocaleString()}
+                      <div>NT$ {order.final_price.toLocaleString()}</div>
+                      {order.paid_amount > 0 && order.paid_amount < order.final_price && (
+                        <div className="text-xs text-muted-foreground font-normal">
+                          已付 NT$ {order.paid_amount.toLocaleString()}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm whitespace-nowrap">
+                      {(() => {
+                        const m = getOrderPaymentMethod(order);
+                        if (!m) return <span className="text-muted-foreground">—</span>;
+                        return (
+                          <span className="inline-flex items-center gap-1">
+                            <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
+                            {getPaymentMethodLabel(m)}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-3 text-sm">
                       {onChangeOrderSource ? (
@@ -316,12 +336,43 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                   </div>
 
                   {/* 金額 */}
-                  <div className="flex items-center justify-between text-sm mb-3">
+                  <div className="flex items-center justify-between text-sm mb-2">
                     <div className="flex items-center">
                       <DollarSign className="w-4 h-4 mr-1 text-muted-foreground" />
                       <span className="text-muted-foreground">實收金額:</span>
                     </div>
                     <span className="font-semibold text-base">NT$ {order.final_price.toLocaleString()}</span>
+                  </div>
+
+                  {/* 已付金額 */}
+                  {order.paid_amount > 0 && order.paid_amount < order.final_price && (
+                    <div className="flex items-center justify-between text-sm mb-2">
+                      <span className="text-muted-foreground pl-5">已付:</span>
+                      <span className="font-medium">NT$ {order.paid_amount.toLocaleString()}</span>
+                    </div>
+                  )}
+
+                  {/* 付款方式與付款狀態 */}
+                  <div className="flex items-center justify-between text-sm mb-3">
+                    <div className="flex items-center">
+                      <CreditCard className="w-4 h-4 mr-1 text-muted-foreground" />
+                      <span className="text-muted-foreground mr-2">付款方式:</span>
+                      <span className="font-medium">
+                        {getPaymentMethodLabel(getOrderPaymentMethod(order)) || "—"}
+                      </span>
+                    </div>
+                    {onChangePaymentStatus && order.order_status !== 'cancelled' ? (
+                      <button
+                        onClick={() => onChangePaymentStatus(order)}
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border cursor-pointer hover:opacity-80 transition-opacity ${paymentStatusConfig.className}`}
+                      >
+                        {paymentStatusConfig.label}
+                      </button>
+                    ) : (
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${paymentStatusConfig.className}`}>
+                        {paymentStatusConfig.label}
+                      </span>
+                    )}
                   </div>
 
                   {/* 操作按鈕 */}

@@ -77,3 +77,33 @@ export const getOrderStatusLabel = (status: string) => {
   };
   return statusMap[status] || status;
 };
+
+export const getPaymentMethodLabel = (method: string | null | undefined): string => {
+  if (!method) return "";
+  const map: Record<string, string> = {
+    credit_card: "信用卡",
+    atm: "ATM 虛擬帳號",
+    line_pay: "LINE Pay",
+    bank_transfer: "轉帳匯款",
+    cash: "現金",
+    monthly: "月結",
+  };
+  return map[method] || method;
+};
+
+/**
+ * Pick the most relevant payment method for an order:
+ * balance > deposit > generic payment_method.
+ */
+export const getOrderPaymentMethod = (order: {
+  payment_method?: string | null;
+  deposit_payment_method?: string | null;
+  balance_payment_method?: string | null;
+}): string | null => {
+  return (
+    order.balance_payment_method ||
+    order.deposit_payment_method ||
+    order.payment_method ||
+    null
+  );
+};
