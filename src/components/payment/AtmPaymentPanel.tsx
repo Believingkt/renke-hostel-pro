@@ -130,14 +130,14 @@ export function AtmPaymentPanel({
   }, []);
 
   const handleCreate = async () => {
-    if (!TP()?.atm?.getPrime) return;
+    if (!TP()?.virtualAccount?.getPrime) return;
     setProcessing(true);
     setError(null);
     setErrorDetail(null);
     try {
       const prime: string = await new Promise((resolve, reject) => {
         const to = setTimeout(() => reject(new Error("取得 Prime 逾時")), 15000);
-        TP().atm.getPrime((r: any) => {
+        TP().virtualAccount.getPrime((r: any) => {
           clearTimeout(to);
           if (!r || r.status !== 0) return reject(new Error(r?.msg || "取得 Prime 失敗"));
           const p = r?.bank?.prime || r?.prime;
