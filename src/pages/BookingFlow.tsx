@@ -277,10 +277,10 @@ const BookingFlow = () => {
   // TapPay 設定 - 從後端動態載入
   // 需要 TapPay 卡片欄位的情境：
   // 1. 訂單金額付款方式為信用卡
-  // 2. 訂單為轉帳匯款，但押金選擇線上綁卡（需單獨輸入綁卡用信用卡）
+  // 2. 訂單為 ATM 虛擬帳號，但押金選擇線上綁卡（需單獨輸入綁卡用信用卡）
   const needsCardForm =
     paymentMethod === '信用卡' ||
-    ((orderPaymentType === 'bank_transfer' || orderPaymentType === 'atm') && depositPaymentType === 'card');
+    (orderPaymentType === 'atm' && depositPaymentType === 'card');
   const shouldLoadTapPay = needsCardForm;
   const {
     config: tappayConfig,
