@@ -12,6 +12,7 @@ import { useTapPayConfig } from "@/hooks/use-tappay-config";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AtmPaymentPanel } from "@/components/payment/AtmPaymentPanel";
+import { getPaymentOriginForAccommodation, redirectToPaymentOrigin } from "@/utils/paymentDomain";
 
 interface PaymentError {
   message: string;
@@ -55,6 +56,19 @@ export default function OrderPayment() {
     loading: tappayConfigLoading,
     error: tappayConfigError,
   } = useTapPayConfig(!loadingOrder && !orderError);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!accommodationId) return;
+
+    getPaymentOriginForAccommodation(accommodationId).then((origin) => {
+      if (!cancelled) redirectToPaymentOrigin(origin);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accommodationId]);
 
   // Fetch order info
   useEffect(() => {
@@ -282,6 +296,7 @@ export default function OrderPayment() {
           ? "+886" + orderInfo.guestPhone.substring(1)
           : "+886" + orderInfo.guestPhone;
 
+      const baseUrl = await getPaymentOriginForAccommodation(accommodationId);
       const { data, error } = await supabase.functions.invoke("process-tappay-payment", {
         body: {
           prime,
@@ -293,7 +308,7 @@ export default function OrderPayment() {
             email: orderInfo.guestEmail || "no-email@example.com",
           },
           details: `訂單 ${orderNumber} 付款`,
-          frontendRedirectUrl: `${window.location.origin}/payment-result?order_number=${orderNumber}&amount=${amount}&source=link`,
+          frontendRedirectUrl: `${baseUrl}/payment-result?order_number=${orderNumber}&amount=${amount}&source=link`,
           bindCard: orderInfo.needsCardBinding,
         },
       });

@@ -68,6 +68,7 @@ import {
 } from "@/components/ui/collapsible";
 import { zhTW } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { getPaymentOriginForAccommodation } from "@/utils/paymentDomain";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import roomDeluxe from "@/assets/room-deluxe.jpg";
 import roomSuite from "@/assets/room-suite.jpg";
@@ -2284,7 +2285,7 @@ const BookingFlow = () => {
           // 為簡化邏輯：先呼叫 process-tappay-payment 取得是否需要 3DS。
           // 若需要 3DS → 走 sessionStorage + complete-3ds-booking（已支援 idempotency_key）
           // 若不需要 3DS → 改呼叫 create-paid-order 一次完成扣款 + 建單（含失敗退刷）
-          const baseUrl = window.location.origin;
+          const baseUrl = await getPaymentOriginForAccommodation(accommodationId);
           const frontendRedirectUrl = `${baseUrl}/payment-result?source=booking`;
 
           // 為了同時支援 3DS 與非 3DS，我們先呼叫 process-tappay-payment（會自動帶 3DS）
@@ -2726,7 +2727,8 @@ const BookingFlow = () => {
           order_number: orderData.order_number,
           acc: accommodationId,
         });
-        window.location.href = `/booking/atm-info?${params.toString()}`;
+        const baseUrl = await getPaymentOriginForAccommodation(accommodationId);
+        window.location.href = `${baseUrl}/booking/atm-info?${params.toString()}`;
         return;
       }
 

@@ -21,6 +21,7 @@ import {
   Timer,
 } from "lucide-react";
 import { AtmPaymentPanel } from "@/components/payment/AtmPaymentPanel";
+import { getPaymentOriginForAccommodation, redirectToPaymentOrigin } from "@/utils/paymentDomain";
 
 interface OrderRow {
   id: string;
@@ -124,6 +125,19 @@ export default function AtmBookingSuccess() {
   const [redirectIn, setRedirectIn] = useState(5);
   const [dismissed, setDismissed] = useState(false);
   const redirectedRef = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!accId) return;
+
+    getPaymentOriginForAccommodation(accId).then((origin) => {
+      if (!cancelled) redirectToPaymentOrigin(origin);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accId]);
 
   const isPaid = (o: OrderRow | null) =>
     !!o && (o.payment_status === "paid" || o.payment_status === "partial_paid" || o.order_status === "confirmed");

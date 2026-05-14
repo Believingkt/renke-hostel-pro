@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTapPayConfig } from "@/hooks/use-tappay-config";
 import { getTapPayPrime } from "@/utils/tappayPrime";
 import { Loader2, CreditCard, CheckCircle, AlertTriangle, Building2, Copy } from "lucide-react";
+import { getPaymentOriginForAccommodation } from "@/utils/paymentDomain";
 
 interface InlineChatPaymentProps {
   orderId: string;
@@ -151,7 +152,7 @@ export function InlineChatPayment({
     try {
       const prime = await getTapPayPrime({ timeoutMs: 15000 });
 
-      const baseUrl = window.location.origin;
+      const baseUrl = await getPaymentOriginForAccommodation(accommodationId);
       const frontendRedirectUrl = `${baseUrl}/payment-result?source=ai-booking`;
 
       const { data: paymentResult, error } = await supabase.functions.invoke('process-tappay-payment', {

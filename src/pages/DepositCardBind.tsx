@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getTapPayPrime } from "@/utils/tappayPrime";
 import { useTapPayConfig } from "@/hooks/use-tappay-config";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { getPaymentOriginForAccommodation, redirectToPaymentOrigin } from "@/utils/paymentDomain";
 
 interface BindError {
   message: string;
@@ -44,6 +45,19 @@ export default function DepositCardBind() {
     loading: tappayConfigLoading,
     error: tappayConfigError,
   } = useTapPayConfig(!loadingOrder && !orderError);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!accommodationId) return;
+
+    getPaymentOriginForAccommodation(accommodationId).then((origin) => {
+      if (!cancelled) redirectToPaymentOrigin(origin);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accommodationId]);
 
   // Fetch order info
   useEffect(() => {
