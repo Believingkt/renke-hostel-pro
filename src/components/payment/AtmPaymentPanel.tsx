@@ -26,10 +26,10 @@ function classifyAtmError(raw: string): { title: string; suggestion: string; can
     return { title: "連線逾時", suggestion: "請檢查網路後重試。", canRetrySamePrime: false };
   }
   if (/prime/.test(m)) {
-    return { title: "付款授權失效", suggestion: "請重新選擇銀行後再試。", canRetrySamePrime: false };
+    return { title: "付款授權失效", suggestion: "請重新取得虛擬帳號。", canRetrySamePrime: false };
   }
   if (/bank|銀行/.test(m)) {
-    return { title: "銀行資訊有誤", suggestion: "請重新選擇銀行。", canRetrySamePrime: false };
+    return { title: "銀行資訊有誤", suggestion: "請重新取得虛擬帳號。", canRetrySamePrime: false };
   }
   if (/network|fetch|failed to fetch/.test(m)) {
     return { title: "網路連線異常", suggestion: "請確認網路後重試。", canRetrySamePrime: true };
@@ -40,7 +40,7 @@ function classifyAtmError(raw: string): { title: string; suggestion: string; can
   if (/未啟用|not enabled|disabled/.test(m)) {
     return { title: "付款方式尚未啟用", suggestion: "請聯繫業者開通 ATM 收款。", canRetrySamePrime: false };
   }
-  return { title: raw || "建立虛擬帳號失敗", suggestion: "請重新選擇銀行後再試一次，若仍失敗請聯繫客服。", canRetrySamePrime: false };
+  return { title: raw || "建立虛擬帳號失敗", suggestion: "請重新取得虛擬帳號，若仍失敗請聯繫客服。", canRetrySamePrime: false };
 }
 
 interface AtmInfo {
@@ -264,7 +264,7 @@ export function AtmPaymentPanel({
               {errorDetail?.title !== "付款網域設定不符" && errorDetail?.title !== "付款設定未完成" && (
                 <Button type="button" size="sm" variant="outline" onClick={resetBankPicker} disabled={processing}>
                 <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
-                重新選銀行
+                重新取得
                 </Button>
               )}
               {attemptCount >= 2 && (
