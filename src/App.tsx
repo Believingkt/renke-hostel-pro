@@ -45,6 +45,7 @@ const Profile = lazy(() => import("./pages/Profile"));
 const PaymentTest = lazy(() => import("./pages/PaymentTest"));
 const PublicPayment = lazy(() => import("./pages/PublicPayment"));
 const OrderPayment = lazy(() => import("./pages/OrderPayment"));
+const AtmBookingSuccess = lazy(() => import("./pages/AtmBookingSuccess"));
 const DepositCardBind = lazy(() => import("./pages/DepositCardBind"));
 const PaymentResult = lazy(() => import("./pages/PaymentResult"));
 const NotFound = lazy(() => import("./pages/NotFound"));
