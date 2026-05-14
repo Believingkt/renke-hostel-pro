@@ -24,6 +24,59 @@ function normalizePhoneE164(phone: string): string {
   return "+886" + c;
 }
 
+function pickFirstString(...values: unknown[]): string | undefined {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return undefined;
+}
+
+function extractAtmInfo(payload: any) {
+  const sources = [payload?.pay_info, payload?.virtual_account, payload?.atm_info, payload?.bank_info, payload];
+  for (const src of sources) {
+    if (!src || typeof src !== "object") continue;
+    const vaccNo = pickFirstString(
+      src.vacc,
+      src.vacc_no,
+      src.virtual_account,
+      src.virtual_account_no,
+      src.account,
+      src.account_no,
+      src.payment_account,
+    );
+    if (!vaccNo) continue;
+    return {
+      vaccNo,
+      bankCode: pickFirstString(src.bank_code, src.bank_id, src.bank, src.bank_no),
+      expireDateStr: pickFirstString(src.expire_date, src.expired_date, src.expire_at, src.expired_at),
+    };
+  }
+  return { vaccNo: undefined, bankCode: undefined, expireDateStr: undefined };
+}
+
+async function queryTapPayRecord(queryEndpoint: string, partnerKey: string, recTradeId?: string) {
+  if (!recTradeId) return null;
+  try {
+    const resp = await fetch(queryEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": partnerKey },
+      body: JSON.stringify({ partner_key: partnerKey, filters: { rec_trade_id: recTradeId } }),
+    });
+    const result = await resp.json();
+    const record = result?.trade_records?.[0] ?? null;
+    console.log("[tappay-atm-create] query fallback:", {
+      status: result?.status,
+      msg: result?.msg,
+      hasRecord: Boolean(record),
+      recordKeys: record ? Object.keys(record) : [],
+    });
+    return record;
+  } catch (e) {
+    console.warn("[tappay-atm-create] query fallback failed:", e);
+    return null;
+  }
+}
+
 function validate(d: any): string | null {
   if (!d?.prime || typeof d.prime !== "string" || d.prime.length < 10) return "Invalid prime";
   if (typeof d.amount !== "number" || !Number.isInteger(d.amount) || d.amount <= 0 || d.amount > 10_000_000)
@@ -104,9 +157,9 @@ serve(async (req) => {
     const phoneE164 = normalizePhoneE164(data.cardholder.phoneNumber);
     const envRaw = Deno.env.get("TAPPAY_ENV");
     const env = envRaw === "sandbox" ? "sandbox" : "production";
-    const endpoint = env === "sandbox"
-      ? "https://sandbox.tappaysdk.com/tpc/payment/pay-by-prime"
-      : "https://prod.tappaysdk.com/tpc/payment/pay-by-prime";
+    const baseUrl = env === "sandbox" ? "https://sandbox.tappaysdk.com" : "https://prod.tappaysdk.com";
+    const endpoint = `${baseUrl}/tpc/payment/pay-by-prime`;
+    const queryEndpoint = `${baseUrl}/tpc/transaction/query`;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const notifyUrl = `${supabaseUrl}/functions/v1/tappay-notify`;
@@ -134,7 +187,13 @@ serve(async (req) => {
       body: JSON.stringify(body),
     });
     const result = await resp.json();
-    console.log("[tappay-atm-create] result:", { status: result.status, msg: result.msg, rec_trade_id: result.rec_trade_id, pay_info: result.pay_info });
+    console.log("[tappay-atm-create] result:", {
+      status: result.status,
+      msg: result.msg,
+      rec_trade_id: result.rec_trade_id,
+      keys: Object.keys(result || {}),
+      pay_info: result.pay_info,
+    });
 
     if (result.status !== 0) {
       return new Response(JSON.stringify({
@@ -144,10 +203,17 @@ serve(async (req) => {
       }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const payInfo = result.pay_info || {};
-    const vaccNo: string | undefined = payInfo.vacc || payInfo.virtual_account;
-    const bankCode: string | undefined = payInfo.bank_code;
-    const expireDateStr: string | undefined = payInfo.expire_date; // YYYYMMDD
+    let { vaccNo, bankCode, expireDateStr } = extractAtmInfo(result);
+    if (!vaccNo && result.rec_trade_id) {
+      for (let attempt = 0; attempt < 3 && !vaccNo; attempt++) {
+        if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 700 * attempt));
+        const record = await queryTapPayRecord(queryEndpoint, partnerKey, result.rec_trade_id);
+        const fromRecord = extractAtmInfo(record);
+        vaccNo = fromRecord.vaccNo;
+        bankCode = bankCode || fromRecord.bankCode;
+        expireDateStr = expireDateStr || fromRecord.expireDateStr;
+      }
+    }
     let expireAt: Date;
     if (expireDateStr && /^\d{8}$/.test(expireDateStr)) {
       // 設為當日 23:59:59 台北時間（UTC+8 → UTC 15:59:59）
