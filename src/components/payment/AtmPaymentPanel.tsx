@@ -98,14 +98,14 @@ export function AtmPaymentPanel({
   useEffect(() => {
     if (!sdkReady || atmInfo) return;
     const t = setTimeout(() => {
-      if (!TP()?.atm?.setup) {
+      if (!TP()?.virtualAccount?.setup) {
         setError("此付款方式尚未啟用，請聯繫業者");
         setErrorDetail(classifyAtmError("付款方式未啟用"));
         return;
       }
       try {
-        TP().atm.setup({ el: `#${FIELD_PREFIX}-form` });
-        TP().atm.onUpdate((u: any) => setBankValid(!!u?.canGetPrime));
+        TP().virtualAccount.setup({ el: `#${FIELD_PREFIX}-form` });
+        TP().virtualAccount.onUpdate((u: any) => setBankValid(!!u?.canGetPrime));
         setupDone.current = true;
       } catch (e) {
         console.error("[AtmPaymentPanel] setup error", e);
