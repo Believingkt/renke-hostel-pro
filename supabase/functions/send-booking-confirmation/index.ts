@@ -291,7 +291,7 @@ const handler = async (req: Request): Promise<Response> => {
                 <p style="margin: 0 0 20px 0; color: #666; font-size: 14px; line-height: 1.6;">
                   您可以隨時透過以下連結查詢您的訂單狀態、付款記錄及住宿詳情
                 </p>
-                <a href="https://sensan.lovable.app/order-search?orderNumber=${orderNumber}" 
+                <a href="https://booking.lakeze.com/order-search?orderNumber=${orderNumber}" 
                    style="display: inline-block; padding: 14px 40px; background: linear-gradient(135deg, #1fa958 0%, #33c566 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(31, 169, 88, 0.3);">
                   🔍 立即查詢訂單
                 </a>
