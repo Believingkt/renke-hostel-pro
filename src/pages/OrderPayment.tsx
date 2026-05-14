@@ -213,7 +213,7 @@ export default function OrderPayment() {
       }
 
       const script = document.createElement("script");
-      script.src = "https://js.tappaysdk.com/sdk/tpdirect/v5.18.0";
+      script.src = "https://js.tappaysdk.com/sdk/tpdirect/v5.19.2";
       script.async = true;
       script.onload = () => {
         if (window.TPDirect) {
