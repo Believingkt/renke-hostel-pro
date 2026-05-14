@@ -44,6 +44,11 @@ function envelope(body: string): string {
  *   - 一律加 ResStatus 屬性
  *   - ResStatus="Commit"            -> 加 CreateDateTime
  *   - ResStatus="Modify" / "Cancel" -> 加 LastModifyDateTime
+ *
+ * ⚠️ 重要：三種 ResStatus (Commit / Modify / Cancel) 都必須帶完整 reservation body —
+ * RoomStays、ResGuests、ResGlobalInfo 一個都不能少。
+ * Cancel 不可只送 UniqueID — 奧丁丁需要完整 body 來交叉驗證、釋放庫存、保留取消快照。
+ * 此 helper 只負責 <HotelReservation> 起始標籤的屬性，body 內容請由呼叫端組完整。
  */
 function hotelReservationAttrs(resStatus: "Commit" | "Modify" | "Cancel", isoTs: string): string {
   const tsAttr = resStatus === "Commit"
