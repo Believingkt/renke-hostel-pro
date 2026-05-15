@@ -1421,7 +1421,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                   const hasNormalRoom = roomTypes.some(r => !r.is_exclusive_package);
                   return (
                     <>
-                      {hasNormalRoom && (
+                      {isYunxiu && hasNormalRoom && (
                         <Button type="button" variant="outline" size="sm" onClick={() => addRoomSelection(false)} className="h-8 gap-1">
                           <Plus className="h-3.5 w-3.5" />新增散客房
                         </Button>
