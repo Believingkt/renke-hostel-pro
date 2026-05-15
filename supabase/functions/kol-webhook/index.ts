@@ -488,7 +488,7 @@ Deno.serve(async (req) => {
         if (r.success) await markInternalEmailSent(supabase, order.id);
       } else if (prevCode && currentCode && currentCode !== prevCode) {
         // Branch 4: both had values, code changed → Type 2 (correction)
-        await sendDiscountCorrectionEmail(supabase, order, previous_discount_code ?? null);
+        await sendDiscountCorrectionEmail(supabase, order, previous_discount_code ?? null, roomTypeNameEarly);
         // Do not change internal_email_sent
       } else {
         console.log("[KOL-Webhook] UPDATE: no email branch matched", { prevCode, currentCode, sent: order.internal_email_sent });
