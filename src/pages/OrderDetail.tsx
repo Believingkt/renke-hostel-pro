@@ -2395,20 +2395,9 @@ const OrderDetailPage = () => {
               );
             })()}
             <Separator />
-            {/* 實收金額 = total_price - discount + addon（若 addon 未含在 total_price 內） */}
+            {/* 實收金額 — 與訂單列表一致，直接讀取 orders.final_price */}
             {(() => {
-              const customAddons = (order.custom_addon_details as CustomAddonDetail[]) || [];
-              const addonTotal = order.pet_plan_price + order.meal_plan_total + customAddons.reduce((sum, d) => sum + d.total, 0);
-              const savedRoomsTotal = orderRooms.reduce((sum, r) => sum + r.room_price, 0);
-              const effectiveTotalPrice = orderRooms.length === 1 && order.total_price > 0 && savedRoomsTotal !== order.total_price
-                ? order.total_price
-                : (orderRooms.length > 0 ? savedRoomsTotal : order.total_price);
-              // 判斷 total_price 是否已包含加購
-              const storedFinalWithoutAddon = effectiveTotalPrice - order.discount_amount;
-              const addonAlreadyIncluded = addonTotal > 0 && Math.abs(order.final_price - (storedFinalWithoutAddon + addonTotal)) < 10;
-              const effectiveFinalPrice = orderRooms.length > 0
-                ? effectiveTotalPrice + addonTotal - order.discount_amount
-                : (addonAlreadyIncluded ? order.final_price : order.final_price + addonTotal);
+              const effectiveFinalPrice = order.final_price;
               return (
                 <>
                   <div className="flex justify-between items-center gap-2">
