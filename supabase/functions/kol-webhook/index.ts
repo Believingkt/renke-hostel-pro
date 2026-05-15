@@ -134,9 +134,17 @@ async function sendInternalOrderEmail(supabase: any, order: any, roomTypeName: s
 
 // Send correction notification email (Type 2: 折扣碼修正通知). Returns result, never throws.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function sendDiscountCorrectionEmail(supabase: any, order: any, previousDiscountCode: string | null) {
+async function sendDiscountCorrectionEmail(supabase: any, order: any, previousDiscountCode: string | null, roomTypeName?: string) {
   try {
     const { name: accommodationName, short_name: shortName } = await lookupAccommodationInfo(supabase, order.accommodation_id);
+
+    // Map order_source to display label (same as sendInternalOrderEmail)
+    const sourceMap: Record<string, string> = {
+      kol: "KOL互惠",
+      manual: "現場訂房",
+    };
+    const rawSource = order.order_source ?? "";
+    const sourceLabel = sourceMap[rawSource] ?? rawSource;
 
     if (!Deno.env.get("RESEND_API_KEY")) {
       console.error("[KOL-Webhook] RESEND_API_KEY not configured, skipping correction email");
@@ -155,14 +163,24 @@ async function sendDiscountCorrectionEmail(supabase: any, order: any, previousDi
     };
     const today = new Date();
     const orderDate = order.order_date ? new Date(order.order_date) : (order.created_at ? new Date(order.created_at) : new Date());
+    const checkIn = new Date(order.check_in_date);
+    const checkOut = new Date(order.check_out_date);
+    const nights = Math.max(0, Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)));
 
     const subject = `【折扣碼修正】1筆 - [訂單_${accommodationName} x 星探邀約KOL]`;
     const baseText = `以下 1 筆訂單的折扣代碼已修正，通知日期 ${fmtDate(today)}
 ===================================================
-訂單編號：${order.order_number}
 訂單日期：${fmtDateTime(orderDate)}
-原折扣代碼：${previousDiscountCode ?? ""}
-新折扣代碼：${order.discount_code ?? ""}`;
+訂單編號：${order.order_number}
+入住日：${order.check_in_date}
+入住天數：${nights}天
+包棟房型：${roomTypeName ?? ""}
+訂單金額：${order.final_price}
+訂單姓名：${order.guest_name}
+折扣代碼：${previousDiscountCode ?? ""}
+聯盟券：
+來源：${sourceLabel}
+「新折扣代碼：${order.discount_code ?? ""}」`;
     const text = withShortNamePrefix(baseText, shortName);
 
     const { data, error } = await resend.emails.send({
@@ -470,7 +488,7 @@ Deno.serve(async (req) => {
         if (r.success) await markInternalEmailSent(supabase, order.id);
       } else if (prevCode && currentCode && currentCode !== prevCode) {
         // Branch 4: both had values, code changed → Type 2 (correction)
-        await sendDiscountCorrectionEmail(supabase, order, previous_discount_code ?? null);
+        await sendDiscountCorrectionEmail(supabase, order, previous_discount_code ?? null, roomTypeNameEarly);
         // Do not change internal_email_sent
       } else {
         console.log("[KOL-Webhook] UPDATE: no email branch matched", { prevCode, currentCode, sent: order.internal_email_sent });
