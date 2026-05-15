@@ -1417,12 +1417,21 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                 {(() => {
                   const exclusiveTotal = roomTypes.filter(r => r.is_exclusive_package).length;
                   const exclusiveAdded = roomSelections.filter(s => roomTypes.find(r => r.id === s.room_type_id)?.is_exclusive_package).length;
-                  // 只有一棟包棟（單一 exclusive 房型）時，不顯示「再加一棟」
-                  if (exclusiveTotal <= 1 || exclusiveAdded >= exclusiveTotal) return null;
+                  const showAddVilla = exclusiveTotal > 1 && exclusiveAdded < exclusiveTotal;
+                  const hasNormalRoom = roomTypes.some(r => !r.is_exclusive_package);
                   return (
-                    <Button type="button" variant="outline" size="sm" onClick={() => addRoomSelection(true)} className="h-8 gap-1">
-                      <Plus className="h-3.5 w-3.5" />再加一棟{exclusiveLabel}
-                    </Button>
+                    <>
+                      {hasNormalRoom && (
+                        <Button type="button" variant="outline" size="sm" onClick={() => addRoomSelection(false)} className="h-8 gap-1">
+                          <Plus className="h-3.5 w-3.5" />新增散客房
+                        </Button>
+                      )}
+                      {showAddVilla && (
+                        <Button type="button" variant="outline" size="sm" onClick={() => addRoomSelection(true)} className="h-8 gap-1">
+                          <Plus className="h-3.5 w-3.5" />再加一棟{exclusiveLabel}
+                        </Button>
+                      )}
+                    </>
                   );
                 })()}
               </div>
