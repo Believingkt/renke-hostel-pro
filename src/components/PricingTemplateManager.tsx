@@ -697,6 +697,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
                       template={template}
                       onEdit={handleEdit}
                       onDelete={handleDelete}
+                      onCopy={handleCopy}
                     />
                   ))}
                 </div>
