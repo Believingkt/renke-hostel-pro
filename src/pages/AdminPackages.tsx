@@ -613,22 +613,62 @@ const AdminPackages = () => {
 
             <div>
               <Label>綁定主房型（用於庫存）</Label>
-              <Select
-                value={form.primary_room_type_id}
-                onValueChange={(v) => setForm({ ...form, primary_room_type_id: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="選擇房型" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE}>未綁定</SelectItem>
-                  {roomTypes.map((rt) => (
-                    <SelectItem key={rt.id} value={rt.id}>
-                      {rt.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {currentAccommodationId === YUNXIU_ACCOMMODATION_ID ? (
+                <div className="mt-2 space-y-2 rounded-md border p-3">
+                  {roomTypes.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">尚無房型</p>
+                  ) : (
+                    roomTypes.map((rt) => {
+                      const checked = form.room_type_ids.includes(rt.id);
+                      const orderIdx = form.room_type_ids.indexOf(rt.id);
+                      return (
+                        <label
+                          key={rt.id}
+                          className="flex items-center gap-2 cursor-pointer text-sm"
+                        >
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(c) => {
+                              setForm((f) => ({
+                                ...f,
+                                room_type_ids: c
+                                  ? [...f.room_type_ids, rt.id]
+                                  : f.room_type_ids.filter((id) => id !== rt.id),
+                              }));
+                            }}
+                          />
+                          <span>{rt.name}</span>
+                          {checked && (
+                            <span className="text-xs text-muted-foreground">
+                              {orderIdx === 0 ? "（主房型 / 下單預設）" : `（順位 ${orderIdx + 1}）`}
+                            </span>
+                          )}
+                        </label>
+                      );
+                    })
+                  )}
+                  <p className="text-xs text-muted-foreground pt-1">
+                    可複選；第一個勾選的房型將作為訂房連結預設帶入的房型，庫存依下單時實際選擇的房型扣抵。
+                  </p>
+                </div>
+              ) : (
+                <Select
+                  value={form.primary_room_type_id}
+                  onValueChange={(v) => setForm({ ...form, primary_room_type_id: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="選擇房型" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NONE}>未綁定</SelectItem>
+                    {roomTypes.map((rt) => (
+                      <SelectItem key={rt.id} value={rt.id}>
+                        {rt.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div>
