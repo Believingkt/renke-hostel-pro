@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Pencil, Trash2, Check, X, GripVertical } from "lucide-react";
+import { Pencil, Trash2, Check, X, GripVertical, Copy } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -291,12 +291,14 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     template: PricingTemplate;
     onEdit: (template: PricingTemplate) => void;
     onDelete: (template: PricingTemplate) => void;
+    onCopy: (template: PricingTemplate) => void;
   }
 
   const SortableTemplateCard = ({ 
     template, 
     onEdit, 
     onDelete, 
+    onCopy,
   }: SortableTemplateCardProps) => {
     const {
       attributes,
@@ -388,6 +390,15 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         <CardContent className="p-3">
           {/* 操作按鈕 */}
           <div className="flex items-center gap-2 justify-end">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => onCopy(template)}
+              className="h-9 w-9 touch-manipulation shrink-0"
+              title="複製專案"
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
             <Button
               variant="outline"
               size="icon"
