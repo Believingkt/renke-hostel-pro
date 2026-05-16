@@ -254,8 +254,8 @@ const AdminPackages = () => {
       ) as any,
     };
     const { error } = editing
-      ? await supabase.from("accommodation_packages").update(payload).eq("id", editing.id)
-      : await supabase.from("accommodation_packages").insert([payload]);
+      ? await supabase.from("accommodation_packages").update(payload as any).eq("id", editing.id)
+      : await supabase.from("accommodation_packages").insert([payload as any]);
     setSaving(false);
     if (error) {
       toast({ title: "儲存失敗", description: error.message, variant: "destructive" });
