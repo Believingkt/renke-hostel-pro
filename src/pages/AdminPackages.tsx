@@ -63,6 +63,9 @@ const TAG_OPTIONS = [
 
 const NONE = "none";
 
+// 雲岫海景度假會館 — 唯一支援「綁定多房型」的民宿
+const YUNXIU_ACCOMMODATION_ID = "7690a606-6bac-4cd5-a3e7-2fa754b318e8";
+
 interface FormState {
   name: string;
   subtitle: string;
@@ -77,6 +80,7 @@ interface FormState {
   tags: string[];
   includes: PackageInclude[];
   primary_room_type_id: string;
+  room_type_ids: string[];
   display_order: number;
   enabled: boolean;
   excluded_date_ranges: PackageDateRange[];
@@ -97,6 +101,7 @@ const emptyForm = (): FormState => ({
   tags: [],
   includes: [],
   primary_room_type_id: NONE,
+  room_type_ids: [],
   display_order: 0,
   enabled: true,
   excluded_date_ranges: [],
@@ -150,6 +155,9 @@ const AdminPackages = () => {
       tags: pkg.tags,
       includes: pkg.includes ?? [],
       primary_room_type_id: pkg.primary_room_type_id ?? NONE,
+      room_type_ids: (pkg as any).room_type_ids && Array.isArray((pkg as any).room_type_ids) && (pkg as any).room_type_ids.length
+        ? ((pkg as any).room_type_ids as string[])
+        : (pkg.primary_room_type_id ? [pkg.primary_room_type_id] : []),
       display_order: pkg.display_order,
       enabled: pkg.enabled,
       excluded_date_ranges: Array.isArray(pkg.excluded_date_ranges)
@@ -176,6 +184,9 @@ const AdminPackages = () => {
       tags: [...pkg.tags],
       includes: pkg.includes ? pkg.includes.map((inc) => ({ ...inc })) : [],
       primary_room_type_id: pkg.primary_room_type_id ?? NONE,
+      room_type_ids: (pkg as any).room_type_ids && Array.isArray((pkg as any).room_type_ids) && (pkg as any).room_type_ids.length
+        ? ([...((pkg as any).room_type_ids as string[])])
+        : (pkg.primary_room_type_id ? [pkg.primary_room_type_id] : []),
       display_order: (packages[packages.length - 1]?.display_order ?? 0) + 1,
       enabled: pkg.enabled,
       excluded_date_ranges: Array.isArray(pkg.excluded_date_ranges)
@@ -220,7 +231,17 @@ const AdminPackages = () => {
       applicable_tiers: form.applicable_tiers,
       tags: form.tags,
       includes: form.includes as any,
-      primary_room_type_id: form.primary_room_type_id === NONE ? null : form.primary_room_type_id,
+      primary_room_type_id: (() => {
+        // 雲岫使用多選；其他民宿使用單選下拉
+        if (currentAccommodationId === YUNXIU_ACCOMMODATION_ID) {
+          return form.room_type_ids[0] ?? null;
+        }
+        return form.primary_room_type_id === NONE ? null : form.primary_room_type_id;
+      })(),
+      room_type_ids:
+        currentAccommodationId === YUNXIU_ACCOMMODATION_ID
+          ? (form.room_type_ids.length ? form.room_type_ids : null)
+          : (form.primary_room_type_id === NONE ? null : [form.primary_room_type_id]),
       display_order: form.display_order,
       enabled: form.enabled,
       excluded_date_ranges: (form.excluded_date_ranges || []).filter(
@@ -233,8 +254,8 @@ const AdminPackages = () => {
       ) as any,
     };
     const { error } = editing
-      ? await supabase.from("accommodation_packages").update(payload).eq("id", editing.id)
-      : await supabase.from("accommodation_packages").insert([payload]);
+      ? await supabase.from("accommodation_packages").update(payload as any).eq("id", editing.id)
+      : await supabase.from("accommodation_packages").insert([payload as any]);
     setSaving(false);
     if (error) {
       toast({ title: "儲存失敗", description: error.message, variant: "destructive" });
@@ -592,22 +613,62 @@ const AdminPackages = () => {
 
             <div>
               <Label>綁定主房型（用於庫存）</Label>
-              <Select
-                value={form.primary_room_type_id}
-                onValueChange={(v) => setForm({ ...form, primary_room_type_id: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="選擇房型" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE}>未綁定</SelectItem>
-                  {roomTypes.map((rt) => (
-                    <SelectItem key={rt.id} value={rt.id}>
-                      {rt.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {currentAccommodationId === YUNXIU_ACCOMMODATION_ID ? (
+                <div className="mt-2 space-y-2 rounded-md border p-3">
+                  {roomTypes.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">尚無房型</p>
+                  ) : (
+                    roomTypes.map((rt) => {
+                      const checked = form.room_type_ids.includes(rt.id);
+                      const orderIdx = form.room_type_ids.indexOf(rt.id);
+                      return (
+                        <label
+                          key={rt.id}
+                          className="flex items-center gap-2 cursor-pointer text-sm"
+                        >
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(c) => {
+                              setForm((f) => ({
+                                ...f,
+                                room_type_ids: c
+                                  ? [...f.room_type_ids, rt.id]
+                                  : f.room_type_ids.filter((id) => id !== rt.id),
+                              }));
+                            }}
+                          />
+                          <span>{rt.name}</span>
+                          {checked && (
+                            <span className="text-xs text-muted-foreground">
+                              {orderIdx === 0 ? "（主房型 / 下單預設）" : `（順位 ${orderIdx + 1}）`}
+                            </span>
+                          )}
+                        </label>
+                      );
+                    })
+                  )}
+                  <p className="text-xs text-muted-foreground pt-1">
+                    可複選；第一個勾選的房型將作為訂房連結預設帶入的房型，庫存依下單時實際選擇的房型扣抵。
+                  </p>
+                </div>
+              ) : (
+                <Select
+                  value={form.primary_room_type_id}
+                  onValueChange={(v) => setForm({ ...form, primary_room_type_id: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="選擇房型" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NONE}>未綁定</SelectItem>
+                    {roomTypes.map((rt) => (
+                      <SelectItem key={rt.id} value={rt.id}>
+                        {rt.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div>
