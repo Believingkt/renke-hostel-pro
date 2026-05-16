@@ -101,6 +101,7 @@ const emptyForm = (): FormState => ({
   tags: [],
   includes: [],
   primary_room_type_id: NONE,
+  room_type_ids: [],
   display_order: 0,
   enabled: true,
   excluded_date_ranges: [],
