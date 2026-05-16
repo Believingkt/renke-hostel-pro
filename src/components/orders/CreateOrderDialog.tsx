@@ -595,7 +595,11 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       supabase
         .from("order_rooms")
         .select("room_unit_id, orders!inner(id, accommodation_id, order_status, check_in_date, check_out_date)")
-        .not("room_unit_id", "is", null),
+        .not("room_unit_id", "is", null)
+        .eq("orders.accommodation_id", currentAccommodationId)
+        .neq("orders.order_status", "cancelled")
+        .lt("orders.check_in_date", form.check_out_date)
+        .gt("orders.check_out_date", form.check_in_date),
     ]);
 
     if (unitsResult.error) throw unitsResult.error;
@@ -604,10 +608,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     const occupiedUnitIds = new Set<string>();
     ((occupiedResult.data as any[]) || []).forEach((row) => {
       const order = row.orders;
-      if (!row.room_unit_id || !order || order.accommodation_id !== currentAccommodationId || order.order_status === "cancelled") return;
-      if (order.check_in_date < form.check_out_date && order.check_out_date > form.check_in_date) {
-        occupiedUnitIds.add(row.room_unit_id);
-      }
+      if (!row.room_unit_id || !order) return;
+      occupiedUnitIds.add(row.room_unit_id);
     });
 
     const reservedUnitIds = new Set(occupiedUnitIds);
