@@ -910,6 +910,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
       if (error) throw error;
 
+      const automaticRoomUnitAssignments = await getAutomaticRoomUnitAssignments(roomSelections);
+
       // Insert order_rooms
       if (orderData?.id && roomSelections.length > 0) {
         const orderRooms = roomSelections.map(sel => ({
@@ -919,6 +921,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           room_price: sel.roomPrice,
           template_id: sel.template_id || null,
           template_name: sel.template_name || null,
+          room_unit_id: automaticRoomUnitAssignments.get(sel.id) || null,
         }));
         const { error: roomsError } = await supabase.from("order_rooms").insert(orderRooms);
         if (roomsError) {
