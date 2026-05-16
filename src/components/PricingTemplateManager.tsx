@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Pencil, Trash2, Check, X, GripVertical } from "lucide-react";
+import { Pencil, Trash2, Check, X, GripVertical, Copy } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -254,6 +254,34 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     setDeleteDialogOpen(true);
   };
 
+  const handleCopy = async (template: PricingTemplate) => {
+    try {
+      const dataToCopy = {
+        template_name: `${template.template_name} (複製)`,
+        description: template.description,
+        weekday_price: template.weekday_price ?? template.price ?? null,
+        peak_price: template.peak_price ?? null,
+        weekend_price: template.weekend_price ?? null,
+        price: template.weekday_price ?? template.peak_price ?? template.weekend_price ?? template.price ?? null,
+        available_rooms: (template as any).available_rooms ?? 1,
+        accommodation_id: accommodationId,
+        room_type_id: template.room_type_id || null,
+        display_order: templates.length,
+      };
+
+      const { error } = await supabase
+        .from('pricing_templates')
+        .insert(dataToCopy);
+
+      if (error) throw error;
+      toast.success('專案已複製');
+      loadTemplates();
+    } catch (error) {
+      console.error('複製專案失敗:', error);
+      toast.error('複製專案失敗');
+    }
+  };
+
   const confirmDelete = async () => {
     if (!deletingTemplate) return;
 
@@ -291,12 +319,14 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     template: PricingTemplate;
     onEdit: (template: PricingTemplate) => void;
     onDelete: (template: PricingTemplate) => void;
+    onCopy: (template: PricingTemplate) => void;
   }
 
   const SortableTemplateCard = ({ 
     template, 
     onEdit, 
     onDelete, 
+    onCopy,
   }: SortableTemplateCardProps) => {
     const {
       attributes,
@@ -388,6 +418,15 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         <CardContent className="p-3">
           {/* 操作按鈕 */}
           <div className="flex items-center gap-2 justify-end">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => onCopy(template)}
+              className="h-9 w-9 touch-manipulation shrink-0"
+              title="複製專案"
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
             <Button
               variant="outline"
               size="icon"
@@ -658,6 +697,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
                       template={template}
                       onEdit={handleEdit}
                       onDelete={handleDelete}
+                      onCopy={handleCopy}
                     />
                   ))}
                 </div>
