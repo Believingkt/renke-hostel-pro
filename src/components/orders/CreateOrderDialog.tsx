@@ -56,6 +56,13 @@ interface PricingTemplate {
   weekend_price: number | null;
 }
 
+interface RoomUnit {
+  id: string;
+  room_type_id: string;
+  display_order: number;
+  is_active: boolean;
+}
+
 interface RoomSelection {
   id: string;
   room_type_id: string;
@@ -565,6 +572,56 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
     return warnings;
   }, [buildStayDates, currentAccommodationId, form.check_in_date, form.check_out_date, roomSelections, roomTypes]);
+
+  const getAutomaticRoomUnitAssignments = useCallback(async (selections: RoomSelection[]) => {
+    const assignments = new Map<string, string>();
+    if (!isYunxiu || !currentAccommodationId || !form.check_in_date || !form.check_out_date) return assignments;
+
+    const fitSelections = selections.filter((sel) => {
+      const roomType = roomTypes.find((rt) => rt.id === sel.room_type_id);
+      return roomType && !roomType.is_exclusive_package && sel.quantity === 1;
+    });
+    if (fitSelections.length === 0) return assignments;
+
+    const roomTypeIds = Array.from(new Set(fitSelections.map((sel) => sel.room_type_id)));
+    const [unitsResult, occupiedResult] = await Promise.all([
+      supabase
+        .from("room_units")
+        .select("id, room_type_id, display_order, is_active")
+        .eq("accommodation_id", currentAccommodationId)
+        .eq("is_active", true)
+        .in("room_type_id", roomTypeIds)
+        .order("display_order", { ascending: true }),
+      supabase
+        .from("order_rooms")
+        .select("room_unit_id, orders!inner(id, accommodation_id, order_status, check_in_date, check_out_date)")
+        .not("room_unit_id", "is", null),
+    ]);
+
+    if (unitsResult.error) throw unitsResult.error;
+    if (occupiedResult.error) throw occupiedResult.error;
+
+    const occupiedUnitIds = new Set<string>();
+    ((occupiedResult.data as any[]) || []).forEach((row) => {
+      const order = row.orders;
+      if (!row.room_unit_id || !order || order.accommodation_id !== currentAccommodationId || order.order_status === "cancelled") return;
+      if (order.check_in_date < form.check_out_date && order.check_out_date > form.check_in_date) {
+        occupiedUnitIds.add(row.room_unit_id);
+      }
+    });
+
+    const reservedUnitIds = new Set(occupiedUnitIds);
+    const units = ((unitsResult.data as RoomUnit[]) || []).sort((a, b) => a.display_order - b.display_order);
+    fitSelections.forEach((sel) => {
+      const unit = units.find((u) => u.room_type_id === sel.room_type_id && !reservedUnitIds.has(u.id));
+      if (unit) {
+        assignments.set(sel.id, unit.id);
+        reservedUnitIds.add(unit.id);
+      }
+    });
+
+    return assignments;
+  }, [currentAccommodationId, form.check_in_date, form.check_out_date, isYunxiu, roomTypes]);
 
   // Check inventory warnings (for all room selections)
   useEffect(() => {
