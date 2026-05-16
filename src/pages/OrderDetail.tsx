@@ -310,8 +310,8 @@ const OrderDetailPage = () => {
     const dates = eachDayOfInterval({ start, end: addDays(end, -1) }).map(d => format(d, "yyyy-MM-dd"));
     if (!dates.length) return 0;
 
-    // 只在「該新房型」的 templates 內找對應方案，避免拿到其他房型的同名/相近 template 而算錯價
-    const candidates = allTemplates.filter(t => t.room_type_id === roomTypeId);
+    // 候選方案：包含「未綁定房型 (room_type_id = null，視為全房型通用，如包棟方案)」與「綁定本房型」的 templates
+    const candidates = allTemplates.filter(t => !t.room_type_id || t.room_type_id === roomTypeId);
     let template: PricingTemplateLite | null = null;
     if (templateName) {
       // 1) 精準同名
