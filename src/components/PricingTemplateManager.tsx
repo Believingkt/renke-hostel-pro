@@ -254,6 +254,34 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     setDeleteDialogOpen(true);
   };
 
+  const handleCopy = async (template: PricingTemplate) => {
+    try {
+      const dataToCopy = {
+        template_name: `${template.template_name} (複製)`,
+        description: template.description,
+        weekday_price: template.weekday_price ?? template.price ?? null,
+        peak_price: template.peak_price ?? null,
+        weekend_price: template.weekend_price ?? null,
+        price: template.weekday_price ?? template.peak_price ?? template.weekend_price ?? template.price ?? null,
+        available_rooms: (template as any).available_rooms ?? 1,
+        accommodation_id: accommodationId,
+        room_type_id: template.room_type_id || null,
+        display_order: templates.length,
+      };
+
+      const { error } = await supabase
+        .from('pricing_templates')
+        .insert(dataToCopy);
+
+      if (error) throw error;
+      toast.success('專案已複製');
+      loadTemplates();
+    } catch (error) {
+      console.error('複製專案失敗:', error);
+      toast.error('複製專案失敗');
+    }
+  };
+
   const confirmDelete = async () => {
     if (!deletingTemplate) return;
 
