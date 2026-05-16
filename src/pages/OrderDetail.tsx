@@ -2395,21 +2395,9 @@ const OrderDetailPage = () => {
               );
             })()}
             <Separator />
-            {/* 實收金額 — 與價格明細同源：當 orders.total_price=0 但 order_rooms 有金額時，
-                以 rooms 合計 - 折扣 為實收，避免「房型有金額／實收 0」的視覺矛盾 */}
+            {/* 實收金額 — 與訂單列表一致，直接讀取 orders.final_price */}
             {(() => {
-              const savedRoomsTotal = orderRooms.reduce((sum, r) => sum + r.room_price, 0);
-              const addonTotal =
-                (order.pet_plan_price || 0) +
-                (order.meal_plan_total || 0) +
-                ((order.custom_addon_details as CustomAddonDetail[]) || []).reduce((s, d) => s + (d.total || 0), 0);
-              const baseTotal = order.total_price > 0
-                ? order.total_price
-                : (savedRoomsTotal > 0 ? savedRoomsTotal : 0);
-              const computedFinal = Math.max(0, baseTotal + addonTotal - (order.discount_amount || 0));
-              const effectiveFinalPrice = (order.final_price === 0 && computedFinal > 0)
-                ? computedFinal
-                : order.final_price;
+              const effectiveFinalPrice = order.final_price;
               return (
                 <>
                   <div className="flex justify-between items-center gap-2">
