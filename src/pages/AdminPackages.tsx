@@ -63,6 +63,9 @@ const TAG_OPTIONS = [
 
 const NONE = "none";
 
+// 雲岫海景度假會館 — 唯一支援「綁定多房型」的民宿
+const YUNXIU_ACCOMMODATION_ID = "7690a606-6bac-4cd5-a3e7-2fa754b318e8";
+
 interface FormState {
   name: string;
   subtitle: string;
