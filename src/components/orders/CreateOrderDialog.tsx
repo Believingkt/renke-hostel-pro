@@ -63,6 +63,11 @@ interface RoomUnit {
   is_active: boolean;
 }
 
+interface OccupiedRoomUnitRow {
+  room_unit_id: string | null;
+  orders: { id: string } | null;
+}
+
 interface RoomSelection {
   id: string;
   room_type_id: string;
@@ -330,7 +335,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     const candidates = preferExclusive
       ? [...roomTypes.filter(r => r.is_exclusive_package), ...roomTypes.filter(r => !r.is_exclusive_package)]
       : [...roomTypes.filter(r => !r.is_exclusive_package), ...roomTypes.filter(r => r.is_exclusive_package)];
-    let defaultRoomType = candidates[0];
+    const defaultRoomType = candidates[0];
     // 雲岫散客房：自動依序代入尚未被使用的房型
     setRoomSelections(prev => {
       let chosen = defaultRoomType;
@@ -606,7 +611,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     if (occupiedResult.error) throw occupiedResult.error;
 
     const occupiedUnitIds = new Set<string>();
-    ((occupiedResult.data as any[]) || []).forEach((row) => {
+    ((occupiedResult.data as OccupiedRoomUnitRow[] | null) || []).forEach((row) => {
       const order = row.orders;
       if (!row.room_unit_id || !order) return;
       occupiedUnitIds.add(row.room_unit_id);
