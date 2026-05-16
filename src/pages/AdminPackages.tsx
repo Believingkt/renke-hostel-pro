@@ -231,7 +231,17 @@ const AdminPackages = () => {
       applicable_tiers: form.applicable_tiers,
       tags: form.tags,
       includes: form.includes as any,
-      primary_room_type_id: form.primary_room_type_id === NONE ? null : form.primary_room_type_id,
+      primary_room_type_id: (() => {
+        // 雲岫使用多選；其他民宿使用單選下拉
+        if (currentAccommodationId === YUNXIU_ACCOMMODATION_ID) {
+          return form.room_type_ids[0] ?? null;
+        }
+        return form.primary_room_type_id === NONE ? null : form.primary_room_type_id;
+      })(),
+      room_type_ids:
+        currentAccommodationId === YUNXIU_ACCOMMODATION_ID
+          ? (form.room_type_ids.length ? form.room_type_ids : null)
+          : (form.primary_room_type_id === NONE ? null : [form.primary_room_type_id]),
       display_order: form.display_order,
       enabled: form.enabled,
       excluded_date_ranges: (form.excluded_date_ranges || []).filter(
