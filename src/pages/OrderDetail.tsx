@@ -1169,8 +1169,10 @@ const OrderDetailPage = () => {
           // resolve the correct room-type-specific inventory price, including holidays.
           const { data: templatesData } = await supabase
             .from("pricing_templates")
-            .select("id, template_name, meal_plans, room_type_id, price, weekday_price, peak_price, weekend_price")
-            .eq("accommodation_id", orderData.accommodation_id);
+            .select("id, template_name, meal_plans, room_type_id, price, weekday_price, peak_price, weekend_price, display_order")
+            .eq("accommodation_id", orderData.accommodation_id)
+            .order("display_order", { ascending: true, nullsFirst: false })
+            .order("template_name", { ascending: true });
 
           if (templatesData && templatesData.length > 0) {
             const roomTypeId = orderData.room_type_id;
