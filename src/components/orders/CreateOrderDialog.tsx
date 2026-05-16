@@ -323,19 +323,33 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     const candidates = preferExclusive
       ? [...roomTypes.filter(r => r.is_exclusive_package), ...roomTypes.filter(r => !r.is_exclusive_package)]
       : [...roomTypes.filter(r => !r.is_exclusive_package), ...roomTypes.filter(r => r.is_exclusive_package)];
-    const defaultRoomType = candidates[0];
-    if (!defaultRoomType) return;
-    const templates = getTemplatesForRoomType(defaultRoomType.id);
-    setRoomSelections(prev => [...prev, {
-      id,
-      room_type_id: defaultRoomType.id,
-      template_id: templates[0]?.id || "",
-      template_name: templates[0]?.template_name || "",
-      quantity: 1,
-      roomPrice: 0,
-      filteredTemplates: templates,
-    }]);
-  }, [roomTypes, getTemplatesForRoomType]);
+    let defaultRoomType = candidates[0];
+    // 雲岫散客房：自動依序代入尚未被使用的房型
+    setRoomSelections(prev => {
+      let chosen = defaultRoomType;
+      if (isYunxiu && !preferExclusive) {
+        const fitRoomTypes = roomTypes.filter(r => !r.is_exclusive_package);
+        const usedIds = new Set(
+          prev
+            .filter(s => !roomTypes.find(r => r.id === s.room_type_id)?.is_exclusive_package)
+            .map(s => s.room_type_id)
+        );
+        const nextUnused = fitRoomTypes.find(r => !usedIds.has(r.id));
+        if (nextUnused) chosen = nextUnused;
+      }
+      if (!chosen) return prev;
+      const templates = getTemplatesForRoomType(chosen.id);
+      return [...prev, {
+        id,
+        room_type_id: chosen.id,
+        template_id: templates[0]?.id || "",
+        template_name: templates[0]?.template_name || "",
+        quantity: 1,
+        roomPrice: 0,
+        filteredTemplates: templates,
+      }];
+    });
+  }, [roomTypes, getTemplatesForRoomType, isYunxiu]);
 
   const removeRoomSelection = useCallback((selId: string) => {
     setRoomSelections(prev => prev.filter(s => s.id !== selId));
