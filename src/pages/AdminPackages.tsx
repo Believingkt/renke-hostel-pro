@@ -184,6 +184,9 @@ const AdminPackages = () => {
       tags: [...pkg.tags],
       includes: pkg.includes ? pkg.includes.map((inc) => ({ ...inc })) : [],
       primary_room_type_id: pkg.primary_room_type_id ?? NONE,
+      room_type_ids: (pkg as any).room_type_ids && Array.isArray((pkg as any).room_type_ids) && (pkg as any).room_type_ids.length
+        ? ([...((pkg as any).room_type_ids as string[])])
+        : (pkg.primary_room_type_id ? [pkg.primary_room_type_id] : []),
       display_order: (packages[packages.length - 1]?.display_order ?? 0) + 1,
       enabled: pkg.enabled,
       excluded_date_ranges: Array.isArray(pkg.excluded_date_ranges)
