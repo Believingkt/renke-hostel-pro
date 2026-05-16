@@ -80,6 +80,7 @@ interface FormState {
   tags: string[];
   includes: PackageInclude[];
   primary_room_type_id: string;
+  room_type_ids: string[];
   display_order: number;
   enabled: boolean;
   excluded_date_ranges: PackageDateRange[];
