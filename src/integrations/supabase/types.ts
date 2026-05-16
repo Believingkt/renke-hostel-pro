@@ -392,6 +392,7 @@ export type Database = {
           original_price: number | null
           primary_room_type_id: string | null
           room_allocation: string | null
+          room_type_ids: string[] | null
           sale_price: number
           subtitle: string | null
           tags: string[]
@@ -416,6 +417,7 @@ export type Database = {
           original_price?: number | null
           primary_room_type_id?: string | null
           room_allocation?: string | null
+          room_type_ids?: string[] | null
           sale_price: number
           subtitle?: string | null
           tags?: string[]
@@ -440,6 +442,7 @@ export type Database = {
           original_price?: number | null
           primary_room_type_id?: string | null
           room_allocation?: string | null
+          room_type_ids?: string[] | null
           sale_price?: number
           subtitle?: string | null
           tags?: string[]
