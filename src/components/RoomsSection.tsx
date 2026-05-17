@@ -72,16 +72,19 @@ const ExpandableDescription = ({ text }: { text: string }) => {
 
   return (
     <div className="mb-4 md:mb-5">
-      <p
-        ref={textRef}
-        className={`text-sm text-muted-foreground leading-relaxed ${expanded ? '' : 'line-clamp-2'}`}
-      >
-        {text}
-      </p>
+      <div className="flex items-start gap-2">
+        <span className="text-base leading-relaxed mt-0.5 shrink-0" aria-hidden="true">👆</span>
+        <p
+          ref={textRef}
+          className={`text-sm text-muted-foreground leading-relaxed flex-1 ${expanded ? '' : 'line-clamp-2'}`}
+        >
+          {text}
+        </p>
+      </div>
       {isClamped && (
         <button
           onClick={() => setExpanded(!expanded)}
-          className="text-sm text-primary hover:underline mt-1"
+          className="text-sm text-primary hover:underline mt-1 ml-7"
         >
           {expanded ? '收起' : '查看更多'}
         </button>
