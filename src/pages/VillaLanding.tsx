@@ -6,9 +6,10 @@ import fallbackHero from "/images/villa-landing-hero.jpg";
 import * as LucideIcons from "lucide-react";
 import {
   ArrowDown, Calendar, MapPin, Users, Waves, Wind, Coffee, Bath, Wifi, Tv,
-  UtensilsCrossed, MessageCircle, ArrowRight, Mountain, Bed, Flame, Sparkles,
-  Camera, UserCheck, ShieldCheck, Home,
+  UtensilsCrossed, MessageCircle, ArrowRight, Mountain, Bed, BedDouble, Flame, Sparkles,
+  Camera, UserCheck, ShieldCheck, Home, ChevronDown,
 } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 /* ------------------------------------------------------------------ */
 /*  VillaLanding – Sensan single-page landing (data from backend)      */
