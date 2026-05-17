@@ -27,7 +27,7 @@ import HQAuth from "./pages/HQAuth";
 // 平台入口 & 會員頁面 - lazy load
 const BookingPortal = lazy(() => import("./pages/BookingPortal"));
 const BookingAccommodation = lazy(() => import("./pages/BookingAccommodation"));
-const BookingVilla = lazy(() => import("./pages/BookingVilla"));
+const VillaLanding = lazy(() => import("./pages/VillaLanding"));
 const MemberAuth = lazy(() => import("./pages/MemberAuth"));
 const MemberLayout = lazy(() => import("./components/member/MemberLayout"));
 const MemberProfile = lazy(() => import("./pages/MemberProfile"));
