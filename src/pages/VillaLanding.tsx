@@ -504,7 +504,7 @@ export default function VillaLanding() {
 
       {/* ======================== INTRO TEXT (about_section) ======================== */}
       {(aboutSection?.section_title || aboutSection?.section_description || accDesc) && (
-        <section className="mx-auto max-w-3xl px-6 py-20 text-center sm:py-28">
+        <section className="mx-auto max-w-3xl px-6 pt-20 pb-24 text-center sm:pt-28 sm:pb-32">
           <div className="reveal-on-scroll">
             <h2 className="text-2xl font-semibold leading-relaxed text-gray-800 sm:text-3xl"
               style={{ fontFamily: "'Noto Serif TC', serif" }}>
