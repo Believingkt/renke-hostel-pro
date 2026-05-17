@@ -92,6 +92,10 @@ export default function VillaLanding() {
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
 
+  const [introExpanded, setIntroExpanded] = useState(false);
+  const [introNeedsExpand, setIntroNeedsExpand] = useState(false);
+  const introTextRef = useRef<HTMLDivElement>(null);
+
   /* fetch all data in parallel — read-only */
   useEffect(() => {
     let cancelled = false;
