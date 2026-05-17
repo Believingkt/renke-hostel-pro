@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, ZoomIn, Home } from "lucide-react";
+import { Users, ZoomIn, Home, BedDouble, Bath, Wind, ChevronDown } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
