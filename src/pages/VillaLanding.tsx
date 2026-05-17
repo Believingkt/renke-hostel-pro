@@ -88,6 +88,9 @@ export default function VillaLanding() {
   const [aboutFeatures, setAboutFeatures] = useState<AboutFeature[]>([]);
   const [aboutSection, setAboutSection] = useState<AboutSection | null>(null);
   const [packages, setPackages] = useState<Pkg[]>([]);
+  const [pricingByRoom, setPricingByRoom] = useState<
+    Record<string, { minPrice: number; remainingOnMinDay: number; availableNights: number }>
+  >({});
 
   const [isVisible, setIsVisible] = useState(false);
   const [checkIn, setCheckIn] = useState("");
@@ -153,6 +156,48 @@ export default function VillaLanding() {
     })();
     return () => { cancelled = true; };
   }, [resolvedId]);
+
+  /* fetch lowest price + remaining rooms in the next 30 days for each room type */
+  useEffect(() => {
+    if (roomTypes.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const today = new Date();
+      const end = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+      const fmt = (d: Date) => d.toISOString().split("T")[0];
+      const ids = roomTypes.map((r) => r.id);
+      const { data } = await (supabase as any)
+        .from("room_inventory_pricing")
+        .select("room_type_id,date,price,available_rooms,is_available,pricing_template_id")
+        .in("room_type_id", ids)
+        .is("pricing_template_id", null)
+        .gte("date", fmt(today))
+        .lte("date", fmt(end));
+      if (cancelled || !data) return;
+      const map: Record<string, { minPrice: number; remainingOnMinDay: number; availableNights: number }> = {};
+      for (const row of data as any[]) {
+        if (row.is_available === false) continue;
+        if (!row.available_rooms || row.available_rooms <= 0) continue;
+        if (!row.price || row.price <= 0) continue;
+        const cur = map[row.room_type_id];
+        if (!cur) {
+          map[row.room_type_id] = {
+            minPrice: row.price,
+            remainingOnMinDay: row.available_rooms,
+            availableNights: 1,
+          };
+        } else {
+          cur.availableNights += 1;
+          if (row.price < cur.minPrice) {
+            cur.minPrice = row.price;
+            cur.remainingOnMinDay = row.available_rooms;
+          }
+        }
+      }
+      setPricingByRoom(map);
+    })();
+    return () => { cancelled = true; };
+  }, [roomTypes]);
 
   /* scroll reveal */
   useEffect(() => {
@@ -430,6 +475,7 @@ export default function VillaLanding() {
               const img = firstPhotoOf(rt.id);
               const ams = amenitiesOf(rt.id);
               const desc = (rt.description ?? "").split("\n").filter(Boolean)[0] ?? "";
+              const pricing = pricingByRoom[rt.id];
               return (
                 <article
                   key={rt.id}
@@ -524,16 +570,33 @@ export default function VillaLanding() {
                     <div className="mt-auto rounded-lg border border-stone-200 bg-stone-50/70 p-4">
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[11px] tracking-wider text-stone-400">本月方案</span>
-                            <span className="rounded-full bg-[#FDF6F5] px-2 py-0.5 text-[10px] font-medium text-[#C25953]">
-                              熱門搶訂
-                            </span>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[11px] tracking-wider text-stone-400">近 30 天最低</span>
+                            {pricing && pricing.remainingOnMinDay <= 2 && (
+                              <span className="rounded-full bg-[#FDF6F5] px-2 py-0.5 text-[10px] font-medium text-[#C25953]">
+                                僅剩 {pricing.remainingOnMinDay} 間
+                              </span>
+                            )}
+                            {pricing && pricing.remainingOnMinDay > 2 && pricing.availableNights <= 5 && (
+                              <span className="rounded-full bg-[#FDF6F5] px-2 py-0.5 text-[10px] font-medium text-[#C25953]">
+                                熱門搶訂
+                              </span>
+                            )}
                           </div>
                           <div className="mt-1 flex items-baseline gap-1">
-                            <span className="text-base font-semibold text-[#A98467]" style={{ fontFamily: "'Noto Serif TC', serif" }}>
-                              查看即時房價
-                            </span>
+                            {pricing ? (
+                              <>
+                                <span className="text-[11px] text-stone-400">NT$</span>
+                                <span className="text-xl font-semibold text-[#A98467]" style={{ fontFamily: "'Noto Serif TC', serif" }}>
+                                  {pricing.minPrice.toLocaleString()}
+                                </span>
+                                <span className="text-[11px] text-stone-400">/ 晚起</span>
+                              </>
+                            ) : (
+                              <span className="text-base font-semibold text-[#A98467]" style={{ fontFamily: "'Noto Serif TC', serif" }}>
+                                查看即時房價
+                              </span>
+                            )}
                           </div>
                         </div>
                         <a
