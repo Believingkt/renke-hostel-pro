@@ -52,6 +52,23 @@ export default function VillaLanding() {
     "隱身於山林之間的靜謐居所，以簡約自然的設計語彙，為旅人打造一段遠離喧囂的純粹時光。";
   const accRegion = acc?.region ?? "南投埔里";
 
+  /* scroll-triggered reveal animation */
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("revealed");
+          }
+        });
+      },
+      { threshold: 0.1, rootMargin: "0px 0px -50px 0px" }
+    );
+    const els = document.querySelectorAll(".reveal-on-scroll");
+    els.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
   /* scroll-to helper */
   const scrollToContent = () => {
     heroRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
