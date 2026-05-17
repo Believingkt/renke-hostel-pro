@@ -485,9 +485,26 @@ export default function VillaLanding() {
               {aboutSection?.section_title ?? "在自然中，重新找回生活的節奏"}
             </h2>
             <div className="mx-auto mt-4 h-px w-16 bg-stone-300" />
-            <p className="mt-8 leading-relaxed text-stone-600 sm:text-lg">
-              {aboutSection?.section_description ?? accDesc}
-            </p>
+            <div
+              ref={introTextRef}
+              className={`mt-8 text-stone-600 sm:text-lg leading-loose sm:leading-relaxed ${introExpanded ? "" : "line-clamp-4"}`}
+            >
+              {introParagraphs.length > 0 ? (
+                introParagraphs.map((para, i) => (
+                  <p key={i} className="mb-5 last:mb-0">{para}</p>
+                ))
+              ) : (
+                <p>{aboutSection?.section_description ?? accDesc}</p>
+              )}
+            </div>
+            {introNeedsExpand && !introExpanded && (
+              <button
+                onClick={() => setIntroExpanded(true)}
+                className="mt-5 text-sm tracking-wider text-[#A98467] transition-colors hover:text-[#8a6b52]"
+              >
+                閱讀更多…
+              </button>
+            )}
           </div>
         </section>
       )}
