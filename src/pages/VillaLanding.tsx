@@ -182,6 +182,29 @@ export default function VillaLanding() {
     return () => window.removeEventListener("resize", checkOverflow);
   }, [aboutSection?.section_description, acc?.description]);
 
+  /* floating concierge tooltip: show after 4s delay, or when rooms section enters view */
+  const [tooltipOpen, setTooltipOpen] = useState(false);
+  const [tooltipDismissed, setTooltipDismissed] = useState(false);
+  useEffect(() => {
+    if (tooltipDismissed) return;
+    const timer = window.setTimeout(() => setTooltipOpen(true), 4000);
+    const roomsEl = document.getElementById("rooms");
+    let io: IntersectionObserver | null = null;
+    if (roomsEl) {
+      io = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((e) => e.isIntersecting)) setTooltipOpen(true);
+        },
+        { threshold: 0.15 }
+      );
+      io.observe(roomsEl);
+    }
+    return () => {
+      window.clearTimeout(timer);
+      io?.disconnect();
+    };
+  }, [tooltipDismissed, roomTypes.length]);
+
   const scrollToContent = () =>
     heroRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
 
