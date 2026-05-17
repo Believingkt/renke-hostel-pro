@@ -3,7 +3,10 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { SEOHead } from "@/components/SEOHead";
 import heroImage from "/images/villa-landing-hero.jpg";
-import { ArrowDown, Calendar, MapPin, Users, Waves } from "lucide-react";
+import { ArrowDown, Calendar, MapPin, Users, Waves, Wind, Coffee, Bath, Wifi, Tv, UtensilsCrossed } from "lucide-react";
+import room1 from "/images/villa-room-1.jpg";
+import room2 from "/images/villa-room-2.jpg";
+import room3 from "/images/villa-room-3.jpg";
 
 /* ------------------------------------------------------------------ */
 /*  VillaLanding – single-page intro skeleton (Japandi / warm minimal)  */
@@ -170,6 +173,114 @@ export default function VillaLanding() {
                 {item.value}
               </span>
             </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ======================== ROOM TYPES ======================== */}
+      <section className="mx-auto max-w-6xl px-4 pt-24 sm:px-6 sm:pt-28">
+        <div className="text-center reveal-on-scroll">
+          <p className="text-xs tracking-[0.3em] text-stone-400">ROOM TYPES</p>
+          <h2
+            className="mt-3 text-2xl font-semibold text-gray-800 sm:text-3xl"
+            style={{ fontFamily: "'Noto Serif TC', serif" }}
+          >
+            房型介紹
+          </h2>
+          <div className="mx-auto mt-4 h-px w-16 bg-stone-300" />
+          <p className="mx-auto mt-6 max-w-xl text-sm leading-relaxed text-stone-500 sm:text-base">
+            每一間房，都是一段獨立的故事。保留老宅靈魂的舒適空間，靜靜等候你來書寫屬於自己的篇章。
+          </p>
+        </div>
+
+        <div className="mt-14 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+          {[
+            {
+              image: room1,
+              name: "和風雙人房",
+              tagline: "保留老宅靈魂的木質溫度",
+              desc: "走進房內，木紋的呼吸與光影交織。👆 細看那扇老窗框的紋理，記錄著時光留下的溫柔印記。",
+              facilities: [
+                { icon: Wind, label: "獨立冷氣" },
+                { icon: Wifi, label: "高速 Wi-Fi" },
+                { icon: Coffee, label: "手沖咖啡組" },
+                { icon: Bath, label: "備品齊全" },
+              ],
+            },
+            {
+              image: room2,
+              name: "山景閣樓房",
+              tagline: "在屋簷下眺望整片山巒",
+              desc: "晨光從斜屋頂的木樑灑落，喚醒沉睡的感官。👆 抬頭望去，那道光與山的對話，正是這個房間最美的角落。",
+              facilities: [
+                { icon: Wind, label: "獨立冷氣" },
+                { icon: Wifi, label: "高速 Wi-Fi" },
+                { icon: Tv, label: "Smart TV" },
+                { icon: Bath, label: "獨立衛浴" },
+              ],
+            },
+            {
+              image: room3,
+              name: "家庭和室套房",
+              tagline: "一家人共度的靜謐時光",
+              desc: "寬敞的空間延伸至庭院，每一張床都靠近彼此的呼吸。👆 那盞紙燈下的場景，最適合留下全家最自然的笑容。",
+              facilities: [
+                { icon: Wind, label: "獨立冷氣" },
+                { icon: UtensilsCrossed, label: "簡易廚房" },
+                { icon: Coffee, label: "茶水備品" },
+                { icon: Bath, label: "檜木浴缸" },
+              ],
+            },
+          ].map((room, i) => (
+            <article
+              key={room.name}
+              className="reveal-on-scroll group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-stone-100 transition hover:shadow-md"
+              style={{ transitionDelay: `${i * 100}ms` }}
+            >
+              {/* 上：圖片 */}
+              <div className="aspect-[4/3] w-full overflow-hidden bg-stone-100">
+                <img
+                  src={room.image}
+                  alt={room.name}
+                  width={1280}
+                  height={896}
+                  loading="lazy"
+                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                />
+              </div>
+
+              {/* 下：文字 */}
+              <div className="flex flex-1 flex-col gap-5 p-6 sm:p-7">
+                <div>
+                  <h3
+                    className="text-xl font-semibold text-gray-800"
+                    style={{ fontFamily: "'Noto Serif TC', serif" }}
+                  >
+                    {room.name}
+                  </h3>
+                  <p className="mt-1 text-sm tracking-wide text-stone-400">
+                    {room.tagline}
+                  </p>
+                </div>
+
+                <p className="text-sm leading-relaxed text-stone-600">
+                  {room.desc}
+                </p>
+
+                {/* 設施 icon 化 */}
+                <div className="mt-auto flex flex-wrap items-center gap-x-5 gap-y-3 border-t border-stone-100 pt-5">
+                  {room.facilities.map((f) => (
+                    <div
+                      key={f.label}
+                      className="flex items-center gap-1.5 text-stone-500"
+                    >
+                      <f.icon className="h-4 w-4" strokeWidth={1.5} />
+                      <span className="text-xs tracking-wide">{f.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </article>
           ))}
         </div>
       </section>
