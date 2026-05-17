@@ -248,7 +248,18 @@ const RoomCard = ({ room, isFirstRoom = false, sharedTemplateLabels, sharedHolid
         </div>
         
         {room.description && <ExpandableDescription text={room.description} />}
-        
+
+        {/* Room breakdown for exclusive packages */}
+        {roomBreakdown.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {roomBreakdown.map(item => (
+              <span key={item.label} className="text-xs bg-secondary/50 text-secondary-foreground px-2 py-0.5 rounded-full">
+                {item.label} ×{item.count}
+              </span>
+            ))}
+          </div>
+        )}
+
         {/* Core facility summary (4 icons) */}
         <div className="grid grid-cols-4 gap-2 mb-2 text-xs text-muted-foreground">
           <div className="flex flex-col items-center gap-1 text-center">
