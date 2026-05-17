@@ -84,7 +84,7 @@ export default function VillaLanding() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F9F8F6] font-sans text-gray-800">
+    <div className="min-h-screen bg-[#F9F8F6] font-sans text-gray-800 pb-28">
       <SEOHead
         title={`${accName} – 官方訂房`}
         description={accDesc}
