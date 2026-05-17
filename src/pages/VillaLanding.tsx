@@ -165,6 +165,23 @@ export default function VillaLanding() {
     return () => observer.disconnect();
   }, [roomTypes, galleryPhotos, aboutFeatures, packages]);
 
+  /* check if intro text exceeds 4 lines on mobile */
+  useEffect(() => {
+    const checkOverflow = () => {
+      const el = introTextRef.current;
+      if (!el || window.innerWidth >= 640) {
+        setIntroNeedsExpand(false);
+        return;
+      }
+      const lineHeight = parseFloat(getComputedStyle(el).lineHeight);
+      const maxH = lineHeight * 4;
+      setIntroNeedsExpand(el.scrollHeight > maxH + 1);
+    };
+    checkOverflow();
+    window.addEventListener("resize", checkOverflow);
+    return () => window.removeEventListener("resize", checkOverflow);
+  }, [aboutSection?.section_description, accDesc]);
+
   const scrollToContent = () =>
     heroRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
 
