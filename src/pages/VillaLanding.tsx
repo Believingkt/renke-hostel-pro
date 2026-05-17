@@ -1,9 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { SEOHead } from "@/components/SEOHead";
 import heroImage from "/images/villa-landing-hero.jpg";
-import { ArrowDown, Calendar, MapPin, Users, Waves, Wind, Coffee, Bath, Wifi, Tv, UtensilsCrossed } from "lucide-react";
+import {
+  ArrowDown, Calendar, MapPin, Users, Waves, Wind, Coffee, Bath, Wifi, Tv, UtensilsCrossed,
+  MessageCircle, ArrowRight
+} from "lucide-react";
 import room1 from "/images/villa-room-1.jpg";
 import room2 from "/images/villa-room-2.jpg";
 import room3 from "/images/villa-room-3.jpg";
@@ -22,10 +25,13 @@ interface AccommodationData {
 
 export default function VillaLanding() {
   const { accId } = useParams<{ accId: string }>();
+  const navigate = useNavigate();
   const heroRef = useRef<HTMLDivElement>(null);
   const [acc, setAcc] = useState<AccommodationData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isVisible, setIsVisible] = useState(false);
+  const [checkIn, setCheckIn] = useState("");
+  const [checkOut, setCheckOut] = useState("");
 
   const resolvedId = accId ?? "5f764d55-ae11-4631-80fe-2e611853deae";
 
@@ -78,7 +84,7 @@ export default function VillaLanding() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F9F8F6] font-sans text-gray-800">
+    <div className="min-h-screen bg-[#F9F8F6] font-sans text-gray-800 pb-28">
       <SEOHead
         title={`${accName} – 官方訂房`}
         description={accDesc}
@@ -446,6 +452,78 @@ export default function VillaLanding() {
           © {new Date().getFullYear()} {accName} · All rights reserved
         </p>
       </footer>
+
+      {/* ======================== STICKY BOOKING BAR ======================== */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-stone-200/80 bg-white/80 backdrop-blur-md">
+        <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4">
+          {/* Date pickers */}
+          <div className="flex flex-1 items-center gap-2 sm:gap-3">
+            <div className="flex flex-1 flex-col gap-1">
+              <label className="text-[10px] font-medium tracking-wider text-stone-400 sm:text-xs">
+                入住日期
+              </label>
+              <div className="relative">
+                <Calendar className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-stone-400" />
+                <input
+                  type="date"
+                  value={checkIn}
+                  onChange={(e) => setCheckIn(e.target.value)}
+                  className="w-full rounded-lg border border-stone-200 bg-white py-2 pl-8 pr-2 text-sm text-gray-800 outline-none transition focus:border-[#A98467] focus:ring-1 focus:ring-[#A98467]/20"
+                />
+              </div>
+            </div>
+
+            <ArrowRight className="mt-4 h-4 w-4 shrink-0 text-stone-300" />
+
+            <div className="flex flex-1 flex-col gap-1">
+              <label className="text-[10px] font-medium tracking-wider text-stone-400 sm:text-xs">
+                退房日期
+              </label>
+              <div className="relative">
+                <Calendar className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-stone-400" />
+                <input
+                  type="date"
+                  value={checkOut}
+                  onChange={(e) => setCheckOut(e.target.value)}
+                  className="w-full rounded-lg border border-stone-200 bg-white py-2 pl-8 pr-2 text-sm text-gray-800 outline-none transition focus:border-[#A98467] focus:ring-1 focus:ring-[#A98467]/20"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* CTA button */}
+          <button
+            onClick={() => {
+              const params = new URLSearchParams();
+              if (checkIn) params.set("checkIn", checkIn);
+              if (checkOut) params.set("checkOut", checkOut);
+              const qs = params.toString();
+              navigate(`/booking/villa/${resolvedId}${qs ? `?${qs}` : ""}`);
+            }}
+            className="shrink-0 rounded-xl px-5 py-3 text-sm font-medium tracking-wider text-white shadow-md transition hover:shadow-lg active:scale-[0.98] sm:px-8 sm:py-3.5 sm:text-base"
+            style={{ backgroundColor: "#A98467" }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#95755a"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#A98467"; }}
+          >
+            規劃我的假期
+          </button>
+        </div>
+      </div>
+
+      {/* ======================== FLOATING CONTACT BUTTON ======================== */}
+      <a
+        href={`https://line.me/R/ti/p/@sensaninn?oatContent=對房型有疑問&utm_source=villa_landing&utm_medium=floating_btn&utm_campaign=booking_inquiry`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="group fixed bottom-[5.5rem] right-4 z-[60] flex items-center gap-2 overflow-hidden rounded-full bg-[#7D9B76] pl-4 pr-4 text-white shadow-lg transition-all duration-500 hover:pr-5 sm:bottom-24 sm:right-6"
+        style={{ height: "48px" }}
+        aria-label="聯絡管家"
+      >
+        <MessageCircle className="h-5 w-5 shrink-0" />
+        <span className="max-w-0 overflow-hidden whitespace-nowrap text-sm font-medium transition-all duration-500 group-hover:max-w-[16rem] group-hover:pr-1">
+          對房型有疑問？與管家聊聊
+        </span>
+      </a>
     </div>
   );
 }
