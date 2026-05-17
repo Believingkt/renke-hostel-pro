@@ -705,23 +705,57 @@ export default function VillaLanding() {
       {/* ======================== FLOATING CONTACT BUTTON ======================== */}
       {/* 必須在 sticky bar 上方：手機 bar 約 76px + 安全區 + 12px 間距 */}
       {acc?.line_id && (
-        <a
-          href={lineHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group fixed right-4 z-[60] flex items-center gap-2 overflow-hidden rounded-full bg-[#7D9B76] pl-3.5 pr-3.5 text-white shadow-lg transition-all duration-500 hover:pr-5 sm:right-6"
-          style={{
-            bottom: "calc(env(safe-area-inset-bottom, 0px) + 88px)",
-            minHeight: "48px",
-            minWidth: "48px",
-          }}
-          aria-label="聯絡管家 LINE"
+        <div
+          className="fixed right-4 z-[60] flex items-center gap-2 sm:right-6"
+          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 88px)" }}
         >
-          <MessageCircle className="h-5 w-5 shrink-0" />
-          <span className="max-w-0 overflow-hidden whitespace-nowrap text-sm font-medium transition-all duration-500 group-hover:max-w-[16rem] group-hover:pr-1">
-            對房型有疑問？與管家聊聊
-          </span>
-        </a>
+          {/* Tooltip 對話氣泡 */}
+          <div
+            className={`relative flex items-center gap-2 rounded-2xl bg-[#FAF6EE] py-2 pl-3.5 pr-2 shadow-md ring-1 ring-black/5 transition-all duration-500 ${
+              tooltipOpen && !tooltipDismissed
+                ? "translate-x-0 opacity-100"
+                : "pointer-events-none translate-x-2 opacity-0"
+            }`}
+          >
+            <a
+              href={lineHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="whitespace-nowrap text-[13px] font-medium text-stone-700"
+            >
+              對房型有猶豫？與管家聊聊
+            </a>
+            <button
+              type="button"
+              onClick={() => {
+                setTooltipOpen(false);
+                setTooltipDismissed(true);
+              }}
+              aria-label="關閉提示"
+              className="flex h-5 w-5 items-center justify-center rounded-full text-stone-400 transition hover:bg-stone-200 hover:text-stone-600"
+            >
+              <span className="text-xs leading-none">×</span>
+            </button>
+            {/* 小尾巴指向按鈕 */}
+            <span
+              aria-hidden
+              className="absolute right-[-5px] top-1/2 h-2.5 w-2.5 -translate-y-1/2 rotate-45 bg-[#FAF6EE] shadow-md ring-1 ring-black/5"
+              style={{ clipPath: "polygon(100% 0, 100% 100%, 0 100%)" }}
+            />
+          </div>
+
+          {/* 圓形客服按鈕 */}
+          <a
+            href={lineHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setTooltipDismissed(true)}
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-[#7D9B76] text-white shadow-lg transition-all duration-200 hover:scale-105 hover:bg-[#6B8A65] active:scale-95"
+            aria-label="聯絡管家 LINE"
+          >
+            <MessageCircle className="h-5 w-5" />
+          </a>
+        </div>
       )}
     </div>
   );
