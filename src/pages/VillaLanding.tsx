@@ -664,10 +664,14 @@ export default function VillaLanding() {
               const qs = params.toString();
               navigate(`/booking/villa/${resolvedId}${qs ? `?${qs}` : ""}`);
             }}
-            className="shrink-0 rounded-xl px-3.5 py-2.5 text-sm font-medium tracking-wider text-white shadow-md transition hover:shadow-lg active:scale-[0.98] sm:px-8 sm:py-3.5 sm:text-base"
+            className="shrink-0 rounded-xl px-3.5 py-2.5 text-sm font-medium tracking-wider text-white shadow-md transition-all duration-200 hover:shadow-lg active:scale-95 sm:px-8 sm:py-3.5 sm:text-base"
             style={{ backgroundColor: "#A98467", minHeight: "44px" }}
             onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#95755a"; }}
             onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#A98467"; }}
+            onMouseDown={(e) => { e.currentTarget.style.backgroundColor = "#8a6b50"; }}
+            onMouseUp={(e) => { e.currentTarget.style.backgroundColor = "#95755a"; }}
+            onTouchStart={(e) => { e.currentTarget.style.backgroundColor = "#8a6b50"; }}
+            onTouchEnd={(e) => { e.currentTarget.style.backgroundColor = "#A98467"; }}
           >
             <span className="sm:hidden">預訂</span>
             <span className="hidden sm:inline">規劃我的假期</span>
