@@ -23,22 +23,37 @@ interface Accommodation {
   name: string;
   short_url_alias: string | null;
   custom_domain: string | null;
+  is_villa?: boolean;
 }
 
 function buildFrontendUrl(acc: Accommodation | undefined): string {
   if (!acc) return "/";
+
+  const host = window.location.hostname.toLowerCase();
+  const isLovablePreview =
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host.includes("lovableproject.com") ||
+    host.includes("lovable.app");
+
+  // 包區型民宿 → 直接帶到 /booking/villa/{accId}，跳過 alias 解析與中間轉導
+  if (acc.is_villa) {
+    const qs = `?accId=${acc.id}`;
+    if (acc.custom_domain) {
+      return `https://${acc.custom_domain.replace(/^https?:\/\//, "")}/booking/villa/${acc.id}${qs}`;
+    }
+    if (isLovablePreview) {
+      return `${window.location.origin}/booking/villa/${acc.id}${qs}`;
+    }
+    return `https://booking.lakeze.com/booking/villa/${acc.id}${qs}`;
+  }
+
+  // 一般民宿：custom_domain > alias 首頁
   if (acc.custom_domain) {
     return `https://${acc.custom_domain.replace(/^https?:\/\//, "")}/`;
   }
   if (acc.short_url_alias) {
-    const host = window.location.hostname.toLowerCase();
-    const isLovablePreview =
-      host === "localhost" ||
-      host === "127.0.0.1" ||
-      host.includes("lovableproject.com") ||
-      host.includes("lovable.app");
     if (isLovablePreview) {
-      // 預覽環境用 ?acc= 查詢參數
       return `${window.location.origin}/?acc=${acc.short_url_alias}`;
     }
     return `https://booking.lakeze.com/${acc.short_url_alias}`;
