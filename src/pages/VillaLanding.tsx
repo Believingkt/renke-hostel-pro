@@ -570,16 +570,33 @@ export default function VillaLanding() {
                     <div className="mt-auto rounded-lg border border-stone-200 bg-stone-50/70 p-4">
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[11px] tracking-wider text-stone-400">本月方案</span>
-                            <span className="rounded-full bg-[#FDF6F5] px-2 py-0.5 text-[10px] font-medium text-[#C25953]">
-                              熱門搶訂
-                            </span>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[11px] tracking-wider text-stone-400">近 30 天最低</span>
+                            {pricing && pricing.remainingOnMinDay <= 2 && (
+                              <span className="rounded-full bg-[#FDF6F5] px-2 py-0.5 text-[10px] font-medium text-[#C25953]">
+                                僅剩 {pricing.remainingOnMinDay} 間
+                              </span>
+                            )}
+                            {pricing && pricing.remainingOnMinDay > 2 && pricing.availableNights <= 5 && (
+                              <span className="rounded-full bg-[#FDF6F5] px-2 py-0.5 text-[10px] font-medium text-[#C25953]">
+                                熱門搶訂
+                              </span>
+                            )}
                           </div>
                           <div className="mt-1 flex items-baseline gap-1">
-                            <span className="text-base font-semibold text-[#A98467]" style={{ fontFamily: "'Noto Serif TC', serif" }}>
-                              查看即時房價
-                            </span>
+                            {pricing ? (
+                              <>
+                                <span className="text-[11px] text-stone-400">NT$</span>
+                                <span className="text-xl font-semibold text-[#A98467]" style={{ fontFamily: "'Noto Serif TC', serif" }}>
+                                  {pricing.minPrice.toLocaleString()}
+                                </span>
+                                <span className="text-[11px] text-stone-400">/ 晚起</span>
+                              </>
+                            ) : (
+                              <span className="text-base font-semibold text-[#A98467]" style={{ fontFamily: "'Noto Serif TC', serif" }}>
+                                查看即時房價
+                              </span>
+                            )}
                           </div>
                         </div>
                         <a
