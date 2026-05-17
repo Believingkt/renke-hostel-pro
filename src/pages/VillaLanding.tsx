@@ -385,7 +385,7 @@ export default function VillaLanding() {
 
       {/* ======================== ROOM TYPES (real) ======================== */}
       {roomTypes.length > 0 && (
-        <section className="mx-auto max-w-6xl px-4 pt-24 sm:px-6 sm:pt-28">
+        <section id="rooms" className="mx-auto max-w-6xl px-4 pt-24 sm:px-6 sm:pt-28">
           <div className="text-center reveal-on-scroll">
             <p className="text-xs tracking-[0.3em] text-stone-400">ROOM TYPES</p>
             <h2 className="mt-3 text-2xl font-semibold text-gray-800 sm:text-3xl"
