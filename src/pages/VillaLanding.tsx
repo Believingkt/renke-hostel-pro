@@ -175,6 +175,9 @@ export default function VillaLanding() {
   const heroDesc = acc?.hero_description ?? "遠離喧囂，找到屬於你的慢步調";
   const accDesc = acc?.description ?? "";
   const region = [acc?.region_1, acc?.region_2].filter(Boolean).join(" ") || "宜蘭 冬山";
+  const introParagraphs = (aboutSection?.section_description ?? accDesc)
+    .split("\n")
+    .filter(Boolean);
 
   const heroImage = heroPhotos[0]?.photo_url ?? acc?.og_image_url ?? fallbackHero;
 
