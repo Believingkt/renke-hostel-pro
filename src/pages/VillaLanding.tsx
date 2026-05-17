@@ -453,6 +453,82 @@ export default function VillaLanding() {
         </section>
       )}
 
+      {/* ======================== AVAILABILITY SEARCH BAR ======================== */}
+      <section className="mx-auto max-w-5xl px-4 pt-16 sm:px-6 sm:pt-20">
+        <div className="reveal-on-scroll rounded-2xl bg-white shadow-md border border-stone-100/80 p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row sm:items-stretch sm:divide-x sm:divide-stone-200/80 divide-y divide-stone-200/80 sm:divide-y-0 gap-1 sm:gap-0">
+            {/* 入住日期 */}
+            <label className="group relative flex-1 cursor-pointer rounded-xl px-4 py-4 sm:py-3 transition hover:bg-stone-50 active:bg-stone-100">
+              <span className="block text-[11px] tracking-widest text-stone-400">入住日期</span>
+              <div className="mt-1 flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-stone-500 shrink-0" strokeWidth={1.5} />
+                <input
+                  type="date"
+                  value={checkIn}
+                  min={new Date().toISOString().split("T")[0]}
+                  onChange={(e) => {
+                    setCheckIn(e.target.value);
+                    if (checkOut && e.target.value && e.target.value >= checkOut) setCheckOut("");
+                  }}
+                  className="w-full bg-transparent text-sm font-medium text-gray-800 outline-none [color-scheme:light]"
+                  style={{ fontSize: "16px" }}
+                />
+              </div>
+            </label>
+
+            {/* 退房日期 */}
+            <label className="group relative flex-1 cursor-pointer rounded-xl px-4 py-4 sm:py-3 transition hover:bg-stone-50 active:bg-stone-100">
+              <span className="block text-[11px] tracking-widest text-stone-400">退房日期</span>
+              <div className="mt-1 flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-stone-500 shrink-0" strokeWidth={1.5} />
+                <input
+                  type="date"
+                  value={checkOut}
+                  min={checkIn || new Date(Date.now() + 86400000).toISOString().split("T")[0]}
+                  onChange={(e) => setCheckOut(e.target.value)}
+                  className="w-full bg-transparent text-sm font-medium text-gray-800 outline-none [color-scheme:light]"
+                  style={{ fontSize: "16px" }}
+                />
+              </div>
+            </label>
+
+            {/* 入住人數 */}
+            <label className="group relative flex-1 cursor-pointer rounded-xl px-4 py-4 sm:py-3 transition hover:bg-stone-50 active:bg-stone-100">
+              <span className="block text-[11px] tracking-widest text-stone-400">入住人數</span>
+              <div className="mt-1 flex items-center gap-2">
+                <Users className="h-4 w-4 text-stone-500 shrink-0" strokeWidth={1.5} />
+                <select
+                  value={guestCount}
+                  onChange={(e) => setGuestCount(Number(e.target.value))}
+                  className="w-full bg-transparent text-sm font-medium text-gray-800 outline-none appearance-none"
+                  style={{ fontSize: "16px" }}
+                >
+                  {Array.from({ length: Math.max(maxCapacity, 6) }, (_, i) => i + 1).map((n) => (
+                    <option key={n} value={n}>{n} 人</option>
+                  ))}
+                </select>
+              </div>
+            </label>
+
+            {/* 查看空房按鈕 */}
+            <div className="sm:pl-3 sm:flex sm:items-center pt-2 sm:pt-0">
+              <button
+                onClick={() => {
+                  const params = new URLSearchParams();
+                  if (checkIn) params.set("checkIn", checkIn);
+                  if (checkOut) params.set("checkOut", checkOut);
+                  if (guestCount) params.set("guests", String(guestCount));
+                  navigate(`/booking/villa/${resolvedId}${params.toString() ? `?${params.toString()}` : ""}#rooms`);
+                }}
+                className="w-full sm:w-auto rounded-xl bg-[#A98467] px-6 py-4 sm:py-3 text-sm font-medium tracking-wider text-white shadow-sm transition-all duration-200 hover:bg-[#8d6b52] active:scale-95"
+              >
+                查看空房
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ======================== ROOM TYPES (real) ======================== */}
       {roomTypes.length > 0 && (
         <section id="rooms" className="mx-auto max-w-6xl px-4 pt-24 sm:px-6 sm:pt-28">
