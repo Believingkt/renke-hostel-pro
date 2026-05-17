@@ -525,17 +525,15 @@ export default function VillaLanding() {
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="text-xs text-stone-400 line-through">NT$ 6,800</span>
+                            <span className="text-[11px] tracking-wider text-stone-400">本月方案</span>
                             <span className="rounded-full bg-[#FDF6F5] px-2 py-0.5 text-[10px] font-medium text-[#C25953]">
-                              限時優惠
+                              熱門搶訂
                             </span>
                           </div>
                           <div className="mt-1 flex items-baseline gap-1">
-                            <span className="text-xs text-stone-500">NT$</span>
-                            <span className="text-xl font-semibold text-[#A98467]" style={{ fontFamily: "'Noto Serif TC', serif" }}>
-                              5,200
+                            <span className="text-base font-semibold text-[#A98467]" style={{ fontFamily: "'Noto Serif TC', serif" }}>
+                              查看即時房價
                             </span>
-                            <span className="text-xs text-stone-400">起 / 晚</span>
                           </div>
                         </div>
                         <a
