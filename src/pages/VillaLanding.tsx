@@ -219,15 +219,15 @@ export default function VillaLanding() {
       />
 
       {/* ======================== HERO ======================== */}
-      <section className="relative h-screen w-full overflow-hidden">
+      <section className="relative h-[85vh] w-full overflow-hidden sm:h-screen">
         <div className="absolute inset-0">
           <img
             src={heroImage}
             alt={heroTitle}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover object-center"
             fetchPriority="high"
           />
-          <div className="absolute inset-0 bg-black/40" />
+          <div className="absolute inset-0 bg-black/55 sm:bg-black/40" />
           <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#F9F8F6] to-transparent" />
         </div>
 
