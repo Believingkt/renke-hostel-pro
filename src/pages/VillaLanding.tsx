@@ -157,6 +157,48 @@ export default function VillaLanding() {
     return () => { cancelled = true; };
   }, [resolvedId]);
 
+  /* fetch lowest price + remaining rooms in the next 30 days for each room type */
+  useEffect(() => {
+    if (roomTypes.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const today = new Date();
+      const end = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+      const fmt = (d: Date) => d.toISOString().split("T")[0];
+      const ids = roomTypes.map((r) => r.id);
+      const { data } = await (supabase as any)
+        .from("room_inventory_pricing")
+        .select("room_type_id,date,price,available_rooms,is_available,pricing_template_id")
+        .in("room_type_id", ids)
+        .is("pricing_template_id", null)
+        .gte("date", fmt(today))
+        .lte("date", fmt(end));
+      if (cancelled || !data) return;
+      const map: Record<string, { minPrice: number; remainingOnMinDay: number; availableNights: number }> = {};
+      for (const row of data as any[]) {
+        if (row.is_available === false) continue;
+        if (!row.available_rooms || row.available_rooms <= 0) continue;
+        if (!row.price || row.price <= 0) continue;
+        const cur = map[row.room_type_id];
+        if (!cur) {
+          map[row.room_type_id] = {
+            minPrice: row.price,
+            remainingOnMinDay: row.available_rooms,
+            availableNights: 1,
+          };
+        } else {
+          cur.availableNights += 1;
+          if (row.price < cur.minPrice) {
+            cur.minPrice = row.price;
+            cur.remainingOnMinDay = row.available_rooms;
+          }
+        }
+      }
+      setPricingByRoom(map);
+    })();
+    return () => { cancelled = true; };
+  }, [roomTypes]);
+
   /* scroll reveal */
   useEffect(() => {
     const observer = new IntersectionObserver(
