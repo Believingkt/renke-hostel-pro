@@ -108,6 +108,9 @@ function App() {
                     <Route path="booking/villa/:accId" element={
                       <Suspense fallback={<FrontendSkeleton />}><BookingVilla /></Suspense>
                     } />
+                    <Route path="villa/:accId" element={
+                      <Suspense fallback={<FrontendSkeleton />}><VillaLanding /></Suspense>
+                    } />
                     <Route path="booking/:accId" element={
                       <Suspense fallback={<FrontendSkeleton />}><BookingAccommodation /></Suspense>
                     } />
