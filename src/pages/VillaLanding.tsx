@@ -180,7 +180,7 @@ export default function VillaLanding() {
     checkOverflow();
     window.addEventListener("resize", checkOverflow);
     return () => window.removeEventListener("resize", checkOverflow);
-  }, [aboutSection?.section_description, accDesc]);
+  }, [aboutSection?.section_description, acc?.description]);
 
   const scrollToContent = () =>
     heroRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
