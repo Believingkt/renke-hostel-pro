@@ -85,15 +85,24 @@ export function AccommodationSelector() {
       const accommodationIds = userAccommodations.map(ua => ua.accommodation_id);
       console.log('[AccommodationSelector] Loading accommodations:', accommodationIds);
 
-      const { data, error } = await supabase
-        .from('accommodation_info')
-        .select('id, name, short_url_alias, custom_domain')
-        .in('id', accommodationIds);
+      const [{ data, error }, { data: pkgRows }] = await Promise.all([
+        supabase
+          .from('accommodation_info')
+          .select('id, name, short_url_alias, custom_domain')
+          .in('id', accommodationIds),
+        supabase
+          .from('accommodation_packages')
+          .select('accommodation_id')
+          .in('accommodation_id', accommodationIds)
+          .eq('enabled', true),
+      ]);
 
       if (error) throw error;
 
-      console.log('[AccommodationSelector] Loaded accommodation info:', data);
-      setAccommodations(data || []);
+      const villaSet = new Set((pkgRows || []).map((p: any) => p.accommodation_id));
+      const enriched = (data || []).map((a) => ({ ...a, is_villa: villaSet.has(a.id) }));
+      console.log('[AccommodationSelector] Loaded accommodation info:', enriched);
+      setAccommodations(enriched);
     } catch (error) {
       console.error('[AccommodationSelector] Error loading accommodations:', error);
     } finally {
