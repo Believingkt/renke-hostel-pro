@@ -450,9 +450,12 @@ export default function VillaLanding() {
                     </div>
 
                     {desc && (
-                      <p className="text-sm leading-relaxed text-stone-600 line-clamp-3">
-                        👆 {desc}
-                      </p>
+                      <div className="flex items-start gap-1.5">
+                        <span className="mt-1 text-sm shrink-0">👆</span>
+                        <p className="text-sm leading-relaxed text-stone-600 line-clamp-3 flex-1">
+                          {desc}
+                        </p>
+                      </div>
                     )}
 
                     {ams.length > 0 && (
