@@ -244,8 +244,8 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
           totalPrice += dailyPrice;
         }
 
-        // Split revenue proportionally
-        if (dailyEntries.length > 0) {
+        // Split revenue proportionally — 保留單(hold)不計入營業額
+        if (dailyEntries.length > 0 && order.order_status !== 'hold') {
           const orderFinalPrice = Number(order.final_price) || 0;
           const totalOrderNights = Math.max(1, differenceInDays(checkOut, checkIn));
           const dailyShare = orderFinalPrice / totalOrderNights;
