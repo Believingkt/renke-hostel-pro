@@ -91,7 +91,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         supabase.from('orders')
           .select('id, check_in_date, check_out_date, room_type_id, final_price, meal_plan, order_status')
           .eq('accommodation_id', accommodationId)
-          .in('order_status', ['confirmed'])
+          .in('order_status', ['confirmed', 'hold'])
           .or(`check_in_date.lte.${endDate},check_out_date.gte.${startDate}`)
           .limit(5000),
         supabase.from('public_holidays')
@@ -244,8 +244,8 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
           totalPrice += dailyPrice;
         }
 
-        // Split revenue proportionally
-        if (dailyEntries.length > 0) {
+        // Split revenue proportionally — 保留單(hold)不計入營業額
+        if (dailyEntries.length > 0 && order.order_status !== 'hold') {
           const orderFinalPrice = Number(order.final_price) || 0;
           const totalOrderNights = Math.max(1, differenceInDays(checkOut, checkIn));
           const dailyShare = orderFinalPrice / totalOrderNights;
