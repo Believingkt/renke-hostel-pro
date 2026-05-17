@@ -254,6 +254,10 @@ export default function Reception() {
       toast({ title: "權限不足", description: "您沒有櫃檯接待的編輯權限", variant: "destructive" });
       return;
     }
+    if (action === "checkin" && o.payment_status !== "paid") {
+      toast({ title: "無法辦理入住", description: "請先結清才能辦理入住", variant: "destructive" });
+      return;
+    }
     setActingId(o.id);
     try {
       const patch: Record<string, string | null> = {};
