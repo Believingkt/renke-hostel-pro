@@ -25,10 +25,13 @@ interface AccommodationData {
 
 export default function VillaLanding() {
   const { accId } = useParams<{ accId: string }>();
+  const navigate = useNavigate();
   const heroRef = useRef<HTMLDivElement>(null);
   const [acc, setAcc] = useState<AccommodationData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isVisible, setIsVisible] = useState(false);
+  const [checkIn, setCheckIn] = useState("");
+  const [checkOut, setCheckOut] = useState("");
 
   const resolvedId = accId ?? "5f764d55-ae11-4631-80fe-2e611853deae";
 
