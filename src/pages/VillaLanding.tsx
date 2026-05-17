@@ -1,9 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { SEOHead } from "@/components/SEOHead";
 import heroImage from "/images/villa-landing-hero.jpg";
-import { ArrowDown, Calendar, MapPin, Users, Waves, Wind, Coffee, Bath, Wifi, Tv, UtensilsCrossed } from "lucide-react";
+import {
+  ArrowDown, Calendar, MapPin, Users, Waves, Wind, Coffee, Bath, Wifi, Tv, UtensilsCrossed,
+  MessageCircle, ArrowRight
+} from "lucide-react";
 import room1 from "/images/villa-room-1.jpg";
 import room2 from "/images/villa-room-2.jpg";
 import room3 from "/images/villa-room-3.jpg";
