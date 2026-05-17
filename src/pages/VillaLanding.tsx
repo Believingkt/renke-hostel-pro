@@ -88,6 +88,9 @@ export default function VillaLanding() {
   const [aboutFeatures, setAboutFeatures] = useState<AboutFeature[]>([]);
   const [aboutSection, setAboutSection] = useState<AboutSection | null>(null);
   const [packages, setPackages] = useState<Pkg[]>([]);
+  const [pricingByRoom, setPricingByRoom] = useState<
+    Record<string, { minPrice: number; remainingOnMinDay: number; availableNights: number }>
+  >({});
 
   const [isVisible, setIsVisible] = useState(false);
   const [checkIn, setCheckIn] = useState("");
