@@ -482,19 +482,70 @@ export default function VillaLanding() {
                       </div>
                     )}
 
+                    {/* 4 個核心設施 */}
+                    <div className="grid grid-cols-4 gap-2 border-t border-stone-100 pt-5">
+                      {[
+                        { Icon: BedDouble, label: rt.capacity ? `${rt.capacity} 人房` : "雙人床" },
+                        { Icon: Home, label: rt.size_sqm ? `${rt.size_sqm} 坪` : "獨立空間" },
+                        { Icon: Bath, label: "獨立衛浴" },
+                        { Icon: Wind, label: "冷暖空調" },
+                      ].map(({ Icon, label }) => (
+                        <div key={label} className="flex flex-col items-center gap-1.5 text-stone-500">
+                          <Icon className="h-5 w-5" strokeWidth={1.5} />
+                          <span className="text-[11px] tracking-wide text-center">{label}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* 完整設施 Collapsible */}
                     {ams.length > 0 && (
-                      <div className="mt-auto flex flex-wrap items-center gap-x-5 gap-y-3 border-t border-stone-100 pt-5">
-                        {ams.map((a) => {
-                          const Icon = pickAmenityIcon(a.amenity_name);
-                          return (
-                            <div key={a.amenity_name} className="flex items-center gap-1.5 text-stone-500">
-                              <Icon className="h-4 w-4" strokeWidth={1.5} />
-                              <span className="text-xs tracking-wide">{a.amenity_name}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
+                      <Collapsible>
+                        <CollapsibleTrigger className="group/cs flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600 transition self-end -mt-2">
+                          <span>+ 查看完整設施</span>
+                          <ChevronDown className="h-3 w-3 transition-transform group-data-[state=open]/cs:rotate-180" strokeWidth={1.5} />
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+                          <div className="flex flex-wrap gap-x-4 gap-y-2 pt-3">
+                            {ams.map((a) => {
+                              const Icon = pickAmenityIcon(a.amenity_name);
+                              return (
+                                <div key={a.amenity_name} className="flex items-center gap-1.5 text-stone-500">
+                                  <Icon className="h-3.5 w-3.5" strokeWidth={1.5} />
+                                  <span className="text-[11px] tracking-wide">{a.amenity_name}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
                     )}
+
+                    {/* 方案子卡片 */}
+                    <div className="mt-auto rounded-lg border border-stone-200 bg-stone-50/70 p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-stone-400 line-through">NT$ 6,800</span>
+                            <span className="rounded-full bg-[#FDF6F5] px-2 py-0.5 text-[10px] font-medium text-[#C25953]">
+                              限時優惠
+                            </span>
+                          </div>
+                          <div className="mt-1 flex items-baseline gap-1">
+                            <span className="text-xs text-stone-500">NT$</span>
+                            <span className="text-xl font-semibold text-[#A98467]" style={{ fontFamily: "'Noto Serif TC', serif" }}>
+                              5,200
+                            </span>
+                            <span className="text-xs text-stone-400">起 / 晚</span>
+                          </div>
+                        </div>
+                        <a
+                          href={`/booking/villa/${resolvedId}`}
+                          className="shrink-0 rounded-full bg-[#A98467] px-4 py-2.5 text-xs font-medium tracking-wider text-white shadow-sm transition-all duration-200 hover:bg-[#8d6b52] active:scale-95"
+                        >
+                          立即預訂
+                        </a>
+                      </div>
+                    </div>
                   </div>
                 </article>
               );
