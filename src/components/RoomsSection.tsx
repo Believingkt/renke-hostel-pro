@@ -249,83 +249,111 @@ const RoomCard = ({ room, isFirstRoom = false, sharedTemplateLabels, sharedHolid
         
         {room.description && <ExpandableDescription text={room.description} />}
         
-        <div className="flex flex-wrap items-center gap-2 mb-3 md:mb-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <Users className="h-4 w-4" />
-            <span>最多 {room.capacity} 人</span>
+        {/* Core facility summary (4 icons) */}
+        <div className="grid grid-cols-4 gap-2 mb-2 text-xs text-muted-foreground">
+          <div className="flex flex-col items-center gap-1 text-center">
+            <BedDouble className="h-5 w-5" strokeWidth={1.5} />
+            <span>{room.capacity} 人</span>
           </div>
-          {room.size_sqm > 0 && (
-            <div className="flex items-center gap-1">
-              <Home className="h-4 w-4" />
-              <span>{room.size_sqm} 坪</span>
-            </div>
-          )}
+          <div className="flex flex-col items-center gap-1 text-center">
+            <Home className="h-5 w-5" strokeWidth={1.5} />
+            <span>{room.size_sqm > 0 ? `${room.size_sqm} 坪` : '舒適'}</span>
+          </div>
+          <div className="flex flex-col items-center gap-1 text-center">
+            <Bath className="h-5 w-5" strokeWidth={1.5} />
+            <span>獨立衛浴</span>
+          </div>
+          <div className="flex flex-col items-center gap-1 text-center">
+            <Wind className="h-5 w-5" strokeWidth={1.5} />
+            <span>冷暖空調</span>
+          </div>
         </div>
 
-        {/* Room breakdown for exclusive packages */}
-        {roomBreakdown.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-3 md:mb-4">
-            {roomBreakdown.map(item => (
-              <span key={item.label} className="text-xs bg-secondary/50 text-secondary-foreground px-2 py-0.5 rounded-full">
-                {item.label} ×{item.count}
-              </span>
-            ))}
-          </div>
-        )}
-        
-        {/* Amenities */}
+        {/* Progressive disclosure: full amenity list */}
         {roomAmenities.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-3 md:mb-4">
-            {roomAmenities.slice(0, 6).map(amenity => (
-              <span key={amenity} className="text-xs bg-secondary/50 text-secondary-foreground px-2 py-0.5 rounded-full">
-                {amenity}
-              </span>
-            ))}
-            {roomAmenities.length > 6 && (
-              <span className="text-xs text-muted-foreground px-1">+{roomAmenities.length - 6}</span>
-            )}
-          </div>
+          <Collapsible className="mb-3 md:mb-4">
+            <div className="flex justify-end">
+              <CollapsibleTrigger className="group inline-flex items-center gap-1 text-xs text-muted-foreground/80 hover:text-primary transition-colors">
+                <span>+ 查看完整設施</span>
+                <ChevronDown className="h-3 w-3 transition-transform group-data-[state=open]:rotate-180" />
+              </CollapsibleTrigger>
+            </div>
+            <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
+              <div className="flex flex-wrap gap-1.5 pt-2">
+                {roomAmenities.map(amenity => (
+                  <span key={amenity} className="text-xs bg-secondary/50 text-secondary-foreground px-2 py-0.5 rounded-full">
+                    {amenity}
+                  </span>
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         )}
-        
-        {/* Price display */}
-        <div className="space-y-2 mb-4 md:mb-5 flex-grow">
+
+        {/* Plan sub-card */}
+        <div className="mt-auto border border-gray-200 bg-gray-50/70 rounded-lg p-3 md:p-4 space-y-3">
           {pricingRows.length > 0 ? (
-            <>
-              {pricingRows.map((row) => (
-                <div key={row.label} className="space-y-1">
-                  <div className="text-xs font-medium text-muted-foreground">{row.label}</div>
-                  <div className="flex items-center gap-2">
-                    {row.weekday != null && row.weekend != null && row.weekday !== row.weekend ? (
-                      <span className="text-sm font-bold text-primary">
-                        NT$ {row.weekday.toLocaleString()} ~ {row.weekend.toLocaleString()}
+            pricingRows.map((row) => {
+              const lowPrice = row.weekday ?? row.weekend ?? 0;
+              const highPrice = row.weekend ?? row.weekday ?? 0;
+              const hasRange = row.weekday != null && row.weekend != null && row.weekday !== row.weekend;
+              const lowRooms = room.room_count && room.room_count > 0 && room.room_count <= 3 ? room.room_count : null;
+              return (
+                <div key={row.label} className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-medium text-muted-foreground mb-1">{row.label}</div>
+                    <div className="flex items-baseline flex-wrap gap-x-2 gap-y-1">
+                      {hasRange && (
+                        <span className="text-xs text-gray-400 line-through">
+                          NT$ {highPrice.toLocaleString()}
+                        </span>
+                      )}
+                      <span className="text-lg md:text-xl font-bold" style={{ color: '#A98467' }}>
+                        NT$ {lowPrice.toLocaleString()}
                       </span>
-                    ) : (
-                      <span className="text-sm font-bold text-primary">
-                        NT$ {(row.weekday ?? row.weekend ?? 0).toLocaleString()}
-                      </span>
-                    )}
+                      <span className="text-[11px] text-muted-foreground">/晚起</span>
+                      {lowRooms && (
+                        <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-[#FDF6F5] text-[#C25953]">
+                          僅剩 {lowRooms} 間
+                        </span>
+                      )}
+                    </div>
                   </div>
+                  <Link to={`/booking?roomId=${room.id}&step=dates`} className="shrink-0">
+                    <Button
+                      className="w-full sm:w-auto text-primary-foreground rounded-lg h-9 md:h-10 px-4 font-medium text-sm transition-all duration-200 active:scale-95"
+                      style={{ backgroundColor: '#A98467' }}
+                    >
+                      立即預訂此方案
+                    </Button>
+                  </Link>
                 </div>
-              ))}
-            </>
+              );
+            })
           ) : (
-            <div className="text-sm text-muted-foreground">
-              {room.base_price > 0 ? (
-                <span className="font-bold text-primary">NT$ {room.base_price.toLocaleString()} 起</span>
-              ) : (
-                <span>請洽詢價格</span>
-              )}
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-medium text-muted-foreground mb-1">純住宿</div>
+                {room.base_price > 0 ? (
+                  <span className="text-lg md:text-xl font-bold" style={{ color: '#A98467' }}>
+                    NT$ {room.base_price.toLocaleString()} 起
+                  </span>
+                ) : (
+                  <span className="text-sm text-muted-foreground">請洽詢價格</span>
+                )}
+              </div>
+              <Link to={`/booking?roomId=${room.id}&step=dates`} className="shrink-0">
+                <Button
+                  className="w-full sm:w-auto text-primary-foreground rounded-lg h-9 md:h-10 px-4 font-medium text-sm transition-all duration-200 active:scale-95"
+                  style={{ backgroundColor: '#A98467' }}
+                >
+                  立即預訂此方案
+                </Button>
+              </Link>
             </div>
           )}
         </div>
 
-
-
-        <Link to={`/booking?roomId=${room.id}&step=dates`} className="mt-auto pt-4">
-          <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg h-9 md:h-10 font-medium text-sm md:text-base">
-            立即預訂
-          </Button>
-        </Link>
       </CardContent>
     </Card>
 
