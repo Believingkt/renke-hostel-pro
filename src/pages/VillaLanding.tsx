@@ -177,6 +177,39 @@ export default function VillaLanding() {
         </div>
       </section>
 
+      {/* ======================== PROMO BANNER ======================== */}
+      <section className="mx-auto max-w-6xl px-4 pt-16 sm:px-6 sm:pt-20">
+        <div className="reveal-on-scroll relative overflow-hidden rounded-2xl border border-stone-200/80 bg-[#F5F0EB] p-8 sm:p-12">
+          {/* Subtle decorative corner accents */}
+          <div className="absolute left-3 top-3 h-6 w-6 border-l border-t border-stone-300/60" />
+          <div className="absolute right-3 top-3 h-6 w-6 border-r border-t border-stone-300/60" />
+          <div className="absolute bottom-3 left-3 h-6 w-6 border-b border-l border-stone-300/60" />
+          <div className="absolute bottom-3 right-3 h-6 w-6 border-b border-r border-stone-300/60" />
+
+          <div className="relative flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
+            <div className="flex-1">
+              <p className="text-xs tracking-[0.25em] text-stone-400">SPECIAL PLAN</p>
+              <h3
+                className="mt-2 text-2xl font-semibold text-gray-800 sm:text-3xl"
+                style={{ fontFamily: "'Noto Serif TC', serif" }}
+              >
+                5月專屬：週五微假期
+              </h3>
+              <p className="mt-3 max-w-xl text-sm leading-relaxed text-stone-500 sm:text-base">
+                避開週末人潮，為自己多留一晚寧靜。現在預訂 5 月份週五入住，享專屬迎賓小點與提早入住服務。
+              </p>
+            </div>
+
+            <a
+              href={`/booking/villa/${resolvedId}?filter=friday`}
+              className="inline-flex shrink-0 items-center rounded-full border border-stone-400 px-7 py-3 text-sm font-medium tracking-wider text-stone-600 transition hover:bg-stone-700 hover:text-white hover:border-stone-700"
+            >
+              查看週五空房
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* ======================== ROOM TYPES ======================== */}
       <section className="mx-auto max-w-6xl px-4 pt-24 sm:px-6 sm:pt-28">
         <div className="text-center reveal-on-scroll">
