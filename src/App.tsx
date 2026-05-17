@@ -28,6 +28,7 @@ import HQAuth from "./pages/HQAuth";
 const BookingPortal = lazy(() => import("./pages/BookingPortal"));
 const BookingAccommodation = lazy(() => import("./pages/BookingAccommodation"));
 const BookingVilla = lazy(() => import("./pages/BookingVilla"));
+const VillaLanding = lazy(() => import("./pages/VillaLanding"));
 const MemberAuth = lazy(() => import("./pages/MemberAuth"));
 const MemberLayout = lazy(() => import("./components/member/MemberLayout"));
 const MemberProfile = lazy(() => import("./pages/MemberProfile"));
@@ -106,6 +107,9 @@ function App() {
                     } />
                     <Route path="booking/villa/:accId" element={
                       <Suspense fallback={<FrontendSkeleton />}><BookingVilla /></Suspense>
+                    } />
+                    <Route path="villa/:accId" element={
+                      <Suspense fallback={<FrontendSkeleton />}><VillaLanding /></Suspense>
                     } />
                     <Route path="booking/:accId" element={
                       <Suspense fallback={<FrontendSkeleton />}><BookingAccommodation /></Suspense>

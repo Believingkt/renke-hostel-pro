@@ -106,6 +106,17 @@ All colors MUST be HSL.
     --chart-occupancy-bg: 45 93% 95%;
   }
 
+  /* Japandi Villa Landing – reveal on scroll */
+  .reveal-on-scroll {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+  }
+  .reveal-on-scroll.revealed {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
   /* 天頌幸福和苑 - 焦糖色與奶油白主題 */
   .theme-warm {
     --background: 36 32% 96%;
