@@ -567,37 +567,43 @@ export default function VillaLanding() {
       </footer>
 
       {/* ======================== STICKY BOOKING BAR ======================== */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-stone-200/80 bg-white/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4">
-          <div className="flex flex-1 items-center gap-2 sm:gap-3">
-            <div className="flex flex-1 flex-col gap-1">
+      {/* Mobile target height ~76px (incl. border + safe-area). */}
+      <div
+        className="fixed bottom-0 left-0 right-0 z-50 border-t border-stone-200/80 bg-white/85 backdrop-blur-md"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+      >
+        <div className="mx-auto flex max-w-5xl items-center gap-2 px-3 py-2 sm:gap-4 sm:px-6 sm:py-4">
+          <div className="flex flex-1 items-center gap-1.5 sm:gap-3">
+            {/* 入住 */}
+            <div className="flex flex-1 flex-col gap-0.5 sm:gap-1">
               <label className="text-[10px] font-medium tracking-wider text-stone-400 sm:text-xs">
-                入住日期
+                入住
               </label>
               <div className="relative">
-                <Calendar className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-stone-400" />
+                <Calendar className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-stone-400" />
                 <input
                   type="date"
                   value={checkIn}
                   onChange={(e) => setCheckIn(e.target.value)}
-                  className="w-full rounded-lg border border-stone-200 bg-white py-2 pl-8 pr-2 text-base text-gray-800 outline-none transition focus:border-[#A98467] focus:ring-1 focus:ring-[#A98467]/20 sm:text-sm"
+                  className="w-full rounded-lg border border-stone-200 bg-white py-1.5 pl-7 pr-1 text-base text-gray-800 outline-none transition focus:border-[#A98467] focus:ring-1 focus:ring-[#A98467]/20 sm:py-2 sm:pl-8 sm:pr-2 sm:text-sm"
                 />
               </div>
             </div>
 
-            <ArrowRight className="mt-4 h-4 w-4 shrink-0 text-stone-300" />
+            <ArrowRight className="mt-4 hidden h-4 w-4 shrink-0 text-stone-300 sm:block" />
 
-            <div className="flex flex-1 flex-col gap-1">
+            {/* 退房 */}
+            <div className="flex flex-1 flex-col gap-0.5 sm:gap-1">
               <label className="text-[10px] font-medium tracking-wider text-stone-400 sm:text-xs">
-                退房日期
+                退房
               </label>
               <div className="relative">
-                <Calendar className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-stone-400" />
+                <Calendar className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-stone-400" />
                 <input
                   type="date"
                   value={checkOut}
                   onChange={(e) => setCheckOut(e.target.value)}
-                  className="w-full rounded-lg border border-stone-200 bg-white py-2 pl-8 pr-2 text-base text-gray-800 outline-none transition focus:border-[#A98467] focus:ring-1 focus:ring-[#A98467]/20 sm:text-sm"
+                  className="w-full rounded-lg border border-stone-200 bg-white py-1.5 pl-7 pr-1 text-base text-gray-800 outline-none transition focus:border-[#A98467] focus:ring-1 focus:ring-[#A98467]/20 sm:py-2 sm:pl-8 sm:pr-2 sm:text-sm"
                 />
               </div>
             </div>
@@ -611,25 +617,31 @@ export default function VillaLanding() {
               const qs = params.toString();
               navigate(`/booking/villa/${resolvedId}${qs ? `?${qs}` : ""}`);
             }}
-            className="shrink-0 rounded-xl px-5 py-3 text-sm font-medium tracking-wider text-white shadow-md transition hover:shadow-lg active:scale-[0.98] sm:px-8 sm:py-3.5 sm:text-base"
-            style={{ backgroundColor: "#A98467" }}
+            className="shrink-0 rounded-xl px-3.5 py-2.5 text-sm font-medium tracking-wider text-white shadow-md transition hover:shadow-lg active:scale-[0.98] sm:px-8 sm:py-3.5 sm:text-base"
+            style={{ backgroundColor: "#A98467", minHeight: "44px" }}
             onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#95755a"; }}
             onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "#A98467"; }}
           >
-            規劃我的假期
+            <span className="sm:hidden">預訂</span>
+            <span className="hidden sm:inline">規劃我的假期</span>
           </button>
         </div>
       </div>
 
       {/* ======================== FLOATING CONTACT BUTTON ======================== */}
+      {/* 必須在 sticky bar 上方：手機 bar 約 76px + 安全區 + 12px 間距 */}
       {acc?.line_id && (
         <a
           href={lineHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="group fixed bottom-[5.5rem] right-4 z-[60] flex items-center gap-2 overflow-hidden rounded-full bg-[#7D9B76] pl-4 pr-4 text-white shadow-lg transition-all duration-500 hover:pr-5 sm:bottom-24 sm:right-6"
-          style={{ height: "48px" }}
-          aria-label="聯絡管家"
+          className="group fixed right-4 z-[60] flex items-center gap-2 overflow-hidden rounded-full bg-[#7D9B76] pl-3.5 pr-3.5 text-white shadow-lg transition-all duration-500 hover:pr-5 sm:right-6"
+          style={{
+            bottom: "calc(env(safe-area-inset-bottom, 0px) + 88px)",
+            minHeight: "48px",
+            minWidth: "48px",
+          }}
+          aria-label="聯絡管家 LINE"
         >
           <MessageCircle className="h-5 w-5 shrink-0" />
           <span className="max-w-0 overflow-hidden whitespace-nowrap text-sm font-medium transition-all duration-500 group-hover:max-w-[16rem] group-hover:pr-1">
