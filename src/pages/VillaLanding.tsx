@@ -95,6 +95,7 @@ export default function VillaLanding() {
   const [isVisible, setIsVisible] = useState(false);
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
+  const [guestCount, setGuestCount] = useState(2);
 
   const [introExpanded, setIntroExpanded] = useState(false);
   const [introNeedsExpand, setIntroNeedsExpand] = useState(false);
