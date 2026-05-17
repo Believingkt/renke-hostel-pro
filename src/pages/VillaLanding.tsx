@@ -475,6 +475,7 @@ export default function VillaLanding() {
               const img = firstPhotoOf(rt.id);
               const ams = amenitiesOf(rt.id);
               const desc = (rt.description ?? "").split("\n").filter(Boolean)[0] ?? "";
+              const pricing = pricingByRoom[rt.id];
               return (
                 <article
                   key={rt.id}
