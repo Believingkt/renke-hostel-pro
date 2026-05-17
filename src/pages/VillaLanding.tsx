@@ -31,15 +31,14 @@ export default function VillaLanding() {
     let cancelled = false;
     async function fetchAcc() {
       setIsLoading(true);
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("accommodations")
         .select("id,name,description,image_url,region")
         .eq("id", resolvedId)
         .single();
       if (!cancelled) {
-        if (data && !error) setAcc(data);
+        if (data && !error) setAcc(data as AccommodationData);
         setIsLoading(false);
-        // trigger entrance animation
         setTimeout(() => setIsVisible(true), 100);
       }
     }
