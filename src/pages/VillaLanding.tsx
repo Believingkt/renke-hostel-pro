@@ -374,7 +374,10 @@ export default function VillaLanding() {
             </p>
           </div>
 
-          <div className="mt-14 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+          <div
+            className="mt-14 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-8"
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+          >
             {roomTypes.map((rt, i) => {
               const img = firstPhotoOf(rt.id);
               const ams = amenitiesOf(rt.id);
@@ -382,7 +385,7 @@ export default function VillaLanding() {
               return (
                 <article
                   key={rt.id}
-                  className="reveal-on-scroll group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-stone-100 transition hover:shadow-md"
+                  className="reveal-on-scroll group flex min-w-[85vw] snap-start flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-stone-100 transition hover:shadow-md sm:min-w-0"
                   style={{ transitionDelay: `${i * 100}ms` }}
                 >
                   <div className="aspect-[4/3] w-full overflow-hidden bg-stone-100">
