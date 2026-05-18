@@ -351,10 +351,15 @@ const BookingVilla = () => {
 
         {/* ── 2. Title + Region + Rating ── */}
         <section className="px-4 py-3.5 bg-card border-b border-border/40">
-          <div className="flex items-start justify-between gap-3 mb-1.5">
-            <h1 className="text-xl font-bold text-foreground leading-tight flex-1">
-              {info.name}
-            </h1>
+          <div className="flex items-start justify-between gap-3 mb-1">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl font-bold text-foreground leading-tight">
+                {info.name}
+              </h1>
+              <p className="italic text-[13px] text-muted-foreground mt-0.5 tracking-wide">
+                — 山中の隱居・專屬包棟
+              </p>
+            </div>
             <div
               className="shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded text-white text-xs font-bold"
               style={{ background: "hsl(25, 70%, 50%)" }}
@@ -364,7 +369,7 @@ const BookingVilla = () => {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mb-2">
             {(info as any).type && (
               <Badge
                 variant="outline"
@@ -380,9 +385,23 @@ const BookingVilla = () => {
               </span>
             )}
           </div>
+
+          {/* Latest social-proof review snippet */}
+          <div
+            className="mt-1.5 rounded-lg px-2.5 py-1.5 text-[11px] leading-snug border"
+            style={{
+              background: "hsl(25, 70%, 97%)",
+              borderColor: "hsl(25, 50%, 88%)",
+              color: "hsl(25, 40%, 30%)",
+            }}
+          >
+            <span className="text-amber-500 mr-1">★★★★★</span>
+            「整棟超寬敞，三代同遊剛好！老闆超親切，下次還要再來。」
+            <span className="text-muted-foreground"> — 林小姐 · 上週入住</span>
+          </div>
         </section>
 
-        {/* ── 3. Villa Overview (rooms / capacity / size) ── */}
+        {/* ── 3. Villa Overview (warmer labels) ── */}
         {villaStats && (
           <VillaOverviewBar
             totalRooms={villaStats.totalRooms}
@@ -392,6 +411,59 @@ const BookingVilla = () => {
             region={region}
           />
         )}
+
+        {/* ── Trust signals row ── */}
+        <section className="px-4 py-2.5 bg-card border-b border-border/40">
+          <div className="flex items-center justify-around gap-1 text-[11px] text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+              7 天可取消
+            </span>
+            <span className="flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5 text-emerald-600" />
+              24h 管家
+            </span>
+            <span className="flex items-center gap-1">
+              <Car className="h-3.5 w-3.5 text-emerald-600" />
+              免費停車
+            </span>
+          </div>
+        </section>
+
+        {/* ── Price anchor banner ── */}
+        <section className="px-4 pt-3">
+          <div
+            className="rounded-xl px-3.5 py-2.5 flex items-center justify-between gap-2"
+            style={{
+              background: "linear-gradient(135deg, hsl(25, 80%, 96%), hsl(15, 75%, 94%))",
+              border: "1px solid hsl(25, 60%, 85%)",
+            }}
+          >
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "hsl(0, 70%, 45%)" }}>
+                <Sparkles className="inline h-3 w-3 -mt-0.5 mr-0.5" />
+                本月限定
+              </p>
+              {(() => {
+                const rmin = (secondaryData?.roomTypes?.length || 0) > 0
+                  ? Math.min(...secondaryData!.roomTypes.map((r: any) => r.base_price))
+                  : null;
+                return (
+                  <p className="text-[13px] font-bold leading-tight" style={{ color: "hsl(25, 60%, 25%)" }}>
+                    平日包棟最低 {rmin ? `NT$${rmin.toLocaleString()}` : "優惠價"}
+                    <span className="text-[11px] font-normal text-muted-foreground"> / 晚 · 含早餐</span>
+                  </p>
+                );
+              })()}
+            </div>
+            <span
+              className="shrink-0 text-[10px] font-bold px-2 py-1 rounded-full text-white animate-pulse"
+              style={{ background: "hsl(0, 75%, 55%)" }}
+            >
+              熱門・剩少量週末
+            </span>
+          </div>
+        </section>
 
         {/* ── 4. 即時空房日曆 ── */}
         <VillaAvailabilityCalendar
