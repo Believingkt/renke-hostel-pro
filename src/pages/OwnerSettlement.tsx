@@ -325,21 +325,6 @@ export default function OwnerSettlement() {
             value={totals.totalRevenue}
             tone="income"
           />
-          <BreakdownRow
-            icon={Utensils}
-            label="餐飲費用"
-            sublabel="不計入平台服務費基礎"
-            value={-totals.totalFood}
-            tone="neutral"
-            indent
-          />
-          <BreakdownRow
-            icon={Wallet}
-            label="訂單金額（房費）"
-            sublabel="入住營收 − 餐飲費用"
-            value={totals.totalCommissionable}
-            tone="subtotal"
-          />
 
           <div className="h-px bg-border my-2" />
 
