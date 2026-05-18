@@ -261,7 +261,6 @@ export default function OwnerSettlement() {
         const platformTotal = totals.totalCommission + totals.marketingFee;
         const ownerPct = Math.max(0, Math.min(100, (totals.ownerNet / totals.totalRevenue) * 100));
         const platformPct = Math.max(0, Math.min(100, (platformTotal / totals.totalRevenue) * 100));
-        const foodPct = Math.max(0, 100 - ownerPct - platformPct);
         return (
           <Card>
             <CardHeader className="pb-3">
@@ -272,9 +271,6 @@ export default function OwnerSettlement() {
               <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted">
                 <div className="bg-primary" style={{ width: `${ownerPct}%` }} title={`業主淨收益 ${ownerPct.toFixed(1)}%`} />
                 <div className="bg-muted-foreground/40" style={{ width: `${platformPct}%` }} title={`平台費用 ${platformPct.toFixed(1)}%`} />
-                {foodPct > 0 && (
-                  <div className="bg-muted-foreground/15" style={{ width: `${foodPct}%` }} title={`餐飲費用 ${foodPct.toFixed(1)}%`} />
-                )}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
