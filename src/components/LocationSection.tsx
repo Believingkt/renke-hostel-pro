@@ -165,8 +165,35 @@ const LocationSection = ({ address, locationInfo, customTitle, customSubtitle }:
           {hasNearbyAttractions && (
             <Card className="hover:shadow-lg transition-all duration-300 border border-border/50 bg-card">
               <CardContent className="p-5 md:p-6">
-                <h3 className="text-lg md:text-xl font-semibold mb-5 md:mb-6 text-foreground">周邊景點</h3>
-                <div className="grid md:grid-cols-3 gap-6 md:gap-8">
+                <div className="flex items-center justify-between mb-4 md:mb-6">
+                  <h3 className="text-lg md:text-xl font-semibold text-foreground">周邊景點</h3>
+                  <span className="md:hidden text-xs text-muted-foreground">← 滑動查看 →</span>
+                </div>
+
+                {/* 手機版：水平滑動卡片 */}
+                <div className="md:hidden -mx-5 px-5 flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2" style={{ scrollbarWidth: "none" }}>
+                  {nearbyAttractions.map((attraction, index) => {
+                    const isLong = attraction.description.length > ATTRACTION_DESCRIPTION_THRESHOLD;
+                    const short = isLong
+                      ? attraction.description.slice(0, 80) + "…"
+                      : attraction.description;
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => setSelectedAttraction(attraction)}
+                        className="snap-start flex-shrink-0 w-[78%] text-left p-4 rounded-2xl border border-border/50 bg-card hover:border-primary/40 transition-colors"
+                      >
+                        <h4 className="font-semibold text-sm mb-1 text-foreground line-clamp-1">{attraction.name}</h4>
+                        <p className="text-xs text-primary mb-2">{attraction.distance}</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">{short}</p>
+                        <span className="inline-block mt-3 text-xs text-primary font-medium">查看詳情 →</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* 桌面版：原本網格 */}
+                <div className="hidden md:grid md:grid-cols-3 gap-6 md:gap-8">
                   {nearbyAttractions.map((attraction, index) => {
                     const isLongDescription = attraction.description.length > ATTRACTION_DESCRIPTION_THRESHOLD;
                     const displayDescription = isLongDescription
@@ -177,7 +204,7 @@ const LocationSection = ({ address, locationInfo, customTitle, customSubtitle }:
                       <div key={index} className="flex flex-col">
                         <h4 className="font-semibold text-base md:text-lg mb-2 text-foreground">{attraction.name}</h4>
                         <p className="text-xs md:text-sm text-muted-foreground mb-2">{attraction.distance}</p>
-                        <p 
+                        <p
                           className="text-xs md:text-sm text-muted-foreground leading-relaxed flex-1"
                           style={{ maxHeight: isLongDescription ? '120px' : 'none', overflow: 'hidden' }}
                         >
