@@ -58,6 +58,7 @@ interface EditOrderDialogProps {
     deposit_payment_method: string;
     balance_payment_method: string;
     deposit_amount: number;
+    paid_amount: number;
     notes: string;
     check_in_date: string;
     check_out_date: string;
