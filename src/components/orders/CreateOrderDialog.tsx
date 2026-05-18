@@ -279,15 +279,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         setPricingTemplates(templatesResult.data);
       }
 
-      const { data: bs } = await supabase
-        .from("booking_settings")
-        .select("use_deposit, deposit_percentage")
-        .eq("accommodation_id", currentAccommodationId)
-        .maybeSingle();
-      if (bs) {
-        setUseDeposit(bs.use_deposit !== false);
-        setDepositPct(bs.deposit_percentage ?? 30);
-      }
+      // booking_settings deposit flags ignored: full payment is now required.
     };
 
     fetchData();
