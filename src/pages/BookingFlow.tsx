@@ -2051,6 +2051,17 @@ const BookingFlow = () => {
       return;
     }
 
+    // 人數上限驗證（避免提交後才被資料庫 trigger 擋下）
+    const roomCapacity = (selectedRoom as any)?.capacity ?? (selectedRoom as any)?.max_guests ?? 0;
+    if (roomCapacity && totalGuests > roomCapacity) {
+      toast({
+        title: "入住人數超過房型上限",
+        description: `本房型最多可入住 ${roomCapacity} 人，您目前選擇 ${totalGuests} 人，請調整人數或改選其他房型`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (isSubmitting) {
       return; // 防止重複提交
     }
