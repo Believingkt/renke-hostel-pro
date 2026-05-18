@@ -1963,6 +1963,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                 ...form,
                 balance_paid: value === "paid",
                 deposit_paid: value === "paid" || value === "deposit_paid",
+                // 已付清：自動清空訂金欄位（後端會視為全付）
+                ...(value === "paid" ? { deposit_amount: 0 } : {}),
               })}
             >
               <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
@@ -1978,18 +1980,23 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         )}
       </div>
 
-      {form.balance_payment_method === "bank_transfer" && (
+      {form.balance_payment_method === "bank_transfer" && !form.balance_paid && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-lg border border-border p-4 bg-muted/30">
           <div className="space-y-2">
             <Label>訂金金額（NT$）</Label>
             <Input
               type="number"
               min={0}
-              max={totals.final}
+              max={Math.floor(totals.final / 2)}
               value={form.deposit_amount}
-              onChange={(e) => setForm({ ...form, deposit_amount: Number(e.target.value) || 0 })}
+              onChange={(e) => {
+                const v = Number(e.target.value) || 0;
+                const capped = Math.max(0, Math.min(v, Math.floor(totals.final / 2)));
+                setForm({ ...form, deposit_amount: capped });
+              }}
               className="h-12 text-base sm:h-10 sm:text-sm"
             />
+            <p className="text-xs text-muted-foreground">上限 NT$ {Math.floor(totals.final / 2).toLocaleString()}（須 ≤ 尾款）</p>
           </div>
           <div className="space-y-2">
             <Label>尾款金額（NT$）</Label>
