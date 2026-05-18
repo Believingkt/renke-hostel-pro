@@ -374,15 +374,6 @@ export default function AtmBookingSuccess() {
             {order.atm_expire_at && (
               <AtmDeadlineAlert expireAt={order.atm_expire_at} />
             )}
-            {!atmActive && !order.atm_expire_at && (
-              <Alert className="mb-4 border-primary/30 bg-primary/5">
-                <Info className="h-4 w-4" />
-                <AlertTitle className="text-sm">請取得此訂單的 ATM 虛擬帳號</AlertTitle>
-                <AlertDescription className="text-xs">
-                  系統會自動指派銀行代碼並開立專屬虛擬帳號，僅可用於本筆訂單。
-                </AlertDescription>
-              </Alert>
-            )}
             <AtmPaymentPanel
               orderId={order.id}
               orderNumber={order.order_number}
