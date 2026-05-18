@@ -569,16 +569,21 @@ const PriceCard = ({
         className="w-full text-left p-3.5 flex items-start gap-3 hover:bg-muted/30 transition-colors"
       >
         <div
-          className="shrink-0 w-14 h-14 rounded-xl flex flex-col items-center justify-center"
+          className="shrink-0 w-16 h-16 rounded-2xl flex flex-col items-center justify-center shadow-sm"
           style={{
             background: `linear-gradient(135deg, ${accentBgLight}, ${accentBgMid})`,
           }}
+          aria-label={`${opt.guestCount} 人・${scene.label}`}
         >
-          <Users className="h-4 w-4 mb-0.5" style={{ color: accentColor }} />
-          <span className="font-bold text-base leading-none" style={{ color: accentText }}>
-            {opt.guestCount}
+          <span className="text-xl leading-none mb-0.5" aria-hidden>
+            {scene.emoji}
           </span>
-          <span className="text-[9px] mt-0.5" style={{ color: accentText }}>人</span>
+          <span className="font-black text-base leading-none" style={{ color: accentText }}>
+            {opt.guestCount}<span className="text-[10px] font-bold ml-0.5">人</span>
+          </span>
+          <span className="text-[9px] mt-0.5 font-medium" style={{ color: accentText }}>
+            {scene.label}
+          </span>
         </div>
 
         <div className="flex-1 min-w-0">
