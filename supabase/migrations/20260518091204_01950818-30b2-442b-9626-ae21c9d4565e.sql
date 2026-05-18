@@ -1,0 +1,1 @@
+DELETE FROM public.orders WHERE order_number IN ('NV5Y39G6','BM7W79H5');
