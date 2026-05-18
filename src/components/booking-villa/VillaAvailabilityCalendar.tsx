@@ -24,6 +24,7 @@ interface Props {
   accommodationId: string;
   selectedDate?: Date | null;
   onSelectDate?: (date: Date) => void;
+  onAvailabilityComputed?: (dates: Set<string>) => void;
 }
 
 /**
@@ -34,7 +35,7 @@ interface Props {
  *  - 其他: 任一房型有空即開啟
  * 只顯示「是否可訂」(綠/灰)，不顯示價格。
  */
-const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate }: Props) => {
+const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate, onAvailabilityComputed }: Props) => {
   const [monthOffset, setMonthOffset] = useState(0);
   const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
   const [hasInventory, setHasInventory] = useState<boolean | null>(null);
@@ -170,6 +171,7 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
       if (!cancelled) {
         setAvailableDates(available);
         setHasInventory(true);
+        onAvailabilityComputed?.(available);
       }
     };
 
