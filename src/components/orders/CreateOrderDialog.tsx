@@ -182,6 +182,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     balance_payment_method: "",
     deposit_paid: false,
     balance_paid: false,
+    deposit_amount: 0,
     notes: "",
     order_source: "",
     security_deposit_method: "cash" as "cash" | "card",
