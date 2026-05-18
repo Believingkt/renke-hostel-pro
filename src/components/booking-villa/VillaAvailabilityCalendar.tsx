@@ -171,6 +171,7 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
       if (!cancelled) {
         setAvailableDates(available);
         setHasInventory(true);
+        onAvailabilityComputed?.(available);
       }
     };
 
