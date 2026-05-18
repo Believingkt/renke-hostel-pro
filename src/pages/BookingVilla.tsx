@@ -450,7 +450,7 @@ const BookingVilla = () => {
           </div>
         </section>
 
-        {/* ── Price anchor banner（依未來 30 天實際空房） ── */}
+        {/* ── Price anchor banner（依未來 30 天實際空房 · 促銷風格） ── */}
         {(() => {
           if (!availableDateSet) return null;
           const today = new Date();
@@ -464,38 +464,75 @@ const BookingVilla = () => {
             })
             .sort();
           if (upcoming.length === 0) return null;
-          const earliest = upcoming[0];
-          const earliestDate = new Date(earliest + "T00:00:00");
-          const rmin = (secondaryData?.roomTypes?.length || 0) > 0
-            ? Math.min(...secondaryData!.roomTypes.map((r: any) => r.base_price))
-            : null;
-          const isFew = upcoming.length <= 5;
+          const earliestStr = availEarliestDate && upcoming.includes(availEarliestDate)
+            ? availEarliestDate
+            : upcoming[0];
+          const earliestDate = new Date(earliestStr + "T00:00:00");
+          const daysUntil = Math.max(
+            0,
+            Math.round((earliestDate.getTime() - today.getTime()) / 86400000),
+          );
+          const price = availMinPrice ?? (
+            (secondaryData?.roomTypes?.length || 0) > 0
+              ? (() => {
+                  const ps = secondaryData!.roomTypes
+                    .map((r: any) => r.base_price)
+                    .filter((p: number) => typeof p === "number" && p > 0);
+                  return ps.length ? Math.min(...ps) : null;
+                })()
+              : null
+          );
+          const isHot = upcoming.length <= 7;
+          const weekdayLabel = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"][earliestDate.getDay()];
           return (
             <section className="px-4 pt-3">
               <div
-                className="rounded-xl px-3.5 py-2.5 flex items-center justify-between gap-2"
+                className="relative overflow-hidden rounded-xl px-3.5 py-2.5 flex items-center justify-between gap-3 shadow-sm"
                 style={{
-                  background: "linear-gradient(135deg, hsl(25, 80%, 96%), hsl(15, 75%, 94%))",
-                  border: "1px solid hsl(25, 60%, 85%)",
+                  background:
+                    "linear-gradient(115deg, hsl(12, 90%, 55%) 0%, hsl(20, 95%, 58%) 55%, hsl(35, 95%, 60%) 100%)",
+                  border: "1px solid hsl(15, 80%, 50%)",
                 }}
               >
-                <div className="min-w-0">
-                  <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "hsl(0, 70%, 45%)" }}>
-                    <Sparkles className="inline h-3 w-3 -mt-0.5 mr-0.5" />
-                    近期可訂
-                  </p>
-                  <p className="text-[13px] font-bold leading-tight" style={{ color: "hsl(25, 60%, 25%)" }}>
-                    最快 {format(earliestDate, "M/d")} 可入住
-                    {rmin ? ` · NT$${rmin.toLocaleString()} 起` : ""}
-                    <span className="text-[11px] font-normal text-muted-foreground"> / 晚</span>
+                {/* shimmer */}
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 opacity-40"
+                  style={{
+                    background:
+                      "linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent)",
+                    animation: "villaShimmer 2.6s linear infinite",
+                  }}
+                />
+                <style>{`@keyframes villaShimmer{0%{transform:translateX(0)}100%{transform:translateX(500%)}}`}</style>
+
+                <div className="min-w-0 relative">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-extrabold tracking-wider px-1.5 py-0.5 rounded bg-white/95 text-[hsl(0,80%,45%)]">
+                      <Sparkles className="h-3 w-3" />
+                      限時
+                    </span>
+                    <span className="text-[10px] font-semibold text-white/95">
+                      30 天內僅剩 <span className="font-extrabold">{upcoming.length}</span> 天可訂
+                    </span>
+                  </div>
+                  <p className="text-[13px] font-bold leading-tight text-white drop-shadow-sm">
+                    最快 {format(earliestDate, "M/d")}（{weekdayLabel}）
+                    {daysUntil === 0 ? "・今天" : daysUntil <= 3 ? `・${daysUntil} 天後` : ""}
+                    {price ? (
+                      <>
+                        {" · "}
+                        <span className="text-white">NT$</span>
+                        <span className="text-[15px]">{price.toLocaleString()}</span>
+                        <span className="text-[11px] font-normal text-white/90"> 起 / 晚</span>
+                      </>
+                    ) : null}
                   </p>
                 </div>
-                {isFew && (
-                  <span
-                    className="shrink-0 text-[10px] font-bold px-2 py-1 rounded-full text-white animate-pulse"
-                    style={{ background: "hsl(0, 75%, 55%)" }}
-                  >
-                    剩 {upcoming.length} 天
+
+                {isHot && (
+                  <span className="relative shrink-0 inline-flex items-center gap-1 text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-white text-[hsl(0,80%,45%)] shadow animate-pulse">
+                    🔥 熱訂中
                   </span>
                 )}
               </div>
@@ -507,7 +544,11 @@ const BookingVilla = () => {
         <VillaAvailabilityCalendar
           accommodationId={info.id}
           selectedDate={checkIn}
-          onAvailabilityComputed={setAvailableDateSet}
+          onAvailabilityComputed={({ dates, minPrice, earliestDate }) => {
+            setAvailableDateSet(dates);
+            setAvailMinPrice(minPrice);
+            setAvailEarliestDate(earliestDate);
+          }}
           onSelectDate={(d) => {
             const next = new Date(d);
             next.setDate(next.getDate() + 1);
