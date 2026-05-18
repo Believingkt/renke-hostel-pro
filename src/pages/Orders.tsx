@@ -631,7 +631,7 @@ const Orders = () => {
                       {
                         icon: CreditCard,
                         title: "追蹤付款",
-                        description: "管理訂金、尾款和付款狀態，掌握現金流。"
+                        description: "管理付款狀態與付款方式，掌握現金流。"
                       },
                       {
                         icon: Package,
