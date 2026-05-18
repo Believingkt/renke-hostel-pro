@@ -271,6 +271,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         selected_addons: selectedAddons,
         deposit_paid: depositPaid,
         balance_paid: balancePaid,
+        deposit_amount: (order as any).deposit_amount || 0,
         guest_name: order.guest_name,
         guest_phone: order.guest_phone,
         guest_email: order.guest_email || "",
