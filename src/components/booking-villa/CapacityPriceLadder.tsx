@@ -295,239 +295,215 @@ const CapacityPriceLadder = ({
         </Popover>
       </div>
 
-      {/* ── A. 人數 chips 選擇器 + B. 選定方案詳情 ── */}
+      {/* ── 手風琴：所有人數方案，預設全部收起 ── */}
       {(() => {
         const allTiers = [...currentTiers].sort((a, b) => a.guestCount - b.guestCount);
         if (allTiers.length === 0) return null;
 
-        const defaultGuest =
-          (matchedGuestCount && allTiers.find((t) => t.guestCount === matchedGuestCount)?.guestCount) ??
-          recommendedGuestCount ??
-          allTiers[0].guestCount;
-        const activeGuest =
-          (selectedGuest && allTiers.find((t) => t.guestCount === selectedGuest)?.guestCount) ??
-          defaultGuest;
-
-        const selectedTier = allTiers.find((t) => t.guestCount === activeGuest) ?? allTiers[0];
-        const opt = buildOption(selectedTier, selectedTier.guestCount === recommendedGuestCount);
-        const saved = opt.originalPrice - opt.totalPrice;
-        const perPerson = Math.round(opt.totalPrice / opt.guestCount / safeNights);
-        const scene = getGuestScene(selectedTier.guestCount);
-
-        const weekendSame = PRICING_TABLE.weekend.find((t) => t.guestCount === selectedTier.guestCount);
-        const holidayDiff =
-          activeTier !== "weekend" && weekendSame ? weekendSame.sale - selectedTier.sale : 0;
-
-        const yesItems = (selectedTier.includes || []).filter((i) => i.available === "yes");
-
         return (
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             <div className="flex items-baseline justify-between px-1">
-              <p className="text-[13px] font-bold text-foreground">你們是幾位入住？</p>
-              <p className="text-[10px] text-muted-foreground">點選人數查看方案</p>
+              <p className="text-[13px] font-bold text-foreground">選擇人數方案</p>
+              <p className="text-[10px] text-muted-foreground">點擊展開查看細節</p>
             </div>
 
-            <div className="-mx-4 px-4 overflow-x-auto scrollbar-hide">
-              <div className="flex gap-2 pb-1.5 pt-2">
-                {allTiers.map((t) => {
-                  const isActive = t.guestCount === activeGuest;
-                  const tScene = getGuestScene(t.guestCount);
-                  const tPerPerson = Math.round(t.sale / t.guestCount);
-                  const isFew = !!t.isFewPeople;
-                  const isRec = t.guestCount === recommendedGuestCount;
-                  return (
+            <div className="space-y-2">
+              {allTiers.map((t) => {
+                const key = `${activeTier}-${t.guestCount}-${t.planName ?? ""}`;
+                const isOpen = expandedKey === key;
+                const opt = buildOption(t, t.guestCount === recommendedGuestCount);
+                const saved = opt.originalPrice - opt.totalPrice;
+                const perPerson = Math.round(opt.totalPrice / opt.guestCount / safeNights);
+                const scene = getGuestScene(t.guestCount);
+                const isFew = !!t.isFewPeople;
+                const isRec = t.guestCount === recommendedGuestCount;
+                const yesItems = (t.includes || []).filter((i) => i.available === "yes");
+
+                return (
+                  <Card
+                    key={key}
+                    className={cn(
+                      "overflow-hidden border-border/60 transition-all",
+                      isOpen && "border-[hsl(25,75%,52%)] shadow-md"
+                    )}
+                  >
+                    {/* 收起時的列（永遠顯示） */}
                     <button
-                      key={t.guestCount}
                       type="button"
-                      onClick={() => {
-                        setSelectedGuest(t.guestCount);
-                        setShowDetails(false);
-                      }}
-                      className={cn(
-                        "relative shrink-0 w-[88px] py-2.5 px-2 rounded-2xl border-2 transition-all text-center",
-                        isActive
-                          ? "border-[hsl(25,75%,52%)] shadow-md scale-[1.02]"
-                          : "border-border/60 bg-card hover:border-border"
-                      )}
-                      style={
-                        isActive
-                          ? { background: "linear-gradient(135deg, hsl(25,70%,97%), hsl(35,75%,94%))" }
-                          : undefined
-                      }
+                      onClick={() => setExpandedKey(isOpen ? null : key)}
+                      className="w-full flex items-center gap-3 px-3.5 py-3 text-left hover:bg-muted/30 transition-colors"
                     >
-                      {(isFew || isRec) && (
-                        <span
-                          className="absolute -top-1.5 left-1/2 -translate-x-1/2 text-[9px] font-bold px-1.5 py-px rounded-full text-white leading-none whitespace-nowrap"
-                          style={{ background: isFew ? "hsl(0,75%,52%)" : "hsl(25,75%,52%)" }}
-                        >
-                          {isFew ? "早鳥" : "最划算"}
-                        </span>
-                      )}
-                      <div className="text-xl leading-none mb-1" aria-hidden>{tScene.emoji}</div>
-                      <div className="font-black text-foreground leading-none">
-                        {t.guestCount}<span className="text-[10px] font-bold ml-0.5">人</span>
-                      </div>
-                      <div className="text-[9px] text-muted-foreground mt-1 leading-none">
-                        {tScene.label}
-                      </div>
                       <div
-                        className="text-[10px] font-bold mt-1 tabular-nums leading-none"
-                        style={{ color: isActive ? "hsl(25,75%,40%)" : "hsl(var(--muted-foreground))" }}
+                        className="shrink-0 w-12 h-12 rounded-xl flex flex-col items-center justify-center"
+                        style={{
+                          background: isFew
+                            ? "linear-gradient(135deg, hsl(0,75%,96%), hsl(0,75%,90%))"
+                            : "linear-gradient(135deg, hsl(25,70%,96%), hsl(35,75%,92%))",
+                        }}
+                        aria-hidden
                       >
-                        ${tPerPerson.toLocaleString()}<span className="font-normal">/人</span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <Card className="overflow-hidden border-border/60 shadow-sm">
-              <div
-                className="px-4 py-3.5 border-b border-border/50"
-                style={{ background: "linear-gradient(135deg, hsl(25,70%,97%), hsl(35,75%,95%))" }}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      <span className="text-lg" aria-hidden>{scene.emoji}</span>
-                      <p className="font-bold text-foreground text-[15px]">
-                        {selectedTier.planName || `${opt.guestCount} 人${TERM}`}
-                      </p>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground">
-                      {scene.label} · {selectedTier.roomAllocation}
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    {opt.originalPrice > opt.totalPrice && (
-                      <p className="text-[10px] line-through text-muted-foreground tabular-nums">
-                        NT${opt.originalPrice.toLocaleString()}
-                      </p>
-                    )}
-                    <p className="font-black text-xl leading-none tabular-nums" style={{ color: "hsl(0,75%,50%)" }}>
-                      ${opt.totalPrice.toLocaleString()}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
-                      {nights > 1 ? `${nights} 晚總價` : "/ 晚"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-2.5 flex items-center justify-between gap-2 text-[11px]">
-                  <span className="flex items-center gap-1" style={{ color: "hsl(25,75%,38%)" }}>
-                    <Users className="h-3 w-3" />
-                    平均每人 <span className="font-bold mx-0.5">${perPerson.toLocaleString()}</span>/晚
-                  </span>
-                  {saved > 0 && (
-                    <span
-                      className="font-bold px-2 py-0.5 rounded-full text-white tabular-nums text-[10px]"
-                      style={{ background: "hsl(0,75%,52%)" }}
-                    >
-                      省 ${saved.toLocaleString()}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {(yesItems.length > 0 || PLAN_INCLUDES.length > 0) && (
-                <div className="px-4 py-2.5 border-b border-border/50 bg-muted/10">
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <Sparkles className="h-3 w-3" style={{ color: "hsl(140,40%,35%)" }} />
-                    <p className="text-[11px] font-semibold text-foreground">方案已含</p>
-                  </div>
-                  <div className="flex flex-wrap gap-x-3 gap-y-1">
-                    {(yesItems.length > 0
-                      ? yesItems.map((i) => ({ label: i.text }))
-                      : PLAN_INCLUDES
-                    )
-                      .slice(0, 6)
-                      .map((item, i) => (
-                        <span key={i} className="inline-flex items-center gap-1 text-[11px] text-foreground">
-                          <Check className="h-3 w-3" style={{ color: "hsl(140,50%,35%)" }} />
-                          {item.label}
+                        <span className="text-lg leading-none">{scene.emoji}</span>
+                        <span
+                          className="font-black text-[13px] leading-none mt-0.5"
+                          style={{ color: isFew ? "hsl(0,75%,40%)" : "hsl(25,75%,38%)" }}
+                        >
+                          {t.guestCount}人
                         </span>
-                      ))}
-                  </div>
-                </div>
-              )}
+                      </div>
 
-              <div className="px-4 py-3">
-                <button
-                  type="button"
-                  onClick={() => onSelect(opt)}
-                  className="w-full h-12 rounded-full text-white font-bold text-[14px] shadow-md active:scale-[0.98] transition-transform inline-flex items-center justify-center gap-1.5"
-                  style={{ background: "linear-gradient(135deg, hsl(25,75%,52%), hsl(15,78%,48%))" }}
-                >
-                  就選這個方案
-                  <ChevronRight className="h-4 w-4" />
-                </button>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                          <p className="font-bold text-[14px] text-foreground line-clamp-1">
+                            {t.planName || `${t.guestCount} 人${TERM}`}
+                          </p>
+                          {isFew && (
+                            <span
+                              className="text-[9px] font-bold px-1.5 py-px rounded text-white leading-none"
+                              style={{ background: "hsl(0,75%,52%)" }}
+                            >
+                              早鳥
+                            </span>
+                          )}
+                          {isRec && !isFew && (
+                            <span
+                              className="text-[9px] font-bold px-1.5 py-px rounded text-white leading-none"
+                              style={{ background: "hsl(25,75%,52%)" }}
+                            >
+                              最划算
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground line-clamp-1">
+                          {scene.label} · 平均每人 ${perPerson.toLocaleString()}/晚
+                        </p>
+                      </div>
 
-                {(selectedTier.childCountMax || selectedTier.childAgeNote) && (
-                  <div className="mt-2.5 space-y-1">
-                    {(selectedTier.childCountMax || selectedTier.childAgeNote) && (
-                      <p className="text-[10.5px] text-muted-foreground flex items-center gap-1">
-                        <Baby className="h-3 w-3" />
-                        {selectedTier.childCountMax ? `可加 ${selectedTier.childCountMax} 位兒童` : ""}
-                        {selectedTier.childCountMax && selectedTier.childAgeNote ? " · " : ""}
-                        {selectedTier.childAgeNote || ""}
-                      </p>
+                      <div className="text-right shrink-0">
+                        {opt.originalPrice > opt.totalPrice && (
+                          <p className="text-[10px] line-through text-muted-foreground tabular-nums leading-none">
+                            ${opt.originalPrice.toLocaleString()}
+                          </p>
+                        )}
+                        <p
+                          className="font-black text-[16px] leading-tight tabular-nums"
+                          style={{ color: "hsl(0,75%,50%)" }}
+                        >
+                          ${opt.totalPrice.toLocaleString()}
+                        </p>
+                        <p className="text-[9.5px] text-muted-foreground leading-none">
+                          {nights > 1 ? `${nights} 晚` : "/ 晚"}
+                        </p>
+                      </div>
+
+                      <ChevronDown
+                        className={cn(
+                          "shrink-0 h-4 w-4 text-muted-foreground transition-transform",
+                          isOpen && "rotate-180"
+                        )}
+                      />
+                    </button>
+
+                    {/* 展開後的詳情 */}
+                    {isOpen && (
+                      <div className="border-t border-border/50 bg-muted/10">
+                        {saved > 0 && (
+                          <div className="px-4 pt-3 -mb-1">
+                            <span
+                              className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full text-white tabular-nums"
+                              style={{ background: "hsl(0,75%,52%)" }}
+                            >
+                              省 ${saved.toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="px-4 py-3 space-y-2.5">
+                          <div>
+                            <p className="text-[11px] text-muted-foreground mb-1 flex items-center gap-1">
+                              <BedDouble className="h-3 w-3" /> 房型分配
+                            </p>
+                            <p className="text-[12.5px] text-foreground">{t.roomAllocation}</p>
+                          </div>
+
+                          {yesItems.length > 0 && (
+                            <div>
+                              <p className="text-[11px] text-muted-foreground mb-1 flex items-center gap-1">
+                                <Sparkles className="h-3 w-3" style={{ color: "hsl(140,40%,35%)" }} />
+                                方案已含
+                              </p>
+                              <div className="flex flex-wrap gap-x-3 gap-y-1">
+                                {yesItems.map((i, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="inline-flex items-center gap-1 text-[11.5px] text-foreground"
+                                  >
+                                    <Check className="h-3 w-3" style={{ color: "hsl(140,50%,35%)" }} />
+                                    {i.text}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {(t.includes || []).some((i) => i.available !== "yes") && (
+                            <div>
+                              <p className="text-[11px] text-muted-foreground mb-1">附加說明</p>
+                              <ul className="space-y-1">
+                                {(t.includes || [])
+                                  .filter((i) => i.available !== "yes")
+                                  .map((inc, i) => {
+                                    const Icon = inc.available === "no" ? X : Plus;
+                                    const color =
+                                      inc.available === "no" ? "hsl(0,60%,55%)" : "hsl(25,70%,45%)";
+                                    const textCls =
+                                      inc.available === "no"
+                                        ? "text-muted-foreground line-through"
+                                        : "text-foreground";
+                                    return (
+                                      <li key={i} className="flex items-start gap-1.5">
+                                        <Icon className="h-3 w-3 mt-0.5 shrink-0" style={{ color }} />
+                                        <span className={`text-[11.5px] leading-tight ${textCls}`}>
+                                          {inc.text}
+                                          {inc.price_note && (
+                                            <span className="text-muted-foreground ml-1">
+                                              ({inc.price_note})
+                                            </span>
+                                          )}
+                                        </span>
+                                      </li>
+                                    );
+                                  })}
+                              </ul>
+                            </div>
+                          )}
+
+                          {(t.childCountMax || t.childAgeNote) && (
+                            <p className="text-[10.5px] text-muted-foreground flex items-center gap-1">
+                              <Baby className="h-3 w-3" />
+                              {t.childCountMax ? `可加 ${t.childCountMax} 位兒童` : ""}
+                              {t.childCountMax && t.childAgeNote ? " · " : ""}
+                              {t.childAgeNote || ""}
+                            </p>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => onSelect(opt)}
+                            className="w-full h-11 rounded-full text-white font-bold text-[14px] shadow-md active:scale-[0.98] transition-transform inline-flex items-center justify-center gap-1.5 mt-1"
+                            style={{
+                              background: "linear-gradient(135deg, hsl(25,75%,52%), hsl(15,78%,48%))",
+                            }}
+                          >
+                            就選這個方案
+                            <ChevronRight className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
                     )}
-                  </div>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => setShowDetails((v) => !v)}
-                  className="w-full mt-2.5 py-1.5 text-[11px] text-muted-foreground hover:text-foreground flex items-center justify-center gap-1"
-                >
-                  {showDetails ? "收合" : "查看完整方案明細"}
-                  <ChevronDown className={cn("h-3 w-3 transition-transform", showDetails && "rotate-180")} />
-                </button>
-              </div>
-
-              {showDetails && (
-                <div className="border-t border-border/50 bg-muted/10 px-4 py-3 space-y-2.5">
-                  <div>
-                    <p className="text-[11px] text-muted-foreground mb-1 flex items-center gap-1">
-                      <BedDouble className="h-3 w-3" /> 房型分配
-                    </p>
-                    <p className="text-[12.5px] text-foreground">{selectedTier.roomAllocation}</p>
-                  </div>
-                  {(selectedTier.includes || []).length > 0 && (
-                    <div>
-                      <p className="text-[11px] text-muted-foreground mb-1">附加說明</p>
-                      <ul className="space-y-1">
-                        {(selectedTier.includes || []).map((inc, i) => {
-                          const Icon = inc.available === "yes" ? Check : inc.available === "no" ? X : Plus;
-                          const color =
-                            inc.available === "yes"
-                              ? "hsl(140,50%,35%)"
-                              : inc.available === "no"
-                                ? "hsl(0,60%,55%)"
-                                : "hsl(25,70%,45%)";
-                          const textCls =
-                            inc.available === "no"
-                              ? "text-muted-foreground line-through"
-                              : "text-foreground";
-                          return (
-                            <li key={i} className="flex items-start gap-1.5">
-                              <Icon className="h-3 w-3 mt-0.5 shrink-0" style={{ color }} />
-                              <span className={`text-[11.5px] leading-tight ${textCls}`}>
-                                {inc.text}
-                                {inc.price_note && (
-                                  <span className="text-muted-foreground ml-1">({inc.price_note})</span>
-                                )}
-                              </span>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
-            </Card>
+                  </Card>
+                );
+              })}
+            </div>
 
             {showDisabledFewPeopleNote && (
               <div className="flex items-center gap-1.5 px-1 text-[10.5px] text-muted-foreground">
