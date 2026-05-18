@@ -751,16 +751,18 @@ const WebsiteContent = () => {
               name?: string;
               distance?: string;
               description?: string;
+              image_url?: string;
             }>;
             setNearbyAttractions(
               typedAttractions.map(a => ({
                 name: a.name || "",
                 distance: a.distance || "",
-                description: a.description || ""
+                description: a.description || "",
+                image_url: a.image_url || ""
               }))
             );
           } else {
-            setNearbyAttractions([{ name: "", distance: "", description: "" }]);
+            setNearbyAttractions([{ name: "", distance: "", description: "", image_url: "" }]);
           }
         }
 
