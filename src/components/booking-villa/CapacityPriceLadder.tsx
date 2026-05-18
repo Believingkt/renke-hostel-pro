@@ -318,7 +318,7 @@ const CapacityPriceLadder = ({
         const holidayDiff =
           activeTier !== "weekend" && weekendSame ? weekendSame.sale - selectedTier.sale : 0;
 
-        const yesItems = (selectedTier.includes || []).filter((i) => i.available !== "no");
+        const yesItems = (selectedTier.includes || []).filter((i) => i.available === "yes");
 
         return (
           <div className="space-y-3">
