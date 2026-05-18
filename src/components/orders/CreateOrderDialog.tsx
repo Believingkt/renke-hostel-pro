@@ -819,22 +819,14 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         }
       }
 
-      const depositAmount = useDeposit ? Math.round(totals.final * (depositPct / 100)) : 0;
-      const balanceAmount = totals.final - depositAmount;
+      const depositAmount = 0;
+      const balanceAmount = totals.final;
 
       let paymentStatus = "unpaid";
       let paidAmount = 0;
-      if (!useDeposit) {
-        if (form.balance_paid) {
-          paymentStatus = "paid";
-          paidAmount = totals.final;
-        }
-      } else if (form.deposit_paid && form.balance_paid) {
+      if (form.balance_paid) {
         paymentStatus = "paid";
         paidAmount = totals.final;
-      } else if (form.deposit_paid) {
-        paymentStatus = "deposit_paid";
-        paidAmount = depositAmount;
       }
 
       const { data: orderNumber, error: orderNumberError } = await supabase.rpc('generate_order_number');
