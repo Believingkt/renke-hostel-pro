@@ -1,9 +1,15 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Car, Bus } from "lucide-react";
+import { MapPin, Car, Bus, Navigation } from "lucide-react";
 import { createSanitizedHtml } from "@/utils/sanitizeHtml";
 import EmptySectionPlaceholder from "./EmptySectionPlaceholder";
 import { Button } from "@/components/ui/button";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import {
   Dialog,
   DialogContent,
