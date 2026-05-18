@@ -66,7 +66,7 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
 
       const { data: inventoryRows } = await supabase
         .from("room_inventory_pricing")
-        .select("date, is_available, room_type_id")
+        .select("date, is_available, room_type_id, price")
         .in(
           "room_type_id",
           roomTypes.map((r) => r.id),
