@@ -24,6 +24,7 @@ interface Props {
   accommodationId: string;
   selectedDate?: Date | null;
   onSelectDate?: (date: Date) => void;
+  onAvailabilityComputed?: (dates: Set<string>) => void;
 }
 
 /**
