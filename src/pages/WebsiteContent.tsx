@@ -1671,7 +1671,7 @@ const WebsiteContent = () => {
         driving_info: drivingInfo,
         public_transport_info: publicTransportInfo,
         nearby_attractions: nearbyAttractions.filter(
-          a => a.name || a.distance || a.description
+          a => a.name || a.distance || a.description || a.image_url
         ) as any, // 轉換為 Json 類型
       };
 
