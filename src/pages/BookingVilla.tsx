@@ -660,7 +660,7 @@ const BookingVilla = () => {
 
       {/* ── Sticky Bottom Action Bar (mobile-first) ── */}
       <div
-        className="fixed left-0 right-0 z-[60] bg-white/95 backdrop-blur border-t border-border px-4 py-2.5 sm:hidden"
+        className={`fixed left-0 right-0 z-[60] bg-white/95 backdrop-blur border-t border-border px-4 py-2.5 sm:hidden transition-transform duration-300 ${bottomBarHidden ? "translate-y-full" : "translate-y-0"}`}
         style={{ bottom: "calc(64px + env(safe-area-inset-bottom))", paddingBottom: "0.625rem" }}
       >
         <div className="flex items-center gap-3">
