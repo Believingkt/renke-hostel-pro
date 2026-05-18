@@ -1098,36 +1098,15 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>付款狀態</Label>
-              <Select 
-                value={editForm.balance_paid ? "paid" : "unpaid"} 
-                onValueChange={(value) => {
-                  const isPaid = value === "paid";
-                  setEditForm({
-                    ...editForm, 
-                    balance_paid: isPaid,
-                    deposit_paid: isPaid,
-                  });
-                }}
-              >
-                <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unpaid">未付款</SelectItem>
-                  <SelectItem value="paid">已付款</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
               <Label>付款方式</Label>
-              <Select 
-                value={editForm.balance_payment_method} 
+              <Select
+                value={editForm.balance_payment_method}
                 onValueChange={(value) => setEditForm({
-                  ...editForm, 
+                  ...editForm,
                   balance_payment_method: value,
                   deposit_payment_method: value,
+                  // 切回非匯款：清掉訂金欄位與訂金狀態
+                  ...(value !== "bank_transfer" ? { deposit_paid: false, deposit_amount: 0 } : {}),
                 })}
               >
                 <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
@@ -1137,12 +1116,97 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
                   <SelectItem value="credit_card">信用卡</SelectItem>
                   <SelectItem value="line_pay">LINE Pay</SelectItem>
                   <SelectItem value="atm">ATM 虛擬帳號</SelectItem>
+                  <SelectItem value="bank_transfer">匯款</SelectItem>
                   <SelectItem value="cash">現金</SelectItem>
                   <SelectItem value="monthly">月結</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            {editForm.balance_payment_method !== "bank_transfer" ? (
+              <div className="space-y-2">
+                <Label>付款狀態</Label>
+                <Select
+                  value={editForm.balance_paid ? "paid" : "unpaid"}
+                  onValueChange={(value) => {
+                    const isPaid = value === "paid";
+                    setEditForm({
+                      ...editForm,
+                      balance_paid: isPaid,
+                      deposit_paid: isPaid,
+                    });
+                  }}
+                >
+                  <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unpaid">未付款</SelectItem>
+                    <SelectItem value="paid">已付款</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>付款狀態</Label>
+                <Select
+                  value={editForm.balance_paid ? "paid" : editForm.deposit_paid ? "deposit_paid" : "unpaid"}
+                  onValueChange={(value) => setEditForm({
+                    ...editForm,
+                    balance_paid: value === "paid",
+                    deposit_paid: value === "paid" || value === "deposit_paid",
+                    ...(value === "paid" ? { deposit_amount: 0 } : {}),
+                  })}
+                >
+                  <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unpaid">未付款</SelectItem>
+                    <SelectItem value="deposit_paid">已付訂金</SelectItem>
+                    <SelectItem value="paid">已付清</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
+
+          {editForm.balance_payment_method === "bank_transfer" && !editForm.balance_paid && (() => {
+            const totalFinal = (() => {
+              const t = manualTotalPriceStr !== null ? Math.max(0, parseInt(manualTotalPriceStr) || 0) : (order?.final_price || 0);
+              return t;
+            })();
+            const maxDep = Math.floor(((order?.final_price) || totalFinal) / 2);
+            return (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-lg border border-border p-4 bg-muted/30">
+                <div className="space-y-2">
+                  <Label>訂金金額（NT$）</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={maxDep}
+                    value={editForm.deposit_amount}
+                    onChange={(e) => {
+                      const v = Math.max(0, Math.min(Number(e.target.value) || 0, maxDep));
+                      setEditForm({ ...editForm, deposit_amount: v });
+                    }}
+                    className="h-12 text-base sm:h-10 sm:text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground">上限 NT$ {maxDep.toLocaleString()}（須 ≤ 尾款）</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>尾款金額（NT$）</Label>
+                  <Input
+                    type="number"
+                    value={Math.max(0, (order?.final_price || 0) - (editForm.deposit_amount || 0))}
+                    readOnly
+                    disabled
+                    className="h-12 text-base sm:h-10 sm:text-sm bg-muted"
+                  />
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="space-y-2">
             <Label>備註</Label>
