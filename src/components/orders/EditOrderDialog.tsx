@@ -986,8 +986,13 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
             const effectiveTotal = manualTotalPriceStr !== null ? Math.max(0, parseInt(manualTotalPriceStr) || 0) : calculatedPrice.total;
             const effectiveDiscount = manualDiscountStr !== null ? Math.max(0, parseInt(manualDiscountStr) || 0) : calculatedPrice.discount;
             const totalFinal = Math.max(0, effectiveTotal - effectiveDiscount + addonTotal);
-            const depositAmount = useDeposit ? Math.round(totalFinal * (depositPct / 100)) : 0;
-            const balanceAmount = totalFinal - depositAmount;
+            const isBankTransfer = editForm.balance_payment_method === "bank_transfer";
+            // 匯款：使用 editForm.deposit_amount；其他付款方式：沿用 useDeposit 百分比
+            const depositAmount = isBankTransfer
+              ? Math.min(Number(editForm.deposit_amount) || 0, totalFinal)
+              : (useDeposit ? Math.round(totalFinal * (depositPct / 100)) : 0);
+            const balanceAmount = Math.max(0, totalFinal - depositAmount);
+            const showSplit = isBankTransfer ? depositAmount > 0 : useDeposit;
             
             return (
             <div className="space-y-2 pt-4 border-t">
@@ -1028,30 +1033,56 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
               </div>
               
               {/* Deposit and Balance Display */}
-              <div className="space-y-2 pt-2">
-                {useDeposit && (
+              {showSplit && (
+                <div className="space-y-2 pt-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">訂金 ({depositPct}%)</span>
+                    <span className="text-sm text-muted-foreground">
+                      {isBankTransfer ? "訂金" : `訂金 (${depositPct}%)`}
+                    </span>
                     <span className={cn(
                       "font-medium",
                       editForm.deposit_paid && "line-through text-muted-foreground"
                     )}>
                       NT$ {depositAmount.toLocaleString()}
-                      {editForm.deposit_paid && <span className="ml-2 text-primary no-underline">已付</span>}
+                      <span className={cn(
+                        "ml-2 text-xs no-underline",
+                        editForm.deposit_paid ? "text-primary" : "text-destructive"
+                      )}>
+                        {editForm.deposit_paid ? "已付" : "未付"}
+                      </span>
                     </span>
                   </div>
-                )}
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">{useDeposit ? `尾款 (${100 - depositPct}%)` : "應付金額"}</span>
-                  <span className={cn(
-                    "font-medium",
-                    editForm.balance_paid && "line-through text-muted-foreground"
-                  )}>
-                    NT$ {balanceAmount.toLocaleString()}
-                    {editForm.balance_paid && <span className="ml-2 text-primary no-underline">已付</span>}
-                  </span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">
+                      {isBankTransfer ? "尾款" : `尾款 (${100 - depositPct}%)`}
+                    </span>
+                    <span className={cn(
+                      "font-medium",
+                      editForm.balance_paid && "line-through text-muted-foreground"
+                    )}>
+                      NT$ {balanceAmount.toLocaleString()}
+                      <span className={cn(
+                        "ml-2 text-xs no-underline",
+                        editForm.balance_paid ? "text-primary" : "text-destructive"
+                      )}>
+                        {editForm.balance_paid ? "已付" : "未付"}
+                      </span>
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center pt-1 border-t border-dashed">
+                    <span className="text-xs text-muted-foreground">已付金額</span>
+                    <span className="text-sm font-semibold text-primary">
+                      NT$ {((editForm.balance_paid ? totalFinal : (editForm.deposit_paid ? depositAmount : 0))).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">待付金額</span>
+                    <span className="text-sm font-semibold text-destructive">
+                      NT$ {Math.max(0, totalFinal - (editForm.balance_paid ? totalFinal : (editForm.deposit_paid ? depositAmount : 0))).toLocaleString()}
+                    </span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
             );
           })()}
