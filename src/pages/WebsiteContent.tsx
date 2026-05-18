@@ -2189,6 +2189,37 @@ const WebsiteContent = () => {
     setNearbyAttractions(updated);
   };
 
+  const handleAttractionImageUpload = async (
+    index: number,
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    if (!accommodationId || !event.target.files || event.target.files.length === 0) return;
+    const file = event.target.files[0];
+    const validation = validateImageFile(file, 10 * 1024 * 1024);
+    if (!validation.valid) {
+      toast.error(validation.error || '檔案格式不符');
+      event.target.value = '';
+      return;
+    }
+    try {
+      const { blob } = await compressImage(file, { maxWidth: 1200, maxHeight: 900, quality: 0.85 });
+      const fileName = `attraction-${Date.now()}-${index}.webp`;
+      const filePath = `${accommodationId}/attractions/${fileName}`;
+      const { error: uploadError } = await supabase.storage
+        .from('room-photos')
+        .upload(filePath, blob, { contentType: 'image/webp', cacheControl: '3600' });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from('room-photos').getPublicUrl(filePath);
+      handleAttractionChange(index, 'image_url', publicUrl);
+      toast.success('景點照片已上傳，記得儲存變更');
+    } catch (err) {
+      if (import.meta.env.DEV) console.error('Upload attraction image failed', err);
+      toast.error('景點照片上傳失敗');
+    } finally {
+      event.target.value = '';
+    }
+  };
+
   // Gallery handlers
   const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!accommodationId || !event.target.files || event.target.files.length === 0) {
