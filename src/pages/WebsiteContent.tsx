@@ -4133,6 +4133,51 @@ const WebsiteContent = () => {
                               className="touch-manipulation"
                             />
                           </div>
+
+                          <div className="space-y-2">
+                            <Label>景點照片</Label>
+                            <div className="flex items-start gap-3">
+                              {attraction.image_url ? (
+                                <div className="relative w-28 h-20 rounded-md overflow-hidden border border-border bg-muted flex-shrink-0">
+                                  <img src={attraction.image_url} alt={attraction.name || '景點照片'} className="w-full h-full object-cover" />
+                                </div>
+                              ) : (
+                                <div className="w-28 h-20 rounded-md border border-dashed border-border bg-muted/40 flex items-center justify-center text-xs text-muted-foreground flex-shrink-0">
+                                  尚無照片
+                                </div>
+                              )}
+                              <div className="flex flex-col gap-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => document.getElementById(`attraction-img-${index}`)?.click()}
+                                  className="h-10 sm:h-9 touch-manipulation"
+                                >
+                                  <Upload className="h-4 w-4 mr-1.5" />
+                                  {attraction.image_url ? '更換照片' : '上傳照片'}
+                                </Button>
+                                {attraction.image_url && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost-destructive"
+                                    size="sm"
+                                    onClick={() => handleAttractionChange(index, 'image_url', '')}
+                                    className="h-9 touch-manipulation"
+                                  >
+                                    移除照片
+                                  </Button>
+                                )}
+                                <input
+                                  id={`attraction-img-${index}`}
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => handleAttractionImageUpload(index, e)}
+                                />
+                              </div>
+                            </div>
+                          </div>
                         </div>
 
                         {nearbyAttractions.length > 1 && (
