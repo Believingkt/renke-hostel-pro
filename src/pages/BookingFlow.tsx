@@ -2051,6 +2051,17 @@ const BookingFlow = () => {
       return;
     }
 
+    // 人數上限驗證（避免提交後才被資料庫 trigger 擋下）
+    const roomCapacity = (selectedRoom as any)?.capacity ?? (selectedRoom as any)?.max_guests ?? 0;
+    if (roomCapacity && totalGuests > roomCapacity) {
+      toast({
+        title: "入住人數超過房型上限",
+        description: `本房型最多可入住 ${roomCapacity} 人，您目前選擇 ${totalGuests} 人，請調整人數或改選其他房型`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (isSubmitting) {
       return; // 防止重複提交
     }
@@ -2740,11 +2751,25 @@ const BookingFlow = () => {
         nights: calculateNights(),
       });
       setBookingSuccess(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating order:", error);
+      // 兼容 PostgrestError / Error / 任意物件，盡可能顯示具體原因
+      let description = "發生錯誤，請稍後再試或聯絡我們";
+      const raw = error?.message || error?.error_description || error?.hint || error?.details;
+      if (raw && typeof raw === "string") {
+        const lower = raw.toLowerCase();
+        if (lower.includes("exceeds room capacity")) {
+          const m = raw.match(/\((\d+)\).*\((\d+)\)/);
+          description = m
+            ? `入住人數 ${m[1]} 人超過房型上限（最多 ${m[2]} 人），請調整人數或選擇其他房型`
+            : raw;
+        } else {
+          description = raw;
+        }
+      }
       toast({
         title: "訂房失敗",
-        description: error instanceof Error ? error.message : "發生錯誤，請稍後再試或聯絡我們",
+        description,
         variant: "destructive",
       });
       setIsSubmitting(false); // 失敗時恢復按鈕狀態
