@@ -154,6 +154,39 @@ async function resolveRatePlan(supabase: any, accId: string, code: string): Prom
   return data ?? null;
 }
 
+// Bulk resolvers — single round-trip for many codes (avoids N+1 in
+// OTA_HotelAvailNotifRQ / OTA_HotelRateAmountNotifRQ which can carry 17+ messages)
+async function bulkResolveRoomTypes(
+  supabase: any, accId: string, codes: string[],
+): Promise<Map<string, { id: string; name: string }>> {
+  const map = new Map<string, { id: string; name: string }>();
+  const nums = [...new Set(codes.map((c) => parseInt(c, 10)).filter(Number.isFinite))];
+  if (nums.length === 0) return map;
+  const { data } = await supabase
+    .from("room_types")
+    .select("id,name,numeric_code")
+    .eq("accommodation_id", accId)
+    .in("numeric_code", nums);
+  for (const r of data ?? []) map.set(String(r.numeric_code), { id: r.id, name: r.name });
+  return map;
+}
+async function bulkResolveRatePlans(
+  supabase: any, accId: string, codes: string[],
+): Promise<Map<string, { id: string; template_name: string; room_type_id: string | null }>> {
+  const map = new Map<string, { id: string; template_name: string; room_type_id: string | null }>();
+  const nums = [...new Set(codes.map((c) => parseInt(c, 10)).filter(Number.isFinite))];
+  if (nums.length === 0) return map;
+  const { data } = await supabase
+    .from("pricing_templates")
+    .select("id,template_name,room_type_id,numeric_code")
+    .eq("accommodation_id", accId)
+    .in("numeric_code", nums);
+  for (const r of data ?? []) {
+    map.set(String(r.numeric_code), { id: r.id, template_name: r.template_name, room_type_id: r.room_type_id });
+  }
+  return map;
+}
+
 async function logCm(
   supabase: any,
   direction: "inbound" | "outbound",
