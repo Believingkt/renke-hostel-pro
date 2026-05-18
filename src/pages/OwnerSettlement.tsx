@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { MonthPicker } from "@/components/ui/month-picker";
-import { Banknote, TrendingUp, Utensils, Percent, Megaphone, Wallet, CalendarClock, ArrowRight, Info, Globe, CreditCard, Headphones, Sparkles, Megaphone as MegaphoneIcon, ShieldCheck, Calendar as CalendarIcon, Bot, ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
+import { Banknote, TrendingUp, Percent, Megaphone, Wallet, CalendarClock, ArrowRight, Info, Globe, CreditCard, Headphones, Sparkles, Megaphone as MegaphoneIcon, ShieldCheck, Calendar as CalendarIcon, Bot, ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format, startOfMonth, endOfMonth, addDays, differenceInDays, parseISO, addMonths } from "date-fns";
 import { zhTW } from "date-fns/locale";
@@ -164,30 +164,9 @@ export default function OwnerSettlement() {
 
         const ratio = nightsInMonth / totalNights;
 
-        // 餐飲費用：優先 meal_plan_total / meal_plan_details, 否則用價差
-        let foodTotal = 0;
-        if (o.meal_plan_total && o.meal_plan_total > 0) {
-          foodTotal = Number(o.meal_plan_total);
-        } else if (Array.isArray(o.meal_plan_details)) {
-          foodTotal = (o.meal_plan_details as any[]).reduce(
-            (s, d) => s + (Number(d.total) || 0),
-            0
-          );
-        } else if (o.room_type_id && (o.meal_plan === "2_meals" || o.meal_plan === "3_meals")) {
-          const rt = rtMap.get(o.room_type_id);
-          if (rt) {
-            const mealPrice =
-              o.meal_plan === "3_meals" ? rt.price_3_meals : rt.price_2_meals;
-            if (mealPrice && mealPrice > rt.base_price) {
-              foodTotal = (mealPrice - rt.base_price) * totalNights;
-            }
-          }
-        }
-
         const monthFinal = Number(o.final_price || 0) * ratio;
-        const monthFood = foodTotal * ratio;
         const monthDiscount = Number(o.discount_amount || 0) * ratio;
-        const monthCommissionable = Math.max(0, monthFinal - monthFood);
+        const monthCommissionable = monthFinal;
 
         const exempt = !!o.owner_direct;
         const commission = exempt
@@ -200,7 +179,7 @@ export default function OwnerSettlement() {
           totalNights,
           monthRatio: ratio,
           monthFinal,
-          monthFood,
+          monthFood: 0,
           monthDiscount,
           monthCommissionable,
           commission,
@@ -282,7 +261,6 @@ export default function OwnerSettlement() {
         const platformTotal = totals.totalCommission + totals.marketingFee;
         const ownerPct = Math.max(0, Math.min(100, (totals.ownerNet / totals.totalRevenue) * 100));
         const platformPct = Math.max(0, Math.min(100, (platformTotal / totals.totalRevenue) * 100));
-        const foodPct = Math.max(0, 100 - ownerPct - platformPct);
         return (
           <Card>
             <CardHeader className="pb-3">
@@ -293,9 +271,6 @@ export default function OwnerSettlement() {
               <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted">
                 <div className="bg-primary" style={{ width: `${ownerPct}%` }} title={`業主淨收益 ${ownerPct.toFixed(1)}%`} />
                 <div className="bg-muted-foreground/40" style={{ width: `${platformPct}%` }} title={`平台費用 ${platformPct.toFixed(1)}%`} />
-                {foodPct > 0 && (
-                  <div className="bg-muted-foreground/15" style={{ width: `${foodPct}%` }} title={`餐飲費用 ${foodPct.toFixed(1)}%`} />
-                )}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
@@ -349,21 +324,6 @@ export default function OwnerSettlement() {
             sublabel="本月所有訂單依夜數攤分"
             value={totals.totalRevenue}
             tone="income"
-          />
-          <BreakdownRow
-            icon={Utensils}
-            label="餐飲費用"
-            sublabel="不計入平台服務費基礎"
-            value={-totals.totalFood}
-            tone="neutral"
-            indent
-          />
-          <BreakdownRow
-            icon={Wallet}
-            label="訂單金額（房費）"
-            sublabel="入住營收 − 餐飲費用"
-            value={totals.totalCommissionable}
-            tone="subtotal"
           />
 
           <div className="h-px bg-border my-2" />
@@ -445,7 +405,6 @@ export default function OwnerSettlement() {
                   <TableHead>入住 / 退房</TableHead>
                   <TableHead className="text-right">本月夜數</TableHead>
                   <TableHead className="text-right tabular-nums">本月營收</TableHead>
-                  <TableHead className="text-right tabular-nums">餐飲</TableHead>
                   <TableHead className="text-right tabular-nums">訂單金額</TableHead>
                   <TableHead className="text-right tabular-nums">抽成</TableHead>
                   <TableHead>備註</TableHead>
@@ -472,9 +431,6 @@ export default function OwnerSettlement() {
                           {r.nightsInMonth} / {r.totalNights}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{fmt(r.monthFinal)}</TableCell>
-                        <TableCell className="text-right tabular-nums text-muted-foreground">
-                          {fmt(r.monthFood)}
-                        </TableCell>
                         <TableCell className="text-right tabular-nums">
                           {fmt(r.monthCommissionable)}
                         </TableCell>
@@ -493,13 +449,12 @@ export default function OwnerSettlement() {
                       </TableRow>
                       {isOpen && (
                         <TableRow key={`${r.order.id}-detail`} className="bg-muted/30 hover:bg-muted/30">
-                          <TableCell colSpan={10} className="p-0">
+                          <TableCell colSpan={9} className="p-0">
                             <div className="px-6 py-4 space-y-3">
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                                 <DetailItem label="訂單總額" value={`NT$ ${fmt(Number(r.order.total_price || 0))}`} />
                                 <DetailItem label="折扣" value={`-NT$ ${fmt(Number(r.order.discount_amount || 0))}`} />
                                 <DetailItem label="實付金額" value={`NT$ ${fmt(Number(r.order.final_price || 0))}`} />
-                                <DetailItem label="餐飲總額" value={`NT$ ${fmt(Number(r.order.meal_plan_total || 0))}`} />
                                 <DetailItem label="訂單狀態" value={getOrderStatusLabel(r.order.order_status)} />
                                 <DetailItem label="訂單來源" value={getOrderSourceConfig(r.order.order_source).label} />
                                 <DetailItem label="餐型" value={r.order.meal_plan ? (MEAL_PLAN_LABEL[r.order.meal_plan] || r.order.meal_plan) : "—"} />
@@ -507,7 +462,6 @@ export default function OwnerSettlement() {
                               </div>
                               <div className="text-xs text-muted-foreground border-t pt-2">
                                 本月營收 = 實付 NT$ {fmt(Number(r.order.final_price || 0))} × {r.nightsInMonth}/{r.totalNights} = NT$ {fmt(r.monthFinal)}
-                                ；訂單金額（房費）= 本月營收 − 餐飲 NT$ {fmt(r.monthFood)} = NT$ {fmt(r.monthCommissionable)}
                                 {!r.exempt && <>；抽成 = NT$ {fmt(r.monthCommissionable)} × {config.commission_rate}% = NT$ {fmt(r.commission)}</>}
                               </div>
                               <div>
