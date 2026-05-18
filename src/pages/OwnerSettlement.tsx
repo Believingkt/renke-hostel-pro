@@ -89,6 +89,7 @@ export default function OwnerSettlement() {
   const [propertyCount, setPropertyCount] = useState(1);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [mealTemplateMap, setMealTemplateMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!currentAccommodationId) return;
@@ -99,7 +100,7 @@ export default function OwnerSettlement() {
       const monthStart = format(startOfMonth(month), "yyyy-MM-dd");
       const monthEnd = format(endOfMonth(month), "yyyy-MM-dd");
 
-      const [ordersRes, roomTypesRes, configRes, accRes] = await Promise.all([
+      const [ordersRes, roomTypesRes, configRes, accRes, templatesRes] = await Promise.all([
         supabase
           .from("orders")
           .select(
@@ -119,6 +120,10 @@ export default function OwnerSettlement() {
           .eq("setting_key", "owner_settlement_config")
           .maybeSingle(),
         supabase.from("accommodation_info").select("building_count").eq("id", currentAccommodationId).maybeSingle(),
+        supabase
+          .from("pricing_templates")
+          .select("id, template_name, project_name")
+          .eq("accommodation_id", currentAccommodationId),
       ]);
 
       if (cancelled) return;
