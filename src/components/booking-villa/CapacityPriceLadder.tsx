@@ -463,14 +463,8 @@ const CapacityPriceLadder = ({
                   <ChevronRight className="h-4 w-4" />
                 </button>
 
-                {(holidayDiff > 0 || selectedTier.childCountMax || selectedTier.childAgeNote) && (
+                {(selectedTier.childCountMax || selectedTier.childAgeNote) && (
                   <div className="mt-2.5 space-y-1">
-                    {holidayDiff > 0 && (
-                      <p className="text-[10.5px] text-muted-foreground flex items-center gap-1">
-                        <Plus className="h-3 w-3" />
-                        改假日入住約 +NT${holidayDiff.toLocaleString()}
-                      </p>
-                    )}
                     {(selectedTier.childCountMax || selectedTier.childAgeNote) && (
                       <p className="text-[10.5px] text-muted-foreground flex items-center gap-1">
                         <Baby className="h-3 w-3" />
