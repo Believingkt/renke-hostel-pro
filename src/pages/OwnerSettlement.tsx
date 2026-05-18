@@ -431,9 +431,6 @@ export default function OwnerSettlement() {
                           {r.nightsInMonth} / {r.totalNights}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{fmt(r.monthFinal)}</TableCell>
-                        <TableCell className="text-right tabular-nums text-muted-foreground">
-                          {fmt(r.monthFood)}
-                        </TableCell>
                         <TableCell className="text-right tabular-nums">
                           {fmt(r.monthCommissionable)}
                         </TableCell>
