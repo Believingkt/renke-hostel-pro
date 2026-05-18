@@ -105,8 +105,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const { currentAccommodationId } = useAccommodation();
   const { logAction } = useAuditLog();
   const [isSaving, setIsSaving] = useState(false);
-  const [useDeposit, setUseDeposit] = useState(true);
-  const [depositPct, setDepositPct] = useState(30);
+  // Deposit flow removed: orders always require full payment upfront.
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   
   const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
@@ -280,15 +279,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         setPricingTemplates(templatesResult.data);
       }
 
-      const { data: bs } = await supabase
-        .from("booking_settings")
-        .select("use_deposit, deposit_percentage")
-        .eq("accommodation_id", currentAccommodationId)
-        .maybeSingle();
-      if (bs) {
-        setUseDeposit(bs.use_deposit !== false);
-        setDepositPct(bs.deposit_percentage ?? 30);
-      }
+      // booking_settings deposit flags ignored: full payment is now required.
     };
 
     fetchData();
@@ -828,22 +819,14 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         }
       }
 
-      const depositAmount = useDeposit ? Math.round(totals.final * (depositPct / 100)) : 0;
-      const balanceAmount = totals.final - depositAmount;
+      const depositAmount = 0;
+      const balanceAmount = totals.final;
 
       let paymentStatus = "unpaid";
       let paidAmount = 0;
-      if (!useDeposit) {
-        if (form.balance_paid) {
-          paymentStatus = "paid";
-          paidAmount = totals.final;
-        }
-      } else if (form.deposit_paid && form.balance_paid) {
+      if (form.balance_paid) {
         paymentStatus = "paid";
         paidAmount = totals.final;
-      } else if (form.deposit_paid) {
-        paymentStatus = "deposit_paid";
-        paidAmount = depositAmount;
       }
 
       const { data: orderNumber, error: orderNumberError } = await supabase.rpc('generate_order_number');
@@ -1788,9 +1771,6 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
       {/* Price Summary */}
       {(() => {
-        const depositAmount = useDeposit ? Math.round(totals.final * (depositPct / 100)) : 0;
-        const balanceAmount = totals.final - depositAmount;
-        
         return (
           <div className="space-y-2 pt-4 border-t">
             <div className="flex justify-between text-sm">
@@ -1820,22 +1800,12 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               <span>總金額</span>
               <span className="text-primary">NT$ {totals.final.toLocaleString()}</span>
             </div>
-            {useDeposit && (
-              <div className="flex justify-between text-sm">
-                <span className={cn("text-muted-foreground", form.deposit_paid && "line-through")}>
-                  訂金 ({depositPct}%)
-                </span>
-                <span className={cn(form.deposit_paid && "line-through text-muted-foreground")}>
-                  NT$ {depositAmount.toLocaleString()}
-                </span>
-              </div>
-            )}
             <div className="flex justify-between text-sm">
               <span className={cn("text-muted-foreground", form.balance_paid && "line-through")}>
-                {useDeposit ? `尾款 (${100 - depositPct}%)` : "應付金額"}
+                應付金額
               </span>
               <span className={cn(form.balance_paid && "line-through text-muted-foreground")}>
-                NT$ {balanceAmount.toLocaleString()}
+                NT$ {totals.final.toLocaleString()}
               </span>
             </div>
           </div>
