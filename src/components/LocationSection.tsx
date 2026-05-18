@@ -28,6 +28,7 @@ interface LocationSectionProps {
       name: string;
       distance: string;
       description: string;
+      image_url?: string;
     }>;
   };
   customTitle?: string;
