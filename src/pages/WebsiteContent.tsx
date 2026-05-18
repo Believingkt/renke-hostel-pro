@@ -216,6 +216,7 @@ interface NearbyAttraction {
   name: string;
   distance: string;
   description: string;
+  image_url?: string;
 }
 
 interface Photo {
