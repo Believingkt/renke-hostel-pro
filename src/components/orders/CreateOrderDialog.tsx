@@ -1771,9 +1771,6 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
       {/* Price Summary */}
       {(() => {
-        const depositAmount = useDeposit ? Math.round(totals.final * (depositPct / 100)) : 0;
-        const balanceAmount = totals.final - depositAmount;
-        
         return (
           <div className="space-y-2 pt-4 border-t">
             <div className="flex justify-between text-sm">
@@ -1803,22 +1800,12 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               <span>總金額</span>
               <span className="text-primary">NT$ {totals.final.toLocaleString()}</span>
             </div>
-            {useDeposit && (
-              <div className="flex justify-between text-sm">
-                <span className={cn("text-muted-foreground", form.deposit_paid && "line-through")}>
-                  訂金 ({depositPct}%)
-                </span>
-                <span className={cn(form.deposit_paid && "line-through text-muted-foreground")}>
-                  NT$ {depositAmount.toLocaleString()}
-                </span>
-              </div>
-            )}
             <div className="flex justify-between text-sm">
               <span className={cn("text-muted-foreground", form.balance_paid && "line-through")}>
-                {useDeposit ? `尾款 (${100 - depositPct}%)` : "應付金額"}
+                應付金額
               </span>
               <span className={cn(form.balance_paid && "line-through text-muted-foreground")}>
-                NT$ {balanceAmount.toLocaleString()}
+                NT$ {totals.final.toLocaleString()}
               </span>
             </div>
           </div>
