@@ -141,6 +141,11 @@ export default function OwnerSettlement() {
         setConfig(configRes.data.setting_value as unknown as SettlementConfig);
       }
       setPropertyCount((accRes.data as any)?.building_count ?? 1);
+      const tmap: Record<string, string> = {};
+      (templatesRes.data || []).forEach((t: any) => {
+        tmap[t.id] = t.template_name || t.project_name || t.id;
+      });
+      setMealTemplateMap(tmap);
       setLoading(false);
     })();
     return () => {
