@@ -353,6 +353,15 @@ const LocationSection = ({ address, locationInfo, customTitle, customSubtitle }:
             <DialogTitle className="text-xl">{selectedAttraction?.name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
+            {selectedAttraction?.image_url && (
+              <div className="w-full aspect-[16/10] rounded-lg overflow-hidden bg-muted">
+                <img
+                  src={selectedAttraction.image_url}
+                  alt={selectedAttraction.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
             <p className="text-sm text-muted-foreground">{selectedAttraction?.distance}</p>
             <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
               {selectedAttraction?.description}
