@@ -581,16 +581,36 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
       const effectiveTotal = manualTotalPriceStr !== null ? Math.max(0, parseInt(manualTotalPriceStr) || 0) : freshPrice.total;
       const effectiveDiscount = manualDiscountStr !== null ? Math.max(0, parseInt(manualDiscountStr) || 0) : freshPrice.discount;
       const totalFinal = Math.max(0, effectiveTotal - effectiveDiscount + addonTotal);
-      const depositAmount = useDeposit ? Math.round(totalFinal * (depositPct / 100)) : 0;
-      
-      // Determine payment_status based on deposit_paid and balance_paid
+      const isBankTransfer = editForm.balance_payment_method === "bank_transfer";
+
+      // 訂金邏輯：只有匯款才使用訂金/尾款拆分
+      let depositAmount = 0;
+      if (isBankTransfer && !editForm.balance_paid) {
+        const rawDeposit = Number(editForm.deposit_amount) || 0;
+        const maxDeposit = Math.floor(totalFinal / 2);
+        if (rawDeposit < 0 || rawDeposit > maxDeposit) {
+          toast({
+            title: "訂金金額不合法",
+            description: `訂金必須介於 NT$ 0 ~ NT$ ${maxDeposit.toLocaleString()} 之間（須 ≤ 尾款）`,
+            variant: "destructive",
+          });
+          setIsSaving(false);
+          return;
+        }
+        if (editForm.deposit_paid && rawDeposit <= 0) {
+          toast({ title: "請輸入訂金金額", description: "選擇「已付訂金」時，訂金金額必須大於 0", variant: "destructive" });
+          setIsSaving(false);
+          return;
+        }
+        depositAmount = rawDeposit;
+      }
+
+      // Determine payment_status
       let payment_status = "unpaid";
-      if (!useDeposit) {
-        // No deposit flow: only consider balance_paid
-        payment_status = editForm.balance_paid ? "paid" : "unpaid";
-      } else if (editForm.deposit_paid && editForm.balance_paid) {
+      if (editForm.balance_paid) {
         payment_status = "paid";
-      } else if (editForm.deposit_paid) {
+        depositAmount = 0; // 已付清視為全額，清空訂金
+      } else if (isBankTransfer && editForm.deposit_paid && depositAmount > 0) {
         payment_status = "deposit_paid";
       }
       
