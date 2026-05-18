@@ -24,7 +24,7 @@ import { getOrderStatusLabel, getOrderSourceConfig } from "@/utils/orderHelpers"
 const MEAL_PLAN_LABEL: Record<string, string> = {
   no_meal: "不含餐",
   breakfast: "含早餐",
-  "2_meals": "兩餐（早晚餐）",
+  "2_meals": "一泊二食",
   "3_meals": "三餐（早午晚）",
   custom: "客製餐型",
 };
