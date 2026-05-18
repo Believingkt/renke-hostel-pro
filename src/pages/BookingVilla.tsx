@@ -19,6 +19,10 @@ import {
   Phone,
   Share2,
   ChevronRight,
+  ShieldCheck,
+  Sparkles,
+  Clock,
+  Car,
 } from "lucide-react";
 import { differenceInDays, format, formatISO } from "date-fns";
 
