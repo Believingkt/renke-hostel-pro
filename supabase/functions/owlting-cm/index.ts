@@ -154,6 +154,39 @@ async function resolveRatePlan(supabase: any, accId: string, code: string): Prom
   return data ?? null;
 }
 
+// Bulk resolvers — single round-trip for many codes (avoids N+1 in
+// OTA_HotelAvailNotifRQ / OTA_HotelRateAmountNotifRQ which can carry 17+ messages)
+async function bulkResolveRoomTypes(
+  supabase: any, accId: string, codes: string[],
+): Promise<Map<string, { id: string; name: string }>> {
+  const map = new Map<string, { id: string; name: string }>();
+  const nums = [...new Set(codes.map((c) => parseInt(c, 10)).filter(Number.isFinite))];
+  if (nums.length === 0) return map;
+  const { data } = await supabase
+    .from("room_types")
+    .select("id,name,numeric_code")
+    .eq("accommodation_id", accId)
+    .in("numeric_code", nums);
+  for (const r of data ?? []) map.set(String(r.numeric_code), { id: r.id, name: r.name });
+  return map;
+}
+async function bulkResolveRatePlans(
+  supabase: any, accId: string, codes: string[],
+): Promise<Map<string, { id: string; template_name: string; room_type_id: string | null }>> {
+  const map = new Map<string, { id: string; template_name: string; room_type_id: string | null }>();
+  const nums = [...new Set(codes.map((c) => parseInt(c, 10)).filter(Number.isFinite))];
+  if (nums.length === 0) return map;
+  const { data } = await supabase
+    .from("pricing_templates")
+    .select("id,template_name,room_type_id,numeric_code")
+    .eq("accommodation_id", accId)
+    .in("numeric_code", nums);
+  for (const r of data ?? []) {
+    map.set(String(r.numeric_code), { id: r.id, template_name: r.template_name, room_type_id: r.room_type_id });
+  }
+  return map;
+}
+
 async function logCm(
   supabase: any,
   direction: "inbound" | "outbound",
@@ -259,64 +292,87 @@ async function handleAvailNotifRQ(supabase: any, xml: string, echo: string, over
   if (!auth.ok) return errorResponse("OTA_HotelAvailNotifRS", echo, auth.msg);
 
   const messages = splitTags(xml, "AvailStatusMessage");
+
+  // ----- Pre-parse: collect distinct codes for one-shot lookup (no N+1) -----
+  type Parsed = {
+    start: string; end: string; invCode: string;
+    ratePlanCode: string | null;
+    bookingLimit: string | null; restrictionStatus: string | null;
+  };
+  const parsed: Parsed[] = [];
   for (const msg of messages) {
     const ctl = /<StatusApplicationControl\b[^>]*>/.exec(msg)?.[0] ?? "";
     const start = attrFirst(ctl, "StatusApplicationControl", "Start");
     const end = attrFirst(ctl, "StatusApplicationControl", "End");
     const invCode = attrFirst(ctl, "StatusApplicationControl", "InvTypeCode");
-    const ratePlanCode = attrFirst(ctl, "StatusApplicationControl", "RatePlanCode");
-    const bookingLimit = attrFirst(msg, "AvailStatusMessage", "BookingLimit");
-    const restrictionStatus = attrFirst(msg, "RestrictionStatus", "Status"); // Open/Close
-
     if (!start || !end || !invCode) continue;
-    const room = await resolveRoomType(supabase, auth.accommodationId!, invCode);
+    parsed.push({
+      start, end, invCode,
+      ratePlanCode: attrFirst(ctl, "StatusApplicationControl", "RatePlanCode"),
+      bookingLimit: attrFirst(msg, "AvailStatusMessage", "BookingLimit"),
+      restrictionStatus: attrFirst(msg, "RestrictionStatus", "Status"),
+    });
+  }
+
+  const roomMap = await bulkResolveRoomTypes(
+    supabase, auth.accommodationId!, parsed.map((p) => p.invCode),
+  );
+  const planMap = await bulkResolveRatePlans(
+    supabase, auth.accommodationId!,
+    parsed.map((p) => p.ratePlanCode).filter((c): c is string => !!c),
+  );
+
+  // Batch buffers
+  const templateAvailRows: { template_id: string; date: string; is_closed: boolean; updated_at: string }[] = [];
+  const inventoryRows: {
+    room_type_id: string; date: string;
+    pricing_template_id: null;
+    available_rooms?: number; is_available?: boolean;
+  }[] = [];
+
+  for (const p of parsed) {
+    const room = roomMap.get(p.invCode);
     if (!room) {
-      const r = errorResponse("OTA_HotelAvailNotifRS", echo, `RoomType ${invCode} not found`);
-      await logCm(supabase, "inbound", "OTA_HotelAvailNotifRQ", auth.hotelCode!, auth.accommodationId!, echo, xml, await r.clone().text(), "error", `RoomType ${invCode} not found`);
+      const r = errorResponse("OTA_HotelAvailNotifRS", echo, `RoomType ${p.invCode} not found`);
+      await logCm(supabase, "inbound", "OTA_HotelAvailNotifRQ", auth.hotelCode!, auth.accommodationId!, echo, xml, await r.clone().text(), "error", `RoomType ${p.invCode} not found`);
       return r;
     }
+    const dates = dateRange(p.start, p.end);
 
-    const dates = dateRange(start, end);
-
-    if (ratePlanCode) {
-      // 方案鎖
-      const plan = await resolveRatePlan(supabase, auth.accommodationId!, ratePlanCode);
+    if (p.ratePlanCode) {
+      const plan = planMap.get(p.ratePlanCode);
       if (!plan) {
-        const r = errorResponse("OTA_HotelAvailNotifRS", echo, `RatePlan ${ratePlanCode} not found`);
+        const r = errorResponse("OTA_HotelAvailNotifRS", echo, `RatePlan ${p.ratePlanCode} not found`);
         await logCm(supabase, "inbound", "OTA_HotelAvailNotifRQ", auth.hotelCode!, auth.accommodationId!, echo, xml, await r.clone().text(), "error");
         return r;
       }
-      if (restrictionStatus) {
-        const isClosed = restrictionStatus.toLowerCase() === "close";
-        const rows = dates.map((d) => ({ template_id: plan.id, date: d, is_closed: isClosed, updated_at: new Date().toISOString() }));
-        await supabase.from("pricing_template_availability").upsert(rows);
-      }
-    } else {
-      // 房間鎖 + 庫存
-      for (const d of dates) {
-        const patch: any = {};
-        if (bookingLimit !== null) patch.available_rooms = parseInt(bookingLimit, 10);
-        if (restrictionStatus) patch.is_available = restrictionStatus.toLowerCase() === "open";
-        if (Object.keys(patch).length === 0) continue;
-        // upsert (room_type_id, date) where pricing_template_id IS NULL
-        const { data: existing } = await supabase
-          .from("room_inventory_pricing")
-          .select("id, price")
-          .eq("room_type_id", room.id).eq("date", d)
-          .is("pricing_template_id", null).maybeSingle();
-        if (existing) {
-          await supabase.from("room_inventory_pricing").update(patch).eq("id", existing.id);
-        } else {
-          // insert needs price NOT NULL — fall back to base_price
-          const { data: rt } = await supabase.from("room_types").select("base_price").eq("id", room.id).single();
-          await supabase.from("room_inventory_pricing").insert({
-            room_type_id: room.id, date: d,
-            price: rt?.base_price ?? 0,
-            available_rooms: patch.available_rooms ?? 0,
-            is_available: patch.is_available ?? true,
-          });
+      if (p.restrictionStatus) {
+        const isClosed = p.restrictionStatus.toLowerCase() === "close";
+        for (const d of dates) {
+          templateAvailRows.push({ template_id: plan.id, date: d, is_closed: isClosed, updated_at: new Date().toISOString() });
         }
       }
+    } else {
+      const patch: { available_rooms?: number; is_available?: boolean } = {};
+      if (p.bookingLimit !== null) patch.available_rooms = parseInt(p.bookingLimit, 10);
+      if (p.restrictionStatus) patch.is_available = p.restrictionStatus.toLowerCase() === "open";
+      if (Object.keys(patch).length === 0) continue;
+      for (const d of dates) {
+        inventoryRows.push({ room_type_id: room.id, date: d, pricing_template_id: null, ...patch });
+      }
+    }
+  }
+
+  // Single round-trip per target table
+  if (templateAvailRows.length > 0) {
+    await supabase.from("pricing_template_availability").upsert(templateAvailRows);
+  }
+  if (inventoryRows.length > 0) {
+    const { error: upErr } = await supabase.rpc("bulk_upsert_room_inventory_pricing", { p_rows: inventoryRows });
+    if (upErr) {
+      const r = errorResponse("OTA_HotelAvailNotifRS", echo, `Inventory update failed: ${upErr.message}`);
+      await logCm(supabase, "inbound", "OTA_HotelAvailNotifRQ", auth.hotelCode!, auth.accommodationId!, echo, xml, await r.clone().text(), "error", upErr.message);
+      return r;
     }
   }
 
@@ -331,48 +387,61 @@ async function handleRateAmountNotifRQ(supabase: any, xml: string, echo: string,
   if (!auth.ok) return errorResponse("OTA_HotelRateAmountNotifRS", echo, auth.msg);
 
   const messages = splitTags(xml, "RateAmountMessage");
+
+  // ----- Pre-parse: collect distinct codes for one-shot lookup -----
+  type Parsed = {
+    invCode: string; ratePlanCode: string | null;
+    rates: { start: string; end: string; price: number }[];
+  };
+  const parsed: Parsed[] = [];
   for (const msg of messages) {
     const ctl = /<StatusApplicationControl\b[^>]*\/>|<StatusApplicationControl\b[^>]*>/.exec(msg)?.[0] ?? "";
     const invCode = attrFirst(ctl, "StatusApplicationControl", "InvTypeCode");
-    const ratePlanCode = attrFirst(ctl, "StatusApplicationControl", "RatePlanCode");
     if (!invCode) continue;
-
-    const room = await resolveRoomType(supabase, auth.accommodationId!, invCode);
-    if (!room) {
-      const r = errorResponse("OTA_HotelRateAmountNotifRS", echo, `RoomType ${invCode} not found`);
-      await logCm(supabase, "inbound", "OTA_HotelRateAmountNotifRQ", auth.hotelCode!, auth.accommodationId!, echo, xml, await r.clone().text(), "error");
-      return r;
-    }
-    const plan = ratePlanCode ? await resolveRatePlan(supabase, auth.accommodationId!, ratePlanCode) : null;
-
-    const rates = splitTagsAny(msg, "Rate");
-    for (const rt of rates) {
+    const ratePlanCode = attrFirst(ctl, "StatusApplicationControl", "RatePlanCode");
+    const rateBlocks = splitTagsAny(msg, "Rate");
+    const rates: { start: string; end: string; price: number }[] = [];
+    for (const rt of rateBlocks) {
       const start = attrFirst(rt, "Rate", "Start");
       const end = attrFirst(rt, "Rate", "End");
       const amount = attrFirst(rt, "BaseByGuestAmt", "AmountAfterTax");
       if (!start || !end || amount === null) continue;
-      const price = Math.round(parseFloat(amount));
-      const dates = dateRange(start, end);
+      rates.push({ start, end, price: Math.round(parseFloat(amount)) });
+    }
+    parsed.push({ invCode, ratePlanCode, rates });
+  }
 
-      for (const d of dates) {
-        const matchTemplateId = plan?.id ?? null;
-        const query = supabase.from("room_inventory_pricing")
-          .select("id")
-          .eq("room_type_id", room.id).eq("date", d);
-        const { data: existing } = matchTemplateId
-          ? await query.eq("pricing_template_id", matchTemplateId).maybeSingle()
-          : await query.is("pricing_template_id", null).maybeSingle();
+  const roomMap = await bulkResolveRoomTypes(
+    supabase, auth.accommodationId!, parsed.map((p) => p.invCode),
+  );
+  const planMap = await bulkResolveRatePlans(
+    supabase, auth.accommodationId!,
+    parsed.map((p) => p.ratePlanCode).filter((c): c is string => !!c),
+  );
 
-        if (existing) {
-          await supabase.from("room_inventory_pricing").update({ price }).eq("id", existing.id);
-        } else {
-          await supabase.from("room_inventory_pricing").insert({
-            room_type_id: room.id, date: d, price,
-            pricing_template_id: matchTemplateId,
-            available_rooms: 0, is_available: true,
-          });
-        }
+  const inventoryRows: { room_type_id: string; date: string; pricing_template_id: string | null; price: number }[] = [];
+  for (const p of parsed) {
+    const room = roomMap.get(p.invCode);
+    if (!room) {
+      const r = errorResponse("OTA_HotelRateAmountNotifRS", echo, `RoomType ${p.invCode} not found`);
+      await logCm(supabase, "inbound", "OTA_HotelRateAmountNotifRQ", auth.hotelCode!, auth.accommodationId!, echo, xml, await r.clone().text(), "error");
+      return r;
+    }
+    const plan = p.ratePlanCode ? planMap.get(p.ratePlanCode) : null;
+    const matchTemplateId = plan?.id ?? null;
+    for (const rt of p.rates) {
+      for (const d of dateRange(rt.start, rt.end)) {
+        inventoryRows.push({ room_type_id: room.id, date: d, pricing_template_id: matchTemplateId, price: rt.price });
       }
+    }
+  }
+
+  if (inventoryRows.length > 0) {
+    const { error: upErr } = await supabase.rpc("bulk_upsert_room_inventory_pricing", { p_rows: inventoryRows });
+    if (upErr) {
+      const r = errorResponse("OTA_HotelRateAmountNotifRS", echo, `Rate update failed: ${upErr.message}`);
+      await logCm(supabase, "inbound", "OTA_HotelRateAmountNotifRQ", auth.hotelCode!, auth.accommodationId!, echo, xml, await r.clone().text(), "error", upErr.message);
+      return r;
     }
   }
 

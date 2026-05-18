@@ -3714,6 +3714,10 @@ export type Database = {
       }
     }
     Functions: {
+      bulk_upsert_room_inventory_pricing: {
+        Args: { p_rows: Json }
+        Returns: undefined
+      }
       can_unlock_paid_order_discount: {
         Args: { _accommodation_id: string; _user_id: string }
         Returns: boolean
