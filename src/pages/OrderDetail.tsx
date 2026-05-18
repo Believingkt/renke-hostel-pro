@@ -1718,13 +1718,20 @@ const OrderDetailPage = () => {
                 </div>
               </>
             )}
-            {(order.deposit_payment_method || isEditing) && (
+            {(order.balance_payment_method || order.deposit_payment_method || isEditing) && (
               <>
                 <Separator />
                 <div className="flex justify-between items-center gap-2">
-                  <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">訂金付款方式</span>
+                  <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">付款方式</span>
                   {isEditing ? (
-                    <Select value={editForm.deposit_payment_method} onValueChange={(v) => setEditForm(f => ({ ...f, deposit_payment_method: v }))}>
+                    <Select 
+                      value={editForm.balance_payment_method || editForm.deposit_payment_method} 
+                      onValueChange={(v) => setEditForm(f => ({ 
+                        ...f, 
+                        balance_payment_method: v,
+                        deposit_payment_method: v,
+                      }))}
+                    >
                       <SelectTrigger className="w-[160px] h-10 text-sm md:w-[140px] md:h-8 md:text-xs">
                         <SelectValue placeholder="選擇" />
                       </SelectTrigger>
@@ -1735,29 +1742,7 @@ const OrderDetailPage = () => {
                       </SelectContent>
                     </Select>
                   ) : (
-                    <span className="font-medium text-base md:text-base">{getPaymentMethodDisplayName(order.deposit_payment_method)}</span>
-                  )}
-                </div>
-              </>
-            )}
-            {(order.balance_payment_method || isEditing) && (
-              <>
-                <Separator />
-                <div className="flex justify-between items-center gap-2">
-                  <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">尾款付款方式</span>
-                  {isEditing ? (
-                    <Select value={editForm.balance_payment_method} onValueChange={(v) => setEditForm(f => ({ ...f, balance_payment_method: v }))}>
-                      <SelectTrigger className="w-[160px] h-10 text-sm md:w-[140px] md:h-8 md:text-xs">
-                        <SelectValue placeholder="選擇" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {paymentMethodOptions.map(o => (
-                          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <span className="font-medium text-base md:text-base">{getPaymentMethodDisplayName(order.balance_payment_method)}</span>
+                    <span className="font-medium text-base md:text-base">{getPaymentMethodDisplayName(order.balance_payment_method || order.deposit_payment_method)}</span>
                   )}
                 </div>
               </>
