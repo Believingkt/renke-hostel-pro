@@ -2740,11 +2740,25 @@ const BookingFlow = () => {
         nights: calculateNights(),
       });
       setBookingSuccess(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating order:", error);
+      // 兼容 PostgrestError / Error / 任意物件，盡可能顯示具體原因
+      let description = "發生錯誤，請稍後再試或聯絡我們";
+      const raw = error?.message || error?.error_description || error?.hint || error?.details;
+      if (raw && typeof raw === "string") {
+        const lower = raw.toLowerCase();
+        if (lower.includes("exceeds room capacity")) {
+          const m = raw.match(/\((\d+)\).*\((\d+)\)/);
+          description = m
+            ? `入住人數 ${m[1]} 人超過房型上限（最多 ${m[2]} 人），請調整人數或選擇其他房型`
+            : raw;
+        } else {
+          description = raw;
+        }
+      }
       toast({
         title: "訂房失敗",
-        description: error instanceof Error ? error.message : "發生錯誤，請稍後再試或聯絡我們",
+        description,
         variant: "destructive",
       });
       setIsSubmitting(false); // 失敗時恢復按鈕狀態
