@@ -60,6 +60,22 @@ const BookingVilla = () => {
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [memberName, setMemberName] = useState("");
+  const [bottomBarHidden, setBottomBarHidden] = useState(false);
+
+  useEffect(() => {
+    let lastY = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      const delta = y - lastY;
+      if (Math.abs(delta) < 6) return;
+      // 下滑顯示，上滑隱藏（避免遮住內容）
+      if (delta < 0) setBottomBarHidden(true);
+      else if (delta > 0) setBottomBarHidden(false);
+      lastY = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const {
     info,
