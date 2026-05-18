@@ -509,7 +509,7 @@ const WebsiteContent = () => {
   const [drivingInfo, setDrivingInfo] = useState("");
   const [publicTransportInfo, setPublicTransportInfo] = useState("");
   const [nearbyAttractions, setNearbyAttractions] = useState<NearbyAttraction[]>([
-    { name: "", distance: "", description: "" }
+    { name: "", distance: "", description: "", image_url: "" }
   ]);
   const [showMapPreview, setShowMapPreview] = useState(true);
 
