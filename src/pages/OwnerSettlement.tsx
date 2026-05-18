@@ -89,6 +89,7 @@ export default function OwnerSettlement() {
   const [propertyCount, setPropertyCount] = useState(1);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [mealTemplateMap, setMealTemplateMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!currentAccommodationId) return;
@@ -99,7 +100,7 @@ export default function OwnerSettlement() {
       const monthStart = format(startOfMonth(month), "yyyy-MM-dd");
       const monthEnd = format(endOfMonth(month), "yyyy-MM-dd");
 
-      const [ordersRes, roomTypesRes, configRes, accRes] = await Promise.all([
+      const [ordersRes, roomTypesRes, configRes, accRes, templatesRes] = await Promise.all([
         supabase
           .from("orders")
           .select(
@@ -119,6 +120,10 @@ export default function OwnerSettlement() {
           .eq("setting_key", "owner_settlement_config")
           .maybeSingle(),
         supabase.from("accommodation_info").select("building_count").eq("id", currentAccommodationId).maybeSingle(),
+        supabase
+          .from("pricing_templates")
+          .select("id, template_name, project_name")
+          .eq("accommodation_id", currentAccommodationId),
       ]);
 
       if (cancelled) return;
@@ -136,6 +141,11 @@ export default function OwnerSettlement() {
         setConfig(configRes.data.setting_value as unknown as SettlementConfig);
       }
       setPropertyCount((accRes.data as any)?.building_count ?? 1);
+      const tmap: Record<string, string> = {};
+      (templatesRes.data || []).forEach((t: any) => {
+        tmap[t.id] = t.template_name || t.project_name || t.id;
+      });
+      setMealTemplateMap(tmap);
       setLoading(false);
     })();
     return () => {
@@ -457,7 +467,7 @@ export default function OwnerSettlement() {
                                 <DetailItem label="實付金額" value={`NT$ ${fmt(Number(r.order.final_price || 0))}`} />
                                 <DetailItem label="訂單狀態" value={getOrderStatusLabel(r.order.order_status)} />
                                 <DetailItem label="訂單來源" value={getOrderSourceConfig(r.order.order_source).label} />
-                                <DetailItem label="餐型" value={r.order.meal_plan ? (MEAL_PLAN_LABEL[r.order.meal_plan] || r.order.meal_plan) : "—"} />
+                                <DetailItem label="餐型" value={r.order.meal_plan ? (MEAL_PLAN_LABEL[r.order.meal_plan] || mealTemplateMap[r.order.meal_plan] || r.order.meal_plan) : "—"} />
                                 <DetailItem label="本月攤分比例" value={`${(r.monthRatio * 100).toFixed(1)}%`} />
                               </div>
                               <div className="text-xs text-muted-foreground border-t pt-2">
