@@ -213,7 +213,63 @@ const ReviewsSection = ({ accommodationId, customTitle, customSubtitle }: Review
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 lg:gap-6">
+          {/* 手機版：水平滑動精簡卡 */}
+          <div className="md:hidden -mx-4 px-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-muted-foreground">共 {items.length} 則精選</span>
+              <span className="text-xs text-muted-foreground">← 滑動 →</span>
+            </div>
+            <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2" style={{ scrollbarWidth: "none" }}>
+              {items.map((review) => (
+                <div
+                  key={review.id}
+                  className="snap-start flex-shrink-0 w-[82%] bg-card p-4 rounded-2xl border border-border/50"
+                >
+                  <div className="flex items-center gap-2.5 mb-2">
+                    {review.photo ? (
+                      <img
+                        src={review.photo}
+                        alt={review.name}
+                        className="w-9 h-9 rounded-full object-cover flex-shrink-0"
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-semibold flex-shrink-0 text-sm">
+                        {review.name.charAt(0)}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-semibold text-sm truncate">{review.name}</h3>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <div className="flex gap-0.5">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`w-3 h-3 ${
+                                star <= review.rating
+                                  ? 'fill-primary text-primary'
+                                  : 'fill-muted text-muted'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        {review.date && (
+                          <span className="text-[11px] text-muted-foreground truncate">{review.date}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-line line-clamp-5">
+                    {review.comment}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 桌面版：保留原本網格 */}
+          <div className="hidden md:grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 lg:gap-6">
             {items.map((review) => (
               <div
                 key={review.id}
