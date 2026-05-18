@@ -822,14 +822,42 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       }
 
       const isBankTransfer = form.balance_payment_method === "bank_transfer";
-      const depositAmount = isBankTransfer ? Math.max(0, Math.min(form.deposit_amount || 0, totals.final)) : 0;
+
+      // 驗證：訂金欄位只在匯款時有效；金額必須 > 0 且 ≤ 尾款（即 ≤ final/2）
+      let depositAmount = 0;
+      if (isBankTransfer && !form.balance_paid) {
+        const rawDeposit = Number(form.deposit_amount) || 0;
+        if (rawDeposit < 0) {
+          toast({ title: "訂金金額不可為負數", variant: "destructive" });
+          setIsSaving(false);
+          return;
+        }
+        const maxDeposit = Math.floor(totals.final / 2);
+        if (rawDeposit > maxDeposit) {
+          toast({
+            title: "訂金金額不合法",
+            description: `訂金必須小於或等於尾款（最多 NT$ ${maxDeposit.toLocaleString()}）`,
+            variant: "destructive",
+          });
+          setIsSaving(false);
+          return;
+        }
+        if (form.deposit_paid && rawDeposit <= 0) {
+          toast({ title: "請輸入訂金金額", description: "選擇「已付訂金」時，訂金金額必須大於 0", variant: "destructive" });
+          setIsSaving(false);
+          return;
+        }
+        depositAmount = rawDeposit;
+      }
       const balanceAmount = totals.final - depositAmount;
 
       let paymentStatus = "unpaid";
       let paidAmount = 0;
       if (form.balance_paid) {
+        // 已付清：訂金/尾款一律視為全付
         paymentStatus = "paid";
         paidAmount = totals.final;
+        depositAmount = 0;
       } else if (isBankTransfer && form.deposit_paid && depositAmount > 0) {
         paymentStatus = "deposit_paid";
         paidAmount = depositAmount;
