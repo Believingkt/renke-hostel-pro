@@ -1732,7 +1732,7 @@ const WebsiteContent = () => {
   };
 
   const handleAddAttraction = () => {
-    setNearbyAttractions([...nearbyAttractions, { name: "", distance: "", description: "" }]);
+    setNearbyAttractions([...nearbyAttractions, { name: "", distance: "", description: "", image_url: "" }]);
   };
 
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>, logoType: 'header' | 'footer') => {
