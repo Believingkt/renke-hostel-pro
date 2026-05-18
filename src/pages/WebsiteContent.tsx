@@ -216,6 +216,7 @@ interface NearbyAttraction {
   name: string;
   distance: string;
   description: string;
+  image_url?: string;
 }
 
 interface Photo {
@@ -508,7 +509,7 @@ const WebsiteContent = () => {
   const [drivingInfo, setDrivingInfo] = useState("");
   const [publicTransportInfo, setPublicTransportInfo] = useState("");
   const [nearbyAttractions, setNearbyAttractions] = useState<NearbyAttraction[]>([
-    { name: "", distance: "", description: "" }
+    { name: "", distance: "", description: "", image_url: "" }
   ]);
   const [showMapPreview, setShowMapPreview] = useState(true);
 
@@ -750,16 +751,18 @@ const WebsiteContent = () => {
               name?: string;
               distance?: string;
               description?: string;
+              image_url?: string;
             }>;
             setNearbyAttractions(
               typedAttractions.map(a => ({
                 name: a.name || "",
                 distance: a.distance || "",
-                description: a.description || ""
+                description: a.description || "",
+                image_url: a.image_url || ""
               }))
             );
           } else {
-            setNearbyAttractions([{ name: "", distance: "", description: "" }]);
+            setNearbyAttractions([{ name: "", distance: "", description: "", image_url: "" }]);
           }
         }
 
@@ -1117,12 +1120,14 @@ const WebsiteContent = () => {
                   name?: string;
                   distance?: string;
                   description?: string;
+                  image_url?: string;
                 }>;
                 setNearbyAttractions(
                   typedAttractions.map(a => ({
                     name: a.name || "",
                     distance: a.distance || "",
-                    description: a.description || ""
+                    description: a.description || "",
+                    image_url: a.image_url || ""
                   }))
                 );
               }
@@ -1666,7 +1671,7 @@ const WebsiteContent = () => {
         driving_info: drivingInfo,
         public_transport_info: publicTransportInfo,
         nearby_attractions: nearbyAttractions.filter(
-          a => a.name || a.distance || a.description
+          a => a.name || a.distance || a.description || a.image_url
         ) as any, // 轉換為 Json 類型
       };
 
@@ -1702,12 +1707,14 @@ const WebsiteContent = () => {
             name?: string;
             distance?: string;
             description?: string;
+            image_url?: string;
           }>;
           setNearbyAttractions(
             typedAttractions.map(a => ({
               name: a.name || "",
               distance: a.distance || "",
-              description: a.description || ""
+              description: a.description || "",
+              image_url: a.image_url || ""
             }))
           );
         }
@@ -1725,7 +1732,7 @@ const WebsiteContent = () => {
   };
 
   const handleAddAttraction = () => {
-    setNearbyAttractions([...nearbyAttractions, { name: "", distance: "", description: "" }]);
+    setNearbyAttractions([...nearbyAttractions, { name: "", distance: "", description: "", image_url: "" }]);
   };
 
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>, logoType: 'header' | 'footer') => {
@@ -2180,6 +2187,37 @@ const WebsiteContent = () => {
     const updated = [...nearbyAttractions];
     updated[index][field] = value;
     setNearbyAttractions(updated);
+  };
+
+  const handleAttractionImageUpload = async (
+    index: number,
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    if (!accommodationId || !event.target.files || event.target.files.length === 0) return;
+    const file = event.target.files[0];
+    const validation = validateImageFile(file, 10 * 1024 * 1024);
+    if (!validation.valid) {
+      toast.error(validation.error || '檔案格式不符');
+      event.target.value = '';
+      return;
+    }
+    try {
+      const { blob } = await compressImage(file, { maxWidth: 1200, maxHeight: 900, quality: 0.85 });
+      const fileName = `attraction-${Date.now()}-${index}.webp`;
+      const filePath = `${accommodationId}/attractions/${fileName}`;
+      const { error: uploadError } = await supabase.storage
+        .from('room-photos')
+        .upload(filePath, blob, { contentType: 'image/webp', cacheControl: '3600' });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from('room-photos').getPublicUrl(filePath);
+      handleAttractionChange(index, 'image_url', publicUrl);
+      toast.success('景點照片已上傳，記得儲存變更');
+    } catch (err) {
+      if (import.meta.env.DEV) console.error('Upload attraction image failed', err);
+      toast.error('景點照片上傳失敗');
+    } finally {
+      event.target.value = '';
+    }
   };
 
   // Gallery handlers
@@ -4094,6 +4132,51 @@ const WebsiteContent = () => {
                               rows={2}
                               className="touch-manipulation"
                             />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>景點照片</Label>
+                            <div className="flex items-start gap-3">
+                              {attraction.image_url ? (
+                                <div className="relative w-28 h-20 rounded-md overflow-hidden border border-border bg-muted flex-shrink-0">
+                                  <img src={attraction.image_url} alt={attraction.name || '景點照片'} className="w-full h-full object-cover" />
+                                </div>
+                              ) : (
+                                <div className="w-28 h-20 rounded-md border border-dashed border-border bg-muted/40 flex items-center justify-center text-xs text-muted-foreground flex-shrink-0">
+                                  尚無照片
+                                </div>
+                              )}
+                              <div className="flex flex-col gap-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => document.getElementById(`attraction-img-${index}`)?.click()}
+                                  className="h-10 sm:h-9 touch-manipulation"
+                                >
+                                  <Upload className="h-4 w-4 mr-1.5" />
+                                  {attraction.image_url ? '更換照片' : '上傳照片'}
+                                </Button>
+                                {attraction.image_url && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost-destructive"
+                                    size="sm"
+                                    onClick={() => handleAttractionChange(index, 'image_url', '')}
+                                    className="h-9 touch-manipulation"
+                                  >
+                                    移除照片
+                                  </Button>
+                                )}
+                                <input
+                                  id={`attraction-img-${index}`}
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => handleAttractionImageUpload(index, e)}
+                                />
+                              </div>
+                            </div>
                           </div>
                         </div>
 
