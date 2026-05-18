@@ -513,6 +513,18 @@ interface PriceCardProps {
   term?: string;
 }
 
+// 人數情境：讓冷冰冰的數字變成可想像的畫面
+const GUEST_SCENES: Array<{ max: number; emoji: string; label: string }> = [
+  { max: 6, emoji: "👨‍👩‍👧", label: "小家庭・閨蜜" },
+  { max: 8, emoji: "🧺", label: "親子小聚" },
+  { max: 12, emoji: "🍻", label: "好友揪團" },
+  { max: 14, emoji: "🎂", label: "生日同學會" },
+  { max: 16, emoji: "🏡", label: "三代同堂" },
+  { max: 999, emoji: "🎊", label: "整棟包下・尾牙" },
+];
+const getGuestScene = (n: number) =>
+  GUEST_SCENES.find((s) => n <= s.max) ?? GUEST_SCENES[GUEST_SCENES.length - 1];
+
 const PriceCard = ({
   opt,
   tier,
@@ -532,6 +544,7 @@ const PriceCard = ({
   term = "包區",
 }: PriceCardProps) => {
   const perPerson = Math.round(opt.totalPrice / opt.guestCount / safeNights);
+  const scene = getGuestScene(opt.guestCount);
 
   const accentColor = accent === "few" ? "hsl(0, 75%, 50%)" : "hsl(25, 70%, 50%)";
   const accentBgLight = accent === "few" ? "hsl(0, 75%, 96%)" : "hsl(25, 70%, 96%)";
