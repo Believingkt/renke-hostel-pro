@@ -915,9 +915,13 @@ const PriceLadderTable = ({
                     !isMatched && isCheapest && "bg-[hsl(25,70%,97%)]"
                   )}
                 >
-                  <td className="px-3 py-1.5">
-                    <span className="inline-flex items-center gap-1 flex-wrap">
-                      <span className="font-semibold text-foreground">{tier.guestCount} 人</span>
+                  <td className="px-3 py-2">
+                    <span className="inline-flex items-center gap-1.5 flex-wrap">
+                      <span className="text-base leading-none" aria-hidden>{getGuestScene(tier.guestCount).emoji}</span>
+                      <span className="flex flex-col leading-tight">
+                        <span className="font-bold text-foreground">{tier.guestCount} 人</span>
+                        <span className="text-[9.5px] text-muted-foreground">{getGuestScene(tier.guestCount).label}</span>
+                      </span>
                       {tier.isFewPeople && (
                         <span
                           className="text-[9px] font-bold px-1 py-px rounded leading-none text-white"
