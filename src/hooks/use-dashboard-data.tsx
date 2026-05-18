@@ -199,8 +199,11 @@ const fetchDashboardData = async (
   const bookingPlacedByMonth = new Map<string, number>();
   // Revenue grouped by order_date (transaction month) — 接單金額 = 該月成交訂單總額
   const revenueByOrderMonth = new Map<string, number>();
+  // 接單趨勢排除 KOL 互惠 (kol) 與公務使用 (official_use)
+  const EXCLUDED_TREND_SOURCES = new Set(['kol', 'official_use']);
   ordersData.forEach(order => {
     if (!isRevenueEligible(order.order_status)) return;
+    if (EXCLUDED_TREND_SOURCES.has((order as any).order_source)) return;
     const monthKey = format(new Date(order.order_date), 'yyyy-MM');
     bookingPlacedByMonth.set(monthKey, (bookingPlacedByMonth.get(monthKey) || 0) + 1);
     revenueByOrderMonth.set(monthKey, (revenueByOrderMonth.get(monthKey) || 0) + (order.final_price || 0));
