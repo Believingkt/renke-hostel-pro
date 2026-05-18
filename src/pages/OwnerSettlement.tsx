@@ -405,7 +405,6 @@ export default function OwnerSettlement() {
                   <TableHead>入住 / 退房</TableHead>
                   <TableHead className="text-right">本月夜數</TableHead>
                   <TableHead className="text-right tabular-nums">本月營收</TableHead>
-                  <TableHead className="text-right tabular-nums">餐飲</TableHead>
                   <TableHead className="text-right tabular-nums">訂單金額</TableHead>
                   <TableHead className="text-right tabular-nums">抽成</TableHead>
                   <TableHead>備註</TableHead>
