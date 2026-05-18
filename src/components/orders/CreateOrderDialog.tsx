@@ -182,6 +182,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     balance_payment_method: "",
     deposit_paid: false,
     balance_paid: false,
+    deposit_amount: 0,
     notes: "",
     order_source: "",
     security_deposit_method: "cash" as "cash" | "card",
@@ -207,6 +208,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         balance_payment_method: "",
         deposit_paid: false,
         balance_paid: false,
+        deposit_amount: 0,
         notes: "",
         order_source: "",
         security_deposit_method: "cash",
@@ -819,14 +821,18 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         }
       }
 
-      const depositAmount = 0;
-      const balanceAmount = totals.final;
+      const isBankTransfer = form.balance_payment_method === "bank_transfer";
+      const depositAmount = isBankTransfer ? Math.max(0, Math.min(form.deposit_amount || 0, totals.final)) : 0;
+      const balanceAmount = totals.final - depositAmount;
 
       let paymentStatus = "unpaid";
       let paidAmount = 0;
       if (form.balance_paid) {
         paymentStatus = "paid";
         paidAmount = totals.final;
+      } else if (isBankTransfer && form.deposit_paid && depositAmount > 0) {
+        paymentStatus = "deposit_paid";
+        paidAmount = depositAmount;
       }
 
       const { data: orderNumber, error: orderNumberError } = await supabase.rpc('generate_order_number');
@@ -1879,24 +1885,17 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>付款狀態</Label>
-          <Select 
-            value={form.balance_paid ? "paid" : "unpaid"} 
-            onValueChange={(value) => setForm({...form, balance_paid: value === "paid", deposit_paid: value === "paid"})}
-          >
-            <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="unpaid">未付款</SelectItem>
-              <SelectItem value="paid">已付款</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
           <Label>付款方式</Label>
-          <Select value={form.balance_payment_method} onValueChange={(value) => setForm({...form, balance_payment_method: value, deposit_payment_method: value})}>
+          <Select
+            value={form.balance_payment_method}
+            onValueChange={(value) => setForm({
+              ...form,
+              balance_payment_method: value,
+              deposit_payment_method: value,
+              // 切換非匯款時，清掉訂金狀態
+              ...(value !== "bank_transfer" ? { deposit_paid: false, deposit_amount: 0 } : {}),
+            })}
+          >
             <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
               <SelectValue placeholder="選擇付款方式" />
             </SelectTrigger>
@@ -1904,12 +1903,78 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               <SelectItem value="credit_card">信用卡</SelectItem>
               <SelectItem value="line_pay">LINE Pay</SelectItem>
               <SelectItem value="atm">ATM 虛擬帳號</SelectItem>
+              <SelectItem value="bank_transfer">匯款</SelectItem>
               <SelectItem value="cash">現金</SelectItem>
               <SelectItem value="monthly">月結</SelectItem>
             </SelectContent>
           </Select>
         </div>
+
+        {form.balance_payment_method !== "bank_transfer" ? (
+          <div className="space-y-2">
+            <Label>付款狀態</Label>
+            <Select
+              value={form.balance_paid ? "paid" : "unpaid"}
+              onValueChange={(value) => setForm({ ...form, balance_paid: value === "paid", deposit_paid: value === "paid" })}
+            >
+              <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unpaid">未付款</SelectItem>
+                <SelectItem value="paid">已付款</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <Label>付款狀態</Label>
+            <Select
+              value={form.balance_paid ? "paid" : form.deposit_paid ? "deposit_paid" : "unpaid"}
+              onValueChange={(value) => setForm({
+                ...form,
+                balance_paid: value === "paid",
+                deposit_paid: value === "paid" || value === "deposit_paid",
+              })}
+            >
+              <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unpaid">未付款</SelectItem>
+                <SelectItem value="deposit_paid">已付訂金</SelectItem>
+                <SelectItem value="paid">已付清</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
+
+      {form.balance_payment_method === "bank_transfer" && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-lg border border-border p-4 bg-muted/30">
+          <div className="space-y-2">
+            <Label>訂金金額（NT$）</Label>
+            <Input
+              type="number"
+              min={0}
+              max={totals.final}
+              value={form.deposit_amount}
+              onChange={(e) => setForm({ ...form, deposit_amount: Number(e.target.value) || 0 })}
+              className="h-12 text-base sm:h-10 sm:text-sm"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>尾款金額（NT$）</Label>
+            <Input
+              type="number"
+              value={Math.max(0, totals.final - (form.deposit_amount || 0))}
+              readOnly
+              disabled
+              className="h-12 text-base sm:h-10 sm:text-sm bg-muted"
+            />
+          </div>
+        </div>
+      )}
 
       <div className="space-y-3 rounded-lg border border-border p-4 bg-muted/30">
         <div className="flex items-center justify-between gap-2">
