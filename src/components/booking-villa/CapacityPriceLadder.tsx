@@ -877,12 +877,15 @@ const PriceLadderTable = ({
   const range = Math.max(1, mostExpensivePerPerson - cheapestPerPerson);
 
   return (
-    <Card className="overflow-hidden border-border/60">
-      <div className="px-3 py-2 border-b border-border/50 flex items-center gap-1.5"
-        style={{ background: "hsl(25, 70%, 97%)" }}
+    <Card className="overflow-hidden border-border/60 shadow-sm">
+      <div className="px-3 py-2.5 border-b border-border/50 flex items-center gap-2"
+        style={{ background: "linear-gradient(135deg, hsl(25, 70%, 96%), hsl(35, 75%, 94%))" }}
       >
-        <TrendingDown className="h-3.5 w-3.5" style={{ color: "hsl(25, 70%, 40%)" }} />
-        <p className="text-[12px] font-semibold text-foreground">人數越多 · 平均每人越划算</p>
+        <span className="text-base leading-none" aria-hidden>🧮</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-[12.5px] font-bold text-foreground leading-tight">人多越划算 · 一眼挑出最甜方案</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">紅色 = 每人最低價，揪到滿員最省荷包</p>
+        </div>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-[11px] tabular-nums">
