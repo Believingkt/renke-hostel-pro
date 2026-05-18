@@ -516,7 +516,7 @@ const BookingVilla = () => {
                       限時
                     </span>
                     <span className="text-[10px] font-semibold text-white/95">
-                      30 天內僅剩 <span className="font-extrabold">{upcoming.length}</span> 天可訂
+                      {horizonLabel} 前僅剩 <span className="font-extrabold">{upcoming.length}</span> 天可訂
                     </span>
                   </div>
                   <p className="text-[13px] font-bold leading-tight text-white drop-shadow-sm">
