@@ -164,30 +164,9 @@ export default function OwnerSettlement() {
 
         const ratio = nightsInMonth / totalNights;
 
-        // 餐飲費用：優先 meal_plan_total / meal_plan_details, 否則用價差
-        let foodTotal = 0;
-        if (o.meal_plan_total && o.meal_plan_total > 0) {
-          foodTotal = Number(o.meal_plan_total);
-        } else if (Array.isArray(o.meal_plan_details)) {
-          foodTotal = (o.meal_plan_details as any[]).reduce(
-            (s, d) => s + (Number(d.total) || 0),
-            0
-          );
-        } else if (o.room_type_id && (o.meal_plan === "2_meals" || o.meal_plan === "3_meals")) {
-          const rt = rtMap.get(o.room_type_id);
-          if (rt) {
-            const mealPrice =
-              o.meal_plan === "3_meals" ? rt.price_3_meals : rt.price_2_meals;
-            if (mealPrice && mealPrice > rt.base_price) {
-              foodTotal = (mealPrice - rt.base_price) * totalNights;
-            }
-          }
-        }
-
         const monthFinal = Number(o.final_price || 0) * ratio;
-        const monthFood = foodTotal * ratio;
         const monthDiscount = Number(o.discount_amount || 0) * ratio;
-        const monthCommissionable = Math.max(0, monthFinal - monthFood);
+        const monthCommissionable = monthFinal;
 
         const exempt = !!o.owner_direct;
         const commission = exempt
@@ -200,7 +179,7 @@ export default function OwnerSettlement() {
           totalNights,
           monthRatio: ratio,
           monthFinal,
-          monthFood,
+          monthFood: 0,
           monthDiscount,
           monthCommissionable,
           commission,
