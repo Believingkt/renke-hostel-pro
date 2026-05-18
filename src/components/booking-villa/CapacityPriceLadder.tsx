@@ -513,6 +513,18 @@ interface PriceCardProps {
   term?: string;
 }
 
+// 人數情境：讓冷冰冰的數字變成可想像的畫面
+const GUEST_SCENES: Array<{ max: number; emoji: string; label: string }> = [
+  { max: 6, emoji: "👨‍👩‍👧", label: "小家庭・閨蜜" },
+  { max: 8, emoji: "🧺", label: "親子小聚" },
+  { max: 12, emoji: "🍻", label: "好友揪團" },
+  { max: 14, emoji: "🎂", label: "生日同學會" },
+  { max: 16, emoji: "🏡", label: "三代同堂" },
+  { max: 999, emoji: "🎊", label: "整棟包下・尾牙" },
+];
+const getGuestScene = (n: number) =>
+  GUEST_SCENES.find((s) => n <= s.max) ?? GUEST_SCENES[GUEST_SCENES.length - 1];
+
 const PriceCard = ({
   opt,
   tier,
@@ -532,6 +544,7 @@ const PriceCard = ({
   term = "包區",
 }: PriceCardProps) => {
   const perPerson = Math.round(opt.totalPrice / opt.guestCount / safeNights);
+  const scene = getGuestScene(opt.guestCount);
 
   const accentColor = accent === "few" ? "hsl(0, 75%, 50%)" : "hsl(25, 70%, 50%)";
   const accentBgLight = accent === "few" ? "hsl(0, 75%, 96%)" : "hsl(25, 70%, 96%)";
@@ -556,16 +569,21 @@ const PriceCard = ({
         className="w-full text-left p-3.5 flex items-start gap-3 hover:bg-muted/30 transition-colors"
       >
         <div
-          className="shrink-0 w-14 h-14 rounded-xl flex flex-col items-center justify-center"
+          className="shrink-0 w-16 h-16 rounded-2xl flex flex-col items-center justify-center shadow-sm"
           style={{
             background: `linear-gradient(135deg, ${accentBgLight}, ${accentBgMid})`,
           }}
+          aria-label={`${opt.guestCount} 人・${scene.label}`}
         >
-          <Users className="h-4 w-4 mb-0.5" style={{ color: accentColor }} />
-          <span className="font-bold text-base leading-none" style={{ color: accentText }}>
-            {opt.guestCount}
+          <span className="text-xl leading-none mb-0.5" aria-hidden>
+            {scene.emoji}
           </span>
-          <span className="text-[9px] mt-0.5" style={{ color: accentText }}>人</span>
+          <span className="font-black text-base leading-none" style={{ color: accentText }}>
+            {opt.guestCount}<span className="text-[10px] font-bold ml-0.5">人</span>
+          </span>
+          <span className="text-[9px] mt-0.5 font-medium" style={{ color: accentText }}>
+            {scene.label}
+          </span>
         </div>
 
         <div className="flex-1 min-w-0">
@@ -640,10 +658,10 @@ const PriceCard = ({
             {nights > 1 ? `總價/${nights}晚` : "/晚"}
           </p>
           <span
-            className="inline-flex items-center gap-0.5 mt-1.5 h-7 px-2.5 text-[11px] rounded-md text-white font-medium"
-            style={{ background: accentColor }}
+            className="inline-flex items-center gap-0.5 mt-1.5 h-7 px-3 text-[11px] rounded-full text-white font-bold shadow-sm"
+            style={{ background: `linear-gradient(135deg, ${accentColor}, ${accent === "few" ? "hsl(0,80%,45%)" : "hsl(15,78%,48%)"})` }}
           >
-            選擇
+            就選這個
             <ChevronRight className="h-3 w-3" />
           </span>
         </div>
@@ -859,12 +877,15 @@ const PriceLadderTable = ({
   const range = Math.max(1, mostExpensivePerPerson - cheapestPerPerson);
 
   return (
-    <Card className="overflow-hidden border-border/60">
-      <div className="px-3 py-2 border-b border-border/50 flex items-center gap-1.5"
-        style={{ background: "hsl(25, 70%, 97%)" }}
+    <Card className="overflow-hidden border-border/60 shadow-sm">
+      <div className="px-3 py-2.5 border-b border-border/50 flex items-center gap-2"
+        style={{ background: "linear-gradient(135deg, hsl(25, 70%, 96%), hsl(35, 75%, 94%))" }}
       >
-        <TrendingDown className="h-3.5 w-3.5" style={{ color: "hsl(25, 70%, 40%)" }} />
-        <p className="text-[12px] font-semibold text-foreground">人數越多 · 平均每人越划算</p>
+        <span className="text-base leading-none" aria-hidden>🧮</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-[12.5px] font-bold text-foreground leading-tight">人多越划算 · 一眼挑出最甜方案</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">紅色 = 每人最低價，揪到滿員最省荷包</p>
+        </div>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-[11px] tabular-nums">
@@ -894,9 +915,13 @@ const PriceLadderTable = ({
                     !isMatched && isCheapest && "bg-[hsl(25,70%,97%)]"
                   )}
                 >
-                  <td className="px-3 py-1.5">
-                    <span className="inline-flex items-center gap-1 flex-wrap">
-                      <span className="font-semibold text-foreground">{tier.guestCount} 人</span>
+                  <td className="px-3 py-2">
+                    <span className="inline-flex items-center gap-1.5 flex-wrap">
+                      <span className="text-base leading-none" aria-hidden>{getGuestScene(tier.guestCount).emoji}</span>
+                      <span className="flex flex-col leading-tight">
+                        <span className="font-bold text-foreground">{tier.guestCount} 人</span>
+                        <span className="text-[9.5px] text-muted-foreground">{getGuestScene(tier.guestCount).label}</span>
+                      </span>
                       {tier.isFewPeople && (
                         <span
                           className="text-[9px] font-bold px-1 py-px rounded leading-none text-white"
