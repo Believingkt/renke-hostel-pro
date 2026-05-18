@@ -448,45 +448,64 @@ const BookingVilla = () => {
           </div>
         </section>
 
-        {/* ── Price anchor banner ── */}
-        <section className="px-4 pt-3">
-          <div
-            className="rounded-xl px-3.5 py-2.5 flex items-center justify-between gap-2"
-            style={{
-              background: "linear-gradient(135deg, hsl(25, 80%, 96%), hsl(15, 75%, 94%))",
-              border: "1px solid hsl(25, 60%, 85%)",
-            }}
-          >
-            <div className="min-w-0">
-              <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "hsl(0, 70%, 45%)" }}>
-                <Sparkles className="inline h-3 w-3 -mt-0.5 mr-0.5" />
-                本月限定
-              </p>
-              {(() => {
-                const rmin = (secondaryData?.roomTypes?.length || 0) > 0
-                  ? Math.min(...secondaryData!.roomTypes.map((r: any) => r.base_price))
-                  : null;
-                return (
-                  <p className="text-[13px] font-bold leading-tight" style={{ color: "hsl(25, 60%, 25%)" }}>
-                    平日包棟最低 {rmin ? `NT$${rmin.toLocaleString()}` : "優惠價"}
-                    <span className="text-[11px] font-normal text-muted-foreground"> / 晚 · 含早餐</span>
+        {/* ── Price anchor banner（依未來 30 天實際空房） ── */}
+        {(() => {
+          if (!availableDateSet) return null;
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const horizon = new Date(today);
+          horizon.setDate(horizon.getDate() + 30);
+          const upcoming = Array.from(availableDateSet)
+            .filter((d) => {
+              const dt = new Date(d + "T00:00:00");
+              return dt >= today && dt <= horizon;
+            })
+            .sort();
+          if (upcoming.length === 0) return null;
+          const earliest = upcoming[0];
+          const earliestDate = new Date(earliest + "T00:00:00");
+          const rmin = (secondaryData?.roomTypes?.length || 0) > 0
+            ? Math.min(...secondaryData!.roomTypes.map((r: any) => r.base_price))
+            : null;
+          const isFew = upcoming.length <= 5;
+          return (
+            <section className="px-4 pt-3">
+              <div
+                className="rounded-xl px-3.5 py-2.5 flex items-center justify-between gap-2"
+                style={{
+                  background: "linear-gradient(135deg, hsl(25, 80%, 96%), hsl(15, 75%, 94%))",
+                  border: "1px solid hsl(25, 60%, 85%)",
+                }}
+              >
+                <div className="min-w-0">
+                  <p className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "hsl(0, 70%, 45%)" }}>
+                    <Sparkles className="inline h-3 w-3 -mt-0.5 mr-0.5" />
+                    近期可訂
                   </p>
-                );
-              })()}
-            </div>
-            <span
-              className="shrink-0 text-[10px] font-bold px-2 py-1 rounded-full text-white animate-pulse"
-              style={{ background: "hsl(0, 75%, 55%)" }}
-            >
-              熱門・剩少量週末
-            </span>
-          </div>
-        </section>
+                  <p className="text-[13px] font-bold leading-tight" style={{ color: "hsl(25, 60%, 25%)" }}>
+                    最快 {format(earliestDate, "M/d")} 可入住
+                    {rmin ? ` · NT$${rmin.toLocaleString()} 起` : ""}
+                    <span className="text-[11px] font-normal text-muted-foreground"> / 晚</span>
+                  </p>
+                </div>
+                {isFew && (
+                  <span
+                    className="shrink-0 text-[10px] font-bold px-2 py-1 rounded-full text-white animate-pulse"
+                    style={{ background: "hsl(0, 75%, 55%)" }}
+                  >
+                    剩 {upcoming.length} 天
+                  </span>
+                )}
+              </div>
+            </section>
+          );
+        })()}
 
         {/* ── 4. 即時空房日曆 ── */}
         <VillaAvailabilityCalendar
           accommodationId={info.id}
           selectedDate={checkIn}
+          onAvailabilityComputed={setAvailableDateSet}
           onSelectDate={(d) => {
             const next = new Date(d);
             next.setDate(next.getDate() + 1);
