@@ -295,195 +295,255 @@ const CapacityPriceLadder = ({
         </Popover>
       </div>
 
-      {/* ── 人數價目階梯表（一眼比較划算度） ── */}
-      <PriceLadderTable
-        tiers={currentTiers}
-        safeNights={safeNights}
-        recommendedGuestCount={recommendedGuestCount}
-        matchedGuestCount={matchedGuestCount}
-        selectedGuestCount={selectedGuestCount}
-      />
+      {/* ── A. 人數 chips 選擇器 + B. 選定方案詳情 ── */}
+      {(() => {
+        const allTiers = [...currentTiers].sort((a, b) => a.guestCount - b.guestCount);
+        if (allTiers.length === 0) return null;
 
-      {/* ── 一泊二食 包含內容（折疊；無 includes 則隱藏） ── */}
-      {PLAN_INCLUDES.length > 0 && (
-      <Card className="overflow-hidden border-border/60">
-        <button
-          type="button"
-          onClick={() => setShowIncludes((v) => !v)}
-          className={cn(
-            "w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left transition-colors",
-            showIncludes ? "bg-muted/40" : "hover:bg-muted/20"
-          )}
-          aria-expanded={showIncludes}
-        >
-          <div
-            className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
-            style={{ background: "hsl(140, 30%, 92%)", color: "hsl(140, 40%, 30%)" }}
-          >
-            <UtensilsCrossed className="h-4 w-4" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-[13px] text-foreground">{includesTitle || `一泊二食 · 含 ${PLAN_INCLUDES.length} 項體驗`}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
-              點此查看方案完整內容
-            </p>
-          </div>
-          <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", showIncludes && "rotate-180")} />
-        </button>
+        const defaultGuest =
+          (matchedGuestCount && allTiers.find((t) => t.guestCount === matchedGuestCount)?.guestCount) ??
+          recommendedGuestCount ??
+          allTiers[0].guestCount;
+        const activeGuest =
+          (selectedGuest && allTiers.find((t) => t.guestCount === selectedGuest)?.guestCount) ??
+          defaultGuest;
 
-        {showIncludes && (
-          <div className="border-t border-border/50 bg-muted/10 px-3.5 py-2.5 grid grid-cols-2 gap-2">
-            {PLAN_INCLUDES.map((item) => (
-              <div key={item.label} className="flex items-center gap-1.5">
-                <span style={{ color: "hsl(140, 40%, 35%)" }}>{item.icon}</span>
-                <span className="text-[11px] text-foreground">{item.label}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
-      )}
+        const selectedTier = allTiers.find((t) => t.guestCount === activeGuest) ?? allTiers[0];
+        const opt = buildOption(selectedTier, selectedTier.guestCount === recommendedGuestCount);
+        const saved = opt.originalPrice - opt.totalPrice;
+        const perPerson = Math.round(opt.totalPrice / opt.guestCount / safeNights);
+        const scene = getGuestScene(selectedTier.guestCount);
 
-      {/* ── 少人包區（平日才開放） ── */}
-      {activeTier === "weekday" && fewPeopleTiers.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-1.5 px-1">
-            <span
-              className="text-[10px] font-bold px-1.5 py-0.5 rounded text-white"
-              style={{ background: "hsl(0, 75%, 50%)" }}
-            >
-              限週一~四
-            </span>
-            <p className="text-[12px] font-semibold text-foreground">少人包區 · 早鳥活動價</p>
-          </div>
+        const weekendSame = PRICING_TABLE.weekend.find((t) => t.guestCount === selectedTier.guestCount);
+        const holidayDiff =
+          activeTier !== "weekend" && weekendSame ? weekendSame.sale - selectedTier.sale : 0;
 
-          {fewPeopleTiers.map((tier) => {
-            const opt = buildOption(tier, false);
-            const saved = opt.originalPrice - opt.totalPrice;
-            return (
-              <PriceCard
-                key={`few-${tier.guestCount}`}
-                opt={opt}
-                tier={tier}
-                saved={saved}
-                nights={nights}
-                safeNights={safeNights}
-                accent="few"
-                term={TERM}
-                onSelect={onSelect}
-                isExpanded={expandedKey === `few-${tier.guestCount}`}
-                onToggle={() =>
-                  setExpandedKey(
-                    expandedKey === `few-${tier.guestCount}` ? null : `few-${tier.guestCount}`
-                  )
-                }
-              />
-            );
-          })}
-        </div>
-      )}
+        const yesItems = (selectedTier.includes || []).filter((i) => i.available !== "no");
 
-      {/* ── 旺日/假日：顯示「少人包區」禁用提示 ── */}
-      {showDisabledFewPeopleNote && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-1.5 px-1">
-            <span
-              className="text-[10px] font-bold px-1.5 py-0.5 rounded text-muted-foreground bg-muted"
-            >
-              不開放
-            </span>
-            <p className="text-[12px] font-semibold text-muted-foreground">少人包區（6 / 8 人）</p>
-          </div>
+        return (
+          <div className="space-y-3">
+            <div className="flex items-baseline justify-between px-1">
+              <p className="text-[13px] font-bold text-foreground">你們是幾位入住？</p>
+              <p className="text-[10px] text-muted-foreground">點選人數查看方案</p>
+            </div>
 
-          <Card className="overflow-hidden border-dashed border-border/70 bg-muted/20">
-            <div className="px-3.5 py-3 flex items-center gap-3">
-              <div className="shrink-0 w-10 h-10 rounded-lg flex items-center justify-center bg-muted/50">
-                <Lock className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[12px] font-medium text-foreground">
-                  {tierLabel.short}不開放 6 / 8 人小包區
-                </p>
-                <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">
-                  少人包區僅限週一~週四入住。若想使用，請改選平日日期。
-                </p>
+            <div className="-mx-4 px-4 overflow-x-auto scrollbar-hide">
+              <div className="flex gap-2 pb-1.5 pt-2">
+                {allTiers.map((t) => {
+                  const isActive = t.guestCount === activeGuest;
+                  const tScene = getGuestScene(t.guestCount);
+                  const tPerPerson = Math.round(t.sale / t.guestCount);
+                  const isFew = !!t.isFewPeople;
+                  const isRec = t.guestCount === recommendedGuestCount;
+                  return (
+                    <button
+                      key={t.guestCount}
+                      type="button"
+                      onClick={() => {
+                        setSelectedGuest(t.guestCount);
+                        setShowDetails(false);
+                      }}
+                      className={cn(
+                        "relative shrink-0 w-[88px] py-2.5 px-2 rounded-2xl border-2 transition-all text-center",
+                        isActive
+                          ? "border-[hsl(25,75%,52%)] shadow-md scale-[1.02]"
+                          : "border-border/60 bg-card hover:border-border"
+                      )}
+                      style={
+                        isActive
+                          ? { background: "linear-gradient(135deg, hsl(25,70%,97%), hsl(35,75%,94%))" }
+                          : undefined
+                      }
+                    >
+                      {(isFew || isRec) && (
+                        <span
+                          className="absolute -top-1.5 left-1/2 -translate-x-1/2 text-[9px] font-bold px-1.5 py-px rounded-full text-white leading-none whitespace-nowrap"
+                          style={{ background: isFew ? "hsl(0,75%,52%)" : "hsl(25,75%,52%)" }}
+                        >
+                          {isFew ? "早鳥" : "最划算"}
+                        </span>
+                      )}
+                      <div className="text-xl leading-none mb-1" aria-hidden>{tScene.emoji}</div>
+                      <div className="font-black text-foreground leading-none">
+                        {t.guestCount}<span className="text-[10px] font-bold ml-0.5">人</span>
+                      </div>
+                      <div className="text-[9px] text-muted-foreground mt-1 leading-none">
+                        {tScene.label}
+                      </div>
+                      <div
+                        className="text-[10px] font-bold mt-1 tabular-nums leading-none"
+                        style={{ color: isActive ? "hsl(25,75%,40%)" : "hsl(var(--muted-foreground))" }}
+                      >
+                        ${tPerPerson.toLocaleString()}<span className="font-normal">/人</span>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          </Card>
-        </div>
-      )}
 
-      {/* ── 標準包區方案 ── */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-1.5 px-1 pt-1">
-          <span
-            className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-            style={{ background: "hsl(25, 70%, 92%)", color: "hsl(25, 70%, 35%)" }}
-          >
-            一泊二食
-          </span>
-          <p className="text-[12px] font-semibold text-foreground">
-            {tierLabel.short}標準{TERM}方案
-          </p>
-        </div>
+            <Card className="overflow-hidden border-border/60 shadow-sm">
+              <div
+                className="px-4 py-3.5 border-b border-border/50"
+                style={{ background: "linear-gradient(135deg, hsl(25,70%,97%), hsl(35,75%,95%))" }}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="text-lg" aria-hidden>{scene.emoji}</span>
+                      <p className="font-bold text-foreground text-[15px]">
+                        {selectedTier.planName || `${opt.guestCount} 人${TERM}`}
+                      </p>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      {scene.label} · {selectedTier.roomAllocation}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    {opt.originalPrice > opt.totalPrice && (
+                      <p className="text-[10px] line-through text-muted-foreground tabular-nums">
+                        NT${opt.originalPrice.toLocaleString()}
+                      </p>
+                    )}
+                    <p className="font-black text-xl leading-none tabular-nums" style={{ color: "hsl(0,75%,50%)" }}>
+                      ${opt.totalPrice.toLocaleString()}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {nights > 1 ? `${nights} 晚總價` : "/ 晚"}
+                    </p>
+                  </div>
+                </div>
 
-        {standardTiers.map((tier) => {
-          const isRecommended = tier.guestCount === recommendedGuestCount;
-          const opt = buildOption(tier, isRecommended);
-          const saved = opt.originalPrice - opt.totalPrice;
-          // 找一個更小人數的方案做對照（同 tier 內找最小的人數方案）
-          const smallerTier = currentTiers.find(
-            (t) => t.guestCount < tier.guestCount
-          );
-          const smallerPerPerson = smallerTier
-            ? Math.round(smallerTier.sale / smallerTier.guestCount)
-            : null;
-          // 「往上跳一級」：找下一個更高人數的方案
-          const biggerTier = standardTiers
-            .filter((t) => t.guestCount > tier.guestCount)
-            .sort((a, b) => a.guestCount - b.guestCount)[0];
-          const biggerExtraTotal = biggerTier
-            ? (biggerTier.sale - tier.sale) * safeNights
-            : 0;
-          const biggerPerPersonSaved = biggerTier
-            ? Math.round(tier.sale / tier.guestCount) -
-              Math.round(biggerTier.sale / biggerTier.guestCount)
-            : 0;
-          // 假日差價：同人數的 weekend 方案 sale - 當前 tier sale
-          const weekendSame = PRICING_TABLE.weekend.find(
-            (t) => t.guestCount === tier.guestCount
-          );
-          const holidayDiff =
-            activeTier !== "weekend" && weekendSame
-              ? weekendSame.sale - tier.sale
-              : 0;
-          return (
-            <PriceCard
-              key={`std-${tier.guestCount}`}
-              opt={opt}
-              tier={tier}
-              saved={saved}
-              nights={nights}
-              safeNights={safeNights}
-              accent="standard"
-              term={TERM}
-              onSelect={onSelect}
-              isExpanded={expandedKey === `std-${tier.guestCount}`}
-              onToggle={() =>
-                setExpandedKey(
-                  expandedKey === `std-${tier.guestCount}` ? null : `std-${tier.guestCount}`
-                )
-              }
-              smallerPerPerson={smallerPerPerson}
-              smallerGuestCount={smallerTier?.guestCount ?? null}
-              biggerGuestCount={biggerTier?.guestCount ?? null}
-              biggerExtraTotal={biggerExtraTotal}
-              biggerPerPersonSaved={biggerPerPersonSaved}
-              holidayDiff={holidayDiff}
-            />
-          );
-        })}
-      </div>
+                <div className="mt-2.5 flex items-center justify-between gap-2 text-[11px]">
+                  <span className="flex items-center gap-1" style={{ color: "hsl(25,75%,38%)" }}>
+                    <Users className="h-3 w-3" />
+                    平均每人 <span className="font-bold mx-0.5">${perPerson.toLocaleString()}</span>/晚
+                  </span>
+                  {saved > 0 && (
+                    <span
+                      className="font-bold px-2 py-0.5 rounded-full text-white tabular-nums text-[10px]"
+                      style={{ background: "hsl(0,75%,52%)" }}
+                    >
+                      省 ${saved.toLocaleString()}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {(yesItems.length > 0 || PLAN_INCLUDES.length > 0) && (
+                <div className="px-4 py-2.5 border-b border-border/50 bg-muted/10">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Sparkles className="h-3 w-3" style={{ color: "hsl(140,40%,35%)" }} />
+                    <p className="text-[11px] font-semibold text-foreground">方案已含</p>
+                  </div>
+                  <div className="flex flex-wrap gap-x-3 gap-y-1">
+                    {(yesItems.length > 0
+                      ? yesItems.map((i) => ({ label: i.text }))
+                      : PLAN_INCLUDES
+                    )
+                      .slice(0, 6)
+                      .map((item, i) => (
+                        <span key={i} className="inline-flex items-center gap-1 text-[11px] text-foreground">
+                          <Check className="h-3 w-3" style={{ color: "hsl(140,50%,35%)" }} />
+                          {item.label}
+                        </span>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="px-4 py-3">
+                <button
+                  type="button"
+                  onClick={() => onSelect(opt)}
+                  className="w-full h-12 rounded-full text-white font-bold text-[14px] shadow-md active:scale-[0.98] transition-transform inline-flex items-center justify-center gap-1.5"
+                  style={{ background: "linear-gradient(135deg, hsl(25,75%,52%), hsl(15,78%,48%))" }}
+                >
+                  就選這個方案
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+
+                {(holidayDiff > 0 || selectedTier.childCountMax || selectedTier.childAgeNote) && (
+                  <div className="mt-2.5 space-y-1">
+                    {holidayDiff > 0 && (
+                      <p className="text-[10.5px] text-muted-foreground flex items-center gap-1">
+                        <Plus className="h-3 w-3" />
+                        改假日入住約 +NT${holidayDiff.toLocaleString()}
+                      </p>
+                    )}
+                    {(selectedTier.childCountMax || selectedTier.childAgeNote) && (
+                      <p className="text-[10.5px] text-muted-foreground flex items-center gap-1">
+                        <Baby className="h-3 w-3" />
+                        {selectedTier.childCountMax ? `可加 ${selectedTier.childCountMax} 位兒童` : ""}
+                        {selectedTier.childCountMax && selectedTier.childAgeNote ? " · " : ""}
+                        {selectedTier.childAgeNote || ""}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setShowDetails((v) => !v)}
+                  className="w-full mt-2.5 py-1.5 text-[11px] text-muted-foreground hover:text-foreground flex items-center justify-center gap-1"
+                >
+                  {showDetails ? "收合" : "查看完整方案明細"}
+                  <ChevronDown className={cn("h-3 w-3 transition-transform", showDetails && "rotate-180")} />
+                </button>
+              </div>
+
+              {showDetails && (
+                <div className="border-t border-border/50 bg-muted/10 px-4 py-3 space-y-2.5">
+                  <div>
+                    <p className="text-[11px] text-muted-foreground mb-1 flex items-center gap-1">
+                      <BedDouble className="h-3 w-3" /> 房型分配
+                    </p>
+                    <p className="text-[12.5px] text-foreground">{selectedTier.roomAllocation}</p>
+                  </div>
+                  {(selectedTier.includes || []).length > 0 && (
+                    <div>
+                      <p className="text-[11px] text-muted-foreground mb-1">附加說明</p>
+                      <ul className="space-y-1">
+                        {(selectedTier.includes || []).map((inc, i) => {
+                          const Icon = inc.available === "yes" ? Check : inc.available === "no" ? X : Plus;
+                          const color =
+                            inc.available === "yes"
+                              ? "hsl(140,50%,35%)"
+                              : inc.available === "no"
+                                ? "hsl(0,60%,55%)"
+                                : "hsl(25,70%,45%)";
+                          const textCls =
+                            inc.available === "no"
+                              ? "text-muted-foreground line-through"
+                              : "text-foreground";
+                          return (
+                            <li key={i} className="flex items-start gap-1.5">
+                              <Icon className="h-3 w-3 mt-0.5 shrink-0" style={{ color }} />
+                              <span className={`text-[11.5px] leading-tight ${textCls}`}>
+                                {inc.text}
+                                {inc.price_note && (
+                                  <span className="text-muted-foreground ml-1">({inc.price_note})</span>
+                                )}
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </Card>
+
+            {showDisabledFewPeopleNote && (
+              <div className="flex items-center gap-1.5 px-1 text-[10.5px] text-muted-foreground">
+                <Lock className="h-3 w-3" />
+                少人包區（6 / 8 人）僅平日開放，改週一~四入住即可使用。
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* ── 底部提示 ── */}
       <div className="flex items-start gap-1.5 px-1 pt-1 pb-2">
