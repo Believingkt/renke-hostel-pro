@@ -43,6 +43,7 @@ const LocationSection = ({ address, locationInfo, customTitle, customSubtitle }:
     name: string;
     distance: string;
     description: string;
+    image_url?: string;
   } | null>(null);
 
   // 檢查是否有任何資料設定
