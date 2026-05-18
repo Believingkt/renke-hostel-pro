@@ -105,8 +105,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const { currentAccommodationId } = useAccommodation();
   const { logAction } = useAuditLog();
   const [isSaving, setIsSaving] = useState(false);
-  const [useDeposit, setUseDeposit] = useState(true);
-  const [depositPct, setDepositPct] = useState(30);
+  // Deposit flow removed: orders always require full payment upfront.
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   
   const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
