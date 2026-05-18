@@ -658,10 +658,10 @@ const PriceCard = ({
             {nights > 1 ? `總價/${nights}晚` : "/晚"}
           </p>
           <span
-            className="inline-flex items-center gap-0.5 mt-1.5 h-7 px-2.5 text-[11px] rounded-md text-white font-medium"
-            style={{ background: accentColor }}
+            className="inline-flex items-center gap-0.5 mt-1.5 h-7 px-3 text-[11px] rounded-full text-white font-bold shadow-sm"
+            style={{ background: `linear-gradient(135deg, ${accentColor}, ${accent === "few" ? "hsl(0,80%,45%)" : "hsl(15,78%,48%)"})` }}
           >
-            選擇
+            就選這個
             <ChevronRight className="h-3 w-3" />
           </span>
         </div>
