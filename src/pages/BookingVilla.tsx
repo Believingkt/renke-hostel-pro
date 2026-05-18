@@ -61,6 +61,7 @@ const BookingVilla = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [memberName, setMemberName] = useState("");
   const [bottomBarHidden, setBottomBarHidden] = useState(false);
+  const [availableDateSet, setAvailableDateSet] = useState<Set<string> | null>(null);
 
   useEffect(() => {
     let lastY = window.scrollY;
