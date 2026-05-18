@@ -1,9 +1,15 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Car, Bus } from "lucide-react";
+import { MapPin, Car, Bus, Navigation } from "lucide-react";
 import { createSanitizedHtml } from "@/utils/sanitizeHtml";
 import EmptySectionPlaceholder from "./EmptySectionPlaceholder";
 import { Button } from "@/components/ui/button";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import {
   Dialog,
   DialogContent,
@@ -63,7 +69,96 @@ const LocationSection = ({ address, locationInfo, customTitle, customSubtitle }:
             {customSubtitle || '多種交通方式輕鬆抵達，讓您的旅程更加便利'}
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 lg:gap-6 mb-5 md:mb-6 lg:mb-8">
+          {/* 手機版：精簡單卡 + Accordion */}
+          <div className="md:hidden mb-5">
+            <Card className="border border-border/50 bg-card overflow-hidden">
+              <div className="h-[220px] bg-muted">
+                <iframe
+                  src={`https://www.google.com/maps?q=${encodeURIComponent(address || "宜蘭縣冬山鄉大進三路208號")}&output=embed`}
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title="旅館位置地圖"
+                />
+              </div>
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-start gap-2">
+                  <MapPin className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-foreground leading-snug">{address || "台灣南投縣信義鄉東埔村開高巷123號"}</p>
+                    {locationInfo?.location_description && (
+                      <div
+                        className="text-xs text-muted-foreground mt-1 prose prose-sm max-w-none"
+                        dangerouslySetInnerHTML={createSanitizedHtml(locationInfo.location_description)}
+                      />
+                    )}
+                  </div>
+                </div>
+                <a
+                  href={`https://www.google.com/maps?q=${encodeURIComponent(address || "宜蘭縣冬山鄉大進三路208號")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-primary font-medium"
+                >
+                  <Navigation className="h-3.5 w-3.5" />
+                  在 Google 地圖開啟導航
+                </a>
+
+                <Accordion type="multiple" className="border-t border-border/50 -mx-4 px-4 pt-1">
+                  <AccordionItem value="drive" className="border-b border-border/40">
+                    <AccordionTrigger className="py-3 hover:no-underline">
+                      <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                        <Car className="h-4 w-4 text-primary" />
+                        自行開車
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      {locationInfo?.driving_info ? (
+                        <div
+                          className="prose prose-sm max-w-none text-foreground/90 text-sm"
+                          dangerouslySetInnerHTML={createSanitizedHtml(locationInfo.driving_info)}
+                        />
+                      ) : (
+                        <div className="space-y-2">
+                          <p className="text-sm text-foreground font-medium">從台北出發</p>
+                          <p className="text-sm text-muted-foreground leading-relaxed">國道3號 → 名間交流道 → 台16線 → 台21線 → 約3.5小時</p>
+                          <p className="text-xs text-muted-foreground">旅宿提供免費停車場，無需預約</p>
+                        </div>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+                  <AccordionItem value="transit" className="border-b-0">
+                    <AccordionTrigger className="py-3 hover:no-underline">
+                      <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                        <Bus className="h-4 w-4 text-primary" />
+                        大眾運輸
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      {locationInfo?.public_transport_info ? (
+                        <div
+                          className="prose prose-sm max-w-none text-foreground/90 text-sm"
+                          dangerouslySetInnerHTML={createSanitizedHtml(locationInfo.public_transport_info)}
+                        />
+                      ) : (
+                        <div className="space-y-2">
+                          <p className="text-sm text-foreground font-medium">高鐵 + 巴士</p>
+                          <p className="text-sm text-muted-foreground leading-relaxed">高鐵台中站 → 轉乘南投客運 → 東埔站 → 步行約10分鐘</p>
+                          <p className="text-xs text-muted-foreground">建議提前預約接駁服務（需額外付費）</p>
+                        </div>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* 桌面版：保留原本左右雙欄 */}
+          <div className="hidden md:grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 lg:gap-6 mb-5 md:mb-6 lg:mb-8">
             {/* 左側 - 位置資訊 */}
             <Card className="hover:shadow-lg transition-all duration-300 border border-border/50 bg-card">
               <CardContent className="p-5 md:p-5 lg:p-6">
@@ -88,7 +183,7 @@ const LocationSection = ({ address, locationInfo, customTitle, customSubtitle }:
                   <p className="text-xs md:text-sm lg:text-sm font-medium text-foreground">{address || "台灣南投縣信義鄉東埔村開高巷123號"}</p>
                 </div>
                 {locationInfo?.location_description && (
-                  <div 
+                  <div
                     className="text-xs md:text-sm lg:text-sm text-muted-foreground ml-6 md:ml-6 lg:ml-7 mt-1 prose prose-sm max-w-none"
                     dangerouslySetInnerHTML={createSanitizedHtml(locationInfo.location_description)}
                   />
@@ -98,7 +193,6 @@ const LocationSection = ({ address, locationInfo, customTitle, customSubtitle }:
 
             {/* 右側 - 交通方式 */}
             <div className="space-y-4 md:space-y-5 lg:space-y-6">
-              {/* 自行開車 */}
               <Card className="hover:shadow-lg transition-all duration-300 border border-border/50 bg-card">
                 <CardContent className="p-5 md:p-5 lg:p-6">
                   <h3 className="font-semibold text-base md:text-lg lg:text-xl mb-3 md:mb-4 flex items-center gap-2 text-foreground">
@@ -107,7 +201,7 @@ const LocationSection = ({ address, locationInfo, customTitle, customSubtitle }:
                   </h3>
                   <div className="space-y-3 md:space-y-4">
                     {locationInfo?.driving_info ? (
-                      <div 
+                      <div
                         className="prose prose-sm max-w-none text-foreground/90"
                         dangerouslySetInnerHTML={createSanitizedHtml(locationInfo.driving_info)}
                       />
@@ -128,7 +222,6 @@ const LocationSection = ({ address, locationInfo, customTitle, customSubtitle }:
                 </CardContent>
               </Card>
 
-              {/* 大眾運輸 */}
               <Card className="hover:shadow-lg transition-all duration-300 border border-border/50 bg-card">
                 <CardContent className="p-5 md:p-6">
                   <h3 className="font-semibold text-lg md:text-xl mb-4 flex items-center gap-2 text-foreground">
@@ -137,7 +230,7 @@ const LocationSection = ({ address, locationInfo, customTitle, customSubtitle }:
                   </h3>
                   <div className="space-y-3 md:space-y-4">
                     {locationInfo?.public_transport_info ? (
-                      <div 
+                      <div
                         className="prose prose-sm max-w-none text-foreground/90"
                         dangerouslySetInnerHTML={createSanitizedHtml(locationInfo.public_transport_info)}
                       />
@@ -157,7 +250,6 @@ const LocationSection = ({ address, locationInfo, customTitle, customSubtitle }:
                   </div>
                 </CardContent>
               </Card>
-
             </div>
           </div>
 
