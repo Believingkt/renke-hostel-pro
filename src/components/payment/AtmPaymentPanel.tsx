@@ -114,6 +114,14 @@ export function AtmPaymentPanel({
     return () => clearTimeout(t);
   }, [sdkReady, atmInfo]);
 
+  // 自動取得虛擬帳號（不需使用者按按鈕）
+  useEffect(() => {
+    if (!sdkReady || atmInfo || processing || error || attemptCount > 0) return;
+    if (!TP()?.virtualAccount?.getPrime) return;
+    handleCreate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sdkReady, atmInfo]);
+
   /** 重置銀行選單：重新 mount TPDirect ATM iframe */
   const resetBankPicker = useCallback(() => {
     setError(null);
