@@ -686,15 +686,15 @@ const BookingVilla = () => {
             })()}
           </div>
           <Button
-            className="h-11 px-6 text-sm font-bold text-white rounded-full"
-            style={{ background: "hsl(25, 70%, 50%)" }}
+            className="h-11 px-5 text-sm font-bold text-white rounded-full shadow-md active:scale-95 transition-transform"
+            style={{ background: "linear-gradient(135deg, hsl(25, 75%, 52%), hsl(15, 78%, 50%))" }}
             onClick={() => {
               document
-                .querySelector('section [class*="space-y-2"]')
+                .getElementById("capacity-price-section")
                 ?.scrollIntoView({ behavior: "smooth", block: "start" });
             }}
           >
-            選擇人數方案
+            查看我的專屬價格 →
           </Button>
         </div>
       </div>
