@@ -608,13 +608,16 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
 
       // Determine payment_status
       let payment_status = "unpaid";
+      let paid_amount = 0;
       if (editForm.balance_paid) {
         payment_status = "paid";
+        paid_amount = totalFinal;
         depositAmount = 0; // 已付清視為全額，清空訂金
       } else if (isBankTransfer && editForm.deposit_paid && depositAmount > 0) {
         payment_status = "deposit_paid";
+        paid_amount = depositAmount;
       }
-      
+
       // Build custom_addon_details for persistence
       const customAddonDetails = editForm.selected_addons
         .filter(sa => sa.quantity > 0)
@@ -636,6 +639,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         deposit_payment_method: editForm.deposit_payment_method,
         balance_payment_method: editForm.balance_payment_method,
         deposit_amount: depositAmount,
+        paid_amount,
         notes: editForm.notes,
         check_in_date: editForm.check_in_date,
         check_out_date: editForm.check_out_date,
