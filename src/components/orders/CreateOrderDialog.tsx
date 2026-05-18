@@ -1907,30 +1907,12 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         </div>
       </div>
 
-      <div className={cn("grid grid-cols-1 gap-4", useDeposit && "sm:grid-cols-2")}>
-        {useDeposit && (
-          <div className="space-y-2">
-            <Label>訂金支付狀態</Label>
-            <Select 
-              value={form.deposit_paid ? "paid" : "unpaid"} 
-              onValueChange={(value) => setForm({...form, deposit_paid: value === "paid"})}
-            >
-              <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="unpaid">未付款</SelectItem>
-                <SelectItem value="paid">已付款</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>{useDeposit ? "尾款支付狀態" : "付款狀態"}</Label>
+          <Label>付款狀態</Label>
           <Select 
             value={form.balance_paid ? "paid" : "unpaid"} 
-            onValueChange={(value) => setForm({...form, balance_paid: value === "paid"})}
+            onValueChange={(value) => setForm({...form, balance_paid: value === "paid", deposit_paid: value === "paid"})}
           >
             <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
               <SelectValue />
@@ -1941,30 +1923,10 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             </SelectContent>
           </Select>
         </div>
-      </div>
-
-      <div className={cn("grid grid-cols-1 gap-4", useDeposit && "sm:grid-cols-2")}>
-        {useDeposit && (
-          <div className="space-y-2">
-            <Label>訂金付款方式</Label>
-            <Select value={form.deposit_payment_method} onValueChange={(value) => setForm({...form, deposit_payment_method: value})}>
-              <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
-                <SelectValue placeholder="選擇付款方式" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="credit_card">信用卡</SelectItem>
-                <SelectItem value="line_pay">LINE Pay</SelectItem>
-                <SelectItem value="atm">ATM 虛擬帳號</SelectItem>
-                <SelectItem value="cash">現金</SelectItem>
-                <SelectItem value="monthly">月結</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
 
         <div className="space-y-2">
-          <Label>{useDeposit ? "尾款付款方式" : "付款方式"}</Label>
-          <Select value={form.balance_payment_method} onValueChange={(value) => setForm({...form, balance_payment_method: value})}>
+          <Label>付款方式</Label>
+          <Select value={form.balance_payment_method} onValueChange={(value) => setForm({...form, balance_payment_method: value, deposit_payment_method: value})}>
             <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
               <SelectValue placeholder="選擇付款方式" />
             </SelectTrigger>
