@@ -118,6 +118,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
     selected_addons: [] as { addon_id: string; quantity: number }[],
     deposit_paid: false,
     balance_paid: false,
+    deposit_amount: 0,
     guest_name: "",
     guest_phone: "",
     guest_email: "",
