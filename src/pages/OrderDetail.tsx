@@ -2393,6 +2393,31 @@ const OrderDetailPage = () => {
                     </span>
                   </div>
                    <Separator />
+                  {/* 舊訂單：仍顯示訂金/尾款拆分（新訂單一律支付全額，無此區塊） */}
+                  {!isEditing && (order.deposit_amount ?? 0) > 0 && (order.deposit_amount ?? 0) < (order.final_price ?? 0) && (
+                    <>
+                      <div className="flex justify-between items-center gap-2">
+                        <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">訂金</span>
+                        <span className="font-medium text-base md:text-base">
+                          NT$ {(order.deposit_amount ?? 0).toLocaleString()}
+                          {(order.payment_status === 'deposit_paid' || order.payment_status === 'paid' || (order.paid_amount ?? 0) >= (order.deposit_amount ?? 0)) && (
+                            <span className="ml-2 text-primary text-xs">已付</span>
+                          )}
+                        </span>
+                      </div>
+                      <Separator />
+                      <div className="flex justify-between items-center gap-2">
+                        <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">尾款</span>
+                        <span className="font-medium text-base md:text-base">
+                          NT$ {Math.max(0, (order.final_price ?? 0) - (order.deposit_amount ?? 0)).toLocaleString()}
+                          {order.payment_status === 'paid' && (
+                            <span className="ml-2 text-primary text-xs">已付</span>
+                          )}
+                        </span>
+                      </div>
+                      <Separator />
+                    </>
+                  )}
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">已付金額</span>
                     {isEditing ? (
