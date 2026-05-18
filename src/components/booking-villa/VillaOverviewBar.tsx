@@ -25,7 +25,7 @@ const VillaOverviewBar = ({
         <Stat
           icon={<Home className="h-4 w-4" />}
           value={`${totalRooms}`}
-          label="間房"
+          label="三代同堂剛剛好"
         />
         <Stat
           icon={<Users className="h-4 w-4" />}
@@ -34,19 +34,19 @@ const VillaOverviewBar = ({
               ? `${maxCapacity}`
               : `${minCapacity}~${maxCapacity}`
           }
-          label="可住人數"
+          label="人都住得下"
         />
         {totalSize ? (
           <Stat
             icon={<Maximize2 className="h-4 w-4" />}
             value={`${totalSize}`}
-            label="坪"
+            label="坪・烤肉派對 ok"
           />
         ) : (
           <Stat
             icon={<MapPin className="h-4 w-4" />}
             value={region || "—"}
-            label="地區"
+            label="景觀環繞"
             small
           />
         )}
