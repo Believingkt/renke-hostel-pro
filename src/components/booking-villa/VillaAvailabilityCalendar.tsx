@@ -24,7 +24,7 @@ interface Props {
   accommodationId: string;
   selectedDate?: Date | null;
   onSelectDate?: (date: Date) => void;
-  onAvailabilityComputed?: (dates: Set<string>) => void;
+  onAvailabilityComputed?: (info: { dates: Set<string>; minPrice: number | null; earliestDate: string | null }) => void;
 }
 
 /**
@@ -66,7 +66,7 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
 
       const { data: inventoryRows } = await supabase
         .from("room_inventory_pricing")
-        .select("date, is_available, room_type_id")
+        .select("date, is_available, room_type_id, price")
         .in(
           "room_type_id",
           roomTypes.map((r) => r.id),
@@ -171,7 +171,19 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
       if (!cancelled) {
         setAvailableDates(available);
         setHasInventory(true);
-        onAvailabilityComputed?.(available);
+        // 計算最低價（僅看可訂日期的 price）
+        let minPrice: number | null = null;
+        let earliestDate: string | null = null;
+        const sortedAvail = Array.from(available).sort();
+        if (sortedAvail.length > 0) earliestDate = sortedAvail[0];
+        for (const row of inventoryRows) {
+          if (!available.has(row.date)) continue;
+          const p = (row as any).price;
+          if (typeof p === "number" && p > 0) {
+            if (minPrice == null || p < minPrice) minPrice = p;
+          }
+        }
+        onAvailabilityComputed?.({ dates: available, minPrice, earliestDate });
       }
     };
 
