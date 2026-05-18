@@ -450,20 +450,23 @@ const BookingVilla = () => {
           </div>
         </section>
 
-        {/* ── Price anchor banner（依未來 30 天實際空房 · 促銷風格） ── */}
+        {/* ── Price anchor banner（今天 ~ 下個月月底實際空房，剩 <10 天才顯示 · 促銷風格） ── */}
         {(() => {
           if (!availableDateSet) return null;
           const today = new Date();
           today.setHours(0, 0, 0, 0);
-          const horizon = new Date(today);
-          horizon.setDate(horizon.getDate() + 30);
+          // 抓到「下個月月底」（例：今天 5/18 → 6/30）
+          const horizon = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+          horizon.setHours(0, 0, 0, 0);
+          const horizonLabel = `${horizon.getMonth() + 1}/${horizon.getDate()}`;
           const upcoming = Array.from(availableDateSet)
             .filter((d) => {
               const dt = new Date(d + "T00:00:00");
               return dt >= today && dt <= horizon;
             })
             .sort();
-          if (upcoming.length === 0) return null;
+          // 只在剩 <10 天可訂時顯示（促銷／快訊感）
+          if (upcoming.length === 0 || upcoming.length >= 10) return null;
           const earliestStr = availEarliestDate && upcoming.includes(availEarliestDate)
             ? availEarliestDate
             : upcoming[0];
@@ -513,7 +516,7 @@ const BookingVilla = () => {
                       限時
                     </span>
                     <span className="text-[10px] font-semibold text-white/95">
-                      30 天內僅剩 <span className="font-extrabold">{upcoming.length}</span> 天可訂
+                      {horizonLabel} 前僅剩 <span className="font-extrabold">{upcoming.length}</span> 天可訂
                     </span>
                   </div>
                   <p className="text-[13px] font-bold leading-tight text-white drop-shadow-sm">
