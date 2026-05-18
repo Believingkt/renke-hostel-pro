@@ -133,6 +133,8 @@ const CapacityPriceLadder = ({
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [showIncludes, setShowIncludes] = useState(false);
   const [otherTierOpen, setOtherTierOpen] = useState(false);
+  const [selectedGuest, setSelectedGuest] = useState<number | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
 
   // 入住日變動時自動切到對應時段
   useEffect(() => {
