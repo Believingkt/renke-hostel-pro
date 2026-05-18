@@ -48,18 +48,37 @@ const FaqSection = ({ accommodationId, customTitle, customSubtitle }: { accommod
   }
 
   return (
-    <section id="faq" className="py-12 md:py-16 lg:py-20">
+    <section id="faq" className="py-10 md:py-16 lg:py-20">
       <div className="container mx-auto px-4 md:px-6">
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-8 md:mb-12 lg:mb-16">
-            <div className="flex items-center justify-center gap-2 mb-3">
+          <div className="text-center mb-6 md:mb-12 lg:mb-16">
+            <div className="flex items-center justify-center gap-2 mb-2 md:mb-3">
               <FileQuestion className="h-5 w-5 md:h-6 md:w-6 text-primary" />
-              <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold">{customTitle || '常見問題'}</h2>
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold">{customTitle || '常見問題'}</h2>
             </div>
-            <p className="text-muted-foreground text-base md:text-base lg:text-lg max-w-2xl mx-auto">{customSubtitle || '以下是住客最常詢問的問題，希望能幫助您更了解我們'}</p>
+            <p className="text-muted-foreground text-sm md:text-base lg:text-lg max-w-2xl mx-auto">{customSubtitle || '以下是住客最常詢問的問題，希望能幫助您更了解我們'}</p>
           </div>
 
-          <Accordion type="single" collapsible className="w-full space-y-4">
+          {/* 手機版：精簡扁平 Accordion，單一卡片內以分隔線分項 */}
+          <Accordion type="single" collapsible className="w-full md:hidden rounded-2xl border border-border/50 bg-card divide-y divide-border/50 overflow-hidden">
+            {faqs.map((faq) => (
+              <AccordionItem
+                key={faq.id}
+                value={faq.id}
+                className="border-0 px-4"
+              >
+                <AccordionTrigger className="text-left text-sm font-medium hover:no-underline py-3.5">
+                  {faq.question}
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground text-sm pb-4 leading-relaxed">
+                  <div dangerouslySetInnerHTML={createSanitizedHtml(faq.answer)} />
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+
+          {/* 桌面版：保留原本卡片樣式 */}
+          <Accordion type="single" collapsible className="w-full hidden md:block space-y-4">
             {faqs.map((faq) => (
               <AccordionItem
                 key={faq.id}
