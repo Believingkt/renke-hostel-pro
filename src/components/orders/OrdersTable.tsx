@@ -127,11 +127,28 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                     <td className="px-4 py-3 text-sm">{order.check_out_date}</td>
                     <td className="px-4 py-3 text-sm font-medium">
                       <div>NT$ {order.final_price.toLocaleString()}</div>
-                      {order.paid_amount > 0 && order.paid_amount < order.final_price && (
-                        <div className="text-xs text-muted-foreground font-normal">
-                          已付 NT$ {order.paid_amount.toLocaleString()}
-                        </div>
-                      )}
+                      {(() => {
+                        const method = getOrderPaymentMethod(order);
+                        const dep = (order as any).deposit_amount ?? 0;
+                        if (method === 'bank_transfer' && dep > 0 && dep < order.final_price) {
+                          const depositPaid = order.payment_status === 'deposit_paid' || order.payment_status === 'paid' || order.paid_amount >= dep;
+                          const balancePaid = order.payment_status === 'paid';
+                          return (
+                            <div className="text-xs text-muted-foreground font-normal leading-tight mt-0.5">
+                              <div>訂金 NT$ {dep.toLocaleString()} <span className={depositPaid ? 'text-primary' : 'text-destructive'}>{depositPaid ? '已付' : '未付'}</span></div>
+                              <div>尾款 NT$ {(order.final_price - dep).toLocaleString()} <span className={balancePaid ? 'text-primary' : 'text-destructive'}>{balancePaid ? '已付' : '未付'}</span></div>
+                            </div>
+                          );
+                        }
+                        if (order.paid_amount > 0 && order.paid_amount < order.final_price) {
+                          return (
+                            <div className="text-xs text-muted-foreground font-normal">
+                              已付 NT$ {order.paid_amount.toLocaleString()}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </td>
                     <td className="px-4 py-3 text-sm whitespace-nowrap">
                       {(() => {
@@ -344,13 +361,42 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                     <span className="font-semibold text-base">NT$ {order.final_price.toLocaleString()}</span>
                   </div>
 
-                  {/* 已付金額 */}
-                  {order.paid_amount > 0 && order.paid_amount < order.final_price && (
-                    <div className="flex items-center justify-between text-sm mb-2">
-                      <span className="text-muted-foreground pl-5">已付:</span>
-                      <span className="font-medium">NT$ {order.paid_amount.toLocaleString()}</span>
-                    </div>
-                  )}
+                  {/* 已付金額 / 訂金尾款拆分（匯款） */}
+                  {(() => {
+                    const method = getOrderPaymentMethod(order);
+                    const dep = (order as any).deposit_amount ?? 0;
+                    if (method === 'bank_transfer' && dep > 0 && dep < order.final_price) {
+                      const depositPaid = order.payment_status === 'deposit_paid' || order.payment_status === 'paid' || order.paid_amount >= dep;
+                      const balancePaid = order.payment_status === 'paid';
+                      return (
+                        <div className="space-y-1 mb-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground pl-5">訂金:</span>
+                            <span className="font-medium">
+                              NT$ {dep.toLocaleString()}
+                              <span className={`ml-2 text-xs ${depositPaid ? 'text-primary' : 'text-destructive'}`}>{depositPaid ? '已付' : '未付'}</span>
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground pl-5">尾款:</span>
+                            <span className="font-medium">
+                              NT$ {(order.final_price - dep).toLocaleString()}
+                              <span className={`ml-2 text-xs ${balancePaid ? 'text-primary' : 'text-destructive'}`}>{balancePaid ? '已付' : '未付'}</span>
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    }
+                    if (order.paid_amount > 0 && order.paid_amount < order.final_price) {
+                      return (
+                        <div className="flex items-center justify-between text-sm mb-2">
+                          <span className="text-muted-foreground pl-5">已付:</span>
+                          <span className="font-medium">NT$ {order.paid_amount.toLocaleString()}</span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
 
                   {/* 付款方式與付款狀態 */}
                   <div className="flex items-center justify-between text-sm mb-3">
