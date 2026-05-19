@@ -1921,7 +1921,11 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               balance_payment_method: value,
               deposit_payment_method: value,
               // 切換非匯款時，清掉訂金狀態
-              ...(value !== "bank_transfer" ? { deposit_paid: false, deposit_amount: 0 } : {}),
+              ...(value !== "bank_transfer"
+                ? { deposit_paid: false, deposit_amount: 0 }
+                : (form.deposit_amount || 0) === 0
+                  ? { deposit_amount: Math.round(totals.final * 0.5) }
+                  : {}),
             })}
           >
             <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
