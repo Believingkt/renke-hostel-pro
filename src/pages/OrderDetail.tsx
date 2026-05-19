@@ -719,8 +719,8 @@ const OrderDetailPage = () => {
       } else {
         updateData.discount_code = order.discount_code;
       }
-      const isDepositLocked = ["deposit_paid", "paid", "fully_paid"].includes(order.payment_status);
-      if (!isDepositLocked || canUnlockPaidOrderDiscount) updateData.deposit_amount = editForm.deposit_amount;
+      // 訂金/尾款一律允許在編輯模式調整（無論付款狀態）
+      updateData.deposit_amount = editForm.deposit_amount;
       // final_price may legitimately change when addons are added/removed on a paid order.
       // Always include it so the total reflects current addons; the DB trigger allows this
       // as long as core financial fields (total_price/discount/deposit) are unchanged.
@@ -730,7 +730,6 @@ const OrderDetailPage = () => {
       const blocked: string[] = [];
       if (isPaidOrDeposit && Number(editForm.total_price) !== Number(order.total_price ?? 0)) blocked.push("房費金額");
       if (isPaidOrDeposit && !canUnlockPaidOrderDiscount && Number(editForm.discount_amount) !== Number(order.discount_amount ?? 0)) blocked.push("折扣金額");
-      if (isDepositLocked && !canUnlockPaidOrderDiscount && Number(editForm.deposit_amount) !== Number(order.deposit_amount ?? 0)) blocked.push("訂金");
       if (blocked.length > 0) {
         toast({
           title: "已付款訂單無法修改金額",
@@ -786,6 +785,9 @@ const OrderDetailPage = () => {
 
         if (Number(editFinalPriceCalc) !== Number(order.final_price ?? 0)) {
           auditParts.push(`實收 ${order.final_price}→${editFinalPriceCalc}`);
+        }
+        if (Number(editForm.deposit_amount) !== Number(order.deposit_amount ?? 0)) {
+          auditParts.push(`訂金 ${order.deposit_amount ?? 0}→${editForm.deposit_amount}`);
         }
         if (Number(editForm.paid_amount) !== Number(order.paid_amount ?? 0)) {
           auditParts.push(`已付 ${order.paid_amount ?? 0}→${editForm.paid_amount}`);
@@ -2406,8 +2408,7 @@ const OrderDetailPage = () => {
                     const paid = isEditing ? editForm.paid_amount : (order.paid_amount ?? 0);
                     const depositPaid = order.payment_status === 'deposit_paid' || order.payment_status === 'paid' || (paid >= dep && dep > 0);
                     const balancePaid = order.payment_status === 'paid' || paid >= finalDisplay;
-                    const isDepositLocked = ["deposit_paid", "paid", "fully_paid"].includes(order.payment_status);
-                    const canEditSplit = isEditing && (!isDepositLocked || canUnlockPaidOrderDiscount);
+                    const canEditSplit = isEditing;
                     const balance = Math.max(0, finalDisplay - dep);
                     return (
                       <>
