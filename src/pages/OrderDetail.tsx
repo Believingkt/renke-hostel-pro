@@ -720,7 +720,7 @@ const OrderDetailPage = () => {
         updateData.discount_code = order.discount_code;
       }
       const isDepositLocked = ["deposit_paid", "paid", "fully_paid"].includes(order.payment_status);
-      if (!isDepositLocked) updateData.deposit_amount = editForm.deposit_amount;
+      if (!isDepositLocked || canUnlockPaidOrderDiscount) updateData.deposit_amount = editForm.deposit_amount;
       // final_price may legitimately change when addons are added/removed on a paid order.
       // Always include it so the total reflects current addons; the DB trigger allows this
       // as long as core financial fields (total_price/discount/deposit) are unchanged.
@@ -730,7 +730,7 @@ const OrderDetailPage = () => {
       const blocked: string[] = [];
       if (isPaidOrDeposit && Number(editForm.total_price) !== Number(order.total_price ?? 0)) blocked.push("房費金額");
       if (isPaidOrDeposit && !canUnlockPaidOrderDiscount && Number(editForm.discount_amount) !== Number(order.discount_amount ?? 0)) blocked.push("折扣金額");
-      if (isDepositLocked && Number(editForm.deposit_amount) !== Number(order.deposit_amount ?? 0)) blocked.push("訂金");
+      if (isDepositLocked && !canUnlockPaidOrderDiscount && Number(editForm.deposit_amount) !== Number(order.deposit_amount ?? 0)) blocked.push("訂金");
       if (blocked.length > 0) {
         toast({
           title: "已付款訂單無法修改金額",
