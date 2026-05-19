@@ -40,25 +40,16 @@ const TYPE_LABEL: Record<string, string> = {
 
 export default function OwlTingEmailIngest() {
   const [rows, setRows] = useState<RawEmail[]>([]);
-  const [stats, setStats] = useState({ total: 0, failed: 0, ignored: 0, parsed: 0 });
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     setLoading(true);
-    const [{ data: list }, { count: total }, { count: failed }, { count: ignored }, { count: parsed }] =
-      await Promise.all([
-        supabase
-          .from("owlting_email_orders_raw")
-          .select("id,received_at,from_email,from_domain,subject,message_type,obe_number,accommodation_name,status,notes")
-          .order("received_at", { ascending: false })
-          .limit(50),
-        supabase.from("owlting_email_orders_raw").select("*", { count: "exact", head: true }),
-        supabase.from("owlting_email_parse_failures").select("*", { count: "exact", head: true }).eq("resolved", false),
-        supabase.from("owlting_email_orders_raw").select("*", { count: "exact", head: true }).eq("status", "ignored"),
-        supabase.from("owlting_email_orders_raw").select("*", { count: "exact", head: true }).eq("status", "parsed"),
-      ]);
+    const { data: list } = await supabase
+      .from("owlting_email_orders_raw")
+      .select("id,received_at,from_email,from_domain,subject,message_type,obe_number,accommodation_name,status,notes")
+      .order("received_at", { ascending: false })
+      .limit(50);
     setRows((list as RawEmail[]) ?? []);
-    setStats({ total: total ?? 0, failed: failed ?? 0, ignored: ignored ?? 0, parsed: parsed ?? 0 });
     setLoading(false);
   };
 
@@ -72,12 +63,8 @@ export default function OwlTingEmailIngest() {
         action={<Button variant="outline" onClick={load} disabled={loading}>重新整理</Button>}
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card><CardHeader><CardTitle className="text-sm text-muted-foreground">總收件數</CardTitle></CardHeader><CardContent className="text-2xl font-bold">{stats.total}</CardContent></Card>
-        <Card><CardHeader><CardTitle className="text-sm text-muted-foreground">成功解析</CardTitle></CardHeader><CardContent className="text-2xl font-bold text-primary">{stats.parsed}</CardContent></Card>
-        <Card><CardHeader><CardTitle className="text-sm text-muted-foreground">隔離區(未處理)</CardTitle></CardHeader><CardContent className="text-2xl font-bold text-destructive">{stats.failed}</CardContent></Card>
-        <Card><CardHeader><CardTitle className="text-sm text-muted-foreground">已忽略(非信任來源)</CardTitle></CardHeader><CardContent className="text-2xl font-bold text-muted-foreground">{stats.ignored}</CardContent></Card>
-      </div>
+      <OwlTingEmailStatsCards showDetailLink={false} />
+
 
       <Card>
         <CardHeader><CardTitle>最近 50 筆 Email</CardTitle></CardHeader>
