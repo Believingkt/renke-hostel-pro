@@ -832,11 +832,11 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           setIsSaving(false);
           return;
         }
-        const maxDeposit = Math.floor(totals.final / 2);
+        const maxDeposit = totals.final;
         if (rawDeposit > maxDeposit) {
           toast({
             title: "訂金金額不合法",
-            description: `訂金必須小於或等於尾款（最多 NT$ ${maxDeposit.toLocaleString()}）`,
+            description: `訂金不可超過訂單總額 NT$ ${maxDeposit.toLocaleString()}`,
             variant: "destructive",
           });
           setIsSaving(false);
