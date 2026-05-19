@@ -355,6 +355,11 @@ function App() {
                         <Suspense fallback={<DashboardSkeleton />}><ChannelManager /></Suspense>
                       </RequireModule>
                     } />
+                    <Route path="admin/owlting-email-ingest" element={
+                      <RequireModule module="channel_manager">
+                        <Suspense fallback={<DashboardSkeleton />}><OwlTingEmailIngest /></Suspense>
+                      </RequireModule>
+                    } />
 
                     {/* 其他頁面 */}
                     <Route path="og-preview" element={
