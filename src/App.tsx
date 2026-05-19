@@ -87,6 +87,7 @@ const OwnerSettlement = lazy(() => import("./pages/OwnerSettlement"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Reception = lazy(() => import("./pages/Reception"));
 const ChannelManager = lazy(() => import("./pages/ChannelManager"));
+const OwlTingEmailIngest = lazy(() => import("./pages/OwlTingEmailIngest"));
 
 function App() {
   return (
@@ -352,6 +353,11 @@ function App() {
                     <Route path="admin/channel-manager" element={
                       <RequireModule module="channel_manager">
                         <Suspense fallback={<DashboardSkeleton />}><ChannelManager /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/owlting-email-ingest" element={
+                      <RequireModule module="channel_manager">
+                        <Suspense fallback={<DashboardSkeleton />}><OwlTingEmailIngest /></Suspense>
                       </RequireModule>
                     } />
 

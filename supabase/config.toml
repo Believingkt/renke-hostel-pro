@@ -134,3 +134,6 @@ verify_jwt = false
 
 [functions.owlting-order-push]
 verify_jwt = true
+
+[functions.owlting-email-ingest]
+verify_jwt = false
