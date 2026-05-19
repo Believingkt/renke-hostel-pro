@@ -2406,7 +2406,7 @@ const OrderDetailPage = () => {
                     const depositPaid = order.payment_status === 'deposit_paid' || order.payment_status === 'paid' || (paid >= dep && dep > 0);
                     const balancePaid = order.payment_status === 'paid' || paid >= finalDisplay;
                     const isDepositLocked = ["deposit_paid", "paid", "fully_paid"].includes(order.payment_status);
-                    const canEditSplit = isEditing && (!isDepositLocked || canUnlockPaidOrderDiscount);
+                    const canEditSplit = isEditing;
                     const balance = Math.max(0, finalDisplay - dep);
                     return (
                       <>
