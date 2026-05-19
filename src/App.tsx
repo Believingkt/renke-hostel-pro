@@ -87,6 +87,7 @@ const OwnerSettlement = lazy(() => import("./pages/OwnerSettlement"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Reception = lazy(() => import("./pages/Reception"));
 const ChannelManager = lazy(() => import("./pages/ChannelManager"));
+const OwlTingEmailIngest = lazy(() => import("./pages/OwlTingEmailIngest"));
 
 function App() {
   return (
