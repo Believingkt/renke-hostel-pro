@@ -2396,36 +2396,78 @@ const OrderDetailPage = () => {
                   {/* 匯款（含舊訂單）：顯示訂金/尾款拆分與各自付款狀態 */}
                   {(() => {
                     const method = (order as any).balance_payment_method || (order as any).deposit_payment_method || (order as any).payment_method;
-                    const dep = order.deposit_amount ?? 0;
+                    const dep = isEditing ? (editForm.deposit_amount ?? 0) : (order.deposit_amount ?? 0);
                     const finalDisplay = isEditing
                       ? (editForm.total_price + editForm.addon_total - editForm.discount_amount)
                       : (order.final_price ?? 0);
                     const isBankTransfer = method === 'bank_transfer';
-                    const isLegacySplit = dep > 0 && dep < (order.final_price ?? 0);
+                    const isLegacySplit = (order.deposit_amount ?? 0) > 0 && (order.deposit_amount ?? 0) < (order.final_price ?? 0);
                     if (!isBankTransfer && !isLegacySplit) return null;
                     const paid = isEditing ? editForm.paid_amount : (order.paid_amount ?? 0);
                     const depositPaid = order.payment_status === 'deposit_paid' || order.payment_status === 'paid' || (paid >= dep && dep > 0);
                     const balancePaid = order.payment_status === 'paid' || paid >= finalDisplay;
+                    const isDepositLocked = ["deposit_paid", "paid", "fully_paid"].includes(order.payment_status);
+                    const canEditSplit = isEditing && !isDepositLocked;
+                    const balance = Math.max(0, finalDisplay - dep);
                     return (
                       <>
                         <div className="flex justify-between items-center gap-2">
                           <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">訂金</span>
-                          <span className="font-medium text-base md:text-base">
-                            NT$ {dep.toLocaleString()}
-                            <span className={`ml-2 text-xs ${depositPaid ? 'text-primary' : 'text-destructive'}`}>
-                              {depositPaid ? '已付' : '未付'}
+                          {canEditSplit ? (
+                            <div className="flex items-center gap-2">
+                              <Input
+                                className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right"
+                                type="text"
+                                inputMode="numeric"
+                                value={dep}
+                                onChange={(e) => {
+                                  const v = Math.max(0, Math.min(finalDisplay, parseInt(e.target.value) || 0));
+                                  depositRatioRef.current = finalDisplay > 0 ? v / finalDisplay : 0;
+                                  setEditForm(f => ({ ...f, deposit_amount: v }));
+                                }}
+                              />
+                              <span className={`text-xs ${depositPaid ? 'text-primary' : 'text-destructive'}`}>
+                                {depositPaid ? '已付' : '未付'}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="font-medium text-base md:text-base">
+                              NT$ {dep.toLocaleString()}
+                              <span className={`ml-2 text-xs ${depositPaid ? 'text-primary' : 'text-destructive'}`}>
+                                {depositPaid ? '已付' : '未付'}
+                              </span>
                             </span>
-                          </span>
+                          )}
                         </div>
                         <Separator />
                         <div className="flex justify-between items-center gap-2">
                           <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">尾款</span>
-                          <span className="font-medium text-base md:text-base">
-                            NT$ {Math.max(0, finalDisplay - dep).toLocaleString()}
-                            <span className={`ml-2 text-xs ${balancePaid ? 'text-primary' : 'text-destructive'}`}>
-                              {balancePaid ? '已付' : '未付'}
+                          {canEditSplit ? (
+                            <div className="flex items-center gap-2">
+                              <Input
+                                className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right"
+                                type="text"
+                                inputMode="numeric"
+                                value={balance}
+                                onChange={(e) => {
+                                  const v = Math.max(0, Math.min(finalDisplay, parseInt(e.target.value) || 0));
+                                  const newDep = Math.max(0, finalDisplay - v);
+                                  depositRatioRef.current = finalDisplay > 0 ? newDep / finalDisplay : 0;
+                                  setEditForm(f => ({ ...f, deposit_amount: newDep }));
+                                }}
+                              />
+                              <span className={`text-xs ${balancePaid ? 'text-primary' : 'text-destructive'}`}>
+                                {balancePaid ? '已付' : '未付'}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="font-medium text-base md:text-base">
+                              NT$ {balance.toLocaleString()}
+                              <span className={`ml-2 text-xs ${balancePaid ? 'text-primary' : 'text-destructive'}`}>
+                                {balancePaid ? '已付' : '未付'}
+                              </span>
                             </span>
-                          </span>
+                          )}
                         </div>
                         <Separator />
                       </>
