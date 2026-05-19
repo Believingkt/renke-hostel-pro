@@ -381,7 +381,7 @@ const OrderDetailPage = () => {
   useEffect(() => {
     let cancelled = false;
     const checkPaidOrderDiscountUnlock = async () => {
-      if (!order || !["paid", "fully_paid"].includes(order.payment_status)) {
+      if (!order || !["deposit_paid", "paid", "fully_paid"].includes(order.payment_status)) {
         setCanUnlockPaidOrderDiscount(false);
         return;
       }
