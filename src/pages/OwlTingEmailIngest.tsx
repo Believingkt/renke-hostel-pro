@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+import { OwlTingEmailStatsCards } from "@/components/OwlTingEmailStatsCards";
 
 interface RawEmail {
   id: string;
