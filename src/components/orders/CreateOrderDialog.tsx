@@ -131,6 +131,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   
   // Selected addons
   const [selectedAddons, setSelectedAddons] = useState<{ addon_id: string; quantity: number }[]>([]);
+  const [depositPct, setDepositPct] = useState<number>(30);
 
   // Multi-room selections
   const [roomSelections, setRoomSelections] = useState<RoomSelection[]>([]);
