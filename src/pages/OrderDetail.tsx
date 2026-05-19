@@ -786,6 +786,9 @@ const OrderDetailPage = () => {
         if (Number(editFinalPriceCalc) !== Number(order.final_price ?? 0)) {
           auditParts.push(`實收 ${order.final_price}→${editFinalPriceCalc}`);
         }
+        if (Number(editForm.deposit_amount) !== Number(order.deposit_amount ?? 0)) {
+          auditParts.push(`訂金 ${order.deposit_amount ?? 0}→${editForm.deposit_amount}`);
+        }
         if (Number(editForm.paid_amount) !== Number(order.paid_amount ?? 0)) {
           auditParts.push(`已付 ${order.paid_amount ?? 0}→${editForm.paid_amount}`);
         }
