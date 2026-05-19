@@ -1926,7 +1926,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               ...(value !== "bank_transfer"
                 ? { deposit_paid: false, deposit_amount: 0 }
                 : (form.deposit_amount || 0) === 0
-                  ? { deposit_amount: Math.round(totals.final * 0.5) }
+                  ? { deposit_amount: Math.round(totals.final * (depositPct || 30) / 100) }
                   : {}),
             })}
           >
