@@ -598,6 +598,7 @@ export default function ChannelManager() {
     <div className="space-y-6">
       <AdminPageHeader title="通路管理" icon={Plug} />
 
+      <OwlTingEmailStatsCards />
 
       {/* OwlTing 設定區塊 */}
       <Card className="overflow-hidden">
