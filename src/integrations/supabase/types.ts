@@ -2259,6 +2259,223 @@ export type Database = {
         }
         Relationships: []
       }
+      owlting_email_orders_raw: {
+        Row: {
+          accommodation_name: string | null
+          attachments: Json | null
+          charsets: Json | null
+          created_at: string
+          dkim: string | null
+          envelope: Json | null
+          from_domain: string | null
+          from_email: string | null
+          html_body: string | null
+          id: string
+          message_type: string | null
+          notes: string | null
+          obe_number: string | null
+          processed_at: string | null
+          raw_payload: Json
+          received_at: string
+          sender_ip: string | null
+          spam_report: string | null
+          spam_score: number | null
+          spf: string | null
+          status: string
+          subject: string | null
+          text_body: string | null
+          to_email: string | null
+        }
+        Insert: {
+          accommodation_name?: string | null
+          attachments?: Json | null
+          charsets?: Json | null
+          created_at?: string
+          dkim?: string | null
+          envelope?: Json | null
+          from_domain?: string | null
+          from_email?: string | null
+          html_body?: string | null
+          id?: string
+          message_type?: string | null
+          notes?: string | null
+          obe_number?: string | null
+          processed_at?: string | null
+          raw_payload: Json
+          received_at?: string
+          sender_ip?: string | null
+          spam_report?: string | null
+          spam_score?: number | null
+          spf?: string | null
+          status?: string
+          subject?: string | null
+          text_body?: string | null
+          to_email?: string | null
+        }
+        Update: {
+          accommodation_name?: string | null
+          attachments?: Json | null
+          charsets?: Json | null
+          created_at?: string
+          dkim?: string | null
+          envelope?: Json | null
+          from_domain?: string | null
+          from_email?: string | null
+          html_body?: string | null
+          id?: string
+          message_type?: string | null
+          notes?: string | null
+          obe_number?: string | null
+          processed_at?: string | null
+          raw_payload?: Json
+          received_at?: string
+          sender_ip?: string | null
+          spam_report?: string | null
+          spam_score?: number | null
+          spf?: string | null
+          status?: string
+          subject?: string | null
+          text_body?: string | null
+          to_email?: string | null
+        }
+        Relationships: []
+      }
+      owlting_email_parse_failures: {
+        Row: {
+          created_at: string
+          failure_reason: string
+          failure_stage: string | null
+          from_email: string | null
+          id: string
+          notes: string | null
+          raw_email_id: string | null
+          raw_payload: Json | null
+          received_at: string
+          resolved: boolean
+          resolved_at: string | null
+          resolved_by: string | null
+          subject: string | null
+        }
+        Insert: {
+          created_at?: string
+          failure_reason: string
+          failure_stage?: string | null
+          from_email?: string | null
+          id?: string
+          notes?: string | null
+          raw_email_id?: string | null
+          raw_payload?: Json | null
+          received_at?: string
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          subject?: string | null
+        }
+        Update: {
+          created_at?: string
+          failure_reason?: string
+          failure_stage?: string | null
+          from_email?: string | null
+          id?: string
+          notes?: string | null
+          raw_email_id?: string | null
+          raw_payload?: Json | null
+          received_at?: string
+          resolved?: boolean
+          resolved_at?: string | null
+          resolved_by?: string | null
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owlting_email_parse_failures_raw_email_id_fkey"
+            columns: ["raw_email_id"]
+            isOneToOne: false
+            referencedRelation: "owlting_email_orders_raw"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      owlting_email_property_alias: {
+        Row: {
+          accommodation_id: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          owlting_property_name: string
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          owlting_property_name: string
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          owlting_property_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owlting_email_property_alias_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      owlting_email_room_alias: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          owlting_room_name: string
+          room_type_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          owlting_room_name: string
+          room_type_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          owlting_room_name?: string
+          room_type_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owlting_email_room_alias_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owlting_email_room_alias_room_type_id_fkey"
+            columns: ["room_type_id"]
+            isOneToOne: false
+            referencedRelation: "room_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       owlting_message_logs: {
         Row: {
           accommodation_id: string | null
