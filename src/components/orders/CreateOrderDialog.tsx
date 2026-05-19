@@ -1981,22 +1981,39 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       </div>
 
       {form.balance_payment_method === "bank_transfer" && !form.balance_paid && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-lg border border-border p-4 bg-muted/30">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 rounded-lg border border-border p-4 bg-muted/30">
+          <div className="space-y-2">
+            <Label>訂金比例（%）</Label>
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              step={1}
+              value={totals.final > 0 ? Math.round(((form.deposit_amount || 0) / totals.final) * 100) : 0}
+              onChange={(e) => {
+                const pct = Math.max(0, Math.min(100, Number(e.target.value) || 0));
+                const amount = Math.round((totals.final * pct) / 100);
+                setForm({ ...form, deposit_amount: amount });
+              }}
+              className="h-12 text-base sm:h-10 sm:text-sm"
+            />
+            <p className="text-xs text-muted-foreground">預設 50%，可手動調整 0–100%</p>
+          </div>
           <div className="space-y-2">
             <Label>訂金金額（NT$）</Label>
             <Input
               type="number"
               min={0}
-              max={Math.floor(totals.final / 2)}
+              max={totals.final}
               value={form.deposit_amount}
               onChange={(e) => {
                 const v = Number(e.target.value) || 0;
-                const capped = Math.max(0, Math.min(v, Math.floor(totals.final / 2)));
+                const capped = Math.max(0, Math.min(v, totals.final));
                 setForm({ ...form, deposit_amount: capped });
               }}
               className="h-12 text-base sm:h-10 sm:text-sm"
             />
-            <p className="text-xs text-muted-foreground">上限 NT$ {Math.floor(totals.final / 2).toLocaleString()}（須 ≤ 尾款）</p>
+            <p className="text-xs text-muted-foreground">上限 NT$ {totals.final.toLocaleString()}</p>
           </div>
           <div className="space-y-2">
             <Label>尾款金額（NT$）</Label>
