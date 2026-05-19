@@ -68,7 +68,7 @@ export default function OwlTingEmailIngest() {
       <AdminPageHeader
         title="OwlTing Email 收件監控"
         description="SendGrid Inbound Parse 送進來的奧丁丁訂單通知 email"
-        actions={<Button variant="outline" onClick={load} disabled={loading}>重新整理</Button>}
+        action={<Button variant="outline" onClick={load} disabled={loading}>重新整理</Button>}
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
