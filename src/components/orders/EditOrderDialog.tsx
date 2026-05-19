@@ -1212,9 +1212,26 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
               const t = manualTotalPriceStr !== null ? Math.max(0, parseInt(manualTotalPriceStr) || 0) : (order?.final_price || 0);
               return t;
             })();
-            const maxDep = Math.floor(((order?.final_price) || totalFinal) / 2);
+            const baseTotal = (order?.final_price) || totalFinal;
+            const maxDep = baseTotal;
             return (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-lg border border-border p-4 bg-muted/30">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 rounded-lg border border-border p-4 bg-muted/30">
+                <div className="space-y-2">
+                  <Label>訂金比例（%）</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={depositPct}
+                    onChange={(e) => {
+                      const pct = Math.max(0, Math.min(100, Number(e.target.value) || 0));
+                      setDepositPct(pct);
+                      const amt = Math.round(baseTotal * pct / 100);
+                      setEditForm({ ...editForm, deposit_amount: amt });
+                    }}
+                    className="h-12 text-base sm:h-10 sm:text-sm"
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label>訂金金額（NT$）</Label>
                   <Input
@@ -1225,16 +1242,16 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
                     onChange={(e) => {
                       const v = Math.max(0, Math.min(Number(e.target.value) || 0, maxDep));
                       setEditForm({ ...editForm, deposit_amount: v });
+                      if (baseTotal > 0) setDepositPct(Math.round(v / baseTotal * 100));
                     }}
                     className="h-12 text-base sm:h-10 sm:text-sm"
                   />
-                  <p className="text-xs text-muted-foreground">上限 NT$ {maxDep.toLocaleString()}（須 ≤ 尾款）</p>
                 </div>
                 <div className="space-y-2">
                   <Label>尾款金額（NT$）</Label>
                   <Input
                     type="number"
-                    value={Math.max(0, (order?.final_price || 0) - (editForm.deposit_amount || 0))}
+                    value={Math.max(0, baseTotal - (editForm.deposit_amount || 0))}
                     readOnly
                     disabled
                     className="h-12 text-base sm:h-10 sm:text-sm bg-muted"
