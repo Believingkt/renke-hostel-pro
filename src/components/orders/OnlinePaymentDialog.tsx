@@ -112,7 +112,7 @@ export function OnlinePaymentDialog({
       setTimeout(() => setCopied(false), 2000);
       toast({
         title: "已複製付款連結",
-        description: "可傳送給客人進行線上刷卡付款，連結有效期限為 3 天",
+        description: `可傳送給客人以 ${payVerb} 完成付款，連結有效期限為 3 天`,
       });
     } catch {
       // Fallback
