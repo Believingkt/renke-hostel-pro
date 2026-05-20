@@ -176,8 +176,11 @@ export default function AiTrainingKnowledge() {
   };
 
   const confirmImport = async () => {
-    const payload = importAll.map((r) => ({
-      category: (CATEGORY_OPTIONS.includes(r.category as Category) ? r.category : "other") as Category,
+    const payload = importAll.map((r) => {
+      const raw = String(r.category || "").trim();
+      const cat = (raw === "attraction" ? "location" : raw) as Category;
+      return {
+        category: (CATEGORY_OPTIONS.includes(cat) ? cat : "other") as Category,
       title: String(r.title || "").trim(),
       content: String(r.content || ""),
       tags: r.tags ? String(r.tags).split("|").map((s: string) => s.trim()).filter(Boolean) : [],
