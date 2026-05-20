@@ -22,20 +22,49 @@ const MemberLayout = () => {
   const [memberName, setMemberName] = useState("");
 
   useEffect(() => {
+    const ensureMember = async (user: any) => {
+      if (!user) return;
+      const { data: existing } = await supabase
+        .from("platform_members")
+        .select("id, name")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!existing) {
+        const meta = user.user_metadata || {};
+        const fallbackName =
+          meta.name || meta.full_name || meta.display_name || user.email?.split("@")[0] || "會員";
+        await supabase.from("platform_members").insert({
+          user_id: user.id,
+          name: fallbackName,
+          email: user.email || meta.email || "",
+          phone: meta.phone || null,
+          avatar_url: meta.avatar_url || meta.picture || null,
+          gender: meta.gender || null,
+          nationality: meta.nationality || null,
+          address: meta.address || null,
+        } as any);
+        setMemberName(fallbackName);
+      } else {
+        setMemberName(existing.name);
+      }
+    };
+
     const checkAuth = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         navigate("/member/auth");
         return;
       }
-      const { data: member } = await supabase
-        .from("platform_members")
-        .select("name")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (member) setMemberName(member.name);
+      await ensureMember(user);
     };
     checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session?.user) {
+        ensureMember(session.user);
+      }
+    });
+    return () => subscription.unsubscribe();
   }, [navigate]);
 
   const handleLogout = async () => {

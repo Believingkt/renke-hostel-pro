@@ -219,6 +219,57 @@ const MemberAuth = () => {
     }
   };
 
+  // ----- Facebook OAuth (Supabase built-in provider) -----
+  const handleFacebookLogin = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "facebook",
+        options: {
+          redirectTo: window.location.origin + "/member",
+        },
+      });
+      if (error) throw error;
+      // Browser will redirect to Facebook; nothing else to do here.
+    } catch (error: any) {
+      toast.error(error.message || "Facebook 登入失敗");
+      setLoading(false);
+    }
+  };
+
+  // ----- LINE Login v2.1 (OIDC) — manual authorize redirect -----
+  const handleLineLogin = () => {
+    try {
+      const channelId = (import.meta as any).env?.VITE_LINE_CHANNEL_ID || "<LINE_CHANNEL_ID_PLACEHOLDER>";
+      const state = crypto.randomUUID();
+      const nonce = crypto.randomUUID();
+      // Single canonical callback URL — must be registered in LINE Developers.
+      // For Lovable preview / lovable.app domains we fall back to the current
+      // origin so dev / preview testing also works (these preview hosts must
+      // also be added to LINE Developers Callback URL list).
+      const isProdHost = window.location.hostname === "booking.lakeze.com";
+      const redirectUri = isProdHost
+        ? "https://booking.lakeze.com/member/auth/line-callback"
+        : `${window.location.origin}/member/auth/line-callback`;
+
+      sessionStorage.setItem("line_oauth_state", state);
+      sessionStorage.setItem("line_oauth_nonce", nonce);
+      sessionStorage.setItem("line_oauth_redirect_uri", redirectUri);
+
+      const authorizeUrl = new URL("https://access.line.me/oauth2/v2.1/authorize");
+      authorizeUrl.searchParams.set("response_type", "code");
+      authorizeUrl.searchParams.set("client_id", channelId);
+      authorizeUrl.searchParams.set("redirect_uri", redirectUri);
+      authorizeUrl.searchParams.set("state", state);
+      authorizeUrl.searchParams.set("scope", "openid profile email");
+      authorizeUrl.searchParams.set("nonce", nonce);
+
+      window.location.href = authorizeUrl.toString();
+    } catch (error: any) {
+      toast.error(error.message || "LINE 登入啟動失敗");
+    }
+  };
+
   const ensureMemberProfile = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -401,7 +452,7 @@ const MemberAuth = () => {
             <Button
               variant="outline"
               className="w-full mb-2 border-[hsl(24,100%,50%)]/40 hover:bg-[hsl(24,100%,50%)]/10"
-              onClick={() => toast.info("Facebook 登入功能即將推出，敬請期待！")}
+              onClick={handleFacebookLogin}
               disabled={loading}
             >
               <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="#1877F2">
@@ -413,7 +464,7 @@ const MemberAuth = () => {
             <Button
               variant="outline"
               className="w-full mb-4 border-[hsl(24,100%,50%)]/40 hover:bg-[hsl(24,100%,50%)]/10"
-              onClick={() => toast.info("LINE 登入功能即將推出，敬請期待！")}
+              onClick={handleLineLogin}
               disabled={loading}
             >
               <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="#06C755">

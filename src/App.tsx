@@ -36,6 +36,7 @@ const MemberPoints = lazy(() => import("./pages/MemberPoints"));
 const MemberCoupons = lazy(() => import("./pages/MemberCoupons"));
 const MemberOrders = lazy(() => import("./pages/MemberOrders"));
 const MemberResetPassword = lazy(() => import("./pages/MemberResetPassword"));
+const MemberLineCallback = lazy(() => import("./pages/MemberLineCallback"));
 
 // 前台頁面 - lazy load
 const BookingFlow = lazy(() => import("./pages/BookingFlow"));
@@ -136,6 +137,9 @@ function App() {
                     </Route>
                     <Route path="member/reset-password" element={
                       <Suspense fallback={<FrontendSkeleton />}><MemberResetPassword /></Suspense>
+                    } />
+                    <Route path="member/auth/line-callback" element={
+                      <Suspense fallback={<FrontendSkeleton />}><MemberLineCallback /></Suspense>
                     } />
 
                     {/* 前台頁面 */}
