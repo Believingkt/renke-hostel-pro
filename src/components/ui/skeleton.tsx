@@ -1,15 +1,4 @@
-import { cn } from "@/lib/utils";
-
-const Skeleton = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => {
-  return (
-    <div
-      className={cn(
-        "rounded-md bg-muted skeleton-shimmer",
-        className
-      )}
-      {...props}
-    />
-  );
-};
+// Skeletons disabled project-wide to prevent flickering. See memory: visual-stability-standards.
+const Skeleton = (_props: React.HTMLAttributes<HTMLDivElement>) => null;
 
 export { Skeleton };
