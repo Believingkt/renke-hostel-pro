@@ -72,7 +72,7 @@ export default function AiTrainingLayout() {
       {/* Sticky 頂部狀態列 */}
       <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card px-4 py-3 shadow-sm">
         <div className="flex items-center gap-3 text-sm">
-          <span className="font-medium">AI 助理訓練中心</span>
+          <span className="font-medium">AI 訓練中心</span>
           <span className="text-muted-foreground">
             目前正式版本：
             <span className="font-semibold text-foreground">
