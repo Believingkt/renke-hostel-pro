@@ -62,7 +62,10 @@ export default function AiTrainingLayout() {
       setPublishedVersion(pub?.version ?? null);
       setDraftCount(count ?? 0);
     })();
-  }, [location.pathname]);
+  }, [location.pathname, authorized]);
+
+  if (authorized === null) return null;
+  if (authorized === false) return <Navigate to="/hq-auth" replace />;
 
   return (
     <div className="flex flex-col gap-4">
