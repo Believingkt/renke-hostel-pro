@@ -21,12 +21,12 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, X, Upload, Download } from "lucide-react";
 
-type Category = "room" | "facility" | "policy" | "attraction" | "faq" | "other";
+type Category = "room" | "facility" | "policy" | "location" | "faq" | "other";
 const CATEGORY_LABEL: Record<Category, string> = {
   room: "房型", facility: "設施", policy: "政策",
-  attraction: "周邊景點", faq: "常見問答", other: "其他",
+  location: "周邊景點", faq: "常見問答", other: "其他",
 };
-const CATEGORY_OPTIONS: Category[] = ["room", "facility", "policy", "attraction", "faq", "other"];
+const CATEGORY_OPTIONS: Category[] = ["room", "facility", "policy", "location", "faq", "other"];
 
 type Row = {
   id: string;
