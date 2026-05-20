@@ -50,6 +50,27 @@ export default function AiTrainingExamples() {
   }, []);
   useEffect(() => { void load(); }, [load]);
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get("prefill") === "true") {
+      setEditing(null);
+      setForm({
+        scenario: "",
+        user_message: searchParams.get("user_message") || "",
+        ideal_response: searchParams.get("ideal_response") || "",
+        explanation: "",
+        is_active: true,
+      });
+      setDialogOpen(true);
+      // Clear params after consuming
+      const next = new URLSearchParams(searchParams);
+      next.delete("prefill"); next.delete("user_message"); next.delete("ideal_response");
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+
   const scenarios = useMemo(() => Array.from(new Set(rows.map((r) => r.scenario))).filter(Boolean), [rows]);
   const filtered = useMemo(() => rows.filter((r) => {
     if (scenarioFilter !== "all" && r.scenario !== scenarioFilter) return false;
