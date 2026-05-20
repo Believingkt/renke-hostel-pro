@@ -164,11 +164,10 @@ export default function OrderPayment() {
     if (!orderInfo?.orderId) return;
     if (!silent) setRefreshingStatus(true);
     try {
-      const { data } = await supabase
-        .from("orders")
-        .select("payment_status, paid_amount, final_price, order_status, atm_expire_at")
-        .eq("id", orderInfo.orderId)
-        .maybeSingle();
+      const { data: resp } = await supabase.functions.invoke("get-public-order", {
+        body: { order_number: orderNumber, accommodation_id: accommodationId },
+      });
+      const data = resp?.order;
       if (data) {
         setPaymentStatus(data.payment_status || "unpaid");
         setOrderStatus(data.order_status || "pending");
