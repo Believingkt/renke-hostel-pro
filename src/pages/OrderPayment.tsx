@@ -80,14 +80,12 @@ export default function OrderPayment() {
       }
 
       try {
-        const { data, error } = await supabase
-          .from("orders")
-          .select("id, guest_name, guest_phone, guest_email, final_price, paid_amount, payment_status, order_status, payment_link_created_at, deposit_method, deposit_status, atm_vacc_no, atm_vacc_bank_code, atm_expire_at")
-          .eq("order_number", orderNumber)
-          .eq("accommodation_id", accommodationId)
-          .maybeSingle();
+        const { data: resp, error } = await supabase.functions.invoke("get-public-order", {
+          body: { order_number: orderNumber, accommodation_id: accommodationId },
+        });
 
         if (error) throw error;
+        const data = resp?.order;
         if (!data) {
           setOrderError("找不到此訂單");
           setLoadingOrder(false);
@@ -149,13 +147,7 @@ export default function OrderPayment() {
         setPaymentStatus(data.payment_status || "unpaid");
         setOrderStatus(data.order_status || "pending");
 
-        // Fetch accommodation name
-        const { data: accData } = await supabase
-          .from("accommodation_info")
-          .select("name")
-          .eq("id", accommodationId)
-          .maybeSingle();
-        if (accData) setAccName(accData.name);
+        if (resp?.accommodation_name) setAccName(resp.accommodation_name);
       } catch (err) {
         console.error("Fetch order error:", err);
         setOrderError("載入訂單資料失敗");
