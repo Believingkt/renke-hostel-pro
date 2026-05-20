@@ -50,7 +50,10 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    let { messages, context } = body;
+    let { messages, context, session_id } = body;
+    const url = new URL(req.url);
+    const mode = (url.searchParams.get('mode') || req.headers.get('x-ai-mode') || 'published').toLowerCase();
+    const isDraft = mode === 'draft';
 
     if (!Array.isArray(messages)) {
       return new Response(JSON.stringify({ error: "訊息格式錯誤" }), {
@@ -634,7 +637,44 @@ serve(async (req) => {
       ? `\n## 🎯 用戶當前選擇（最高優先，呼叫 get_available_rooms 必須使用這些值，除非用戶明確要求改變）：\n- 入住日期：${ctxCheckIn || '未設定'}\n- 退房日期：${ctxCheckOut || '未設定'}\n- 入住人數：${ctxGuests ?? '未設定'}（呼叫 get_available_rooms 時必須以此值傳入 guest_count，過濾不足容納的房型）\n- 房間數：${ctxRooms ?? '未設定'}\n`
       : '';
 
-    const systemPrompt = `你是人客多訂房平台的 AI 管家「小安」，像 ChatGPT 語音助理一樣與客人對話完成訂房。
+    // Load DB-driven prompt config (Phase 2)
+    const { data: dbPrompt } = await supabase
+      .from('ai_prompts')
+      .select('id, version, system_prompt, tone_rules, forbidden_topics, persona_name')
+      .eq('status', isDraft ? 'draft' : 'published')
+      .order('version', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const { data: dbKnowledge } = await supabase
+      .from('ai_knowledge')
+      .select('title, content, priority')
+      .eq('is_active', true)
+      .order('priority', { ascending: false })
+      .limit(80);
+
+    const { data: dbExamples } = await supabase
+      .from('ai_examples')
+      .select('scenario, user_message, ideal_response')
+      .eq('is_active', true)
+      .limit(40);
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const locationStr = Array.from(new Set(accommodationList.map(a => [a.region_1, a.region_2].filter(Boolean).join(' ')).filter(Boolean))).join('、');
+
+    const replaceVars = (s: string) => (s || '')
+      .replaceAll('{{今天日期}}', todayStr)
+      .replaceAll('{{民宿地點}}', locationStr || '台灣');
+
+    const dbPromptBlock = dbPrompt ? [
+      replaceVars(dbPrompt.system_prompt || ''),
+      dbPrompt.tone_rules ? `\n## 語氣規則：\n${replaceVars(dbPrompt.tone_rules)}` : '',
+      dbPrompt.forbidden_topics ? `\n## 禁止主題：\n${dbPrompt.forbidden_topics.split('|').map((s: string) => `- ${s.trim()}`).join('\n')}` : '',
+      dbKnowledge && dbKnowledge.length ? `\n【知識庫】\n${dbKnowledge.map(k => `標題：${k.title}\n內容：${k.content}`).join('\n---\n')}` : '',
+      dbExamples && dbExamples.length ? `\n【參考對話】\n${dbExamples.map(e => `[${e.scenario}]\n使用者：${e.user_message}\n小安：${e.ideal_response}`).join('\n---\n')}` : '',
+    ].filter(Boolean).join('\n') : '';
+
+    const systemPrompt = `${dbPromptBlock}\n\n你是人客多訂房平台的 AI 管家「${dbPrompt?.persona_name || '小安'}」，像 ChatGPT 語音助理一樣與客人對話完成訂房。
 ${userContextBlock}
 
 ## 🚨 關鍵回覆規則（最重要，必須遵守）：
@@ -662,18 +702,7 @@ ${accListStr}
 ## 工具：
 - get_available_rooms：查房型/價格
 - check_discount_code：驗折扣碼
-- create_booking：建訂單
-
-## 訂房流程（主動推進，不囉嗦）：
-推薦 → 確認日期 → 確認房型 → 收集姓名 → 收集手機 → 收集 Email → 送出
-
-## 範例好回覆：
-"✨ 推薦宜蘭 5/27、14 人 6 間房，要看看嗎？\\n[SUGGEST: 好的 | 換日期 | 包棟烤肉]"
-"找到 3 間，想看哪間？\\n[ROOM_LIST]...[/ROOM_LIST]\\n[SUGGEST: 第一間 | 第二間 | 都看看]"
-"好的，請問怎麼稱呼您？\\n[SUGGEST: 跳過 | 我叫王先生]"
-
-## ❌ 不好的範例（太長、太囉嗦）：
-"您好！很高興為您服務。請問您想要去哪個地區？我們有宜蘭、南投、苗栗等選擇..."（太長，應改為主動推薦）`;
+- create_booking：建訂單`;
 
     const toAnthropicMessages = (msgs: any[]) =>
       msgs.filter(m => m.role !== 'system').map(m => ({
@@ -720,6 +749,7 @@ ${accListStr}
 
         const decoder = new TextDecoder();
         let buffer = '';
+        let assistantText = '';
         const toolCallsByIndex = new Map<number, { id: string; name: string; inputJson: string; inputObject: any }>();
         let shouldExecuteToolCalls = false;
 
@@ -755,6 +785,7 @@ ${accListStr}
                 } else if (eventType === 'content_block_delta') {
                   const delta = parsed.delta;
                   if (delta?.type === 'text_delta' && delta.text) {
+                    assistantText += delta.text;
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: delta.text } }] })}\n\n`));
                   } else if (delta?.type === 'input_json_delta') {
                     const tc = toolCallsByIndex.get(parsed.index ?? -1);
@@ -930,6 +961,19 @@ ${accListStr}
         } finally {
           try { controller.enqueue(encoder.encode(`data: [DONE]\n\n`)); } catch {}
           controller.close();
+          // Log conversation (Phase 2)
+          try {
+            if (session_id && typeof session_id === 'string' && session_id.length <= 100) {
+              const fullMessages = [...messages, { role: 'assistant', content: assistantText }];
+              await supabase.from('ai_conversation_logs').insert({
+                session_id,
+                prompt_version: dbPrompt?.version ?? null,
+                messages: fullMessages,
+              });
+            }
+          } catch (logErr) {
+            console.error('Log write failed:', logErr);
+          }
         }
       },
     });
