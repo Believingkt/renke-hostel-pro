@@ -50,6 +50,8 @@ export function OnlinePaymentDialog({
   const unpaidAmount = order ? order.final_price - (order.paid_amount || 0) : 0;
   const depositAmount = order?.deposit_amount || 0;
   const balanceAmount = order ? order.final_price - depositAmount : 0;
+  const isAtm = /atm|虛擬帳號/i.test(`${order?.payment_method || ""} ${order?.balance_payment_method || ""}`);
+  const payVerb = isAtm ? "ATM 虛擬帳號" : "線上刷卡";
 
   // 設定付款金額
   useEffect(() => {
