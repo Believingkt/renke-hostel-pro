@@ -85,14 +85,20 @@ export function OnlinePaymentDialog({
 
     getPaymentOriginForAccommodation(accId).then((baseUrl) => {
       if (cancelled) return;
-      const link = `${baseUrl}/pay/order?order_number=${encodeURIComponent(order.order_number)}&amount=${paymentAmount}&acc=${encodeURIComponent(accId)}`;
+      const params = new URLSearchParams({
+        order_number: order.order_number,
+        amount: String(paymentAmount),
+        acc: accId,
+      });
+      if (isAtm) params.set("method", "atm");
+      const link = `${baseUrl}/pay/order?${params.toString()}`;
       setGeneratedLink(link);
     });
 
     return () => {
       cancelled = true;
     };
-  }, [order, paymentAmount]);
+  }, [order, paymentAmount, isAtm]);
 
   // 重置狀態
   useEffect(() => {
