@@ -1,0 +1,1 @@
+DELETE FROM orders WHERE order_number = 'JR7G58U8';
