@@ -23,6 +23,20 @@ interface ExchangeBody {
   redirectUri?: string;
 }
 
+async function tryOptionalUpdate(admin: ReturnType<typeof createClient>, table: string, matchColumn: string, matchValue: string, values: Record<string, unknown>) {
+  for (const [column, value] of Object.entries(values)) {
+    const candidates = column === "status" ? [value, "verified"] : [value];
+    for (const candidate of candidates) {
+      const { error } = await admin.from(table).update({ [column]: candidate }).eq(matchColumn, matchValue);
+      if (!error) break;
+      if (/column|schema cache|Could not find/i.test(error.message || "")) break;
+      if (column !== "status" || candidate === candidates[candidates.length - 1]) {
+        console.warn(`${table}.${column} optional reactivation update failed`, error);
+      }
+    }
+  }
+}
+
 Deno.serve(async (req) => {
   const cors = buildCorsHeaders(req);
   const json = (body: unknown, status = 200) =>
@@ -109,6 +123,7 @@ Deno.serve(async (req) => {
 
   // ── 3. Find or create user ──────────────────────────────────────────────
   let userId: string | null = null;
+  let existingMetadata: Record<string, unknown> = {};
   try {
     const lookupResp = await fetch(
       `${supabaseUrl}/auth/v1/admin/users?email=${encodeURIComponent(email)}`,
@@ -123,22 +138,30 @@ Deno.serve(async (req) => {
       const lookup = await lookupResp.json();
       const users = Array.isArray(lookup?.users) ? lookup.users : [];
       const match = users.find((u: any) => (u.email || "").toLowerCase() === email.toLowerCase());
-      if (match?.id) userId = match.id;
+      if (match?.id) {
+        userId = match.id;
+        existingMetadata = match.raw_user_meta_data || match.user_metadata || {};
+      }
     }
   } catch (err) {
     console.warn("admin user lookup failed", err);
   }
 
+  const reactivationMetadata = {
+    ...existingMetadata,
+    provider: "facebook",
+    fb_id: fbId,
+    name: displayName,
+    avatar_url: picture,
+    last_reactivated_at: new Date().toISOString(),
+    reactivated_via: "facebook",
+  };
+
   if (!userId) {
     const { data: created, error: createErr } = await admin.auth.admin.createUser({
       email,
       email_confirm: true,
-      user_metadata: {
-        provider: "facebook",
-        fb_id: fbId,
-        name: displayName,
-        avatar_url: picture,
-      },
+      user_metadata: reactivationMetadata,
     });
     if (createErr || !created?.user?.id) {
       console.error("createUser failed", createErr);
@@ -147,21 +170,34 @@ Deno.serve(async (req) => {
     userId = created.user.id;
   } else {
     await admin.auth.admin.updateUserById(userId, {
-      user_metadata: {
-        provider: "facebook",
-        fb_id: fbId,
-        name: displayName,
-        avatar_url: picture,
-      },
+      user_metadata: reactivationMetadata,
     });
   }
+
+  try {
+    await admin.from("profiles").upsert(
+      {
+        id: userId,
+        name: displayName,
+        email,
+      },
+      { onConflict: "id" },
+    );
+  } catch (err) {
+    console.warn("profiles upsert failed", err);
+  }
+  await tryOptionalUpdate(admin, "profiles", "id", userId, {
+    deleted_at: null,
+    is_active: true,
+    status: "active",
+  });
 
   try {
     await admin.from("platform_members").upsert(
       {
         user_id: userId,
         name: displayName,
-        email: fbEmail,
+        email: fbEmail || email,
         avatar_url: picture,
       },
       { onConflict: "user_id" },
@@ -169,6 +205,11 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.warn("platform_members upsert failed", err);
   }
+  await tryOptionalUpdate(admin, "platform_members", "user_id", userId, {
+    deleted_at: null,
+    is_active: true,
+    status: "active",
+  });
 
   // ── 4. Generate magic-link OTP and verify server-side for tokens ────────
   const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({

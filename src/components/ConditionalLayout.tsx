@@ -99,9 +99,11 @@ export function ConditionalLayout() {
 
       if (session) {
         checkPasswordChangeRequired(session);
-        queueMicrotask(() => {
-          void checkUserValidity(session.user.id);
-        });
+        if (isAdminPage || isHQPage) {
+          queueMicrotask(() => {
+            void checkUserValidity(session.user.id);
+          });
+        }
       } else {
         setNeedsPasswordChange(false);
       }
@@ -120,9 +122,11 @@ export function ConditionalLayout() {
 
         if (event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') {
           checkPasswordChangeRequired(session);
-          queueMicrotask(() => {
-            void checkUserValidity(session.user.id);
-          });
+          if (isAdminPage || isHQPage) {
+            queueMicrotask(() => {
+              void checkUserValidity(session.user.id);
+            });
+          }
           return;
         }
 
@@ -133,7 +137,7 @@ export function ConditionalLayout() {
     );
 
     return () => subscription.unsubscribe();
-  }, [checkPasswordChangeRequired, checkUserValidity]);
+  }, [checkPasswordChangeRequired, checkUserValidity, isAdminPage, isHQPage]);
 
   if (isFrontendPage) {
     return (
