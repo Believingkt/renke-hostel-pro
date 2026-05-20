@@ -116,7 +116,7 @@ const MemberProfile = () => {
         </div>
         <div className="space-y-2">
           <Label>Email <span className="text-destructive">*</span></Label>
-          <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
+          <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder={isSyntheticEmail ? "請輸入您的 Email" : ""} />
         </div>
         <Button onClick={handleSave} disabled={saving} className="bg-[hsl(24,100%,50%)] hover:bg-[hsl(24,100%,45%)] text-white">
           {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
