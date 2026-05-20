@@ -20,7 +20,7 @@ const MemberProfile = () => {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  
+  const [isSyntheticEmail, setIsSyntheticEmail] = useState(false);
   const [gender, setGender] = useState("");
   const [nationality, setNationality] = useState("");
   const [memberId, setMemberId] = useState("");
