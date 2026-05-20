@@ -464,7 +464,7 @@ const MemberAuth = () => {
             <Button
               variant="outline"
               className="w-full mb-4 border-[hsl(24,100%,50%)]/40 hover:bg-[hsl(24,100%,50%)]/10"
-              onClick={() => toast.info("LINE 登入功能即將推出，敬請期待！")}
+              onClick={handleLineLogin}
               disabled={loading}
             >
               <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="#06C755">
