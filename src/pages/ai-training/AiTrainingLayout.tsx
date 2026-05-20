@@ -25,7 +25,24 @@ const NAV = [
 export default function AiTrainingLayout() {
   const [publishedVersion, setPublishedVersion] = useState<number | null>(null);
   const [draftCount, setDraftCount] = useState<number>(0);
+  const [authorized, setAuthorized] = useState<boolean | null>(null);
   const location = useLocation();
+
+  useEffect(() => {
+    void (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setAuthorized(false);
+        return;
+      }
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      const ok = !!roles?.some((r) => r.role === "super_admin" || r.role === "hotel_admin");
+      setAuthorized(ok);
+    })();
+  }, []);
 
   useEffect(() => {
     void (async () => {
