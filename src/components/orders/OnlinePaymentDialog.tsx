@@ -249,22 +249,12 @@ export function OnlinePaymentDialog({
                 <Link2 className="h-4 w-4" />
                 付款連結
               </Label>
-              <div className="flex gap-2">
-                <Input
-                  readOnly
-                  value={generatedLink}
-                  className="text-xs font-mono"
-                  onClick={(e) => (e.target as HTMLInputElement).select()}
-                />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="flex-shrink-0"
-                  onClick={handleCopyLink}
-                >
-                  {copied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
-                </Button>
-              </div>
+              <Input
+                readOnly
+                value={generatedLink}
+                className="text-xs font-mono"
+                onClick={(e) => (e.target as HTMLInputElement).select()}
+              />
               <p className="text-xs text-muted-foreground">
                 複製連結傳送給客人，客人開啟後即可自行輸入信用卡完成付款。
                 <span className="text-warning font-medium">連結有效期限為 3 天。</span>
