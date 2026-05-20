@@ -91,10 +91,13 @@ const Reception = lazy(() => import("./pages/Reception"));
 const ChannelManager = lazy(() => import("./pages/ChannelManager"));
 const OwlTingEmailIngest = lazy(() => import("./pages/OwlTingEmailIngest"));
 
-// AI 助理訓練中心 (Phase 1)
+// AI 助理訓練中心 (Phase 2)
 const AiTrainingLayout = lazy(() => import("./pages/ai-training/AiTrainingLayout"));
 const AiTrainingDashboard = lazy(() => import("./pages/ai-training/AiTrainingDashboard"));
 const AiTrainingPlaceholder = lazy(() => import("./pages/ai-training/AiTrainingPlaceholder"));
+const AiTrainingPrompt = lazy(() => import("./pages/ai-training/AiTrainingPrompt"));
+const AiTrainingKnowledge = lazy(() => import("./pages/ai-training/AiTrainingKnowledge"));
+const AiTrainingExamples = lazy(() => import("./pages/ai-training/AiTrainingExamples"));
 
 function App() {
   return (
@@ -396,13 +399,13 @@ function App() {
                           <Suspense fallback={null}><AiTrainingDashboard /></Suspense>
                         } />
                         <Route path="prompt" element={
-                          <Suspense fallback={null}><AiTrainingPlaceholder title="系統提示詞" description="編輯小安的角色設定、語氣與禁忌主題。" /></Suspense>
+                          <Suspense fallback={null}><AiTrainingPrompt /></Suspense>
                         } />
                         <Route path="knowledge" element={
-                          <Suspense fallback={null}><AiTrainingPlaceholder title="知識庫" description="管理房型、設施、政策、地點等知識條目。" /></Suspense>
+                          <Suspense fallback={null}><AiTrainingKnowledge /></Suspense>
                         } />
                         <Route path="examples" element={
-                          <Suspense fallback={null}><AiTrainingPlaceholder title="對話範例訓練" description="提供理想對話範例,協助小安學習回應風格。" /></Suspense>
+                          <Suspense fallback={null}><AiTrainingExamples /></Suspense>
                         } />
                         <Route path="conversations" element={
                           <Suspense fallback={null}><AiTrainingPlaceholder title="對話紀錄與評分" description="檢視歷史對話、標記好壞並寫下調整建議。" /></Suspense>
