@@ -1691,7 +1691,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         {/* Addons */}
         {addonSettings.length > 0 && (
           <div className="p-3 border rounded-lg bg-muted/30 space-y-2">
-            <Label className="text-xs">加購方案</Label>
+            <Label className="text-sm">加購方案</Label>
             {addonSettings.map((addon) => {
               const selectedAddon = selectedAddons.find(a => a.addon_id === addon.id);
               const quantity = selectedAddon?.quantity || 0;
@@ -1699,8 +1699,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               return (
                 <div key={addon.id} className="flex items-center justify-between p-2 bg-background rounded-md">
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-xs">{addon.addon_type === 'pet' ? '寵物方案' : addon.addon_type === 'meal' ? '餐食方案' : addon.addon_type}</div>
-                    <div className="text-xs text-primary">
+                    <div className="font-medium text-sm">{addon.addon_type === 'pet' ? '寵物方案' : addon.addon_type === 'meal' ? '餐食方案' : addon.addon_type}</div>
+                    <div className="text-sm text-primary">
                       NT$ {addon.price_per_unit.toLocaleString()} / {addon.unit_label}
                     </div>
                   </div>
@@ -1722,7 +1722,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                     >
                       -
                     </Button>
-                    <span className="w-6 text-center text-xs font-medium">{quantity}</span>
+                    <span className="w-6 text-center text-sm font-medium">{quantity}</span>
                     <Button
                       type="button"
                       variant="outline"
