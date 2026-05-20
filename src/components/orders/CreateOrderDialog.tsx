@@ -1563,7 +1563,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
             {roomSelections.length === 0 && (
               <div className="p-4 border rounded-lg bg-muted/30 text-center text-sm text-muted-foreground">
-                請點擊「新增房間」加入房型
+                請點擊「新增散客房」加入房型
               </div>
             )}
 
