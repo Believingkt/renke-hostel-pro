@@ -460,7 +460,7 @@ const MemberAuth = () => {
             {/* Social login buttons (visual only, not yet functional) */}
             <Button
               variant="outline"
-              className="w-full mb-2 border-[hsl(24,100%,50%)]/40 hover:bg-[hsl(24,100%,50%)]/10"
+              className="w-full mb-2 border-[hsl(24,100%,50%)]/40 text-foreground hover:bg-[hsl(24,100%,50%)]/10 hover:text-foreground"
               onClick={handleFacebookLogin}
               disabled={loading}
             >
@@ -472,7 +472,7 @@ const MemberAuth = () => {
 
             <Button
               variant="outline"
-              className="w-full mb-4 border-[hsl(24,100%,50%)]/40 hover:bg-[hsl(24,100%,50%)]/10"
+              className="w-full mb-4 border-[hsl(24,100%,50%)]/40 text-foreground hover:bg-[hsl(24,100%,50%)]/10 hover:text-foreground"
               onClick={handleLineLogin}
               disabled={loading}
             >
@@ -481,6 +481,7 @@ const MemberAuth = () => {
               </svg>
               使用 LINE 登入
             </Button>
+
 
           </CardContent>
         </Card>
