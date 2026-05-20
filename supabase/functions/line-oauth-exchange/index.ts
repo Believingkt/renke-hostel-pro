@@ -45,9 +45,16 @@ function decodeJwtPayload(token: string): Record<string, unknown> {
 }
 
 async function tryOptionalUpdate(admin: ReturnType<typeof createClient>, table: string, matchColumn: string, matchValue: string, values: Record<string, unknown>) {
-  const { error } = await admin.from(table).update(values).eq(matchColumn, matchValue);
-  if (error && !/column|schema cache|Could not find/i.test(error.message || "")) {
-    console.warn(`${table} optional reactivation update failed`, error);
+  for (const [column, value] of Object.entries(values)) {
+    const candidates = column === "status" ? [value, "verified"] : [value];
+    for (const candidate of candidates) {
+      const { error } = await admin.from(table).update({ [column]: candidate }).eq(matchColumn, matchValue);
+      if (!error) break;
+      if (/column|schema cache|Could not find/i.test(error.message || "")) break;
+      if (column !== "status" || candidate === candidates[candidates.length - 1]) {
+        console.warn(`${table}.${column} optional reactivation update failed`, error);
+      }
+    }
   }
 }
 
