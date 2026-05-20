@@ -1699,8 +1699,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               return (
                 <div key={addon.id} className="flex items-center justify-between p-2 bg-background rounded-md">
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-xs">{addon.addon_type === 'pet' ? '寵物方案' : addon.addon_type === 'meal' ? '餐食方案' : addon.addon_type}</div>
-                    <div className="text-xs text-primary">
+                    <div className="font-medium text-sm">{addon.addon_type === 'pet' ? '寵物方案' : addon.addon_type === 'meal' ? '餐食方案' : addon.addon_type}</div>
+                    <div className="text-sm text-primary">
                       NT$ {addon.price_per_unit.toLocaleString()} / {addon.unit_label}
                     </div>
                   </div>
