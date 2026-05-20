@@ -255,7 +255,7 @@ const PortalSearchBar = ({
               <Input
                 ref={desktopDestinationInputRef}
                 placeholder="城市、地區或民宿名稱"
-                className="!pl-10 h-10 border-border text-foreground"
+                className="!pl-10 h-10 md:min-h-10 border-border text-foreground"
                 value={searchQuery}
                 onChange={(e) => onSearchQueryChange(e.target.value)}
                 onKeyDown={handleKeyDown}
