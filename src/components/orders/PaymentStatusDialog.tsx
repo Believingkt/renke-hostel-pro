@@ -123,15 +123,7 @@ export function PaymentStatusDialog({ order, open, onOpenChange, onSuccess }: Pa
         </DialogHeader>
         <div className="space-y-4 py-2">
           <RadioGroup value={selectedStatus} onValueChange={setSelectedStatus}>
-            {BASE_PAYMENT_STATUSES.filter(s => {
-              if (!s.legacyOnly) return true;
-              // Show legacy "deposit_paid" only for orders that originated with a deposit split,
-              // or already carry that status (so users can keep editing legacy records).
-              if (!order) return false;
-              if (order.payment_status === s.value) return true;
-              const dep = order.deposit_amount ?? 0;
-              return dep > 0 && dep < order.final_price;
-            }).map((status) => {
+            {BASE_PAYMENT_STATUSES.map((status) => {
               const config = getPaymentStatusConfig(status.value);
               return (
                 <div key={status.value} className="flex items-center space-x-3 py-1.5">
