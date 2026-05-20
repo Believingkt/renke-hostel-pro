@@ -1691,7 +1691,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         {/* Addons */}
         {addonSettings.length > 0 && (
           <div className="p-3 border rounded-lg bg-muted/30 space-y-2">
-            <Label className="text-xs">加購方案</Label>
+            <Label className="text-sm">加購方案</Label>
             {addonSettings.map((addon) => {
               const selectedAddon = selectedAddons.find(a => a.addon_id === addon.id);
               const quantity = selectedAddon?.quantity || 0;
