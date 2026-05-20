@@ -2946,6 +2946,25 @@ const OrderDetailPage = () => {
         onPaymentSuccess={fetchOrder}
       />
 
+      {/* 取消訂單對話框（含退款選項） */}
+      {order && (
+        <CancelOrderDialog
+          open={showCancelDialog}
+          onOpenChange={setShowCancelDialog}
+          order={{
+            id: order.id,
+            order_number: order.order_number,
+            paid_amount: order.paid_amount,
+            payment_method: (order as any).payment_method,
+            deposit_payment_method: (order as any).deposit_payment_method,
+            balance_payment_method: (order as any).balance_payment_method,
+          }}
+          onCancelled={() => navigate(backTo)}
+        />
+      )}
+
+
+
       {/* 修改金額對話框 */}
       <Dialog open={showPriceEditDialog} onOpenChange={setShowPriceEditDialog}>
         <DialogContent className="sm:max-w-md">
