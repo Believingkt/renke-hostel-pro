@@ -1021,9 +1021,9 @@ ${accListStr}
         } finally {
           try { controller.enqueue(encoder.encode(`data: [DONE]\n\n`)); } catch {}
           controller.close();
-          // Log conversation (Phase 2)
+          // Log conversation (Phase 2/3)
           try {
-            if (session_id && typeof session_id === 'string' && session_id.length <= 100) {
+            if (!skipLog && session_id && typeof session_id === 'string' && session_id.length <= 100) {
               const fullMessages = [...messages, { role: 'assistant', content: assistantText }];
               await supabase.from('ai_conversation_logs').insert({
                 session_id,
@@ -1039,8 +1039,16 @@ ${accListStr}
     });
 
     return new Response(stream, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" },
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "X-Prompt-Version": String(dbPrompt?.version ?? ''),
+        "X-AB-Variant": abTestPicked ?? '',
+        "Access-Control-Expose-Headers": "X-Prompt-Version, X-AB-Variant",
+      },
     });
+
   } catch (error) {
     console.error("Portal AI chat error:", error);
     return new Response(JSON.stringify({ error: "AI 服務暫時無法使用" }), {
