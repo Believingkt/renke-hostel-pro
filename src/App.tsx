@@ -91,6 +91,11 @@ const Reception = lazy(() => import("./pages/Reception"));
 const ChannelManager = lazy(() => import("./pages/ChannelManager"));
 const OwlTingEmailIngest = lazy(() => import("./pages/OwlTingEmailIngest"));
 
+// AI 助理訓練中心 (Phase 1)
+const AiTrainingLayout = lazy(() => import("./pages/ai-training/AiTrainingLayout"));
+const AiTrainingDashboard = lazy(() => import("./pages/ai-training/AiTrainingDashboard"));
+const AiTrainingPlaceholder = lazy(() => import("./pages/ai-training/AiTrainingPlaceholder"));
+
 function App() {
   return (
     <BrowserRouter>
