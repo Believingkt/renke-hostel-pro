@@ -1,0 +1,1 @@
+UPDATE public.accommodation_info SET is_active = false WHERE id = '0a3d6160-2e50-4a7d-a1c8-8558eb6d15f8';
