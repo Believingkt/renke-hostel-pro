@@ -181,12 +181,13 @@ export default function AiTrainingKnowledge() {
       const cat = (raw === "attraction" ? "location" : raw) as Category;
       return {
         category: (CATEGORY_OPTIONS.includes(cat) ? cat : "other") as Category,
-      title: String(r.title || "").trim(),
-      content: String(r.content || ""),
-      tags: r.tags ? String(r.tags).split("|").map((s: string) => s.trim()).filter(Boolean) : [],
-      priority: Number.isFinite(+r.priority) ? Math.max(0, Math.min(10, +r.priority)) : 5,
-      is_active: String(r.is_active ?? "true").toLowerCase() !== "false",
-    })).filter((r) => r.title);
+        title: String(r.title || "").trim(),
+        content: String(r.content || ""),
+        tags: r.tags ? String(r.tags).split("|").map((s: string) => s.trim()).filter(Boolean) : [],
+        priority: Number.isFinite(+r.priority) ? Math.max(0, Math.min(10, +r.priority)) : 5,
+        is_active: String(r.is_active ?? "true").toLowerCase() !== "false",
+      };
+    }).filter((r) => r.title);
     if (!payload.length) { toast.error("沒有可匯入的列"); return; }
     const { error } = await supabase.from("ai_knowledge").insert(payload);
     if (error) { toast.error("匯入失敗：" + error.message); return; }
