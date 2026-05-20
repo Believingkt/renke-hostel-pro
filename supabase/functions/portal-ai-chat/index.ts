@@ -50,10 +50,19 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    let { messages, context, session_id } = body;
+    let { messages, context, session_id, skip_log: bodySkipLog, mode: bodyMode, version: bodyVersion } = body;
     const url = new URL(req.url);
-    const mode = (url.searchParams.get('mode') || req.headers.get('x-ai-mode') || 'published').toLowerCase();
+    const qpMode = url.searchParams.get('mode');
+    const qpVersion = url.searchParams.get('version');
+    const qpSkipLog = url.searchParams.get('skip_log');
+    const mode = (qpMode || bodyMode || req.headers.get('x-ai-mode') || '').toLowerCase();
     const isDraft = mode === 'draft';
+    const explicitVersion = (() => {
+      const v = Number(qpVersion ?? bodyVersion);
+      return Number.isFinite(v) && v > 0 ? Math.floor(v) : null;
+    })();
+    const skipLog = qpSkipLog === 'true' || bodySkipLog === true;
+
 
     if (!Array.isArray(messages)) {
       return new Response(JSON.stringify({ error: "訊息格式錯誤" }), {
@@ -637,14 +646,65 @@ serve(async (req) => {
       ? `\n## 🎯 用戶當前選擇（最高優先，呼叫 get_available_rooms 必須使用這些值，除非用戶明確要求改變）：\n- 入住日期：${ctxCheckIn || '未設定'}\n- 退房日期：${ctxCheckOut || '未設定'}\n- 入住人數：${ctxGuests ?? '未設定'}（呼叫 get_available_rooms 時必須以此值傳入 guest_count，過濾不足容納的房型）\n- 房間數：${ctxRooms ?? '未設定'}\n`
       : '';
 
-    // Load DB-driven prompt config (Phase 2)
-    const { data: dbPrompt } = await supabase
-      .from('ai_prompts')
-      .select('id, version, system_prompt, tone_rules, forbidden_topics, persona_name')
-      .eq('status', isDraft ? 'draft' : 'published')
-      .order('version', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    // Load DB-driven prompt config (Phase 2/3)
+    // Priority: explicit version > mode=draft > A/B test > latest published
+    let dbPrompt: any = null;
+    let abTestPicked: 'A' | 'B' | null = null;
+
+    const fetchByVersion = async (v: number) => {
+      const { data } = await supabase
+        .from('ai_prompts')
+        .select('id, version, system_prompt, tone_rules, forbidden_topics, persona_name, status')
+        .eq('version', v)
+        .maybeSingle();
+      return data;
+    };
+
+    if (explicitVersion) {
+      dbPrompt = await fetchByVersion(explicitVersion);
+    } else if (isDraft) {
+      const { data } = await supabase
+        .from('ai_prompts')
+        .select('id, version, system_prompt, tone_rules, forbidden_topics, persona_name, status')
+        .eq('status', 'draft')
+        .order('version', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      dbPrompt = data;
+    } else {
+      // Check active A/B test
+      const { data: abTest } = await supabase
+        .from('ai_ab_tests')
+        .select('version_a, version_b, traffic_split')
+        .eq('is_active', true)
+        .order('started_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (abTest && session_id) {
+        // Deterministic hash on session_id
+        let hash = 0;
+        for (let i = 0; i < session_id.length; i++) {
+          hash = ((hash << 5) - hash + session_id.charCodeAt(i)) | 0;
+        }
+        const bucket = Math.abs(hash) % 100;
+        const pickA = bucket < (abTest.traffic_split ?? 50);
+        abTestPicked = pickA ? 'A' : 'B';
+        dbPrompt = await fetchByVersion(pickA ? abTest.version_a : abTest.version_b);
+      }
+
+      if (!dbPrompt) {
+        const { data } = await supabase
+          .from('ai_prompts')
+          .select('id, version, system_prompt, tone_rules, forbidden_topics, persona_name, status')
+          .eq('status', 'published')
+          .order('version', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        dbPrompt = data;
+      }
+    }
+
 
     const { data: dbKnowledge } = await supabase
       .from('ai_knowledge')
@@ -961,9 +1021,9 @@ ${accListStr}
         } finally {
           try { controller.enqueue(encoder.encode(`data: [DONE]\n\n`)); } catch {}
           controller.close();
-          // Log conversation (Phase 2)
+          // Log conversation (Phase 2/3)
           try {
-            if (session_id && typeof session_id === 'string' && session_id.length <= 100) {
+            if (!skipLog && session_id && typeof session_id === 'string' && session_id.length <= 100) {
               const fullMessages = [...messages, { role: 'assistant', content: assistantText }];
               await supabase.from('ai_conversation_logs').insert({
                 session_id,
@@ -979,8 +1039,16 @@ ${accListStr}
     });
 
     return new Response(stream, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" },
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "X-Prompt-Version": String(dbPrompt?.version ?? ''),
+        "X-AB-Variant": abTestPicked ?? '',
+        "Access-Control-Expose-Headers": "X-Prompt-Version, X-AB-Variant",
+      },
     });
+
   } catch (error) {
     console.error("Portal AI chat error:", error);
     return new Response(JSON.stringify({ error: "AI 服務暫時無法使用" }), {

@@ -1,4 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
+
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +49,27 @@ export default function AiTrainingExamples() {
     setRows((data as Row[]) || []); setLoading(false);
   }, []);
   useEffect(() => { void load(); }, [load]);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get("prefill") === "true") {
+      setEditing(null);
+      setForm({
+        scenario: "",
+        user_message: searchParams.get("user_message") || "",
+        ideal_response: searchParams.get("ideal_response") || "",
+        explanation: "",
+        is_active: true,
+      });
+      setDialogOpen(true);
+      // Clear params after consuming
+      const next = new URLSearchParams(searchParams);
+      next.delete("prefill"); next.delete("user_message"); next.delete("ideal_response");
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
 
   const scenarios = useMemo(() => Array.from(new Set(rows.map((r) => r.scenario))).filter(Boolean), [rows]);
   const filtered = useMemo(() => rows.filter((r) => {

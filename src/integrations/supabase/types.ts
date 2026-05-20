@@ -597,6 +597,45 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_ab_tests: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          ended_at: string | null
+          id: string
+          is_active: boolean
+          notes: string | null
+          started_at: string
+          traffic_split: number
+          version_a: number
+          version_b: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          ended_at?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          started_at?: string
+          traffic_split?: number
+          version_a: number
+          version_b: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          ended_at?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          started_at?: string
+          traffic_split?: number
+          version_a?: number
+          version_b?: number
+        }
+        Relationships: []
+      }
       ai_conversation_logs: {
         Row: {
           admin_note: string | null

@@ -98,6 +98,10 @@ const AiTrainingPlaceholder = lazy(() => import("./pages/ai-training/AiTrainingP
 const AiTrainingPrompt = lazy(() => import("./pages/ai-training/AiTrainingPrompt"));
 const AiTrainingKnowledge = lazy(() => import("./pages/ai-training/AiTrainingKnowledge"));
 const AiTrainingExamples = lazy(() => import("./pages/ai-training/AiTrainingExamples"));
+const AiTrainingConversations = lazy(() => import("./pages/ai-training/AiTrainingConversations"));
+const AiTrainingPlayground = lazy(() => import("./pages/ai-training/AiTrainingPlayground"));
+const AiTrainingVersions = lazy(() => import("./pages/ai-training/AiTrainingVersions"));
+
 
 function App() {
   return (
@@ -408,14 +412,15 @@ function App() {
                           <Suspense fallback={null}><AiTrainingExamples /></Suspense>
                         } />
                         <Route path="conversations" element={
-                          <Suspense fallback={null}><AiTrainingPlaceholder title="對話紀錄與評分" description="檢視歷史對話、標記好壞並寫下調整建議。" /></Suspense>
+                          <Suspense fallback={null}><AiTrainingConversations /></Suspense>
                         } />
                         <Route path="playground" element={
-                          <Suspense fallback={null}><AiTrainingPlaceholder title="即時測試" description="即時試聊小安最新版本,驗證設定效果。" /></Suspense>
+                          <Suspense fallback={null}><AiTrainingPlayground /></Suspense>
                         } />
                         <Route path="versions" element={
-                          <Suspense fallback={null}><AiTrainingPlaceholder title="版本管理" description="檢視草稿、發佈與封存的提示詞版本。" /></Suspense>
+                          <Suspense fallback={null}><AiTrainingVersions /></Suspense>
                         } />
+
                       </Route>
                       <Route path="/hq" element={
                         <Suspense fallback={<DashboardSkeleton />}><Headquarters /></Suspense>
