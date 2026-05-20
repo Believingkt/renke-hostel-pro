@@ -2958,6 +2958,8 @@ const OrderDetailPage = () => {
           deposit_amount: order.deposit_amount,
           paid_amount: order.paid_amount,
           accommodation_id: order.accommodation_id,
+          payment_method: (order as any).payment_method,
+          balance_payment_method: (order as any).balance_payment_method,
         } : null}
         onPaymentSuccess={fetchOrder}
       />
