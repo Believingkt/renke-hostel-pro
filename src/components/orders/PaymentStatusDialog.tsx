@@ -18,7 +18,7 @@ interface PaymentStatusDialogProps {
 
 const BASE_PAYMENT_STATUSES = [
   { value: "unpaid", label: "未付款" },
-  { value: "deposit_paid", label: "已付訂金", legacyOnly: true },
+  { value: "deposit_paid", label: "已付訂金" },
   { value: "paid", label: "已付清" },
   { value: "refunded", label: "已退款" },
   { value: "partial_refunded", label: "部分退款" },
