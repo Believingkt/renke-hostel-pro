@@ -76,14 +76,15 @@ const MemberLineCallback = () => {
           },
         });
         if (error) throw new Error(error.message || "LINE 授權碼交換失敗");
-        if (!data?.id_token) throw new Error("未收到 LINE id_token");
+        if (!data?.access_token || !data?.refresh_token) {
+          throw new Error(data?.error || "未收到 Supabase session");
+        }
 
-        const { error: signInError } = await supabase.auth.signInWithIdToken({
-          provider: "line" as any,
-          token: data.id_token,
-          nonce: storedNonce,
-        } as any);
-        if (signInError) throw signInError;
+        const { error: setErr } = await supabase.auth.setSession({
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+        });
+        if (setErr) throw setErr;
 
         cleanup();
         toast.success("LINE 登入成功");

@@ -1,31 +1,31 @@
-// LINE Login v2.1 (OIDC) authorization code -> id_token exchanger.
-// Frontend posts { code, redirectUri, expectedNonce } and we:
-//   1. POST to https://api.line.me/oauth2/v2.1/token
-//   2. Decode id_token, verify nonce matches expectedNonce
-//   3. Return id_token (and decoded claims) to the client so it can call
-//      supabase.auth.signInWithIdToken({ provider: 'line', token, nonce })
+// LINE Login v2.1 (OIDC) -> Supabase session bridge (Custom OIDC mode).
 //
-// Required runtime secrets (Lovable Cloud Secrets):
+// Flow:
+//   1. Frontend posts { code, redirectUri, expectedNonce }
+//   2. Exchange code -> id_token via LINE token endpoint
+//   3. Verify iss / aud / nonce / exp
+//   4. Use Service Role to find-or-create the user in auth.users
+//        - Match by LINE sub stored in user_metadata.line_sub (via email lookup
+//          fallback). Synthetic email used when LINE didn't return one.
+//        - Upsert public.profiles
+//   5. Generate magic-link OTP, verify it server-side to obtain a real Supabase
+//      session, return { access_token, refresh_token } to the client.
+//   6. Frontend calls supabase.auth.setSession({...}) to finish login.
+//
+// Required env (Lovable Cloud Secrets):
 //   - LINE_CHANNEL_ID
 //   - LINE_CHANNEL_SECRET
-//
-// NOTE: state validation is done on the client (sessionStorage round-trip),
-// since state never leaves the browser. We re-verify nonce server-side here
-// as an extra safeguard before handing the id_token to Supabase.
+//   - SUPABASE_URL                (auto)
+//   - SUPABASE_SERVICE_ROLE_KEY   (auto)
+//   - SUPABASE_ANON_KEY           (auto, used for verifyOtp)
 
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { buildCorsHeaders } from "../_shared/cors.ts";
 
 interface ExchangeBody {
   code?: string;
   redirectUri?: string;
   expectedNonce?: string;
-}
-
-function jsonResponse(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
 }
 
 function base64UrlDecode(input: string): string {
@@ -45,38 +45,42 @@ function decodeJwtPayload(token: string): Record<string, unknown> {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  const cors = buildCorsHeaders(req);
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...cors, "Content-Type": "application/json" },
+    });
 
-  if (req.method !== "POST") {
-    return jsonResponse({ error: "Method not allowed" }, 405);
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   const channelId = Deno.env.get("LINE_CHANNEL_ID");
   const channelSecret = Deno.env.get("LINE_CHANNEL_SECRET");
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
 
   if (!channelId || !channelSecret) {
-    return jsonResponse(
-      { error: "LINE 登入尚未設定，請先於 Lovable Cloud Secrets 填入 LINE_CHANNEL_ID 與 LINE_CHANNEL_SECRET" },
-      500,
-    );
+    return json({ error: "LINE 登入尚未設定，請先填入 LINE_CHANNEL_ID 與 LINE_CHANNEL_SECRET" }, 500);
+  }
+  if (!supabaseUrl || !serviceRoleKey || !anonKey) {
+    return json({ error: "後端環境變數缺失（SUPABASE_URL / SERVICE_ROLE / ANON）" }, 500);
   }
 
   let body: ExchangeBody;
   try {
     body = await req.json();
   } catch {
-    return jsonResponse({ error: "請求格式錯誤" }, 400);
+    return json({ error: "請求格式錯誤" }, 400);
   }
-
   const { code, redirectUri, expectedNonce } = body;
   if (!code || !redirectUri || !expectedNonce) {
-    return jsonResponse({ error: "缺少必要參數（code / redirectUri / expectedNonce）" }, 400);
+    return json({ error: "缺少必要參數（code / redirectUri / expectedNonce）" }, 400);
   }
 
-  // 1. Exchange authorization code -> tokens
-  const params = new URLSearchParams({
+  // ── 1. Exchange code -> id_token ────────────────────────────────────────
+  const tokenParams = new URLSearchParams({
     grant_type: "authorization_code",
     code,
     redirect_uri: redirectUri,
@@ -89,59 +93,143 @@ Deno.serve(async (req) => {
     const resp = await fetch("https://api.line.me/oauth2/v2.1/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: params.toString(),
+      body: tokenParams.toString(),
     });
     tokenJson = await resp.json();
     if (!resp.ok) {
       console.error("LINE token exchange failed", tokenJson);
-      return jsonResponse(
-        { error: tokenJson?.error_description || "LINE 登入授權碼交換失敗" },
-        400,
-      );
+      return json({ error: tokenJson?.error_description || "LINE 授權碼交換失敗" }, 400);
     }
   } catch (err) {
     console.error("LINE token endpoint error", err);
-    return jsonResponse({ error: "無法連線到 LINE 登入服務，請稍後再試" }, 502);
+    return json({ error: "無法連線到 LINE 登入服務" }, 502);
   }
 
   const idToken: string | undefined = tokenJson.id_token;
-  if (!idToken) {
-    return jsonResponse({ error: "LINE 未回傳 id_token，請確認 channel 已啟用 OpenID Connect" }, 400);
-  }
+  if (!idToken) return json({ error: "LINE 未回傳 id_token，請確認已啟用 OpenID Connect" }, 400);
 
-  // 2. Decode id_token (LINE issues over HTTPS so we trust transport; we still
-  //    verify nonce + aud + iss claims).
-  let claims: Record<string, unknown>;
+  // ── 2. Verify id_token claims ───────────────────────────────────────────
+  let claims: Record<string, any>;
   try {
     claims = decodeJwtPayload(idToken);
   } catch (err) {
     console.error("id_token decode failed", err);
-    return jsonResponse({ error: "無法解析 LINE id_token" }, 400);
+    return json({ error: "無法解析 LINE id_token" }, 400);
   }
-
-  if (claims.iss !== "https://access.line.me") {
-    return jsonResponse({ error: "id_token 簽發者不正確" }, 400);
-  }
-  if (claims.aud !== channelId) {
-    return jsonResponse({ error: "id_token 對象不正確" }, 400);
-  }
-  if (claims.nonce !== expectedNonce) {
-    return jsonResponse({ error: "nonce 驗證失敗，請重新登入" }, 400);
-  }
-
+  if (claims.iss !== "https://access.line.me") return json({ error: "id_token 簽發者不正確" }, 400);
+  if (claims.aud !== channelId) return json({ error: "id_token 對象不正確" }, 400);
+  if (claims.nonce !== expectedNonce) return json({ error: "nonce 驗證失敗，請重新登入" }, 400);
   const exp = typeof claims.exp === "number" ? claims.exp : 0;
-  if (exp && exp * 1000 < Date.now()) {
-    return jsonResponse({ error: "LINE id_token 已過期，請重新登入" }, 400);
+  if (exp && exp * 1000 < Date.now()) return json({ error: "LINE id_token 已過期" }, 400);
+
+  const lineSub = String(claims.sub || "");
+  if (!lineSub) return json({ error: "LINE id_token 缺少 sub" }, 400);
+
+  const displayName = (claims.name as string) || "LINE 使用者";
+  const picture = (claims.picture as string) || null;
+  const lineEmail = (claims.email as string) || null;
+  // Synthetic email when LINE didn't grant email scope. Stable per LINE sub.
+  const email = lineEmail || `line_${lineSub}@line.lakeze.local`;
+
+  const admin = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  // ── 3. Find or create user ──────────────────────────────────────────────
+  // Use GoTrue admin REST to look up by email (supabase-js has no
+  // getUserByEmail helper).
+  let userId: string | null = null;
+  try {
+    const lookupResp = await fetch(
+      `${supabaseUrl}/auth/v1/admin/users?email=${encodeURIComponent(email)}`,
+      {
+        headers: {
+          apikey: serviceRoleKey,
+          Authorization: `Bearer ${serviceRoleKey}`,
+        },
+      },
+    );
+    if (lookupResp.ok) {
+      const lookup = await lookupResp.json();
+      const users = Array.isArray(lookup?.users) ? lookup.users : [];
+      const match = users.find((u: any) => (u.email || "").toLowerCase() === email.toLowerCase());
+      if (match?.id) userId = match.id;
+    }
+  } catch (err) {
+    console.warn("admin user lookup failed", err);
   }
 
-  return jsonResponse({
-    id_token: idToken,
-    access_token: tokenJson.access_token ?? null,
-    claims: {
-      sub: claims.sub,
-      name: claims.name ?? null,
-      picture: claims.picture ?? null,
-      email: claims.email ?? null,
-    },
+  if (!userId) {
+    const { data: created, error: createErr } = await admin.auth.admin.createUser({
+      email,
+      email_confirm: true,
+      user_metadata: {
+        provider: "line",
+        line_sub: lineSub,
+        name: displayName,
+        avatar_url: picture,
+      },
+    });
+    if (createErr || !created?.user?.id) {
+      console.error("createUser failed", createErr);
+      return json({ error: createErr?.message || "建立帳號失敗" }, 500);
+    }
+    userId = created.user.id;
+  } else {
+    // Refresh metadata in case display name / avatar changed.
+    await admin.auth.admin.updateUserById(userId, {
+      user_metadata: {
+        provider: "line",
+        line_sub: lineSub,
+        name: displayName,
+        avatar_url: picture,
+      },
+    });
+  }
+
+  // Upsert platform_members so member center has a row immediately.
+  try {
+    await admin.from("platform_members").upsert(
+      {
+        user_id: userId,
+        name: displayName,
+        email: lineEmail,
+        avatar_url: picture,
+      },
+      { onConflict: "user_id" },
+    );
+  } catch (err) {
+    console.warn("platform_members upsert failed (table may not exist yet)", err);
+  }
+
+  // ── 4. Generate magic-link OTP and verify server-side for tokens ────────
+  const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
+    type: "magiclink",
+    email,
+  });
+  if (linkErr || !linkData?.properties?.email_otp) {
+    console.error("generateLink failed", linkErr);
+    return json({ error: linkErr?.message || "無法產生登入 token" }, 500);
+  }
+
+  const anon = createClient(supabaseUrl, anonKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { data: sessionData, error: verifyErr } = await anon.auth.verifyOtp({
+    email,
+    token: linkData.properties.email_otp,
+    type: "email",
+  });
+  if (verifyErr || !sessionData?.session) {
+    console.error("verifyOtp failed", verifyErr);
+    return json({ error: verifyErr?.message || "無法建立 Supabase session" }, 500);
+  }
+
+  return json({
+    access_token: sessionData.session.access_token,
+    refresh_token: sessionData.session.refresh_token,
+    user_id: userId,
+    email,
+    name: displayName,
   });
 });
