@@ -597,6 +597,153 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_conversation_logs: {
+        Row: {
+          admin_note: string | null
+          created_at: string
+          id: string
+          messages: Json
+          prompt_version: number | null
+          session_id: string
+          user_rating:
+            | Database["public"]["Enums"]["ai_conversation_rating"]
+            | null
+        }
+        Insert: {
+          admin_note?: string | null
+          created_at?: string
+          id?: string
+          messages?: Json
+          prompt_version?: number | null
+          session_id: string
+          user_rating?:
+            | Database["public"]["Enums"]["ai_conversation_rating"]
+            | null
+        }
+        Update: {
+          admin_note?: string | null
+          created_at?: string
+          id?: string
+          messages?: Json
+          prompt_version?: number | null
+          session_id?: string
+          user_rating?:
+            | Database["public"]["Enums"]["ai_conversation_rating"]
+            | null
+        }
+        Relationships: []
+      }
+      ai_examples: {
+        Row: {
+          created_at: string
+          explanation: string | null
+          id: string
+          ideal_response: string
+          is_active: boolean
+          scenario: string
+          user_message: string
+        }
+        Insert: {
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          ideal_response: string
+          is_active?: boolean
+          scenario: string
+          user_message: string
+        }
+        Update: {
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          ideal_response?: string
+          is_active?: boolean
+          scenario?: string
+          user_message?: string
+        }
+        Relationships: []
+      }
+      ai_knowledge: {
+        Row: {
+          category: Database["public"]["Enums"]["ai_knowledge_category"]
+          content: string
+          created_at: string
+          id: string
+          is_active: boolean
+          priority: number
+          tags: string[]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["ai_knowledge_category"]
+          content?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          priority?: number
+          tags?: string[]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["ai_knowledge_category"]
+          content?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          priority?: number
+          tags?: string[]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_prompts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          forbidden_topics: string | null
+          id: string
+          notes: string | null
+          persona_avatar_url: string | null
+          persona_name: string
+          published_at: string | null
+          status: Database["public"]["Enums"]["ai_prompt_status"]
+          system_prompt: string
+          tone_rules: string | null
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          forbidden_topics?: string | null
+          id?: string
+          notes?: string | null
+          persona_avatar_url?: string | null
+          persona_name?: string
+          published_at?: string | null
+          status?: Database["public"]["Enums"]["ai_prompt_status"]
+          system_prompt?: string
+          tone_rules?: string | null
+          version: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          forbidden_topics?: string | null
+          id?: string
+          notes?: string | null
+          persona_avatar_url?: string | null
+          persona_name?: string
+          published_at?: string | null
+          status?: Database["public"]["Enums"]["ai_prompt_status"]
+          system_prompt?: string
+          tone_rules?: string | null
+          version?: number
+        }
+        Relationships: []
+      }
       alert_recipients: {
         Row: {
           created_at: string
@@ -4050,6 +4197,7 @@ export type Database = {
         }[]
       }
       is_admin: { Args: { user_id_param: string }; Returns: boolean }
+      is_admin_or_super: { Args: never; Returns: boolean }
       is_super_admin: { Args: { user_uuid: string }; Returns: boolean }
       is_user_admin: { Args: { _user_id: string }; Returns: boolean }
       resolve_pricing_template_by_numeric_code: {
@@ -4156,6 +4304,15 @@ export type Database = {
       }
     }
     Enums: {
+      ai_conversation_rating: "good" | "bad"
+      ai_knowledge_category:
+        | "room"
+        | "facility"
+        | "policy"
+        | "location"
+        | "faq"
+        | "other"
+      ai_prompt_status: "draft" | "published" | "archived"
       app_role: "super_admin" | "hotel_admin" | "staff"
       coupon_scope: "platform" | "accommodation"
       coupon_type: "percentage" | "fixed"
@@ -4293,6 +4450,16 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      ai_conversation_rating: ["good", "bad"],
+      ai_knowledge_category: [
+        "room",
+        "facility",
+        "policy",
+        "location",
+        "faq",
+        "other",
+      ],
+      ai_prompt_status: ["draft", "published", "archived"],
       app_role: ["super_admin", "hotel_admin", "staff"],
       coupon_scope: ["platform", "accommodation"],
       coupon_type: ["percentage", "fixed"],
