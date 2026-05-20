@@ -429,7 +429,7 @@ export default function OrderPayment() {
         <CardHeader className="text-center">
           {accName && <p className="text-sm text-muted-foreground mb-1">{accName}</p>}
           <CardTitle className="text-xl">線上付款</CardTitle>
-          <CardDescription>選擇付款方式以完成本筆款項</CardDescription>
+          <CardDescription>以線上刷卡完成本筆款項</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* 訂單資訊 */}
