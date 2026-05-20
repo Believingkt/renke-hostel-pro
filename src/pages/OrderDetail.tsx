@@ -209,6 +209,7 @@ const OrderDetailPage = () => {
   const [allTemplates, setAllTemplates] = useState<(PricingTemplateLite & { room_type_id?: string | null })[]>([]);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showPriceEditDialog, setShowPriceEditDialog] = useState(false);
   const [editTotalPrice, setEditTotalPrice] = useState(0);
   const [editDiscountAmount, setEditDiscountAmount] = useState(0);
