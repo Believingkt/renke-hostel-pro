@@ -132,6 +132,8 @@ export default function OrderPayment() {
 
         const atmActive = data.atm_vacc_no && data.atm_expire_at && new Date(data.atm_expire_at) > new Date();
         const atmExpired = data.atm_vacc_no && data.atm_expire_at && new Date(data.atm_expire_at) <= new Date();
+        const pmText = `${data.payment_method || ""} ${data.balance_payment_method || ""}`;
+        const isAtm = !!(atmActive || atmExpired || /ATM|虛擬帳號/i.test(pmText));
         setOrderInfo({
           guestName: data.guest_name,
           guestPhone: data.guest_phone,
@@ -144,6 +146,7 @@ export default function OrderPayment() {
           atmExpiredInfo: atmExpired
             ? { vaccNo: data.atm_vacc_no, expireAt: data.atm_expire_at }
             : null,
+          isAtm,
         });
         setPaymentStatus(data.payment_status || "unpaid");
         setOrderStatus(data.order_status || "pending");
