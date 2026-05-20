@@ -310,7 +310,7 @@ export function OnlinePaymentDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>線上收款</DialogTitle>
-          <DialogDescription>生成付款連結讓客人線上刷卡</DialogDescription>
+          <DialogDescription>生成付款連結讓客人以 {payVerb} 完成付款</DialogDescription>
         </DialogHeader>
         {content}
       </DialogContent>
