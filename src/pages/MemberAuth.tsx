@@ -3,6 +3,7 @@ import lokezeLogo2 from "@/assets/lakeze-portal-logo.png";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
+import { LINE_CHANNEL_ID, FACEBOOK_APP_ID } from "@/config/oauth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -222,7 +223,7 @@ const MemberAuth = () => {
   // ----- Facebook Login (Custom OAuth — same architecture as LINE) -----
   const handleFacebookLogin = () => {
     try {
-      const appId = (import.meta as any).env?.VITE_FACEBOOK_APP_ID || "1999808897628624";
+      const appId = FACEBOOK_APP_ID;
       const state = crypto.randomUUID();
       const isProdHost = window.location.hostname === "booking.lakeze.com";
       const redirectUri = isProdHost
@@ -248,7 +249,7 @@ const MemberAuth = () => {
   // ----- LINE Login v2.1 (OIDC) — manual authorize redirect -----
   const handleLineLogin = () => {
     try {
-      const channelId = (import.meta as any).env?.VITE_LINE_CHANNEL_ID || "<LINE_CHANNEL_ID_PLACEHOLDER>";
+      const channelId = LINE_CHANNEL_ID;
       const state = crypto.randomUUID();
       const nonce = crypto.randomUUID();
       // Single canonical callback URL — must be registered in LINE Developers.
