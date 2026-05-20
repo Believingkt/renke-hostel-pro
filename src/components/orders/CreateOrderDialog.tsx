@@ -1722,7 +1722,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                     >
                       -
                     </Button>
-                    <span className="w-6 text-center text-xs font-medium">{quantity}</span>
+                    <span className="w-6 text-center text-sm font-medium">{quantity}</span>
                     <Button
                       type="button"
                       variant="outline"
