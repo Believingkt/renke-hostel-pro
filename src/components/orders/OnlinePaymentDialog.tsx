@@ -297,7 +297,7 @@ export function OnlinePaymentDialog({
         <DrawerContent>
           <DrawerHeader>
             <DrawerTitle>線上收款</DrawerTitle>
-            <DrawerDescription>生成付款連結讓客人線上刷卡</DrawerDescription>
+            <DrawerDescription>生成付款連結讓客人以 {payVerb} 完成付款</DrawerDescription>
           </DrawerHeader>
           <div className="px-4 pb-6">{content}</div>
         </DrawerContent>
