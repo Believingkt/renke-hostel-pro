@@ -142,6 +142,9 @@ function App() {
                     <Route path="member/auth/line-callback" element={
                       <Suspense fallback={<FrontendSkeleton />}><MemberLineCallback /></Suspense>
                     } />
+                    <Route path="member/auth/facebook-callback" element={
+                      <Suspense fallback={<FrontendSkeleton />}><MemberFacebookCallback /></Suspense>
+                    } />
 
                     {/* 前台頁面 */}
                     <Route path="__cb/:ts" element={<Index />} />
