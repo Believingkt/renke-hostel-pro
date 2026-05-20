@@ -749,6 +749,7 @@ ${accListStr}
 
         const decoder = new TextDecoder();
         let buffer = '';
+        let assistantText = '';
         const toolCallsByIndex = new Map<number, { id: string; name: string; inputJson: string; inputObject: any }>();
         let shouldExecuteToolCalls = false;
 
