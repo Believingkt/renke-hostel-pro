@@ -137,3 +137,6 @@ verify_jwt = true
 
 [functions.owlting-email-ingest]
 verify_jwt = false
+
+[functions.get-public-order]
+verify_jwt = false
