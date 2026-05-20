@@ -389,6 +389,31 @@ function App() {
 
                       {/* HQ 與 headquarters 路由（不放入 alias 樹下） */}
                       <Route path="/hq-auth" element={<HQAuth />} />
+                      <Route path="/hq/ai-training" element={
+                        <Suspense fallback={<DashboardSkeleton />}><AiTrainingLayout /></Suspense>
+                      }>
+                        <Route index element={
+                          <Suspense fallback={null}><AiTrainingDashboard /></Suspense>
+                        } />
+                        <Route path="prompt" element={
+                          <Suspense fallback={null}><AiTrainingPlaceholder title="系統提示詞" description="編輯小安的角色設定、語氣與禁忌主題。" /></Suspense>
+                        } />
+                        <Route path="knowledge" element={
+                          <Suspense fallback={null}><AiTrainingPlaceholder title="知識庫" description="管理房型、設施、政策、地點等知識條目。" /></Suspense>
+                        } />
+                        <Route path="examples" element={
+                          <Suspense fallback={null}><AiTrainingPlaceholder title="對話範例訓練" description="提供理想對話範例,協助小安學習回應風格。" /></Suspense>
+                        } />
+                        <Route path="conversations" element={
+                          <Suspense fallback={null}><AiTrainingPlaceholder title="對話紀錄與評分" description="檢視歷史對話、標記好壞並寫下調整建議。" /></Suspense>
+                        } />
+                        <Route path="playground" element={
+                          <Suspense fallback={null}><AiTrainingPlaceholder title="即時測試" description="即時試聊小安最新版本,驗證設定效果。" /></Suspense>
+                        } />
+                        <Route path="versions" element={
+                          <Suspense fallback={null}><AiTrainingPlaceholder title="版本管理" description="檢視草稿、發佈與封存的提示詞版本。" /></Suspense>
+                        } />
+                      </Route>
                       <Route path="/hq" element={
                         <Suspense fallback={<DashboardSkeleton />}><Headquarters /></Suspense>
                       } />
