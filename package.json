@@ -68,6 +68,7 @@
     "next-themes": "^0.3.0",
     "react": "^19.2.1",
     "react-day-picker": "^8.10.1",
+    "react-diff-viewer-continued": "^4.2.2",
     "react-dom": "^19.2.1",
     "react-easy-crop": "^5.5.3",
     "react-hook-form": "^7.61.1",
