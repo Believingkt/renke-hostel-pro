@@ -464,7 +464,7 @@ export default function OrderPayment() {
             </Alert>
           )}
 
-          <Tabs defaultValue="card" className="w-full">
+          <Tabs value={orderInfo?.isAtm ? "atm" : "card"} className="w-full">
 
             <TabsContent value="card" className="space-y-4 pt-4">
               <Label className="flex items-center gap-2 text-base">
