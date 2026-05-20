@@ -90,7 +90,7 @@ const MemberLineCallback = () => {
         toast.success("LINE 登入成功");
         // onAuthStateChange listener (registered in MemberAuth/global) will
         // upsert platform_members; we just redirect.
-        navigate("/member", { replace: true });
+        navigate("/member/orders", { replace: true });
       } catch (err: any) {
         console.error("LINE callback error", err);
         fail(err?.message || "LINE 登入失敗");
