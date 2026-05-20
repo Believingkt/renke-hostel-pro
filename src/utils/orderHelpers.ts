@@ -27,6 +27,7 @@ export const getEffectivePaymentStatus = (
 export const getPaymentStatusConfig = (status: string) => {
   const statusMap: Record<string, { label: string; className: string }> = {
     unpaid: { label: "未付款", className: "bg-red-100 text-red-700 border-red-200" },
+    pending_payment: { label: "未付款", className: "bg-red-100 text-red-700 border-red-200" },
     deposit_paid: { label: "已付訂金", className: "bg-orange-100 text-orange-700 border-orange-200" },
     paid: { label: "已付清", className: "bg-primary/10 text-primary border-primary/20" },
     overdue: { label: "已逾期", className: "bg-red-100 text-red-700 border-red-200" },
