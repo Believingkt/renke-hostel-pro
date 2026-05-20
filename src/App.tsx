@@ -138,6 +138,9 @@ function App() {
                     <Route path="member/reset-password" element={
                       <Suspense fallback={<FrontendSkeleton />}><MemberResetPassword /></Suspense>
                     } />
+                    <Route path="member/auth/line-callback" element={
+                      <Suspense fallback={<FrontendSkeleton />}><MemberLineCallback /></Suspense>
+                    } />
 
                     {/* 前台頁面 */}
                     <Route path="__cb/:ts" element={<Index />} />
