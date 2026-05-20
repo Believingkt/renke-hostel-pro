@@ -98,6 +98,10 @@ const AiTrainingPlaceholder = lazy(() => import("./pages/ai-training/AiTrainingP
 const AiTrainingPrompt = lazy(() => import("./pages/ai-training/AiTrainingPrompt"));
 const AiTrainingKnowledge = lazy(() => import("./pages/ai-training/AiTrainingKnowledge"));
 const AiTrainingExamples = lazy(() => import("./pages/ai-training/AiTrainingExamples"));
+const AiTrainingConversations = lazy(() => import("./pages/ai-training/AiTrainingConversations"));
+const AiTrainingPlayground = lazy(() => import("./pages/ai-training/AiTrainingPlayground"));
+const AiTrainingVersions = lazy(() => import("./pages/ai-training/AiTrainingVersions"));
+
 
 function App() {
   return (
