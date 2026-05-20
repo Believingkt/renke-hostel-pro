@@ -244,7 +244,7 @@ const PortalSearchBar = ({
     <div className="max-w-4xl mx-auto px-1 sm:px-0">
       <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl p-3 sm:p-4 md:p-6">
         {/* Desktop: horizontal row */}
-        <div className="hidden md:flex gap-4 items-end">
+        <div className="hidden md:flex gap-4 items-start">
           {/* Destination (optional) */}
           <div className="flex-1 text-left">
             <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
@@ -389,7 +389,7 @@ const PortalSearchBar = ({
 
           {/* Search Button */}
           <Button
-            className="h-10 px-8 rounded-lg text-white font-medium shrink-0"
+            className="h-10 px-8 mt-[26px] rounded-lg text-white font-medium shrink-0"
             style={{ background: "hsl(25, 70%, 55%)" }}
             onClick={onSearch}
           >
