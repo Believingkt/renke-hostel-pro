@@ -25,6 +25,8 @@ interface OnlinePaymentDialogProps {
     deposit_amount: number;
     paid_amount: number;
     accommodation_id?: string;
+    payment_method?: string | null;
+    balance_payment_method?: string | null;
   } | null;
   onPaymentSuccess: () => void;
 }
