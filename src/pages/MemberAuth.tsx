@@ -484,12 +484,7 @@ const MemberAuth = () => {
 
           </CardContent>
         </Card>
-        {/* Email/password login and signup removed — only LINE / Facebook allowed */}
-        <div className="hidden">
-          <Tabs />
 
-          </CardContent>
-        </Card>
 
         <p className="text-center text-sm text-muted-foreground mt-4">
           <a href="/booking" className="hover:underline" style={{ color: "hsl(24, 100%, 50%)" }}>
