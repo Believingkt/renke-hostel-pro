@@ -73,7 +73,7 @@ const MemberFacebookCallback = () => {
 
         cleanup();
         toast.success("Facebook 登入成功");
-        navigate("/member", { replace: true });
+        navigate("/member/orders", { replace: true });
       } catch (err: any) {
         console.error("Facebook callback error", err);
         fail(err?.message || "Facebook 登入失敗");
