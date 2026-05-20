@@ -433,7 +433,9 @@ export default function OrderPayment() {
         <CardHeader className="text-center">
           {accName && <p className="text-sm text-muted-foreground mb-1">{accName}</p>}
           <CardTitle className="text-xl">線上付款</CardTitle>
-          <CardDescription>以線上刷卡完成本筆款項</CardDescription>
+          <CardDescription>
+            {orderInfo?.isAtm ? "以 ATM 虛擬帳號完成本筆款項" : "以線上刷卡完成本筆款項"}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* 訂單資訊 */}
