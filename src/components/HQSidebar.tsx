@@ -53,7 +53,7 @@ const menuItems = [
   { title: "會員管理", url: "/hq?tab=members", icon: UserCheck, tab: "members" },
   { title: "優惠券管理", url: "/hq?tab=coupons", icon: Ticket, tab: "coupons" },
   { title: "點數規則", url: "/hq?tab=point-rules", icon: Gift, tab: "point-rules" },
-  { title: "AI 助理訓練中心", url: "/hq/ai-training", icon: Bot, tab: "ai-training" },
+  { title: "AI 訓練中心", url: "/hq/ai-training", icon: Bot, tab: "ai-training" },
   {
     title: "系統管理",
     url: "/hq?tab=system&section=settings",
