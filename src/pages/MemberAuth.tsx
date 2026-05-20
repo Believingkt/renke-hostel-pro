@@ -219,21 +219,29 @@ const MemberAuth = () => {
     }
   };
 
-  // ----- Facebook OAuth (Supabase built-in provider) -----
-  const handleFacebookLogin = async () => {
-    setLoading(true);
+  // ----- Facebook Login (Custom OAuth — same architecture as LINE) -----
+  const handleFacebookLogin = () => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "facebook",
-        options: {
-          redirectTo: window.location.origin + "/member",
-        },
-      });
-      if (error) throw error;
-      // Browser will redirect to Facebook; nothing else to do here.
+      const appId = (import.meta as any).env?.VITE_FACEBOOK_APP_ID || "1999808897628624";
+      const state = crypto.randomUUID();
+      const isProdHost = window.location.hostname === "booking.lakeze.com";
+      const redirectUri = isProdHost
+        ? "https://booking.lakeze.com/member/auth/facebook-callback"
+        : `${window.location.origin}/member/auth/facebook-callback`;
+
+      sessionStorage.setItem("fb_oauth_state", state);
+      sessionStorage.setItem("fb_oauth_redirect_uri", redirectUri);
+
+      const authorizeUrl = new URL("https://www.facebook.com/v18.0/dialog/oauth");
+      authorizeUrl.searchParams.set("response_type", "code");
+      authorizeUrl.searchParams.set("client_id", appId);
+      authorizeUrl.searchParams.set("redirect_uri", redirectUri);
+      authorizeUrl.searchParams.set("state", state);
+      authorizeUrl.searchParams.set("scope", "public_profile,email");
+
+      window.location.href = authorizeUrl.toString();
     } catch (error: any) {
-      toast.error(error.message || "Facebook 登入失敗");
-      setLoading(false);
+      toast.error(error.message || "Facebook 登入啟動失敗");
     }
   };
 

@@ -37,6 +37,7 @@ const MemberCoupons = lazy(() => import("./pages/MemberCoupons"));
 const MemberOrders = lazy(() => import("./pages/MemberOrders"));
 const MemberResetPassword = lazy(() => import("./pages/MemberResetPassword"));
 const MemberLineCallback = lazy(() => import("./pages/MemberLineCallback"));
+const MemberFacebookCallback = lazy(() => import("./pages/MemberFacebookCallback"));
 
 // 前台頁面 - lazy load
 const BookingFlow = lazy(() => import("./pages/BookingFlow"));
@@ -140,6 +141,9 @@ function App() {
                     } />
                     <Route path="member/auth/line-callback" element={
                       <Suspense fallback={<FrontendSkeleton />}><MemberLineCallback /></Suspense>
+                    } />
+                    <Route path="member/auth/facebook-callback" element={
+                      <Suspense fallback={<FrontendSkeleton />}><MemberFacebookCallback /></Suspense>
                     } />
 
                     {/* 前台頁面 */}
