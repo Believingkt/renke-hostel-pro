@@ -26,6 +26,7 @@ export default function OrderPayment() {
   const orderNumber = searchParams.get("order_number") || "";
   const amount = parseInt(searchParams.get("amount") || "0", 10);
   const accommodationId = searchParams.get("acc") || "";
+  const requestedMethod = searchParams.get("method") || "";
 
   const [isTapPayReady, setIsTapPayReady] = useState(false);
   const [cardValid, setCardValid] = useState(false);
@@ -132,8 +133,8 @@ export default function OrderPayment() {
 
         const atmActive = data.atm_vacc_no && data.atm_expire_at && new Date(data.atm_expire_at) > new Date();
         const atmExpired = data.atm_vacc_no && data.atm_expire_at && new Date(data.atm_expire_at) <= new Date();
-        const pmText = `${data.payment_method || ""} ${data.balance_payment_method || ""}`;
-        const isAtm = !!(atmActive || atmExpired || /ATM|虛擬帳號/i.test(pmText));
+        const pmText = `${data.payment_method || ""} ${data.deposit_payment_method || ""} ${data.balance_payment_method || ""} ${requestedMethod}`;
+        const isAtm = !!(atmActive || atmExpired || /ATM|虛擬帳號|bank_transfer/i.test(pmText));
         setOrderInfo({
           guestName: data.guest_name,
           guestPhone: data.guest_phone,
@@ -161,7 +162,7 @@ export default function OrderPayment() {
     };
 
     fetchOrder();
-  }, [orderNumber, amount, accommodationId]);
+  }, [orderNumber, amount, accommodationId, requestedMethod]);
 
   // Refresh order payment status (manual + realtime)
   const refreshStatus = async (silent = false) => {

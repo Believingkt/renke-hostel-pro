@@ -30,7 +30,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const { data, error } = await admin
       .from("orders")
       .select(
-        "id, guest_name, guest_phone, guest_email, final_price, paid_amount, payment_status, order_status, payment_link_created_at, deposit_method, deposit_status, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, payment_method, balance_payment_method",
+        "id, guest_name, guest_phone, guest_email, final_price, paid_amount, payment_status, order_status, payment_link_created_at, deposit_method, deposit_status, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, payment_method, deposit_payment_method, balance_payment_method",
       )
       .eq("order_number", order_number)
       .eq("accommodation_id", accommodation_id)
