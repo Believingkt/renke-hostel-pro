@@ -30,6 +30,7 @@ import { resolveTemplatePricesForDates, type PricingTemplateLite } from "@/utils
 import { useToast } from "@/hooks/use-toast";
 import { OnlinePaymentDialog } from "@/components/orders/OnlinePaymentDialog";
 import { DepositManagementSection } from "@/components/orders/DepositManagementSection";
+import { CancelOrderDialog } from "@/components/orders/CancelOrderDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -208,6 +209,7 @@ const OrderDetailPage = () => {
   const [allTemplates, setAllTemplates] = useState<(PricingTemplateLite & { room_type_id?: string | null })[]>([]);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showPriceEditDialog, setShowPriceEditDialog] = useState(false);
   const [editTotalPrice, setEditTotalPrice] = useState(0);
   const [editDiscountAmount, setEditDiscountAmount] = useState(0);
@@ -1557,35 +1559,15 @@ const OrderDetailPage = () => {
                 </Button>
               )}
               {order.order_status !== 'cancelled' && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button 
-                      variant="ghost-destructive"
-                      className="w-full sm:w-auto text-sm"
-                      disabled={isCancelling}
-                    >
-                      <XCircle className="h-4 w-4 mr-2" />
-                      取消訂單
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>確認取消訂單</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        確定要取消訂單 <span className="font-semibold text-foreground">{order.order_number}</span> 嗎？此操作無法復原。
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>返回</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={handleCancelOrder}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        {isCancelling ? "取消中..." : "確認取消"}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <Button
+                  variant="ghost-destructive"
+                  className="w-full sm:w-auto text-sm"
+                  disabled={isCancelling}
+                  onClick={() => setShowCancelDialog(true)}
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  取消訂單
+                </Button>
               )}
             </>
           )}
@@ -2963,6 +2945,25 @@ const OrderDetailPage = () => {
         } : null}
         onPaymentSuccess={fetchOrder}
       />
+
+      {/* 取消訂單對話框（含退款選項） */}
+      {order && (
+        <CancelOrderDialog
+          open={showCancelDialog}
+          onOpenChange={setShowCancelDialog}
+          order={{
+            id: order.id,
+            order_number: order.order_number,
+            paid_amount: order.paid_amount,
+            payment_method: (order as any).payment_method,
+            deposit_payment_method: (order as any).deposit_payment_method,
+            balance_payment_method: (order as any).balance_payment_method,
+          }}
+          onCancelled={() => navigate(backTo)}
+        />
+      )}
+
+
 
       {/* 修改金額對話框 */}
       <Dialog open={showPriceEditDialog} onOpenChange={setShowPriceEditDialog}>
