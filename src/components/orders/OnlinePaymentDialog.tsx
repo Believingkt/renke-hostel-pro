@@ -25,6 +25,8 @@ interface OnlinePaymentDialogProps {
     deposit_amount: number;
     paid_amount: number;
     accommodation_id?: string;
+    payment_method?: string | null;
+    balance_payment_method?: string | null;
   } | null;
   onPaymentSuccess: () => void;
 }
@@ -48,6 +50,8 @@ export function OnlinePaymentDialog({
   const unpaidAmount = order ? order.final_price - (order.paid_amount || 0) : 0;
   const depositAmount = order?.deposit_amount || 0;
   const balanceAmount = order ? order.final_price - depositAmount : 0;
+  const isAtm = /atm|虛擬帳號/i.test(`${order?.payment_method || ""} ${order?.balance_payment_method || ""}`);
+  const payVerb = isAtm ? "ATM 虛擬帳號" : "線上刷卡";
 
   // 設定付款金額
   useEffect(() => {
@@ -108,7 +112,7 @@ export function OnlinePaymentDialog({
       setTimeout(() => setCopied(false), 2000);
       toast({
         title: "已複製付款連結",
-        description: "可傳送給客人進行線上刷卡付款，連結有效期限為 3 天",
+        description: `可傳送給客人以 ${payVerb} 完成付款，連結有效期限為 3 天`,
       });
     } catch {
       // Fallback
@@ -256,7 +260,7 @@ export function OnlinePaymentDialog({
                 onClick={(e) => (e.target as HTMLInputElement).select()}
               />
               <p className="text-xs text-muted-foreground">
-                複製連結傳送給客人，客人開啟後即可自行輸入信用卡完成付款。
+                複製連結傳送給客人，客人開啟後即可{isAtm ? "取得 ATM 虛擬帳號完成轉帳" : "自行輸入信用卡完成付款"}。
                 <span className="text-warning font-medium">連結有效期限為 3 天。</span>
               </p>
             </div>
@@ -293,7 +297,7 @@ export function OnlinePaymentDialog({
         <DrawerContent>
           <DrawerHeader>
             <DrawerTitle>線上收款</DrawerTitle>
-            <DrawerDescription>生成付款連結讓客人線上刷卡</DrawerDescription>
+            <DrawerDescription>生成付款連結讓客人以 {payVerb} 完成付款</DrawerDescription>
           </DrawerHeader>
           <div className="px-4 pb-6">{content}</div>
         </DrawerContent>
@@ -306,7 +310,7 @@ export function OnlinePaymentDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>線上收款</DialogTitle>
-          <DialogDescription>生成付款連結讓客人線上刷卡</DialogDescription>
+          <DialogDescription>生成付款連結讓客人以 {payVerb} 完成付款</DialogDescription>
         </DialogHeader>
         {content}
       </DialogContent>
