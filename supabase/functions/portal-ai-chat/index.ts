@@ -785,6 +785,7 @@ ${accListStr}
                 } else if (eventType === 'content_block_delta') {
                   const delta = parsed.delta;
                   if (delta?.type === 'text_delta' && delta.text) {
+                    assistantText += delta.text;
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: delta.text } }] })}\n\n`));
                   } else if (delta?.type === 'input_json_delta') {
                     const tc = toolCallsByIndex.get(parsed.index ?? -1);
@@ -960,6 +961,19 @@ ${accListStr}
         } finally {
           try { controller.enqueue(encoder.encode(`data: [DONE]\n\n`)); } catch {}
           controller.close();
+          // Log conversation (Phase 2)
+          try {
+            if (session_id && typeof session_id === 'string' && session_id.length <= 100) {
+              const fullMessages = [...messages, { role: 'assistant', content: assistantText }];
+              await supabase.from('ai_conversation_logs').insert({
+                session_id,
+                prompt_version: dbPrompt?.version ?? null,
+                messages: fullMessages,
+              });
+            }
+          } catch (logErr) {
+            console.error('Log write failed:', logErr);
+          }
         }
       },
     });
