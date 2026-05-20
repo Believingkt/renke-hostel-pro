@@ -30,6 +30,7 @@ import { resolveTemplatePricesForDates, type PricingTemplateLite } from "@/utils
 import { useToast } from "@/hooks/use-toast";
 import { OnlinePaymentDialog } from "@/components/orders/OnlinePaymentDialog";
 import { DepositManagementSection } from "@/components/orders/DepositManagementSection";
+import { CancelOrderDialog } from "@/components/orders/CancelOrderDialog";
 import {
   AlertDialog,
   AlertDialogAction,
