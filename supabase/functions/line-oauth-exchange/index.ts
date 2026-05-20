@@ -44,6 +44,13 @@ function decodeJwtPayload(token: string): Record<string, unknown> {
   return JSON.parse(base64UrlDecode(parts[1]));
 }
 
+async function tryOptionalUpdate(admin: ReturnType<typeof createClient>, table: string, matchColumn: string, matchValue: string, values: Record<string, unknown>) {
+  const { error } = await admin.from(table).update(values).eq(matchColumn, matchValue);
+  if (error && !/column|schema cache|Could not find/i.test(error.message || "")) {
+    console.warn(`${table} optional reactivation update failed`, error);
+  }
+}
+
 Deno.serve(async (req) => {
   const cors = buildCorsHeaders(req);
   const json = (body: unknown, status = 200) =>
@@ -205,6 +212,11 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.warn("profiles upsert failed", err);
   }
+  await tryOptionalUpdate(admin, "profiles", "id", userId, {
+    deleted_at: null,
+    is_active: true,
+    status: "active",
+  });
 
   // Upsert platform_members so member center has a row immediately.
   try {
@@ -212,7 +224,7 @@ Deno.serve(async (req) => {
       {
         user_id: userId,
         name: displayName,
-        email: lineEmail,
+        email: lineEmail || email,
         avatar_url: picture,
       },
       { onConflict: "user_id" },
@@ -220,6 +232,11 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.warn("platform_members upsert failed (table may not exist yet)", err);
   }
+  await tryOptionalUpdate(admin, "platform_members", "user_id", userId, {
+    deleted_at: null,
+    is_active: true,
+    status: "active",
+  });
 
   // ── 4. Generate magic-link OTP and verify server-side for tokens ────────
   const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
