@@ -50,10 +50,19 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    let { messages, context, session_id } = body;
+    let { messages, context, session_id, skip_log: bodySkipLog, mode: bodyMode, version: bodyVersion } = body;
     const url = new URL(req.url);
-    const mode = (url.searchParams.get('mode') || req.headers.get('x-ai-mode') || 'published').toLowerCase();
+    const qpMode = url.searchParams.get('mode');
+    const qpVersion = url.searchParams.get('version');
+    const qpSkipLog = url.searchParams.get('skip_log');
+    const mode = (qpMode || bodyMode || req.headers.get('x-ai-mode') || '').toLowerCase();
     const isDraft = mode === 'draft';
+    const explicitVersion = (() => {
+      const v = Number(qpVersion ?? bodyVersion);
+      return Number.isFinite(v) && v > 0 ? Math.floor(v) : null;
+    })();
+    const skipLog = qpSkipLog === 'true' || bodySkipLog === true;
+
 
     if (!Array.isArray(messages)) {
       return new Response(JSON.stringify({ error: "訊息格式錯誤" }), {
