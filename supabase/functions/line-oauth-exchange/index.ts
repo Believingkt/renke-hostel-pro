@@ -139,6 +139,7 @@ Deno.serve(async (req) => {
   // Use GoTrue admin REST to look up by email (supabase-js has no
   // getUserByEmail helper).
   let userId: string | null = null;
+  let existingMetadata: Record<string, unknown> = {};
   try {
     const lookupResp = await fetch(
       `${supabaseUrl}/auth/v1/admin/users?email=${encodeURIComponent(email)}`,
@@ -153,22 +154,30 @@ Deno.serve(async (req) => {
       const lookup = await lookupResp.json();
       const users = Array.isArray(lookup?.users) ? lookup.users : [];
       const match = users.find((u: any) => (u.email || "").toLowerCase() === email.toLowerCase());
-      if (match?.id) userId = match.id;
+      if (match?.id) {
+        userId = match.id;
+        existingMetadata = match.raw_user_meta_data || match.user_metadata || {};
+      }
     }
   } catch (err) {
     console.warn("admin user lookup failed", err);
   }
 
+  const reactivationMetadata = {
+    ...existingMetadata,
+    provider: "line",
+    line_sub: lineSub,
+    name: displayName,
+    avatar_url: picture,
+    last_reactivated_at: new Date().toISOString(),
+    reactivated_via: "line",
+  };
+
   if (!userId) {
     const { data: created, error: createErr } = await admin.auth.admin.createUser({
       email,
       email_confirm: true,
-      user_metadata: {
-        provider: "line",
-        line_sub: lineSub,
-        name: displayName,
-        avatar_url: picture,
-      },
+      user_metadata: reactivationMetadata,
     });
     if (createErr || !created?.user?.id) {
       console.error("createUser failed", createErr);
@@ -178,13 +187,23 @@ Deno.serve(async (req) => {
   } else {
     // Refresh metadata in case display name / avatar changed.
     await admin.auth.admin.updateUserById(userId, {
-      user_metadata: {
-        provider: "line",
-        line_sub: lineSub,
-        name: displayName,
-        avatar_url: picture,
-      },
+      user_metadata: reactivationMetadata,
     });
+  }
+
+  // Recreate/reactivate public profile data. Current schema has no deleted/status
+  // columns; if those are added later this base upsert remains safe.
+  try {
+    await admin.from("profiles").upsert(
+      {
+        id: userId,
+        name: displayName,
+        email,
+      },
+      { onConflict: "id" },
+    );
+  } catch (err) {
+    console.warn("profiles upsert failed", err);
   }
 
   // Upsert platform_members so member center has a row immediately.
