@@ -1,36 +1,7 @@
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-
 interface FormSkeletonProps {
   fields?: number;
   hasImage?: boolean;
 }
-
-export function FormSkeleton({ fields = 6, hasImage = false }: FormSkeletonProps) {
-  return (
-    <Card>
-      <CardHeader>
-        <Skeleton className="h-5 sm:h-6 w-36 sm:w-48" />
-        <Skeleton className="h-3 sm:h-4 w-full max-w-md mt-2" />
-      </CardHeader>
-      <CardContent className="space-y-4 sm:space-y-6">
-        {hasImage && (
-          <div className="space-y-2">
-            <Skeleton className="h-3 sm:h-4 w-16 sm:w-20" />
-            <Skeleton className="h-32 sm:h-48 w-full rounded-lg" />
-          </div>
-        )}
-        {Array.from({ length: fields }).map((_, i) => (
-          <div key={i} className="space-y-2">
-            <Skeleton className="h-3 sm:h-4 w-20 sm:w-24" />
-            <Skeleton className="h-9 sm:h-10 w-full" />
-          </div>
-        ))}
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4">
-          <Skeleton className="h-9 sm:h-10 w-full sm:w-24" />
-          <Skeleton className="h-9 sm:h-10 w-full sm:w-24" />
-        </div>
-      </CardContent>
-    </Card>
-  );
+export function FormSkeleton(_props: FormSkeletonProps = {}) {
+  return null;
 }
