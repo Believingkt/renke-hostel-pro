@@ -43,8 +43,10 @@ const MemberProfile = () => {
       setMemberId(data.id);
       setName(data.name || "");
       setPhone(data.phone || "");
-      setEmail(data.email || user.email || "");
-      
+      const storedEmail = data.email || user.email || "";
+      const synthetic = /@(line|facebook)\.lakeze\.local$/i.test(storedEmail);
+      setIsSyntheticEmail(synthetic);
+      setEmail(synthetic ? "" : storedEmail);
       setGender((data as any).gender || "");
       setNationality((data as any).nationality || "");
     }
