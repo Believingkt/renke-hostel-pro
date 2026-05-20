@@ -95,6 +95,13 @@ const PortalAIChatPanel = () => {
         },
         body: JSON.stringify({
           messages: newMessages.slice(-20).map((m) => ({ role: m.role, content: m.content })),
+          session_id: (() => {
+            try {
+              let sid = sessionStorage.getItem("ai_chat_session_id");
+              if (!sid) { sid = crypto.randomUUID(); sessionStorage.setItem("ai_chat_session_id", sid); }
+              return sid;
+            } catch { return crypto.randomUUID(); }
+          })(),
           context: {
             check_in_date: format(checkIn, "yyyy-MM-dd"),
             check_out_date: format(checkOut, "yyyy-MM-dd"),
