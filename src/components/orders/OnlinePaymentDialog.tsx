@@ -260,7 +260,7 @@ export function OnlinePaymentDialog({
                 onClick={(e) => (e.target as HTMLInputElement).select()}
               />
               <p className="text-xs text-muted-foreground">
-                複製連結傳送給客人，客人開啟後即可自行輸入信用卡完成付款。
+                複製連結傳送給客人，客人開啟後即可{isAtm ? "取得 ATM 虛擬帳號完成轉帳" : "自行輸入信用卡完成付款"}。
                 <span className="text-warning font-medium">連結有效期限為 3 天。</span>
               </p>
             </div>
