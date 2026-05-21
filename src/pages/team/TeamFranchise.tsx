@@ -536,11 +536,11 @@ function SettingsTab({ canManage }: { canManage: boolean }) {
   }, []);
 
   const load = async () => {
-    // 撈所有 franchise_team_settings 並 JOIN team_member_profiles
-    const s = await supabase
+    // 步驟一：撈所有 franchise_team_settings
+    const { data: ftsData } = await supabase
       .from("franchise_team_settings")
-      .select("*, team_member_profiles!inner(user_id, display_name)");
-    const rows = (s.data ?? []) as any[];
+      .select("*");
+    const rows = (ftsData ?? []) as any[];
 
     const settingsData: TeamSetting[] = rows.map((r) => ({
       member_id: r.member_id,
@@ -551,15 +551,34 @@ function SettingsTab({ canManage }: { canManage: boolean }) {
     }));
     setSettings(settingsData);
 
-    const list: Member[] = rows
-      .map((r) => ({
-        user_id: r.team_member_profiles?.user_id ?? r.member_id,
-        display_name:
-          r.team_member_profiles?.display_name ?? r.member_id,
+    // 步驟二：收集所有 user_id (member + leaders) 後查 profiles
+    const allIds = new Set<string>();
+    rows.forEach((row) => {
+      if (row.member_id) allIds.add(row.member_id);
+      if (row.direct_leader_id) allIds.add(row.direct_leader_id);
+      if (row.sub_leader_id) allIds.add(row.sub_leader_id);
+      if (row.top_leader_id) allIds.add(row.top_leader_id);
+    });
+
+    if (allIds.size === 0) {
+      setMembers([]);
+      return;
+    }
+
+    const { data: profilesData } = await supabase
+      .from("team_member_profiles")
+      .select("user_id, display_name")
+      .in("user_id", Array.from(allIds));
+
+    const list: Member[] = (profilesData ?? [])
+      .map((p: any) => ({
+        user_id: p.user_id,
+        display_name: p.display_name ?? p.user_id,
       }))
       .sort((a, b) => a.display_name.localeCompare(b.display_name));
     setMembers(list);
   };
+
 
   const memberName = (id: string | null) =>
     !id ? "—" : members.find((m) => m.user_id === id)?.display_name ?? "—";
