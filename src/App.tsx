@@ -86,6 +86,7 @@ const TeamOrders = lazy(() => import("./pages/team/TeamOrders"));
 const TeamMembers = lazy(() => import("./pages/team/TeamMembers"));
 const TeamKOL = lazy(() => import("./pages/team/TeamKOL"));
 const TeamCommission = lazy(() => import("./pages/team/TeamCommission"));
+const TeamNotification = lazy(() => import("./pages/team/TeamNotification"));
 const Customers = lazy(() => import("./pages/Customers"));
 const CustomerOrders = lazy(() => import("./pages/CustomerOrders"));
 const PublicHolidays = lazy(() => import("./pages/PublicHolidays"));
@@ -456,7 +457,7 @@ function App() {
                           <Suspense fallback={null}><TeamPlaceholder title="廣告追蹤" /></Suspense>
                         } />
                         <Route path="notification" element={
-                          <Suspense fallback={null}><TeamPlaceholder title="業績通報設定" /></Suspense>
+                          <Suspense fallback={null}><TeamNotification /></Suspense>
                         } />
                         <Route path="franchise" element={
                           <Suspense fallback={null}><TeamPlaceholder title="特許加盟" /></Suspense>
