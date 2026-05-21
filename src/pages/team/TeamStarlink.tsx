@@ -590,6 +590,134 @@ function OrdersTab({
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      <Sheet open={editOpen} onOpenChange={setEditOpen}>
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>編輯星鏈訂單</SheetTitle>
+          </SheetHeader>
+          <div className="space-y-3 mt-4">
+            <div className="space-y-1">
+              <Label>客戶名稱</Label>
+              <Input
+                value={editForm.client_name}
+                onChange={(e) => setEditForm({ ...editForm, client_name: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label>統編</Label>
+                <Input
+                  value={editForm.client_tax_id}
+                  onChange={(e) => setEditForm({ ...editForm, client_tax_id: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>行業類型</Label>
+                <Input
+                  value={editForm.business_type}
+                  onChange={(e) => setEditForm({ ...editForm, business_type: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>方案</Label>
+              <Select
+                value={editForm.plan_name || undefined}
+                onValueChange={(v) => setEditForm({ ...editForm, plan_name: v })}
+              >
+                <SelectTrigger><SelectValue placeholder="選擇方案" /></SelectTrigger>
+                <SelectContent>
+                  {plans.map((p) => (
+                    <SelectItem key={p.id} value={p.plan_name}>
+                      {p.plan_name}（{fmtMoney(p.price)}）
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>銷售人</Label>
+              <Select
+                value={editForm.sold_by || undefined}
+                onValueChange={(v) => setEditForm({ ...editForm, sold_by: v })}
+              >
+                <SelectTrigger><SelectValue placeholder="選擇銷售人" /></SelectTrigger>
+                <SelectContent>
+                  {members.map((m) => (
+                    <SelectItem key={m.user_id} value={m.user_id}>{m.display_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>成交日期</Label>
+              <Input
+                type="date"
+                value={editForm.sold_at}
+                onChange={(e) => setEditForm({ ...editForm, sold_at: e.target.value })}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="edit_payment_confirmed_sl"
+                checked={editForm.payment_confirmed}
+                onCheckedChange={(v) => setEditForm({ ...editForm, payment_confirmed: !!v })}
+              />
+              <Label htmlFor="edit_payment_confirmed_sl">付款已確認</Label>
+            </div>
+            <div className="space-y-1">
+              <Label>匯款末5碼</Label>
+              <Input
+                value={editForm.payment_last5}
+                onChange={(e) => setEditForm({ ...editForm, payment_last5: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>發票號碼</Label>
+              <Input
+                value={editForm.invoice_number}
+                onChange={(e) => setEditForm({ ...editForm, invoice_number: e.target.value })}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="edit_contract_uploaded"
+                checked={editForm.contract_uploaded}
+                onCheckedChange={(v) => setEditForm({ ...editForm, contract_uploaded: !!v })}
+              />
+              <Label htmlFor="edit_contract_uploaded">合約已上傳</Label>
+            </div>
+            <div className="space-y-1">
+              <Label>結算狀態</Label>
+              <Select
+                value={editForm.payout_status}
+                onValueChange={(v) => setEditForm({ ...editForm, payout_status: v })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">待結算</SelectItem>
+                  <SelectItem value="paid">已發放</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>備註</Label>
+              <Textarea
+                rows={3}
+                value={editForm.notes}
+                onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+              />
+            </div>
+          </div>
+          <SheetFooter className="mt-4">
+            <Button variant="outline" onClick={() => setEditOpen(false)}>取消</Button>
+            <Button onClick={handleEditSave} disabled={editSaving}>
+              {editSaving ? "儲存中..." : "儲存"}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </Card>
   );
 }
