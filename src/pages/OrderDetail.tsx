@@ -692,7 +692,7 @@ const OrderDetailPage = () => {
       const addonNoteTrim = editForm.addon_note.trim();
       if (addonNoteTrim) {
         const block = `【加購備註】\n${addonNoteTrim}\n【加購備註END】`;
-        finalNotes = finalNotes ? `${block}\n${finalNotes}` : block;
+        finalNotes = finalNotes ? `${finalNotes}\n${block}` : block;
       }
       if (exclusiveRows.length > 0) {
         const pkgLines = exclusiveRows.map((_, i) => {
