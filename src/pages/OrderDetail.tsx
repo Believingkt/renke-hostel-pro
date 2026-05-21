@@ -2338,6 +2338,15 @@ const OrderDetailPage = () => {
                     <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">加購方案金額</span>
                     <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right" type="text" inputMode="numeric" value={editForm.addon_total} onChange={(e) => setEditForm(f => ({ ...f, addon_total: Math.max(0, parseInt(e.target.value) || 0) }))} />
                   </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-sm md:text-sm text-muted-foreground">加購備註</span>
+                    <Textarea
+                      className="min-h-[60px] text-base md:text-sm"
+                      placeholder="例如：加購早餐 x2、額外床墊 x1"
+                      value={editForm.addon_note}
+                      onChange={(e) => setEditForm(f => ({ ...f, addon_note: e.target.value }))}
+                    />
+                  </div>
                 </>
               );
             })()}
@@ -2356,7 +2365,9 @@ const OrderDetailPage = () => {
                   items.push({ label: `${d.addon_type} (${d.count}${d.unit_label || '份'})`, amount: d.total });
                 }
               });
-              if (items.length === 0) return null;
+              const addonNoteMatch = (order.notes || "").match(/^【加購備註】(.*)$/m);
+              const addonNote = addonNoteMatch ? addonNoteMatch[1].trim() : "";
+              if (items.length === 0 && !addonNote) return null;
               const addonTotal = items.reduce((sum, i) => sum + i.amount, 0);
               return (
                 <>
@@ -2371,6 +2382,12 @@ const OrderDetailPage = () => {
                     <div className="flex justify-between items-center gap-2 pt-1">
                       <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">加購小計</span>
                       <span className="font-medium text-base md:text-base">NT$ {addonTotal.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {addonNote && (
+                    <div className="flex justify-between items-start gap-2 pt-1">
+                      <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">加購備註</span>
+                      <span className="text-sm md:text-sm text-right whitespace-pre-wrap break-words">{addonNote}</span>
                     </div>
                   )}
                 </>
