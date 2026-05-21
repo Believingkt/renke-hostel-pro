@@ -76,13 +76,21 @@ export function AccommodationSelector() {
 
   const loadAccommodations = async () => {
     try {
-      if (userAccommodations.length === 0) {
-        console.log('[AccommodationSelector] No user accommodations available');
+      // 過濾掉 accommodation_id 為 null 的 team 角色（admin / franchise / scout 等）
+      const accommodationIds = Array.from(
+        new Set(
+          userAccommodations
+            .map((ua) => ua.accommodation_id)
+            .filter((id): id is string => !!id)
+        )
+      );
+
+      if (accommodationIds.length === 0) {
+        console.log('[AccommodationSelector] No accommodation-bound roles');
         setIsLoading(false);
         return;
       }
 
-      const accommodationIds = userAccommodations.map(ua => ua.accommodation_id);
       console.log('[AccommodationSelector] Loading accommodations:', accommodationIds);
 
       const [{ data, error }, { data: pkgRows }] = await Promise.all([
