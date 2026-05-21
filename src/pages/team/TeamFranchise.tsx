@@ -533,30 +533,40 @@ function SettingsTab({ canManage }: { canManage: boolean }) {
   }, []);
 
   const load = async () => {
-    const [m, s] = await Promise.all([
-      supabase
-        .from("user_roles")
-        .select("user_id, team_member_profiles!inner(user_id, display_name)")
-        .eq("role", "franchise")
-        .is("accommodation_id", null),
-      supabase.from("franchise_team_settings").select("*"),
-    ]);
-    if (m.data) {
-      const seen = new Set<string>();
-      const list: Member[] = [];
-      (m.data as any[]).forEach((row) => {
-        const pid = row.team_member_profiles?.user_id;
-        if (pid && !seen.has(pid)) {
-          seen.add(pid);
-          list.push({
-            user_id: pid,
-            display_name: row.team_member_profiles?.display_name ?? pid,
-          });
-        }
-      });
-      setMembers(list);
+    const s = await supabase.from("franchise_team_settings").select("*");
+    const settingsData = (s.data ?? []) as TeamSetting[];
+    setSettings(settingsData);
+
+    // Collect all user_ids referenced (members + leaders)
+    const ids = new Set<string>();
+    settingsData.forEach((row) => {
+      if (row.member_id) ids.add(row.member_id);
+      if (row.direct_leader_id) ids.add(row.direct_leader_id);
+      if (row.sub_leader_id) ids.add(row.sub_leader_id);
+      if (row.top_leader_id) ids.add(row.top_leader_id);
+    });
+    if (ids.size === 0) {
+      setMembers([]);
+      return;
     }
-    if (s.data) setSettings(s.data as TeamSetting[]);
+    const p = await supabase
+      .from("team_member_profiles")
+      .select("user_id, display_name")
+      .in("user_id", Array.from(ids));
+    const profiles = (p.data ?? []) as { user_id: string; display_name: string }[];
+    // Only members (those in franchise_team_settings.member_id) shown in the table,
+    // but keep all profiles for leader name lookup.
+    const memberIds = new Set(settingsData.map((r) => r.member_id));
+    const list: Member[] = profiles
+      .filter((x) => memberIds.has(x.user_id))
+      .map((x) => ({ user_id: x.user_id, display_name: x.display_name ?? x.user_id }))
+      .sort((a, b) => a.display_name.localeCompare(b.display_name));
+    // Stash leader names in a lookup by extending members list with all profiles
+    // so memberName() resolves leaders that aren't themselves members.
+    const extra = profiles
+      .filter((x) => !memberIds.has(x.user_id))
+      .map((x) => ({ user_id: x.user_id, display_name: x.display_name ?? x.user_id }));
+    setMembers([...list, ...extra]);
   };
 
   const memberName = (id: string | null) =>
@@ -629,7 +639,7 @@ function SettingsTab({ canManage }: { canManage: boolean }) {
                 </TableCell>
               </TableRow>
             ) : (
-              members.map((m) => {
+              members.filter((m) => settingsByMember[m.user_id]).map((m) => {
                 const s = settingsByMember[m.user_id];
                 return (
                   <TableRow key={m.user_id}>
