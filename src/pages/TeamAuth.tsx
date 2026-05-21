@@ -127,7 +127,10 @@ export default function TeamAuth() {
       }
 
       if (data.user) {
-        if (!(await userHasTeamRole(data.user.id))) {
+        console.log("[TeamAuth] signInWithPassword success, checking team role for:", data.user.id);
+        const hasRole = await userHasTeamRole(data.user.id);
+        console.log("[TeamAuth] hasTeamRole result:", hasRole);
+        if (!hasRole) {
           toast.error("您沒有行銷團隊後台的存取權限");
           await supabase.auth.signOut();
           return;
@@ -142,6 +145,7 @@ export default function TeamAuth() {
         }
 
         toast.success("登入成功！");
+        navigate("/team", { replace: true });
       }
     } catch (error: any) {
       console.error("Login error:", error);
