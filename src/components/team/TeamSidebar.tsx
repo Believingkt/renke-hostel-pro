@@ -27,8 +27,10 @@ export function TeamSidebar() {
   const navigate = useNavigate();
   const { roles, displayName } = useTeam();
 
+  const isAdmin = roles.includes("super_admin") || roles.includes("admin");
   const visibleItems = TEAM_MENU.filter((item) => {
     if (!item.allowedRoles) return true;
+    if (isAdmin) return true;
     return item.allowedRoles.some((r) => roles.includes(r));
   });
 
