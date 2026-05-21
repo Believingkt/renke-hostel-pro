@@ -1976,6 +1976,68 @@ export type Database = {
           },
         ]
       }
+      kol_prospects: {
+        Row: {
+          collab_type: string | null
+          contacted_at: string | null
+          converted_to_kol_id: string | null
+          created_at: string | null
+          fee_quote: number | null
+          id: string
+          ig_handle: string | null
+          ig_url: string | null
+          name: string | null
+          notes: string | null
+          scout_id: string | null
+          screenshot_url: string | null
+          status: string | null
+          tags: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          collab_type?: string | null
+          contacted_at?: string | null
+          converted_to_kol_id?: string | null
+          created_at?: string | null
+          fee_quote?: number | null
+          id?: string
+          ig_handle?: string | null
+          ig_url?: string | null
+          name?: string | null
+          notes?: string | null
+          scout_id?: string | null
+          screenshot_url?: string | null
+          status?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          collab_type?: string | null
+          contacted_at?: string | null
+          converted_to_kol_id?: string | null
+          created_at?: string | null
+          fee_quote?: number | null
+          id?: string
+          ig_handle?: string | null
+          ig_url?: string | null
+          name?: string | null
+          notes?: string | null
+          scout_id?: string | null
+          screenshot_url?: string | null
+          status?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kol_prospects_scout_id_fkey"
+            columns: ["scout_id"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       location_info: {
         Row: {
           accommodation_id: string | null
