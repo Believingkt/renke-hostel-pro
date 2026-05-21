@@ -807,7 +807,11 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           for (const dateStr of dates) {
             perRoom += priceMap[dateStr] ?? 0;
           }
-          sel.roomPrice = perRoom * sel.quantity;
+          const recomputed = perRoom * sel.quantity;
+          // 只在重算結果 > 0 時才覆寫，避免模板查不到價格時把已顯示房價清成 0
+          if (recomputed > 0) {
+            sel.roomPrice = recomputed;
+          }
         }
       }
       const totals = getTotals();
