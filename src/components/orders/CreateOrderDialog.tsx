@@ -690,6 +690,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const handleRemoveDiscount = () => {
     setAppliedDiscount(null);
     setDiscountCode("");
+    setManualDiscountStr(null);
     toast({ title: "已移除折扣", description: "折扣代碼已清除" });
   };
 
@@ -701,7 +702,10 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     }, 0);
     // Use roomSelections prices directly to avoid stale roomPrice state
     const actualRoomTotal = roomSelections.reduce((sum, sel) => sum + sel.roomPrice, 0);
-    const discount = calculateDiscount(actualRoomTotal);
+    const codeDiscount = calculateDiscount(actualRoomTotal);
+    const discount = manualDiscountStr !== null
+      ? Math.max(0, parseInt(manualDiscountStr) || 0)
+      : codeDiscount;
     const subtotal = actualRoomTotal + addonTotal;
     const final_ = Math.max(0, actualRoomTotal - discount + addonTotal);
     return { roomTotal: actualRoomTotal, addonTotal, subtotal, discount, final: final_ };
