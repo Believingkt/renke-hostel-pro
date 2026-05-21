@@ -86,6 +86,8 @@ export const RESERVED_FIRST_SEGMENTS = new Set<string>([
   "points-api-docs",
   "og-preview",
   "payment-test",
+  "team",
+  "team-auth",
   "__cb",
 ]);
 
