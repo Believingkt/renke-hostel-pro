@@ -2392,16 +2392,16 @@ const OrderDetailPage = () => {
                       <span className="font-medium text-base md:text-base">NT$ {item.amount.toLocaleString()}</span>
                     </div>
                   ))}
-                  {items.length > 1 && (
-                    <div className="flex justify-between items-center gap-2 pt-1">
-                      <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">加購小計</span>
-                      <span className="font-medium text-base md:text-base">NT$ {addonTotal.toLocaleString()}</span>
-                    </div>
-                  )}
                   {addonNote && (
                     <div className="flex justify-between items-start gap-2 pt-1">
                       <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">額外現場加購備註</span>
                       <span className="text-sm md:text-sm text-right whitespace-pre-wrap break-words">{addonNote}</span>
+                    </div>
+                  )}
+                  {items.length > 1 && (
+                    <div className="flex justify-between items-center gap-2 pt-1">
+                      <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">加購小計</span>
+                      <span className="font-medium text-base md:text-base">NT$ {addonTotal.toLocaleString()}</span>
                     </div>
                   )}
                 </>
