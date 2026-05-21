@@ -2381,7 +2381,7 @@ const OrderDetailPage = () => {
                     <span className="text-sm md:text-sm text-muted-foreground">額外現場加購備註</span>
                     <Textarea
                       className="min-h-[60px] text-base md:text-sm"
-                      placeholder="例如：加購早餐 x2、額外床墊 x1"
+                      placeholder="例如：加購早餐2份500元、額外床墊1張800元"
                       value={editForm.addon_note}
                       onChange={(e) => setEditForm(f => ({ ...f, addon_note: e.target.value }))}
                     />
