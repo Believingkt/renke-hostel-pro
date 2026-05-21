@@ -219,6 +219,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       setSelectedAddons([]);
       setDiscountCode("");
       setAppliedDiscount(null);
+      setManualDiscountStr(null);
       setRoomPrice(0);
       setDepositPct(30);
       setNameSuggestions([]);
