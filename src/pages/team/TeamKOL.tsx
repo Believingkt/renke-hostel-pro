@@ -1948,7 +1948,7 @@ function TargetsTab({
 
     const table =
       addKind === "team" ? "scout_team_targets" : "scout_monthly_targets";
-    const { error } = await supabase.from(table).insert(payload);
+    const { error } = await (supabase.from(table) as any).insert(payload);
     if (error) {
       toast.error(error.message);
       return;
