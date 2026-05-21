@@ -670,12 +670,18 @@ const OrderDetailPage = () => {
       // If any edited room is an exclusive package, regenerate one [包區/包棟房間配置] line per 包棟
       const exclusiveRows = editOrderRooms.filter(r => roomTypes.find(t => t.id === r.room_type_id)?.is_exclusive_package);
       let finalNotes = editForm.notes.trim();
-      // Strip any existing 包區/包棟房間配置 lines first
+      // Strip any existing 包區/包棟房間配置 lines and 加購備註 lines first
       finalNotes = finalNotes
         .split("\n")
         .filter(line => !/^【\s*(?:包區|包棟)\s*房間配置\s*】/.test(line.trim()))
+        .filter(line => !/^【加購備註】/.test(line.trim()))
         .join("\n")
         .trim();
+      // Prepend latest 加購備註 line
+      const addonNoteTrim = editForm.addon_note.trim();
+      if (addonNoteTrim) {
+        finalNotes = finalNotes ? `【加購備註】${addonNoteTrim}\n${finalNotes}` : `【加購備註】${addonNoteTrim}`;
+      }
       if (exclusiveRows.length > 0) {
         const pkgLines = exclusiveRows.map((_, i) => {
           const cfg = editExclusiveConfigs[i] || { double: 0, quad: 0 };
