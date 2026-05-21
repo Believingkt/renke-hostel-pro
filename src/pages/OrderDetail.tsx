@@ -191,6 +191,7 @@ interface EditFormState {
   custom_addon_details: CustomAddonDetail[];
   addon_total: number;
   addon_note: string;
+  extra_addon_amount: number;
 }
 
 const OrderDetailPage = () => {
@@ -378,6 +379,7 @@ const OrderDetailPage = () => {
     custom_addon_details: [],
     addon_total: 0,
     addon_note: "",
+    extra_addon_amount: 0,
   });
   const [discountCodeError, setDiscountCodeError] = useState("");
   const [canUnlockPaidOrderDiscount, setCanUnlockPaidOrderDiscount] = useState(false);
@@ -449,6 +451,7 @@ const OrderDetailPage = () => {
       notes: (order.notes || "")
         .replace(/【(?:加購備註|額外現場加購備註)[^】]*】\n?[\s\S]*?\n?【(?:加購備註|額外現場加購備註)END】\n?/g, "")
         .replace(/^【(?:加購備註|額外現場加購備註)[^】]*】.*$\n?/gm, "")
+        .replace(/【額外現場加購金額[^】]*】\n?[\s\S]*?\n?【額外現場加購金額END】\n?/g, "")
         .trim(),
       room_type_id: order.room_type_id || "",
       total_price: order.total_price || 0,
@@ -479,7 +482,9 @@ const OrderDetailPage = () => {
         const otherCustom = all.filter(d => d.addon_type !== 'pet' && d.addon_type !== 'meal' && d.addon_type !== 'bbq').reduce((s, d) => s + d.total, 0);
         const petTotal = (order.pet_plan_price || 0) > 0 ? (order.pet_plan_price || 0) : petFromCustom;
         const mealTotal = (order.meal_plan_total || 0) > 0 ? (order.meal_plan_total || 0) : mealFromCustom;
-        return petTotal + mealTotal + otherCustom;
+        const extraMatch = (order.notes || "").match(/【額外現場加購金額[^】]*】\n?(\d+)\n?【額外現場加購金額END】/);
+        const extra = extraMatch ? parseInt(extraMatch[1], 10) || 0 : 0;
+        return petTotal + mealTotal + otherCustom + extra;
       })(),
       addon_note: (() => {
         const notes = order.notes || "";
@@ -488,6 +493,10 @@ const OrderDetailPage = () => {
         if (blocks.length > 0) return blocks[blocks.length - 1][1].trim();
         const m = notes.match(/^【(?:加購備註|額外現場加購備註)[^】]*】(.*)$/m);
         return m ? m[1].trim() : "";
+      })(),
+      extra_addon_amount: (() => {
+        const m = (order.notes || "").match(/【額外現場加購金額[^】]*】\n?(\d+)\n?【額外現場加購金額END】/);
+        return m ? (parseInt(m[1], 10) || 0) : 0;
       })(),
     });
     // Initialize edit order rooms
@@ -533,11 +542,11 @@ const OrderDetailPage = () => {
   // Auto-sync addon_total when individual addons change
   useEffect(() => {
     if (!isEditing) return;
-    const computed = editForm.pet_plan_price + editForm.meal_plan_total + editForm.custom_addon_details.reduce((sum, d) => sum + d.total, 0);
+    const computed = editForm.pet_plan_price + editForm.meal_plan_total + editForm.custom_addon_details.reduce((sum, d) => sum + d.total, 0) + (editForm.extra_addon_amount || 0);
     if (computed !== editForm.addon_total) {
       setEditForm(f => ({ ...f, addon_total: computed }));
     }
-  }, [isEditing, editForm.pet_plan_price, editForm.meal_plan_total, editForm.custom_addon_details]);
+  }, [isEditing, editForm.pet_plan_price, editForm.meal_plan_total, editForm.custom_addon_details, editForm.extra_addon_amount]);
 
   // Auto-sync deposit_amount when final price changes
   // Skip when order is already paid/deposit_paid — deposit must stay locked
@@ -680,6 +689,7 @@ const OrderDetailPage = () => {
       // 先移除舊的加購備註區塊（多行格式）與舊的單行格式
       finalNotes = finalNotes
         .replace(/【(?:加購備註|額外現場加購備註)[^】]*】\n?[\s\S]*?\n?【(?:加購備註|額外現場加購備註)END】\n?/g, "")
+        .replace(/【額外現場加購金額[^】]*】\n?[\s\S]*?\n?【額外現場加購金額END】\n?/g, "")
         .trim();
       finalNotes = finalNotes
         .split("\n")
@@ -693,6 +703,12 @@ const OrderDetailPage = () => {
         const ts = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Taipei" }).slice(0, 16);
         const block = `【額外現場加購備註 ${ts}】\n${addonNoteTrim}\n【額外現場加購備註END】`;
         finalNotes = finalNotes ? `${finalNotes}\n${block}` : block;
+      }
+      // 寫入額外現場加購金額（純數字區塊）
+      if ((editForm.extra_addon_amount || 0) > 0) {
+        const ts2 = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Taipei" }).slice(0, 16);
+        const amtBlock = `【額外現場加購金額 ${ts2}】\n${editForm.extra_addon_amount}\n【額外現場加購金額END】`;
+        finalNotes = finalNotes ? `${finalNotes}\n${amtBlock}` : amtBlock;
       }
       if (exclusiveRows.length > 0) {
         const pkgLines = exclusiveRows.map((_, i) => {
@@ -2350,6 +2366,17 @@ const OrderDetailPage = () => {
                     <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">加購方案金額</span>
                     <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right" type="text" inputMode="numeric" value={editForm.addon_total} onChange={(e) => setEditForm(f => ({ ...f, addon_total: Math.max(0, parseInt(e.target.value) || 0) }))} />
                   </div>
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">額外現場加購</span>
+                    <Input
+                      className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right"
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="0"
+                      value={editForm.extra_addon_amount || ""}
+                      onChange={(e) => setEditForm(f => ({ ...f, extra_addon_amount: Math.max(0, parseInt(e.target.value) || 0) }))}
+                    />
+                  </div>
                   <div className="flex flex-col gap-1">
                     <span className="text-sm md:text-sm text-muted-foreground">額外現場加購備註</span>
                     <Textarea
@@ -2378,6 +2405,11 @@ const OrderDetailPage = () => {
                 }
               });
               const _notesRaw = order.notes || "";
+              const _extraMatch = _notesRaw.match(/【額外現場加購金額[^】]*】\n?(\d+)\n?【額外現場加購金額END】/);
+              const extraAmount = _extraMatch ? (parseInt(_extraMatch[1], 10) || 0) : 0;
+              if (extraAmount > 0) {
+                items.push({ label: '額外現場加購', amount: extraAmount });
+              }
               const _blocks = [..._notesRaw.matchAll(/【(?:加購備註|額外現場加購備註)[^】]*】\n?([\s\S]*?)\n?【(?:加購備註|額外現場加購備註)END】/g)];
               const _lineMatch = _notesRaw.match(/^【(?:加購備註|額外現場加購備註)[^】]*】(.*)$/m);
               const addonNote = _blocks.length > 0 ? _blocks[_blocks.length - 1][1].trim() : (_lineMatch ? _lineMatch[1].trim() : "");
@@ -2962,6 +2994,7 @@ const OrderDetailPage = () => {
             (() => {
               // 顯示時：保留加購備註內容（含標題），僅移除技術用 END 標記
               const cleaned = (order.notes || "")
+                .replace(/【額外現場加購金額[^】]*】\n?[\s\S]*?\n?【額外現場加購金額END】\n?/g, "")
                 .replace(/\n?【(?:加購備註|額外現場加購備註)END】\n?/g, "\n")
                 .replace(/\n{3,}/g, "\n\n")
                 .trim();
