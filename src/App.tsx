@@ -439,7 +439,7 @@ function App() {
                           <Suspense fallback={null}><TeamHome /></Suspense>
                         } />
                         <Route path="members" element={
-                          <Suspense fallback={null}><TeamPlaceholder title="成員管理" /></Suspense>
+                          <Suspense fallback={null}><TeamMembers /></Suspense>
                         } />
                         <Route path="kol" element={
                           <Suspense fallback={null}><TeamPlaceholder title="KOL 星探管理" /></Suspense>
