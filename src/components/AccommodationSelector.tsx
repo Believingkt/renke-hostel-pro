@@ -166,7 +166,7 @@ export function AccommodationSelector() {
       </TooltipProvider>
       <Select value={currentAccommodationId || undefined} onValueChange={setCurrentAccommodationId}>
         <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="切換旅館" />
+          <SelectValue placeholder="切換民宿" />
         </SelectTrigger>
         <SelectContent>
           {accommodations.map((accommodation) => (

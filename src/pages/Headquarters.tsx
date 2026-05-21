@@ -256,7 +256,7 @@ const Headquarters = () => {
       .order("display_order", { ascending: true });
 
     if (error) {
-      toast.error("載入旅館列表失敗");
+      toast.error("載入民宿列表失敗");
       return;
     }
 
@@ -345,7 +345,7 @@ const Headquarters = () => {
       : selectedAccommodation;
 
     if (!accommodationIdToSend) {
-      toast.error("系統尚無任何旅館，無法建立帳號");
+      toast.error("系統尚無任何民宿，無法建立帳號");
       return;
     }
 
@@ -473,7 +473,7 @@ const Headquarters = () => {
 
     // super_admin doesn't need accommodation, others do
     if (addRoleType !== "super_admin" && !addRoleAccommodation) {
-      toast.error("請選擇旅館");
+      toast.error("請選擇民宿");
       return;
     }
 
@@ -1020,14 +1020,14 @@ const Headquarters = () => {
                   </div>
                   {selectedRole !== "super_admin" && (
                     <div className="space-y-2">
-                      <Label htmlFor="accommodation">旅館</Label>
+                      <Label htmlFor="accommodation">民宿</Label>
                       <Select 
                         value={selectedAccommodation} 
                         onValueChange={setSelectedAccommodation}
                         disabled={isSubmitting}
                       >
                         <SelectTrigger id="accommodation">
-                          <SelectValue placeholder="選擇旅館" />
+                          <SelectValue placeholder="選擇民宿" />
                         </SelectTrigger>
                         <SelectContent>
                           {accommodations.map((accommodation) => (
@@ -1114,10 +1114,10 @@ const Headquarters = () => {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>旅館{addRoleType === "super_admin" && <span className="text-muted-foreground text-xs ml-1">(非必填)</span>}</Label>
+                    <Label>民宿{addRoleType === "super_admin" && <span className="text-muted-foreground text-xs ml-1">(非必填)</span>}</Label>
                     <Select value={addRoleAccommodation} onValueChange={setAddRoleAccommodation} disabled={addRoleType === "super_admin"}>
                       <SelectTrigger>
-                        <SelectValue placeholder={addRoleType === "super_admin" ? "總部管理員無需選擇" : "選擇旅館"} />
+                        <SelectValue placeholder={addRoleType === "super_admin" ? "總部管理員無需選擇" : "選擇民宿"} />
                       </SelectTrigger>
                       <SelectContent>
                         {accommodations.map((acc) => (
@@ -1154,7 +1154,7 @@ const Headquarters = () => {
                   <EmptyState
                     icon={UserCog}
                     title="尚無用戶權限資料"
-                    description="這裡會顯示所有旅館的用戶權限資訊"
+                    description="這裡會顯示所有民宿的用戶權限資訊"
                   />
                 ) : (
                   <DndContext
@@ -1171,7 +1171,7 @@ const Headquarters = () => {
                             <TableHead className="text-sm">用戶名稱</TableHead>
                             <TableHead className="text-sm">Email</TableHead>
                             <TableHead className="text-sm">狀態</TableHead>
-                            <TableHead className="text-sm">旅館 / 角色</TableHead>
+                            <TableHead className="text-sm">民宿 / 角色</TableHead>
                             <TableHead className="text-sm pl-2">切換角色</TableHead>
                             <TableHead className="text-sm text-center">操作</TableHead>
                           </TableRow>

@@ -135,7 +135,7 @@ export default function UserRoles() {
         .maybeSingle();
 
       if (existingRole) {
-        toast.error('此用戶已擁有此旅館的權限');
+        toast.error('此用戶已擁有此民宿的權限');
         return;
       }
 
@@ -262,7 +262,7 @@ export default function UserRoles() {
   if (!currentAccommodationId) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">請先選擇旅館</p>
+        <p className="text-muted-foreground">請先選擇民宿</p>
       </div>
     );
   }
@@ -275,7 +275,7 @@ export default function UserRoles() {
         <CardHeader>
           <CardTitle className="text-lg md:text-xl">新增用戶</CardTitle>
           <CardDescription>
-            為現有用戶新增此旅館的存取權限
+            為現有用戶新增此民宿的存取權限
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -307,7 +307,7 @@ export default function UserRoles() {
         <CardHeader>
           <CardTitle className="text-lg md:text-xl">現有用戶</CardTitle>
           <CardDescription>
-            目前擁有此旅館存取權限的用戶
+            目前擁有此民宿存取權限的用戶
           </CardDescription>
         </CardHeader>
         <CardContent>
