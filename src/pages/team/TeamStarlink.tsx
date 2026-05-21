@@ -66,11 +66,13 @@ interface StarlinkOrder {
 }
 
 
-const PLAN_OPTIONS = [
-  { name: "人氣啟動", price: 19800 },
-  { name: "計劃實現", price: 38850 },
-  { name: "總部方案", price: 93600 },
-];
+interface PlanSetting {
+  id: string;
+  plan_name: string;
+  price: number;
+  is_active: boolean;
+  created_at: string;
+}
 
 const fmtMoney = (n: number | null | undefined) =>
   `NT$ ${Number(n ?? 0).toLocaleString()}`;
@@ -102,12 +104,16 @@ export default function TeamStarlink() {
         <TabsList>
           <TabsTrigger value="orders">訂單列表</TabsTrigger>
           <TabsTrigger value="tiers">等級設定</TabsTrigger>
+          <TabsTrigger value="plans">方案設定</TabsTrigger>
         </TabsList>
         <TabsContent value="orders" className="mt-4">
           <OrdersTab canManage={canManage} currentUserId={userId} />
         </TabsContent>
         <TabsContent value="tiers" className="mt-4">
           <TiersTab canManage={canManage} />
+        </TabsContent>
+        <TabsContent value="plans" className="mt-4">
+          <PlansTab canManage={canManage} />
         </TabsContent>
       </Tabs>
     </div>
@@ -124,6 +130,7 @@ function OrdersTab({
   const [orders, setOrders] = useState<StarlinkOrder[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [tiers, setTiers] = useState<Tier[]>([]);
+  const [plans, setPlans] = useState<PlanSetting[]>([]);
 
   const [year, setYear] = useState<string>(String(new Date().getFullYear()));
   const [month, setMonth] = useState<string>("ALL");
@@ -151,7 +158,7 @@ function OrdersTab({
   }, []);
 
   const loadAll = async () => {
-    const [o, r, t] = await Promise.all([
+    const [o, r, t, p] = await Promise.all([
       supabase
         .from("starlink_orders")
         .select(
@@ -160,6 +167,11 @@ function OrdersTab({
         .order("sold_at", { ascending: false }),
       supabase.rpc("get_team_role_members", { p_role: "starlink" }),
       supabase.from("starlink_tier_settings").select("*").order("min_count"),
+      supabase
+        .from("starlink_plan_settings")
+        .select("*")
+        .eq("is_active", true)
+        .order("created_at"),
     ]);
     if (o.data) setOrders(o.data as StarlinkOrder[]);
     if (r.data) {
@@ -178,6 +190,7 @@ function OrdersTab({
       setMembers(list);
     }
     if (t.data) setTiers(t.data as Tier[]);
+    if (p.data) setPlans(p.data as PlanSetting[]);
   };
 
   const memberName = (id: string | null) =>
@@ -208,7 +221,7 @@ function OrdersTab({
       toast.error("請填寫客戶名稱、方案與銷售人");
       return;
     }
-    const plan = PLAN_OPTIONS.find((p) => p.name === form.plan_name);
+    const plan = plans.find((p) => p.plan_name === form.plan_name);
     if (!plan) return;
     setSaving(true);
 
@@ -225,7 +238,7 @@ function OrdersTab({
       client_name: form.client_name.trim(),
       client_tax_id: form.client_tax_id.trim() || null,
       business_type: form.business_type.trim() || null,
-      plan_name: plan.name,
+      plan_name: plan.plan_name,
       plan_price: plan.price,
       sold_by: form.sold_by,
       level_at_sale: tier?.level ?? null,
@@ -403,9 +416,9 @@ function OrdersTab({
               >
                 <SelectTrigger><SelectValue placeholder="選擇方案" /></SelectTrigger>
                 <SelectContent>
-                  {PLAN_OPTIONS.map((p) => (
-                    <SelectItem key={p.name} value={p.name}>
-                      {p.name}（{fmtMoney(p.price)}）
+                  {plans.map((p) => (
+                    <SelectItem key={p.id} value={p.plan_name}>
+                      {p.plan_name}（{fmtMoney(p.price)}）
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -644,6 +657,151 @@ function TiersTab({ canManage }: { canManage: boolean }) {
           <SheetFooter className="mt-4">
             <Button variant="outline" onClick={() => setEditing(null)}>取消</Button>
             <Button onClick={save}>儲存</Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+    </Card>
+  );
+}
+
+function PlansTab({ canManage }: { canManage: boolean }) {
+  const [plans, setPlans] = useState<PlanSetting[]>([]);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [editing, setEditing] = useState<PlanSetting | null>(null);
+  const [form, setForm] = useState({ plan_name: "", price: 0, is_active: true });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  const load = async () => {
+    const { data } = await supabase
+      .from("starlink_plan_settings")
+      .select("*")
+      .order("created_at");
+    if (data) setPlans(data as PlanSetting[]);
+  };
+
+  const openCreate = () => {
+    setEditing(null);
+    setForm({ plan_name: "", price: 0, is_active: true });
+    setSheetOpen(true);
+  };
+
+  const openEdit = (p: PlanSetting) => {
+    setEditing(p);
+    setForm({ plan_name: p.plan_name, price: p.price, is_active: p.is_active });
+    setSheetOpen(true);
+  };
+
+  const save = async () => {
+    if (!form.plan_name.trim() || !Number.isFinite(form.price)) {
+      toast.error("請填寫方案名稱與金額");
+      return;
+    }
+    setSaving(true);
+    const payload = {
+      plan_name: form.plan_name.trim(),
+      price: Number(form.price),
+      is_active: form.is_active,
+    };
+    const { error } = editing
+      ? await supabase.from("starlink_plan_settings").update(payload).eq("id", editing.id)
+      : await supabase.from("starlink_plan_settings").insert(payload);
+    setSaving(false);
+    if (error) return toast.error("儲存失敗：" + error.message);
+    toast.success(editing ? "已更新方案" : "已新增方案");
+    setSheetOpen(false);
+    void load();
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="text-base">方案設定</CardTitle>
+        {canManage && (
+          <Button onClick={openCreate}>
+            <Plus className="h-4 w-4 mr-1" /> 新增方案
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>方案名稱</TableHead>
+              <TableHead className="text-right">金額</TableHead>
+              <TableHead>狀態</TableHead>
+              {canManage && <TableHead className="w-20"></TableHead>}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {plans.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={canManage ? 4 : 3} className="text-center text-muted-foreground py-12">
+                  尚無方案
+                </TableCell>
+              </TableRow>
+            ) : (
+              plans.map((p) => (
+                <TableRow key={p.id}>
+                  <TableCell>{p.plan_name}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtMoney(p.price)}</TableCell>
+                  <TableCell>
+                    <Badge variant={p.is_active ? "success" : "secondary"}>
+                      {p.is_active ? "啟用" : "停用"}
+                    </Badge>
+                  </TableCell>
+                  {canManage && (
+                    <TableCell>
+                      <Button size="icon" variant="ghost" onClick={() => openEdit(p)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  )}
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </CardContent>
+
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>{editing ? "編輯方案" : "新增方案"}</SheetTitle>
+          </SheetHeader>
+          <div className="space-y-3 mt-4">
+            <div className="space-y-1">
+              <Label>方案名稱 *</Label>
+              <Input
+                value={form.plan_name}
+                onChange={(e) => setForm({ ...form, plan_name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>金額 *</Label>
+              <Input
+                type="number"
+                value={form.price}
+                onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="plan_is_active"
+                checked={form.is_active}
+                onCheckedChange={(v) => setForm({ ...form, is_active: !!v })}
+              />
+              <Label htmlFor="plan_is_active">啟用</Label>
+            </div>
+          </div>
+          <SheetFooter className="mt-4">
+            <Button variant="outline" onClick={() => setSheetOpen(false)}>取消</Button>
+            <Button onClick={save} disabled={saving}>
+              {saving ? "儲存中..." : "儲存"}
+            </Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>

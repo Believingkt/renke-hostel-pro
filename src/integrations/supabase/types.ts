@@ -5472,6 +5472,30 @@ export type Database = {
           },
         ]
       }
+      starlink_plan_settings: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          plan_name: string
+          price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          plan_name: string
+          price: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          plan_name?: string
+          price?: number
+        }
+        Relationships: []
+      }
       starlink_tier_settings: {
         Row: {
           created_at: string | null
