@@ -66,11 +66,13 @@ interface StarlinkOrder {
 }
 
 
-const PLAN_OPTIONS = [
-  { name: "人氣啟動", price: 19800 },
-  { name: "計劃實現", price: 38850 },
-  { name: "總部方案", price: 93600 },
-];
+interface PlanSetting {
+  id: string;
+  plan_name: string;
+  price: number;
+  is_active: boolean;
+  created_at: string;
+}
 
 const fmtMoney = (n: number | null | undefined) =>
   `NT$ ${Number(n ?? 0).toLocaleString()}`;
