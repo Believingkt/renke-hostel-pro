@@ -154,10 +154,8 @@ function OrdersTab({
         )
         .order("sold_at", { ascending: false }),
       supabase
-        .from("user_roles")
-        .select("user_id, team_member_profiles!inner(user_id, display_name)")
-        .eq("role", "franchise")
-        .is("accommodation_id", null),
+        .from("franchise_team_settings")
+        .select("member_id, team_member_profiles!inner(user_id, display_name)"),
       supabase.from("franchise_team_settings").select("*"),
     ]);
     if (o.data) setOrders(o.data as FranchiseOrder[]);
