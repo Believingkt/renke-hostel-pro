@@ -84,6 +84,7 @@ const TeamHome = lazy(() => import("./pages/team/TeamHome"));
 const TeamPlaceholder = lazy(() => import("./pages/team/TeamPlaceholder"));
 const TeamOrders = lazy(() => import("./pages/team/TeamOrders"));
 const TeamMembers = lazy(() => import("./pages/team/TeamMembers"));
+const TeamKOL = lazy(() => import("./pages/team/TeamKOL"));
 const Customers = lazy(() => import("./pages/Customers"));
 const CustomerOrders = lazy(() => import("./pages/CustomerOrders"));
 const PublicHolidays = lazy(() => import("./pages/PublicHolidays"));
@@ -442,7 +443,7 @@ function App() {
                           <Suspense fallback={null}><TeamMembers /></Suspense>
                         } />
                         <Route path="kol" element={
-                          <Suspense fallback={null}><TeamPlaceholder title="KOL 星探管理" /></Suspense>
+                          <Suspense fallback={null}><TeamKOL /></Suspense>
                         } />
                         <Route path="orders" element={
                           <Suspense fallback={null}><TeamOrders /></Suspense>
