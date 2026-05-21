@@ -1722,6 +1722,78 @@ export type Database = {
           },
         ]
       }
+      franchise_team_settings: {
+        Row: {
+          direct_leader_id: string | null
+          id: string
+          member_id: string
+          sub_leader_id: string | null
+          system_title: string | null
+          title: string | null
+          top_leader_id: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          direct_leader_id?: string | null
+          id?: string
+          member_id: string
+          sub_leader_id?: string | null
+          system_title?: string | null
+          title?: string | null
+          top_leader_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          direct_leader_id?: string | null
+          id?: string
+          member_id?: string
+          sub_leader_id?: string | null
+          system_title?: string | null
+          title?: string | null
+          top_leader_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "franchise_team_settings_direct_leader_id_fkey"
+            columns: ["direct_leader_id"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "franchise_team_settings_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: true
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "franchise_team_settings_sub_leader_id_fkey"
+            columns: ["sub_leader_id"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "franchise_team_settings_top_leader_id_fkey"
+            columns: ["top_leader_id"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "franchise_team_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       frontend_error_reports: {
         Row: {
           alert_sent: boolean
