@@ -1976,6 +1976,159 @@ export type Database = {
           },
         ]
       }
+      kol_profiles: {
+        Row: {
+          accommodation_id: string | null
+          booking_status: string | null
+          check_in_date: string | null
+          check_out_date: string | null
+          cid_code: string | null
+          contract_file_url: string | null
+          contract_progress: string | null
+          corrected_at: string | null
+          corrected_by: string | null
+          created_at: string | null
+          created_by: string | null
+          day_of_week: string | null
+          error_note: string | null
+          id: string
+          ig_handle: string | null
+          ig_url: string | null
+          inventory_count: number | null
+          inventory_status: string | null
+          invited_at: string | null
+          is_error: boolean | null
+          kol_tags: string[] | null
+          kpi_eligible: boolean | null
+          kpi_month: string | null
+          lihi_url: string | null
+          name: string | null
+          order_id: string | null
+          order_number: string | null
+          publish_date: string | null
+          publish_url: string | null
+          rarity: string | null
+          scout_id: string | null
+          short_url: string | null
+          task_ig_collab: boolean | null
+          task_post_story: boolean | null
+          task_pre_stay: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          accommodation_id?: string | null
+          booking_status?: string | null
+          check_in_date?: string | null
+          check_out_date?: string | null
+          cid_code?: string | null
+          contract_file_url?: string | null
+          contract_progress?: string | null
+          corrected_at?: string | null
+          corrected_by?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          day_of_week?: string | null
+          error_note?: string | null
+          id?: string
+          ig_handle?: string | null
+          ig_url?: string | null
+          inventory_count?: number | null
+          inventory_status?: string | null
+          invited_at?: string | null
+          is_error?: boolean | null
+          kol_tags?: string[] | null
+          kpi_eligible?: boolean | null
+          kpi_month?: string | null
+          lihi_url?: string | null
+          name?: string | null
+          order_id?: string | null
+          order_number?: string | null
+          publish_date?: string | null
+          publish_url?: string | null
+          rarity?: string | null
+          scout_id?: string | null
+          short_url?: string | null
+          task_ig_collab?: boolean | null
+          task_post_story?: boolean | null
+          task_pre_stay?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          accommodation_id?: string | null
+          booking_status?: string | null
+          check_in_date?: string | null
+          check_out_date?: string | null
+          cid_code?: string | null
+          contract_file_url?: string | null
+          contract_progress?: string | null
+          corrected_at?: string | null
+          corrected_by?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          day_of_week?: string | null
+          error_note?: string | null
+          id?: string
+          ig_handle?: string | null
+          ig_url?: string | null
+          inventory_count?: number | null
+          inventory_status?: string | null
+          invited_at?: string | null
+          is_error?: boolean | null
+          kol_tags?: string[] | null
+          kpi_eligible?: boolean | null
+          kpi_month?: string | null
+          lihi_url?: string | null
+          name?: string | null
+          order_id?: string | null
+          order_number?: string | null
+          publish_date?: string | null
+          publish_url?: string | null
+          rarity?: string | null
+          scout_id?: string | null
+          short_url?: string | null
+          task_ig_collab?: boolean | null
+          task_post_story?: boolean | null
+          task_pre_stay?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kol_profiles_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kol_profiles_corrected_by_fkey"
+            columns: ["corrected_by"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "kol_profiles_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "kol_profiles_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kol_profiles_scout_id_fkey"
+            columns: ["scout_id"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       kol_prospects: {
         Row: {
           collab_type: string | null
