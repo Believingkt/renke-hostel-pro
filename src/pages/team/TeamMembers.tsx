@@ -269,33 +269,33 @@ export default function TeamMembers() {
         .eq("user_id", editTarget.user_id);
       if (pErr) throw pErr;
 
-      // 2. 角色 diff (Norris 不更動)
-      if (!isNorris) {
-        const original = new Set(editTarget.roles);
-        const next = new Set(editRoles);
-        const toAdd = [...next].filter((r) => !original.has(r));
-        const toRemove = [...original].filter((r) => !next.has(r));
+      // 2. 角色 diff (super_admin 角色一律保留,不在可編輯清單)
+      const original = new Set(editTarget.roles);
+      const next = new Set(editRoles);
+      const toAdd = [...next].filter((r) => !original.has(r));
+      const toRemove = [...original].filter(
+        (r) => !next.has(r) && r !== "super_admin",
+      );
 
-        if (toAdd.length > 0) {
-          const { error } = await supabase.from("user_roles").insert(
-            toAdd.map((role) => ({
-              user_id: editTarget.user_id,
-              accommodation_id: null,
-              role,
-            })),
-          );
-          if (error) throw error;
-        }
+      if (toAdd.length > 0) {
+        const { error } = await supabase.from("user_roles").insert(
+          toAdd.map((role) => ({
+            user_id: editTarget.user_id,
+            accommodation_id: null,
+            role,
+          })),
+        );
+        if (error) throw error;
+      }
 
-        for (const role of toRemove) {
-          const { error } = await supabase
-            .from("user_roles")
-            .delete()
-            .eq("user_id", editTarget.user_id)
-            .is("accommodation_id", null)
-            .eq("role", role);
-          if (error) throw error;
-        }
+      for (const role of toRemove) {
+        const { error } = await supabase
+          .from("user_roles")
+          .delete()
+          .eq("user_id", editTarget.user_id)
+          .is("accommodation_id", null)
+          .eq("role", role);
+        if (error) throw error;
       }
 
       toast.success("已更新成員資料");
