@@ -45,7 +45,7 @@ async function userHasTeamRole(userId: string): Promise<boolean> {
     .select("role")
     .eq("user_id", userId)
     .is("accommodation_id", null)
-    .in("role", TEAM_ROLES as unknown as string[])
+    .in("role", TEAM_ROLES)
     .limit(1);
   return !!(data && data.length > 0);
 }
