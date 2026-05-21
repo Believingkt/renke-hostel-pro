@@ -151,31 +151,27 @@ function OrdersTab({
   }, []);
 
   const loadAll = async () => {
-    const [o, m, t] = await Promise.all([
+    const [o, r, t] = await Promise.all([
       supabase
         .from("starlink_orders")
         .select(
           "id,client_name,plan_name,plan_price,sold_by,level_at_sale,commission_rate,commission_amount,sold_at,payment_confirmed,payout_status",
         )
         .order("sold_at", { ascending: false }),
-      supabase
-        .from("user_roles")
-        .select("user_id, team_member_profiles!inner(user_id, display_name)")
-        .eq("role", "starlink")
-        .is("accommodation_id", null),
+      supabase.rpc("get_team_role_members", { p_role: "starlink" }),
       supabase.from("starlink_tier_settings").select("*").order("min_count"),
     ]);
     if (o.data) setOrders(o.data as StarlinkOrder[]);
-    if (m.data) {
+    if (r.data) {
       const seen = new Set<string>();
       const list: Member[] = [];
-      (m.data as any[]).forEach((row) => {
-        const pid = row.team_member_profiles?.user_id;
+      (r.data as any[]).forEach((row) => {
+        const pid = row.user_id;
         if (pid && !seen.has(pid)) {
           seen.add(pid);
           list.push({
             user_id: pid,
-            display_name: row.team_member_profiles?.display_name ?? pid,
+            display_name: row.display_name ?? pid,
           });
         }
       });
