@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Filter, ShoppingCart, CalendarDays, CreditCard, Package, ShoppingBag, Plus, CalendarClock, Download, Upload } from "lucide-react";
 import { exportOrdersToExcel } from "@/utils/exportOrders";
 import { ImportOrdersDialog } from "@/components/orders/ImportOrdersDialog";
+import { OrderMetaDrawer } from "@/components/orders/OrderMetaDrawer";
 import {
   Sheet,
   SheetContent,
@@ -64,6 +65,10 @@ const Orders = () => {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [holdDialogOpen, setHoldDialogOpen] = useState(false);
+
+  // 行銷資訊補填 Drawer
+  const [metaDrawerOrderId, setMetaDrawerOrderId] = useState<string | null>(null);
+  const [metaDrawerOpen, setMetaDrawerOpen] = useState(false);
 
   // 修改金額對話框狀態
   const [priceEditDialogOpen, setPriceEditDialogOpen] = useState(false);
@@ -753,7 +758,21 @@ const Orders = () => {
       <CreateOrderDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
-        onSuccess={fetchOrders}
+        onSuccess={(orderId) => {
+          void fetchOrders();
+          setMetaDrawerOrderId(orderId);
+          setMetaDrawerOpen(true);
+        }}
+      />
+
+      {/* 訂單行銷資訊補填 Drawer */}
+      <OrderMetaDrawer
+        orderId={metaDrawerOrderId}
+        open={metaDrawerOpen}
+        onClose={() => {
+          setMetaDrawerOpen(false);
+          setMetaDrawerOrderId(null);
+        }}
       />
 
       {/* 修改金額對話框 */}
