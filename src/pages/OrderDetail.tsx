@@ -2359,6 +2359,17 @@ const OrderDetailPage = () => {
                     <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">加購方案金額</span>
                     <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right" type="text" inputMode="numeric" value={editForm.addon_total} onChange={(e) => setEditForm(f => ({ ...f, addon_total: Math.max(0, parseInt(e.target.value) || 0) }))} />
                   </div>
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">額外現場加購</span>
+                    <Input
+                      className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right"
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="0"
+                      value={editForm.extra_addon_amount || ""}
+                      onChange={(e) => setEditForm(f => ({ ...f, extra_addon_amount: Math.max(0, parseInt(e.target.value) || 0) }))}
+                    />
+                  </div>
                   <div className="flex flex-col gap-1">
                     <span className="text-sm md:text-sm text-muted-foreground">額外現場加購備註</span>
                     <Textarea
