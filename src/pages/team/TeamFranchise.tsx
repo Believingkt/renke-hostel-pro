@@ -536,44 +536,68 @@ function SettingsTab({ canManage }: { canManage: boolean }) {
   }, []);
 
   const load = async () => {
-    const s = await supabase.from("franchise_team_settings").select("*");
-    const settingsData = (s.data ?? []) as TeamSetting[];
+    // 撈所有 franchise_team_settings 並 JOIN team_member_profiles
+    const s = await supabase
+      .from("franchise_team_settings")
+      .select("*, team_member_profiles!inner(user_id, display_name)");
+    const rows = (s.data ?? []) as any[];
+
+    const settingsData: TeamSetting[] = rows.map((r) => ({
+      member_id: r.member_id,
+      direct_leader_id: r.direct_leader_id ?? null,
+      title: r.title ?? null,
+      sub_leader_id: r.sub_leader_id ?? null,
+      top_leader_id: r.top_leader_id ?? null,
+    }));
     setSettings(settingsData);
 
-    // Collect all user_ids referenced (members + leaders)
-    const ids = new Set<string>();
-    settingsData.forEach((row) => {
-      if (row.member_id) ids.add(row.member_id);
-      if (row.direct_leader_id) ids.add(row.direct_leader_id);
-      if (row.sub_leader_id) ids.add(row.sub_leader_id);
-      if (row.top_leader_id) ids.add(row.top_leader_id);
-    });
-    if (ids.size === 0) {
-      setMembers([]);
-      return;
-    }
-    const p = await supabase
-      .from("team_member_profiles")
-      .select("user_id, display_name")
-      .in("user_id", Array.from(ids));
-    const profiles = (p.data ?? []) as { user_id: string; display_name: string }[];
-    // Only members (those in franchise_team_settings.member_id) shown in the table,
-    // but keep all profiles for leader name lookup.
-    const memberIds = new Set(settingsData.map((r) => r.member_id));
-    const list: Member[] = profiles
-      .filter((x) => memberIds.has(x.user_id))
-      .map((x) => ({ user_id: x.user_id, display_name: x.display_name ?? x.user_id }))
+    const list: Member[] = rows
+      .map((r) => ({
+        user_id: r.team_member_profiles?.user_id ?? r.member_id,
+        display_name:
+          r.team_member_profiles?.display_name ?? r.member_id,
+      }))
       .sort((a, b) => a.display_name.localeCompare(b.display_name));
-    // Stash leader names in a lookup by extending members list with all profiles
-    // so memberName() resolves leaders that aren't themselves members.
-    const extra = profiles
-      .filter((x) => !memberIds.has(x.user_id))
-      .map((x) => ({ user_id: x.user_id, display_name: x.display_name ?? x.user_id }));
-    setMembers([...list, ...extra]);
+    setMembers(list);
   };
 
   const memberName = (id: string | null) =>
     !id ? "—" : members.find((m) => m.user_id === id)?.display_name ?? "—";
+
+  const settingsByMember = useMemo(() => {
+    const map: Record<string, TeamSetting> = {};
+    settings.forEach((s) => (map[s.member_id] = s));
+    return map;
+  }, [settings]);
+
+  // 前端即時計算：稱號
+  const computeTitle = (memberId: string): string => {
+    const count = settings.filter(
+      (s) => s.direct_leader_id === memberId,
+    ).length;
+    if (count >= 2) return "總監";
+    if (count === 1) return "隊長";
+    return "";
+  };
+
+  // 前端即時計算:最上層隊長
+  // 從此人的 direct_leader_id 往上追溯,
+  // 直到 direct_leader_id = 自己 或 為 null 為止
+  const computeTopLeader = (memberId: string): string | null => {
+    const start = settingsByMember[memberId];
+    let currentId = start?.direct_leader_id ?? null;
+    if (!currentId) return null;
+    const visited = new Set<string>([memberId]);
+    while (currentId) {
+      if (visited.has(currentId)) return currentId;
+      visited.add(currentId);
+      const next = settingsByMember[currentId];
+      const nextLeader = next?.direct_leader_id ?? null;
+      if (!nextLeader || nextLeader === currentId) return currentId;
+      currentId = nextLeader;
+    }
+    return null;
+  };
 
   const openEdit = (row: TeamSetting | null, memberId?: string) => {
     if (row) {
@@ -583,7 +607,7 @@ function SettingsTab({ canManage }: { canManage: boolean }) {
       const next: TeamSetting = {
         member_id: memberId ?? "",
         direct_leader_id: null,
-        title: "",
+        title: null,
         sub_leader_id: null,
         top_leader_id: null,
       };
@@ -597,9 +621,6 @@ function SettingsTab({ canManage }: { canManage: boolean }) {
     const payload = {
       member_id: form.member_id,
       direct_leader_id: form.direct_leader_id || null,
-      title: form.title || null,
-      sub_leader_id: form.sub_leader_id || null,
-      top_leader_id: form.top_leader_id || null,
       updated_at: new Date().toISOString(),
     };
     const { error } = await supabase
@@ -610,12 +631,6 @@ function SettingsTab({ canManage }: { canManage: boolean }) {
     setEditing(null);
     void load();
   };
-
-  const settingsByMember = useMemo(() => {
-    const map: Record<string, TeamSetting> = {};
-    settings.forEach((s) => (map[s.member_id] = s));
-    return map;
-  }, [settings]);
 
   return (
     <Card>
@@ -638,19 +653,22 @@ function SettingsTab({ canManage }: { canManage: boolean }) {
             {members.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={canManage ? 6 : 5} className="text-center text-muted-foreground py-8">
-                  尚無 franchise 角色成員
+                  尚無成員
                 </TableCell>
               </TableRow>
             ) : (
-              members.filter((m) => settingsByMember[m.user_id]).map((m) => {
+              members.map((m) => {
                 const s = settingsByMember[m.user_id];
+                const directLeaderId = s?.direct_leader_id ?? null;
+                const title = computeTitle(m.user_id);
+                const topLeaderId = computeTopLeader(m.user_id);
                 return (
                   <TableRow key={m.user_id}>
                     <TableCell>{m.display_name}</TableCell>
-                    <TableCell>{memberName(s?.direct_leader_id ?? null)}</TableCell>
-                    <TableCell>{s?.title ?? "—"}</TableCell>
-                    <TableCell>{memberName(s?.sub_leader_id ?? null)}</TableCell>
-                    <TableCell>{memberName(s?.top_leader_id ?? null)}</TableCell>
+                    <TableCell>{memberName(directLeaderId)}</TableCell>
+                    <TableCell>{title || "—"}</TableCell>
+                    <TableCell>{memberName(directLeaderId)}</TableCell>
+                    <TableCell>{memberName(topLeaderId)}</TableCell>
                     {canManage && (
                       <TableCell>
                         <Button size="icon" variant="ghost" onClick={() => openEdit(s ?? null, m.user_id)}>
@@ -676,41 +694,28 @@ function SettingsTab({ canManage }: { canManage: boolean }) {
               <Label>隊員</Label>
               <Input value={memberName(form.member_id)} disabled />
             </div>
-            {[
-              { key: "direct_leader_id", label: "直屬隊長" },
-              { key: "sub_leader_id", label: "小組隊長" },
-              { key: "top_leader_id", label: "最上層隊長" },
-            ].map((f) => (
-              <div key={f.key} className="space-y-1">
-                <Label>{f.label}</Label>
-                <Select
-                  value={(form as any)[f.key] || "none"}
-                  onValueChange={(v) =>
-                    setForm({ ...form, [f.key]: v === "none" ? null : v } as TeamSetting)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">無</SelectItem>
-                    {members
-                      .filter((m) => m.user_id !== form.member_id)
-                      .map((m) => (
-                        <SelectItem key={m.user_id} value={m.user_id}>
-                          {m.display_name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ))}
             <div className="space-y-1">
-              <Label>稱號</Label>
-              <Input
-                value={form.title ?? ""}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-              />
+              <Label>直屬隊長</Label>
+              <Select
+                value={form.direct_leader_id || "none"}
+                onValueChange={(v) =>
+                  setForm({ ...form, direct_leader_id: v === "none" ? null : v })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">無</SelectItem>
+                  {members
+                    .filter((m) => m.user_id !== form.member_id)
+                    .map((m) => (
+                      <SelectItem key={m.user_id} value={m.user_id}>
+                        {m.display_name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <SheetFooter className="mt-4">
