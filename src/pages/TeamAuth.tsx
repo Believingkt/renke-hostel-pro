@@ -153,9 +153,10 @@ export default function TeamAuth() {
         toast.success("登入成功！");
         navigate("/team", { replace: true });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Login error:", error);
-      if (error.message?.includes("Failed to fetch") || error.message?.includes("NetworkError")) {
+      const message = error instanceof Error ? error.message : "";
+      if (message.includes("Failed to fetch") || message.includes("NetworkError")) {
         toast.error("網路連線錯誤，請檢查您的網路連線後再試");
       } else {
         toast.error("登入失敗，請稍後再試");
@@ -185,9 +186,9 @@ export default function TeamAuth() {
       toast.success("重設密碼郵件已發送，請檢查您的信箱");
       setIsForgotPasswordMode(false);
       setForgotPasswordEmail("");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Forgot password error:", error);
-      toast.error(error.message || "發送失敗，請稍後再試");
+      toast.error(error instanceof Error ? error.message : "發送失敗，請稍後再試");
     } finally {
       setIsLoading(false);
     }
