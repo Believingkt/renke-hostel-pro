@@ -990,6 +990,21 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           await supabase.from("orders").delete().eq("id", orderData.id);
           throw roomsError;
         }
+
+        // Final safety sync: the order header must mirror the exact selections saved in order_rooms.
+        const savedRoomTotal = pricedRoomSelections.reduce((sum, sel) => sum + sel.roomPrice, 0);
+        const savedDiscount = Math.max(0, Math.min(totals.discount, savedRoomTotal + totals.addonTotal));
+        const savedFinal = Math.max(0, savedRoomTotal + totals.addonTotal - savedDiscount);
+        const { error: syncError } = await supabase
+          .from("orders")
+          .update({
+            total_price: savedRoomTotal + totals.addonTotal,
+            discount_amount: savedDiscount,
+            final_price: savedFinal,
+            paid_amount: form.balance_paid ? savedFinal : paidAmount,
+          })
+          .eq("id", orderData.id);
+        if (syncError) throw syncError;
       }
 
       if (error) throw error;
@@ -1848,7 +1863,10 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             min={0}
             placeholder="0"
             value={manualDiscountStr !== null ? manualDiscountStr : (totals.discount > 0 ? String(totals.discount) : "")}
-            onChange={(e) => setManualDiscountStr(e.target.value)}
+            onChange={(e) => {
+              manualDiscountInputRef.current = e.target.value;
+              setManualDiscountStr(e.target.value);
+            }}
             className="h-12 text-base sm:h-10 sm:text-sm"
           />
           <p className="text-xs text-muted-foreground">
