@@ -205,6 +205,12 @@ export default function TeamKOL() {
     roles.includes("scout_manager");
 
   const [tab, setTab] = useState("invitations");
+  const [prefill, setPrefill] = useState<InvitationPrefill | null>(null);
+
+  const handleConvertFromProspect = (p: InvitationPrefill) => {
+    setPrefill(p);
+    setTab("invitations");
+  };
 
   return (
     <div className="space-y-4">
@@ -226,28 +232,35 @@ export default function TeamKOL() {
           <InvitationsTab
             currentUserId={userId}
             isManager={isManager}
+            prefill={prefill}
+            onPrefillConsumed={() => setPrefill(null)}
           />
         </TabsContent>
 
         <TabsContent value="prospects" className="mt-4">
-          <Card>
-            <CardContent className="p-8 text-center text-sm text-muted-foreground">
-              潛在名單功能將於 Phase 2 上線
-            </CardContent>
-          </Card>
+          <ProspectsTab
+            currentUserId={userId}
+            isManager={isManager}
+            onConvert={handleConvertFromProspect}
+          />
         </TabsContent>
 
         <TabsContent value="targets" className="mt-4">
-          <Card>
-            <CardContent className="p-8 text-center text-sm text-muted-foreground">
-              邀約目標功能將於 Phase 3 上線
-            </CardContent>
-          </Card>
+          <TargetsTab isManager={isManager} currentUserId={userId} />
         </TabsContent>
       </Tabs>
     </div>
   );
 }
+
+interface InvitationPrefill {
+  name: string;
+  ig_handle: string;
+  ig_url: string;
+  scout_id: string;
+  prospect_id: string;
+}
+
 
 // ====== Tab 一：正式邀約 ======
 function InvitationsTab({
