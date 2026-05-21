@@ -39,12 +39,6 @@ interface Member {
   display_name: string;
 }
 
-interface Plan {
-  id: string;
-  plan_name: string;
-  price: number;
-  accommodation_type: string | null;
-}
 
 interface TeamSetting {
   member_id: string;
@@ -124,7 +118,7 @@ function OrdersTab({
   const [orders, setOrders] = useState<FranchiseOrder[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [teamSettings, setTeamSettings] = useState<Record<string, TeamSetting>>({});
-  const [plans, setPlans] = useState<Plan[]>([]);
+  
 
   const [year, setYear] = useState<string>(String(new Date().getFullYear()));
   const [month, setMonth] = useState<string>("ALL");
@@ -135,7 +129,9 @@ function OrdersTab({
   const [form, setForm] = useState({
     customer_name: "",
     customer_phone: "",
-    plan_id: "",
+    plan_name: "",
+    unit_price: 0,
+    unit_qty: 1,
     sold_by: "",
     sold_at: new Date().toISOString().slice(0, 10),
     payment_confirmed: false,
@@ -150,7 +146,7 @@ function OrdersTab({
   }, []);
 
   const loadAll = async () => {
-    const [o, m, t, p] = await Promise.all([
+    const [o, m, t] = await Promise.all([
       supabase
         .from("franchise_orders")
         .select(
@@ -163,10 +159,6 @@ function OrdersTab({
         .eq("role", "franchise")
         .is("accommodation_id", null),
       supabase.from("franchise_team_settings").select("*"),
-      supabase
-        .from("franchise_plan_settings")
-        .select("id,plan_name,price,accommodation_type")
-        .order("price"),
     ]);
     if (o.data) setOrders(o.data as FranchiseOrder[]);
     if (m.data) {
@@ -187,7 +179,6 @@ function OrdersTab({
       (t.data as any[]).forEach((row) => (map[row.member_id] = row));
       setTeamSettings(map);
     }
-    if (p.data) setPlans(p.data as Plan[]);
   };
 
   const memberName = (id: string | null) =>
@@ -225,29 +216,27 @@ function OrdersTab({
   };
 
   const handleSave = async () => {
-    if (!form.customer_name.trim() || !form.plan_id || !form.sold_by) {
-      toast.error("請填寫客戶姓名、方案與銷售人");
+    if (!form.customer_name.trim() || !form.plan_name.trim() || !form.sold_by || form.unit_price <= 0) {
+      toast.error("請填寫客戶姓名、方案名稱、單位金額與銷售人");
       return;
     }
-    const plan = plans.find((p) => p.id === form.plan_id);
-    if (!plan) return;
+    const planPrice = form.unit_price * form.unit_qty;
     setSaving(true);
     const { commission_rate, leader_rate, company_rate, directLeader } =
       computeRates(form.sold_by);
     const payload = {
       customer_name: form.customer_name.trim(),
       customer_phone: form.customer_phone.trim() || null,
-      plan_name: plan.plan_name,
-      plan_price: plan.price,
-      accommodation_type: plan.accommodation_type,
+      plan_name: form.plan_name.trim(),
+      plan_price: planPrice,
       sold_by: form.sold_by,
       team_leader: directLeader,
       commission_rate,
       leader_rate,
       company_rate,
-      commission_amount: Math.round(plan.price * commission_rate),
-      leader_amount: Math.round(plan.price * leader_rate),
-      company_amount: Math.round(plan.price * company_rate),
+      commission_amount: Math.round(planPrice * commission_rate),
+      leader_amount: Math.round(planPrice * leader_rate),
+      company_amount: Math.round(planPrice * company_rate),
       sold_at: form.sold_at,
       payment_confirmed: form.payment_confirmed,
       payment_at: form.payment_confirmed ? form.sold_at : null,
@@ -266,7 +255,9 @@ function OrdersTab({
     setForm({
       customer_name: "",
       customer_phone: "",
-      plan_id: "",
+      plan_name: "",
+      unit_price: 0,
+      unit_qty: 1,
       sold_by: "",
       sold_at: new Date().toISOString().slice(0, 10),
       payment_confirmed: false,
@@ -422,22 +413,36 @@ function OrdersTab({
               />
             </div>
             <div className="space-y-1">
-              <Label>方案 *</Label>
-              <Select
-                value={form.plan_id || undefined}
-                onValueChange={(v) => setForm({ ...form, plan_id: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="選擇方案" />
-                </SelectTrigger>
-                <SelectContent>
-                  {plans.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.plan_name}（{fmtMoney(p.price)}）
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>方案名稱 *</Label>
+              <Input
+                placeholder="例如：森山第一期"
+                value={form.plan_name}
+                onChange={(e) => setForm({ ...form, plan_name: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-1">
+                <Label>單位金額 *</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={form.unit_price}
+                  onChange={(e) => setForm({ ...form, unit_price: Number(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>單位數量</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={form.unit_qty}
+                  onChange={(e) => setForm({ ...form, unit_qty: Number(e.target.value) || 1 })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>方案金額</Label>
+                <Input readOnly className="bg-muted" value={fmtMoney(form.unit_price * form.unit_qty)} />
+              </div>
             </div>
             <div className="space-y-1">
               <Label>銷售人 *</Label>
