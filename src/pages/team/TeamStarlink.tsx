@@ -295,8 +295,8 @@ function OrdersTab({
             <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">全部狀態</SelectItem>
-              <SelectItem value="pending">pending</SelectItem>
-              <SelectItem value="paid">paid</SelectItem>
+              <SelectItem value="pending">待結算</SelectItem>
+              <SelectItem value="paid">已發放</SelectItem>
             </SelectContent>
           </Select>
           {canManage && (
@@ -357,7 +357,7 @@ function OrdersTab({
                     </TableCell>
                     <TableCell>
                       <Badge variant={o.payout_status === "paid" ? "success" : "secondary"}>
-                        {o.payout_status ?? "pending"}
+                        {o.payout_status === "paid" ? "已發放" : "待結算"}
                       </Badge>
                     </TableCell>
                   </TableRow>
