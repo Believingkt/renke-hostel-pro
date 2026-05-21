@@ -158,7 +158,7 @@ function OrdersTab({
   }, []);
 
   const loadAll = async () => {
-    const [o, r, t] = await Promise.all([
+    const [o, r, t, p] = await Promise.all([
       supabase
         .from("starlink_orders")
         .select(
@@ -167,6 +167,11 @@ function OrdersTab({
         .order("sold_at", { ascending: false }),
       supabase.rpc("get_team_role_members", { p_role: "starlink" }),
       supabase.from("starlink_tier_settings").select("*").order("min_count"),
+      supabase
+        .from("starlink_plan_settings")
+        .select("*")
+        .eq("is_active", true)
+        .order("created_at"),
     ]);
     if (o.data) setOrders(o.data as StarlinkOrder[]);
     if (r.data) {
@@ -185,6 +190,7 @@ function OrdersTab({
       setMembers(list);
     }
     if (t.data) setTiers(t.data as Tier[]);
+    if (p.data) setPlans(p.data as PlanSetting[]);
   };
 
   const memberName = (id: string | null) =>
