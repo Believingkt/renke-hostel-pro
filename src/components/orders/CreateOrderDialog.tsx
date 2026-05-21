@@ -1809,6 +1809,22 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             </Button>
           </div>
         )}
+
+        <div className="space-y-2 pt-2">
+          <Label htmlFor="create-discount-amount">折扣金額 (NT$)</Label>
+          <Input
+            id="create-discount-amount"
+            type="number"
+            min={0}
+            placeholder="0"
+            value={manualDiscountStr !== null ? manualDiscountStr : (totals.discount > 0 ? String(totals.discount) : "")}
+            onChange={(e) => setManualDiscountStr(e.target.value)}
+            className="h-12 text-base sm:h-10 sm:text-sm"
+          />
+          <p className="text-xs text-muted-foreground">
+            {appliedDiscount ? "可手動覆寫折扣碼計算的金額" : "可直接輸入折扣金額（不需折扣碼）"}
+          </p>
+        </div>
       </div>
 
       {/* Price Summary */}
