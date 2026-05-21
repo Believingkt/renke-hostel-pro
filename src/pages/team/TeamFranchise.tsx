@@ -54,6 +54,7 @@ interface FranchiseOrder {
   plan_name: string | null;
   plan_price: number;
   sold_by: string;
+  sold_by_name: string | null;
   team_leader: string | null;
   commission_rate: number | null;
   leader_rate: number | null;
@@ -150,7 +151,7 @@ function OrdersTab({
       supabase
         .from("franchise_orders")
         .select(
-          "id,customer_name,plan_name,plan_price,sold_by,team_leader,commission_rate,leader_rate,company_rate,commission_amount,leader_amount,company_amount,sold_at,payment_confirmed,payout_status",
+          "id,customer_name,plan_name,plan_price,sold_by,sold_by_name,team_leader,commission_rate,leader_rate,company_rate,commission_amount,leader_amount,company_amount,sold_at,payment_confirmed,payout_status",
         )
         .order("sold_at", { ascending: false }),
       supabase.from("franchise_team_settings").select("*"),
@@ -187,8 +188,10 @@ function OrdersTab({
     }
   };
 
-  const memberName = (id: string | null) =>
-    !id ? "—" : members.find((m) => m.user_id === id)?.display_name ?? "—";
+  const memberName = (id: string | null, name?: string | null) =>
+    id
+      ? members.find((m) => m.user_id === id)?.display_name ?? "—"
+      : name ?? "—";
 
   const filtered = useMemo(() => {
     return orders.filter((o) => {
@@ -368,7 +371,7 @@ function OrdersTab({
                     <TableCell>{o.customer_name}</TableCell>
                     <TableCell>{o.plan_name ?? "—"}</TableCell>
                     <TableCell className="text-right tabular-nums">{fmtMoney(o.plan_price)}</TableCell>
-                    <TableCell>{memberName(o.sold_by)}</TableCell>
+                    <TableCell>{memberName(o.sold_by, o.sold_by_name)}</TableCell>
                     <TableCell>{memberName(o.team_leader)}</TableCell>
                     <TableCell className="text-right tabular-nums">
                       {fmtMoney(o.commission_amount)} <span className="text-xs text-muted-foreground">({fmtRate(o.commission_rate)})</span>
