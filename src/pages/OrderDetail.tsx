@@ -2363,7 +2363,7 @@ const OrderDetailPage = () => {
                 <>
                   <Separator />
                   <div className="flex justify-between items-center gap-2">
-                    <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">加購方案金額</span>
+                    <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">加購小計</span>
                     <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right" type="text" inputMode="numeric" value={editForm.addon_total} onChange={(e) => setEditForm(f => ({ ...f, addon_total: Math.max(0, parseInt(e.target.value) || 0) }))} />
                   </div>
                   <div className="flex justify-between items-center gap-2">
