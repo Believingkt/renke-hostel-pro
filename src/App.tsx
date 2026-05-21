@@ -82,6 +82,7 @@ const Headquarters = lazy(() => import("./pages/Headquarters"));
 const TeamLayout = lazy(() => import("./components/team/TeamLayout"));
 const TeamHome = lazy(() => import("./pages/team/TeamHome"));
 const TeamPlaceholder = lazy(() => import("./pages/team/TeamPlaceholder"));
+const TeamOrders = lazy(() => import("./pages/team/TeamOrders"));
 const Customers = lazy(() => import("./pages/Customers"));
 const CustomerOrders = lazy(() => import("./pages/CustomerOrders"));
 const PublicHolidays = lazy(() => import("./pages/PublicHolidays"));
@@ -443,7 +444,7 @@ function App() {
                           <Suspense fallback={null}><TeamPlaceholder title="KOL 星探管理" /></Suspense>
                         } />
                         <Route path="orders" element={
-                          <Suspense fallback={null}><TeamPlaceholder title="訂單補充資料" /></Suspense>
+                          <Suspense fallback={null}><TeamOrders /></Suspense>
                         } />
                         <Route path="commission" element={
                           <Suspense fallback={null}><TeamPlaceholder title="獎金管理" /></Suspense>
