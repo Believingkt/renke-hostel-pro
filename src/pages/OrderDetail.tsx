@@ -2994,6 +2994,7 @@ const OrderDetailPage = () => {
             (() => {
               // 顯示時：保留加購備註內容（含標題），僅移除技術用 END 標記
               const cleaned = (order.notes || "")
+                .replace(/【額外現場加購金額[^】]*】\n?[\s\S]*?\n?【額外現場加購金額END】\n?/g, "")
                 .replace(/\n?【(?:加購備註|額外現場加購備註)END】\n?/g, "\n")
                 .replace(/\n{3,}/g, "\n\n")
                 .trim();
