@@ -15,6 +15,7 @@ const MemberFacebookCallback = () => {
   const ranRef = useRef(false);
 
   useEffect(() => {
+    console.log("[FB callback] effect run, ranRef=", ranRef.current);
     if (ranRef.current) return;
     ranRef.current = true;
 
