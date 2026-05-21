@@ -1,0 +1,1 @@
+ALTER TABLE public.franchise_orders ADD COLUMN sold_by_name text;
