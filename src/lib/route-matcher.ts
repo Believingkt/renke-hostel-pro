@@ -30,6 +30,8 @@ export const AUTH_PATHS = [
   "/auth",
   "/reset-password",
   "/change-password",
+  "/team",
+  "/team-auth",
 ] as const;
 
 /**
