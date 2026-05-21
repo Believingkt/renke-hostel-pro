@@ -118,6 +118,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; type: "percentage" | "amount"; value: number } | null>(null);
   const [isValidatingCode, setIsValidatingCode] = useState(false);
   const [manualDiscountStr, setManualDiscountStr] = useState<string | null>(null);
+  const manualDiscountInputRef = useRef<string | null>(null);
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [checkOutOpen, setCheckOutOpen] = useState(false);
   
@@ -220,6 +221,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       setDiscountCode("");
       setAppliedDiscount(null);
       setManualDiscountStr(null);
+      manualDiscountInputRef.current = null;
       setRoomPrice(0);
       setDepositPct(30);
       setNameSuggestions([]);
