@@ -1934,6 +1934,48 @@ export type Database = {
         }
         Relationships: []
       }
+      kol_blocked_dates: {
+        Row: {
+          accommodation_id: string
+          blocked_date: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          reason: string | null
+        }
+        Insert: {
+          accommodation_id: string
+          blocked_date: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          reason?: string | null
+        }
+        Update: {
+          accommodation_id?: string
+          blocked_date?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kol_blocked_dates_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kol_blocked_dates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       location_info: {
         Row: {
           accommodation_id: string | null
@@ -4152,6 +4194,30 @@ export type Database = {
           setting_value?: Json
           updated_at?: string
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      taiwan_holidays: {
+        Row: {
+          holiday_date: string
+          id: string
+          name: string | null
+          synced_at: string | null
+          year: number
+        }
+        Insert: {
+          holiday_date: string
+          id?: string
+          name?: string | null
+          synced_at?: string | null
+          year: number
+        }
+        Update: {
+          holiday_date?: string
+          id?: string
+          name?: string | null
+          synced_at?: string | null
+          year?: number
         }
         Relationships: []
       }
