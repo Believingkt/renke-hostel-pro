@@ -416,9 +416,9 @@ function OrdersTab({
               >
                 <SelectTrigger><SelectValue placeholder="選擇方案" /></SelectTrigger>
                 <SelectContent>
-                  {PLAN_OPTIONS.map((p) => (
-                    <SelectItem key={p.name} value={p.name}>
-                      {p.name}（{fmtMoney(p.price)}）
+                  {plans.map((p) => (
+                    <SelectItem key={p.id} value={p.plan_name}>
+                      {p.plan_name}（{fmtMoney(p.price)}）
                     </SelectItem>
                   ))}
                 </SelectContent>
