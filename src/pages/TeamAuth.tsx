@@ -40,14 +40,18 @@ const TEAM_ROLES: TeamRole[] = [
 ];
 
 async function userHasTeamRole(userId: string): Promise<boolean> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("user_roles")
-    .select("role")
+    .select("role, accommodation_id")
     .eq("user_id", userId)
     .is("accommodation_id", null)
-    .in("role", TEAM_ROLES)
-    .limit(1);
-  return !!(data && data.length > 0);
+    .in("role", TEAM_ROLES);
+  console.log("[TeamAuth] user_roles query result:", { userId, data, error });
+  if (error) {
+    console.error("[TeamAuth] user_roles query error:", error);
+    return false;
+  }
+  return Array.isArray(data) && data.length > 0;
 }
 
 export default function TeamAuth() {
