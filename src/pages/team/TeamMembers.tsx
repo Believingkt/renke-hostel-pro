@@ -205,19 +205,24 @@ export default function TeamMembers() {
         );
       if (profileErr) throw profileErr;
 
-      // insert roles (忽略衝突)
-      const rolePayload = inviteRoles.map((role) => ({
-        user_id: targetUserId,
-        accommodation_id: null,
-        role,
-      }));
-      const { error: roleErr } = await supabase
+      // insert roles (NULL accommodation_id 不會觸發 unique 衝突,需先查再補)
+      const { data: existingRoles } = await supabase
         .from("user_roles")
-        .upsert(rolePayload, {
-          onConflict: "user_id,accommodation_id,role",
-          ignoreDuplicates: true,
-        });
-      if (roleErr) throw roleErr;
+        .select("role")
+        .eq("user_id", targetUserId)
+        .is("accommodation_id", null);
+      const existSet = new Set((existingRoles ?? []).map((r) => r.role));
+      const newRoles = inviteRoles.filter((r) => !existSet.has(r));
+      if (newRoles.length > 0) {
+        const { error: roleErr } = await supabase.from("user_roles").insert(
+          newRoles.map((role) => ({
+            user_id: targetUserId,
+            accommodation_id: null,
+            role,
+          })),
+        );
+        if (roleErr) throw roleErr;
+      }
 
       toast.success("已新增成員權限");
       setInviteName("");
