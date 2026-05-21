@@ -558,6 +558,7 @@ function InvitationsTab({
     };
 
     let err;
+    let newId: string | null = null;
     if (editingId) {
       ({ error: err } = await supabase
         .from("kol_profiles")
@@ -566,15 +567,35 @@ function InvitationsTab({
     } else {
       payload.created_by = currentUserId;
       payload.is_error = false;
-      ({ error: err } = await supabase.from("kol_profiles").insert(payload));
+      const { data: inserted, error } = await supabase
+        .from("kol_profiles")
+        .insert(payload)
+        .select("id")
+        .single();
+      err = error;
+      newId = inserted?.id ?? null;
     }
-    setSaving(false);
     if (err) {
+      setSaving(false);
       toast.error(err.message);
       return;
     }
+
+    // 若來自潛在名單轉入,回寫 converted_to_kol_id 與狀態
+    if (!editingId && prospectLink && newId) {
+      await supabase
+        .from("kol_prospects")
+        .update({
+          converted_to_kol_id: newId,
+          status: "converted",
+        })
+        .eq("id", prospectLink);
+    }
+
+    setSaving(false);
     toast.success(editingId ? "已更新邀約" : "已新增邀約");
     setSheetOpen(false);
+    setProspectLink(null);
     fetchRows();
   };
 
