@@ -25,6 +25,7 @@ export function ConditionalLayout() {
     "member", "ai-booking", "order-search", "profile", "payment-test",
     "kol-api-docs", "points-api-docs", "pay", "payment-result",
     "reset-password", "change-password", "og-preview", "__cb",
+    "team", "team-auth",
   ]);
   const segments = location.pathname.split("/").filter(Boolean);
   const hasAliasPrefix = segments.length > 0 && !RESERVED.has(segments[0]);
