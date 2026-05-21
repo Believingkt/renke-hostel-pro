@@ -2367,7 +2367,7 @@ const OrderDetailPage = () => {
                     <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right" type="text" inputMode="numeric" value={editForm.addon_total} onChange={(e) => setEditForm(f => ({ ...f, addon_total: Math.max(0, parseInt(e.target.value) || 0) }))} />
                   </div>
                   <div className="flex justify-between items-center gap-2">
-                    <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">額外現場加購</span>
+                    <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">額外現場加購金額</span>
                     <Input
                       className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right"
                       type="text"
@@ -2408,7 +2408,7 @@ const OrderDetailPage = () => {
               const _extraMatch = _notesRaw.match(/【額外現場加購金額[^】]*】\n?(\d+)\n?【額外現場加購金額END】/);
               const extraAmount = _extraMatch ? (parseInt(_extraMatch[1], 10) || 0) : 0;
               if (extraAmount > 0) {
-                items.push({ label: '額外現場加購', amount: extraAmount });
+                items.push({ label: '額外現場加購金額', amount: extraAmount });
               }
               const _blocks = [..._notesRaw.matchAll(/【(?:加購備註|額外現場加購備註)[^】]*】\n?([\s\S]*?)\n?【(?:加購備註|額外現場加購備註)END】/g)];
               const _lineMatch = _notesRaw.match(/^【(?:加購備註|額外現場加購備註)[^】]*】(.*)$/m);
