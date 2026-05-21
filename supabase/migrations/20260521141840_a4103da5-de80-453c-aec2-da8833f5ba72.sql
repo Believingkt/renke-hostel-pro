@@ -1,0 +1,1 @@
+ALTER TABLE public.franchise_orders ALTER COLUMN sold_by DROP NOT NULL;
