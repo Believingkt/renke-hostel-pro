@@ -2956,11 +2956,17 @@ const OrderDetailPage = () => {
               className="text-base md:text-sm"
             />
           ) : (
-            order.notes ? (
-              <p className="text-sm md:text-sm whitespace-pre-wrap break-words">{order.notes}</p>
-            ) : (
-              <p className="text-sm md:text-sm text-muted-foreground text-center py-2">無備註</p>
-            )
+            (() => {
+              const cleaned = (order.notes || "")
+                .replace(/【加購備註】\n?[\s\S]*?\n?【加購備註END】\n?/g, "")
+                .replace(/^【加購備註】.*$\n?/gm, "")
+                .trim();
+              return cleaned ? (
+                <p className="text-sm md:text-sm whitespace-pre-wrap break-words">{cleaned}</p>
+              ) : (
+                <p className="text-sm md:text-sm text-muted-foreground text-center py-2">無備註</p>
+              );
+            })()
           )}
         </CardContent>
       </Card>
