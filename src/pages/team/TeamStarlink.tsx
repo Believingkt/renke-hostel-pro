@@ -54,6 +54,8 @@ interface Tier {
 interface StarlinkOrder {
   id: string;
   client_name: string;
+  client_tax_id: string | null;
+  business_type: string | null;
   plan_name: string | null;
   plan_price: number;
   sold_by: string;
@@ -62,7 +64,11 @@ interface StarlinkOrder {
   commission_amount: number | null;
   sold_at: string | null;
   payment_confirmed: boolean | null;
+  payment_last5: string | null;
+  invoice_number: string | null;
+  contract_uploaded: boolean | null;
   payout_status: string | null;
+  notes: string | null;
 }
 
 
