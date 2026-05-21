@@ -78,25 +78,24 @@ export default function TeamAuth() {
   }, []);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN" && session) {
-        if (await userHasTeamRole(session.user.id)) {
-          navigate("/team");
-        } else {
-          toast.error("您沒有行銷團隊後台的存取權限");
-          await supabase.auth.signOut();
-        }
-      }
+    let active = true;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("[TeamAuth] onAuthStateChange:", event, session?.user?.id);
     });
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session && (await userHasTeamRole(session.user.id))) {
-        navigate("/team");
+      if (!active || !session) return;
+      console.log("[TeamAuth] existing session detected:", session.user.id);
+      if (await userHasTeamRole(session.user.id)) {
+        navigate("/team", { replace: true });
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, [navigate, searchParams]);
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
