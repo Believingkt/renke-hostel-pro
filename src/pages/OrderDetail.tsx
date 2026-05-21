@@ -542,11 +542,11 @@ const OrderDetailPage = () => {
   // Auto-sync addon_total when individual addons change
   useEffect(() => {
     if (!isEditing) return;
-    const computed = editForm.pet_plan_price + editForm.meal_plan_total + editForm.custom_addon_details.reduce((sum, d) => sum + d.total, 0);
+    const computed = editForm.pet_plan_price + editForm.meal_plan_total + editForm.custom_addon_details.reduce((sum, d) => sum + d.total, 0) + (editForm.extra_addon_amount || 0);
     if (computed !== editForm.addon_total) {
       setEditForm(f => ({ ...f, addon_total: computed }));
     }
-  }, [isEditing, editForm.pet_plan_price, editForm.meal_plan_total, editForm.custom_addon_details]);
+  }, [isEditing, editForm.pet_plan_price, editForm.meal_plan_total, editForm.custom_addon_details, editForm.extra_addon_amount]);
 
   // Auto-sync deposit_amount when final price changes
   // Skip when order is already paid/deposit_paid — deposit must stay locked
