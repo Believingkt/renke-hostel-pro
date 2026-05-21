@@ -676,7 +676,7 @@ function SettingsTab({ canManage }: { canManage: boolean }) {
                 </TableCell>
               </TableRow>
             ) : (
-              members.map((m) => {
+              members.filter((m) => settingsByMember[m.user_id]).map((m) => {
                 const s = settingsByMember[m.user_id];
                 const directLeaderId = s?.direct_leader_id ?? null;
                 const title = computeTitle(m.user_id);
