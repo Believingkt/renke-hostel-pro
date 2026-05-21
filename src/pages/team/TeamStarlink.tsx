@@ -66,6 +66,12 @@ interface StarlinkOrder {
 }
 
 
+const PLAN_OPTIONS = [
+  { name: "人氣啟動", price: 19800 },
+  { name: "計劃實現", price: 38850 },
+  { name: "總部方案", price: 93600 },
+];
+
 const fmtMoney = (n: number | null | undefined) =>
   `NT$ ${Number(n ?? 0).toLocaleString()}`;
 const fmtRate = (n: number | null | undefined) =>
@@ -130,8 +136,6 @@ function OrdersTab({
     client_tax_id: "",
     business_type: "",
     plan_name: "",
-    unit_price: 0,
-    unit_qty: 1,
     sold_by: "",
     sold_at: new Date().toISOString().slice(0, 10),
     payment_confirmed: false,
@@ -204,11 +208,12 @@ function OrdersTab({
   };
 
   const handleSave = async () => {
-    if (!form.client_name.trim() || !form.plan_name.trim() || !form.sold_by || form.unit_price <= 0) {
-      toast.error("請填寫客戶名稱、方案名稱、單位金額與銷售人");
+    if (!form.client_name.trim() || !form.plan_name || !form.sold_by) {
+      toast.error("請填寫客戶名稱、方案與銷售人");
       return;
     }
-    const planPrice = form.unit_price * form.unit_qty;
+    const plan = PLAN_OPTIONS.find((p) => p.name === form.plan_name);
+    if (!plan) return;
     setSaving(true);
 
     // count paid orders for this sales person
@@ -224,12 +229,12 @@ function OrdersTab({
       client_name: form.client_name.trim(),
       client_tax_id: form.client_tax_id.trim() || null,
       business_type: form.business_type.trim() || null,
-      plan_name: form.plan_name.trim(),
-      plan_price: planPrice,
+      plan_name: plan.name,
+      plan_price: plan.price,
       sold_by: form.sold_by,
       level_at_sale: tier?.level ?? null,
       commission_rate: rate || null,
-      commission_amount: Math.round(planPrice * rate),
+      commission_amount: Math.round(plan.price * rate),
       sold_at: form.sold_at,
       payment_confirmed: form.payment_confirmed,
       payment_last5: form.payment_last5.trim() || null,
@@ -251,8 +256,6 @@ function OrdersTab({
       client_tax_id: "",
       business_type: "",
       plan_name: "",
-      unit_price: 0,
-      unit_qty: 1,
       sold_by: "",
       sold_at: new Date().toISOString().slice(0, 10),
       payment_confirmed: false,
@@ -397,36 +400,20 @@ function OrdersTab({
               </div>
             </div>
             <div className="space-y-1">
-              <Label>方案名稱 *</Label>
-              <Input
-                placeholder="例如：森山第一期"
-                value={form.plan_name}
-                onChange={(e) => setForm({ ...form, plan_name: e.target.value })}
-              />
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="space-y-1">
-                <Label>單位金額 *</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={form.unit_price}
-                  onChange={(e) => setForm({ ...form, unit_price: Number(e.target.value) || 0 })}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>單位數量</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={form.unit_qty}
-                  onChange={(e) => setForm({ ...form, unit_qty: Number(e.target.value) || 1 })}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>方案金額</Label>
-                <Input readOnly className="bg-muted" value={fmtMoney(form.unit_price * form.unit_qty)} />
-              </div>
+              <Label>方案 *</Label>
+              <Select
+                value={form.plan_name || undefined}
+                onValueChange={(v) => setForm({ ...form, plan_name: v })}
+              >
+                <SelectTrigger><SelectValue placeholder="選擇方案" /></SelectTrigger>
+                <SelectContent>
+                  {PLAN_OPTIONS.map((p) => (
+                    <SelectItem key={p.name} value={p.name}>
+                      {p.name}（{fmtMoney(p.price)}）
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <Label>銷售人 *</Label>
