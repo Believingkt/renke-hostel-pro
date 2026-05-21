@@ -798,8 +798,22 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           d.setDate(start.getDate() + i);
           dates.push(format(d, "yyyy-MM-dd"));
         }
+
+        // 確保 pricingTemplates 已載入（避免使用者太快按存檔時模板還沒 fetch 完）
+        const templatesById = new Map(pricingTemplates.map(t => [t.id, t] as const));
+        const missingTemplateIds = Array.from(new Set(
+          pricedRoomSelections.map(s => s.template_id).filter((id): id is string => !!id && !templatesById.has(id))
+        ));
+        if (missingTemplateIds.length > 0) {
+          const { data: fetchedTemplates } = await supabase
+            .from('pricing_templates')
+            .select('id, template_name, project_name, price, weekday_price, peak_price, weekend_price')
+            .in('id', missingTemplateIds);
+          (fetchedTemplates || []).forEach((t: any) => templatesById.set(t.id, t));
+        }
+
         for (const sel of pricedRoomSelections) {
-          const template = pricingTemplates.find(t => t.id === sel.template_id);
+          const template = sel.template_id ? templatesById.get(sel.template_id) : null;
           const priceMap = await resolveTemplatePricesForDates({
             roomTypeId: sel.room_type_id,
             template: template ?? null,
@@ -811,14 +825,17 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             perRoom += priceMap[dateStr] ?? 0;
           }
           const recomputed = perRoom * sel.quantity;
-          // 只在重算結果 > 0 時才覆寫，避免模板查不到價格時把已顯示房價清成 0
+          // 重算 > 0 一律覆寫；重算 = 0 時保留原本已顯示的 roomPrice，避免價格被清掉
           if (recomputed > 0) {
             sel.roomPrice = recomputed;
           }
+          // sel.roomPrice 已是最新值（原本 state + 本次重算），後續用它計算 totals 與寫入 order_rooms
         }
       }
       const totals = calculateTotalsForSelections(pricedRoomSelections);
-      setRoomSelections(pricedRoomSelections);
+      // 不要呼叫 setRoomSelections(pricedRoomSelections)，因為這會觸發 useEffect (line ~398)
+      // 直接 mutate 狀態中的 sel.roomPrice，導致 order_rooms insert 時讀到被覆寫的值而與
+      // orders.total_price 不一致。此處只更新顯示用的 roomPrice。
       setRoomPrice(totals.roomTotal);
 
       // 防呆：若房費總額為 0，提醒使用者（通常是該房型在該日期沒有設定專案/庫存價）
