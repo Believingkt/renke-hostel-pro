@@ -46,12 +46,13 @@ async function userHasTeamRole(userId: string): Promise<boolean> {
     .eq("user_id", userId)
     .is("accommodation_id", null)
     .in("role", TEAM_ROLES);
-  console.log("[TeamAuth] user_roles query result:", { userId, data, error });
+  console.log('[TeamAuth] user_roles query result:', JSON.stringify(data), 'error:', error);
   if (error) {
     console.error("[TeamAuth] user_roles query error:", error);
     return false;
   }
-  return Array.isArray(data) && data.length > 0;
+  if (Array.isArray(data)) return data.length > 0;
+  return !!data;
 }
 
 export default function TeamAuth() {
@@ -86,9 +87,14 @@ export default function TeamAuth() {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!active || !session) return;
       console.log("[TeamAuth] existing session detected:", session.user.id);
-      if (await userHasTeamRole(session.user.id)) {
+      const hasRole = await userHasTeamRole(session.user.id);
+      if (!active) return;
+      if (hasRole) {
         navigate("/team", { replace: true });
+        return;
       }
+      toast.error("您沒有行銷團隊後台的存取權限");
+      await supabase.auth.signOut();
     });
 
     return () => {
