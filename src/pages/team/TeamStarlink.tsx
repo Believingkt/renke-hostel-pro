@@ -159,6 +159,73 @@ function OrdersTab({
   });
   const [saving, setSaving] = useState(false);
 
+  const [editOpen, setEditOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({
+    client_name: "",
+    client_tax_id: "",
+    business_type: "",
+    plan_name: "",
+    sold_by: "",
+    sold_at: "",
+    payment_confirmed: false,
+    payment_last5: "",
+    invoice_number: "",
+    contract_uploaded: false,
+    payout_status: "pending",
+    notes: "",
+  });
+  const [editSaving, setEditSaving] = useState(false);
+
+  const openEdit = (o: StarlinkOrder) => {
+    setEditId(o.id);
+    setEditForm({
+      client_name: o.client_name ?? "",
+      client_tax_id: o.client_tax_id ?? "",
+      business_type: o.business_type ?? "",
+      plan_name: o.plan_name ?? "",
+      sold_by: o.sold_by ?? "",
+      sold_at: o.sold_at ?? "",
+      payment_confirmed: !!o.payment_confirmed,
+      payment_last5: o.payment_last5 ?? "",
+      invoice_number: o.invoice_number ?? "",
+      contract_uploaded: !!o.contract_uploaded,
+      payout_status: o.payout_status ?? "pending",
+      notes: o.notes ?? "",
+    });
+    setEditOpen(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!editId) return;
+    setEditSaving(true);
+    const { error } = await supabase
+      .from("starlink_orders")
+      .update({
+        client_name: editForm.client_name.trim(),
+        client_tax_id: editForm.client_tax_id.trim() || null,
+        business_type: editForm.business_type.trim() || null,
+        plan_name: editForm.plan_name || null,
+        sold_by: editForm.sold_by || null,
+        sold_at: editForm.sold_at || null,
+        payment_confirmed: editForm.payment_confirmed,
+        payment_last5: editForm.payment_last5.trim() || null,
+        invoice_number: editForm.invoice_number.trim() || null,
+        contract_uploaded: editForm.contract_uploaded,
+        payout_status: editForm.payout_status,
+        notes: editForm.notes.trim() || null,
+      })
+      .eq("id", editId);
+    setEditSaving(false);
+    if (error) {
+      toast.error("更新失敗：" + error.message);
+      return;
+    }
+    toast.success("已更新");
+    setEditOpen(false);
+    void loadAll();
+  };
+
   useEffect(() => {
     void loadAll();
   }, []);
