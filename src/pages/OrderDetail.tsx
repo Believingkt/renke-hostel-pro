@@ -689,6 +689,7 @@ const OrderDetailPage = () => {
       // 先移除舊的加購備註區塊（多行格式）與舊的單行格式
       finalNotes = finalNotes
         .replace(/【(?:加購備註|額外現場加購備註)[^】]*】\n?[\s\S]*?\n?【(?:加購備註|額外現場加購備註)END】\n?/g, "")
+        .replace(/【額外現場加購金額[^】]*】\n?[\s\S]*?\n?【額外現場加購金額END】\n?/g, "")
         .trim();
       finalNotes = finalNotes
         .split("\n")
@@ -702,6 +703,12 @@ const OrderDetailPage = () => {
         const ts = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Taipei" }).slice(0, 16);
         const block = `【額外現場加購備註 ${ts}】\n${addonNoteTrim}\n【額外現場加購備註END】`;
         finalNotes = finalNotes ? `${finalNotes}\n${block}` : block;
+      }
+      // 寫入額外現場加購金額（純數字區塊）
+      if ((editForm.extra_addon_amount || 0) > 0) {
+        const ts2 = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Taipei" }).slice(0, 16);
+        const amtBlock = `【額外現場加購金額 ${ts2}】\n${editForm.extra_addon_amount}\n【額外現場加購金額END】`;
+        finalNotes = finalNotes ? `${finalNotes}\n${amtBlock}` : amtBlock;
       }
       if (exclusiveRows.length > 0) {
         const pkgLines = exclusiveRows.map((_, i) => {
