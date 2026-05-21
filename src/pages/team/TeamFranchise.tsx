@@ -119,7 +119,7 @@ function OrdersTab({
   currentUserId,
 }: {
   canManage: boolean;
-  currentUserId: string | null;
+  currentUserId: string;
 }) {
   const [orders, setOrders] = useState<FranchiseOrder[]>([]);
   const [members, setMembers] = useState<Member[]>([]);

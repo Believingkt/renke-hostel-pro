@@ -117,7 +117,7 @@ function OrdersTab({
   currentUserId,
 }: {
   canManage: boolean;
-  currentUserId: string | null;
+  currentUserId: string;
 }) {
   const [orders, setOrders] = useState<StarlinkOrder[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
