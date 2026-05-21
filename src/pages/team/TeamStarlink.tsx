@@ -451,6 +451,21 @@ function OrdersTab({
                         {o.payout_status === "paid" ? "已發放" : "待結算"}
                       </Badge>
                     </TableCell>
+                    <TableCell>{o.client_tax_id ?? "—"}</TableCell>
+                    <TableCell>{o.business_type ?? "—"}</TableCell>
+                    <TableCell>{o.payment_last5 ?? "—"}</TableCell>
+                    <TableCell>{o.invoice_number ?? "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant={o.contract_uploaded ? "success" : "secondary"}>
+                        {o.contract_uploaded ? "已上傳" : "未上傳"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="max-w-[200px] truncate" title={o.notes ?? ""}>{o.notes ?? "—"}</TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(o)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
