@@ -21,6 +21,7 @@ const MemberLineCallback = () => {
   const ranRef = useRef(false);
 
   useEffect(() => {
+    console.log("[LINE callback] effect run, ranRef=", ranRef.current);
     // StrictMode dev mounts effects twice; ensure the OAuth code is only
     // exchanged once (LINE codes are single-use).
     if (ranRef.current) return;
@@ -86,13 +87,22 @@ const MemberLineCallback = () => {
         });
         if (setErr) throw setErr;
 
+        console.log("[LINE callback] exchange success, navigating");
         cleanup();
         toast.success("LINE 登入成功");
         // onAuthStateChange listener (registered in MemberAuth/global) will
         // upsert platform_members; we just redirect.
         navigate("/member/orders", { replace: true });
       } catch (err: any) {
-        console.error("LINE callback error", err);
+        console.error("[LINE callback] exchange error", err);
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData?.session) {
+          console.log("[LINE callback] session present despite error, navigating");
+          cleanup();
+          toast.success("LINE 登入成功");
+          navigate("/member/orders", { replace: true });
+          return;
+        }
         fail(err?.message || "LINE 登入失敗");
       }
     })();

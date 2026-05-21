@@ -15,6 +15,7 @@ const MemberFacebookCallback = () => {
   const ranRef = useRef(false);
 
   useEffect(() => {
+    console.log("[FB callback] effect run, ranRef=", ranRef.current);
     if (ranRef.current) return;
     ranRef.current = true;
 
@@ -71,11 +72,22 @@ const MemberFacebookCallback = () => {
         });
         if (setErr) throw setErr;
 
+        console.log("[FB callback] exchange success, navigating");
         cleanup();
         toast.success("Facebook 登入成功");
         navigate("/member/orders", { replace: true });
       } catch (err: any) {
-        console.error("Facebook callback error", err);
+        console.error("[FB callback] exchange error", err);
+        // Fallback: if session already exists (e.g. StrictMode double-invoke
+        // consumed the code on the first run), treat as success.
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData?.session) {
+          console.log("[FB callback] session present despite error, navigating");
+          cleanup();
+          toast.success("Facebook 登入成功");
+          navigate("/member/orders", { replace: true });
+          return;
+        }
         fail(err?.message || "Facebook 登入失敗");
       }
     })();
