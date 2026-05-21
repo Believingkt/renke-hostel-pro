@@ -23,6 +23,7 @@ import Index from "./pages/Index";
 // Auth 頁面 - 關鍵路徑，直接 import
 import Auth from "./pages/Auth";
 import HQAuth from "./pages/HQAuth";
+import TeamAuth from "./pages/TeamAuth";
 
 // 平台入口 & 會員頁面 - lazy load
 const BookingPortal = lazy(() => import("./pages/BookingPortal"));
@@ -396,6 +397,7 @@ function App() {
 
                       {/* HQ 與 headquarters 路由（不放入 alias 樹下） */}
                       <Route path="/hq-auth" element={<HQAuth />} />
+                      <Route path="/team-auth" element={<TeamAuth />} />
                       <Route path="/hq/ai-training" element={
                         <Suspense fallback={<DashboardSkeleton />}><AiTrainingLayout /></Suspense>
                       }>
