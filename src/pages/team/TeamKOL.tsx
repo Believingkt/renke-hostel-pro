@@ -205,6 +205,12 @@ export default function TeamKOL() {
     roles.includes("scout_manager");
 
   const [tab, setTab] = useState("invitations");
+  const [prefill, setPrefill] = useState<InvitationPrefill | null>(null);
+
+  const handleConvertFromProspect = (p: InvitationPrefill) => {
+    setPrefill(p);
+    setTab("invitations");
+  };
 
   return (
     <div className="space-y-4">
@@ -226,37 +232,49 @@ export default function TeamKOL() {
           <InvitationsTab
             currentUserId={userId}
             isManager={isManager}
+            prefill={prefill}
+            onPrefillConsumed={() => setPrefill(null)}
           />
         </TabsContent>
 
         <TabsContent value="prospects" className="mt-4">
-          <Card>
-            <CardContent className="p-8 text-center text-sm text-muted-foreground">
-              潛在名單功能將於 Phase 2 上線
-            </CardContent>
-          </Card>
+          <ProspectsTab
+            currentUserId={userId}
+            isManager={isManager}
+            onConvert={handleConvertFromProspect}
+          />
         </TabsContent>
 
         <TabsContent value="targets" className="mt-4">
-          <Card>
-            <CardContent className="p-8 text-center text-sm text-muted-foreground">
-              邀約目標功能將於 Phase 3 上線
-            </CardContent>
-          </Card>
+          <TargetsTab isManager={isManager} currentUserId={userId} />
         </TabsContent>
       </Tabs>
     </div>
   );
 }
 
+interface InvitationPrefill {
+  name: string;
+  ig_handle: string;
+  ig_url: string;
+  scout_id: string;
+  prospect_id: string;
+}
+
+
 // ====== Tab 一：正式邀約 ======
 function InvitationsTab({
   currentUserId,
   isManager,
+  prefill,
+  onPrefillConsumed,
 }: {
   currentUserId: string;
   isManager: boolean;
+  prefill?: InvitationPrefill | null;
+  onPrefillConsumed?: () => void;
 }) {
+  const [prospectLink, setProspectLink] = useState<string | null>(null);
   const [rows, setRows] = useState<KolRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -419,8 +437,26 @@ function InvitationsTab({
     setEditingId(null);
     setForm(EMPTY_FORM);
     setDupWarning(null);
+    setProspectLink(null);
     setSheetOpen(true);
   };
+
+  // 從潛在名單轉入時，自動開啟 Sheet 並預填
+  useEffect(() => {
+    if (!prefill) return;
+    setEditingId(null);
+    setForm({
+      ...EMPTY_FORM,
+      name: prefill.name,
+      ig_handle: prefill.ig_handle,
+      ig_url: prefill.ig_url,
+      scout_id: prefill.scout_id,
+    });
+    setProspectLink(prefill.prospect_id);
+    setDupWarning(null);
+    setSheetOpen(true);
+    onPrefillConsumed?.();
+  }, [prefill, onPrefillConsumed]);
 
   const openEdit = (row: KolRow) => {
     if (!canEditRow(row)) {
@@ -522,6 +558,7 @@ function InvitationsTab({
     };
 
     let err;
+    let newId: string | null = null;
     if (editingId) {
       ({ error: err } = await supabase
         .from("kol_profiles")
@@ -530,15 +567,35 @@ function InvitationsTab({
     } else {
       payload.created_by = currentUserId;
       payload.is_error = false;
-      ({ error: err } = await supabase.from("kol_profiles").insert(payload));
+      const { data: inserted, error } = await supabase
+        .from("kol_profiles")
+        .insert(payload)
+        .select("id")
+        .single();
+      err = error;
+      newId = inserted?.id ?? null;
     }
-    setSaving(false);
     if (err) {
+      setSaving(false);
       toast.error(err.message);
       return;
     }
+
+    // 若來自潛在名單轉入,回寫 converted_to_kol_id 與狀態
+    if (!editingId && prospectLink && newId) {
+      await supabase
+        .from("kol_prospects")
+        .update({
+          converted_to_kol_id: newId,
+          status: "converted",
+        })
+        .eq("id", prospectLink);
+    }
+
+    setSaving(false);
     toast.success(editingId ? "已更新邀約" : "已新增邀約");
     setSheetOpen(false);
+    setProspectLink(null);
     fetchRows();
   };
 
@@ -1167,6 +1224,1046 @@ function Field({
     <div className="space-y-1">
       <Label className="text-xs text-muted-foreground">{label}</Label>
       {children}
+    </div>
+  );
+}
+
+// ============================================================
+// ====== Tab 二:潛在名單 ======
+// ============================================================
+
+type ProspectStatus = "negotiating" | "rejected" | "on_hold" | "converted";
+
+const PROSPECT_STATUS_LABEL: Record<ProspectStatus, string> = {
+  negotiating: "洽談中",
+  rejected: "拒絕",
+  on_hold: "暫緩",
+  converted: "已轉正式邀約",
+};
+
+const PROSPECT_STATUS_CLASS: Record<ProspectStatus, string> = {
+  negotiating: "bg-blue-100 text-blue-700 border-blue-200",
+  rejected: "bg-red-200 text-red-900 border-red-300",
+  on_hold: "bg-orange-100 text-orange-700 border-orange-200",
+  converted: "bg-green-100 text-green-700 border-green-200",
+};
+
+interface ProspectRow {
+  id: string;
+  name: string | null;
+  ig_handle: string | null;
+  ig_url: string | null;
+  scout_id: string | null;
+  contacted_at: string | null;
+  collab_type: string | null;
+  fee_quote: number | null;
+  tags: string[] | null;
+  notes: string | null;
+  screenshot_url: string | null;
+  status: string | null;
+  converted_to_kol_id: string | null;
+  created_at: string | null;
+  _scout_name?: string;
+}
+
+interface ProspectForm {
+  id?: string;
+  name: string;
+  ig_handle: string;
+  ig_url: string;
+  scout_id: string;
+  contacted_at: string;
+  collab_type: string;
+  fee_quote: string;
+  tags_input: string;
+  notes: string;
+  screenshot_url: string;
+  status: ProspectStatus;
+}
+
+const EMPTY_PROSPECT_FORM: ProspectForm = {
+  name: "",
+  ig_handle: "",
+  ig_url: "",
+  scout_id: "",
+  contacted_at: "",
+  collab_type: "",
+  fee_quote: "",
+  tags_input: "",
+  notes: "",
+  screenshot_url: "",
+  status: "negotiating",
+};
+
+function ProspectsTab({
+  currentUserId: _currentUserId,
+  isManager: _isManager,
+  onConvert,
+}: {
+  currentUserId: string;
+  isManager: boolean;
+  onConvert: (p: InvitationPrefill) => void;
+}) {
+  const [rows, setRows] = useState<ProspectRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [scouts, setScouts] = useState<Scout[]>([]);
+
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState<ProspectForm>(EMPTY_PROSPECT_FORM);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("user_id, team_member_profiles!inner(user_id, display_name)")
+        .eq("role", "scout");
+      if (data) {
+        const seen = new Set<string>();
+        const list: Scout[] = [];
+        for (const r of data as any[]) {
+          const uid = r.user_id;
+          const dn = r.team_member_profiles?.display_name ?? uid;
+          if (!seen.has(uid)) {
+            seen.add(uid);
+            list.push({ user_id: uid, display_name: dn });
+          }
+        }
+        list.sort((a, b) => a.display_name.localeCompare(b.display_name));
+        setScouts(list);
+      }
+    })();
+  }, []);
+
+  const fetchRows = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("kol_prospects")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) {
+      toast.error(error.message);
+      setLoading(false);
+      return;
+    }
+    const scoutIds = Array.from(
+      new Set((data ?? []).map((r) => r.scout_id).filter(Boolean) as string[]),
+    );
+    const scoutMap = new Map<string, string>();
+    if (scoutIds.length > 0) {
+      const { data: profs } = await supabase
+        .from("team_member_profiles")
+        .select("user_id, display_name")
+        .in("user_id", scoutIds);
+      profs?.forEach((p) =>
+        scoutMap.set(p.user_id, p.display_name ?? p.user_id),
+      );
+    }
+    setRows(
+      (data ?? []).map((r) => ({
+        ...r,
+        _scout_name: r.scout_id ? scoutMap.get(r.scout_id) ?? "-" : "-",
+      })) as ProspectRow[],
+    );
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchRows();
+  }, [fetchRows]);
+
+  const filtered = useMemo(() => {
+    const s = search.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (filterStatus !== "all" && r.status !== filterStatus) return false;
+      if (s) {
+        const a = (r.name ?? "").toLowerCase();
+        const b = (r.ig_handle ?? "").toLowerCase();
+        if (!a.includes(s) && !b.includes(s)) return false;
+      }
+      return true;
+    });
+  }, [rows, search, filterStatus]);
+
+  const openCreate = () => {
+    setEditingId(null);
+    setForm(EMPTY_PROSPECT_FORM);
+    setSheetOpen(true);
+  };
+
+  const openEdit = (r: ProspectRow) => {
+    setEditingId(r.id);
+    setForm({
+      id: r.id,
+      name: r.name ?? "",
+      ig_handle: r.ig_handle ?? "",
+      ig_url: r.ig_url ?? "",
+      scout_id: r.scout_id ?? "",
+      contacted_at: r.contacted_at ?? "",
+      collab_type: r.collab_type ?? "",
+      fee_quote: r.fee_quote != null ? String(r.fee_quote) : "",
+      tags_input: (r.tags ?? []).join(", "),
+      notes: r.notes ?? "",
+      screenshot_url: r.screenshot_url ?? "",
+      status: (r.status as ProspectStatus) ?? "negotiating",
+    });
+    setSheetOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!form.name.trim()) {
+      toast.error("請輸入名稱");
+      return;
+    }
+    setSaving(true);
+    const tags = form.tags_input
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+    const payload: Record<string, any> = {
+      name: form.name.trim(),
+      ig_handle: toNullable(form.ig_handle),
+      ig_url: toNullable(form.ig_url),
+      scout_id: form.scout_id || null,
+      contacted_at: form.contacted_at || null,
+      collab_type: toNullable(form.collab_type),
+      fee_quote: form.fee_quote ? parseFloat(form.fee_quote) : null,
+      tags: tags.length > 0 ? tags : null,
+      notes: toNullable(form.notes),
+      screenshot_url: toNullable(form.screenshot_url),
+      status: form.status,
+    };
+    const { error } = editingId
+      ? await supabase
+          .from("kol_prospects")
+          .update(payload)
+          .eq("id", editingId)
+      : await supabase.from("kol_prospects").insert(payload);
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(editingId ? "已更新" : "已新增");
+    setSheetOpen(false);
+    fetchRows();
+  };
+
+  const handleConvert = (r: ProspectRow) => {
+    onConvert({
+      name: r.name ?? "",
+      ig_handle: r.ig_handle ?? "",
+      ig_url: r.ig_url ?? "",
+      scout_id: r.scout_id ?? "",
+      prospect_id: r.id,
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          placeholder="搜尋名稱或 IG 帳號"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-64"
+        />
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-36">
+            <SelectValue placeholder="狀態" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">全部狀態</SelectItem>
+            {(Object.keys(PROSPECT_STATUS_LABEL) as ProspectStatus[]).map(
+              (k) => (
+                <SelectItem key={k} value={k}>
+                  {PROSPECT_STATUS_LABEL[k]}
+                </SelectItem>
+              ),
+            )}
+          </SelectContent>
+        </Select>
+
+        <Button className="ml-auto" onClick={openCreate}>
+          <Plus className="mr-1 h-4 w-4" />
+          新增潛在名單
+        </Button>
+      </div>
+
+      {loading ? null : filtered.length === 0 ? (
+        <Card>
+          <CardContent className="p-8 text-center text-sm text-muted-foreground">
+            尚無資料
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>名稱</TableHead>
+                <TableHead>IG 帳號</TableHead>
+                <TableHead>負責星探</TableHead>
+                <TableHead>聯繫日期</TableHead>
+                <TableHead>狀態</TableHead>
+                <TableHead className="text-right">報價</TableHead>
+                <TableHead className="text-right">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell>{r.name ?? "-"}</TableCell>
+                  <TableCell>@{r.ig_handle ?? "-"}</TableCell>
+                  <TableCell>{r._scout_name}</TableCell>
+                  <TableCell>{r.contacted_at ?? "-"}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className={
+                        PROSPECT_STATUS_CLASS[r.status as ProspectStatus] ?? ""
+                      }
+                    >
+                      {PROSPECT_STATUS_LABEL[r.status as ProspectStatus] ??
+                        r.status ??
+                        "-"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {r.fee_quote != null
+                      ? `$${r.fee_quote.toLocaleString()}`
+                      : "-"}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => openEdit(r)}
+                    >
+                      編輯
+                    </Button>
+                    {r.status !== "converted" && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleConvert(r)}
+                      >
+                        轉為正式邀約
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
+
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>
+              {editingId ? "編輯潛在名單" : "新增潛在名單"}
+            </SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 space-y-4">
+            <Field label="名稱 *">
+              <Input
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+              />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="IG 帳號">
+                <Input
+                  value={form.ig_handle}
+                  onChange={(e) =>
+                    setForm({ ...form, ig_handle: e.target.value })
+                  }
+                />
+              </Field>
+              <Field label="IG 網址">
+                <Input
+                  value={form.ig_url}
+                  onChange={(e) =>
+                    setForm({ ...form, ig_url: e.target.value })
+                  }
+                />
+              </Field>
+            </div>
+            <Field label="負責星探">
+              <Select
+                value={form.scout_id || "none"}
+                onValueChange={(v) =>
+                  setForm({ ...form, scout_id: v === "none" ? "" : v })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="選擇星探" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">未指定</SelectItem>
+                  {scouts.map((s) => (
+                    <SelectItem key={s.user_id} value={s.user_id}>
+                      {s.display_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="聯繫日期">
+                <Input
+                  type="date"
+                  value={form.contacted_at}
+                  onChange={(e) =>
+                    setForm({ ...form, contacted_at: e.target.value })
+                  }
+                />
+              </Field>
+              <Field label="合作類型">
+                <Select
+                  value={form.collab_type || "none"}
+                  onValueChange={(v) =>
+                    setForm({
+                      ...form,
+                      collab_type: v === "none" ? "" : v,
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="選擇類型" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">未指定</SelectItem>
+                    <SelectItem value="圖文">圖文</SelectItem>
+                    <SelectItem value="Reels">Reels</SelectItem>
+                    <SelectItem value="限動">限動</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="報價">
+                <Input
+                  type="number"
+                  value={form.fee_quote}
+                  onChange={(e) =>
+                    setForm({ ...form, fee_quote: e.target.value })
+                  }
+                />
+              </Field>
+              <Field label="狀態">
+                <Select
+                  value={form.status}
+                  onValueChange={(v) =>
+                    setForm({ ...form, status: v as ProspectStatus })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(
+                      Object.keys(PROSPECT_STATUS_LABEL) as ProspectStatus[]
+                    ).map((k) => (
+                      <SelectItem key={k} value={k}>
+                        {PROSPECT_STATUS_LABEL[k]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            </div>
+            <Field label="標籤(以逗號分隔)">
+              <Input
+                value={form.tags_input}
+                onChange={(e) =>
+                  setForm({ ...form, tags_input: e.target.value })
+                }
+              />
+            </Field>
+            <Field label="溝通紀錄">
+              <Textarea
+                rows={4}
+                value={form.notes}
+                onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              />
+            </Field>
+            <Field label="截圖連結">
+              <Input
+                value={form.screenshot_url}
+                onChange={(e) =>
+                  setForm({ ...form, screenshot_url: e.target.value })
+                }
+              />
+            </Field>
+          </div>
+          <SheetFooter className="mt-6">
+            <Button
+              variant="outline"
+              onClick={() => setSheetOpen(false)}
+              disabled={saving}
+            >
+              取消
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "儲存中..." : "儲存"}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
+}
+
+// ============================================================
+// ====== Tab 三:邀約目標 ======
+// ============================================================
+
+interface TeamTargetRow {
+  id?: string;
+  accommodation_id: string;
+  accommodation_name: string;
+  target_count: number;
+  actual_count: number;
+}
+
+interface PersonalTargetRow {
+  id?: string;
+  scout_id: string;
+  scout_name: string;
+  accommodation_id: string;
+  accommodation_name: string;
+  target_count: number;
+  actual_count: number;
+}
+
+function achievementColor(actual: number, target: number): string {
+  if (target <= 0) return "bg-gray-100 text-gray-700 border-gray-200";
+  const rate = actual / target;
+  if (rate >= 1) return "bg-green-100 text-green-700 border-green-200";
+  if (rate >= 0.8) return "bg-orange-100 text-orange-700 border-orange-200";
+  return "bg-red-100 text-red-700 border-red-200";
+}
+
+function achievementIcon(actual: number, target: number): string {
+  if (target <= 0) return "—";
+  const rate = actual / target;
+  if (rate >= 1) return "✅";
+  if (rate >= 0.8) return "⚠️";
+  return "❌";
+}
+
+function TargetsTab({
+  isManager,
+  currentUserId,
+}: {
+  isManager: boolean;
+  currentUserId: string;
+}) {
+  const now = new Date();
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
+
+  const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
+  const [scouts, setScouts] = useState<Scout[]>([]);
+
+  const [teamRows, setTeamRows] = useState<TeamTargetRow[]>([]);
+  const [personalRows, setPersonalRows] = useState<PersonalTargetRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [editTarget, setEditTarget] = useState<
+    | { kind: "team"; row: TeamTargetRow }
+    | { kind: "personal"; row: PersonalTargetRow }
+    | null
+  >(null);
+  const [editValue, setEditValue] = useState("");
+  const [savingTarget, setSavingTarget] = useState(false);
+
+  const [addKind, setAddKind] = useState<"team" | "personal" | null>(null);
+  const [addAcc, setAddAcc] = useState("");
+  const [addScout, setAddScout] = useState("");
+  const [addCount, setAddCount] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      const [accRes, scoutRes] = await Promise.all([
+        supabase
+          .from("accommodation_info")
+          .select("id, name, booking_type, short_url_alias")
+          .order("name"),
+        supabase
+          .from("user_roles")
+          .select("user_id, team_member_profiles!inner(user_id, display_name)")
+          .eq("role", "scout"),
+      ]);
+      if (accRes.data) setAccommodations(accRes.data as Accommodation[]);
+      if (scoutRes.data) {
+        const seen = new Set<string>();
+        const list: Scout[] = [];
+        for (const r of scoutRes.data as any[]) {
+          const uid = r.user_id;
+          const dn = r.team_member_profiles?.display_name ?? uid;
+          if (!seen.has(uid)) {
+            seen.add(uid);
+            list.push({ user_id: uid, display_name: dn });
+          }
+        }
+        list.sort((a, b) => a.display_name.localeCompare(b.display_name));
+        setScouts(list);
+      }
+    })();
+  }, []);
+
+  const kpiMonthStr = `${year}-${String(month).padStart(2, "0")}-01`;
+
+  const fetchAll = useCallback(async () => {
+    if (accommodations.length === 0) return;
+    setLoading(true);
+    const accMap = new Map(accommodations.map((a) => [a.id, a.name]));
+    const scoutMap = new Map(scouts.map((s) => [s.user_id, s.display_name]));
+
+    const [teamRes, personalRes, kolRes] = await Promise.all([
+      supabase
+        .from("scout_team_targets")
+        .select("*")
+        .eq("year", year)
+        .eq("month", month),
+      supabase
+        .from("scout_monthly_targets")
+        .select("*")
+        .eq("year", year)
+        .eq("month", month),
+      supabase
+        .from("kol_profiles")
+        .select("accommodation_id, scout_id")
+        .eq("is_error", false)
+        .eq("kpi_month", kpiMonthStr),
+    ]);
+
+    const teamActual = new Map<string, number>();
+    const personalActual = new Map<string, number>();
+    (kolRes.data ?? []).forEach((k: any) => {
+      if (k.accommodation_id) {
+        teamActual.set(
+          k.accommodation_id,
+          (teamActual.get(k.accommodation_id) ?? 0) + 1,
+        );
+        if (k.scout_id) {
+          const key = `${k.scout_id}|${k.accommodation_id}`;
+          personalActual.set(key, (personalActual.get(key) ?? 0) + 1);
+        }
+      }
+    });
+
+    setTeamRows(
+      ((teamRes.data as any[]) ?? []).map((t) => ({
+        id: t.id,
+        accommodation_id: t.accommodation_id,
+        accommodation_name: accMap.get(t.accommodation_id) ?? "-",
+        target_count: t.target_count,
+        actual_count: teamActual.get(t.accommodation_id) ?? 0,
+      })),
+    );
+    setPersonalRows(
+      ((personalRes.data as any[]) ?? []).map((t) => ({
+        id: t.id,
+        scout_id: t.scout_id,
+        scout_name: scoutMap.get(t.scout_id) ?? "-",
+        accommodation_id: t.accommodation_id,
+        accommodation_name: accMap.get(t.accommodation_id) ?? "-",
+        target_count: t.target_count,
+        actual_count:
+          personalActual.get(`${t.scout_id}|${t.accommodation_id}`) ?? 0,
+      })),
+    );
+    setLoading(false);
+  }, [year, month, accommodations, scouts, kpiMonthStr]);
+
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
+
+  const handleSaveEdit = async () => {
+    if (!editTarget) return;
+    const n = parseInt(editValue, 10);
+    if (Number.isNaN(n) || n < 0) {
+      toast.error("請輸入有效的目標數");
+      return;
+    }
+    setSavingTarget(true);
+    const table =
+      editTarget.kind === "team"
+        ? "scout_team_targets"
+        : "scout_monthly_targets";
+    const { error } = await supabase
+      .from(table)
+      .update({ target_count: n })
+      .eq("id", editTarget.row.id!);
+    setSavingTarget(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("已更新目標");
+    setEditTarget(null);
+    fetchAll();
+  };
+
+  const openAdd = (kind: "team" | "personal") => {
+    setAddKind(kind);
+    setAddAcc("");
+    setAddScout("");
+    setAddCount("");
+  };
+
+  const handleAdd = async () => {
+    if (!addKind) return;
+    if (!addAcc) {
+      toast.error("請選擇館別");
+      return;
+    }
+    if (addKind === "personal" && !addScout) {
+      toast.error("請選擇星探");
+      return;
+    }
+    const n = parseInt(addCount, 10);
+    if (Number.isNaN(n) || n < 0) {
+      toast.error("請輸入有效目標數");
+      return;
+    }
+    const payload: Record<string, any> = {
+      year,
+      month,
+      accommodation_id: addAcc,
+      target_count: n,
+      created_by: currentUserId,
+    };
+    if (addKind === "personal") payload.scout_id = addScout;
+
+    const table =
+      addKind === "team" ? "scout_team_targets" : "scout_monthly_targets";
+    const { error } = await (supabase.from(table) as any).insert(payload);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("已新增目標");
+    setAddKind(null);
+    fetchAll();
+  };
+
+  const years = [
+    now.getFullYear() - 1,
+    now.getFullYear(),
+    now.getFullYear() + 1,
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-2">
+        <Label>年月:</Label>
+        <Select
+          value={String(year)}
+          onValueChange={(v) => setYear(parseInt(v, 10))}
+        >
+          <SelectTrigger className="w-28">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {years.map((y) => (
+              <SelectItem key={y} value={String(y)}>
+                {y} 年
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={String(month)}
+          onValueChange={(v) => setMonth(parseInt(v, 10))}
+        >
+          <SelectTrigger className="w-24">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+              <SelectItem key={m} value={String(m)}>
+                {m} 月
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">團體目標</h2>
+          {isManager && (
+            <Button size="sm" variant="outline" onClick={() => openAdd("team")}>
+              <Plus className="mr-1 h-4 w-4" />
+              新增目標
+            </Button>
+          )}
+        </div>
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>館別</TableHead>
+                <TableHead className="text-right">目標邀約數</TableHead>
+                <TableHead className="text-right">實際邀約數</TableHead>
+                <TableHead className="text-right">達標率</TableHead>
+                <TableHead className="text-right">狀態</TableHead>
+                {isManager && (
+                  <TableHead className="text-right">操作</TableHead>
+                )}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? null : teamRows.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={isManager ? 6 : 5}
+                    className="text-center text-sm text-muted-foreground"
+                  >
+                    本月尚未設定團體目標
+                  </TableCell>
+                </TableRow>
+              ) : (
+                teamRows.map((r) => {
+                  const rate =
+                    r.target_count > 0
+                      ? Math.round((r.actual_count / r.target_count) * 100)
+                      : 0;
+                  return (
+                    <TableRow key={r.id}>
+                      <TableCell>{r.accommodation_name}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {r.target_count}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {r.actual_count}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {rate}%
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Badge
+                          variant="outline"
+                          className={achievementColor(
+                            r.actual_count,
+                            r.target_count,
+                          )}
+                        >
+                          {achievementIcon(r.actual_count, r.target_count)}
+                        </Badge>
+                      </TableCell>
+                      {isManager && (
+                        <TableCell className="text-right">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setEditTarget({ kind: "team", row: r });
+                              setEditValue(String(r.target_count));
+                            }}
+                          >
+                            編輯
+                          </Button>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </Card>
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">個人目標</h2>
+          {isManager && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => openAdd("personal")}
+            >
+              <Plus className="mr-1 h-4 w-4" />
+              新增目標
+            </Button>
+          )}
+        </div>
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>星探</TableHead>
+                <TableHead>館別</TableHead>
+                <TableHead className="text-right">目標數</TableHead>
+                <TableHead className="text-right">實際邀約數</TableHead>
+                <TableHead className="text-right">達標狀態</TableHead>
+                {isManager && (
+                  <TableHead className="text-right">操作</TableHead>
+                )}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? null : personalRows.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={isManager ? 6 : 5}
+                    className="text-center text-sm text-muted-foreground"
+                  >
+                    本月尚未設定個人目標
+                  </TableCell>
+                </TableRow>
+              ) : (
+                personalRows.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell>{r.scout_name}</TableCell>
+                    <TableCell>{r.accommodation_name}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {r.target_count}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {r.actual_count}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Badge
+                        variant="outline"
+                        className={achievementColor(
+                          r.actual_count,
+                          r.target_count,
+                        )}
+                      >
+                        {achievementIcon(r.actual_count, r.target_count)}{" "}
+                        {r.target_count > 0
+                          ? `${Math.round((r.actual_count / r.target_count) * 100)}%`
+                          : ""}
+                      </Badge>
+                    </TableCell>
+                    {isManager && (
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setEditTarget({ kind: "personal", row: r });
+                            setEditValue(String(r.target_count));
+                          }}
+                        >
+                          編輯
+                        </Button>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </Card>
+      </div>
+
+      <Dialog
+        open={!!editTarget}
+        onOpenChange={(o) => !o && setEditTarget(null)}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>編輯目標數</DialogTitle>
+          </DialogHeader>
+          {editTarget && (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                {editTarget.kind === "team"
+                  ? `館別:${editTarget.row.accommodation_name}`
+                  : `${(editTarget.row as PersonalTargetRow).scout_name} × ${editTarget.row.accommodation_name}`}
+              </p>
+              <Input
+                type="number"
+                min={0}
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+              />
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditTarget(null)}
+              disabled={savingTarget}
+            >
+              取消
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={savingTarget}>
+              {savingTarget ? "儲存中..." : "儲存"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!addKind} onOpenChange={(o) => !o && setAddKind(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              新增{addKind === "team" ? "團體" : "個人"}目標
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Field label="館別">
+              <Select value={addAcc} onValueChange={setAddAcc}>
+                <SelectTrigger>
+                  <SelectValue placeholder="選擇館別" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accommodations.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            {addKind === "personal" && (
+              <Field label="星探">
+                <Select value={addScout} onValueChange={setAddScout}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="選擇星探" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {scouts.map((s) => (
+                      <SelectItem key={s.user_id} value={s.user_id}>
+                        {s.display_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            )}
+            <Field label={`目標邀約數(${year} 年 ${month} 月)`}>
+              <Input
+                type="number"
+                min={0}
+                value={addCount}
+                onChange={(e) => setAddCount(e.target.value)}
+              />
+            </Field>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddKind(null)}>
+              取消
+            </Button>
+            <Button onClick={handleAdd}>新增</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
