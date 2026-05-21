@@ -249,7 +249,6 @@ export default function TeamMembers() {
   const isNorris = editTarget?.user_id === NORRIS_USER_ID;
 
   const toggleEditRole = (role: TeamRole) => {
-    if (isNorris) return;
     setEditRoles((prev) =>
       prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role],
     );
@@ -270,33 +269,33 @@ export default function TeamMembers() {
         .eq("user_id", editTarget.user_id);
       if (pErr) throw pErr;
 
-      // 2. 角色 diff (Norris 不更動)
-      if (!isNorris) {
-        const original = new Set(editTarget.roles);
-        const next = new Set(editRoles);
-        const toAdd = [...next].filter((r) => !original.has(r));
-        const toRemove = [...original].filter((r) => !next.has(r));
+      // 2. 角色 diff (super_admin 角色一律保留,不在可編輯清單)
+      const original = new Set(editTarget.roles);
+      const next = new Set(editRoles);
+      const toAdd = [...next].filter((r) => !original.has(r));
+      const toRemove = [...original].filter(
+        (r) => !next.has(r) && r !== "super_admin",
+      );
 
-        if (toAdd.length > 0) {
-          const { error } = await supabase.from("user_roles").insert(
-            toAdd.map((role) => ({
-              user_id: editTarget.user_id,
-              accommodation_id: null,
-              role,
-            })),
-          );
-          if (error) throw error;
-        }
+      if (toAdd.length > 0) {
+        const { error } = await supabase.from("user_roles").insert(
+          toAdd.map((role) => ({
+            user_id: editTarget.user_id,
+            accommodation_id: null,
+            role,
+          })),
+        );
+        if (error) throw error;
+      }
 
-        for (const role of toRemove) {
-          const { error } = await supabase
-            .from("user_roles")
-            .delete()
-            .eq("user_id", editTarget.user_id)
-            .is("accommodation_id", null)
-            .eq("role", role);
-          if (error) throw error;
-        }
+      for (const role of toRemove) {
+        const { error } = await supabase
+          .from("user_roles")
+          .delete()
+          .eq("user_id", editTarget.user_id)
+          .is("accommodation_id", null)
+          .eq("role", role);
+        if (error) throw error;
       }
 
       toast.success("已更新成員資料");
@@ -487,24 +486,25 @@ export default function TeamMembers() {
                 {INVITABLE_ROLES.map((role) => (
                   <label
                     key={role}
-                    className={`flex items-center gap-2 border rounded-md px-2 py-1.5 ${
-                      isNorris
-                        ? "opacity-50 cursor-not-allowed"
-                        : "cursor-pointer hover:bg-muted/50"
-                    }`}
+                    className="flex items-center gap-2 border rounded-md px-2 py-1.5 cursor-pointer hover:bg-muted/50"
                   >
                     <Checkbox
                       checked={editRoles.includes(role)}
-                      disabled={isNorris}
                       onCheckedChange={() => toggleEditRole(role)}
                     />
                     <span className="text-sm">{ROLE_LABEL[role]}</span>
                   </label>
                 ))}
+                {editTarget?.roles.includes("super_admin") && (
+                  <label className="flex items-center gap-2 border rounded-md px-2 py-1.5 opacity-50 cursor-not-allowed">
+                    <Checkbox checked disabled />
+                    <span className="text-sm">{ROLE_LABEL.super_admin}</span>
+                  </label>
+                )}
               </div>
               {isNorris && (
                 <p className="text-xs text-muted-foreground">
-                  超級管理員 (Norris) 的角色受系統保護
+                  超級管理員角色受系統保護,無法移除
                 </p>
               )}
             </div>
