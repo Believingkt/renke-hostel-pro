@@ -451,6 +451,7 @@ const OrderDetailPage = () => {
       notes: (order.notes || "")
         .replace(/【(?:加購備註|額外現場加購備註)[^】]*】\n?[\s\S]*?\n?【(?:加購備註|額外現場加購備註)END】\n?/g, "")
         .replace(/^【(?:加購備註|額外現場加購備註)[^】]*】.*$\n?/gm, "")
+        .replace(/【額外現場加購金額[^】]*】\n?[\s\S]*?\n?【額外現場加購金額END】\n?/g, "")
         .trim(),
       room_type_id: order.room_type_id || "",
       total_price: order.total_price || 0,
@@ -481,7 +482,9 @@ const OrderDetailPage = () => {
         const otherCustom = all.filter(d => d.addon_type !== 'pet' && d.addon_type !== 'meal' && d.addon_type !== 'bbq').reduce((s, d) => s + d.total, 0);
         const petTotal = (order.pet_plan_price || 0) > 0 ? (order.pet_plan_price || 0) : petFromCustom;
         const mealTotal = (order.meal_plan_total || 0) > 0 ? (order.meal_plan_total || 0) : mealFromCustom;
-        return petTotal + mealTotal + otherCustom;
+        const extraMatch = (order.notes || "").match(/【額外現場加購金額[^】]*】\n?(\d+)\n?【額外現場加購金額END】/);
+        const extra = extraMatch ? parseInt(extraMatch[1], 10) || 0 : 0;
+        return petTotal + mealTotal + otherCustom + extra;
       })(),
       addon_note: (() => {
         const notes = order.notes || "";
@@ -490,6 +493,10 @@ const OrderDetailPage = () => {
         if (blocks.length > 0) return blocks[blocks.length - 1][1].trim();
         const m = notes.match(/^【(?:加購備註|額外現場加購備註)[^】]*】(.*)$/m);
         return m ? m[1].trim() : "";
+      })(),
+      extra_addon_amount: (() => {
+        const m = (order.notes || "").match(/【額外現場加購金額[^】]*】\n?(\d+)\n?【額外現場加購金額END】/);
+        return m ? (parseInt(m[1], 10) || 0) : 0;
       })(),
     });
     // Initialize edit order rooms
