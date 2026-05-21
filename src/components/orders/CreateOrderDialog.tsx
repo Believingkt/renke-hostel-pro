@@ -415,9 +415,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       }
 
       let totalPrice = 0;
-      const updatedSelections = [...roomSelections];
+      const updatedSelections: RoomSelection[] = [];
 
-      for (const sel of updatedSelections) {
+      for (const sel of roomSelections) {
         const template = pricingTemplates.find(t => t.id === sel.template_id);
         // 統一使用解析器：優先用「該專案在該日的覆寫價」，再 fallback 到 template / base row
         // 三段式：平日(週一至週四) / 旺日(週五、週日) / 假日(週六及國定假日)
@@ -432,8 +432,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           perRoom += priceMap[dateStr] ?? 0;
         }
         const selPrice = perRoom * sel.quantity;
-        sel.roomPrice = selPrice;
         totalPrice += selPrice;
+        updatedSelections.push({ ...sel, roomPrice: selPrice });
       }
 
       setRoomSelections(updatedSelections);
@@ -693,6 +693,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     setAppliedDiscount(null);
     setDiscountCode("");
     setManualDiscountStr(null);
+    manualDiscountInputRef.current = null;
     toast({ title: "已移除折扣", description: "折扣代碼已清除" });
   };
 
@@ -705,8 +706,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     // Use explicit selection prices to avoid stale roomPrice state during submit
     const actualRoomTotal = selections.reduce((sum, sel) => sum + sel.roomPrice, 0);
     const codeDiscount = calculateDiscount(actualRoomTotal);
-    const discount = manualDiscountStr !== null
-      ? Math.max(0, parseInt(manualDiscountStr) || 0)
+    const manualDiscountValue = manualDiscountInputRef.current ?? manualDiscountStr;
+    const discount = manualDiscountValue !== null
+      ? Math.max(0, parseInt(manualDiscountValue) || 0)
       : codeDiscount;
     const subtotal = actualRoomTotal + addonTotal;
     const final_ = Math.max(0, actualRoomTotal - discount + addonTotal);
