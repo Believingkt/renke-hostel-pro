@@ -437,8 +437,26 @@ function InvitationsTab({
     setEditingId(null);
     setForm(EMPTY_FORM);
     setDupWarning(null);
+    setProspectLink(null);
     setSheetOpen(true);
   };
+
+  // 從潛在名單轉入時，自動開啟 Sheet 並預填
+  useEffect(() => {
+    if (!prefill) return;
+    setEditingId(null);
+    setForm({
+      ...EMPTY_FORM,
+      name: prefill.name,
+      ig_handle: prefill.ig_handle,
+      ig_url: prefill.ig_url,
+      scout_id: prefill.scout_id,
+    });
+    setProspectLink(prefill.prospect_id);
+    setDupWarning(null);
+    setSheetOpen(true);
+    onPrefillConsumed?.();
+  }, [prefill, onPrefillConsumed]);
 
   const openEdit = (row: KolRow) => {
     if (!canEditRow(row)) {
