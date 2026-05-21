@@ -447,8 +447,8 @@ const OrderDetailPage = () => {
       balance_payment_method: order.balance_payment_method || "none",
       meal_plan: order.meal_plan || "none",
       notes: (order.notes || "")
-        .replace(/【加購備註】\n?[\s\S]*?\n?【加購備註END】\n?/g, "")
-        .replace(/^【加購備註】.*$\n?/gm, "")
+        .replace(/【加購備註[^】]*】\n?[\s\S]*?\n?【加購備註END】\n?/g, "")
+        .replace(/^【加購備註[^】]*】.*$\n?/gm, "")
         .trim(),
       room_type_id: order.room_type_id || "",
       total_price: order.total_price || 0,
@@ -483,11 +483,10 @@ const OrderDetailPage = () => {
       })(),
       addon_note: (() => {
         const notes = order.notes || "";
-        // 新格式：多行區塊【加購備註】...【加購備註END】
-        const block = notes.match(/【加購備註】\n?([\s\S]*?)\n?【加購備註END】/);
-        if (block) return block[1].trim();
-        // 舊格式：單行
-        const m = notes.match(/^【加購備註】(.*)$/m);
+        // 取最後一筆加購備註區塊（最新）
+        const blocks = [...notes.matchAll(/【加購備註[^】]*】\n?([\s\S]*?)\n?【加購備註END】/g)];
+        if (blocks.length > 0) return blocks[blocks.length - 1][1].trim();
+        const m = notes.match(/^【加購備註[^】]*】(.*)$/m);
         return m ? m[1].trim() : "";
       })(),
     });
@@ -680,12 +679,12 @@ const OrderDetailPage = () => {
       let finalNotes = editForm.notes.trim();
       // 先移除舊的加購備註區塊（多行格式）與舊的單行格式
       finalNotes = finalNotes
-        .replace(/【加購備註】\n?[\s\S]*?\n?【加購備註END】\n?/g, "")
+        .replace(/【加購備註[^】]*】\n?[\s\S]*?\n?【加購備註END】\n?/g, "")
         .trim();
       finalNotes = finalNotes
         .split("\n")
         .filter(line => !/^【\s*(?:包區|包棟)\s*房間配置\s*】/.test(line.trim()))
-        .filter(line => !/^【加購備註】/.test(line.trim()))
+        .filter(line => !/^【加購備註[^】]*】/.test(line.trim()))
         .join("\n")
         .trim();
       // 以區塊格式寫入最新加購備註（支援多行）
@@ -2379,9 +2378,9 @@ const OrderDetailPage = () => {
                 }
               });
               const _notesRaw = order.notes || "";
-              const _blockMatch = _notesRaw.match(/【加購備註】\n?([\s\S]*?)\n?【加購備註END】/);
-              const _lineMatch = _notesRaw.match(/^【加購備註】(.*)$/m);
-              const addonNote = _blockMatch ? _blockMatch[1].trim() : (_lineMatch ? _lineMatch[1].trim() : "");
+              const _blocks = [..._notesRaw.matchAll(/【加購備註[^】]*】\n?([\s\S]*?)\n?【加購備註END】/g)];
+              const _lineMatch = _notesRaw.match(/^【加購備註[^】]*】(.*)$/m);
+              const addonNote = _blocks.length > 0 ? _blocks[_blocks.length - 1][1].trim() : (_lineMatch ? _lineMatch[1].trim() : "");
               if (items.length === 0 && !addonNote) return null;
               const addonTotal = items.reduce((sum, i) => sum + i.amount, 0);
               return (
