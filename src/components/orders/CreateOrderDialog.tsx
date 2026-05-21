@@ -118,6 +118,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; type: "percentage" | "amount"; value: number } | null>(null);
   const [isValidatingCode, setIsValidatingCode] = useState(false);
   const [manualDiscountStr, setManualDiscountStr] = useState<string | null>(null);
+  const manualDiscountInputRef = useRef<string | null>(null);
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [checkOutOpen, setCheckOutOpen] = useState(false);
   
@@ -220,6 +221,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       setDiscountCode("");
       setAppliedDiscount(null);
       setManualDiscountStr(null);
+      manualDiscountInputRef.current = null;
       setRoomPrice(0);
       setDepositPct(30);
       setNameSuggestions([]);
@@ -413,9 +415,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       }
 
       let totalPrice = 0;
-      const updatedSelections = [...roomSelections];
+      const updatedSelections: RoomSelection[] = [];
 
-      for (const sel of updatedSelections) {
+      for (const sel of roomSelections) {
         const template = pricingTemplates.find(t => t.id === sel.template_id);
         // 統一使用解析器：優先用「該專案在該日的覆寫價」，再 fallback 到 template / base row
         // 三段式：平日(週一至週四) / 旺日(週五、週日) / 假日(週六及國定假日)
@@ -430,8 +432,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           perRoom += priceMap[dateStr] ?? 0;
         }
         const selPrice = perRoom * sel.quantity;
-        sel.roomPrice = selPrice;
         totalPrice += selPrice;
+        updatedSelections.push({ ...sel, roomPrice: selPrice });
       }
 
       setRoomSelections(updatedSelections);
@@ -691,6 +693,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     setAppliedDiscount(null);
     setDiscountCode("");
     setManualDiscountStr(null);
+    manualDiscountInputRef.current = null;
     toast({ title: "已移除折扣", description: "折扣代碼已清除" });
   };
 
@@ -703,8 +706,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     // Use explicit selection prices to avoid stale roomPrice state during submit
     const actualRoomTotal = selections.reduce((sum, sel) => sum + sel.roomPrice, 0);
     const codeDiscount = calculateDiscount(actualRoomTotal);
-    const discount = manualDiscountStr !== null
-      ? Math.max(0, parseInt(manualDiscountStr) || 0)
+    const manualDiscountValue = manualDiscountInputRef.current ?? manualDiscountStr;
+    const discount = manualDiscountValue !== null
+      ? Math.max(0, parseInt(manualDiscountValue) || 0)
       : codeDiscount;
     const subtotal = actualRoomTotal + addonTotal;
     const final_ = Math.max(0, actualRoomTotal - discount + addonTotal);
@@ -986,6 +990,21 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           await supabase.from("orders").delete().eq("id", orderData.id);
           throw roomsError;
         }
+
+        // Final safety sync: the order header must mirror the exact selections saved in order_rooms.
+        const savedRoomTotal = pricedRoomSelections.reduce((sum, sel) => sum + sel.roomPrice, 0);
+        const savedDiscount = Math.max(0, Math.min(totals.discount, savedRoomTotal + totals.addonTotal));
+        const savedFinal = Math.max(0, savedRoomTotal + totals.addonTotal - savedDiscount);
+        const { error: syncError } = await supabase
+          .from("orders")
+          .update({
+            total_price: savedRoomTotal + totals.addonTotal,
+            discount_amount: savedDiscount,
+            final_price: savedFinal,
+            paid_amount: form.balance_paid ? savedFinal : paidAmount,
+          })
+          .eq("id", orderData.id);
+        if (syncError) throw syncError;
       }
 
       if (error) throw error;
@@ -1844,7 +1863,10 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             min={0}
             placeholder="0"
             value={manualDiscountStr !== null ? manualDiscountStr : (totals.discount > 0 ? String(totals.discount) : "")}
-            onChange={(e) => setManualDiscountStr(e.target.value)}
+            onChange={(e) => {
+              manualDiscountInputRef.current = e.target.value;
+              setManualDiscountStr(e.target.value);
+            }}
             className="h-12 text-base sm:h-10 sm:text-sm"
           />
           <p className="text-xs text-muted-foreground">
