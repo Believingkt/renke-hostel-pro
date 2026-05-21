@@ -117,6 +117,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; type: "percentage" | "amount"; value: number } | null>(null);
   const [isValidatingCode, setIsValidatingCode] = useState(false);
+  const [manualDiscountStr, setManualDiscountStr] = useState<string | null>(null);
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [checkOutOpen, setCheckOutOpen] = useState(false);
   
