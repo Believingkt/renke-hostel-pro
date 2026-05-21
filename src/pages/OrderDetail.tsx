@@ -478,6 +478,10 @@ const OrderDetailPage = () => {
         const mealTotal = (order.meal_plan_total || 0) > 0 ? (order.meal_plan_total || 0) : mealFromCustom;
         return petTotal + mealTotal + otherCustom;
       })(),
+      addon_note: (() => {
+        const m = (order.notes || "").match(/^【加購備註】(.*)$/m);
+        return m ? m[1].trim() : "";
+      })(),
     });
     // Initialize edit order rooms
     if (orderRooms.length > 0) {
