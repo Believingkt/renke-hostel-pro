@@ -1,0 +1,1 @@
+ALTER TABLE public.user_roles ALTER COLUMN accommodation_id DROP NOT NULL;
