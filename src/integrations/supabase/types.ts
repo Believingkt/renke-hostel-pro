@@ -143,6 +143,51 @@ export type Database = {
           },
         ]
       }
+      accommodation_commission_settings: {
+        Row: {
+          accommodation_id: string
+          created_at: string | null
+          created_by: string | null
+          effective_from: string
+          id: string
+          rate: number
+          role: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string | null
+          created_by?: string | null
+          effective_from: string
+          id?: string
+          rate: number
+          role: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          effective_from?: string
+          id?: string
+          rate?: number
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodation_commission_settings_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accommodation_commission_settings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       accommodation_facilities: {
         Row: {
           accommodation_id: string | null
@@ -373,6 +418,48 @@ export type Database = {
         }
         Relationships: []
       }
+      accommodation_info_flags: {
+        Row: {
+          accommodation_id: string
+          has_franchise: boolean | null
+          has_starlink: boolean | null
+          id: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          accommodation_id: string
+          has_franchise?: boolean | null
+          has_starlink?: boolean | null
+          id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          accommodation_id?: string
+          has_franchise?: boolean | null
+          has_starlink?: boolean | null
+          id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodation_info_flags_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: true
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accommodation_info_flags_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       accommodation_kol_settings: {
         Row: {
           accommodation_id: string
@@ -600,6 +687,48 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "accommodation_info"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      ad_video_creator_rules: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          keyword: string
+          sort_order: number | null
+          video_creator_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          keyword: string
+          sort_order?: number | null
+          video_creator_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          keyword?: string
+          sort_order?: number | null
+          video_creator_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_video_creator_rules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "ad_video_creator_rules_video_creator_id_fkey"
+            columns: ["video_creator_id"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -1205,6 +1334,53 @@ export type Database = {
           },
         ]
       }
+      commission_payout_rules: {
+        Row: {
+          commission_type: string
+          created_at: string | null
+          created_by: string | null
+          cutoff_description: string | null
+          cycle_type: string | null
+          effective_from: string
+          id: string
+          payout_days: number[] | null
+          rule_name: string | null
+          settlement_offset_days: number | null
+        }
+        Insert: {
+          commission_type: string
+          created_at?: string | null
+          created_by?: string | null
+          cutoff_description?: string | null
+          cycle_type?: string | null
+          effective_from: string
+          id?: string
+          payout_days?: number[] | null
+          rule_name?: string | null
+          settlement_offset_days?: number | null
+        }
+        Update: {
+          commission_type?: string
+          created_at?: string | null
+          created_by?: string | null
+          cutoff_description?: string | null
+          cycle_type?: string | null
+          effective_from?: string
+          id?: string
+          payout_days?: number[] | null
+          rule_name?: string | null
+          settlement_offset_days?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_payout_rules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       commission_records: {
         Row: {
           accommodation_id: string
@@ -1285,6 +1461,41 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      common_ad_ids: {
+        Row: {
+          ad_id: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          label: string
+          sort_order: number | null
+        }
+        Insert: {
+          ad_id: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          label: string
+          sort_order?: number | null
+        }
+        Update: {
+          ad_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          label?: string
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "common_ad_ids_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -1785,6 +1996,54 @@ export type Database = {
           },
         ]
       }
+      external_order_import_settings: {
+        Row: {
+          accommodation_id: string | null
+          created_at: string | null
+          created_by: string | null
+          field_mapping: Json | null
+          id: string
+          last_import_at: string | null
+          platform_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          accommodation_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          field_mapping?: Json | null
+          id?: string
+          last_import_at?: string | null
+          platform_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          accommodation_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          field_mapping?: Json | null
+          id?: string
+          last_import_at?: string | null
+          platform_name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_order_import_settings_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_order_import_settings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       faqs: {
         Row: {
           accommodation_id: string | null
@@ -1823,6 +2082,165 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "accommodation_info"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      franchise_orders: {
+        Row: {
+          accommodation_type: string | null
+          commission_amount: number | null
+          commission_rate: number | null
+          company_amount: number | null
+          company_rate: number | null
+          contract_uploaded: boolean | null
+          created_at: string | null
+          created_by: string | null
+          customer_name: string
+          customer_phone: string | null
+          id: string
+          import_source: string | null
+          invoice_number: string | null
+          leader_amount: number | null
+          leader_rate: number | null
+          multiplier_applied: number | null
+          multiplier_reason: string | null
+          notes: string | null
+          payment_at: string | null
+          payment_confirmed: boolean | null
+          payout_date: string | null
+          payout_status: string | null
+          plan_name: string | null
+          plan_price: number
+          quantity: number | null
+          settled_at: string | null
+          sold_at: string | null
+          sold_by: string
+          team_leader: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          accommodation_type?: string | null
+          commission_amount?: number | null
+          commission_rate?: number | null
+          company_amount?: number | null
+          company_rate?: number | null
+          contract_uploaded?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          customer_name: string
+          customer_phone?: string | null
+          id?: string
+          import_source?: string | null
+          invoice_number?: string | null
+          leader_amount?: number | null
+          leader_rate?: number | null
+          multiplier_applied?: number | null
+          multiplier_reason?: string | null
+          notes?: string | null
+          payment_at?: string | null
+          payment_confirmed?: boolean | null
+          payout_date?: string | null
+          payout_status?: string | null
+          plan_name?: string | null
+          plan_price: number
+          quantity?: number | null
+          settled_at?: string | null
+          sold_at?: string | null
+          sold_by: string
+          team_leader?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          accommodation_type?: string | null
+          commission_amount?: number | null
+          commission_rate?: number | null
+          company_amount?: number | null
+          company_rate?: number | null
+          contract_uploaded?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          customer_name?: string
+          customer_phone?: string | null
+          id?: string
+          import_source?: string | null
+          invoice_number?: string | null
+          leader_amount?: number | null
+          leader_rate?: number | null
+          multiplier_applied?: number | null
+          multiplier_reason?: string | null
+          notes?: string | null
+          payment_at?: string | null
+          payment_confirmed?: boolean | null
+          payout_date?: string | null
+          payout_status?: string | null
+          plan_name?: string | null
+          plan_price?: number
+          quantity?: number | null
+          settled_at?: string | null
+          sold_at?: string | null
+          sold_by?: string
+          team_leader?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "franchise_orders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "franchise_orders_sold_by_fkey"
+            columns: ["sold_by"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "franchise_orders_team_leader_fkey"
+            columns: ["team_leader"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      franchise_plan_settings: {
+        Row: {
+          accommodation_type: string | null
+          created_at: string | null
+          created_by: string | null
+          effective_from: string
+          id: string
+          plan_name: string
+          price: number
+        }
+        Insert: {
+          accommodation_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          effective_from: string
+          id?: string
+          plan_name: string
+          price: number
+        }
+        Update: {
+          accommodation_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          effective_from?: string
+          id?: string
+          plan_name?: string
+          price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "franchise_plan_settings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -2371,6 +2789,84 @@ export type Database = {
           },
         ]
       }
+      meta_ad_weekly: {
+        Row: {
+          campaign_id: string
+          campaign_name: string | null
+          date_range: string
+          id: string
+          impressions: number | null
+          msg_started: number | null
+          reach: number | null
+          spend: number | null
+          status: string | null
+          synced_at: string | null
+        }
+        Insert: {
+          campaign_id: string
+          campaign_name?: string | null
+          date_range: string
+          id?: string
+          impressions?: number | null
+          msg_started?: number | null
+          reach?: number | null
+          spend?: number | null
+          status?: string | null
+          synced_at?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          campaign_name?: string | null
+          date_range?: string
+          id?: string
+          impressions?: number | null
+          msg_started?: number | null
+          reach?: number | null
+          spend?: number | null
+          status?: string | null
+          synced_at?: string | null
+        }
+        Relationships: []
+      }
+      meta_ads: {
+        Row: {
+          ad_id: string
+          ad_name: string | null
+          campaign_id: string | null
+          campaign_name: string | null
+          created_time: string | null
+          id: string
+          start_date: string | null
+          status: string | null
+          stop_date: string | null
+          synced_at: string | null
+        }
+        Insert: {
+          ad_id: string
+          ad_name?: string | null
+          campaign_id?: string | null
+          campaign_name?: string | null
+          created_time?: string | null
+          id?: string
+          start_date?: string | null
+          status?: string | null
+          stop_date?: string | null
+          synced_at?: string | null
+        }
+        Update: {
+          ad_id?: string
+          ad_name?: string | null
+          campaign_id?: string | null
+          campaign_name?: string | null
+          created_time?: string | null
+          id?: string
+          start_date?: string | null
+          status?: string | null
+          stop_date?: string | null
+          synced_at?: string | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           accommodation_id: string
@@ -2416,6 +2912,188 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "orders"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_commissions: {
+        Row: {
+          amount: number
+          base_amount: number
+          calculated_at: string | null
+          id: string
+          locked_at: string | null
+          member_id: string
+          multiplier_applied: number | null
+          multiplier_reason: string | null
+          order_id: string
+          order_meta_id: string | null
+          payout_date: string | null
+          payout_rule_id: string | null
+          payout_status: string | null
+          rate_effective_from: string | null
+          rate_snapshot: number | null
+          role: string
+        }
+        Insert: {
+          amount: number
+          base_amount: number
+          calculated_at?: string | null
+          id?: string
+          locked_at?: string | null
+          member_id: string
+          multiplier_applied?: number | null
+          multiplier_reason?: string | null
+          order_id: string
+          order_meta_id?: string | null
+          payout_date?: string | null
+          payout_rule_id?: string | null
+          payout_status?: string | null
+          rate_effective_from?: string | null
+          rate_snapshot?: number | null
+          role: string
+        }
+        Update: {
+          amount?: number
+          base_amount?: number
+          calculated_at?: string | null
+          id?: string
+          locked_at?: string | null
+          member_id?: string
+          multiplier_applied?: number | null
+          multiplier_reason?: string | null
+          order_id?: string
+          order_meta_id?: string | null
+          payout_date?: string | null
+          payout_rule_id?: string | null
+          payout_status?: string | null
+          rate_effective_from?: string | null
+          rate_snapshot?: number | null
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_commissions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "order_commissions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_commissions_order_meta_id_fkey"
+            columns: ["order_meta_id"]
+            isOneToOne: false
+            referencedRelation: "order_meta"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_meta: {
+        Row: {
+          accommodation_id: string | null
+          ad_id: string | null
+          booking_method: string | null
+          closer_id: string | null
+          exclusion_note: string | null
+          filled_at: string | null
+          filled_by: string | null
+          id: string
+          import_source: string | null
+          influencer_cid: string | null
+          is_excluded: boolean | null
+          kol_commission_only: boolean | null
+          order_id: string
+          scout_id: string | null
+          traffic_source: string | null
+          updated_at: string | null
+          video_creator_id: string | null
+        }
+        Insert: {
+          accommodation_id?: string | null
+          ad_id?: string | null
+          booking_method?: string | null
+          closer_id?: string | null
+          exclusion_note?: string | null
+          filled_at?: string | null
+          filled_by?: string | null
+          id?: string
+          import_source?: string | null
+          influencer_cid?: string | null
+          is_excluded?: boolean | null
+          kol_commission_only?: boolean | null
+          order_id: string
+          scout_id?: string | null
+          traffic_source?: string | null
+          updated_at?: string | null
+          video_creator_id?: string | null
+        }
+        Update: {
+          accommodation_id?: string | null
+          ad_id?: string | null
+          booking_method?: string | null
+          closer_id?: string | null
+          exclusion_note?: string | null
+          filled_at?: string | null
+          filled_by?: string | null
+          id?: string
+          import_source?: string | null
+          influencer_cid?: string | null
+          is_excluded?: boolean | null
+          kol_commission_only?: boolean | null
+          order_id?: string
+          scout_id?: string | null
+          traffic_source?: string | null
+          updated_at?: string | null
+          video_creator_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_meta_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_meta_closer_id_fkey"
+            columns: ["closer_id"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "order_meta_filled_by_fkey"
+            columns: ["filled_by"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "order_meta_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_meta_scout_id_fkey"
+            columns: ["scout_id"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "order_meta_video_creator_id_fkey"
+            columns: ["video_creator_id"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -3273,6 +3951,78 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      performance_notification_settings: {
+        Row: {
+          accommodation_id: string
+          email_template: string | null
+          enabled: boolean | null
+          franchise_booking_target: number | null
+          franchise_sales_target: number | null
+          franchise_sales_year_target: number | null
+          general_booking_target: number | null
+          id: string
+          notify_time: string | null
+          show_franchise_booking: boolean | null
+          show_franchise_sales: boolean | null
+          show_general_booking: boolean | null
+          show_starlink: boolean | null
+          starlink_target: number | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          accommodation_id: string
+          email_template?: string | null
+          enabled?: boolean | null
+          franchise_booking_target?: number | null
+          franchise_sales_target?: number | null
+          franchise_sales_year_target?: number | null
+          general_booking_target?: number | null
+          id?: string
+          notify_time?: string | null
+          show_franchise_booking?: boolean | null
+          show_franchise_sales?: boolean | null
+          show_general_booking?: boolean | null
+          show_starlink?: boolean | null
+          starlink_target?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          accommodation_id?: string
+          email_template?: string | null
+          enabled?: boolean | null
+          franchise_booking_target?: number | null
+          franchise_sales_target?: number | null
+          franchise_sales_year_target?: number | null
+          general_booking_target?: number | null
+          id?: string
+          notify_time?: string | null
+          show_franchise_booking?: boolean | null
+          show_franchise_sales?: boolean | null
+          show_general_booking?: boolean | null
+          show_starlink?: boolean | null
+          starlink_target?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_notification_settings_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: true
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_notification_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       permission_templates: {
         Row: {
@@ -4181,6 +4931,280 @@ export type Database = {
           },
         ]
       }
+      scout_monthly_payouts: {
+        Row: {
+          base_salary: number | null
+          base_salary_rule: Json | null
+          calculated_at: string | null
+          data_source: string | null
+          id: string
+          import_note: string | null
+          individual_achieved: boolean | null
+          individual_target_snapshot: Json | null
+          kol_commission: number | null
+          kol_commission_rate: number | null
+          locked_at: string | null
+          month: number
+          multiplier_applied: number | null
+          multiplier_reason: string | null
+          payout_date: string | null
+          payout_status: string | null
+          scout_id: string
+          team_achieved: boolean | null
+          team_bonus: number | null
+          team_bonus_rule: Json | null
+          team_target_snapshot: Json | null
+          total_payout: number | null
+          year: number
+        }
+        Insert: {
+          base_salary?: number | null
+          base_salary_rule?: Json | null
+          calculated_at?: string | null
+          data_source?: string | null
+          id?: string
+          import_note?: string | null
+          individual_achieved?: boolean | null
+          individual_target_snapshot?: Json | null
+          kol_commission?: number | null
+          kol_commission_rate?: number | null
+          locked_at?: string | null
+          month: number
+          multiplier_applied?: number | null
+          multiplier_reason?: string | null
+          payout_date?: string | null
+          payout_status?: string | null
+          scout_id: string
+          team_achieved?: boolean | null
+          team_bonus?: number | null
+          team_bonus_rule?: Json | null
+          team_target_snapshot?: Json | null
+          total_payout?: number | null
+          year: number
+        }
+        Update: {
+          base_salary?: number | null
+          base_salary_rule?: Json | null
+          calculated_at?: string | null
+          data_source?: string | null
+          id?: string
+          import_note?: string | null
+          individual_achieved?: boolean | null
+          individual_target_snapshot?: Json | null
+          kol_commission?: number | null
+          kol_commission_rate?: number | null
+          locked_at?: string | null
+          month?: number
+          multiplier_applied?: number | null
+          multiplier_reason?: string | null
+          payout_date?: string | null
+          payout_status?: string | null
+          scout_id?: string
+          team_achieved?: boolean | null
+          team_bonus?: number | null
+          team_bonus_rule?: Json | null
+          team_target_snapshot?: Json | null
+          total_payout?: number | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scout_monthly_payouts_scout_id_fkey"
+            columns: ["scout_id"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      scout_monthly_targets: {
+        Row: {
+          accommodation_id: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          month: number
+          scout_id: string
+          target_count: number
+          updated_at: string | null
+          year: number
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          month: number
+          scout_id: string
+          target_count?: number
+          updated_at?: string | null
+          year: number
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          month?: number
+          scout_id?: string
+          target_count?: number
+          updated_at?: string | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scout_monthly_targets_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scout_monthly_targets_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "scout_monthly_targets_scout_id_fkey"
+            columns: ["scout_id"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      scout_salary_settings: {
+        Row: {
+          base_salary: number
+          created_at: string | null
+          created_by: string | null
+          effective_from: string
+          id: string
+          team_bonus: number
+          team_threshold_pct: number
+        }
+        Insert: {
+          base_salary?: number
+          created_at?: string | null
+          created_by?: string | null
+          effective_from: string
+          id?: string
+          team_bonus?: number
+          team_threshold_pct?: number
+        }
+        Update: {
+          base_salary?: number
+          created_at?: string | null
+          created_by?: string | null
+          effective_from?: string
+          id?: string
+          team_bonus?: number
+          team_threshold_pct?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scout_salary_settings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      scout_team_targets: {
+        Row: {
+          accommodation_id: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          month: number
+          target_count: number
+          updated_at: string | null
+          year: number
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          month: number
+          target_count?: number
+          updated_at?: string | null
+          year: number
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          month?: number
+          target_count?: number
+          updated_at?: string | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scout_team_targets_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scout_team_targets_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      scout_tier_settings: {
+        Row: {
+          commission_rate: number
+          created_at: string | null
+          created_by: string | null
+          effective_from: string
+          id: string
+          max_count: number | null
+          min_count: number
+          sort_order: number | null
+          tier_name: string
+        }
+        Insert: {
+          commission_rate: number
+          created_at?: string | null
+          created_by?: string | null
+          effective_from: string
+          id?: string
+          max_count?: number | null
+          min_count: number
+          sort_order?: number | null
+          tier_name: string
+        }
+        Update: {
+          commission_rate?: number
+          created_at?: string | null
+          created_by?: string | null
+          effective_from?: string
+          id?: string
+          max_count?: number | null
+          min_count?: number
+          sort_order?: number | null
+          tier_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scout_tier_settings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       split_records: {
         Row: {
           accommodation_amount: number
@@ -4345,6 +5369,155 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      starlink_orders: {
+        Row: {
+          business_type: string | null
+          client_name: string
+          client_tax_id: string | null
+          commission_amount: number | null
+          commission_rate: number | null
+          contract_uploaded: boolean | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          import_source: string | null
+          invoice_number: string | null
+          level_at_sale: string | null
+          multiplier_applied: number | null
+          multiplier_reason: string | null
+          notes: string | null
+          payment_confirmed: boolean | null
+          payment_last5: string | null
+          payout_date: string | null
+          payout_status: string | null
+          plan_name: string | null
+          plan_price: number
+          settlement_date: string | null
+          sold_at: string | null
+          sold_by: string
+          updated_at: string | null
+        }
+        Insert: {
+          business_type?: string | null
+          client_name: string
+          client_tax_id?: string | null
+          commission_amount?: number | null
+          commission_rate?: number | null
+          contract_uploaded?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          import_source?: string | null
+          invoice_number?: string | null
+          level_at_sale?: string | null
+          multiplier_applied?: number | null
+          multiplier_reason?: string | null
+          notes?: string | null
+          payment_confirmed?: boolean | null
+          payment_last5?: string | null
+          payout_date?: string | null
+          payout_status?: string | null
+          plan_name?: string | null
+          plan_price: number
+          settlement_date?: string | null
+          sold_at?: string | null
+          sold_by: string
+          updated_at?: string | null
+        }
+        Update: {
+          business_type?: string | null
+          client_name?: string
+          client_tax_id?: string | null
+          commission_amount?: number | null
+          commission_rate?: number | null
+          contract_uploaded?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          import_source?: string | null
+          invoice_number?: string | null
+          level_at_sale?: string | null
+          multiplier_applied?: number | null
+          multiplier_reason?: string | null
+          notes?: string | null
+          payment_confirmed?: boolean | null
+          payment_last5?: string | null
+          payout_date?: string | null
+          payout_status?: string | null
+          plan_name?: string | null
+          plan_price?: number
+          settlement_date?: string | null
+          sold_at?: string | null
+          sold_by?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "starlink_orders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "starlink_orders_sold_by_fkey"
+            columns: ["sold_by"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      starlink_tier_settings: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          effective_from: string
+          id: string
+          level: string
+          max_count: number | null
+          min_count: number
+          per_order_rate: number | null
+          signup_bonus_rate: number | null
+          sort_order: number | null
+          tier_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          effective_from: string
+          id?: string
+          level: string
+          max_count?: number | null
+          min_count: number
+          per_order_rate?: number | null
+          signup_bonus_rate?: number | null
+          sort_order?: number | null
+          tier_name: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          effective_from?: string
+          id?: string
+          level?: string
+          max_count?: number | null
+          min_count?: number
+          per_order_rate?: number | null
+          signup_bonus_rate?: number | null
+          sort_order?: number | null
+          tier_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "starlink_tier_settings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       system_health_logs: {
         Row: {
