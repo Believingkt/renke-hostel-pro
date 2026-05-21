@@ -1018,25 +1018,27 @@ const Headquarters = () => {
                       disabled={isSubmitting}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="accommodation">旅館</Label>
-                    <Select 
-                      value={selectedAccommodation} 
-                      onValueChange={setSelectedAccommodation}
-                      disabled={isSubmitting}
-                    >
-                      <SelectTrigger id="accommodation">
-                        <SelectValue placeholder="選擇旅館" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {accommodations.map((accommodation) => (
-                          <SelectItem key={accommodation.id} value={accommodation.id}>
-                            {accommodation.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {selectedRole !== "super_admin" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="accommodation">旅館</Label>
+                      <Select 
+                        value={selectedAccommodation} 
+                        onValueChange={setSelectedAccommodation}
+                        disabled={isSubmitting}
+                      >
+                        <SelectTrigger id="accommodation">
+                          <SelectValue placeholder="選擇旅館" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {accommodations.map((accommodation) => (
+                            <SelectItem key={accommodation.id} value={accommodation.id}>
+                              {accommodation.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="role">角色</Label>
                     <Select 
