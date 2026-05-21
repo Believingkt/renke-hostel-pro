@@ -639,7 +639,7 @@ function SettingsTab({ canManage }: { canManage: boolean }) {
                 </TableCell>
               </TableRow>
             ) : (
-              members.map((m) => {
+              members.filter((m) => settingsByMember[m.user_id]).map((m) => {
                 const s = settingsByMember[m.user_id];
                 return (
                   <TableRow key={m.user_id}>
