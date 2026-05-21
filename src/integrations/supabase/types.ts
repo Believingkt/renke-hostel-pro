@@ -2117,7 +2117,7 @@ export type Database = {
           quantity: number | null
           settled_at: string | null
           sold_at: string | null
-          sold_by: string
+          sold_by: string | null
           sold_by_name: string | null
           team_leader: string | null
           updated_at: string | null
@@ -2150,7 +2150,7 @@ export type Database = {
           quantity?: number | null
           settled_at?: string | null
           sold_at?: string | null
-          sold_by: string
+          sold_by?: string | null
           sold_by_name?: string | null
           team_leader?: string | null
           updated_at?: string | null
@@ -2183,7 +2183,7 @@ export type Database = {
           quantity?: number | null
           settled_at?: string | null
           sold_at?: string | null
-          sold_by?: string
+          sold_by?: string | null
           sold_by_name?: string | null
           team_leader?: string | null
           updated_at?: string | null
