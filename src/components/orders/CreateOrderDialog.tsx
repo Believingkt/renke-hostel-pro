@@ -695,13 +695,13 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   };
 
   // Calculate totals
-  const getTotals = () => {
+  const calculateTotalsForSelections = (selections: RoomSelection[]) => {
     const addonTotal = selectedAddons.reduce((sum, a) => {
       const addon = addonSettings.find(ad => ad.id === a.addon_id);
       return sum + (addon ? addon.price_per_unit * a.quantity : 0);
     }, 0);
-    // Use roomSelections prices directly to avoid stale roomPrice state
-    const actualRoomTotal = roomSelections.reduce((sum, sel) => sum + sel.roomPrice, 0);
+    // Use explicit selection prices to avoid stale roomPrice state during submit
+    const actualRoomTotal = selections.reduce((sum, sel) => sum + sel.roomPrice, 0);
     const codeDiscount = calculateDiscount(actualRoomTotal);
     const discount = manualDiscountStr !== null
       ? Math.max(0, parseInt(manualDiscountStr) || 0)
@@ -710,6 +710,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     const final_ = Math.max(0, actualRoomTotal - discount + addonTotal);
     return { roomTotal: actualRoomTotal, addonTotal, subtotal, discount, final: final_ };
   };
+
+  const getTotals = () => calculateTotalsForSelections(roomSelections);
 
   const handleSave = async () => {
     if (!form.guest_name.trim()) {
@@ -786,6 +788,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
     try {
       // Recompute room prices synchronously to avoid stale 0 values from async useEffect race
+      let pricedRoomSelections = roomSelections.map(sel => ({ ...sel }));
       const nights = calculateNights();
       if (nights > 0) {
         const dates: string[] = [];
@@ -795,7 +798,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           d.setDate(start.getDate() + i);
           dates.push(format(d, "yyyy-MM-dd"));
         }
-        for (const sel of roomSelections) {
+        for (const sel of pricedRoomSelections) {
           const template = pricingTemplates.find(t => t.id === sel.template_id);
           const priceMap = await resolveTemplatePricesForDates({
             roomTypeId: sel.room_type_id,
@@ -814,11 +817,13 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           }
         }
       }
-      const totals = getTotals();
+      const totals = calculateTotalsForSelections(pricedRoomSelections);
+      setRoomSelections(pricedRoomSelections);
+      setRoomPrice(totals.roomTotal);
 
       // 防呆：若房費總額為 0，提醒使用者（通常是該房型在該日期沒有設定專案/庫存價）
       if (totals.roomTotal <= 0) {
-        const missing = roomSelections
+        const missing = pricedRoomSelections
           .map(sel => roomTypes.find(r => r.id === sel.room_type_id)?.name)
           .filter(Boolean)
           .join("、");
@@ -879,7 +884,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       if (orderNumberError) throw orderNumberError;
 
       // Use first room selection as primary room_type_id
-      const primaryRoom = roomSelections[0];
+      const primaryRoom = pricedRoomSelections[0];
 
       const { data: orderData, error } = await supabase.from("orders").insert({
         accommodation_id: currentAccommodationId,
@@ -906,7 +911,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             pkgLines.push(`【${exclusiveLabel}房間配置】雙人房 ${exclusiveDoubleRooms} 間、四人房 ${exclusiveQuadRooms} 間`);
           }
           // 額外加棟（roomSelections[1..]）的包棟配置
-          roomSelections.slice(1).forEach(sel => {
+          pricedRoomSelections.slice(1).forEach(sel => {
             const isExc = !!roomTypes.find(r => r.id === sel.room_type_id)?.is_exclusive_package;
             if (!isExc) return;
             const cfg = extraExclusiveConfigs[sel.id];
@@ -946,11 +951,11 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
       if (error) throw error;
 
-      const automaticRoomUnitAssignments = await getAutomaticRoomUnitAssignments(roomSelections);
+      const automaticRoomUnitAssignments = await getAutomaticRoomUnitAssignments(pricedRoomSelections);
 
       // Insert order_rooms
-      if (orderData?.id && roomSelections.length > 0) {
-        const orderRooms = roomSelections.map(sel => ({
+      if (orderData?.id && pricedRoomSelections.length > 0) {
+        const orderRooms = pricedRoomSelections.map(sel => ({
           order_id: orderData.id,
           room_type_id: sel.room_type_id,
           quantity: sel.quantity,
