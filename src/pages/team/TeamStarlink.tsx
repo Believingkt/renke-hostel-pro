@@ -54,6 +54,8 @@ interface Tier {
 interface StarlinkOrder {
   id: string;
   client_name: string;
+  client_tax_id: string | null;
+  business_type: string | null;
   plan_name: string | null;
   plan_price: number;
   sold_by: string;
@@ -62,7 +64,11 @@ interface StarlinkOrder {
   commission_amount: number | null;
   sold_at: string | null;
   payment_confirmed: boolean | null;
+  payment_last5: string | null;
+  invoice_number: string | null;
+  contract_uploaded: boolean | null;
   payout_status: string | null;
+  notes: string | null;
 }
 
 
@@ -153,6 +159,73 @@ function OrdersTab({
   });
   const [saving, setSaving] = useState(false);
 
+  const [editOpen, setEditOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({
+    client_name: "",
+    client_tax_id: "",
+    business_type: "",
+    plan_name: "",
+    sold_by: "",
+    sold_at: "",
+    payment_confirmed: false,
+    payment_last5: "",
+    invoice_number: "",
+    contract_uploaded: false,
+    payout_status: "pending",
+    notes: "",
+  });
+  const [editSaving, setEditSaving] = useState(false);
+
+  const openEdit = (o: StarlinkOrder) => {
+    setEditId(o.id);
+    setEditForm({
+      client_name: o.client_name ?? "",
+      client_tax_id: o.client_tax_id ?? "",
+      business_type: o.business_type ?? "",
+      plan_name: o.plan_name ?? "",
+      sold_by: o.sold_by ?? "",
+      sold_at: o.sold_at ?? "",
+      payment_confirmed: !!o.payment_confirmed,
+      payment_last5: o.payment_last5 ?? "",
+      invoice_number: o.invoice_number ?? "",
+      contract_uploaded: !!o.contract_uploaded,
+      payout_status: o.payout_status ?? "pending",
+      notes: o.notes ?? "",
+    });
+    setEditOpen(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!editId) return;
+    setEditSaving(true);
+    const { error } = await supabase
+      .from("starlink_orders")
+      .update({
+        client_name: editForm.client_name.trim(),
+        client_tax_id: editForm.client_tax_id.trim() || null,
+        business_type: editForm.business_type.trim() || null,
+        plan_name: editForm.plan_name || null,
+        sold_by: editForm.sold_by || null,
+        sold_at: editForm.sold_at || null,
+        payment_confirmed: editForm.payment_confirmed,
+        payment_last5: editForm.payment_last5.trim() || null,
+        invoice_number: editForm.invoice_number.trim() || null,
+        contract_uploaded: editForm.contract_uploaded,
+        payout_status: editForm.payout_status,
+        notes: editForm.notes.trim() || null,
+      })
+      .eq("id", editId);
+    setEditSaving(false);
+    if (error) {
+      toast.error("更新失敗：" + error.message);
+      return;
+    }
+    toast.success("已更新");
+    setEditOpen(false);
+    void loadAll();
+  };
+
   useEffect(() => {
     void loadAll();
   }, []);
@@ -162,7 +235,7 @@ function OrdersTab({
       supabase
         .from("starlink_orders")
         .select(
-          "id,client_name,plan_name,plan_price,sold_by,level_at_sale,commission_rate,commission_amount,sold_at,payment_confirmed,payout_status",
+          "id,client_name,client_tax_id,business_type,plan_name,plan_price,sold_by,level_at_sale,commission_rate,commission_amount,sold_at,payment_confirmed,payment_last5,invoice_number,contract_uploaded,payout_status,notes",
         )
         .order("sold_at", { ascending: false }),
       supabase.rpc("get_team_role_members", { p_role: "starlink" }),
@@ -341,12 +414,19 @@ function OrdersTab({
                 <TableHead>成交日期</TableHead>
                 <TableHead>付款</TableHead>
                 <TableHead>結算</TableHead>
+                <TableHead>統編</TableHead>
+                <TableHead>行業類型</TableHead>
+                <TableHead>匯款末5碼</TableHead>
+                <TableHead>發票號碼</TableHead>
+                <TableHead>合約</TableHead>
+                <TableHead>備註</TableHead>
+                <TableHead className="text-right">編輯</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center text-muted-foreground py-12">
+                  <TableCell colSpan={17} className="text-center text-muted-foreground py-12">
                     尚無訂單資料
                   </TableCell>
                 </TableRow>
@@ -370,6 +450,21 @@ function OrdersTab({
                       <Badge variant={o.payout_status === "paid" ? "success" : "secondary"}>
                         {o.payout_status === "paid" ? "已發放" : "待結算"}
                       </Badge>
+                    </TableCell>
+                    <TableCell>{o.client_tax_id ?? "—"}</TableCell>
+                    <TableCell>{o.business_type ?? "—"}</TableCell>
+                    <TableCell>{o.payment_last5 ?? "—"}</TableCell>
+                    <TableCell>{o.invoice_number ?? "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant={o.contract_uploaded ? "success" : "secondary"}>
+                        {o.contract_uploaded ? "已上傳" : "未上傳"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="max-w-[200px] truncate" title={o.notes ?? ""}>{o.notes ?? "—"}</TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(o)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))
@@ -491,6 +586,134 @@ function OrdersTab({
             </Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving ? "儲存中..." : "儲存"}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={editOpen} onOpenChange={setEditOpen}>
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>編輯星鏈訂單</SheetTitle>
+          </SheetHeader>
+          <div className="space-y-3 mt-4">
+            <div className="space-y-1">
+              <Label>客戶名稱</Label>
+              <Input
+                value={editForm.client_name}
+                onChange={(e) => setEditForm({ ...editForm, client_name: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label>統編</Label>
+                <Input
+                  value={editForm.client_tax_id}
+                  onChange={(e) => setEditForm({ ...editForm, client_tax_id: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>行業類型</Label>
+                <Input
+                  value={editForm.business_type}
+                  onChange={(e) => setEditForm({ ...editForm, business_type: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>方案</Label>
+              <Select
+                value={editForm.plan_name || undefined}
+                onValueChange={(v) => setEditForm({ ...editForm, plan_name: v })}
+              >
+                <SelectTrigger><SelectValue placeholder="選擇方案" /></SelectTrigger>
+                <SelectContent>
+                  {plans.map((p) => (
+                    <SelectItem key={p.id} value={p.plan_name}>
+                      {p.plan_name}（{fmtMoney(p.price)}）
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>銷售人</Label>
+              <Select
+                value={editForm.sold_by || undefined}
+                onValueChange={(v) => setEditForm({ ...editForm, sold_by: v })}
+              >
+                <SelectTrigger><SelectValue placeholder="選擇銷售人" /></SelectTrigger>
+                <SelectContent>
+                  {members.map((m) => (
+                    <SelectItem key={m.user_id} value={m.user_id}>{m.display_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>成交日期</Label>
+              <Input
+                type="date"
+                value={editForm.sold_at}
+                onChange={(e) => setEditForm({ ...editForm, sold_at: e.target.value })}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="edit_payment_confirmed_sl"
+                checked={editForm.payment_confirmed}
+                onCheckedChange={(v) => setEditForm({ ...editForm, payment_confirmed: !!v })}
+              />
+              <Label htmlFor="edit_payment_confirmed_sl">付款已確認</Label>
+            </div>
+            <div className="space-y-1">
+              <Label>匯款末5碼</Label>
+              <Input
+                value={editForm.payment_last5}
+                onChange={(e) => setEditForm({ ...editForm, payment_last5: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>發票號碼</Label>
+              <Input
+                value={editForm.invoice_number}
+                onChange={(e) => setEditForm({ ...editForm, invoice_number: e.target.value })}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="edit_contract_uploaded"
+                checked={editForm.contract_uploaded}
+                onCheckedChange={(v) => setEditForm({ ...editForm, contract_uploaded: !!v })}
+              />
+              <Label htmlFor="edit_contract_uploaded">合約已上傳</Label>
+            </div>
+            <div className="space-y-1">
+              <Label>結算狀態</Label>
+              <Select
+                value={editForm.payout_status}
+                onValueChange={(v) => setEditForm({ ...editForm, payout_status: v })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">待結算</SelectItem>
+                  <SelectItem value="paid">已發放</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>備註</Label>
+              <Textarea
+                rows={3}
+                value={editForm.notes}
+                onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+              />
+            </div>
+          </div>
+          <SheetFooter className="mt-4">
+            <Button variant="outline" onClick={() => setEditOpen(false)}>取消</Button>
+            <Button onClick={handleEditSave} disabled={editSaving}>
+              {editSaving ? "儲存中..." : "儲存"}
             </Button>
           </SheetFooter>
         </SheetContent>
