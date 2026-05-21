@@ -414,12 +414,19 @@ function OrdersTab({
                 <TableHead>成交日期</TableHead>
                 <TableHead>付款</TableHead>
                 <TableHead>結算</TableHead>
+                <TableHead>統編</TableHead>
+                <TableHead>行業類型</TableHead>
+                <TableHead>匯款末5碼</TableHead>
+                <TableHead>發票號碼</TableHead>
+                <TableHead>合約</TableHead>
+                <TableHead>備註</TableHead>
+                <TableHead className="text-right">編輯</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center text-muted-foreground py-12">
+                  <TableCell colSpan={17} className="text-center text-muted-foreground py-12">
                     尚無訂單資料
                   </TableCell>
                 </TableRow>
