@@ -190,6 +190,7 @@ interface EditFormState {
   meal_plan_total: number;
   custom_addon_details: CustomAddonDetail[];
   addon_total: number;
+  addon_note: string;
 }
 
 const OrderDetailPage = () => {
@@ -376,6 +377,7 @@ const OrderDetailPage = () => {
     meal_plan_total: 0,
     custom_addon_details: [],
     addon_total: 0,
+    addon_note: "",
   });
   const [discountCodeError, setDiscountCodeError] = useState("");
   const [canUnlockPaidOrderDiscount, setCanUnlockPaidOrderDiscount] = useState(false);
@@ -475,6 +477,10 @@ const OrderDetailPage = () => {
         const petTotal = (order.pet_plan_price || 0) > 0 ? (order.pet_plan_price || 0) : petFromCustom;
         const mealTotal = (order.meal_plan_total || 0) > 0 ? (order.meal_plan_total || 0) : mealFromCustom;
         return petTotal + mealTotal + otherCustom;
+      })(),
+      addon_note: (() => {
+        const m = (order.notes || "").match(/^【加購備註】(.*)$/m);
+        return m ? m[1].trim() : "";
       })(),
     });
     // Initialize edit order rooms
@@ -664,12 +670,18 @@ const OrderDetailPage = () => {
       // If any edited room is an exclusive package, regenerate one [包區/包棟房間配置] line per 包棟
       const exclusiveRows = editOrderRooms.filter(r => roomTypes.find(t => t.id === r.room_type_id)?.is_exclusive_package);
       let finalNotes = editForm.notes.trim();
-      // Strip any existing 包區/包棟房間配置 lines first
+      // Strip any existing 包區/包棟房間配置 lines and 加購備註 lines first
       finalNotes = finalNotes
         .split("\n")
         .filter(line => !/^【\s*(?:包區|包棟)\s*房間配置\s*】/.test(line.trim()))
+        .filter(line => !/^【加購備註】/.test(line.trim()))
         .join("\n")
         .trim();
+      // Prepend latest 加購備註 line
+      const addonNoteTrim = editForm.addon_note.trim();
+      if (addonNoteTrim) {
+        finalNotes = finalNotes ? `【加購備註】${addonNoteTrim}\n${finalNotes}` : `【加購備註】${addonNoteTrim}`;
+      }
       if (exclusiveRows.length > 0) {
         const pkgLines = exclusiveRows.map((_, i) => {
           const cfg = editExclusiveConfigs[i] || { double: 0, quad: 0 };
@@ -2326,6 +2338,15 @@ const OrderDetailPage = () => {
                     <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">加購方案金額</span>
                     <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right" type="text" inputMode="numeric" value={editForm.addon_total} onChange={(e) => setEditForm(f => ({ ...f, addon_total: Math.max(0, parseInt(e.target.value) || 0) }))} />
                   </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-sm md:text-sm text-muted-foreground">加購備註</span>
+                    <Textarea
+                      className="min-h-[60px] text-base md:text-sm"
+                      placeholder="例如：加購早餐 x2、額外床墊 x1"
+                      value={editForm.addon_note}
+                      onChange={(e) => setEditForm(f => ({ ...f, addon_note: e.target.value }))}
+                    />
+                  </div>
                 </>
               );
             })()}
@@ -2344,7 +2365,9 @@ const OrderDetailPage = () => {
                   items.push({ label: `${d.addon_type} (${d.count}${d.unit_label || '份'})`, amount: d.total });
                 }
               });
-              if (items.length === 0) return null;
+              const addonNoteMatch = (order.notes || "").match(/^【加購備註】(.*)$/m);
+              const addonNote = addonNoteMatch ? addonNoteMatch[1].trim() : "";
+              if (items.length === 0 && !addonNote) return null;
               const addonTotal = items.reduce((sum, i) => sum + i.amount, 0);
               return (
                 <>
@@ -2359,6 +2382,12 @@ const OrderDetailPage = () => {
                     <div className="flex justify-between items-center gap-2 pt-1">
                       <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">加購小計</span>
                       <span className="font-medium text-base md:text-base">NT$ {addonTotal.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {addonNote && (
+                    <div className="flex justify-between items-start gap-2 pt-1">
+                      <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">加購備註</span>
+                      <span className="text-sm md:text-sm text-right whitespace-pre-wrap break-words">{addonNote}</span>
                     </div>
                   )}
                 </>
