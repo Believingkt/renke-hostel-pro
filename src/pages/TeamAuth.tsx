@@ -12,7 +12,20 @@ import lokezeLogo from "@/assets/lokeze-logo-auth.png";
 import { useLoginThrottle } from "@/hooks/use-login-throttle";
 
 const TEAM_REMEMBER_EMAIL_KEY = "team_remember_email";
-const TEAM_ROLES = [
+type TeamRole =
+  | "super_admin"
+  | "admin"
+  | "closer"
+  | "scout"
+  | "scout_manager"
+  | "video"
+  | "franchise"
+  | "starlink"
+  | "kol"
+  | "owner"
+  | "finance";
+
+const TEAM_ROLES: TeamRole[] = [
   "super_admin",
   "admin",
   "closer",
@@ -24,7 +37,7 @@ const TEAM_ROLES = [
   "kol",
   "owner",
   "finance",
-] as const;
+];
 
 async function userHasTeamRole(userId: string): Promise<boolean> {
   const { data } = await supabase
