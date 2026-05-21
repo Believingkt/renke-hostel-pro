@@ -379,6 +379,7 @@ const OrderDetailPage = () => {
     custom_addon_details: [],
     addon_total: 0,
     addon_note: "",
+    extra_addon_amount: 0,
   });
   const [discountCodeError, setDiscountCodeError] = useState("");
   const [canUnlockPaidOrderDiscount, setCanUnlockPaidOrderDiscount] = useState(false);
