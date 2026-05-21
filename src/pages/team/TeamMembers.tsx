@@ -275,16 +275,12 @@ export default function TeamMembers() {
         const toRemove = [...original].filter((r) => !next.has(r));
 
         if (toAdd.length > 0) {
-          const { error } = await supabase.from("user_roles").upsert(
+          const { error } = await supabase.from("user_roles").insert(
             toAdd.map((role) => ({
               user_id: editTarget.user_id,
               accommodation_id: null,
               role,
             })),
-            {
-              onConflict: "user_id,accommodation_id,role",
-              ignoreDuplicates: true,
-            },
           );
           if (error) throw error;
         }
