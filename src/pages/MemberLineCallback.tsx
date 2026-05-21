@@ -21,6 +21,7 @@ const MemberLineCallback = () => {
   const ranRef = useRef(false);
 
   useEffect(() => {
+    console.log("[LINE callback] effect run, ranRef=", ranRef.current);
     // StrictMode dev mounts effects twice; ensure the OAuth code is only
     // exchanged once (LINE codes are single-use).
     if (ranRef.current) return;
