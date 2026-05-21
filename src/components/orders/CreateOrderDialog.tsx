@@ -91,7 +91,7 @@ interface InventoryWarning {
 interface CreateOrderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess: () => void;
+  onSuccess: (orderId: string) => void;
   initialData?: {
     check_in_date?: string;
     check_out_date?: string;
@@ -1041,7 +1041,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         description: `訂單 ${orderNumber} 已建立`,
       });
 
-      onSuccess();
+      onSuccess(orderData.id);
       onOpenChange(false);
     } catch (error: any) {
       console.error("Error creating order:", error);
