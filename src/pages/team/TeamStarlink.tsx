@@ -168,7 +168,7 @@ function OrdersTab({
       supabase
         .from("starlink_orders")
         .select(
-          "id,client_name,plan_name,plan_price,sold_by,level_at_sale,commission_rate,commission_amount,sold_at,payment_confirmed,payout_status",
+          "id,client_name,client_tax_id,business_type,plan_name,plan_price,sold_by,level_at_sale,commission_rate,commission_amount,sold_at,payment_confirmed,payment_last5,invoice_number,contract_uploaded,payout_status,notes",
         )
         .order("sold_at", { ascending: false }),
       supabase.rpc("get_team_role_members", { p_role: "starlink" }),
