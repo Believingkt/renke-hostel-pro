@@ -5894,6 +5894,13 @@ export type Database = {
         }
         Returns: Database["public"]["Enums"]["module_permission_level"]
       }
+      get_team_role_members: {
+        Args: { p_role: Database["public"]["Enums"]["app_role"] }
+        Returns: {
+          display_name: string
+          user_id: string
+        }[]
+      }
       get_user_accommodations: {
         Args: { _user_id: string }
         Returns: {

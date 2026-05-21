@@ -146,36 +146,44 @@ function OrdersTab({
   }, []);
 
   const loadAll = async () => {
-    const [o, m, t] = await Promise.all([
+    const [o, ftsRes] = await Promise.all([
       supabase
         .from("franchise_orders")
         .select(
           "id,customer_name,plan_name,plan_price,sold_by,team_leader,commission_rate,leader_rate,company_rate,commission_amount,leader_amount,company_amount,sold_at,payment_confirmed,payout_status",
         )
         .order("sold_at", { ascending: false }),
-      supabase
-        .from("franchise_team_settings")
-        .select("member_id, team_member_profiles!inner(user_id, display_name)"),
       supabase.from("franchise_team_settings").select("*"),
     ]);
     if (o.data) setOrders(o.data as FranchiseOrder[]);
-    if (m.data) {
-      const seen = new Set<string>();
-      const list: Member[] = [];
-      (m.data as any[]).forEach((row) => {
-        const pid = row.team_member_profiles?.user_id;
-        const pname = row.team_member_profiles?.display_name;
-        if (pid && !seen.has(pid)) {
-          seen.add(pid);
-          list.push({ user_id: pid, display_name: pname ?? pid });
+
+    const ftsRows = (ftsRes.data ?? []) as any[];
+    if (ftsRows.length > 0) {
+      const ids = Array.from(
+        new Set(ftsRows.map((r) => r.member_id).filter(Boolean)),
+      );
+      if (ids.length > 0) {
+        const { data: pd } = await supabase
+          .from("team_member_profiles")
+          .select("user_id, display_name")
+          .in("user_id", ids);
+        if (pd) {
+          setMembers(
+            (pd as any[]).map((p) => ({
+              user_id: p.user_id,
+              display_name: p.display_name ?? p.user_id,
+            })),
+          );
         }
-      });
-      setMembers(list);
-    }
-    if (t.data) {
+      } else {
+        setMembers([]);
+      }
       const map: Record<string, TeamSetting> = {};
-      (t.data as any[]).forEach((row) => (map[row.member_id] = row));
+      ftsRows.forEach((row) => (map[row.member_id] = row));
       setTeamSettings(map);
+    } else {
+      setMembers([]);
+      setTeamSettings({});
     }
   };
 

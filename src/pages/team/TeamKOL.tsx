@@ -307,10 +307,7 @@ function InvitationsTab({
           .from("accommodation_info")
           .select("id, name, booking_type, short_url_alias")
           .order("name"),
-        supabase
-          .from("user_roles")
-          .select("user_id, team_member_profiles!inner(user_id, display_name)")
-          .eq("role", "scout"),
+        supabase.rpc("get_team_role_members", { p_role: "scout" }),
       ]);
       if (accRes.data) setAccommodations(accRes.data as Accommodation[]);
       if (scoutRes.data) {
@@ -318,7 +315,7 @@ function InvitationsTab({
         const list: Scout[] = [];
         for (const r of scoutRes.data as any[]) {
           const uid = r.user_id;
-          const dn = r.team_member_profiles?.display_name ?? uid;
+          const dn = r.display_name ?? uid;
           if (!seen.has(uid)) {
             seen.add(uid);
             list.push({ user_id: uid, display_name: dn });
@@ -1318,16 +1315,13 @@ function ProspectsTab({
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
-        .from("user_roles")
-        .select("user_id, team_member_profiles!inner(user_id, display_name)")
-        .eq("role", "scout");
+      const { data } = await supabase.rpc("get_team_role_members", { p_role: "scout" });
       if (data) {
         const seen = new Set<string>();
         const list: Scout[] = [];
         for (const r of data as any[]) {
           const uid = r.user_id;
-          const dn = r.team_member_profiles?.display_name ?? uid;
+          const dn = r.display_name ?? uid;
           if (!seen.has(uid)) {
             seen.add(uid);
             list.push({ user_id: uid, display_name: dn });
@@ -1797,10 +1791,7 @@ function TargetsTab({
           .from("accommodation_info")
           .select("id, name, booking_type, short_url_alias")
           .order("name"),
-        supabase
-          .from("user_roles")
-          .select("user_id, team_member_profiles!inner(user_id, display_name)")
-          .eq("role", "scout"),
+        supabase.rpc("get_team_role_members", { p_role: "scout" }),
       ]);
       if (accRes.data) setAccommodations(accRes.data as Accommodation[]);
       if (scoutRes.data) {
@@ -1808,7 +1799,7 @@ function TargetsTab({
         const list: Scout[] = [];
         for (const r of scoutRes.data as any[]) {
           const uid = r.user_id;
-          const dn = r.team_member_profiles?.display_name ?? uid;
+          const dn = r.display_name ?? uid;
           if (!seen.has(uid)) {
             seen.add(uid);
             list.push({ user_id: uid, display_name: dn });
