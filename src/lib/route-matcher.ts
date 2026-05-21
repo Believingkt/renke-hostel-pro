@@ -30,6 +30,8 @@ export const AUTH_PATHS = [
   "/auth",
   "/reset-password",
   "/change-password",
+  "/team",
+  "/team-auth",
 ] as const;
 
 /**
@@ -84,6 +86,8 @@ export const RESERVED_FIRST_SEGMENTS = new Set<string>([
   "points-api-docs",
   "og-preview",
   "payment-test",
+  "team",
+  "team-auth",
   "__cb",
 ]);
 
