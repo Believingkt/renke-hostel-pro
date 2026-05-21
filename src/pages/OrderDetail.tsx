@@ -377,6 +377,7 @@ const OrderDetailPage = () => {
     meal_plan_total: 0,
     custom_addon_details: [],
     addon_total: 0,
+    addon_note: "",
   });
   const [discountCodeError, setDiscountCodeError] = useState("");
   const [canUnlockPaidOrderDiscount, setCanUnlockPaidOrderDiscount] = useState(false);
