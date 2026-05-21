@@ -85,6 +85,7 @@ const TeamPlaceholder = lazy(() => import("./pages/team/TeamPlaceholder"));
 const TeamOrders = lazy(() => import("./pages/team/TeamOrders"));
 const TeamMembers = lazy(() => import("./pages/team/TeamMembers"));
 const TeamKOL = lazy(() => import("./pages/team/TeamKOL"));
+const TeamCommission = lazy(() => import("./pages/team/TeamCommission"));
 const Customers = lazy(() => import("./pages/Customers"));
 const CustomerOrders = lazy(() => import("./pages/CustomerOrders"));
 const PublicHolidays = lazy(() => import("./pages/PublicHolidays"));
