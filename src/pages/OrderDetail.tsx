@@ -446,7 +446,10 @@ const OrderDetailPage = () => {
       deposit_payment_method: order.deposit_payment_method || "none",
       balance_payment_method: order.balance_payment_method || "none",
       meal_plan: order.meal_plan || "none",
-      notes: order.notes || "",
+      notes: (order.notes || "")
+        .replace(/【加購備註】\n?[\s\S]*?\n?【加購備註END】\n?/g, "")
+        .replace(/^【加購備註】.*$\n?/gm, "")
+        .trim(),
       room_type_id: order.room_type_id || "",
       total_price: order.total_price || 0,
       discount_amount: order.discount_amount || 0,
