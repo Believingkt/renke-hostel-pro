@@ -333,8 +333,19 @@ const Headquarters = () => {
   };
 
   const handleAddUser = async () => {
-    if (!newUserName || !newUserEmail || !selectedAccommodation || !selectedRole) {
+    const isSuperAdmin = selectedRole === "super_admin";
+    if (!newUserName || !newUserEmail || !selectedRole || (!isSuperAdmin && !selectedAccommodation)) {
       toast.error("請填寫所有欄位");
+      return;
+    }
+
+    // super_admin doesn't belong to a specific hotel; use first accommodation as placeholder (DB requires non-null)
+    const accommodationIdToSend = isSuperAdmin
+      ? (accommodations[0]?.id || selectedAccommodation)
+      : selectedAccommodation;
+
+    if (!accommodationIdToSend) {
+      toast.error("系統尚無任何旅館，無法建立帳號");
       return;
     }
 
@@ -346,7 +357,7 @@ const Headquarters = () => {
           name: newUserName,
           email: newUserEmail,
           role: selectedRole,
-          accommodationId: selectedAccommodation,
+          accommodationId: accommodationIdToSend,
         },
       });
 
