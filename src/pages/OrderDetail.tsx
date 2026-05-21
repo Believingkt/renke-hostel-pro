@@ -691,7 +691,8 @@ const OrderDetailPage = () => {
       // 以區塊格式寫入最新加購備註（支援多行）
       const addonNoteTrim = editForm.addon_note.trim();
       if (addonNoteTrim) {
-        const block = `【加購備註】\n${addonNoteTrim}\n【加購備註END】`;
+        const ts = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Taipei" }).slice(0, 16);
+        const block = `【加購備註 ${ts}】\n${addonNoteTrim}\n【加購備註END】`;
         finalNotes = finalNotes ? `${finalNotes}\n${block}` : block;
       }
       if (exclusiveRows.length > 0) {
