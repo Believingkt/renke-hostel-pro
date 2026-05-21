@@ -269,7 +269,8 @@ const Headquarters = () => {
       // First get all user roles
       const { data: rolesData, error: rolesError } = await supabase
         .from("user_roles")
-        .select("*");
+        .select("*")
+        .not("accommodation_id", "is", null);
 
       if (rolesError) throw rolesError;
 
