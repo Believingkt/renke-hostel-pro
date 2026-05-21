@@ -73,7 +73,10 @@ interface MemberRow {
 export default function TeamMembers() {
   const { roles: myRoles, userId: myUserId } = useTeam();
   const canManage = useMemo(
-    () => myRoles.includes("super_admin") || myRoles.includes("admin"),
+    () =>
+      myRoles.includes("super_admin") ||
+      myRoles.includes("admin") ||
+      myRoles.includes("scout_manager"),
     [myRoles],
   );
 
