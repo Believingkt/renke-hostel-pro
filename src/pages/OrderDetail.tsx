@@ -191,6 +191,7 @@ interface EditFormState {
   custom_addon_details: CustomAddonDetail[];
   addon_total: number;
   addon_note: string;
+  extra_addon_amount: number;
 }
 
 const OrderDetailPage = () => {
