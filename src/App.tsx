@@ -88,6 +88,8 @@ const TeamKOL = lazy(() => import("./pages/team/TeamKOL"));
 const TeamCommission = lazy(() => import("./pages/team/TeamCommission"));
 const TeamNotification = lazy(() => import("./pages/team/TeamNotification"));
 const TeamAds = lazy(() => import("./pages/team/TeamAds"));
+const TeamFranchise = lazy(() => import("./pages/team/TeamFranchise"));
+const TeamStarlink = lazy(() => import("./pages/team/TeamStarlink"));
 const Customers = lazy(() => import("./pages/Customers"));
 const CustomerOrders = lazy(() => import("./pages/CustomerOrders"));
 const PublicHolidays = lazy(() => import("./pages/PublicHolidays"));
@@ -461,10 +463,10 @@ function App() {
                           <Suspense fallback={null}><TeamNotification /></Suspense>
                         } />
                         <Route path="franchise" element={
-                          <Suspense fallback={null}><TeamPlaceholder title="特許加盟" /></Suspense>
+                          <Suspense fallback={null}><TeamFranchise /></Suspense>
                         } />
                         <Route path="starlink" element={
-                          <Suspense fallback={null}><TeamPlaceholder title="星鏈" /></Suspense>
+                          <Suspense fallback={null}><TeamStarlink /></Suspense>
                         } />
                       </Route>
                       <Route path="/headquarters/change-password" element={
