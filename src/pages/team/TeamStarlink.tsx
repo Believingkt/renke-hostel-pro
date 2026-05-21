@@ -130,6 +130,7 @@ function OrdersTab({
   const [orders, setOrders] = useState<StarlinkOrder[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [tiers, setTiers] = useState<Tier[]>([]);
+  const [plans, setPlans] = useState<PlanSetting[]>([]);
 
   const [year, setYear] = useState<string>(String(new Date().getFullYear()));
   const [month, setMonth] = useState<string>("ALL");
