@@ -1,0 +1,9 @@
+ALTER TYPE app_role ADD VALUE IF NOT EXISTS 'admin';
+ALTER TYPE app_role ADD VALUE IF NOT EXISTS 'closer';
+ALTER TYPE app_role ADD VALUE IF NOT EXISTS 'scout';
+ALTER TYPE app_role ADD VALUE IF NOT EXISTS 'scout_manager';
+ALTER TYPE app_role ADD VALUE IF NOT EXISTS 'video';
+ALTER TYPE app_role ADD VALUE IF NOT EXISTS 'franchise';
+ALTER TYPE app_role ADD VALUE IF NOT EXISTS 'starlink';
+ALTER TYPE app_role ADD VALUE IF NOT EXISTS 'owner';
+ALTER TYPE app_role ADD VALUE IF NOT EXISTS 'kol';
