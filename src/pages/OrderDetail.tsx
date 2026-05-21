@@ -190,6 +190,7 @@ interface EditFormState {
   meal_plan_total: number;
   custom_addon_details: CustomAddonDetail[];
   addon_total: number;
+  addon_note: string;
 }
 
 const OrderDetailPage = () => {
