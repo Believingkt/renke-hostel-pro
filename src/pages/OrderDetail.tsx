@@ -446,7 +446,10 @@ const OrderDetailPage = () => {
       deposit_payment_method: order.deposit_payment_method || "none",
       balance_payment_method: order.balance_payment_method || "none",
       meal_plan: order.meal_plan || "none",
-      notes: order.notes || "",
+      notes: (order.notes || "")
+        .replace(/【加購備註】\n?[\s\S]*?\n?【加購備註END】\n?/g, "")
+        .replace(/^【加購備註】.*$\n?/gm, "")
+        .trim(),
       room_type_id: order.room_type_id || "",
       total_price: order.total_price || 0,
       discount_amount: order.discount_amount || 0,
@@ -479,7 +482,12 @@ const OrderDetailPage = () => {
         return petTotal + mealTotal + otherCustom;
       })(),
       addon_note: (() => {
-        const m = (order.notes || "").match(/^【加購備註】(.*)$/m);
+        const notes = order.notes || "";
+        // 新格式：多行區塊【加購備註】...【加購備註END】
+        const block = notes.match(/【加購備註】\n?([\s\S]*?)\n?【加購備註END】/);
+        if (block) return block[1].trim();
+        // 舊格式：單行
+        const m = notes.match(/^【加購備註】(.*)$/m);
         return m ? m[1].trim() : "";
       })(),
     });
@@ -670,17 +678,21 @@ const OrderDetailPage = () => {
       // If any edited room is an exclusive package, regenerate one [包區/包棟房間配置] line per 包棟
       const exclusiveRows = editOrderRooms.filter(r => roomTypes.find(t => t.id === r.room_type_id)?.is_exclusive_package);
       let finalNotes = editForm.notes.trim();
-      // Strip any existing 包區/包棟房間配置 lines and 加購備註 lines first
+      // 先移除舊的加購備註區塊（多行格式）與舊的單行格式
+      finalNotes = finalNotes
+        .replace(/【加購備註】\n?[\s\S]*?\n?【加購備註END】\n?/g, "")
+        .trim();
       finalNotes = finalNotes
         .split("\n")
         .filter(line => !/^【\s*(?:包區|包棟)\s*房間配置\s*】/.test(line.trim()))
         .filter(line => !/^【加購備註】/.test(line.trim()))
         .join("\n")
         .trim();
-      // Prepend latest 加購備註 line
+      // 以區塊格式寫入最新加購備註（支援多行）
       const addonNoteTrim = editForm.addon_note.trim();
       if (addonNoteTrim) {
-        finalNotes = finalNotes ? `【加購備註】${addonNoteTrim}\n${finalNotes}` : `【加購備註】${addonNoteTrim}`;
+        const block = `【加購備註】\n${addonNoteTrim}\n【加購備註END】`;
+        finalNotes = finalNotes ? `${block}\n${finalNotes}` : block;
       }
       if (exclusiveRows.length > 0) {
         const pkgLines = exclusiveRows.map((_, i) => {
@@ -2365,8 +2377,10 @@ const OrderDetailPage = () => {
                   items.push({ label: `${d.addon_type} (${d.count}${d.unit_label || '份'})`, amount: d.total });
                 }
               });
-              const addonNoteMatch = (order.notes || "").match(/^【加購備註】(.*)$/m);
-              const addonNote = addonNoteMatch ? addonNoteMatch[1].trim() : "";
+              const _notesRaw = order.notes || "";
+              const _blockMatch = _notesRaw.match(/【加購備註】\n?([\s\S]*?)\n?【加購備註END】/);
+              const _lineMatch = _notesRaw.match(/^【加購備註】(.*)$/m);
+              const addonNote = _blockMatch ? _blockMatch[1].trim() : (_lineMatch ? _lineMatch[1].trim() : "");
               if (items.length === 0 && !addonNote) return null;
               const addonTotal = items.reduce((sum, i) => sum + i.amount, 0);
               return (
@@ -2945,11 +2959,17 @@ const OrderDetailPage = () => {
               className="text-base md:text-sm"
             />
           ) : (
-            order.notes ? (
-              <p className="text-sm md:text-sm whitespace-pre-wrap break-words">{order.notes}</p>
-            ) : (
-              <p className="text-sm md:text-sm text-muted-foreground text-center py-2">無備註</p>
-            )
+            (() => {
+              const cleaned = (order.notes || "")
+                .replace(/【加購備註】\n?[\s\S]*?\n?【加購備註END】\n?/g, "")
+                .replace(/^【加購備註】.*$\n?/gm, "")
+                .trim();
+              return cleaned ? (
+                <p className="text-sm md:text-sm whitespace-pre-wrap break-words">{cleaned}</p>
+              ) : (
+                <p className="text-sm md:text-sm text-muted-foreground text-center py-2">無備註</p>
+              );
+            })()
           )}
         </CardContent>
       </Card>
