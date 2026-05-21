@@ -117,6 +117,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; type: "percentage" | "amount"; value: number } | null>(null);
   const [isValidatingCode, setIsValidatingCode] = useState(false);
+  const [manualDiscountStr, setManualDiscountStr] = useState<string | null>(null);
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [checkOutOpen, setCheckOutOpen] = useState(false);
   
@@ -218,6 +219,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       setSelectedAddons([]);
       setDiscountCode("");
       setAppliedDiscount(null);
+      setManualDiscountStr(null);
       setRoomPrice(0);
       setDepositPct(30);
       setNameSuggestions([]);
@@ -688,6 +690,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const handleRemoveDiscount = () => {
     setAppliedDiscount(null);
     setDiscountCode("");
+    setManualDiscountStr(null);
     toast({ title: "已移除折扣", description: "折扣代碼已清除" });
   };
 
@@ -699,7 +702,10 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     }, 0);
     // Use roomSelections prices directly to avoid stale roomPrice state
     const actualRoomTotal = roomSelections.reduce((sum, sel) => sum + sel.roomPrice, 0);
-    const discount = calculateDiscount(actualRoomTotal);
+    const codeDiscount = calculateDiscount(actualRoomTotal);
+    const discount = manualDiscountStr !== null
+      ? Math.max(0, parseInt(manualDiscountStr) || 0)
+      : codeDiscount;
     const subtotal = actualRoomTotal + addonTotal;
     const final_ = Math.max(0, actualRoomTotal - discount + addonTotal);
     return { roomTotal: actualRoomTotal, addonTotal, subtotal, discount, final: final_ };
@@ -1803,6 +1809,22 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             </Button>
           </div>
         )}
+
+        <div className="space-y-2 pt-2">
+          <Label htmlFor="create-discount-amount">折扣金額 (NT$)</Label>
+          <Input
+            id="create-discount-amount"
+            type="number"
+            min={0}
+            placeholder="0"
+            value={manualDiscountStr !== null ? manualDiscountStr : (totals.discount > 0 ? String(totals.discount) : "")}
+            onChange={(e) => setManualDiscountStr(e.target.value)}
+            className="h-12 text-base sm:h-10 sm:text-sm"
+          />
+          <p className="text-xs text-muted-foreground">
+            {appliedDiscount ? "可手動覆寫折扣碼計算的金額" : "可直接輸入折扣金額（不需折扣碼）"}
+          </p>
+        </div>
       </div>
 
       {/* Price Summary */}
