@@ -238,7 +238,7 @@ function OrdersTab({
       client_name: form.client_name.trim(),
       client_tax_id: form.client_tax_id.trim() || null,
       business_type: form.business_type.trim() || null,
-      plan_name: plan.name,
+      plan_name: plan.plan_name,
       plan_price: plan.price,
       sold_by: form.sold_by,
       level_at_sale: tier?.level ?? null,
