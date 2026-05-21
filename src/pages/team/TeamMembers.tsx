@@ -486,24 +486,25 @@ export default function TeamMembers() {
                 {INVITABLE_ROLES.map((role) => (
                   <label
                     key={role}
-                    className={`flex items-center gap-2 border rounded-md px-2 py-1.5 ${
-                      isNorris
-                        ? "opacity-50 cursor-not-allowed"
-                        : "cursor-pointer hover:bg-muted/50"
-                    }`}
+                    className="flex items-center gap-2 border rounded-md px-2 py-1.5 cursor-pointer hover:bg-muted/50"
                   >
                     <Checkbox
                       checked={editRoles.includes(role)}
-                      disabled={isNorris}
                       onCheckedChange={() => toggleEditRole(role)}
                     />
                     <span className="text-sm">{ROLE_LABEL[role]}</span>
                   </label>
                 ))}
+                {editTarget?.roles.includes("super_admin") && (
+                  <label className="flex items-center gap-2 border rounded-md px-2 py-1.5 opacity-50 cursor-not-allowed">
+                    <Checkbox checked disabled />
+                    <span className="text-sm">{ROLE_LABEL.super_admin}</span>
+                  </label>
+                )}
               </div>
               {isNorris && (
                 <p className="text-xs text-muted-foreground">
-                  超級管理員 (Norris) 的角色受系統保護
+                  超級管理員角色受系統保護,無法移除
                 </p>
               )}
             </div>
