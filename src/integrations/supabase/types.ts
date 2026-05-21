@@ -965,6 +965,50 @@ export type Database = {
           },
         ]
       }
+      bonus_multiplier_settings: {
+        Row: {
+          bonus_type: string
+          created_at: string | null
+          created_by: string | null
+          end_date: string
+          id: string
+          is_active: boolean | null
+          multiplier: number
+          reason: string | null
+          start_date: string
+        }
+        Insert: {
+          bonus_type: string
+          created_at?: string | null
+          created_by?: string | null
+          end_date: string
+          id?: string
+          is_active?: boolean | null
+          multiplier?: number
+          reason?: string | null
+          start_date: string
+        }
+        Update: {
+          bonus_type?: string
+          created_at?: string | null
+          created_by?: string | null
+          end_date?: string
+          id?: string
+          is_active?: boolean | null
+          multiplier?: number
+          reason?: string | null
+          start_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bonus_multiplier_settings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       booking_info_sections: {
         Row: {
           accommodation_id: string
