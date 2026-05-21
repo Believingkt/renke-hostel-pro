@@ -221,7 +221,7 @@ function OrdersTab({
       toast.error("請填寫客戶名稱、方案與銷售人");
       return;
     }
-    const plan = PLAN_OPTIONS.find((p) => p.name === form.plan_name);
+    const plan = plans.find((p) => p.plan_name === form.plan_name);
     if (!plan) return;
     setSaving(true);
 
