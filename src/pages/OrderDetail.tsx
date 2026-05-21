@@ -2405,6 +2405,11 @@ const OrderDetailPage = () => {
                 }
               });
               const _notesRaw = order.notes || "";
+              const _extraMatch = _notesRaw.match(/【額外現場加購金額[^】]*】\n?(\d+)\n?【額外現場加購金額END】/);
+              const extraAmount = _extraMatch ? (parseInt(_extraMatch[1], 10) || 0) : 0;
+              if (extraAmount > 0) {
+                items.push({ label: '額外現場加購', amount: extraAmount });
+              }
               const _blocks = [..._notesRaw.matchAll(/【(?:加購備註|額外現場加購備註)[^】]*】\n?([\s\S]*?)\n?【(?:加購備註|額外現場加購備註)END】/g)];
               const _lineMatch = _notesRaw.match(/^【(?:加購備註|額外現場加購備註)[^】]*】(.*)$/m);
               const addonNote = _blocks.length > 0 ? _blocks[_blocks.length - 1][1].trim() : (_lineMatch ? _lineMatch[1].trim() : "");
