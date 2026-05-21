@@ -79,6 +79,9 @@ const DiscountCodeOrders = lazy(() => import("./pages/DiscountCodeOrders"));
 const KolDiscountDetail = lazy(() => import("./pages/KolDiscountDetail"));
 const UserRoles = lazy(() => import("./pages/UserRoles"));
 const Headquarters = lazy(() => import("./pages/Headquarters"));
+const TeamLayout = lazy(() => import("./components/team/TeamLayout"));
+const TeamHome = lazy(() => import("./pages/team/TeamHome"));
+const TeamPlaceholder = lazy(() => import("./pages/team/TeamPlaceholder"));
 const Customers = lazy(() => import("./pages/Customers"));
 const CustomerOrders = lazy(() => import("./pages/CustomerOrders"));
 const PublicHolidays = lazy(() => import("./pages/PublicHolidays"));
@@ -427,6 +430,37 @@ function App() {
                       <Route path="/hq" element={
                         <Suspense fallback={<DashboardSkeleton />}><Headquarters /></Suspense>
                       } />
+                      <Route path="/team" element={
+                        <Suspense fallback={<DashboardSkeleton />}><TeamLayout /></Suspense>
+                      }>
+                        <Route index element={
+                          <Suspense fallback={null}><TeamHome /></Suspense>
+                        } />
+                        <Route path="members" element={
+                          <Suspense fallback={null}><TeamPlaceholder title="成員管理" /></Suspense>
+                        } />
+                        <Route path="kol" element={
+                          <Suspense fallback={null}><TeamPlaceholder title="KOL 星探管理" /></Suspense>
+                        } />
+                        <Route path="orders" element={
+                          <Suspense fallback={null}><TeamPlaceholder title="訂單補充資料" /></Suspense>
+                        } />
+                        <Route path="commission" element={
+                          <Suspense fallback={null}><TeamPlaceholder title="獎金管理" /></Suspense>
+                        } />
+                        <Route path="ads" element={
+                          <Suspense fallback={null}><TeamPlaceholder title="廣告追蹤" /></Suspense>
+                        } />
+                        <Route path="notification" element={
+                          <Suspense fallback={null}><TeamPlaceholder title="業績通報設定" /></Suspense>
+                        } />
+                        <Route path="franchise" element={
+                          <Suspense fallback={null}><TeamPlaceholder title="特許加盟" /></Suspense>
+                        } />
+                        <Route path="starlink" element={
+                          <Suspense fallback={null}><TeamPlaceholder title="星鏈" /></Suspense>
+                        } />
+                      </Route>
                       <Route path="/headquarters/change-password" element={
                         <Suspense fallback={<FrontendSkeleton />}><ChangePassword /></Suspense>
                       } />
