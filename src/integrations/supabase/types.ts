@@ -373,6 +373,66 @@ export type Database = {
         }
         Relationships: []
       }
+      accommodation_kol_settings: {
+        Row: {
+          accommodation_id: string
+          booking_type: string | null
+          id: string
+          kol_enabled: boolean | null
+          kpi_eligible_months: number | null
+          original_booking_url: string | null
+          short_url_prefix: string | null
+          task_ig_collab: boolean | null
+          task_post_story: boolean | null
+          task_pre_stay: boolean | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          accommodation_id: string
+          booking_type?: string | null
+          id?: string
+          kol_enabled?: boolean | null
+          kpi_eligible_months?: number | null
+          original_booking_url?: string | null
+          short_url_prefix?: string | null
+          task_ig_collab?: boolean | null
+          task_post_story?: boolean | null
+          task_pre_stay?: boolean | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          accommodation_id?: string
+          booking_type?: string | null
+          id?: string
+          kol_enabled?: boolean | null
+          kpi_eligible_months?: number | null
+          original_booking_url?: string | null
+          short_url_prefix?: string | null
+          task_ig_collab?: boolean | null
+          task_post_story?: boolean | null
+          task_pre_stay?: boolean | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodation_kol_settings_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: true
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accommodation_kol_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       accommodation_packages: {
         Row: {
           accommodation_id: string
