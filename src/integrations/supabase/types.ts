@@ -6035,6 +6035,7 @@ export type Database = {
         | "starlink"
         | "owner"
         | "kol"
+        | "finance"
       coupon_scope: "platform" | "accommodation"
       coupon_type: "percentage" | "fixed"
       member_point_type:
@@ -6194,6 +6195,7 @@ export const Constants = {
         "starlink",
         "owner",
         "kol",
+        "finance",
       ],
       coupon_scope: ["platform", "accommodation"],
       coupon_type: ["percentage", "fixed"],
