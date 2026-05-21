@@ -4352,7 +4352,19 @@ export type Database = {
         | "faq"
         | "other"
       ai_prompt_status: "draft" | "published" | "archived"
-      app_role: "super_admin" | "hotel_admin" | "staff"
+      app_role:
+        | "super_admin"
+        | "hotel_admin"
+        | "staff"
+        | "admin"
+        | "closer"
+        | "scout"
+        | "scout_manager"
+        | "video"
+        | "franchise"
+        | "starlink"
+        | "owner"
+        | "kol"
       coupon_scope: "platform" | "accommodation"
       coupon_type: "percentage" | "fixed"
       member_point_type:
@@ -4499,7 +4511,20 @@ export const Constants = {
         "other",
       ],
       ai_prompt_status: ["draft", "published", "archived"],
-      app_role: ["super_admin", "hotel_admin", "staff"],
+      app_role: [
+        "super_admin",
+        "hotel_admin",
+        "staff",
+        "admin",
+        "closer",
+        "scout",
+        "scout_manager",
+        "video",
+        "franchise",
+        "starlink",
+        "owner",
+        "kol",
+      ],
       coupon_scope: ["platform", "accommodation"],
       coupon_type: ["percentage", "fixed"],
       member_point_type: [
