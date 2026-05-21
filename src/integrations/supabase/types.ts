@@ -3979,6 +3979,39 @@ export type Database = {
         }
         Relationships: []
       }
+      team_member_profiles: {
+        Row: {
+          commission_rate: number | null
+          created_at: string | null
+          display_name: string
+          id: string
+          is_active: boolean | null
+          scout_tier: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          commission_rate?: number | null
+          created_at?: string | null
+          display_name: string
+          id?: string
+          is_active?: boolean | null
+          scout_tier?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          commission_rate?: number | null
+          created_at?: string | null
+          display_name?: string
+          id?: string
+          is_active?: boolean | null
+          scout_tier?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           accommodation_id: string | null
