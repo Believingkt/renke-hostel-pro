@@ -72,6 +72,7 @@ const MemberFacebookCallback = () => {
         });
         if (setErr) throw setErr;
 
+        console.log("[FB callback] exchange success, navigating");
         cleanup();
         toast.success("Facebook 登入成功");
         navigate("/member/orders", { replace: true });
