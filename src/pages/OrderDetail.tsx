@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate, useLocation, Link, useSearchParams as useSearchParamsHook } from "react-router-dom";
 import { ArrowLeft, Mail, Home, ShoppingBag, Globe, UserPlus, CreditCard, XCircle, Pencil, Save, X, Minus, Plus, Trash2, LogIn, LogOut, Copy, Building2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -227,22 +227,19 @@ const OrderDetailPage = () => {
   const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
   const [orderRooms, setOrderRooms] = useState<OrderRoom[]>([]);
   const [editOrderRooms, setEditOrderRooms] = useState<EditOrderRoom[]>([]);
-  const [editExclusiveConfigs, setEditExclusiveConfigs] = useState<Array<{ double: number; quad: number }>>([]);
-  const setExclusiveConfigAt = useCallback((idx: number, patch: Partial<{ double: number; quad: number }>) => {
+  const [editExclusiveConfigs, setEditExclusiveConfigs] = useState<Array<Record<string, number>>>([]);
+  const setExclusiveConfigAt = useCallback((idx: number, name: string, value: number) => {
     setEditExclusiveConfigs(prev => {
       const next = [...prev];
-      while (next.length <= idx) next.push({ double: 0, quad: 0 });
-      next[idx] = { ...next[idx], ...patch };
+      while (next.length <= idx) next.push({});
+      next[idx] = { ...next[idx], [name]: value };
       return next;
     });
   }, []);
   // 只有森山寫照保留「包區」用語，其餘民宿一律使用「包棟」
   const SENSAN_ACC_ID = "5f764d55-ae11-4631-80fe-2e611853deae";
-  // 哈庫納馬塔塔：最多 2 雙人房 + 4 四人房 = 6 間
   const HAKUNA_ACC_ID = "6b6ac0dc-602b-4dec-9167-7791ac412ba3";
-  // 雲岫海景度假會館：唯一啟用「指派房間（散客單元）」功能的民宿
   const YUNXIU_ACC_ID = "7690a606-6bac-4cd5-a3e7-2fa754b318e8";
-  // 奧莉薇雅生活小酒店：8 雙人房 + 1 四人房 = 9 間
   const OLIVIA_ACC_ID = "74d064f4-1f8c-47e8-9be0-f0a596bbe6f8";
   const isSensan = order?.accommodation_id === SENSAN_ACC_ID;
   const isHakuna = order?.accommodation_id === HAKUNA_ACC_ID;
@@ -250,11 +247,19 @@ const OrderDetailPage = () => {
   const isOlivia = order?.accommodation_id === OLIVIA_ACC_ID;
   const exclusiveLabel = isSensan ? "包區" : "包棟";
   const [roomUnits, setRoomUnits] = useState<RoomUnitOption[]>([]);
-  const MAX_TOTAL_ROOMS = isHakuna ? 7 : isOlivia ? 9 : 6;
-  const MAX_DOUBLE_ROOMS = isHakuna ? 2 : isOlivia ? 8 : 3;
-  const MAX_QUAD_ROOMS = isHakuna ? 4 : isOlivia ? 1 : 3;
-  const doubleRoomOptions = Array.from({ length: MAX_DOUBLE_ROOMS + 1 }, (_, i) => i);
-  const quadRoomOptions = Array.from({ length: MAX_QUAD_ROOMS + 1 }, (_, i) => i);
+  // DB-driven 包棟組成（HQ 房型與包棟設定）。沒設定 → fallback 舊三家 hardcoded。
+  const [customBreakdown, setCustomBreakdown] = useState<Array<{ name: string; count: number }> | null>(null);
+  const breakdownItems = useMemo<Array<{ name: string; max: number }>>(() => {
+    if (customBreakdown && customBreakdown.length > 0) {
+      return customBreakdown.map(b => ({ name: b.name, max: b.count }));
+    }
+    const maxDouble = isHakuna ? 2 : isOlivia ? 8 : 3;
+    const maxQuad = isHakuna ? 4 : isOlivia ? 1 : 3;
+    return [
+      { name: "雙人房", max: maxDouble },
+      { name: "四人房", max: maxQuad },
+    ];
+  }, [customBreakdown, isHakuna, isOlivia]);
   const [depositRatioRef] = useState<{ current: number }>({ current: 0 });
   const [originalDiscountCode] = useState<{ current: string }>({ current: "" });
   const [defaultDepositRatio, setDefaultDepositRatio] = useState<number>(0);
@@ -272,6 +277,24 @@ const OrderDetailPage = () => {
         setDefaultDepositRatio((data.deposit_percentage ?? 30) / 100);
       } else {
         setDefaultDepositRatio(0);
+      }
+    })();
+  }, [order?.accommodation_id]);
+
+  // Load custom exclusive breakdown from accommodation_info (DB-driven 房型與包棟設定)
+  useEffect(() => {
+    if (!order?.accommodation_id) return;
+    (async () => {
+      const { data } = await supabase
+        .from("accommodation_info")
+        .select("exclusive_room_breakdown")
+        .eq("id", order.accommodation_id)
+        .maybeSingle();
+      const items = (data as any)?.exclusive_room_breakdown;
+      if (Array.isArray(items) && items.length > 0) {
+        setCustomBreakdown(items.map((it: any) => ({ name: String(it.name || ""), count: Number(it.count) || 0 })).filter(it => it.name));
+      } else {
+        setCustomBreakdown(null);
       }
     })();
   }, [order?.accommodation_id]);
@@ -416,21 +439,23 @@ const OrderDetailPage = () => {
     if (!order) return;
     // Parse exclusive package room configs from notes (one line per 包棟)
     const notesStr = order.notes || "";
-    // 逐行擷取「【包區/包棟房間配置】...」，雙人房/四人房數量分別獨立解析，
-    // 容忍分隔符 (、,，/) 與空白差異，缺一邊則視為 0。
+    // 逐行擷取「【包區/包棟房間配置】...」，動態解析各房型數量（兼容舊「雙人房/四人房」格式）
     const pkgLineRegex = /【\s*(?:包區|包棟)\s*房間配置\s*】\s*(.+)/;
-    const parsedConfigs: Array<{ double: number; quad: number }> = [];
+    const parsedConfigs: Array<Record<string, number>> = [];
     notesStr.split(/\r?\n/).forEach(line => {
       const lm = line.match(pkgLineRegex);
       if (!lm) return;
       const body = lm[1];
-      const dm = body.match(/雙人房\s*(\d+)\s*間?/);
-      const qm = body.match(/四人房\s*(\d+)\s*間?/);
-      if (!dm && !qm) return;
-      parsedConfigs.push({
-        double: dm ? parseInt(dm[1]) || 0 : 0,
-        quad: qm ? parseInt(qm[1]) || 0 : 0,
-      });
+      // 解析格式：「房型名稱 N 間」逐段
+      const cfg: Record<string, number> = {};
+      const partRegex = /([\u4e00-\u9fff\w]+?)\s*(\d+)\s*間/g;
+      let m: RegExpExecArray | null;
+      while ((m = partRegex.exec(body)) !== null) {
+        const name = m[1].trim();
+        const n = parseInt(m[2]) || 0;
+        if (name) cfg[name] = n;
+      }
+      if (Object.keys(cfg).length > 0) parsedConfigs.push(cfg);
     });
     setEditExclusiveConfigs(parsedConfigs);
     setEditForm({
@@ -712,9 +737,14 @@ const OrderDetailPage = () => {
       }
       if (exclusiveRows.length > 0) {
         const pkgLines = exclusiveRows.map((_, i) => {
-          const cfg = editExclusiveConfigs[i] || { double: 0, quad: 0 };
-          return `【${exclusiveLabel}房間配置】雙人房 ${cfg.double} 間、四人房 ${cfg.quad} 間`;
-        }).filter(line => /雙人房 [1-9]|四人房 [1-9]/.test(line));
+          const cfg = editExclusiveConfigs[i] || {};
+          const parts = breakdownItems
+            .map(b => ({ name: b.name, n: Number(cfg[b.name]) || 0 }))
+            .filter(p => p.n > 0)
+            .map(p => `${p.name} ${p.n} 間`);
+          if (parts.length === 0) return "";
+          return `【${exclusiveLabel}房間配置】${parts.join("、")}`;
+        }).filter(line => line.length > 0);
         if (pkgLines.length > 0) {
           finalNotes = finalNotes ? `${pkgLines.join("\n")}\n${finalNotes}` : pkgLines.join("\n");
         }
@@ -1930,7 +1960,7 @@ const OrderDetailPage = () => {
                           const isThisExclusive = !!roomTypes.find(t => t.id === or.room_type_id)?.is_exclusive_package;
                           const exclusiveIdx = isThisExclusive ? exclusiveIds.indexOf(or.id) : -1;
                           const showExclusiveConfig = isThisExclusive;
-                          const cfg = exclusiveIdx >= 0 ? (editExclusiveConfigs[exclusiveIdx] || { double: 0, quad: 0 }) : { double: 0, quad: 0 };
+                          const cfg: Record<string, number> = exclusiveIdx >= 0 ? (editExclusiveConfigs[exclusiveIdx] || {}) : {};
                           return (
                           <div key={or.id} className="space-y-2">
                           <div className="p-2.5 rounded-lg border bg-muted/30 space-y-2">
@@ -2100,31 +2130,28 @@ const OrderDetailPage = () => {
                           {showExclusiveConfig && (
                             <div className="p-3 rounded-lg border border-dashed bg-muted/20 space-y-2">
                               <div className="text-xs font-medium">{exclusiveLabel}房間配置</div>
-                              <div className="grid grid-cols-2 gap-2">
-                                <div className="space-y-1">
-                                  <Label className="text-xs">雙人房間數</Label>
-                                  <Select value={String(cfg.double)} onValueChange={(v) => setExclusiveConfigAt(exclusiveIdx, { double: Number(v) })}>
-                                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                      {doubleRoomOptions.map(n => (
-                                        <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                                <div className="space-y-1">
-                                  <Label className="text-xs">四人房間數</Label>
-                                  <Select value={String(cfg.quad)} onValueChange={(v) => setExclusiveConfigAt(exclusiveIdx, { quad: Number(v) })}>
-                                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                      {quadRoomOptions.map(n => (
-                                        <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
+                              <div className={`grid gap-2 ${breakdownItems.length >= 3 ? "grid-cols-2 md:grid-cols-3" : "grid-cols-2"}`}>
+                                {breakdownItems.map(b => {
+                                  const val = Number(cfg[b.name]) || 0;
+                                  const opts = Array.from({ length: b.max + 1 }, (_, i) => i);
+                                  return (
+                                    <div key={b.name} className="space-y-1">
+                                      <Label className="text-xs">{b.name}間數</Label>
+                                      <Select value={String(val)} onValueChange={(v) => setExclusiveConfigAt(exclusiveIdx, b.name, Number(v))}>
+                                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                          {opts.map(n => (
+                                            <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  );
+                                })}
                               </div>
-                              <p className="text-xs text-muted-foreground">將以備註形式儲存：雙人房 {cfg.double} 間、四人房 {cfg.quad} 間</p>
+                              <p className="text-xs text-muted-foreground">
+                                將以備註形式儲存：{breakdownItems.map(b => `${b.name} ${Number(cfg[b.name]) || 0} 間`).join("、")}
+                              </p>
                             </div>
                           )}
                           </div>
@@ -2200,31 +2227,29 @@ const OrderDetailPage = () => {
                     <Separator />
                     <div className="p-3 rounded-lg border border-dashed bg-muted/20 space-y-2">
                       <div className="text-sm font-medium">{exclusiveLabel}房間配置</div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="space-y-1">
-                          <Label className="text-xs">雙人房間數</Label>
-                          <Select value={String(editExclusiveConfigs[0]?.double || 0)} onValueChange={(v) => setExclusiveConfigAt(0, { double: Number(v) })}>
-                            <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              {doubleRoomOptions.map(n => (
-                                <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">四人房間數</Label>
-                          <Select value={String(editExclusiveConfigs[0]?.quad || 0)} onValueChange={(v) => setExclusiveConfigAt(0, { quad: Number(v) })}>
-                            <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              {quadRoomOptions.map(n => (
-                                <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+                      <div className={`grid gap-2 ${breakdownItems.length >= 3 ? "grid-cols-2 md:grid-cols-3" : "grid-cols-2"}`}>
+                        {breakdownItems.map(b => {
+                          const cfg0 = editExclusiveConfigs[0] || {};
+                          const val = Number(cfg0[b.name]) || 0;
+                          const opts = Array.from({ length: b.max + 1 }, (_, i) => i);
+                          return (
+                            <div key={b.name} className="space-y-1">
+                              <Label className="text-xs">{b.name}間數</Label>
+                              <Select value={String(val)} onValueChange={(v) => setExclusiveConfigAt(0, b.name, Number(v))}>
+                                <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  {opts.map(n => (
+                                    <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          );
+                        })}
                       </div>
-                      <p className="text-xs text-muted-foreground">將以備註形式儲存：雙人房 {editExclusiveConfigs[0]?.double || 0} 間、四人房 {editExclusiveConfigs[0]?.quad || 0} 間</p>
+                      <p className="text-xs text-muted-foreground">
+                        將以備註形式儲存：{breakdownItems.map(b => `${b.name} ${Number((editExclusiveConfigs[0] || {})[b.name]) || 0} 間`).join("、")}
+                      </p>
                     </div>
                   </>
                 )}
