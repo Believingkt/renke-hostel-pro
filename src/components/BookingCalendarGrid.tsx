@@ -45,6 +45,7 @@ interface OrderRoom {
   room_type_id: string;
   quantity: number;
   room_unit_id: string | null;
+  template_name: string | null;
 }
 
 interface RoomUnit {
@@ -64,6 +65,7 @@ interface CalendarEntry {
   order_number: string;
   guest_name: string;
   guest_phone: string;
+  guest_count: number;
   check_in_date: string;
   check_out_date: string;
   order_status: string;
@@ -202,7 +204,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
           .order("display_order"),
         supabase
           .from("orders")
-          .select("id, order_number, guest_name, guest_phone, check_in_date, check_out_date, order_status, order_source, room_type_id, notes")
+          .select("id, order_number, guest_name, guest_phone, guest_count, check_in_date, check_out_date, order_status, order_source, room_type_id, notes")
           .eq("accommodation_id", accommodationId)
           .in("order_status", ["hold", "pending", "confirmed", "checked_in"])
           .gte("check_out_date", startStr)
@@ -233,7 +235,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
       if (orderIds.length > 0) {
         const { data: orData } = await supabase
           .from("order_rooms")
-          .select("id, order_id, room_type_id, quantity, room_unit_id")
+          .select("id, order_id, room_type_id, quantity, room_unit_id, template_name")
           .in("order_id", orderIds);
         fetchedOrderRooms = (orData || []) as OrderRoom[];
       }
@@ -265,6 +267,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                 order_number: order.order_number,
                 guest_name: order.guest_name,
                 guest_phone: order.guest_phone,
+                guest_count: order.guest_count,
                 check_in_date: order.check_in_date,
                 check_out_date: order.check_out_date,
                 order_status: order.order_status,
@@ -284,6 +287,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
             order_number: order.order_number,
             guest_name: order.guest_name,
             guest_phone: order.guest_phone,
+            guest_count: order.guest_count,
             check_in_date: order.check_in_date,
             check_out_date: order.check_out_date,
             order_status: order.order_status,
@@ -840,7 +844,8 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                     if (!rt) continue;
                                     if (rt.is_exclusive_package) {
                                       for (let q = 0; q < or.quantity; q++) {
-                                        lines.push(`房型:${rt.name}${rt.capacity ? `(${rt.capacity}人包棟)` : ''}`);
+                                        lines.push(`房型:${rt.name}${entry.guest_count ? `(${entry.guest_count}人)` : ''}`);
+                                        if (or.template_name) lines.push(`專案:${or.template_name}`);
                                         if (pkgLines[pkgIdx]) lines.push(pkgLines[pkgIdx]);
                                         pkgIdx++;
                                       }
