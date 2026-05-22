@@ -3499,6 +3499,7 @@ const WebsiteContent = () => {
 
         <TabsContent value="booking-info" className="space-y-6">
           <PageHeader title="訂房須知" icon={BookOpen} />
+          {accommodationId && <ExclusivePackageSettings accommodationId={accommodationId} />}
           {/* 入住退房時間 */}
           <Card>
             <CardHeader className="pb-4">
