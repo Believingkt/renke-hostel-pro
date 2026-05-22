@@ -154,6 +154,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
 
     // Split mode 僅啟用於雲岫（包棟與散客分流計算）；其他民宿（如森山）維持原本合併邏輯
     const isYunxiu = (accName || '').includes('雲岫');
+    const isSensan = (accName || '').includes('森山');
     const splitMode = isYunxiu && exclusiveRoomCount > 0 && standardRoomCount > 0;
 
     // 容量：split 模式以實際 room_count 為準；單一模式延用 daily_capacity 上限
