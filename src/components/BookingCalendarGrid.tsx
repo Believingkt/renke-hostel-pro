@@ -45,6 +45,7 @@ interface OrderRoom {
   room_type_id: string;
   quantity: number;
   room_unit_id: string | null;
+  template_name: string | null;
 }
 
 interface RoomUnit {
