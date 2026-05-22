@@ -495,7 +495,11 @@ const Pricing = () => {
               </CardContent>
             </Card>
           )}
+          {!showForm && currentAccommodationId && (
+            <ExclusivePackageSettings accommodationId={currentAccommodationId} />
+          )}
         </TabsContent>
+
 
         <TabsContent value="facilities" className="space-y-4">
           <PageHeader
