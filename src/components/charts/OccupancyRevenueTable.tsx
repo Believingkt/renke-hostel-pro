@@ -207,17 +207,19 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         // Determine total room quantity from order_rooms, fallback to 1
         const orderRooms = orderRoomsMap.get(order.id);
         let roomNightsPerDay: number;
+        // 雲岫海景度假會館：包棟也僅計為實際房數(每筆 order_room 的 quantity)
+        const isYunxiu = accommodationId === '7690a606-6bac-4cd5-a3e7-2fa754b318e8';
         if (orderRooms && orderRooms.length > 0) {
           // Check if any order_room is exclusive
           const hasExclusive = orderRooms.some(or => exclusiveRoomTypeIds.has(or.room_type_id));
-          if (hasExclusive) {
+          if (hasExclusive && !isYunxiu) {
             roomNightsPerDay = DAILY_ROOM_CAP;
           } else {
             roomNightsPerDay = orderRooms.reduce((sum, or) => sum + (or.quantity || 1), 0);
           }
         } else {
           const isExclusive = order.room_type_id ? exclusiveRoomTypeIds.has(order.room_type_id) : false;
-          roomNightsPerDay = isExclusive ? DAILY_ROOM_CAP : 1;
+          roomNightsPerDay = isExclusive && !isYunxiu ? DAILY_ROOM_CAP : 1;
         }
 
         // Collect daily prices for proportional revenue split
