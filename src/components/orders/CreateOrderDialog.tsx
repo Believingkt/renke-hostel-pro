@@ -304,7 +304,20 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         setPricingTemplates(templatesResult.data);
       }
 
-      // booking_settings deposit flags ignored: full payment is now required.
+      // Phase 2: 抓 HQ 設定的包棟組成（新民宿用；舊三家欄位為 null → 走 fallback）
+      const { data: accRow } = await supabase
+        .from("accommodation_info")
+        .select("exclusive_room_breakdown")
+        .eq("id", currentAccommodationId)
+        .maybeSingle();
+      const items = Array.isArray((accRow as any)?.exclusive_room_breakdown)
+        ? ((accRow as any).exclusive_room_breakdown as BreakdownItem[])
+        : null;
+      if (items && items.length > 0) {
+        setCustomBreakdown(items.filter(it => it?.room_type_id));
+      } else {
+        setCustomBreakdown(null);
+      }
     };
 
     fetchData();
