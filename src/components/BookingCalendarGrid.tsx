@@ -235,7 +235,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
       if (orderIds.length > 0) {
         const { data: orData } = await supabase
           .from("order_rooms")
-          .select("id, order_id, room_type_id, quantity, room_unit_id")
+          .select("id, order_id, room_type_id, quantity, room_unit_id, template_name")
           .in("order_id", orderIds);
         fetchedOrderRooms = (orData || []) as OrderRoom[];
       }
