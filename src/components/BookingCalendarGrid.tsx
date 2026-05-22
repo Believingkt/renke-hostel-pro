@@ -287,6 +287,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
             order_number: order.order_number,
             guest_name: order.guest_name,
             guest_phone: order.guest_phone,
+            guest_count: order.guest_count,
             check_in_date: order.check_in_date,
             check_out_date: order.check_out_date,
             order_status: order.order_status,
