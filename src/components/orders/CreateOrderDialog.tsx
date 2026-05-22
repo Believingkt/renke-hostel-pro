@@ -166,6 +166,20 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     }));
   }, []);
 
+  // Phase 2: 動態包棟組成（HQ 房型與包棟設定）。null = 走舊邏輯 fallback。
+  type BreakdownItem = { room_type_id: string; name: string; count: number };
+  const [customBreakdown, setCustomBreakdown] = useState<BreakdownItem[] | null>(null);
+  // 第一棟包棟：room_type_id -> 間數
+  const [exclusiveCustomCounts, setExclusiveCustomCounts] = useState<Record<string, number>>({});
+  // 額外加棟：selection.id -> { room_type_id -> 間數 }
+  const [extraExclusiveCustomCounts, setExtraExclusiveCustomCounts] = useState<Record<string, Record<string, number>>>({});
+  const setExtraExclusiveCustomCount = useCallback((selId: string, rtId: string, count: number) => {
+    setExtraExclusiveCustomCounts(prev => ({
+      ...prev,
+      [selId]: { ...(prev[selId] || {}), [rtId]: count },
+    }));
+  }, []);
+
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [filteredTemplates, setFilteredTemplates] = useState<PricingTemplate[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
@@ -234,6 +248,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       setBookingMode("");
       setExclusiveDoubleRooms(0);
       setExclusiveQuadRooms(0);
+      setExtraExclusiveConfigs({});
+      setExclusiveCustomCounts({});
+      setExtraExclusiveCustomCounts({});
     }
   }, [open, initialData]);
 
@@ -287,7 +304,20 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         setPricingTemplates(templatesResult.data);
       }
 
-      // booking_settings deposit flags ignored: full payment is now required.
+      // Phase 2: 抓 HQ 設定的包棟組成（新民宿用；舊三家欄位為 null → 走 fallback）
+      const { data: accRow } = await supabase
+        .from("accommodation_info")
+        .select("exclusive_room_breakdown")
+        .eq("id", currentAccommodationId)
+        .maybeSingle();
+      const items = Array.isArray((accRow as any)?.exclusive_room_breakdown)
+        ? ((accRow as any).exclusive_room_breakdown as BreakdownItem[])
+        : null;
+      if (items && items.length > 0) {
+        setCustomBreakdown(items.filter(it => it?.room_type_id));
+      } else {
+        setCustomBreakdown(null);
+      }
     };
 
     fetchData();
@@ -928,13 +958,32 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         notes: (() => {
           let note = form.notes.trim();
           const pkgLines: string[] = [];
-          if (bookingMode === 'exclusive' && (exclusiveDoubleRooms > 0 || exclusiveQuadRooms > 0)) {
-            pkgLines.push(`【${exclusiveLabel}房間配置】雙人房 ${exclusiveDoubleRooms} 間、四人房 ${exclusiveQuadRooms} 間`);
+          if (bookingMode === 'exclusive') {
+            if (customBreakdown) {
+              const parts = customBreakdown
+                .map(bd => ({ name: bd.name, count: exclusiveCustomCounts[bd.room_type_id] ?? 0 }))
+                .filter(p => p.count > 0);
+              if (parts.length > 0) {
+                pkgLines.push(`【${exclusiveLabel}房間配置】${parts.map(p => `${p.name} ${p.count} 間`).join("、")}`);
+              }
+            } else if (exclusiveDoubleRooms > 0 || exclusiveQuadRooms > 0) {
+              pkgLines.push(`【${exclusiveLabel}房間配置】雙人房 ${exclusiveDoubleRooms} 間、四人房 ${exclusiveQuadRooms} 間`);
+            }
           }
           // 額外加棟（roomSelections[1..]）的包棟配置
           pricedRoomSelections.slice(1).forEach(sel => {
             const isExc = !!roomTypes.find(r => r.id === sel.room_type_id)?.is_exclusive_package;
             if (!isExc) return;
+            if (customBreakdown) {
+              const map = extraExclusiveCustomCounts[sel.id] || {};
+              const parts = customBreakdown
+                .map(bd => ({ name: bd.name, count: map[bd.room_type_id] ?? 0 }))
+                .filter(p => p.count > 0);
+              if (parts.length > 0) {
+                pkgLines.push(`【${exclusiveLabel}房間配置】${parts.map(p => `${p.name} ${p.count} 間`).join("、")}`);
+              }
+              return;
+            }
             const cfg = extraExclusiveConfigs[sel.id];
             if (cfg && (cfg.double > 0 || cfg.quad > 0)) {
               pkgLines.push(`【${exclusiveLabel}房間配置】雙人房 ${cfg.double} 間、四人房 ${cfg.quad} 間`);
@@ -1418,37 +1467,73 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                     )}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">雙人房間數</Label>
-                    <Select value={String(exclusiveDoubleRooms)} onValueChange={(v) => setExclusiveDoubleRooms(Number(v))}>
-                      <SelectTrigger className="h-10 text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Array.from({ length: MAX_DOUBLE_ROOMS + 1 }, (_, i) => i).map(n => (
-                          <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">四人房間數</Label>
-                    <Select value={String(exclusiveQuadRooms)} onValueChange={(v) => setExclusiveQuadRooms(Number(v))}>
-                      <SelectTrigger className="h-10 text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Array.from({ length: MAX_QUAD_ROOMS + 1 }, (_, i) => i).map(n => (
-                          <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {exclusiveLabel}已鎖定 {MAX_TOTAL_ROOMS} 間房（雙人房 {exclusiveDoubleRooms} 間、四人房 {exclusiveQuadRooms} 間）
-                </div>
+                {customBreakdown ? (
+                  <>
+                    <div className={`grid gap-3 ${customBreakdown.length >= 3 ? "grid-cols-2 md:grid-cols-3" : "grid-cols-2"}`}>
+                      {customBreakdown.map((bd) => {
+                        const cur = exclusiveCustomCounts[bd.room_type_id] ?? 0;
+                        const max = Math.max(bd.count, 0);
+                        return (
+                          <div key={bd.room_type_id} className="space-y-1.5">
+                            <Label className="text-xs">{bd.name} 間數</Label>
+                            <Select
+                              value={String(cur)}
+                              onValueChange={(v) =>
+                                setExclusiveCustomCounts(prev => ({ ...prev, [bd.room_type_id]: Number(v) }))
+                              }
+                            >
+                              <SelectTrigger className="h-10 text-sm"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {Array.from({ length: max + 1 }, (_, i) => i).map(n => (
+                                  <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {exclusiveLabel}已鎖定 {customBreakdown.reduce((s, b) => s + b.count, 0)} 間房（
+                      {customBreakdown.map(bd => `${bd.name} ${exclusiveCustomCounts[bd.room_type_id] ?? 0} 間`).join("、")}
+                      ）
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">雙人房間數</Label>
+                        <Select value={String(exclusiveDoubleRooms)} onValueChange={(v) => setExclusiveDoubleRooms(Number(v))}>
+                          <SelectTrigger className="h-10 text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: MAX_DOUBLE_ROOMS + 1 }, (_, i) => i).map(n => (
+                              <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">四人房間數</Label>
+                        <Select value={String(exclusiveQuadRooms)} onValueChange={(v) => setExclusiveQuadRooms(Number(v))}>
+                          <SelectTrigger className="h-10 text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: MAX_QUAD_ROOMS + 1 }, (_, i) => i).map(n => (
+                              <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {exclusiveLabel}已鎖定 {MAX_TOTAL_ROOMS} 間房（雙人房 {exclusiveDoubleRooms} 間、四人房 {exclusiveQuadRooms} 間）
+                    </div>
+                  </>
+                )}
                 {roomSelections[0]?.roomPrice > 0 && (
                   <div className="text-xs text-right text-muted-foreground">
                     小計：NT$ {roomSelections[0].roomPrice.toLocaleString()}（{exclusiveLabel}）
@@ -1523,37 +1608,69 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                       {isExclusive && (
                         <div className="p-3 rounded-lg border border-dashed bg-background/50 space-y-2">
                           <div className="text-xs font-medium">{exclusiveLabel}房間配置</div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <div className="space-y-1">
-                              <Label className="text-xs">雙人房間數</Label>
-                              <Select
-                                value={String(extraExclusiveConfigs[sel.id]?.double ?? 0)}
-                                onValueChange={(v) => setExtraExclusiveConfig(sel.id, { double: Number(v) })}
-                              >
-                                <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                  {Array.from({ length: MAX_DOUBLE_ROOMS + 1 }, (_, i) => i).map(n => (
-                                    <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs">四人房間數</Label>
-                              <Select
-                                value={String(extraExclusiveConfigs[sel.id]?.quad ?? 0)}
-                                onValueChange={(v) => setExtraExclusiveConfig(sel.id, { quad: Number(v) })}
-                              >
-                                <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                  {Array.from({ length: MAX_QUAD_ROOMS + 1 }, (_, i) => i).map(n => (
-                                    <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                          <p className="text-xs text-muted-foreground">將以備註形式儲存：雙人房 {extraExclusiveConfigs[sel.id]?.double ?? 0} 間、四人房 {extraExclusiveConfigs[sel.id]?.quad ?? 0} 間</p>
+                          {customBreakdown ? (
+                            <>
+                              <div className={`grid gap-2 ${customBreakdown.length >= 3 ? "grid-cols-2 md:grid-cols-3" : "grid-cols-2"}`}>
+                                {customBreakdown.map(bd => {
+                                  const cur = extraExclusiveCustomCounts[sel.id]?.[bd.room_type_id] ?? 0;
+                                  return (
+                                    <div key={bd.room_type_id} className="space-y-1">
+                                      <Label className="text-xs">{bd.name} 間數</Label>
+                                      <Select
+                                        value={String(cur)}
+                                        onValueChange={(v) => setExtraExclusiveCustomCount(sel.id, bd.room_type_id, Number(v))}
+                                      >
+                                        <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                          {Array.from({ length: bd.count + 1 }, (_, i) => i).map(n => (
+                                            <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                將以備註形式儲存：
+                                {customBreakdown.map(bd => `${bd.name} ${extraExclusiveCustomCounts[sel.id]?.[bd.room_type_id] ?? 0} 間`).join("、")}
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1">
+                                  <Label className="text-xs">雙人房間數</Label>
+                                  <Select
+                                    value={String(extraExclusiveConfigs[sel.id]?.double ?? 0)}
+                                    onValueChange={(v) => setExtraExclusiveConfig(sel.id, { double: Number(v) })}
+                                  >
+                                    <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                      {Array.from({ length: MAX_DOUBLE_ROOMS + 1 }, (_, i) => i).map(n => (
+                                        <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs">四人房間數</Label>
+                                  <Select
+                                    value={String(extraExclusiveConfigs[sel.id]?.quad ?? 0)}
+                                    onValueChange={(v) => setExtraExclusiveConfig(sel.id, { quad: Number(v) })}
+                                  >
+                                    <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                      {Array.from({ length: MAX_QUAD_ROOMS + 1 }, (_, i) => i).map(n => (
+                                        <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                              <p className="text-xs text-muted-foreground">將以備註形式儲存：雙人房 {extraExclusiveConfigs[sel.id]?.double ?? 0} 間、四人房 {extraExclusiveConfigs[sel.id]?.quad ?? 0} 間</p>
+                            </>
+                          )}
                         </div>
                       )}
                     </div>
