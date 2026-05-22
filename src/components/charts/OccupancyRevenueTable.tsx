@@ -27,6 +27,8 @@ interface DailyDetail {
   dayLabel: string;
   dayType: DayType;
   roomsSold: number;
+  exclusiveSold: number;
+  standardSold: number;
   revenue: number;
   avgPrice: number;
 }
