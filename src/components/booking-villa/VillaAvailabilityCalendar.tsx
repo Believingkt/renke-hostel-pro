@@ -60,7 +60,7 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
       }
 
       const todayStr = formatISO(today, { representation: "date" });
-      const endStr = formatISO(endOfMonth(addMonths(today, 6)), {
+      const endStr = formatISO(endOfMonth(addMonths(today, 11)), {
         representation: "date",
       });
 
