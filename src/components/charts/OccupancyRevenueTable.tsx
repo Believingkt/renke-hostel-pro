@@ -27,6 +27,8 @@ interface DailyDetail {
   dayLabel: string;
   dayType: DayType;
   roomsSold: number;
+  exclusiveSold: number;
+  standardSold: number;
   revenue: number;
   avgPrice: number;
 }
@@ -212,10 +214,14 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
       });
 
       const dailyRoomsSold: Record<string, number> = {};
+      const dailyExclusiveSold: Record<string, number> = {};
+      const dailyStandardSold: Record<string, number> = {};
       const dailyRevenue: Record<string, number> = {};
       for (let d = 0; d < daysInMonth; d++) {
         const dateStr = format(addDays(monthStart, d), 'yyyy-MM-dd');
         dailyRoomsSold[dateStr] = 0;
+        dailyExclusiveSold[dateStr] = 0;
+        dailyStandardSold[dateStr] = 0;
         dailyRevenue[dateStr] = 0;
       }
 
@@ -266,6 +272,8 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
             buckets.all.soldByType[dayType] += totalQty;
           }
           dailyRoomsSold[dateStr] = (dailyRoomsSold[dateStr] || 0) + totalQty;
+          dailyExclusiveSold[dateStr] = (dailyExclusiveSold[dateStr] || 0) + exclusiveQty;
+          dailyStandardSold[dateStr] = (dailyStandardSold[dateStr] || 0) + standardQty;
           dailyEntries.push({ dayType, dateStr });
         }
 
@@ -305,6 +313,8 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
           dayLabel: weekdayLabels[dow],
           dayType,
           roomsSold: sold,
+          exclusiveSold: dailyExclusiveSold[dateStr] || 0,
+          standardSold: dailyStandardSold[dateStr] || 0,
           revenue: Math.round(rev),
           avgPrice: sold > 0 ? Math.round(rev / sold) : 0,
         });
@@ -575,7 +585,18 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
                                         <TableCell className="text-center py-1 px-2">{dd.date.slice(5)}</TableCell>
                                         <TableCell className="text-center py-1 px-2">{dd.dayLabel}</TableCell>
                                         <TableCell className="text-center py-1 px-2">{dayTypeLabel}</TableCell>
-                                        <TableCell className="text-center py-1 px-2 font-medium">{dd.roomsSold}/{allCapacity}</TableCell>
+                                        <TableCell className="text-center py-1 px-2 font-medium tabular-nums">
+                                          {splitMode ? (
+                                            <>
+                                              <span className="text-purple-600 dark:text-purple-300">{dd.exclusiveSold}</span>
+                                              <span className="text-muted-foreground">+</span>
+                                              <span className="text-sky-600 dark:text-sky-300">{dd.standardSold}</span>
+                                              <span className="text-muted-foreground">/{allCapacity}</span>
+                                            </>
+                                          ) : (
+                                            <>{dd.roomsSold}/{allCapacity}</>
+                                          )}
+                                        </TableCell>
                                         <TableCell className="text-center py-1 px-2 tabular-nums">{dd.revenue > 0 ? `$${dd.revenue.toLocaleString('zh-TW')}` : '-'}</TableCell>
                                         <TableCell className="text-center py-1 px-2 tabular-nums">{dd.avgPrice > 0 ? `$${dd.avgPrice.toLocaleString('zh-TW')}` : '-'}</TableCell>
                                       </TableRow>
