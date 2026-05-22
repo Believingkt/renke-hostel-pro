@@ -146,8 +146,8 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
   const tableData = useMemo(() => {
     if (!data) return null;
 
-    const { roomTypes, orders, holidays, inventoryData, orderRoomsMap } = data;
-    const DAILY_ROOM_CAP = 6;
+    const { roomTypes, orders, holidays, inventoryData, orderRoomsMap, dailyCap } = data;
+    const DAILY_ROOM_CAP = dailyCap;
     const totalRoomCount = Math.min(roomTypes.reduce((sum, rt) => sum + (rt.room_count || 0), 0), DAILY_ROOM_CAP);
     const exclusiveRoomTypeIds = new Set(roomTypes.filter(rt => rt.is_exclusive_package).map(rt => rt.id));
     if (totalRoomCount === 0) return null;
