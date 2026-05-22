@@ -961,7 +961,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           if (bookingMode === 'exclusive') {
             if (customBreakdown) {
               const parts = customBreakdown
-                .map(bd => ({ name: bd.name, count: exclusiveCustomCounts[bd.room_type_id] ?? bd.count }))
+                .map(bd => ({ name: bd.name, count: exclusiveCustomCounts[bd.room_type_id] ?? 0 }))
                 .filter(p => p.count > 0);
               if (parts.length > 0) {
                 pkgLines.push(`【${exclusiveLabel}房間配置】${parts.map(p => `${p.name} ${p.count} 間`).join("、")}`);
@@ -1471,7 +1471,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                   <>
                     <div className={`grid gap-3 ${customBreakdown.length >= 3 ? "grid-cols-2 md:grid-cols-3" : "grid-cols-2"}`}>
                       {customBreakdown.map((bd) => {
-                        const cur = exclusiveCustomCounts[bd.room_type_id] ?? bd.count;
+                        const cur = exclusiveCustomCounts[bd.room_type_id] ?? 0;
                         const max = Math.max(bd.count, 0);
                         return (
                           <div key={bd.room_type_id} className="space-y-1.5">
@@ -1495,7 +1495,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {exclusiveLabel}已鎖定 {customBreakdown.reduce((s, b) => s + b.count, 0)} 間房（
-                      {customBreakdown.map(bd => `${bd.name} ${exclusiveCustomCounts[bd.room_type_id] ?? bd.count} 間`).join("、")}
+                      {customBreakdown.map(bd => `${bd.name} ${exclusiveCustomCounts[bd.room_type_id] ?? 0} 間`).join("、")}
                       ）
                     </div>
                   </>
