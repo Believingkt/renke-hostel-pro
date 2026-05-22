@@ -227,22 +227,19 @@ const OrderDetailPage = () => {
   const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
   const [orderRooms, setOrderRooms] = useState<OrderRoom[]>([]);
   const [editOrderRooms, setEditOrderRooms] = useState<EditOrderRoom[]>([]);
-  const [editExclusiveConfigs, setEditExclusiveConfigs] = useState<Array<{ double: number; quad: number }>>([]);
-  const setExclusiveConfigAt = useCallback((idx: number, patch: Partial<{ double: number; quad: number }>) => {
+  const [editExclusiveConfigs, setEditExclusiveConfigs] = useState<Array<Record<string, number>>>([]);
+  const setExclusiveConfigAt = useCallback((idx: number, name: string, value: number) => {
     setEditExclusiveConfigs(prev => {
       const next = [...prev];
-      while (next.length <= idx) next.push({ double: 0, quad: 0 });
-      next[idx] = { ...next[idx], ...patch };
+      while (next.length <= idx) next.push({});
+      next[idx] = { ...next[idx], [name]: value };
       return next;
     });
   }, []);
   // 只有森山寫照保留「包區」用語，其餘民宿一律使用「包棟」
   const SENSAN_ACC_ID = "5f764d55-ae11-4631-80fe-2e611853deae";
-  // 哈庫納馬塔塔：最多 2 雙人房 + 4 四人房 = 6 間
   const HAKUNA_ACC_ID = "6b6ac0dc-602b-4dec-9167-7791ac412ba3";
-  // 雲岫海景度假會館：唯一啟用「指派房間（散客單元）」功能的民宿
   const YUNXIU_ACC_ID = "7690a606-6bac-4cd5-a3e7-2fa754b318e8";
-  // 奧莉薇雅生活小酒店：8 雙人房 + 1 四人房 = 9 間
   const OLIVIA_ACC_ID = "74d064f4-1f8c-47e8-9be0-f0a596bbe6f8";
   const isSensan = order?.accommodation_id === SENSAN_ACC_ID;
   const isHakuna = order?.accommodation_id === HAKUNA_ACC_ID;
@@ -250,11 +247,19 @@ const OrderDetailPage = () => {
   const isOlivia = order?.accommodation_id === OLIVIA_ACC_ID;
   const exclusiveLabel = isSensan ? "包區" : "包棟";
   const [roomUnits, setRoomUnits] = useState<RoomUnitOption[]>([]);
-  const MAX_TOTAL_ROOMS = isHakuna ? 7 : isOlivia ? 9 : 6;
-  const MAX_DOUBLE_ROOMS = isHakuna ? 2 : isOlivia ? 8 : 3;
-  const MAX_QUAD_ROOMS = isHakuna ? 4 : isOlivia ? 1 : 3;
-  const doubleRoomOptions = Array.from({ length: MAX_DOUBLE_ROOMS + 1 }, (_, i) => i);
-  const quadRoomOptions = Array.from({ length: MAX_QUAD_ROOMS + 1 }, (_, i) => i);
+  // DB-driven 包棟組成（HQ 房型與包棟設定）。沒設定 → fallback 舊三家 hardcoded。
+  const [customBreakdown, setCustomBreakdown] = useState<Array<{ name: string; count: number }> | null>(null);
+  const breakdownItems = useMemo<Array<{ name: string; max: number }>>(() => {
+    if (customBreakdown && customBreakdown.length > 0) {
+      return customBreakdown.map(b => ({ name: b.name, max: b.count }));
+    }
+    const maxDouble = isHakuna ? 2 : isOlivia ? 8 : 3;
+    const maxQuad = isHakuna ? 4 : isOlivia ? 1 : 3;
+    return [
+      { name: "雙人房", max: maxDouble },
+      { name: "四人房", max: maxQuad },
+    ];
+  }, [customBreakdown, isHakuna, isOlivia]);
   const [depositRatioRef] = useState<{ current: number }>({ current: 0 });
   const [originalDiscountCode] = useState<{ current: string }>({ current: "" });
   const [defaultDepositRatio, setDefaultDepositRatio] = useState<number>(0);
