@@ -313,6 +313,8 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
           dayLabel: weekdayLabels[dow],
           dayType,
           roomsSold: sold,
+          exclusiveSold: dailyExclusiveSold[dateStr] || 0,
+          standardSold: dailyStandardSold[dateStr] || 0,
           revenue: Math.round(rev),
           avgPrice: sold > 0 ? Math.round(rev / sold) : 0,
         });
