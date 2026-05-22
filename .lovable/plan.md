@@ -1,69 +1,78 @@
 ## 目標
 
-讓哈庫、田璁、奧莉薇等非森山民宿，也能在訂房頁顯示森山風格的「包區方案卡」。每間民宿可在後台自行設定方案（人數、價格、適用日、附加說明），前台採 v2 橫向精緻卡片版面。
+把 CreateOrderDialog 內 hardcoded 的「6 間房 / 雙人 3 / 四人 3」改成讀 DB；任意房型結構都能正確顯示與限制；營運分析的「總可售房數」改為動態。
 
-森山現有的硬編碼方案（`sensan-pricing.ts`）保持不動，本次只新增其他民宿的資料驅動版本。
+## 設計原則（避免動到既有民宿）
 
-## 資料庫
-
-新增 `accommodation_packages` 表，欄位：
-
-- `accommodation_id`（關聯民宿）
-- `name`（方案名稱，例「悠活包區方案」）
-- `guest_count` / `guest_count_max`（建議人數 / 上限）
-- `original_price` / `sale_price`（原價 / 售價）
-- `room_allocation`（房型分配文字，例「雙人房 x2、四人房 x1」）
-- `applicable_tiers`（陣列：weekday / friday_sunday / weekend）
-- `tags`（陣列：early_bird / best_value / 一泊二食 ...）
-- `includes`（陣列：早餐 / WiFi / 加床等附加說明，每項含 `text` + `available: true|false|optional` + 可選 `price_note`）
-- `display_order`、`enabled`
-
-RLS：所有人可讀（公開訂房頁需要）；只有該民宿管理員可寫。
-
-## 後台管理頁
-
-在 PMS 側欄新增「包棟方案」項目（每民宿獨立），位置放在「房價庫存」之下。
-
-- 列表顯示所有方案（拖曳排序、啟用切換、編輯、刪除）
-- 編輯彈窗包含上述所有欄位
-- 適用日 / 標籤 / 附加說明用多選與動態列表
-
-## 前台訂房頁
-
-在 `BookingAccommodation.tsx`（散客版訂房頁）：
-
-- 新增 `usePackages(accommodationId)` hook 抓取啟用方案
-- 若該民宿有 ≥1 個方案 → 顯示「包棟方案」區塊（v2 橫向卡片），**取代**原本的房型列表 / 不再顯示 base_price 加總
-- 若無方案 → 維持現狀（房型 + 模板價）
-- 卡片依日期過濾 `applicable_tiers`，篩出符合的方案
-- 點「立即預訂」帶 `roomId`（從 room_allocation 解析或方案直接綁定主房型）+ 日期 / 人數導向 `/book`
-
-## 技術細節
+新增的 DB 欄位**不 backfill** Sensan/Hakuna/Olivia。讀取邏輯改為：
 
 ```
-src/
-  pages/BookingAccommodation.tsx            # 加入方案區塊條件渲染
-  components/booking-villa/
-    PackageOptionCard.tsx                    # 新元件：v2 橫向卡片
-    PackageOptionList.tsx                    # 列表容器 + 日期過濾
-  components/admin/
-    AccommodationPackagesManager.tsx         # 後台列表
-    AccommodationPackageDialog.tsx           # 編輯彈窗
-  hooks/use-accommodation-packages.tsx       # 抓取 hook
+exclusive_total  = acc.exclusive_total_rooms ?? (isHakuna ? 7 : isOlivia ? 9 : 6)
+exclusive_break  = acc.exclusive_room_breakdown ?? 既有 hardcoded 對照
+daily_capacity   = acc.daily_capacity ?? 6
 ```
 
-新增頁面路由 `/admin/packages`，掛在 `AppSidebar` 的「住宿設定」群組。
+→ 三家舊民宿欄位留空 = 100% 走 fallback，**行為跟現在一字不差**。
 
-## 範圍說明（不做的事）
+## 改動範圍
 
-- 森山現有 `CapacityPriceLadder` 不動，避免破壞已鎖定的森山邏輯
-- 方案不影響庫存扣減邏輯（沿用既有 room_types 的庫存）
-- 方案的「房型分配」第一版只做文字顯示，不自動拆房
-- 每個方案綁定一個主要 `room_type_id` 用於下單時的庫存對應
+### 1. DB（migration）
+- `accommodation_info` 新增 3 欄（全 nullable）：
+  - `exclusive_total_rooms int` — 包棟總房數
+  - `exclusive_room_breakdown jsonb` — 例 `[{ "room_type_id": "...", "name": "雙人房", "count": 3 }]`
+  - `daily_capacity int` — 每日總可售房數（分析用）
 
-## 交付順序
+### 2. UI：新增「房型與包棟設定」卡片區塊
+位置：HQ 該民宿 → 訂房設定頁（既有「訂房設定」分頁下方），不是新增民宿對話框。
+（新增民宿時房型還沒建，無法選；建好房型再來這裡設定。）
 
-1. 建立 DB 表 + RLS
-2. 後台管理頁 + 編輯彈窗（你可以先輸入哈庫的方案測試）
-3. 前台 v2 卡片 + 訂房頁整合
-4. 你驗收後再決定要不要把森山也遷移到這個資料驅動版本（可選）
+**A. 卡片清單佈局：**
+```
+┌─ 房型與包棟設定 ──────────────────────────┐
+│  每日總可售房數  [  6  ]  房                │
+│  ─────────────────────────────────────── │
+│  包棟設定                                  │
+│  ┌──────────────────────────────────┐    │
+│  │ ☑ 雙人房（room_type）            │    │
+│  │   包含 [ 3 ] 間  · 容納 2 人     │    │
+│  ├──────────────────────────────────┤    │
+│  │ ☑ 四人房                          │    │
+│  │   包含 [ 3 ] 間  · 容納 4 人     │    │
+│  ├──────────────────────────────────┤    │
+│  │ ☐ 六人房                          │    │
+│  │   （未納入包棟）                   │    │
+│  └──────────────────────────────────┘    │
+│  包棟總計：6 間 / 18 人  [自動加總]        │
+│  [儲存]                                    │
+└────────────────────────────────────────────┘
+```
+
+新增/刪除 `room_types` 自動出現在清單，沒勾的不算包棟。
+
+### 3. CreateOrderDialog（核心邏輯）
+- 移除 hardcoded `MAX_DOUBLE_ROOMS / MAX_QUAD_ROOMS / MAX_TOTAL_ROOMS`
+- 改讀 `accommodation.exclusive_room_breakdown` 動態渲染欄位
+- 提示文字改成：「包棟已鎖定 6 間房（雙人房 0 間、四人房 0 間、六人房 0 間）」← 自動依設定組字串
+- 沒設定 → fallback 到原本 3 家的 hardcoded 常數
+
+### 4. 營運分析（Analytics）
+- `Total Available Nights = daily_capacity × days`
+- 沒設定 → 維持 6
+
+## 不動的部分
+
+- room_types 結構不動（沿用 `is_exclusive_package` / `is_bound_to_exclusive` / `capacity` / `room_count`）
+- Sensan/Hakuna 庫存判斷規則完全不動（已上鎖）
+- 散客訂單流程不動
+
+## 風險
+
+| 風險 | 緩解 |
+|---|---|
+| 既有三家被影響 | 不寫入 DB，永遠走 fallback |
+| 包棟總人數計算錯 | 用設定的 `count × room_type.capacity` 加總 |
+| 用戶誤刪房型導致設定殘留 | 載入時過濾無效 room_type_id |
+
+## 工作量
+
+約 1 個工作週期：1 migration + 1 新 UI 元件 + CreateOrderDialog 改造 + Analytics 1 行公式。

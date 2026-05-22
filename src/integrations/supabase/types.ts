@@ -235,9 +235,12 @@ export type Database = {
           country: string | null
           created_at: string
           custom_domain: string | null
+          daily_capacity: number | null
           description: string | null
           display_order: number | null
           email: string | null
+          exclusive_room_breakdown: Json | null
+          exclusive_total_rooms: number | null
           facebook_url: string | null
           footer_logo_url: string | null
           google_place_id: string | null
@@ -299,9 +302,12 @@ export type Database = {
           country?: string | null
           created_at?: string
           custom_domain?: string | null
+          daily_capacity?: number | null
           description?: string | null
           display_order?: number | null
           email?: string | null
+          exclusive_room_breakdown?: Json | null
+          exclusive_total_rooms?: number | null
           facebook_url?: string | null
           footer_logo_url?: string | null
           google_place_id?: string | null
@@ -363,9 +369,12 @@ export type Database = {
           country?: string | null
           created_at?: string
           custom_domain?: string | null
+          daily_capacity?: number | null
           description?: string | null
           display_order?: number | null
           email?: string | null
+          exclusive_room_breakdown?: Json | null
+          exclusive_total_rooms?: number | null
           facebook_url?: string | null
           footer_logo_url?: string | null
           google_place_id?: string | null
