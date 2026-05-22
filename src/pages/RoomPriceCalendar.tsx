@@ -572,10 +572,12 @@ export default function RoomPriceCalendar() {
                         </td>
                       </tr>
                       {groupedRoomTypes.exclusive.map(roomType => {
-                        // 包棟/包區房型：顯示名稱包含該房型名稱的專案，或通用模板
+                        // 包棟/包區房型：優先以 room_type_id 綁定為準；
+                        // 沒綁定時才以名稱包含房型名稱、或通用模板做後備匹配。
                         const normalizedRoomName = roomType.name.replace(/\s+/g, '');
-                        
+
                         const roomTemplates = filteredTemplates.filter(t => {
+                          if (t.room_type_id) return t.room_type_id === roomType.id;
                           const templateName = (t.project_name || t.template_name).replace(/\s+/g, '');
                           const matchesCurrentRoom = templateName.includes(normalizedRoomName);
                           const isGenericTemplate = !allRoomNamesNormalized.some(name => templateName.includes(name));
