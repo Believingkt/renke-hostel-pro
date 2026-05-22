@@ -280,6 +280,24 @@ const OrderDetailPage = () => {
       }
     })();
   }, [order?.accommodation_id]);
+
+  // Load custom exclusive breakdown from accommodation_info (DB-driven 房型與包棟設定)
+  useEffect(() => {
+    if (!order?.accommodation_id) return;
+    (async () => {
+      const { data } = await supabase
+        .from("accommodation_info")
+        .select("exclusive_room_breakdown")
+        .eq("id", order.accommodation_id)
+        .maybeSingle();
+      const items = (data as any)?.exclusive_room_breakdown;
+      if (Array.isArray(items) && items.length > 0) {
+        setCustomBreakdown(items.map((it: any) => ({ name: String(it.name || ""), count: Number(it.count) || 0 })).filter(it => it.name));
+      } else {
+        setCustomBreakdown(null);
+      }
+    })();
+  }, [order?.accommodation_id]);
   const getRoomUnitPrice = useCallback((roomPrice: number, quantity: number) => {
     return quantity > 0 ? Math.round(roomPrice / quantity) : roomPrice;
   }, []);
