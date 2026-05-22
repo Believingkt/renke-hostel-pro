@@ -65,6 +65,7 @@ interface CalendarEntry {
   order_number: string;
   guest_name: string;
   guest_phone: string;
+  guest_count: number;
   check_in_date: string;
   check_out_date: string;
   order_status: string;
