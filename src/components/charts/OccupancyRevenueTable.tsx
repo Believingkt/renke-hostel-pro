@@ -86,7 +86,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
       const startDate = `${selectedYear - 1}-01-01`;
       const endDate = `${selectedYear}-12-31`;
 
-      const [roomTypesRes, ordersRes, holidaysRes, orderRoomsRes] = await Promise.all([
+      const [roomTypesRes, ordersRes, holidaysRes, orderRoomsRes, accRes] = await Promise.all([
         supabase.from('room_types').select('id, name, room_count, is_exclusive_package').eq('accommodation_id', accommodationId),
         supabase.from('orders')
           .select('id, check_in_date, check_out_date, room_type_id, final_price, meal_plan, order_status')
@@ -102,7 +102,9 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         supabase.from('order_rooms')
           .select('order_id, room_type_id, quantity')
           .limit(10000),
+        supabase.from('accommodation_info').select('daily_capacity').eq('id', accommodationId).maybeSingle(),
       ]);
+      const dailyCap = Number((accRes.data as any)?.daily_capacity) > 0 ? Number((accRes.data as any).daily_capacity) : 6;
 
       if (roomTypesRes.error) throw roomTypesRes.error;
       if (ordersRes.error) throw ordersRes.error;
