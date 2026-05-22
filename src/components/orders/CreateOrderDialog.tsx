@@ -958,13 +958,32 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         notes: (() => {
           let note = form.notes.trim();
           const pkgLines: string[] = [];
-          if (bookingMode === 'exclusive' && (exclusiveDoubleRooms > 0 || exclusiveQuadRooms > 0)) {
-            pkgLines.push(`【${exclusiveLabel}房間配置】雙人房 ${exclusiveDoubleRooms} 間、四人房 ${exclusiveQuadRooms} 間`);
+          if (bookingMode === 'exclusive') {
+            if (customBreakdown) {
+              const parts = customBreakdown
+                .map(bd => ({ name: bd.name, count: exclusiveCustomCounts[bd.room_type_id] ?? bd.count }))
+                .filter(p => p.count > 0);
+              if (parts.length > 0) {
+                pkgLines.push(`【${exclusiveLabel}房間配置】${parts.map(p => `${p.name} ${p.count} 間`).join("、")}`);
+              }
+            } else if (exclusiveDoubleRooms > 0 || exclusiveQuadRooms > 0) {
+              pkgLines.push(`【${exclusiveLabel}房間配置】雙人房 ${exclusiveDoubleRooms} 間、四人房 ${exclusiveQuadRooms} 間`);
+            }
           }
           // 額外加棟（roomSelections[1..]）的包棟配置
           pricedRoomSelections.slice(1).forEach(sel => {
             const isExc = !!roomTypes.find(r => r.id === sel.room_type_id)?.is_exclusive_package;
             if (!isExc) return;
+            if (customBreakdown) {
+              const map = extraExclusiveCustomCounts[sel.id] || {};
+              const parts = customBreakdown
+                .map(bd => ({ name: bd.name, count: map[bd.room_type_id] ?? 0 }))
+                .filter(p => p.count > 0);
+              if (parts.length > 0) {
+                pkgLines.push(`【${exclusiveLabel}房間配置】${parts.map(p => `${p.name} ${p.count} 間`).join("、")}`);
+              }
+              return;
+            }
             const cfg = extraExclusiveConfigs[sel.id];
             if (cfg && (cfg.double > 0 || cfg.quad > 0)) {
               pkgLines.push(`【${exclusiveLabel}房間配置】雙人房 ${cfg.double} 間、四人房 ${cfg.quad} 間`);
