@@ -165,9 +165,9 @@ export const ExclusivePackageSettings = ({ accommodationId }: Props) => {
         <div className="space-y-3">
           <div className="flex items-end justify-between gap-2">
             <div>
-              <Label className="text-sm font-medium">包棟組成</Label>
+              <Label className="text-sm font-medium">包棟內房間組成</Label>
               <p className="text-xs text-muted-foreground mt-0.5">
-                勾選包棟包含的房型，並填寫各房型間數。沒勾的房型不會出現在訂單包棟欄位。
+                勾選包棟內包含的房型，並填寫各房型間數。沒勾的房型不會出現在新增訂單及編輯的包棟選擇欄位。
               </p>
             </div>
           </div>
