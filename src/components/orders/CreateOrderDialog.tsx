@@ -248,6 +248,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       setBookingMode("");
       setExclusiveDoubleRooms(0);
       setExclusiveQuadRooms(0);
+      setExtraExclusiveConfigs({});
+      setExclusiveCustomCounts({});
+      setExtraExclusiveCustomCounts({});
     }
   }, [open, initialData]);
 
