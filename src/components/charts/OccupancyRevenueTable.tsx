@@ -585,7 +585,18 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
                                         <TableCell className="text-center py-1 px-2">{dd.date.slice(5)}</TableCell>
                                         <TableCell className="text-center py-1 px-2">{dd.dayLabel}</TableCell>
                                         <TableCell className="text-center py-1 px-2">{dayTypeLabel}</TableCell>
-                                        <TableCell className="text-center py-1 px-2 font-medium">{dd.roomsSold}/{allCapacity}</TableCell>
+                                        <TableCell className="text-center py-1 px-2 font-medium tabular-nums">
+                                          {splitMode ? (
+                                            <>
+                                              <span className="text-purple-600 dark:text-purple-300">{dd.exclusiveSold}</span>
+                                              <span className="text-muted-foreground">+</span>
+                                              <span className="text-sky-600 dark:text-sky-300">{dd.standardSold}</span>
+                                              <span className="text-muted-foreground">/{allCapacity}</span>
+                                            </>
+                                          ) : (
+                                            <>{dd.roomsSold}/{allCapacity}</>
+                                          )}
+                                        </TableCell>
                                         <TableCell className="text-center py-1 px-2 tabular-nums">{dd.revenue > 0 ? `$${dd.revenue.toLocaleString('zh-TW')}` : '-'}</TableCell>
                                         <TableCell className="text-center py-1 px-2 tabular-nums">{dd.avgPrice > 0 ? `$${dd.avgPrice.toLocaleString('zh-TW')}` : '-'}</TableCell>
                                       </TableRow>
