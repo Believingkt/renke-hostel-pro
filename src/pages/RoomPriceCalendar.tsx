@@ -572,10 +572,12 @@ export default function RoomPriceCalendar() {
                         </td>
                       </tr>
                       {groupedRoomTypes.exclusive.map(roomType => {
-                        // 包棟/包區房型：顯示名稱包含該房型名稱的專案，或通用模板
+                        // 包棟/包區房型：優先以 room_type_id 綁定為準；
+                        // 沒綁定時才以名稱包含房型名稱、或通用模板做後備匹配。
                         const normalizedRoomName = roomType.name.replace(/\s+/g, '');
-                        
+
                         const roomTemplates = filteredTemplates.filter(t => {
+                          if (t.room_type_id) return t.room_type_id === roomType.id;
                           const templateName = (t.project_name || t.template_name).replace(/\s+/g, '');
                           const matchesCurrentRoom = templateName.includes(normalizedRoomName);
                           const isGenericTemplate = !allRoomNamesNormalized.some(name => templateName.includes(name));
@@ -601,16 +603,14 @@ export default function RoomPriceCalendar() {
 
                   {/* 一般房型區塊 */}
                   {groupedRoomTypes.regular.map(roomType => {
-                    // 匹配專案模板：
-                    // 1. 模板名稱包含該房型名稱，或
-                    // 2. 模板是通用模板（不包含任何房型名稱）
+                    // 一般房型：優先以 room_type_id 綁定為準。
+                    // 沒綁定時才以名稱包含房型名稱、或通用模板做後備匹配。
                     const normalizedRoomName = roomType.name.replace(/\s+/g, '');
-                    
+
                     const roomTemplates = filteredTemplates.filter(t => {
+                      if (t.room_type_id) return t.room_type_id === roomType.id;
                       const templateName = (t.project_name || t.template_name).replace(/\s+/g, '');
-                      // 檢查是否包含當前房型名稱
                       const matchesCurrentRoom = templateName.includes(normalizedRoomName);
-                      // 檢查是否為通用模板（不包含任何房型名稱）
                       const isGenericTemplate = !allRoomNamesNormalized.some(name => templateName.includes(name));
                       return matchesCurrentRoom || isGenericTemplate;
                     });
@@ -687,7 +687,7 @@ function RoomTypeRows({
   // 過濾模板：按 room_type_id 匹配房型，或為通用模板（無 room_type_id）
   const visibleTemplates = useMemo(() => {
     return templates.filter(t => {
-      // 模板綁定了特定房型
+      // 模板綁定了特定房型：嚴格以 room_type_id 為準
       if (t.room_type_id) return t.room_type_id === roomType.id;
       // 通用模板（未綁定房型）：透過名稱匹配
       const templateName = (t.project_name || t.template_name).replace(/\s+/g, '');
