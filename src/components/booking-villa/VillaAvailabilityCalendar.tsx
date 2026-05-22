@@ -204,7 +204,7 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
   const days = eachDayOfInterval({ start: gridStart, end: gridEnd });
 
   const canPrev = monthOffset > 0;
-  const canNext = monthOffset < 5;
+  const canNext = monthOffset < 11;
 
   const weekdayLabels = ["日", "一", "二", "三", "四", "五", "六"];
 
