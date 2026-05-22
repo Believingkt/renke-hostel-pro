@@ -20,7 +20,7 @@ import { HeaderFooterSection } from "@/components/website-content/HeaderFooterSe
 import { HomepageSectionsBlock } from "@/components/website-content/HomepageSectionsBlock";
 import { AddonPlansSection, AddonPlan } from "@/components/website-content/AddonPlansSection";
 import { CustomSectionsManager } from "@/components/website-content/CustomSectionsManager";
-import { ExclusivePackageSettings } from "@/components/website-content/ExclusivePackageSettings";
+
 
 import { GoogleReviewsMonitor } from "@/components/website-content/GoogleReviewsMonitor";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
@@ -3499,7 +3499,7 @@ const WebsiteContent = () => {
 
         <TabsContent value="booking-info" className="space-y-6">
           <PageHeader title="訂房須知" icon={BookOpen} />
-          {accommodationId && <ExclusivePackageSettings accommodationId={accommodationId} />}
+
           {/* 入住退房時間 */}
           <Card>
             <CardHeader className="pb-4">
