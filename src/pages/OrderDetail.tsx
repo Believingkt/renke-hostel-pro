@@ -2130,31 +2130,28 @@ const OrderDetailPage = () => {
                           {showExclusiveConfig && (
                             <div className="p-3 rounded-lg border border-dashed bg-muted/20 space-y-2">
                               <div className="text-xs font-medium">{exclusiveLabel}房間配置</div>
-                              <div className="grid grid-cols-2 gap-2">
-                                <div className="space-y-1">
-                                  <Label className="text-xs">雙人房間數</Label>
-                                  <Select value={String(cfg.double)} onValueChange={(v) => setExclusiveConfigAt(exclusiveIdx, { double: Number(v) })}>
-                                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                      {doubleRoomOptions.map(n => (
-                                        <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                                <div className="space-y-1">
-                                  <Label className="text-xs">四人房間數</Label>
-                                  <Select value={String(cfg.quad)} onValueChange={(v) => setExclusiveConfigAt(exclusiveIdx, { quad: Number(v) })}>
-                                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                      {quadRoomOptions.map(n => (
-                                        <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
+                              <div className={`grid gap-2 ${breakdownItems.length >= 3 ? "grid-cols-2 md:grid-cols-3" : "grid-cols-2"}`}>
+                                {breakdownItems.map(b => {
+                                  const val = Number(cfg[b.name]) || 0;
+                                  const opts = Array.from({ length: b.max + 1 }, (_, i) => i);
+                                  return (
+                                    <div key={b.name} className="space-y-1">
+                                      <Label className="text-xs">{b.name}間數</Label>
+                                      <Select value={String(val)} onValueChange={(v) => setExclusiveConfigAt(exclusiveIdx, b.name, Number(v))}>
+                                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                          {opts.map(n => (
+                                            <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  );
+                                })}
                               </div>
-                              <p className="text-xs text-muted-foreground">將以備註形式儲存：雙人房 {cfg.double} 間、四人房 {cfg.quad} 間</p>
+                              <p className="text-xs text-muted-foreground">
+                                將以備註形式儲存：{breakdownItems.map(b => `${b.name} ${Number(cfg[b.name]) || 0} 間`).join("、")}
+                              </p>
                             </div>
                           )}
                           </div>
