@@ -1960,7 +1960,7 @@ const OrderDetailPage = () => {
                           const isThisExclusive = !!roomTypes.find(t => t.id === or.room_type_id)?.is_exclusive_package;
                           const exclusiveIdx = isThisExclusive ? exclusiveIds.indexOf(or.id) : -1;
                           const showExclusiveConfig = isThisExclusive;
-                          const cfg = exclusiveIdx >= 0 ? (editExclusiveConfigs[exclusiveIdx] || { double: 0, quad: 0 }) : { double: 0, quad: 0 };
+                          const cfg: Record<string, number> = exclusiveIdx >= 0 ? (editExclusiveConfigs[exclusiveIdx] || {}) : {};
                           return (
                           <div key={or.id} className="space-y-2">
                           <div className="p-2.5 rounded-lg border bg-muted/30 space-y-2">
