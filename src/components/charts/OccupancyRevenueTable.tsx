@@ -136,6 +136,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         inventoryData,
         orderRoomsMap,
         dailyCap,
+        accName,
       };
     },
     enabled: !!accommodationId,
