@@ -844,7 +844,8 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                     if (!rt) continue;
                                     if (rt.is_exclusive_package) {
                                       for (let q = 0; q < or.quantity; q++) {
-                                        lines.push(`房型:${rt.name}${rt.capacity ? `(${rt.capacity}人包棟)` : ''}`);
+                                        lines.push(`房型:${rt.name}${entry.guest_count ? `(${entry.guest_count}人)` : ''}`);
+                                        if (or.template_name) lines.push(`專案:${or.template_name}`);
                                         if (pkgLines[pkgIdx]) lines.push(pkgLines[pkgIdx]);
                                         pkgIdx++;
                                       }
