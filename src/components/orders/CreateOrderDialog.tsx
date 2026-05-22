@@ -166,6 +166,20 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     }));
   }, []);
 
+  // Phase 2: 動態包棟組成（HQ 房型與包棟設定）。null = 走舊邏輯 fallback。
+  type BreakdownItem = { room_type_id: string; name: string; count: number };
+  const [customBreakdown, setCustomBreakdown] = useState<BreakdownItem[] | null>(null);
+  // 第一棟包棟：room_type_id -> 間數
+  const [exclusiveCustomCounts, setExclusiveCustomCounts] = useState<Record<string, number>>({});
+  // 額外加棟：selection.id -> { room_type_id -> 間數 }
+  const [extraExclusiveCustomCounts, setExtraExclusiveCustomCounts] = useState<Record<string, Record<string, number>>>({});
+  const setExtraExclusiveCustomCount = useCallback((selId: string, rtId: string, count: number) => {
+    setExtraExclusiveCustomCounts(prev => ({
+      ...prev,
+      [selId]: { ...(prev[selId] || {}), [rtId]: count },
+    }));
+  }, []);
+
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [filteredTemplates, setFilteredTemplates] = useState<PricingTemplate[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
