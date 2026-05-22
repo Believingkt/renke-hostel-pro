@@ -102,9 +102,10 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         supabase.from('order_rooms')
           .select('order_id, room_type_id, quantity')
           .limit(10000),
-        supabase.from('accommodation_info').select('daily_capacity').eq('id', accommodationId).maybeSingle(),
+        supabase.from('accommodation_info').select('daily_capacity, name').eq('id', accommodationId).maybeSingle(),
       ]);
       const dailyCap = Number((accRes.data as any)?.daily_capacity) > 0 ? Number((accRes.data as any).daily_capacity) : 6;
+      const accName: string = (accRes.data as any)?.name || '';
 
       if (roomTypesRes.error) throw roomTypesRes.error;
       if (ordersRes.error) throw ordersRes.error;
@@ -135,6 +136,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         inventoryData,
         orderRoomsMap,
         dailyCap,
+        accName,
       };
     },
     enabled: !!accommodationId,
@@ -144,14 +146,15 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
   const tableData = useMemo(() => {
     if (!data) return null;
 
-    const { roomTypes, orders, holidays, inventoryData, orderRoomsMap, dailyCap } = data;
+    const { roomTypes, orders, holidays, inventoryData, orderRoomsMap, dailyCap, accName } = data;
 
     const exclusiveRoomTypeIds = new Set(roomTypes.filter(rt => rt.is_exclusive_package).map(rt => rt.id));
     const exclusiveRoomCount = roomTypes.filter(rt => rt.is_exclusive_package).reduce((s, rt) => s + (rt.room_count || 0), 0);
     const standardRoomCount = roomTypes.filter(rt => !rt.is_exclusive_package).reduce((s, rt) => s + (rt.room_count || 0), 0);
 
-    // Split mode: 同時有包棟與散客 → 分流計算
-    const splitMode = exclusiveRoomCount > 0 && standardRoomCount > 0;
+    // Split mode 僅啟用於雲岫（包棟與散客分流計算）；其他民宿（如森山）維持原本合併邏輯
+    const isYunxiu = (accName || '').includes('雲岫');
+    const splitMode = isYunxiu && exclusiveRoomCount > 0 && standardRoomCount > 0;
 
     // 容量：split 模式以實際 room_count 為準；單一模式延用 daily_capacity 上限
     let allCapacity: number;
