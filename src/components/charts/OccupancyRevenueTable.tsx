@@ -272,6 +272,8 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
             buckets.all.soldByType[dayType] += totalQty;
           }
           dailyRoomsSold[dateStr] = (dailyRoomsSold[dateStr] || 0) + totalQty;
+          dailyExclusiveSold[dateStr] = (dailyExclusiveSold[dateStr] || 0) + exclusiveQty;
+          dailyStandardSold[dateStr] = (dailyStandardSold[dateStr] || 0) + standardQty;
           dailyEntries.push({ dayType, dateStr });
         }
 
