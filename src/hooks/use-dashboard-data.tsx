@@ -72,7 +72,13 @@ const fetchDashboardData = async (
   customDateRange?: { from: Date; to: Date },
   selectedYear?: number
 ): Promise<DashboardData> => {
-  const DAILY_ROOM_CAP = 6;
+  // Read per-accommodation daily_capacity; fall back to 6 (legacy default)
+  const { data: accRow } = await supabase
+    .from("accommodation_info")
+    .select("daily_capacity")
+    .eq("id", accommodationId)
+    .maybeSingle();
+  const DAILY_ROOM_CAP = Number((accRow as any)?.daily_capacity) > 0 ? Number((accRow as any).daily_capacity) : 6;
   const now = new Date();
   const currentYear = selectedYear || now.getFullYear();
   
