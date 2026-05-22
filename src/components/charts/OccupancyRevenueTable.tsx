@@ -214,10 +214,14 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
       });
 
       const dailyRoomsSold: Record<string, number> = {};
+      const dailyExclusiveSold: Record<string, number> = {};
+      const dailyStandardSold: Record<string, number> = {};
       const dailyRevenue: Record<string, number> = {};
       for (let d = 0; d < daysInMonth; d++) {
         const dateStr = format(addDays(monthStart, d), 'yyyy-MM-dd');
         dailyRoomsSold[dateStr] = 0;
+        dailyExclusiveSold[dateStr] = 0;
+        dailyStandardSold[dateStr] = 0;
         dailyRevenue[dateStr] = 0;
       }
 
