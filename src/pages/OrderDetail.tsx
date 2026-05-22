@@ -737,9 +737,14 @@ const OrderDetailPage = () => {
       }
       if (exclusiveRows.length > 0) {
         const pkgLines = exclusiveRows.map((_, i) => {
-          const cfg = editExclusiveConfigs[i] || { double: 0, quad: 0 };
-          return `【${exclusiveLabel}房間配置】雙人房 ${cfg.double} 間、四人房 ${cfg.quad} 間`;
-        }).filter(line => /雙人房 [1-9]|四人房 [1-9]/.test(line));
+          const cfg = editExclusiveConfigs[i] || {};
+          const parts = breakdownItems
+            .map(b => ({ name: b.name, n: Number(cfg[b.name]) || 0 }))
+            .filter(p => p.n > 0)
+            .map(p => `${p.name} ${p.n} 間`);
+          if (parts.length === 0) return "";
+          return `【${exclusiveLabel}房間配置】${parts.join("、")}`;
+        }).filter(line => line.length > 0);
         if (pkgLines.length > 0) {
           finalNotes = finalNotes ? `${pkgLines.join("\n")}\n${finalNotes}` : pkgLines.join("\n");
         }
