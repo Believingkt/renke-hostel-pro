@@ -265,19 +265,25 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
           const dateStr = format(day, 'yyyy-MM-dd');
           const dayType = classifyDay(day, holidaySet);
 
+          // 森山：包棟訂單一筆即視為整館滿房（allCapacity 間），散客則一間一間照算
+          const sensanExclusiveFull = isSensan && exclusiveQty > 0;
+          const effectiveTotalQty = sensanExclusiveFull ? allCapacity : totalQty;
+          const effectiveExclusiveQty = sensanExclusiveFull ? allCapacity : exclusiveQty;
+          const effectiveStandardQty = sensanExclusiveFull ? 0 : standardQty;
+
           if (splitMode) {
-            if (exclusiveQty > 0) {
-              buckets.exclusive.soldByType[dayType] += exclusiveQty;
+            if (effectiveExclusiveQty > 0) {
+              buckets.exclusive.soldByType[dayType] += effectiveExclusiveQty;
             }
-            if (standardQty > 0) {
-              buckets.standard.soldByType[dayType] += standardQty;
+            if (effectiveStandardQty > 0) {
+              buckets.standard.soldByType[dayType] += effectiveStandardQty;
             }
           } else {
-            buckets.all.soldByType[dayType] += totalQty;
+            buckets.all.soldByType[dayType] += effectiveTotalQty;
           }
-          dailyRoomsSold[dateStr] = (dailyRoomsSold[dateStr] || 0) + totalQty;
-          dailyExclusiveSold[dateStr] = (dailyExclusiveSold[dateStr] || 0) + exclusiveQty;
-          dailyStandardSold[dateStr] = (dailyStandardSold[dateStr] || 0) + standardQty;
+          dailyRoomsSold[dateStr] = (dailyRoomsSold[dateStr] || 0) + effectiveTotalQty;
+          dailyExclusiveSold[dateStr] = (dailyExclusiveSold[dateStr] || 0) + effectiveExclusiveQty;
+          dailyStandardSold[dateStr] = (dailyStandardSold[dateStr] || 0) + effectiveStandardQty;
           dailyEntries.push({ dayType, dateStr });
         }
 
