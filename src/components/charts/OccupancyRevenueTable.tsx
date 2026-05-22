@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Hotel } from 'lucide-react';
-import { buildPricingMap, type PricingMap } from '@/utils/revenueByMonth';
+import { buildPricingMap } from '@/utils/revenueByMonth';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -16,60 +16,52 @@ interface OccupancyRevenueTableProps {
 }
 
 interface DayTypeStats {
-  rooms: number;       // 間數 (room-nights sold)
-  available: number;   // 當月該類別總可用房晚
-  occupancyRate: number; // 住房率
-  revenue: number;     // 訂單金額
+  rooms: number;
+  available: number;
+  occupancyRate: number;
+  revenue: number;
 }
 
 interface DailyDetail {
-  date: string;        // yyyy-MM-dd
-  dayLabel: string;    // 一, 二, ... 日
+  date: string;
+  dayLabel: string;
   dayType: DayType;
   roomsSold: number;
   revenue: number;
-  avgPrice: number;    // revenue / roomsSold (or 0)
+  avgPrice: number;
+}
+
+type SegmentKey = 'all' | 'exclusive' | 'standard';
+
+interface SegmentRow {
+  segment: SegmentKey;
+  weekday: DayTypeStats;
+  friSun: DayTypeStats;
+  holiday: DayTypeStats;
+  avgOccupancy: number;
+  totalRevenue: number;
+  capacityPerDay: number;
 }
 
 interface MonthRow {
-  monthKey: string;     // yyyy-MM
-  label: string;        // 2026-01
-  weekday: DayTypeStats;  // 一到四
-  friSun: DayTypeStats;   // 五/日
-  holiday: DayTypeStats;  // 假日
-  avgOccupancy: number;   // 月平均住房率
-  totalRevenue: number;   // 總金額
+  monthKey: string;
+  label: string;
+  segments: SegmentRow[];   // length 1 (all) or 2 (exclusive + standard)
   dailyDetails: DailyDetail[];
+  totalRevenue: number;
 }
 
 type DayType = 'weekday' | 'friSun' | 'holiday';
 
-/**
- * Classify a date into day type.
- * - holiday: Saturday + public holidays + 補假
- * - friSun: Friday, Sunday (unless it's a public holiday)
- * - weekday: Mon-Thu (unless it's a public holiday)
- */
 function classifyDay(date: Date, holidaySet: Set<string>): DayType {
   const dateStr = format(date, 'yyyy-MM-dd');
-  const dow = getDay(date); // 0=Sun, 1=Mon, ..., 6=Sat
-
-  // Public holidays always count as 假日
+  const dow = getDay(date);
   if (holidaySet.has(dateStr)) return 'holiday';
-
-  // Saturday is always 假日
   if (dow === 6) return 'holiday';
-
-  // Friday and Sunday are 五/日
   if (dow === 5 || dow === 0) return 'friSun';
-
-  // Mon-Thu are weekday
   return 'weekday';
 }
 
-/**
- * Pick the daily price based on meal plan
- */
 function pickDailyPrice(
   inv: { price: number; price_2_meals: number | null; price_3_meals: number | null },
   mealPlan: string | null
@@ -78,6 +70,12 @@ function pickDailyPrice(
   if (mealPlan === '2_meals' || mealPlan === '二餐' || mealPlan === '兩餐') return inv.price_2_meals ?? inv.price;
   return inv.price;
 }
+
+const SEGMENT_LABEL: Record<SegmentKey, string> = {
+  all: '全部',
+  exclusive: '包棟',
+  standard: '散客',
+};
 
 export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: OccupancyRevenueTableProps) => {
   const { data, isLoading } = useQuery({
@@ -109,7 +107,6 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
       if (roomTypesRes.error) throw roomTypesRes.error;
       if (ordersRes.error) throw ordersRes.error;
 
-      // Fetch inventory pricing
       const roomTypeIds = (roomTypesRes.data || []).map(rt => rt.id);
       let inventoryData: any[] = [];
       if (roomTypeIds.length > 0) {
@@ -123,7 +120,6 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         inventoryData = inv || [];
       }
 
-      // Build order_rooms lookup: order_id -> array of { room_type_id, quantity }
       const orderRoomsMap = new Map<string, { room_type_id: string; quantity: number }[]>();
       (orderRoomsRes.data || []).forEach(or => {
         if (!orderRoomsMap.has(or.order_id)) orderRoomsMap.set(or.order_id, []);
@@ -147,21 +143,51 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
     if (!data) return null;
 
     const { roomTypes, orders, holidays, inventoryData, orderRoomsMap, dailyCap } = data;
-    const DAILY_ROOM_CAP = dailyCap;
-    const totalRoomCount = Math.min(roomTypes.reduce((sum, rt) => sum + (rt.room_count || 0), 0), DAILY_ROOM_CAP);
+
     const exclusiveRoomTypeIds = new Set(roomTypes.filter(rt => rt.is_exclusive_package).map(rt => rt.id));
-    if (totalRoomCount === 0) return null;
+    const exclusiveRoomCount = roomTypes.filter(rt => rt.is_exclusive_package).reduce((s, rt) => s + (rt.room_count || 0), 0);
+    const standardRoomCount = roomTypes.filter(rt => !rt.is_exclusive_package).reduce((s, rt) => s + (rt.room_count || 0), 0);
+
+    // Split mode: 同時有包棟與散客 → 分流計算
+    const splitMode = exclusiveRoomCount > 0 && standardRoomCount > 0;
+
+    // 容量：split 模式以實際 room_count 為準；單一模式延用 daily_capacity 上限
+    let allCapacity: number;
+    if (splitMode) {
+      allCapacity = exclusiveRoomCount + standardRoomCount;
+    } else {
+      const total = roomTypes.reduce((s, rt) => s + (rt.room_count || 0), 0);
+      allCapacity = Math.min(total, dailyCap);
+    }
+    if (allCapacity === 0) return null;
+
+    const segmentCapacity: Record<SegmentKey, number> = {
+      all: allCapacity,
+      exclusive: exclusiveRoomCount,
+      standard: standardRoomCount,
+    };
 
     const pricingMap = buildPricingMap(inventoryData);
 
-    // Build holiday set
     const holidaySet = new Set<string>();
     holidays.forEach(h => holidaySet.add(h.holiday_date));
 
-    // Count available days by type for each month
+    // 啟用的分段
+    const activeSegments: SegmentKey[] = splitMode ? ['exclusive', 'standard'] : ['all'];
+
+    type Bucket = {
+      soldByType: Record<DayType, number>;
+      revenueByType: Record<DayType, number>;
+      availableByType: Record<DayType, number>;
+    };
+    const emptyBucket = (): Bucket => ({
+      soldByType: { weekday: 0, friSun: 0, holiday: 0 },
+      revenueByType: { weekday: 0, friSun: 0, holiday: 0 },
+      availableByType: { weekday: 0, friSun: 0, holiday: 0 },
+    });
+
     const monthsWithData = new Map<string, MonthRow>();
 
-    // Iterate through all 12 months of selectedYear
     for (let month = 0; month < 12; month++) {
       const monthDate = new Date(selectedYear, month, 1);
       const monthKey = format(monthDate, 'yyyy-MM');
@@ -169,26 +195,22 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
       const monthEnd = endOfMonth(monthDate);
       const daysInMonth = monthEnd.getDate();
 
-      // Count days by type in this month
       const dayTypeCounts: Record<DayType, number> = { weekday: 0, friSun: 0, holiday: 0 };
       for (let d = 0; d < daysInMonth; d++) {
         const day = addDays(monthStart, d);
-        const type = classifyDay(day, holidaySet);
-        dayTypeCounts[type]++;
+        dayTypeCounts[classifyDay(day, holidaySet)]++;
       }
 
-      // Available room-nights by type
-      const availableByType: Record<DayType, number> = {
-        weekday: dayTypeCounts.weekday * totalRoomCount,
-        friSun: dayTypeCounts.friSun * totalRoomCount,
-        holiday: dayTypeCounts.holiday * totalRoomCount,
+      const buckets: Record<SegmentKey, Bucket> = {
+        all: emptyBucket(), exclusive: emptyBucket(), standard: emptyBucket(),
       };
+      activeSegments.forEach(seg => {
+        const cap = segmentCapacity[seg];
+        buckets[seg].availableByType.weekday = dayTypeCounts.weekday * cap;
+        buckets[seg].availableByType.friSun = dayTypeCounts.friSun * cap;
+        buckets[seg].availableByType.holiday = dayTypeCounts.holiday * cap;
+      });
 
-      // Sold room-nights and revenue by type
-      const soldByType: Record<DayType, number> = { weekday: 0, friSun: 0, holiday: 0 };
-      const revenueByType: Record<DayType, number> = { weekday: 0, friSun: 0, holiday: 0 };
-
-      // Daily tracking for hover details
       const dailyRoomsSold: Record<string, number> = {};
       const dailyRevenue: Record<string, number> = {};
       for (let d = 0; d < daysInMonth; d++) {
@@ -197,72 +219,78 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         dailyRevenue[dateStr] = 0;
       }
 
-      // For each order, iterate through stay nights
       orders.forEach(order => {
         if (!order.check_in_date || !order.check_out_date) return;
         const checkIn = new Date(order.check_in_date);
         const checkOut = new Date(order.check_out_date);
         const nights = Math.max(1, differenceInDays(checkOut, checkIn));
 
-        // Determine total room quantity from order_rooms, fallback to 1
-        const orderRooms = orderRoomsMap.get(order.id);
-        let roomNightsPerDay: number;
-        // 雲岫海景度假會館：包棟也僅計為實際房數(每筆 order_room 的 quantity)
-        const isYunxiu = accommodationId === '7690a606-6bac-4cd5-a3e7-2fa754b318e8';
-        if (orderRooms && orderRooms.length > 0) {
-          // Check if any order_room is exclusive
-          const hasExclusive = orderRooms.some(or => exclusiveRoomTypeIds.has(or.room_type_id));
-          if (hasExclusive && !isYunxiu) {
-            roomNightsPerDay = DAILY_ROOM_CAP;
-          } else {
-            roomNightsPerDay = orderRooms.reduce((sum, or) => sum + (or.quantity || 1), 0);
-          }
+        const orderRooms = orderRoomsMap.get(order.id) || [];
+
+        // 將 order_rooms 拆成 exclusive / standard 兩堆
+        let exclusiveQty = 0;
+        let standardQty = 0;
+        if (orderRooms.length > 0) {
+          orderRooms.forEach(or => {
+            const isExc = exclusiveRoomTypeIds.has(or.room_type_id);
+            if (isExc) exclusiveQty += or.quantity || 1;
+            else standardQty += or.quantity || 1;
+          });
+        } else if (order.room_type_id) {
+          // fallback：訂單沒拆 order_rooms
+          const isExc = exclusiveRoomTypeIds.has(order.room_type_id);
+          if (isExc) exclusiveQty = 1; else standardQty = 1;
         } else {
-          const isExclusive = order.room_type_id ? exclusiveRoomTypeIds.has(order.room_type_id) : false;
-          roomNightsPerDay = isExclusive && !isYunxiu ? DAILY_ROOM_CAP : 1;
+          standardQty = 1;
         }
 
-        // Collect daily prices for proportional revenue split
-        const dailyEntries: { dayType: DayType; price: number; dateStr: string }[] = [];
-        let totalPrice = 0;
-        let hasInventory = false;
+        const totalQty = exclusiveQty + standardQty;
+        if (totalQty === 0) return;
 
+        // 逐晚累計
+        const dailyEntries: { dayType: DayType; dateStr: string }[] = [];
         for (let i = 0; i < nights; i++) {
           const day = addDays(checkIn, i);
-          const dayMonth = format(day, 'yyyy-MM');
-          if (dayMonth !== monthKey) continue;
-
+          if (format(day, 'yyyy-MM') !== monthKey) continue;
           const dateStr = format(day, 'yyyy-MM-dd');
           const dayType = classifyDay(day, holidaySet);
-          soldByType[dayType] += roomNightsPerDay;
-          dailyRoomsSold[dateStr] = (dailyRoomsSold[dateStr] || 0) + roomNightsPerDay;
 
-          let dailyPrice = 0;
-          if (order.room_type_id) {
-            const inv = pricingMap.get(`${order.room_type_id}_${dateStr}`);
-            if (inv) {
-              dailyPrice = pickDailyPrice(inv, order.meal_plan ?? null);
-              hasInventory = true;
+          if (splitMode) {
+            if (exclusiveQty > 0) {
+              buckets.exclusive.soldByType[dayType] += exclusiveQty;
             }
+            if (standardQty > 0) {
+              buckets.standard.soldByType[dayType] += standardQty;
+            }
+          } else {
+            buckets.all.soldByType[dayType] += totalQty;
           }
-          dailyEntries.push({ dayType, price: dailyPrice, dateStr });
-          totalPrice += dailyPrice;
+          dailyRoomsSold[dateStr] = (dailyRoomsSold[dateStr] || 0) + totalQty;
+          dailyEntries.push({ dayType, dateStr });
         }
 
-        // Split revenue proportionally — 保留單(hold)不計入營業額
+        // 營業額分攤
         if (dailyEntries.length > 0 && order.order_status !== 'hold') {
           const orderFinalPrice = Number(order.final_price) || 0;
           const totalOrderNights = Math.max(1, differenceInDays(checkOut, checkIn));
           const dailyShare = orderFinalPrice / totalOrderNights;
 
+          // 在 split 模式下，依間數比例切分到 exclusive / standard
+          const excShare = splitMode && totalQty > 0 ? dailyShare * (exclusiveQty / totalQty) : 0;
+          const stdShare = splitMode && totalQty > 0 ? dailyShare * (standardQty / totalQty) : 0;
+
           dailyEntries.forEach(({ dayType, dateStr }) => {
-            revenueByType[dayType] += dailyShare;
+            if (splitMode) {
+              buckets.exclusive.revenueByType[dayType] += excShare;
+              buckets.standard.revenueByType[dayType] += stdShare;
+            } else {
+              buckets.all.revenueByType[dayType] += dailyShare;
+            }
             dailyRevenue[dateStr] = (dailyRevenue[dateStr] || 0) + dailyShare;
           });
         }
       });
 
-      // Build daily details
       const weekdayLabels = ['日', '一', '二', '三', '四', '五', '六'];
       const dailyDetails: DailyDetail[] = [];
       for (let d = 0; d < daysInMonth; d++) {
@@ -282,87 +310,123 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         });
       }
 
-      const totalAvailable = availableByType.weekday + availableByType.friSun + availableByType.holiday;
-      const totalSold = soldByType.weekday + soldByType.friSun + soldByType.holiday;
+      const buildSegmentRow = (seg: SegmentKey): SegmentRow => {
+        const b = buckets[seg];
+        const totalAvail = b.availableByType.weekday + b.availableByType.friSun + b.availableByType.holiday;
+        const totalSold = b.soldByType.weekday + b.soldByType.friSun + b.soldByType.holiday;
+        const totalRev = b.revenueByType.weekday + b.revenueByType.friSun + b.revenueByType.holiday;
+        return {
+          segment: seg,
+          weekday: {
+            rooms: b.soldByType.weekday,
+            available: b.availableByType.weekday,
+            occupancyRate: b.availableByType.weekday > 0 ? (b.soldByType.weekday / b.availableByType.weekday) * 100 : 0,
+            revenue: Math.round(b.revenueByType.weekday),
+          },
+          friSun: {
+            rooms: b.soldByType.friSun,
+            available: b.availableByType.friSun,
+            occupancyRate: b.availableByType.friSun > 0 ? (b.soldByType.friSun / b.availableByType.friSun) * 100 : 0,
+            revenue: Math.round(b.revenueByType.friSun),
+          },
+          holiday: {
+            rooms: b.soldByType.holiday,
+            available: b.availableByType.holiday,
+            occupancyRate: b.availableByType.holiday > 0 ? (b.soldByType.holiday / b.availableByType.holiday) * 100 : 0,
+            revenue: Math.round(b.revenueByType.holiday),
+          },
+          avgOccupancy: totalAvail > 0 ? (totalSold / totalAvail) * 100 : 0,
+          totalRevenue: Math.round(totalRev),
+          capacityPerDay: segmentCapacity[seg],
+        };
+      };
+
+      const segments = activeSegments.map(buildSegmentRow);
+      const monthTotalRevenue = segments.reduce((s, r) => s + r.totalRevenue, 0);
 
       monthsWithData.set(monthKey, {
         monthKey,
         label: monthKey,
-        weekday: {
-          rooms: soldByType.weekday,
-          available: availableByType.weekday,
-          occupancyRate: availableByType.weekday > 0 ? (soldByType.weekday / availableByType.weekday) * 100 : 0,
-          revenue: Math.round(revenueByType.weekday),
-        },
-        friSun: {
-          rooms: soldByType.friSun,
-          available: availableByType.friSun,
-          occupancyRate: availableByType.friSun > 0 ? (soldByType.friSun / availableByType.friSun) * 100 : 0,
-          revenue: Math.round(revenueByType.friSun),
-        },
-        holiday: {
-          rooms: soldByType.holiday,
-          available: availableByType.holiday,
-          occupancyRate: availableByType.holiday > 0 ? (soldByType.holiday / availableByType.holiday) * 100 : 0,
-          revenue: Math.round(revenueByType.holiday),
-        },
-        avgOccupancy: totalAvailable > 0 ? (totalSold / totalAvailable) * 100 : 0,
-        totalRevenue: Math.round(revenueByType.weekday + revenueByType.friSun + revenueByType.holiday),
+        segments,
         dailyDetails,
+        totalRevenue: monthTotalRevenue,
       });
     }
 
-    // Show all 12 months regardless of whether they have orders
     const rows = Array.from(monthsWithData.values());
 
-    // Compute totals
-    const totals = rows.reduce(
-      (acc, r) => ({
-        weekdayRooms: acc.weekdayRooms + r.weekday.rooms,
-        friSunRooms: acc.friSunRooms + r.friSun.rooms,
-        holidayRooms: acc.holidayRooms + r.holiday.rooms,
-        weekdayRevenue: acc.weekdayRevenue + r.weekday.revenue,
-        friSunRevenue: acc.friSunRevenue + r.friSun.revenue,
-        holidayRevenue: acc.holidayRevenue + r.holiday.revenue,
-        totalRevenue: acc.totalRevenue + r.totalRevenue,
-      }),
-      { weekdayRooms: 0, friSunRooms: 0, holidayRooms: 0, weekdayRevenue: 0, friSunRevenue: 0, holidayRevenue: 0, totalRevenue: 0 }
-    );
+    // 年度合計：對每個 active segment 加總
+    type SegTotals = {
+      weekdayRooms: number; friSunRooms: number; holidayRooms: number;
+      weekdayRevenue: number; friSunRevenue: number; holidayRevenue: number;
+      weekdayAvailable: number; friSunAvailable: number; holidayAvailable: number;
+      totalRevenue: number;
+    };
+    const initSegTotals = (): SegTotals => ({
+      weekdayRooms: 0, friSunRooms: 0, holidayRooms: 0,
+      weekdayRevenue: 0, friSunRevenue: 0, holidayRevenue: 0,
+      weekdayAvailable: 0, friSunAvailable: 0, holidayAvailable: 0,
+      totalRevenue: 0,
+    });
 
-    // Compute average occupancy rates across all months for totals
-    // Use total room-nights sold / total available room-nights for the year
-    let totalWeekdayAvailable = 0, totalFriSunAvailable = 0, totalHolidayAvailable = 0;
-    for (let month = 0; month < 12; month++) {
-      const monthDate = new Date(selectedYear, month, 1);
-      const monthStart = startOfMonth(monthDate);
-      const monthEnd = endOfMonth(monthDate);
-      const daysInMonth = monthEnd.getDate();
-      for (let d = 0; d < daysInMonth; d++) {
-        const day = addDays(monthStart, d);
-        const type = classifyDay(day, holidaySet);
-        if (type === 'weekday') totalWeekdayAvailable += totalRoomCount;
-        else if (type === 'friSun') totalFriSunAvailable += totalRoomCount;
-        else totalHolidayAvailable += totalRoomCount;
-      }
-    }
+    const segTotalsMap: Record<SegmentKey, SegTotals> = {
+      all: initSegTotals(), exclusive: initSegTotals(), standard: initSegTotals(),
+    };
 
-    const totalAllAvailable = totalWeekdayAvailable + totalFriSunAvailable + totalHolidayAvailable;
-    const totalAllSold = totals.weekdayRooms + totals.friSunRooms + totals.holidayRooms;
+    rows.forEach(row => {
+      row.segments.forEach(seg => {
+        const t = segTotalsMap[seg.segment];
+        t.weekdayRooms += seg.weekday.rooms;
+        t.friSunRooms += seg.friSun.rooms;
+        t.holidayRooms += seg.holiday.rooms;
+        t.weekdayRevenue += seg.weekday.revenue;
+        t.friSunRevenue += seg.friSun.revenue;
+        t.holidayRevenue += seg.holiday.revenue;
+        t.weekdayAvailable += seg.weekday.available;
+        t.friSunAvailable += seg.friSun.available;
+        t.holidayAvailable += seg.holiday.available;
+        t.totalRevenue += seg.totalRevenue;
+      });
+    });
+
+    const buildTotalRow = (seg: SegmentKey): SegmentRow & { segment: SegmentKey } => {
+      const t = segTotalsMap[seg];
+      const totalAvail = t.weekdayAvailable + t.friSunAvailable + t.holidayAvailable;
+      const totalSold = t.weekdayRooms + t.friSunRooms + t.holidayRooms;
+      return {
+        segment: seg,
+        weekday: {
+          rooms: t.weekdayRooms, available: t.weekdayAvailable,
+          occupancyRate: t.weekdayAvailable > 0 ? (t.weekdayRooms / t.weekdayAvailable) * 100 : 0,
+          revenue: t.weekdayRevenue,
+        },
+        friSun: {
+          rooms: t.friSunRooms, available: t.friSunAvailable,
+          occupancyRate: t.friSunAvailable > 0 ? (t.friSunRooms / t.friSunAvailable) * 100 : 0,
+          revenue: t.friSunRevenue,
+        },
+        holiday: {
+          rooms: t.holidayRooms, available: t.holidayAvailable,
+          occupancyRate: t.holidayAvailable > 0 ? (t.holidayRooms / t.holidayAvailable) * 100 : 0,
+          revenue: t.holidayRevenue,
+        },
+        avgOccupancy: totalAvail > 0 ? (totalSold / totalAvail) * 100 : 0,
+        totalRevenue: t.totalRevenue,
+        capacityPerDay: segmentCapacity[seg],
+      };
+    };
+
+    const totalsSegments = activeSegments.map(buildTotalRow);
+    const grandTotalRevenue = totalsSegments.reduce((s, r) => s + r.totalRevenue, 0);
 
     return {
       rows,
-      totals: {
-        ...totals,
-        weekdayAvailable: totalWeekdayAvailable,
-        friSunAvailable: totalFriSunAvailable,
-        holidayAvailable: totalHolidayAvailable,
-        weekdayOccupancy: totalWeekdayAvailable > 0 ? (totals.weekdayRooms / totalWeekdayAvailable) * 100 : 0,
-        friSunOccupancy: totalFriSunAvailable > 0 ? (totals.friSunRooms / totalFriSunAvailable) * 100 : 0,
-        holidayOccupancy: totalHolidayAvailable > 0 ? (totals.holidayRooms / totalHolidayAvailable) * 100 : 0,
-        avgOccupancy: totalAllAvailable > 0 ? (totalAllSold / totalAllAvailable) * 100 : 0,
-        totalRevenue: totals.totalRevenue,
-      },
-      totalRoomCount,
+      totalsSegments,
+      grandTotalRevenue,
+      splitMode,
+      allCapacity,
+      exclusiveRoomCount,
+      standardRoomCount,
     };
   }, [data, selectedYear]);
 
@@ -381,12 +445,8 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-2">
             <div className="space-y-1">
-              <CardTitle className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-                住房率與營業分析
-              </CardTitle>
-              <p className="text-sm text-muted-foreground font-medium">
-                每日定額 {tableData?.totalRoomCount || '—'} 間房 | 排除「已取消」訂單
-              </p>
+              <CardTitle className="text-xl font-bold tracking-tight">住房率與營業分析</CardTitle>
+              <p className="text-sm text-muted-foreground font-medium">排除「已取消」訂單</p>
             </div>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
               <Hotel className="h-4 w-4 text-emerald-600" />
@@ -405,35 +465,36 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
     );
   }
 
-  const { rows, totals, totalRoomCount } = tableData;
+  const { rows, totalsSegments, grandTotalRevenue, splitMode, allCapacity, exclusiveRoomCount, standardRoomCount } = tableData;
 
-  const formatRate = (rate: number) => {
-    const rounded = Math.round(rate * 10) / 10;
-    return `${rounded.toFixed(1)}%`;
-  };
-
+  const formatRate = (rate: number) => `${(Math.round(rate * 10) / 10).toFixed(1)}%`;
   const getRateColor = (rate: number) => {
     if (rate >= 80) return 'text-red-600 dark:text-red-400 font-bold';
     if (rate >= 50) return 'text-emerald-600 dark:text-emerald-400 font-semibold';
     if (rate > 0) return 'text-foreground';
     return 'text-muted-foreground';
   };
+  const formatCurrency = (val: number) => val === 0 ? '$0' : `$${val.toLocaleString('zh-TW')}`;
 
-  const formatCurrency = (val: number) => {
-    if (val === 0) return '$0';
-    return `$${val.toLocaleString('zh-TW')}`;
-  };
+  const segmentBadgeClass = (seg: SegmentKey) =>
+    seg === 'exclusive'
+      ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300'
+      : seg === 'standard'
+        ? 'bg-sky-100 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300'
+        : 'bg-muted text-muted-foreground';
+
+  const capacityHeader = splitMode
+    ? `包棟 ${exclusiveRoomCount} 棟 + 散客 ${standardRoomCount} 間（分流計算）`
+    : `每日定額 ${allCapacity} 間房`;
 
   return (
     <Card className="col-span-full">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="space-y-1">
-            <CardTitle className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-              住房率與營業分析
-            </CardTitle>
+            <CardTitle className="text-xl font-bold tracking-tight">住房率與營業分析</CardTitle>
             <p className="text-sm text-muted-foreground font-medium">
-              每日定額 {totalRoomCount} 間房 | 排除「已取消」訂單 | 跨日訂單金額平均分配至每一晚
+              {capacityHeader} | 排除「已取消」訂單 | 跨日訂單金額平均分配至每一晚
             </p>
           </div>
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
@@ -443,157 +504,169 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
       </CardHeader>
       <CardContent className="px-2 sm:px-6">
         <div className="overflow-x-auto -mx-2 sm:-mx-0">
-          <Table className="min-w-[900px]">
+          <Table className={splitMode ? "min-w-[980px]" : "min-w-[900px]"}>
             <TableHeader>
               <TableRow className="border-b-2">
                 <TableHead rowSpan={2} className="text-center border-r font-bold bg-muted/50 align-middle w-[100px]">
                   入住月份
                 </TableHead>
-                <TableHead colSpan={3} className="text-center border-r font-bold bg-blue-50 dark:bg-blue-950/30">
-                  一到四
-                </TableHead>
-                <TableHead colSpan={3} className="text-center border-r font-bold bg-amber-50 dark:bg-amber-950/30">
-                  五/日
-                </TableHead>
-                <TableHead colSpan={3} className="text-center border-r font-bold bg-red-50 dark:bg-red-950/30">
-                  假日
-                </TableHead>
-                <TableHead rowSpan={2} className="text-center border-r font-bold bg-muted/50 align-middle w-[100px]">
-                  月平均住房率
-                </TableHead>
-                <TableHead rowSpan={2} className="text-center font-bold bg-muted/50 align-middle w-[110px]">
-                  總金額
-                </TableHead>
+                {splitMode && (
+                  <TableHead rowSpan={2} className="text-center border-r font-bold bg-muted/50 align-middle w-[80px]">
+                    類別
+                  </TableHead>
+                )}
+                <TableHead colSpan={3} className="text-center border-r font-bold bg-blue-50 dark:bg-blue-950/30">一到四</TableHead>
+                <TableHead colSpan={3} className="text-center border-r font-bold bg-amber-50 dark:bg-amber-950/30">五/日</TableHead>
+                <TableHead colSpan={3} className="text-center border-r font-bold bg-red-50 dark:bg-red-950/30">假日</TableHead>
+                <TableHead rowSpan={2} className="text-center border-r font-bold bg-muted/50 align-middle w-[100px]">月平均住房率</TableHead>
+                <TableHead rowSpan={2} className="text-center font-bold bg-muted/50 align-middle w-[110px]">總金額</TableHead>
               </TableRow>
               <TableRow className="border-b-2">
-                {/* 一到四 sub-headers */}
                 <TableHead className="text-center text-xs border-r bg-blue-50/50 dark:bg-blue-950/20 w-[60px]">間數</TableHead>
                 <TableHead className="text-center text-xs border-r bg-blue-50/50 dark:bg-blue-950/20 w-[70px]">住房率</TableHead>
                 <TableHead className="text-center text-xs border-r bg-blue-50/50 dark:bg-blue-950/20 w-[90px]">訂單金額</TableHead>
-                {/* 五/日 sub-headers */}
                 <TableHead className="text-center text-xs border-r bg-amber-50/50 dark:bg-amber-950/20 w-[60px]">間數</TableHead>
                 <TableHead className="text-center text-xs border-r bg-amber-50/50 dark:bg-amber-950/20 w-[70px]">住房率</TableHead>
                 <TableHead className="text-center text-xs border-r bg-amber-50/50 dark:bg-amber-950/20 w-[90px]">訂單金額</TableHead>
-                {/* 假日 sub-headers */}
                 <TableHead className="text-center text-xs border-r bg-red-50/50 dark:bg-red-950/20 w-[60px]">間數</TableHead>
                 <TableHead className="text-center text-xs border-r bg-red-50/50 dark:bg-red-950/20 w-[70px]">住房率</TableHead>
                 <TableHead className="text-center text-xs border-r bg-red-50/50 dark:bg-red-950/20 w-[90px]">訂單金額</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((row) => (
-                <TableRow key={row.monthKey} className="hover:bg-muted/30">
-                  <TableCell className="text-center font-semibold border-r bg-muted/20 p-0">
-                    <HoverCard openDelay={200} closeDelay={100}>
-                      <HoverCardTrigger asChild>
-                        <button className="w-full h-full px-4 py-2 cursor-pointer hover:text-primary transition-colors underline decoration-dotted underline-offset-4">
-                          {row.label}
-                        </button>
-                      </HoverCardTrigger>
-                      <HoverCardContent className="w-[420px] p-0" side="right" align="start">
-                        <div className="p-3 border-b bg-muted/30">
-                          <p className="font-semibold text-sm">{row.label} 每日營運明細</p>
-                        </div>
-                        <ScrollArea className="h-[320px]">
-                          <Table className="text-xs">
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead className="text-center py-1.5 px-2 w-[90px]">日期</TableHead>
-                                <TableHead className="text-center py-1.5 px-2 w-[40px]">星期</TableHead>
-                                <TableHead className="text-center py-1.5 px-2 w-[55px]">類別</TableHead>
-                                <TableHead className="text-center py-1.5 px-2 w-[55px]">住房數</TableHead>
-                                <TableHead className="text-center py-1.5 px-2 w-[80px]">營業額</TableHead>
-                                <TableHead className="text-center py-1.5 px-2 w-[70px]">平均房價</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {row.dailyDetails.map((dd) => {
-                                const dayTypeBg = dd.dayType === 'holiday'
-                                  ? 'bg-red-50/50 dark:bg-red-950/20'
-                                  : dd.dayType === 'friSun'
-                                    ? 'bg-amber-50/50 dark:bg-amber-950/20'
-                                    : '';
-                                const dayTypeLabel = dd.dayType === 'holiday' ? '假日' : dd.dayType === 'friSun' ? '五/日' : '平日';
-                                return (
-                                  <TableRow key={dd.date} className={dayTypeBg}>
-                                    <TableCell className="text-center py-1 px-2">{dd.date.slice(5)}</TableCell>
-                                    <TableCell className="text-center py-1 px-2">{dd.dayLabel}</TableCell>
-                                    <TableCell className="text-center py-1 px-2">{dayTypeLabel}</TableCell>
-                                    <TableCell className="text-center py-1 px-2 font-medium">{dd.roomsSold}/{totalRoomCount}</TableCell>
-                                    <TableCell className="text-center py-1 px-2 tabular-nums">{dd.revenue > 0 ? `$${dd.revenue.toLocaleString('zh-TW')}` : '-'}</TableCell>
-                                    <TableCell className="text-center py-1 px-2 tabular-nums">{dd.avgPrice > 0 ? `$${dd.avgPrice.toLocaleString('zh-TW')}` : '-'}</TableCell>
+              {rows.map((row) => {
+                const segCount = row.segments.length;
+                return row.segments.map((seg, idx) => (
+                  <TableRow key={`${row.monthKey}-${seg.segment}`} className="hover:bg-muted/30">
+                    {idx === 0 && (
+                      <TableCell rowSpan={segCount} className="text-center font-semibold border-r bg-muted/20 p-0 align-middle">
+                        <HoverCard openDelay={200} closeDelay={100}>
+                          <HoverCardTrigger asChild>
+                            <button className="w-full h-full px-4 py-2 cursor-pointer hover:text-primary transition-colors underline decoration-dotted underline-offset-4">
+                              {row.label}
+                            </button>
+                          </HoverCardTrigger>
+                          <HoverCardContent className="w-[420px] p-0" side="right" align="start">
+                            <div className="p-3 border-b bg-muted/30">
+                              <p className="font-semibold text-sm">{row.label} 每日營運明細</p>
+                            </div>
+                            <ScrollArea className="h-[320px]">
+                              <Table className="text-xs">
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="text-center py-1.5 px-2 w-[90px]">日期</TableHead>
+                                    <TableHead className="text-center py-1.5 px-2 w-[40px]">星期</TableHead>
+                                    <TableHead className="text-center py-1.5 px-2 w-[55px]">類別</TableHead>
+                                    <TableHead className="text-center py-1.5 px-2 w-[55px]">住房數</TableHead>
+                                    <TableHead className="text-center py-1.5 px-2 w-[80px]">營業額</TableHead>
+                                    <TableHead className="text-center py-1.5 px-2 w-[70px]">平均房價</TableHead>
                                   </TableRow>
-                                );
-                              })}
-                            </TableBody>
-                          </Table>
-                        </ScrollArea>
-                        <div className="p-2 border-t bg-muted/30 text-xs text-muted-foreground flex justify-between">
-                          <span>合計住房: {row.dailyDetails.reduce((s, d) => s + d.roomsSold, 0)} 間</span>
-                          <span>合計營業: ${row.totalRevenue.toLocaleString('zh-TW')}</span>
-                        </div>
-                      </HoverCardContent>
-                    </HoverCard>
-                  </TableCell>
-                  {/* 一到四 */}
-                  <TableCell className="text-center border-r text-sm">{row.weekday.rooms}/{row.weekday.available}</TableCell>
-                  <TableCell className={`text-center border-r text-sm ${getRateColor(row.weekday.occupancyRate)}`}>
-                    {formatRate(row.weekday.occupancyRate)}
-                  </TableCell>
-                  <TableCell className="text-center border-r text-sm tabular-nums">{formatCurrency(row.weekday.revenue)}</TableCell>
-                  {/* 五/日 */}
-                  <TableCell className="text-center border-r text-sm">{row.friSun.rooms}/{row.friSun.available}</TableCell>
-                  <TableCell className={`text-center border-r text-sm ${getRateColor(row.friSun.occupancyRate)}`}>
-                    {formatRate(row.friSun.occupancyRate)}
-                  </TableCell>
-                  <TableCell className="text-center border-r text-sm tabular-nums">{formatCurrency(row.friSun.revenue)}</TableCell>
-                  {/* 假日 */}
-                  <TableCell className="text-center border-r text-sm">{row.holiday.rooms}/{row.holiday.available}</TableCell>
-                  <TableCell className={`text-center border-r text-sm ${getRateColor(row.holiday.occupancyRate)}`}>
-                    {formatRate(row.holiday.occupancyRate)}
-                  </TableCell>
-                  <TableCell className="text-center border-r text-sm tabular-nums">{formatCurrency(row.holiday.revenue)}</TableCell>
-                  {/* 月平均住房率 */}
-                  <TableCell className={`text-center border-r text-sm font-semibold ${getRateColor(row.avgOccupancy)}`}>
-                    {formatRate(row.avgOccupancy)}
-                  </TableCell>
-                  {/* 總金額 */}
-                  <TableCell className="text-center text-sm font-semibold tabular-nums">{formatCurrency(row.totalRevenue)}</TableCell>
+                                </TableHeader>
+                                <TableBody>
+                                  {row.dailyDetails.map((dd) => {
+                                    const dayTypeBg = dd.dayType === 'holiday'
+                                      ? 'bg-red-50/50 dark:bg-red-950/20'
+                                      : dd.dayType === 'friSun'
+                                        ? 'bg-amber-50/50 dark:bg-amber-950/20'
+                                        : '';
+                                    const dayTypeLabel = dd.dayType === 'holiday' ? '假日' : dd.dayType === 'friSun' ? '五/日' : '平日';
+                                    return (
+                                      <TableRow key={dd.date} className={dayTypeBg}>
+                                        <TableCell className="text-center py-1 px-2">{dd.date.slice(5)}</TableCell>
+                                        <TableCell className="text-center py-1 px-2">{dd.dayLabel}</TableCell>
+                                        <TableCell className="text-center py-1 px-2">{dayTypeLabel}</TableCell>
+                                        <TableCell className="text-center py-1 px-2 font-medium">{dd.roomsSold}/{allCapacity}</TableCell>
+                                        <TableCell className="text-center py-1 px-2 tabular-nums">{dd.revenue > 0 ? `$${dd.revenue.toLocaleString('zh-TW')}` : '-'}</TableCell>
+                                        <TableCell className="text-center py-1 px-2 tabular-nums">{dd.avgPrice > 0 ? `$${dd.avgPrice.toLocaleString('zh-TW')}` : '-'}</TableCell>
+                                      </TableRow>
+                                    );
+                                  })}
+                                </TableBody>
+                              </Table>
+                            </ScrollArea>
+                            <div className="p-2 border-t bg-muted/30 text-xs text-muted-foreground flex justify-between">
+                              <span>合計住房: {row.dailyDetails.reduce((s, d) => s + d.roomsSold, 0)} 間</span>
+                              <span>合計營業: ${row.totalRevenue.toLocaleString('zh-TW')}</span>
+                            </div>
+                          </HoverCardContent>
+                        </HoverCard>
+                      </TableCell>
+                    )}
+                    {splitMode && (
+                      <TableCell className="text-center border-r p-1.5">
+                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${segmentBadgeClass(seg.segment)}`}>
+                          {SEGMENT_LABEL[seg.segment]}
+                        </span>
+                      </TableCell>
+                    )}
+                    <TableCell className="text-center border-r text-sm">{seg.weekday.rooms}/{seg.weekday.available}</TableCell>
+                    <TableCell className={`text-center border-r text-sm ${getRateColor(seg.weekday.occupancyRate)}`}>{formatRate(seg.weekday.occupancyRate)}</TableCell>
+                    <TableCell className="text-center border-r text-sm tabular-nums">{formatCurrency(seg.weekday.revenue)}</TableCell>
+                    <TableCell className="text-center border-r text-sm">{seg.friSun.rooms}/{seg.friSun.available}</TableCell>
+                    <TableCell className={`text-center border-r text-sm ${getRateColor(seg.friSun.occupancyRate)}`}>{formatRate(seg.friSun.occupancyRate)}</TableCell>
+                    <TableCell className="text-center border-r text-sm tabular-nums">{formatCurrency(seg.friSun.revenue)}</TableCell>
+                    <TableCell className="text-center border-r text-sm">{seg.holiday.rooms}/{seg.holiday.available}</TableCell>
+                    <TableCell className={`text-center border-r text-sm ${getRateColor(seg.holiday.occupancyRate)}`}>{formatRate(seg.holiday.occupancyRate)}</TableCell>
+                    <TableCell className="text-center border-r text-sm tabular-nums">{formatCurrency(seg.holiday.revenue)}</TableCell>
+                    <TableCell className={`text-center border-r text-sm font-semibold ${getRateColor(seg.avgOccupancy)}`}>{formatRate(seg.avgOccupancy)}</TableCell>
+                    {idx === 0 && (
+                      <TableCell rowSpan={segCount} className="text-center text-sm font-semibold tabular-nums align-middle">
+                        {formatCurrency(row.totalRevenue)}
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ));
+              })}
+              {/* 合計 / 平均 */}
+              {totalsSegments.map((seg, idx) => (
+                <TableRow key={`total-${seg.segment}`} className={`${idx === 0 ? 'border-t-2' : ''} bg-muted/40 font-bold`}>
+                  {idx === 0 && (
+                    <TableCell rowSpan={totalsSegments.length} className="text-center border-r font-bold align-middle">
+                      合計 / 平均
+                    </TableCell>
+                  )}
+                  {splitMode && (
+                    <TableCell className="text-center border-r p-1.5">
+                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${segmentBadgeClass(seg.segment)}`}>
+                        {SEGMENT_LABEL[seg.segment]}
+                      </span>
+                    </TableCell>
+                  )}
+                  <TableCell className="text-center border-r">{seg.weekday.rooms}/{seg.weekday.available}</TableCell>
+                  <TableCell className={`text-center border-r ${getRateColor(seg.weekday.occupancyRate)}`}>{formatRate(seg.weekday.occupancyRate)}</TableCell>
+                  <TableCell className="text-center border-r tabular-nums">{formatCurrency(seg.weekday.revenue)}</TableCell>
+                  <TableCell className="text-center border-r">{seg.friSun.rooms}/{seg.friSun.available}</TableCell>
+                  <TableCell className={`text-center border-r ${getRateColor(seg.friSun.occupancyRate)}`}>{formatRate(seg.friSun.occupancyRate)}</TableCell>
+                  <TableCell className="text-center border-r tabular-nums">{formatCurrency(seg.friSun.revenue)}</TableCell>
+                  <TableCell className="text-center border-r">{seg.holiday.rooms}/{seg.holiday.available}</TableCell>
+                  <TableCell className={`text-center border-r ${getRateColor(seg.holiday.occupancyRate)}`}>{formatRate(seg.holiday.occupancyRate)}</TableCell>
+                  <TableCell className="text-center border-r tabular-nums">{formatCurrency(seg.holiday.revenue)}</TableCell>
+                  <TableCell className={`text-center border-r font-bold ${getRateColor(seg.avgOccupancy)}`}>{formatRate(seg.avgOccupancy)}</TableCell>
+                  {idx === 0 && (
+                    <TableCell rowSpan={totalsSegments.length} className="text-center font-bold tabular-nums align-middle">
+                      {formatCurrency(grandTotalRevenue)}
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
-              {/* 合計/平均 row */}
-              <TableRow className="border-t-2 bg-muted/40 font-bold">
-                <TableCell className="text-center border-r font-bold">合計 / 平均</TableCell>
-                <TableCell className="text-center border-r">{totals.weekdayRooms}/{totals.weekdayAvailable}</TableCell>
-                <TableCell className={`text-center border-r ${getRateColor(totals.weekdayOccupancy)}`}>
-                  {formatRate(totals.weekdayOccupancy)}
-                </TableCell>
-                <TableCell className="text-center border-r tabular-nums">{formatCurrency(totals.weekdayRevenue)}</TableCell>
-                <TableCell className="text-center border-r">{totals.friSunRooms}/{totals.friSunAvailable}</TableCell>
-                <TableCell className={`text-center border-r ${getRateColor(totals.friSunOccupancy)}`}>
-                  {formatRate(totals.friSunOccupancy)}
-                </TableCell>
-                <TableCell className="text-center border-r tabular-nums">{formatCurrency(totals.friSunRevenue)}</TableCell>
-                <TableCell className="text-center border-r">{totals.holidayRooms}/{totals.holidayAvailable}</TableCell>
-                <TableCell className={`text-center border-r ${getRateColor(totals.holidayOccupancy)}`}>
-                  {formatRate(totals.holidayOccupancy)}
-                </TableCell>
-                <TableCell className="text-center border-r tabular-nums">{formatCurrency(totals.holidayRevenue)}</TableCell>
-                <TableCell className={`text-center border-r font-bold ${getRateColor(totals.avgOccupancy)}`}>
-                  {formatRate(totals.avgOccupancy)}
-                </TableCell>
-                <TableCell className="text-center font-bold tabular-nums">{formatCurrency(totals.totalRevenue)}</TableCell>
-              </TableRow>
             </TableBody>
           </Table>
         </div>
 
-        {/* 說明 */}
         <div className="mt-4 space-y-1 text-xs text-muted-foreground border-t pt-3">
           <p>說明：</p>
           <ul className="list-disc list-inside space-y-0.5 ml-2">
-            <li>間數：售出間數 / 當月該類別總可用間數（每日上限 {totalRoomCount} 間）</li>
-            <li>住房率：該類別佔用房間數 ÷ 該類別總供應房間數(天數×{totalRoomCount}) × 100%</li>
+            {splitMode ? (
+              <>
+                <li>包棟分母：每日 {exclusiveRoomCount} 棟 × 天數；散客分母：每日 {standardRoomCount} 間 × 天數（兩者獨立計算）</li>
+                <li>包棟訂單僅佔包棟容量，散客訂單僅佔散客容量；訂單金額依間數比例分流</li>
+              </>
+            ) : (
+              <>
+                <li>間數：售出間數 / 當月該類別總可用間數（每日上限 {allCapacity} 間）</li>
+                <li>住房率：該類別佔用房間數 ÷ 該類別總供應房間數(天數×{allCapacity}) × 100%</li>
+              </>
+            )}
             <li>一到四：週一至週四 | 五/日：週五及週日 | 假日：週六、台灣國定假日(含連假補假)</li>
             <li>金額分配：跨日訂單的總金額已平均分配至每一晚</li>
           </ul>
