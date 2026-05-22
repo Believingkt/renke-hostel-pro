@@ -439,21 +439,23 @@ const OrderDetailPage = () => {
     if (!order) return;
     // Parse exclusive package room configs from notes (one line per 包棟)
     const notesStr = order.notes || "";
-    // 逐行擷取「【包區/包棟房間配置】...」，雙人房/四人房數量分別獨立解析，
-    // 容忍分隔符 (、,，/) 與空白差異，缺一邊則視為 0。
+    // 逐行擷取「【包區/包棟房間配置】...」，動態解析各房型數量（兼容舊「雙人房/四人房」格式）
     const pkgLineRegex = /【\s*(?:包區|包棟)\s*房間配置\s*】\s*(.+)/;
-    const parsedConfigs: Array<{ double: number; quad: number }> = [];
+    const parsedConfigs: Array<Record<string, number>> = [];
     notesStr.split(/\r?\n/).forEach(line => {
       const lm = line.match(pkgLineRegex);
       if (!lm) return;
       const body = lm[1];
-      const dm = body.match(/雙人房\s*(\d+)\s*間?/);
-      const qm = body.match(/四人房\s*(\d+)\s*間?/);
-      if (!dm && !qm) return;
-      parsedConfigs.push({
-        double: dm ? parseInt(dm[1]) || 0 : 0,
-        quad: qm ? parseInt(qm[1]) || 0 : 0,
-      });
+      // 解析格式：「房型名稱 N 間」逐段
+      const cfg: Record<string, number> = {};
+      const partRegex = /([\u4e00-\u9fff\w]+?)\s*(\d+)\s*間/g;
+      let m: RegExpExecArray | null;
+      while ((m = partRegex.exec(body)) !== null) {
+        const name = m[1].trim();
+        const n = parseInt(m[2]) || 0;
+        if (name) cfg[name] = n;
+      }
+      if (Object.keys(cfg).length > 0) parsedConfigs.push(cfg);
     });
     setEditExclusiveConfigs(parsedConfigs);
     setEditForm({
