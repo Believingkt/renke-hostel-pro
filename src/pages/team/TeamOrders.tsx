@@ -468,7 +468,10 @@ export default function TeamOrders() {
                   value={`$${editOrder.final_price?.toLocaleString()}`}
                 />
                 <ReadField label="折扣碼" value={editOrder.discount_code || "-"} />
+                <ReadField label="來源" value={editOrder.order_source || "-"} />
+                <ReadField label="訂房方式" value={editOrder.ota_channel || "-"} />
               </div>
+
 
               {/* 編輯欄位 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
