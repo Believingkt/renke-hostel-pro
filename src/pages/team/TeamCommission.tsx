@@ -907,6 +907,7 @@ function PayoutsBlock({ scoutManagerOnly = false }: { scoutManagerOnly?: boolean
   const [loading, setLoading] = useState(true);
 
   const [open, setOpen] = useState(false);
+  const [smCommissionType, setSmCommissionType] = useState<"scout_kol" | "scout_base">("scout_kol");
   const [draft, setDraft] = useState({
     scout_id: "",
     year: now.getFullYear(),
