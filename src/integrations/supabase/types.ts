@@ -2442,6 +2442,7 @@ export type Database = {
           publish_url: string | null
           rarity: string | null
           scout_id: string | null
+          scout_name: string | null
           short_url: string | null
           task_ig_collab: boolean | null
           task_post_story: boolean | null
@@ -2480,6 +2481,7 @@ export type Database = {
           publish_url?: string | null
           rarity?: string | null
           scout_id?: string | null
+          scout_name?: string | null
           short_url?: string | null
           task_ig_collab?: boolean | null
           task_post_story?: boolean | null
@@ -2518,6 +2520,7 @@ export type Database = {
           publish_url?: string | null
           rarity?: string | null
           scout_id?: string | null
+          scout_name?: string | null
           short_url?: string | null
           task_ig_collab?: boolean | null
           task_post_story?: boolean | null

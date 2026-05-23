@@ -1,0 +1,1 @@
+ALTER TABLE public.kol_profiles ADD COLUMN scout_name text;
