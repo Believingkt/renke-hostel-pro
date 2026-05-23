@@ -19,6 +19,7 @@ const NORRIS_USER_ID = "1bc5761a-49a3-40ee-aa45-96ab87070c2e";
 const ALL_INVITABLE_ROLES: TeamRole[] = [
   "admin",
   "scout_manager",
+  "franchise_manager" as TeamRole,
   "scout",
   "closer",
   "video",
@@ -36,6 +37,7 @@ const ROLE_LABEL: Record<TeamRole, string> = {
   super_admin: "超級管理員",
   admin: "管理員",
   scout_manager: "星探主管",
+  franchise_manager: "特許加盟主管",
   scout: "星探",
   closer: "成交組",
   video: "影音組",
@@ -44,12 +46,13 @@ const ROLE_LABEL: Record<TeamRole, string> = {
   kol: "KOL",
   owner: "屋主",
   finance: "財務",
-};
+} as Record<TeamRole, string>;
 
 const ROLE_BADGE_CLASS: Record<TeamRole, string> = {
   super_admin: "bg-purple-100 text-purple-700 border-purple-200",
   admin: "bg-blue-100 text-blue-700 border-blue-200",
   scout_manager: "bg-orange-100 text-orange-700 border-orange-200",
+  franchise_manager: "bg-amber-100 text-amber-700 border-amber-200",
   scout: "bg-orange-100 text-orange-700 border-orange-200",
   closer: "bg-green-100 text-green-700 border-green-200",
   video: "bg-cyan-100 text-cyan-700 border-cyan-200",
