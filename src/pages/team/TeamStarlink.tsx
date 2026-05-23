@@ -802,24 +802,36 @@ function OrdersTab({
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>成交時等級</Label>
-                <Input
-                  value={editForm.level_at_sale}
-                  onChange={(e) => setEditForm({ ...editForm, level_at_sale: e.target.value })}
-                />
+                <Select
+                  value={editForm.level_at_sale || undefined}
+                  onValueChange={selectLevelForEdit}
+                >
+                  <SelectTrigger><SelectValue placeholder="選擇等級" /></SelectTrigger>
+                  <SelectContent>
+                    {tiers.map((t) => (
+                      <SelectItem key={t.id} value={t.level}>{t.level}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {editForm.level_at_sale && renderTierHint(editForm.level_at_sale)}
               </div>
               <div className="space-y-1">
-                <Label>分潤比例 (%)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min={0}
-                  max={100}
-                  value={editForm.commission_rate ? (editForm.commission_rate * 100).toString() : ""}
-                  onChange={(e) => {
-                    const v = Number(e.target.value);
-                    setEditForm({ ...editForm, commission_rate: isNaN(v) ? 0 : v / 100 });
-                  }}
-                />
+                <Label>分潤比例</Label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min={0}
+                    max={100}
+                    className="pr-8"
+                    value={editForm.commission_rate || editForm.commission_rate === 0 ? editForm.commission_rate : ""}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      setEditForm({ ...editForm, commission_rate: isNaN(v) ? 0 : v });
+                    }}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">%</span>
+                </div>
               </div>
             </div>
             <div className="space-y-1">
@@ -827,9 +839,10 @@ function OrdersTab({
               <Input
                 readOnly
                 className="bg-muted"
-                value={fmtMoney(Math.round(editForm.plan_price * (editForm.commission_rate || 0)))}
+                value={fmtMoney(Math.round(editForm.plan_price * ((editForm.commission_rate || 0) / 100)))}
               />
             </div>
+
             <div className="space-y-1">
               <Label>成交日期</Label>
               <Input
