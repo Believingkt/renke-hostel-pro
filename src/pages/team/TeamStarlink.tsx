@@ -9,34 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import {
-  Table,
-  TableHeader,
-  TableRow,
-  TableHead,
-  TableBody,
-  TableCell,
-} from "@/components/ui/table";
-import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
+import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, Pencil } from "lucide-react";
 
@@ -77,7 +53,6 @@ interface StarlinkOrder {
   notes: string | null;
 }
 
-
 interface PlanSetting {
   id: string;
   plan_name: string;
@@ -86,10 +61,8 @@ interface PlanSetting {
   created_at: string;
 }
 
-const fmtMoney = (n: number | null | undefined) =>
-  `NT$ ${Number(n ?? 0).toLocaleString()}`;
-const fmtRate = (n: number | null | undefined) =>
-  n == null ? "—" : `${(Number(n) * 100).toFixed(2)}%`;
+const fmtMoney = (n: number | null | undefined) => `NT$ ${Number(n ?? 0).toLocaleString()}`;
+const fmtRate = (n: number | null | undefined) => (n == null ? "—" : `${(Number(n) * 100).toFixed(2)}%`);
 
 export default function TeamStarlink() {
   const { roles, userId } = useTeam();
@@ -101,9 +74,7 @@ export default function TeamStarlink() {
       <div className="space-y-4">
         <h2 className="text-2xl font-bold">星鏈</h2>
         <Card>
-          <CardContent className="py-16 text-center text-muted-foreground">
-            您沒有權限訪問此頁面
-          </CardContent>
+          <CardContent className="py-16 text-center text-muted-foreground">您沒有權限訪問此頁面</CardContent>
         </Card>
       </div>
     );
@@ -132,13 +103,7 @@ export default function TeamStarlink() {
   );
 }
 
-function OrdersTab({
-  canManage,
-  currentUserId,
-}: {
-  canManage: boolean;
-  currentUserId: string;
-}) {
+function OrdersTab({ canManage, currentUserId }: { canManage: boolean; currentUserId: string }) {
   const [orders, setOrders] = useState<StarlinkOrder[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [tiers, setTiers] = useState<Tier[]>([]);
@@ -253,11 +218,7 @@ function OrdersTab({
         .order("sold_at", { ascending: false }),
       supabase.rpc("get_team_role_members", { p_role: "starlink" }),
       supabase.from("starlink_tier_settings").select("*").order("min_count"),
-      supabase
-        .from("starlink_plan_settings")
-        .select("*")
-        .eq("is_active", true)
-        .order("created_at"),
+      supabase.from("starlink_plan_settings").select("*").eq("is_active", true).order("created_at"),
     ]);
     if (o.data) setOrders(o.data as StarlinkOrder[]);
     if (r.data) {
@@ -279,8 +240,7 @@ function OrdersTab({
     if (p.data) setPlans(p.data as PlanSetting[]);
   };
 
-  const memberName = (id: string | null) =>
-    !id ? "—" : members.find((m) => m.user_id === id)?.display_name ?? "—";
+  const memberName = (id: string | null) => (!id ? "—" : (members.find((m) => m.user_id === id)?.display_name ?? "—"));
 
   const filtered = useMemo(() => {
     return orders.filter((o) => {
@@ -297,9 +257,7 @@ function OrdersTab({
   }, [orders, year, month, statusFilter, salesFilter, canManage, currentUserId]);
 
   const findTierForCount = (count: number): Tier | undefined => {
-    return tiers.find(
-      (t) => count >= t.min_count && (t.max_count == null || count <= t.max_count),
-    );
+    return tiers.find((t) => count >= t.min_count && (t.max_count == null || count <= t.max_count));
   };
 
   const handleSave = async () => {
@@ -372,24 +330,34 @@ function OrdersTab({
       <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div className="flex flex-wrap gap-2">
           <Select value={year} onValueChange={setYear}>
-            <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-28">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               {years.map((y) => (
-                <SelectItem key={y} value={y}>{y} 年</SelectItem>
+                <SelectItem key={y} value={y}>
+                  {y} 年
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
           <Select value={month} onValueChange={setMonth}>
-            <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-28">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">全年</SelectItem>
               {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                <SelectItem key={m} value={String(m)}>{m} 月</SelectItem>
+                <SelectItem key={m} value={String(m)}>
+                  {m} 月
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">全部狀態</SelectItem>
               <SelectItem value="pending">待結算</SelectItem>
@@ -398,11 +366,15 @@ function OrdersTab({
           </Select>
           {canManage && (
             <Select value={salesFilter} onValueChange={setSalesFilter}>
-              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">全部銷售人</SelectItem>
                 {members.map((m) => (
-                  <SelectItem key={m.user_id} value={m.user_id}>{m.display_name}</SelectItem>
+                  <SelectItem key={m.user_id} value={m.user_id}>
+                    {m.display_name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -436,11 +408,7 @@ function OrdersTab({
                 </TableRow>
               ) : (
                 filtered.map((o) => (
-                  <TableRow
-                    key={o.id}
-                    onClick={() => openDetail(o)}
-                    className="cursor-pointer hover:bg-muted/50"
-                  >
+                  <TableRow key={o.id} onClick={() => openDetail(o)} className="cursor-pointer hover:bg-muted/50">
                     <TableCell>{o.client_name}</TableCell>
                     <TableCell>{o.plan_name ?? "—"}</TableCell>
                     <TableCell className="text-right tabular-nums">{fmtMoney(o.plan_price)}</TableCell>
@@ -484,10 +452,7 @@ function OrdersTab({
           <div className="space-y-3 mt-4">
             <div className="space-y-1">
               <Label>客戶名稱 *</Label>
-              <Input
-                value={form.client_name}
-                onChange={(e) => setForm({ ...form, client_name: e.target.value })}
-              />
+              <Input value={form.client_name} onChange={(e) => setForm({ ...form, client_name: e.target.value })} />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
@@ -507,11 +472,10 @@ function OrdersTab({
             </div>
             <div className="space-y-1">
               <Label>方案 *</Label>
-              <Select
-                value={form.plan_name || undefined}
-                onValueChange={(v) => setForm({ ...form, plan_name: v })}
-              >
-                <SelectTrigger><SelectValue placeholder="選擇方案" /></SelectTrigger>
+              <Select value={form.plan_name || undefined} onValueChange={(v) => setForm({ ...form, plan_name: v })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="選擇方案" />
+                </SelectTrigger>
                 <SelectContent>
                   {plans.map((p) => (
                     <SelectItem key={p.id} value={p.plan_name}>
@@ -523,25 +487,22 @@ function OrdersTab({
             </div>
             <div className="space-y-1">
               <Label>銷售人 *</Label>
-              <Select
-                value={form.sold_by || undefined}
-                onValueChange={(v) => setForm({ ...form, sold_by: v })}
-              >
-                <SelectTrigger><SelectValue placeholder="選擇銷售人" /></SelectTrigger>
+              <Select value={form.sold_by || undefined} onValueChange={(v) => setForm({ ...form, sold_by: v })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="選擇銷售人" />
+                </SelectTrigger>
                 <SelectContent>
                   {members.map((m) => (
-                    <SelectItem key={m.user_id} value={m.user_id}>{m.display_name}</SelectItem>
+                    <SelectItem key={m.user_id} value={m.user_id}>
+                      {m.display_name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
               <Label>成交日期</Label>
-              <Input
-                type="date"
-                value={form.sold_at}
-                onChange={(e) => setForm({ ...form, sold_at: e.target.value })}
-              />
+              <Input type="date" value={form.sold_at} onChange={(e) => setForm({ ...form, sold_at: e.target.value })} />
             </div>
             <div className="flex items-center gap-2">
               <Checkbox
@@ -553,10 +514,7 @@ function OrdersTab({
             </div>
             <div className="space-y-1">
               <Label>匯款末5碼</Label>
-              <Input
-                value={form.payment_last5}
-                onChange={(e) => setForm({ ...form, payment_last5: e.target.value })}
-              />
+              <Input value={form.payment_last5} onChange={(e) => setForm({ ...form, payment_last5: e.target.value })} />
             </div>
             <div className="space-y-1">
               <Label>發票號碼</Label>
@@ -575,11 +533,7 @@ function OrdersTab({
             </div>
             <div className="space-y-1">
               <Label>備註</Label>
-              <Textarea
-                rows={3}
-                value={form.notes}
-                onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              />
+              <Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
             </div>
           </div>
           <SheetFooter className="mt-4">
@@ -628,7 +582,9 @@ function OrdersTab({
                 value={editForm.plan_name || undefined}
                 onValueChange={(v) => setEditForm({ ...editForm, plan_name: v })}
               >
-                <SelectTrigger><SelectValue placeholder="選擇方案" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="選擇方案" />
+                </SelectTrigger>
                 <SelectContent>
                   {plans.map((p) => (
                     <SelectItem key={p.id} value={p.plan_name}>
@@ -644,10 +600,14 @@ function OrdersTab({
                 value={editForm.sold_by || undefined}
                 onValueChange={(v) => setEditForm({ ...editForm, sold_by: v })}
               >
-                <SelectTrigger><SelectValue placeholder="選擇銷售人" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="選擇銷售人" />
+                </SelectTrigger>
                 <SelectContent>
                   {members.map((m) => (
-                    <SelectItem key={m.user_id} value={m.user_id}>{m.display_name}</SelectItem>
+                    <SelectItem key={m.user_id} value={m.user_id}>
+                      {m.display_name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -696,7 +656,9 @@ function OrdersTab({
                 value={editForm.payout_status}
                 onValueChange={(v) => setEditForm({ ...editForm, payout_status: v })}
               >
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pending">待結算</SelectItem>
                   <SelectItem value="paid">已發放</SelectItem>
@@ -713,7 +675,9 @@ function OrdersTab({
             </div>
           </div>
           <SheetFooter className="mt-4">
-            <Button variant="outline" onClick={() => setEditOpen(false)}>取消</Button>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>
+              取消
+            </Button>
             <Button onClick={handleEditSave} disabled={editSaving}>
               {editSaving ? "儲存中..." : "儲存"}
             </Button>
@@ -739,72 +703,59 @@ function OrdersTab({
               </Button>
             )}
           </DrawerHeader>
-          {detailOrder && (() => {
-            const o = detailOrder;
-            const renderField = (label: string, value: React.ReactNode) => (
-              <div key={label} className="py-2 border-b last:border-b-0 flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">{label}</span>
-                <span className="text-sm font-medium text-foreground">{value}</span>
-              </div>
-            );
-            const left: Array<[string, React.ReactNode]> = [
-              ["客戶名稱", o.client_name],
-              ["統編", o.client_tax_id ?? "—"],
-              ["行業類型", o.business_type ?? "—"],
-              ["合約已上傳", (
-                <Badge variant={o.contract_uploaded ? "success" : "secondary"}>
-                  {o.contract_uploaded ? "已上傳" : "未上傳"}
-                </Badge>
-              )],
-            ];
-            const middle: Array<[string, React.ReactNode]> = [
-              ["銷售人", memberName(o.sold_by)],
-              ["成交時等級", o.level_at_sale ?? "—"],
-              ["方案", o.plan_name ?? "—"],
-              ["方案金額", fmtMoney(o.plan_price)],
-              ["分潤比例", fmtRate(o.commission_rate)],
-              ["分潤金額", fmtMoney(o.commission_amount)],
-            ];
-            const right: Array<[string, React.ReactNode]> = [
-              ["成交日期", o.sold_at ?? "—"],
-              ["發票號碼", o.invoice_number ?? "—"],
-              ["匯款末5碼", o.payment_last5 ?? "—"],
-              ["付款狀態", (
-                <Badge variant={o.payment_confirmed ? "success" : "secondary"}>
-                  {o.payment_confirmed ? "已付款" : "未付款"}
-                </Badge>
-              )],
-              ["結算狀態", (
-                <Badge variant={o.payout_status === "paid" ? "success" : "secondary"}>
-                  {o.payout_status === "paid" ? "已發放" : "待結算"}
-                </Badge>
-              )],
-            ];
-            return (
-              <div className="px-4 pb-6 overflow-y-auto">
-                <div className="grid grid-cols-1 md:grid-cols-3">
-                  <div className="md:pr-4 md:border-r">
-                    <div className="text-xs font-semibold text-muted-foreground mb-2">客戶資訊</div>
-                    {left.map(([k, v]) => renderField(k, v))}
+          {detailOrder && (
+            <div className="px-4 pb-6 overflow-y-auto">
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-base">
+                {[
+                  ["客戶名稱", detailOrder.client_name],
+                  ["統編", detailOrder.client_tax_id ?? "—"],
+                  ["行業類型", detailOrder.business_type ?? "—"],
+                  ["方案", detailOrder.plan_name ?? "—"],
+                  ["方案金額", fmtMoney(detailOrder.plan_price)],
+                  ["銷售人", memberName(detailOrder.sold_by)],
+                  ["成交時等級", detailOrder.level_at_sale ?? "—"],
+                  ["分潤比例", fmtRate(detailOrder.commission_rate)],
+                  ["分潤金額", fmtMoney(detailOrder.commission_amount)],
+                  ["成交日期", detailOrder.sold_at ?? "—"],
+                  ["匯款末5碼", detailOrder.payment_last5 ?? "—"],
+                  ["發票號碼", detailOrder.invoice_number ?? "—"],
+                ].map(([k, v]) => (
+                  <div key={k as string} className="flex flex-col">
+                    <dt className="text-muted-foreground text-sm">{k}</dt>
+                    <dd className="font-medium">{v}</dd>
                   </div>
-                  <div className="md:px-4 md:border-r">
-                    <div className="text-xs font-semibold text-muted-foreground mb-2">銷售資訊</div>
-                    {middle.map(([k, v]) => renderField(k, v))}
-                  </div>
-                  <div className="md:pl-4">
-                    <div className="text-xs font-semibold text-muted-foreground mb-2">訂單資訊</div>
-                    {right.map(([k, v]) => renderField(k, v))}
-                  </div>
+                ))}
+                <div className="flex flex-col">
+                  <dt className="text-muted-foreground text-sm">付款狀態</dt>
+                  <dd>
+                    <Badge variant={detailOrder.payment_confirmed ? "success" : "secondary"}>
+                      {detailOrder.payment_confirmed ? "已付款" : "未付款"}
+                    </Badge>
+                  </dd>
                 </div>
-                <div className="mt-4 pt-4 border-t">
-                  <div className="text-xs text-muted-foreground mb-1">備註</div>
-                  <div className="text-sm font-medium whitespace-pre-wrap text-foreground">
-                    {o.notes ?? "—"}
-                  </div>
+                <div className="flex flex-col">
+                  <dt className="text-muted-foreground text-sm">合約已上傳</dt>
+                  <dd>
+                    <Badge variant={detailOrder.contract_uploaded ? "success" : "secondary"}>
+                      {detailOrder.contract_uploaded ? "已上傳" : "未上傳"}
+                    </Badge>
+                  </dd>
                 </div>
-              </div>
-            );
-          })()}
+                <div className="flex flex-col">
+                  <dt className="text-muted-foreground text-sm">結算狀態</dt>
+                  <dd>
+                    <Badge variant={detailOrder.payout_status === "paid" ? "success" : "secondary"}>
+                      {detailOrder.payout_status === "paid" ? "已發放" : "待結算"}
+                    </Badge>
+                  </dd>
+                </div>
+                <div className="flex flex-col sm:col-span-2">
+                  <dt className="text-muted-foreground text-sm">備註</dt>
+                  <dd className="whitespace-pre-wrap font-medium">{detailOrder.notes ?? "—"}</dd>
+                </div>
+              </dl>
+            </div>
+          )}
         </DrawerContent>
       </Drawer>
     </Card>
@@ -820,10 +771,7 @@ function TiersTab({ canManage }: { canManage: boolean }) {
   }, []);
 
   const load = async () => {
-    const { data } = await supabase
-      .from("starlink_tier_settings")
-      .select("*")
-      .order("min_count");
+    const { data } = await supabase.from("starlink_tier_settings").select("*").order("min_count");
     if (data) setTiers(data as Tier[]);
   };
 
@@ -871,12 +819,8 @@ function TiersTab({ canManage }: { canManage: boolean }) {
                 <TableCell>
                   {t.min_count} ~ {t.max_count ?? "∞"}
                 </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {fmtRate(t.signup_bonus_rate)}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {fmtRate(t.per_order_rate)}
-                </TableCell>
+                <TableCell className="text-right tabular-nums">{fmtRate(t.signup_bonus_rate)}</TableCell>
+                <TableCell className="text-right tabular-nums">{fmtRate(t.per_order_rate)}</TableCell>
                 {canManage && (
                   <TableCell>
                     <Button size="icon" variant="ghost" onClick={() => setEditing(t)}>
@@ -900,10 +844,7 @@ function TiersTab({ canManage }: { canManage: boolean }) {
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <Label>等級代碼</Label>
-                  <Input
-                    value={editing.level}
-                    onChange={(e) => setEditing({ ...editing, level: e.target.value })}
-                  />
+                  <Input value={editing.level} onChange={(e) => setEditing({ ...editing, level: e.target.value })} />
                 </div>
                 <div className="space-y-1">
                   <Label>名稱</Label>
@@ -967,7 +908,9 @@ function TiersTab({ canManage }: { canManage: boolean }) {
             </div>
           )}
           <SheetFooter className="mt-4">
-            <Button variant="outline" onClick={() => setEditing(null)}>取消</Button>
+            <Button variant="outline" onClick={() => setEditing(null)}>
+              取消
+            </Button>
             <Button onClick={save}>儲存</Button>
           </SheetFooter>
         </SheetContent>
@@ -988,10 +931,7 @@ function PlansTab({ canManage }: { canManage: boolean }) {
   }, []);
 
   const load = async () => {
-    const { data } = await supabase
-      .from("starlink_plan_settings")
-      .select("*")
-      .order("created_at");
+    const { data } = await supabase.from("starlink_plan_settings").select("*").order("created_at");
     if (data) setPlans(data as PlanSetting[]);
   };
 
@@ -1061,9 +1001,7 @@ function PlansTab({ canManage }: { canManage: boolean }) {
                   <TableCell>{p.plan_name}</TableCell>
                   <TableCell className="text-right tabular-nums">{fmtMoney(p.price)}</TableCell>
                   <TableCell>
-                    <Badge variant={p.is_active ? "success" : "secondary"}>
-                      {p.is_active ? "啟用" : "停用"}
-                    </Badge>
+                    <Badge variant={p.is_active ? "success" : "secondary"}>{p.is_active ? "啟用" : "停用"}</Badge>
                   </TableCell>
                   {canManage && (
                     <TableCell>
@@ -1087,10 +1025,7 @@ function PlansTab({ canManage }: { canManage: boolean }) {
           <div className="space-y-3 mt-4">
             <div className="space-y-1">
               <Label>方案名稱 *</Label>
-              <Input
-                value={form.plan_name}
-                onChange={(e) => setForm({ ...form, plan_name: e.target.value })}
-              />
+              <Input value={form.plan_name} onChange={(e) => setForm({ ...form, plan_name: e.target.value })} />
             </div>
             <div className="space-y-1">
               <Label>金額 *</Label>
@@ -1110,7 +1045,9 @@ function PlansTab({ canManage }: { canManage: boolean }) {
             </div>
           </div>
           <SheetFooter className="mt-4">
-            <Button variant="outline" onClick={() => setSheetOpen(false)}>取消</Button>
+            <Button variant="outline" onClick={() => setSheetOpen(false)}>
+              取消
+            </Button>
             <Button onClick={save} disabled={saving}>
               {saving ? "儲存中..." : "儲存"}
             </Button>
