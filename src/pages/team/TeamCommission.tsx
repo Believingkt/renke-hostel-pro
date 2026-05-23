@@ -661,10 +661,6 @@ function PayoutRulesBlock() {
               />
             </div>
             <div>
-              <Label>規則名稱</Label>
-              <Input value={draft.rule_name} onChange={(e) => setDraft({ ...draft, rule_name: e.target.value })} />
-            </div>
-            <div>
               <Label>生效日期</Label>
               <Input type="date" value={draft.effective_from} onChange={(e) => setDraft({ ...draft, effective_from: e.target.value })} />
             </div>
