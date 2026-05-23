@@ -393,15 +393,41 @@ function OrdersTab({
       .eq("payout_status", "paid");
     const c = count ?? 0;
     const tier = findTierForCount(c);
-    const rate = Number(tier?.signup_bonus_rate ?? 0);
-    setAutoTierInfo({ level: tier?.tier_name ?? tier?.level ?? "—", rate, count: c });
+    const ratePct = Number(tier?.signup_bonus_rate ?? 0) * 100;
+    setAutoTierInfo({ level: tier?.tier_name ?? tier?.level ?? "—", rate: ratePct / 100, count: c });
     setForm((f) => ({
       ...f,
       sold_by: userIdSel,
       level_at_sale: tier?.level ?? "",
-      commission_rate: rate,
+      commission_rate: ratePct,
     }));
   };
+
+  const selectLevelForForm = (level: string) => {
+    const tier = tiers.find((t) => t.level === level);
+    const ratePct = Number(tier?.signup_bonus_rate ?? 0) * 100;
+    setForm((f) => ({ ...f, level_at_sale: level, commission_rate: ratePct }));
+  };
+
+  const selectLevelForEdit = (level: string) => {
+    const tier = tiers.find((t) => t.level === level);
+    const ratePct = Number(tier?.signup_bonus_rate ?? 0) * 100;
+    setEditForm((f) => ({ ...f, level_at_sale: level, commission_rate: ratePct }));
+  };
+
+  const tierByLevel = (level: string) => tiers.find((t) => t.level === level);
+  const renderTierHint = (level: string) => {
+    const tier = tierByLevel(level);
+    if (!tier) return null;
+    const maxLabel = tier.max_count == null ? "∞" : tier.max_count;
+    const rate = ((tier.signup_bonus_rate ?? 0) * 100).toFixed(2);
+    return (
+      <p className="text-xs text-muted-foreground mt-1">
+        {tier.tier_name}｜累積 {tier.min_count}～{maxLabel} 間｜簽約獎金 {rate}%
+      </p>
+    );
+  };
+
 
 
   const years = useMemo(() => {
