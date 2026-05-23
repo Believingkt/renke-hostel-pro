@@ -123,6 +123,15 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
   );
 }
 
+function Field({ label, value, breakAll }: { label: string; value: ReactNode; breakAll?: boolean }) {
+  return (
+    <div className="space-y-0.5">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className={`text-sm ${breakAll ? "break-all" : ""}`}>{value == null || value === "" ? "—" : value}</div>
+    </div>
+  );
+}
+
 export default function TeamFranchise() {
   const { roles, userId } = useTeam();
   const canManage = roles.includes("super_admin") || roles.includes("admin");
@@ -1705,43 +1714,55 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
             </div>
           </SheetHeader>
           {detail && (
-            <div className="mt-4 space-y-4 text-sm">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <DetailRow label="會員編號">{detail.member_number ?? "—"}</DetailRow>
-                  <DetailRow label="會員姓名">{detail.customer_name}</DetailRow>
-                  <DetailRow label="會員電話">{detail.customer_phone ?? "—"}</DetailRow>
-                </div>
-                <div className="space-y-2">
-                  <DetailRow label="開發業務">{detail.sales_name ?? "—"}</DetailRow>
-                  <DetailRow label="業務 Email"><div className="break-all">{detail.sales_email ?? "—"}</div></DetailRow>
-                  <DetailRow label="業務電話">{detail.sales_phone ?? "—"}</DetailRow>
-                </div>
-                <div className="space-y-2">
-                  <DetailRow label="簽約日期">{detail.signed_at ?? "—"}</DetailRow>
-                  <DetailRow label="匯款日期">{detail.payment_at ?? "—"}</DetailRow>
-                  <DetailRow label="合約進度">{detail.contract_progress ?? "—"}</DetailRow>
+            <div className="mt-4 space-y-4">
+              {/* 基本資訊：兩欄 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+                <Field label="會員編號" value={detail.member_number} />
+                <Field label="簽約日期" value={detail.signed_at} />
+                <Field label="會員姓名" value={detail.customer_name} />
+                <Field label="匯款日期" value={detail.payment_at} />
+                <Field label="會員電話" value={detail.customer_phone} />
+                <Field label="合約進度" value={detail.contract_progress} />
+              </div>
+
+              {/* 業務資訊 Card */}
+              <div className="border-t pt-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-2">
+                  <Field label="開發業務" value={detail.sales_name} />
+                  <Field label="業務 Email" value={detail.sales_email} breakAll />
+                  <Field label="業務電話" value={detail.sales_phone} />
                 </div>
               </div>
-              <div className="border-t pt-4 space-y-2">
-                <DetailRow label="專案名稱">{detail.project_name}</DetailRow>
-                <DetailRow label="購買單位數">{detail.unit_count ?? 0}</DetailRow>
-                <DetailRow label="金額">{fmtMoney(detail.total_amount ?? (detail.unit_count ?? 0) * detail.plan_price)}</DetailRow>
-                <DetailRow label="統編">{detail.tax_id ?? "—"}</DetailRow>
-                <DetailRow label="發票進度">{detail.invoice_progress ?? "—"}</DetailRow>
-                <DetailRow label="發票號碼">{detail.invoice_number ?? "—"}</DetailRow>
-                <DetailRow label="發票載具">{detail.invoice_carrier ? "是" : "否"}</DetailRow>
-                <DetailRow label="寄送地址/Email">{detail.invoice_address ?? "—"}</DetailRow>
-                <DetailRow label="銷售獎金">{detail.sales_bonus == null ? "—" : fmtMoney(detail.sales_bonus)}</DetailRow>
-                <DetailRow label="協同業務1">
-                  {detail.co_sales_name ?? "—"}
-                  {detail.co_sales_bonus != null && <span className="text-muted-foreground ml-2">{fmtMoney(detail.co_sales_bonus)}</span>}
-                </DetailRow>
-                <DetailRow label="協同業務2">
-                  {detail.co_sales_name2 ?? "—"}
-                  {detail.co_sales_bonus2 != null && <span className="text-muted-foreground ml-2">{fmtMoney(detail.co_sales_bonus2)}</span>}
-                </DetailRow>
-                <DetailRow label="備註"><span className="whitespace-pre-wrap">{detail.notes ?? "—"}</span></DetailRow>
+
+              {/* 詳細資訊：兩欄 */}
+              <div className="border-t pt-3 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+                <Field label="專案名稱" value={detail.project_name} />
+                <Field label="發票進度" value={detail.invoice_progress} />
+                <Field label="購買單位數" value={String(detail.unit_count ?? 0)} />
+                <Field label="發票號碼" value={detail.invoice_number} />
+                <Field label="金額" value={fmtMoney(detail.total_amount ?? (detail.unit_count ?? 0) * detail.plan_price)} />
+                <Field label="發票載具" value={detail.invoice_carrier ? "是" : "否"} />
+                <Field label="統編" value={detail.tax_id} />
+                <Field label="寄送地址/Email" value={detail.invoice_address} breakAll />
+              </div>
+
+              {/* 獎金資訊 */}
+              <div className="border-t pt-3 grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-2">
+                <Field label="銷售獎金（開發業務）" value={detail.sales_bonus == null ? null : fmtMoney(detail.sales_bonus)} />
+                <Field
+                  label="協同業務1"
+                  value={detail.co_sales_name ? `${detail.co_sales_name}${detail.co_sales_bonus != null ? ` / ${fmtMoney(detail.co_sales_bonus)}` : ""}` : null}
+                />
+                <Field
+                  label="協同業務2"
+                  value={detail.co_sales_name2 ? `${detail.co_sales_name2}${detail.co_sales_bonus2 != null ? ` / ${fmtMoney(detail.co_sales_bonus2)}` : ""}` : null}
+                />
+              </div>
+
+              {/* 備註 */}
+              <div className="border-t pt-3">
+                <div className="text-xs text-muted-foreground mb-1">備註</div>
+                <div className="text-sm whitespace-pre-wrap break-all">{detail.notes ?? "—"}</div>
               </div>
             </div>
           )}
