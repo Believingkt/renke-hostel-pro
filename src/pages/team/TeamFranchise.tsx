@@ -1494,6 +1494,7 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
     return map;
   }, [settings]);
 
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
