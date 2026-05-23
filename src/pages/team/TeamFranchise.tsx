@@ -117,11 +117,7 @@ export default function TeamFranchise() {
           <OrdersTab canManage={canManage} currentUserId={userId} />
         </TabsContent>
         <TabsContent value="external" className="mt-4">
-          <Card>
-            <CardContent className="py-16 text-center text-muted-foreground">
-              外部銷售功能開發中
-            </CardContent>
-          </Card>
+          <ExternalSalesTab canManage={canManage} />
         </TabsContent>
         <TabsContent value="stats" className="mt-4">
           <Card>
@@ -995,6 +991,470 @@ function SettingsTab({ canManage }: { canManage: boolean }) {
               取消
             </Button>
             <Button onClick={save}>儲存</Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+    </Card>
+  );
+}
+
+interface ExternalOrder {
+  id: string;
+  project_name: string;
+  signed_at: string | null;
+  sales_name: string | null;
+  sales_email: string | null;
+  sales_phone: string | null;
+  member_number: string | null;
+  customer_name: string;
+  customer_phone: string | null;
+  unit_count: number | null;
+  plan_price: number;
+  total_amount: number | null;
+  payment_at: string | null;
+  contract_progress: string | null;
+  tax_id: string | null;
+  invoice_progress: string | null;
+  invoice_number: string | null;
+  invoice_carrier: boolean | null;
+  invoice_address: string | null;
+  sales_bonus: number | null;
+  co_sales_name: string | null;
+  co_sales_bonus: number | null;
+  co_sales_name2: string | null;
+  co_sales_bonus2: number | null;
+  notes: string | null;
+}
+
+const CONTRACT_PROGRESS_OPTIONS = ["進行中", "已完成", "取消"];
+
+const emptyExternalForm = (): Partial<ExternalOrder> => ({
+  project_name: "森山第一期",
+  signed_at: new Date().toISOString().slice(0, 10),
+  sales_name: "",
+  sales_email: "",
+  sales_phone: "",
+  member_number: "",
+  customer_name: "",
+  customer_phone: "",
+  unit_count: 1,
+  plan_price: 100000,
+  payment_at: null,
+  contract_progress: "進行中",
+  tax_id: "",
+  invoice_progress: "",
+  invoice_number: "",
+  invoice_carrier: true,
+  invoice_address: "",
+  sales_bonus: null,
+  co_sales_name: "",
+  co_sales_bonus: null,
+  co_sales_name2: "",
+  co_sales_bonus2: null,
+  notes: "",
+});
+
+function ExternalSalesTab({ canManage }: { canManage: boolean }) {
+  const [rows, setRows] = useState<ExternalOrder[]>([]);
+  const [projectFilter, setProjectFilter] = useState<string>("ALL");
+  const [year, setYear] = useState<string>("ALL");
+  const [month, setMonth] = useState<string>("ALL");
+
+  const [detail, setDetail] = useState<ExternalOrder | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [form, setForm] = useState<Partial<ExternalOrder>>(emptyExternalForm());
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    const { data, error } = await supabase
+      .from("franchise_external_orders")
+      .select("*")
+      .order("signed_at", { ascending: false, nullsFirst: false });
+    if (error) {
+      toast.error("讀取失敗：" + error.message);
+      return;
+    }
+    setRows((data ?? []) as ExternalOrder[]);
+  };
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  const projects = useMemo(() => {
+    const set = new Set<string>();
+    rows.forEach((r) => r.project_name && set.add(r.project_name));
+    return Array.from(set);
+  }, [rows]);
+
+  const years = useMemo(() => {
+    const cur = new Date().getFullYear();
+    return Array.from({ length: 5 }, (_, i) => String(cur - i));
+  }, []);
+
+  const filtered = useMemo(() => {
+    return rows.filter((r) => {
+      if (projectFilter !== "ALL" && r.project_name !== projectFilter) return false;
+      if (r.signed_at) {
+        const d = new Date(r.signed_at);
+        if (year !== "ALL" && String(d.getFullYear()) !== year) return false;
+        if (month !== "ALL" && d.getMonth() + 1 !== Number(month)) return false;
+      } else if (year !== "ALL" || month !== "ALL") {
+        return false;
+      }
+      return true;
+    });
+  }, [rows, projectFilter, year, month]);
+
+  const openCreate = () => {
+    setEditingId(null);
+    setForm(emptyExternalForm());
+    setSheetOpen(true);
+  };
+
+  const openEdit = (row: ExternalOrder) => {
+    setEditingId(row.id);
+    setForm({ ...row });
+    setDetail(null);
+    setEditing(false);
+    setSheetOpen(true);
+  };
+
+  const onChange = (k: keyof ExternalOrder, v: unknown) =>
+    setForm((prev) => ({ ...prev, [k]: v as never }));
+
+  const handleSave = async () => {
+    if (!form.customer_name?.trim()) {
+      toast.error("請填寫會員姓名");
+      return;
+    }
+    const payload = {
+      project_name: form.project_name?.trim() || "森山第一期",
+      signed_at: form.signed_at || null,
+      sales_name: form.sales_name?.trim() || null,
+      sales_email: form.sales_email?.trim() || null,
+      sales_phone: form.sales_phone?.trim() || null,
+      member_number: form.member_number?.trim() || null,
+      customer_name: form.customer_name.trim(),
+      customer_phone: form.customer_phone?.trim() || null,
+      unit_count: Number(form.unit_count ?? 1) || 1,
+      plan_price: Number(form.plan_price ?? 0) || 0,
+      payment_at: form.payment_at || null,
+      contract_progress: form.contract_progress || "進行中",
+      tax_id: form.tax_id?.trim() || null,
+      invoice_progress: form.invoice_progress?.trim() || null,
+      invoice_number: form.invoice_number?.trim() || null,
+      invoice_carrier: !!form.invoice_carrier,
+      invoice_address: form.invoice_address?.trim() || null,
+      sales_bonus: form.sales_bonus == null || form.sales_bonus === ("" as never) ? null : Number(form.sales_bonus),
+      co_sales_name: form.co_sales_name?.trim() || null,
+      co_sales_bonus: form.co_sales_bonus == null || form.co_sales_bonus === ("" as never) ? null : Number(form.co_sales_bonus),
+      co_sales_name2: form.co_sales_name2?.trim() || null,
+      co_sales_bonus2: form.co_sales_bonus2 == null || form.co_sales_bonus2 === ("" as never) ? null : Number(form.co_sales_bonus2),
+      notes: form.notes?.trim() || null,
+    };
+    setSaving(true);
+    let error;
+    if (editingId) {
+      ({ error } = await supabase.from("franchise_external_orders").update(payload).eq("id", editingId));
+    } else {
+      ({ error } = await supabase.from("franchise_external_orders").insert(payload));
+    }
+    setSaving(false);
+    if (error) {
+      toast.error("儲存失敗：" + error.message);
+      return;
+    }
+    toast.success(editingId ? "已更新" : "已新增");
+    setSheetOpen(false);
+    setEditingId(null);
+    void load();
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Select value={projectFilter} onValueChange={setProjectFilter}>
+            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">全部專案</SelectItem>
+              {projects.map((p) => (
+                <SelectItem key={p} value={p}>{p}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={year} onValueChange={setYear}>
+            <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">全部年份</SelectItem>
+              {years.map((y) => (<SelectItem key={y} value={y}>{y} 年</SelectItem>))}
+            </SelectContent>
+          </Select>
+          <Select value={month} onValueChange={setMonth}>
+            <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">全年</SelectItem>
+              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                <SelectItem key={m} value={String(m)}>{m} 月</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {canManage && (
+          <Button onClick={openCreate}>
+            <Plus className="h-4 w-4 mr-1" /> 新增
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>會員編號</TableHead>
+                <TableHead>會員姓名</TableHead>
+                <TableHead>開發業務</TableHead>
+                <TableHead className="text-right">購買單位數</TableHead>
+                <TableHead className="text-right">金額</TableHead>
+                <TableHead>簽約日期</TableHead>
+                <TableHead>合約進度</TableHead>
+                <TableHead className="w-16"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
+                    尚無資料
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filtered.map((r) => (
+                  <TableRow
+                    key={r.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => { setDetail(r); setEditing(false); }}
+                  >
+                    <TableCell>{r.member_number ?? "—"}</TableCell>
+                    <TableCell>{r.customer_name}</TableCell>
+                    <TableCell>{r.sales_name ?? "—"}</TableCell>
+                    <TableCell className="text-right tabular-nums">{r.unit_count ?? 0}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtMoney(r.total_amount ?? (r.unit_count ?? 0) * r.plan_price)}</TableCell>
+                    <TableCell>{r.signed_at ?? "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant={r.contract_progress === "已完成" ? "success" : r.contract_progress === "取消" ? "destructive" : "secondary"}>
+                        {r.contract_progress ?? "—"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={(e) => { e.stopPropagation(); setDetail(r); setEditing(false); }}
+                      >
+                        明細
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+
+      {/* Detail Drawer */}
+      <Sheet open={!!detail} onOpenChange={(o) => { if (!o) { setDetail(null); setEditing(false); } }}>
+        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+          <SheetHeader>
+            <div className="flex items-center justify-between pr-8">
+              <SheetTitle>外部銷售明細</SheetTitle>
+              {detail && canManage && !editing && (
+                <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); openEdit(detail); }}>
+                  <Pencil className="h-4 w-4 mr-1" /> 編輯
+                </Button>
+              )}
+            </div>
+          </SheetHeader>
+          {detail && (
+            <div className="mt-4 space-y-4 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <DetailRow label="會員編號">{detail.member_number ?? "—"}</DetailRow>
+                  <DetailRow label="會員姓名">{detail.customer_name}</DetailRow>
+                  <DetailRow label="會員電話">{detail.customer_phone ?? "—"}</DetailRow>
+                </div>
+                <div className="space-y-2">
+                  <DetailRow label="開發業務">{detail.sales_name ?? "—"}</DetailRow>
+                  <DetailRow label="業務 Email">{detail.sales_email ?? "—"}</DetailRow>
+                  <DetailRow label="業務電話">{detail.sales_phone ?? "—"}</DetailRow>
+                </div>
+                <div className="space-y-2">
+                  <DetailRow label="簽約日期">{detail.signed_at ?? "—"}</DetailRow>
+                  <DetailRow label="匯款日期">{detail.payment_at ?? "—"}</DetailRow>
+                  <DetailRow label="合約進度">{detail.contract_progress ?? "—"}</DetailRow>
+                </div>
+              </div>
+              <div className="border-t pt-4 space-y-2">
+                <DetailRow label="專案名稱">{detail.project_name}</DetailRow>
+                <DetailRow label="購買單位數">{detail.unit_count ?? 0}</DetailRow>
+                <DetailRow label="金額">{fmtMoney(detail.total_amount ?? (detail.unit_count ?? 0) * detail.plan_price)}</DetailRow>
+                <DetailRow label="統編">{detail.tax_id ?? "—"}</DetailRow>
+                <DetailRow label="發票進度">{detail.invoice_progress ?? "—"}</DetailRow>
+                <DetailRow label="發票號碼">{detail.invoice_number ?? "—"}</DetailRow>
+                <DetailRow label="發票載具">{detail.invoice_carrier ? "是" : "否"}</DetailRow>
+                <DetailRow label="寄送地址/Email">{detail.invoice_address ?? "—"}</DetailRow>
+                <DetailRow label="銷售獎金">{detail.sales_bonus == null ? "—" : fmtMoney(detail.sales_bonus)}</DetailRow>
+                <DetailRow label="協同業務1">
+                  {detail.co_sales_name ?? "—"}
+                  {detail.co_sales_bonus != null && <span className="text-muted-foreground ml-2">{fmtMoney(detail.co_sales_bonus)}</span>}
+                </DetailRow>
+                <DetailRow label="協同業務2">
+                  {detail.co_sales_name2 ?? "—"}
+                  {detail.co_sales_bonus2 != null && <span className="text-muted-foreground ml-2">{fmtMoney(detail.co_sales_bonus2)}</span>}
+                </DetailRow>
+                <DetailRow label="備註"><span className="whitespace-pre-wrap">{detail.notes ?? "—"}</span></DetailRow>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Create/Edit Sheet */}
+      <Sheet open={sheetOpen} onOpenChange={(o) => { setSheetOpen(o); if (!o) setEditingId(null); }}>
+        <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>{editingId ? "編輯外部銷售訂單" : "新增外部銷售訂單"}</SheetTitle>
+          </SheetHeader>
+          <div className="space-y-3 mt-4">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label>專案名稱</Label>
+                <Input value={form.project_name ?? ""} onChange={(e) => onChange("project_name", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>簽約日期</Label>
+                <Input type="date" value={form.signed_at ?? ""} onChange={(e) => onChange("signed_at", e.target.value)} />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-1">
+                <Label>開發業務姓名</Label>
+                <Input value={form.sales_name ?? ""} onChange={(e) => onChange("sales_name", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>業務 Email</Label>
+                <Input value={form.sales_email ?? ""} onChange={(e) => onChange("sales_email", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>業務電話</Label>
+                <Input value={form.sales_phone ?? ""} onChange={(e) => onChange("sales_phone", e.target.value)} />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-1">
+                <Label>會員編號</Label>
+                <Input value={form.member_number ?? ""} onChange={(e) => onChange("member_number", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>會員姓名 *</Label>
+                <Input value={form.customer_name ?? ""} onChange={(e) => onChange("customer_name", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>會員電話</Label>
+                <Input value={form.customer_phone ?? ""} onChange={(e) => onChange("customer_phone", e.target.value)} />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-1">
+                <Label>購買單位數</Label>
+                <Input type="number" min={1} value={form.unit_count ?? 1} onChange={(e) => onChange("unit_count", Number(e.target.value) || 1)} />
+              </div>
+              <div className="space-y-1">
+                <Label>單位金額</Label>
+                <Input type="number" min={0} value={form.plan_price ?? 0} onChange={(e) => onChange("plan_price", Number(e.target.value) || 0)} />
+              </div>
+              <div className="space-y-1">
+                <Label>總金額</Label>
+                <Input readOnly className="bg-muted" value={fmtMoney((Number(form.unit_count) || 0) * (Number(form.plan_price) || 0))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label>匯款日期</Label>
+                <Input type="date" value={form.payment_at ?? ""} onChange={(e) => onChange("payment_at", e.target.value || null)} />
+              </div>
+              <div className="space-y-1">
+                <Label>合約進度</Label>
+                <Select value={form.contract_progress ?? "進行中"} onValueChange={(v) => onChange("contract_progress", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {CONTRACT_PROGRESS_OPTIONS.map((o) => (<SelectItem key={o} value={o}>{o}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label>統編</Label>
+                <Input value={form.tax_id ?? ""} onChange={(e) => onChange("tax_id", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>發票進度</Label>
+                <Input value={form.invoice_progress ?? ""} onChange={(e) => onChange("invoice_progress", e.target.value)} />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>發票號碼</Label>
+              <Input value={form.invoice_number ?? ""} onChange={(e) => onChange("invoice_number", e.target.value)} />
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="ext_invoice_carrier"
+                checked={!!form.invoice_carrier}
+                onCheckedChange={(v) => onChange("invoice_carrier", !!v)}
+              />
+              <Label htmlFor="ext_invoice_carrier">發票使用載具</Label>
+            </div>
+            <div className="space-y-1">
+              <Label>發票寄送地址 / Email</Label>
+              <Input value={form.invoice_address ?? ""} onChange={(e) => onChange("invoice_address", e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>銷售獎金（開發業務）</Label>
+              <Input type="number" value={form.sales_bonus ?? ""} onChange={(e) => onChange("sales_bonus", e.target.value === "" ? null : Number(e.target.value))} />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label>協同業務1 姓名</Label>
+                <Input value={form.co_sales_name ?? ""} onChange={(e) => onChange("co_sales_name", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>協同業務1 獎金</Label>
+                <Input type="number" value={form.co_sales_bonus ?? ""} onChange={(e) => onChange("co_sales_bonus", e.target.value === "" ? null : Number(e.target.value))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label>協同業務2 姓名</Label>
+                <Input value={form.co_sales_name2 ?? ""} onChange={(e) => onChange("co_sales_name2", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>協同業務2 獎金</Label>
+                <Input type="number" value={form.co_sales_bonus2 ?? ""} onChange={(e) => onChange("co_sales_bonus2", e.target.value === "" ? null : Number(e.target.value))} />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>備註</Label>
+              <Textarea rows={3} value={form.notes ?? ""} onChange={(e) => onChange("notes", e.target.value)} />
+            </div>
+          </div>
+          <SheetFooter className="mt-4">
+            <Button variant="outline" onClick={() => setSheetOpen(false)}>取消</Button>
+            <Button onClick={handleSave} disabled={saving}>{saving ? "儲存中..." : "儲存"}</Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>
