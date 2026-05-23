@@ -411,7 +411,7 @@ function OrdersTab({
 
   const selectLevelForEdit = (level: string) => {
     const tier = tiers.find((t) => t.level === level);
-    const ratePct = Number(tier?.signup_bonus_rate ?? 0) * 100;
+    const ratePct = parseFloat((Number(tier?.signup_bonus_rate ?? 0) * 100).toFixed(2));
     setEditForm((f) => ({ ...f, level_at_sale: level, commission_rate: ratePct }));
   };
 
