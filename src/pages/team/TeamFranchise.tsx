@@ -1527,7 +1527,7 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
               </TableRow>
             ) : (
               profiles.map((p) => {
-                const s = p.user_id ? settingsByMember[p.user_id] : undefined;
+                const s = settingsByMember[p.id];
                 return (
                   <TableRow key={p.id}>
                     <TableCell>{p.display_name}</TableCell>
@@ -1544,20 +1544,22 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
                     <TableCell>{memberName(s?.top_leader_id ?? null)}</TableCell>
                     {canManage && (
                       <TableCell className="text-right">
-                        {p.user_id ? (
-                          <Button size="icon" variant="ghost" onClick={() => openEdit(s ?? null, p.user_id as string)}>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button size="icon" variant="ghost" onClick={() => openEdit(s ?? null, p.id)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
-                        ) : (
-                          <Button size="sm" variant="outline" onClick={() => openBind(p)}>
-                            綁定帳號
-                          </Button>
-                        )}
+                          {!p.user_id && (
+                            <Button size="sm" variant="outline" onClick={() => openBind(p)}>
+                              綁定帳號
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     )}
                   </TableRow>
                 );
               })
+
             )}
           </TableBody>
         </Table>
