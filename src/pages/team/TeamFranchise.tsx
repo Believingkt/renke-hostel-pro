@@ -451,7 +451,7 @@ function OrdersTab({
 
   const handleSave = async () => {
     if (!form.customer_name.trim() || !form.plan_name.trim() || !form.sold_by || form.unit_price <= 0) {
-      toast.error("請填寫客戶姓名、方案名稱、單位金額與銷售人");
+      toast.error("請填寫客戶姓名、專案名稱、單位金額與銷售人");
       return;
     }
     const planPrice = form.unit_price * form.unit_qty;
