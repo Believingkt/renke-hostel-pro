@@ -1577,6 +1577,9 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
             ) : (
               profiles.map((p) => {
                 const s = settingsByMember[p.id];
+                const title = computeTitle(p);
+                const subLeaderName = memberName(s?.direct_leader_id ?? null);
+                const topLeaderName = computeTopLeaderName(p);
                 return (
                   <TableRow key={p.id}>
                     <TableCell>{p.display_name}</TableCell>
@@ -1588,9 +1591,9 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
                       )}
                     </TableCell>
                     <TableCell>{memberName(s?.direct_leader_id ?? null)}</TableCell>
-                    <TableCell>{s?.title ?? "—"}</TableCell>
-                    <TableCell>{memberName(s?.sub_leader_id ?? null)}</TableCell>
-                    <TableCell>{memberName(s?.top_leader_id ?? null)}</TableCell>
+                    <TableCell>{title || "—"}</TableCell>
+                    <TableCell>{subLeaderName}</TableCell>
+                    <TableCell>{topLeaderName}</TableCell>
                     {canManage && (
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
@@ -1622,43 +1625,40 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
           <div className="space-y-3 mt-4">
             <div className="space-y-1">
               <Label>隊員</Label>
-              <Input value={memberName(form.member_id)} disabled />
-            </div>
-            {[
-              { key: "direct_leader_id", label: "直屬隊長" },
-              { key: "sub_leader_id", label: "小組隊長" },
-              { key: "top_leader_id", label: "最上層隊長" },
-            ].map((f) => (
-              <div key={f.key} className="space-y-1">
-                <Label>{f.label}</Label>
-                <Select
-                  value={(form as any)[f.key] || "none"}
-                  onValueChange={(v) =>
-                    setForm({ ...form, [f.key]: v === "none" ? null : v } as TeamSetting)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">無</SelectItem>
-                    {accountedMembers
-                      .filter((m) => m.user_id !== form.member_id)
-                      .map((m) => (
-                        <SelectItem key={m.user_id} value={m.user_id}>
-                          {m.display_name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ))}
-            <div className="space-y-1">
-              <Label>稱號</Label>
               <Input
-                value={form.title ?? ""}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                value={profiles.find((p) => p.id === form.member_id)?.display_name ?? ""}
+                disabled
               />
+            </div>
+            <div className="space-y-1">
+              <Label>直屬隊長</Label>
+              <Select
+                value={form.direct_leader_id || "none"}
+                onValueChange={(v) =>
+                  setForm({ ...form, direct_leader_id: v === "none" ? null : v })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">無</SelectItem>
+                  {accountedMembers
+                    .filter((m) => {
+                      // 不能選自己
+                      const self = profiles.find((p) => p.id === form.member_id);
+                      return m.user_id !== self?.user_id;
+                    })
+                    .map((m) => (
+                      <SelectItem key={m.user_id} value={m.user_id}>
+                        {m.display_name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                稱號、小組隊長、最上層隊長將依直屬隊長自動計算。
+              </p>
             </div>
           </div>
           <SheetFooter className="mt-4">
@@ -1669,6 +1669,7 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
 
       {/* 新增無帳號成員 Dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
