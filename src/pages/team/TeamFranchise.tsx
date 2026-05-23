@@ -76,7 +76,7 @@ const fmtMoney = (n: number | null | undefined) =>
 const fmtRate = (n: number | null | undefined) =>
   n == null ? "—" : `${(Number(n) * 100).toFixed(1)}%`;
 
-function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
+function DetailRow({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="grid grid-cols-[110px_1fr] items-center gap-3">
       <Label className="text-muted-foreground">{label}</Label>
