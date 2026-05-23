@@ -3014,6 +3014,8 @@ export type Database = {
           accommodation_id: string | null
           ad_id: string | null
           booking_method: string | null
+          closer_assisted: boolean | null
+          closer_commission_rate: number | null
           closer_id: string | null
           exclusion_note: string | null
           filled_at: string | null
@@ -3024,6 +3026,7 @@ export type Database = {
           is_excluded: boolean | null
           kol_commission_only: boolean | null
           order_id: string
+          scout_commission_rate: number | null
           scout_id: string | null
           traffic_source: string | null
           updated_at: string | null
@@ -3033,6 +3036,8 @@ export type Database = {
           accommodation_id?: string | null
           ad_id?: string | null
           booking_method?: string | null
+          closer_assisted?: boolean | null
+          closer_commission_rate?: number | null
           closer_id?: string | null
           exclusion_note?: string | null
           filled_at?: string | null
@@ -3043,6 +3048,7 @@ export type Database = {
           is_excluded?: boolean | null
           kol_commission_only?: boolean | null
           order_id: string
+          scout_commission_rate?: number | null
           scout_id?: string | null
           traffic_source?: string | null
           updated_at?: string | null
@@ -3052,6 +3058,8 @@ export type Database = {
           accommodation_id?: string | null
           ad_id?: string | null
           booking_method?: string | null
+          closer_assisted?: boolean | null
+          closer_commission_rate?: number | null
           closer_id?: string | null
           exclusion_note?: string | null
           filled_at?: string | null
@@ -3062,6 +3070,7 @@ export type Database = {
           is_excluded?: boolean | null
           kol_commission_only?: boolean | null
           order_id?: string
+          scout_commission_rate?: number | null
           scout_id?: string | null
           traffic_source?: string | null
           updated_at?: string | null
