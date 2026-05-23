@@ -595,6 +595,170 @@ function OrdersTab({
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      <Sheet open={!!detailOrder} onOpenChange={(o) => { if (!o) { setDetailOrder(null); setDetailEditing(false); } }}>
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+          <SheetHeader>
+            <div className="flex items-center justify-between pr-8">
+              <SheetTitle>訂單明細</SheetTitle>
+              {detailOrder && (canManage || detailOrder.sold_by === currentUserId) && !detailEditing && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDetailEditing(true);
+                  }}
+                >
+                  <Pencil className="h-4 w-4 mr-1" /> 編輯
+                </Button>
+              )}
+            </div>
+          </SheetHeader>
+          {detailOrder && (
+            <div className="space-y-3 mt-4 text-sm">
+              <DetailRow label="客戶姓名">
+                {detailEditing ? (
+                  <Input
+                    value={(detailForm.customer_name as string) ?? ""}
+                    onChange={(e) => setDetailForm({ ...detailForm, customer_name: e.target.value })}
+                  />
+                ) : (
+                  detailOrder.customer_name
+                )}
+              </DetailRow>
+              <DetailRow label="客戶電話">
+                {detailEditing ? (
+                  <Input
+                    value={(detailForm.customer_phone as string) ?? ""}
+                    onChange={(e) => setDetailForm({ ...detailForm, customer_phone: e.target.value })}
+                  />
+                ) : (
+                  detailOrder.customer_phone ?? "—"
+                )}
+              </DetailRow>
+              <DetailRow label="方案">
+                {detailEditing ? (
+                  <Input
+                    value={(detailForm.plan_name as string) ?? ""}
+                    onChange={(e) => setDetailForm({ ...detailForm, plan_name: e.target.value })}
+                  />
+                ) : (
+                  detailOrder.plan_name ?? "—"
+                )}
+              </DetailRow>
+              <DetailRow label="方案金額">
+                {detailEditing ? (
+                  <Input
+                    type="number"
+                    value={(detailForm.plan_price as number) ?? 0}
+                    onChange={(e) => setDetailForm({ ...detailForm, plan_price: Number(e.target.value) || 0 })}
+                  />
+                ) : (
+                  fmtMoney(detailOrder.plan_price)
+                )}
+              </DetailRow>
+              <DetailRow label="銷售人">{memberName(detailOrder.sold_by, detailOrder.sold_by_name)}</DetailRow>
+              <DetailRow label="直屬隊長">{memberName(detailOrder.team_leader)}</DetailRow>
+              <DetailRow label="個人分潤">
+                {fmtMoney(detailOrder.commission_amount)}
+                <span className="text-xs text-muted-foreground ml-1">({fmtRate(detailOrder.commission_rate)})</span>
+              </DetailRow>
+              <DetailRow label="隊長補差額">
+                {fmtMoney(detailOrder.leader_amount)}
+                <span className="text-xs text-muted-foreground ml-1">({fmtRate(detailOrder.leader_rate)})</span>
+              </DetailRow>
+              <DetailRow label="公司提撥">
+                {fmtMoney(detailOrder.company_amount)}
+                <span className="text-xs text-muted-foreground ml-1">({fmtRate(detailOrder.company_rate)})</span>
+              </DetailRow>
+              <DetailRow label="成交日期">
+                {detailEditing ? (
+                  <Input
+                    type="date"
+                    value={(detailForm.sold_at as string) ?? ""}
+                    onChange={(e) => setDetailForm({ ...detailForm, sold_at: e.target.value })}
+                  />
+                ) : (
+                  detailOrder.sold_at ?? "—"
+                )}
+              </DetailRow>
+              <DetailRow label="付款狀態">
+                {detailEditing ? (
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="detail_payment"
+                      checked={!!detailForm.payment_confirmed}
+                      onCheckedChange={(v) => setDetailForm({ ...detailForm, payment_confirmed: !!v })}
+                    />
+                    <Label htmlFor="detail_payment">已付款</Label>
+                  </div>
+                ) : (
+                  <Badge variant={detailOrder.payment_confirmed ? "success" : "secondary"}>
+                    {detailOrder.payment_confirmed ? "已付款" : "未付款"}
+                  </Badge>
+                )}
+              </DetailRow>
+              <DetailRow label="發票號碼">
+                {detailEditing ? (
+                  <Input
+                    value={(detailForm.invoice_number as string) ?? ""}
+                    onChange={(e) => setDetailForm({ ...detailForm, invoice_number: e.target.value })}
+                  />
+                ) : (
+                  detailOrder.invoice_number ?? "—"
+                )}
+              </DetailRow>
+              <DetailRow label="備註">
+                {detailEditing ? (
+                  <Textarea
+                    rows={3}
+                    value={(detailForm.notes as string) ?? ""}
+                    onChange={(e) => setDetailForm({ ...detailForm, notes: e.target.value })}
+                  />
+                ) : (
+                  <span className="whitespace-pre-wrap">{detailOrder.notes ?? "—"}</span>
+                )}
+              </DetailRow>
+            </div>
+          )}
+          {detailEditing && (
+            <SheetFooter className="mt-4">
+              <Button variant="outline" onClick={() => setDetailEditing(false)}>取消</Button>
+              <Button
+                disabled={detailSaving}
+                onClick={async () => {
+                  if (!detailOrder) return;
+                  setDetailSaving(true);
+                  const payload: Record<string, unknown> = {
+                    customer_name: (detailForm.customer_name as string)?.trim() || detailOrder.customer_name,
+                    customer_phone: (detailForm.customer_phone as string)?.trim() || null,
+                    plan_name: (detailForm.plan_name as string)?.trim() || null,
+                    plan_price: Number(detailForm.plan_price ?? detailOrder.plan_price) || 0,
+                    sold_at: (detailForm.sold_at as string) || null,
+                    payment_confirmed: !!detailForm.payment_confirmed,
+                    payment_at: detailForm.payment_confirmed ? ((detailForm.sold_at as string) || detailOrder.sold_at) : null,
+                    invoice_number: (detailForm.invoice_number as string)?.trim() || null,
+                    notes: (detailForm.notes as string)?.trim() || null,
+                  };
+                  const { error } = await supabase.from("franchise_orders").update(payload).eq("id", detailOrder.id);
+                  setDetailSaving(false);
+                  if (error) {
+                    toast.error("儲存失敗：" + error.message);
+                    return;
+                  }
+                  toast.success("已更新");
+                  setDetailEditing(false);
+                  setDetailOrder(null);
+                  void loadAll();
+                }}
+              >
+                {detailSaving ? "儲存中..." : "儲存"}
+              </Button>
+            </SheetFooter>
+          )}
+        </SheetContent>
+      </Sheet>
     </Card>
   );
 }
