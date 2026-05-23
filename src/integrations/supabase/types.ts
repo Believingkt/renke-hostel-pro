@@ -5882,7 +5882,7 @@ export type Database = {
           is_active: boolean | null
           scout_tier: string | null
           updated_at: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           commission_rate?: number | null
@@ -5892,7 +5892,7 @@ export type Database = {
           is_active?: boolean | null
           scout_tier?: string | null
           updated_at?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           commission_rate?: number | null
@@ -5902,7 +5902,7 @@ export type Database = {
           is_active?: boolean | null
           scout_tier?: string | null
           updated_at?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
