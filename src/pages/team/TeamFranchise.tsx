@@ -327,11 +327,15 @@ function OrdersTab({
     const downlineCount = Object.values(teamSettings).filter(
       (t) => t.direct_leader_id === soldBy,
     ).length;
-    let commission_rate = 0.1;
-    if (downlineCount === 1) commission_rate = 0.11;
-    else if (downlineCount >= 2) commission_rate = 0.13;
-    const leader_rate = directLeader ? Math.max(0.13 - commission_rate, 0) : 0;
-    const company_rate = topLeader ? 0.035 : 0;
+    const base = internalRates?.base_rate ?? 0.1;
+    const tier1 = internalRates?.tier1_rate ?? 0.11;
+    const tier2 = internalRates?.tier2_rate ?? 0.13;
+    const companyR = internalRates?.company_rate ?? 0.035;
+    let commission_rate = base;
+    if (downlineCount === 1) commission_rate = tier1;
+    else if (downlineCount >= 2) commission_rate = tier2;
+    const leader_rate = directLeader ? Math.max(tier2 - commission_rate, 0) : 0;
+    const company_rate = topLeader ? companyR : 0;
     return { commission_rate, leader_rate, company_rate, directLeader };
   };
 
