@@ -33,6 +33,44 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, Pencil } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+interface InternalRates {
+  base_rate: number;
+  tier1_rate: number;
+  tier2_rate: number;
+  leader_supplement_rate: number;
+  company_rate: number;
+  payout_day: string | null;
+}
+interface ExternalRates {
+  sales_rate: number;
+  co_sales1_rate: number;
+  co_sales2_rate: number;
+  payout_day: string | null;
+}
+interface CommissionSettingRow {
+  id: string;
+  type: "internal" | "external";
+  project_name: string;
+  base_rate: number | null;
+  tier1_rate: number | null;
+  tier2_rate: number | null;
+  leader_supplement_rate: number | null;
+  company_rate: number | null;
+  sales_rate: number | null;
+  co_sales1_rate: number | null;
+  co_sales2_rate: number | null;
+  payout_day: string | null;
+  effective_from: string;
+  created_at: string;
+}
 
 interface Member {
   user_id: string;
