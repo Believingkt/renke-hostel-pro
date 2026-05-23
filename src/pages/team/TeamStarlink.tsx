@@ -739,59 +739,72 @@ function OrdersTab({
               </Button>
             )}
           </DrawerHeader>
-          {detailOrder && (
-            <div className="px-4 pb-6 overflow-y-auto">
-              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                {[
-                  ["客戶名稱", detailOrder.client_name],
-                  ["統編", detailOrder.client_tax_id ?? "—"],
-                  ["行業類型", detailOrder.business_type ?? "—"],
-                  ["方案", detailOrder.plan_name ?? "—"],
-                  ["方案金額", fmtMoney(detailOrder.plan_price)],
-                  ["銷售人", memberName(detailOrder.sold_by)],
-                  ["成交時等級", detailOrder.level_at_sale ?? "—"],
-                  ["分潤比例", fmtRate(detailOrder.commission_rate)],
-                  ["分潤金額", fmtMoney(detailOrder.commission_amount)],
-                  ["成交日期", detailOrder.sold_at ?? "—"],
-                  ["匯款末5碼", detailOrder.payment_last5 ?? "—"],
-                  ["發票號碼", detailOrder.invoice_number ?? "—"],
-                ].map(([k, v]) => (
-                  <div key={k as string} className="flex flex-col">
-                    <dt className="text-muted-foreground text-xs">{k}</dt>
-                    <dd className="font-medium">{v}</dd>
+          {detailOrder && (() => {
+            const o = detailOrder;
+            const renderField = (label: string, value: React.ReactNode) => (
+              <div key={label} className="py-2 border-b last:border-b-0 flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">{label}</span>
+                <span className="text-sm font-medium text-foreground">{value}</span>
+              </div>
+            );
+            const left: Array<[string, React.ReactNode]> = [
+              ["客戶名稱", o.client_name],
+              ["統編", o.client_tax_id ?? "—"],
+              ["行業類型", o.business_type ?? "—"],
+              ["合約已上傳", (
+                <Badge variant={o.contract_uploaded ? "success" : "secondary"}>
+                  {o.contract_uploaded ? "已上傳" : "未上傳"}
+                </Badge>
+              )],
+            ];
+            const middle: Array<[string, React.ReactNode]> = [
+              ["銷售人", memberName(o.sold_by)],
+              ["成交時等級", o.level_at_sale ?? "—"],
+              ["方案", o.plan_name ?? "—"],
+              ["方案金額", fmtMoney(o.plan_price)],
+              ["分潤比例", fmtRate(o.commission_rate)],
+              ["分潤金額", fmtMoney(o.commission_amount)],
+            ];
+            const right: Array<[string, React.ReactNode]> = [
+              ["成交日期", o.sold_at ?? "—"],
+              ["發票號碼", o.invoice_number ?? "—"],
+              ["匯款末5碼", o.payment_last5 ?? "—"],
+              ["付款狀態", (
+                <Badge variant={o.payment_confirmed ? "success" : "secondary"}>
+                  {o.payment_confirmed ? "已付款" : "未付款"}
+                </Badge>
+              )],
+              ["結算狀態", (
+                <Badge variant={o.payout_status === "paid" ? "success" : "secondary"}>
+                  {o.payout_status === "paid" ? "已發放" : "待結算"}
+                </Badge>
+              )],
+            ];
+            return (
+              <div className="px-4 pb-6 overflow-y-auto">
+                <div className="grid grid-cols-1 md:grid-cols-3">
+                  <div className="md:pr-4 md:border-r">
+                    <div className="text-xs font-semibold text-muted-foreground mb-2">客戶資訊</div>
+                    {left.map(([k, v]) => renderField(k, v))}
                   </div>
-                ))}
-                <div className="flex flex-col">
-                  <dt className="text-muted-foreground text-xs">付款狀態</dt>
-                  <dd>
-                    <Badge variant={detailOrder.payment_confirmed ? "success" : "secondary"}>
-                      {detailOrder.payment_confirmed ? "已付款" : "未付款"}
-                    </Badge>
-                  </dd>
+                  <div className="md:px-4 md:border-r">
+                    <div className="text-xs font-semibold text-muted-foreground mb-2">銷售資訊</div>
+                    {middle.map(([k, v]) => renderField(k, v))}
+                  </div>
+                  <div className="md:pl-4">
+                    <div className="text-xs font-semibold text-muted-foreground mb-2">訂單資訊</div>
+                    {right.map(([k, v]) => renderField(k, v))}
+                  </div>
                 </div>
-                <div className="flex flex-col">
-                  <dt className="text-muted-foreground text-xs">合約已上傳</dt>
-                  <dd>
-                    <Badge variant={detailOrder.contract_uploaded ? "success" : "secondary"}>
-                      {detailOrder.contract_uploaded ? "已上傳" : "未上傳"}
-                    </Badge>
-                  </dd>
+                <div className="mt-4 pt-4 border-t">
+                  <div className="text-xs text-muted-foreground mb-1">備註</div>
+                  <div className="text-sm font-medium whitespace-pre-wrap text-foreground">
+                    {o.notes ?? "—"}
+                  </div>
                 </div>
-                <div className="flex flex-col">
-                  <dt className="text-muted-foreground text-xs">結算狀態</dt>
-                  <dd>
-                    <Badge variant={detailOrder.payout_status === "paid" ? "success" : "secondary"}>
-                      {detailOrder.payout_status === "paid" ? "已發放" : "待結算"}
-                    </Badge>
-                  </dd>
-                </div>
-                <div className="flex flex-col sm:col-span-2">
-                  <dt className="text-muted-foreground text-xs">備註</dt>
-                  <dd className="whitespace-pre-wrap font-medium">{detailOrder.notes ?? "—"}</dd>
-                </div>
-              </dl>
-            </div>
-          )}
+              </div>
+            );
+          })()}
         </DrawerContent>
       </Drawer>
     </Card>
