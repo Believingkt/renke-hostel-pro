@@ -191,7 +191,7 @@ function OrdersTab({
       supabase
         .from("franchise_orders")
         .select(
-          "id,customer_name,plan_name,plan_price,sold_by,sold_by_name,team_leader,commission_rate,leader_rate,company_rate,commission_amount,leader_amount,company_amount,sold_at,payment_confirmed,payout_status",
+          "id,customer_name,customer_phone,plan_name,plan_price,sold_by,sold_by_name,team_leader,commission_rate,leader_rate,company_rate,commission_amount,leader_amount,company_amount,sold_at,payment_confirmed,payment_at,payout_status,invoice_number,notes",
         )
         .order("sold_at", { ascending: false }),
       supabase.from("franchise_team_settings").select("*"),
