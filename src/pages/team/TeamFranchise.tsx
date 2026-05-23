@@ -235,7 +235,7 @@ function OrdersTab({
   }, []);
 
   const loadAll = async () => {
-    const [o, ftsRes] = await Promise.all([
+    const [o, ftsRes, ratesRes] = await Promise.all([
       supabase
         .from("franchise_orders")
         .select(
@@ -243,7 +243,24 @@ function OrdersTab({
         )
         .order("sold_at", { ascending: false }),
       supabase.from("franchise_team_settings").select("*"),
+      (supabase as any)
+        .from("franchise_commission_settings")
+        .select("*")
+        .eq("type", "internal")
+        .order("effective_from", { ascending: false })
+        .limit(1),
     ]);
+    const r = (ratesRes.data ?? [])[0];
+    if (r) {
+      setInternalRates({
+        base_rate: Number(r.base_rate ?? 0.1),
+        tier1_rate: Number(r.tier1_rate ?? 0.11),
+        tier2_rate: Number(r.tier2_rate ?? 0.13),
+        leader_supplement_rate: Number(r.leader_supplement_rate ?? 0),
+        company_rate: Number(r.company_rate ?? 0.035),
+        payout_day: r.payout_day ?? null,
+      });
+    }
     if (o.data) setOrders(o.data as FranchiseOrder[]);
 
     const ftsRows = (ftsRes.data ?? []) as any[];
