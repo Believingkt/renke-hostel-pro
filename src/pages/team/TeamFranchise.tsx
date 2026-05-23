@@ -121,10 +121,16 @@ function OrdersTab({
   const [teamSettings, setTeamSettings] = useState<Record<string, TeamSetting>>({});
   
 
-  const [year, setYear] = useState<string>(String(new Date().getFullYear()));
+  const [year, setYear] = useState<string>("ALL");
   const [month, setMonth] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [salesFilter, setSalesFilter] = useState<string>("ALL");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 50;
+
+  useEffect(() => {
+    setPage(1);
+  }, [year, month, statusFilter, salesFilter]);
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [form, setForm] = useState({
@@ -194,20 +200,26 @@ function OrdersTab({
       : name ?? "—";
 
   const filtered = useMemo(() => {
-    return orders.filter((o) => {
-      if (!canManage && o.sold_by !== currentUserId) return false;
-      if (o.sold_at) {
-        const d = new Date(o.sold_at);
-        if (String(d.getFullYear()) !== year) return false;
-        if (month !== "ALL" && d.getMonth() + 1 !== Number(month)) return false;
-      } else if (year !== "ALL") {
-        return false;
-      }
-      if (statusFilter !== "ALL" && o.payout_status !== statusFilter) return false;
-      if (salesFilter !== "ALL" && o.sold_by !== salesFilter) return false;
-      return true;
-    });
+    return orders
+      .filter((o) => {
+        if (!canManage && o.sold_by !== currentUserId) return false;
+        if (o.sold_at) {
+          const d = new Date(o.sold_at);
+          if (year !== "ALL" && String(d.getFullYear()) !== year) return false;
+          if (month !== "ALL" && d.getMonth() + 1 !== Number(month)) return false;
+        }
+        if (statusFilter !== "ALL" && o.payout_status !== statusFilter) return false;
+        if (salesFilter !== "ALL" && o.sold_by !== salesFilter) return false;
+        return true;
+      })
+      .sort((a, b) => (b.sold_at ?? "").localeCompare(a.sold_at ?? ""));
   }, [orders, year, month, statusFilter, salesFilter, canManage, currentUserId]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageItems = useMemo(
+    () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [filtered, page],
+  );
 
   const computeRates = (soldBy: string) => {
     const setting = teamSettings[soldBy];
@@ -290,6 +302,7 @@ function OrdersTab({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="ALL">全部年份</SelectItem>
               {years.map((y) => (
                 <SelectItem key={y} value={y}>
                   {y} 年
@@ -366,7 +379,7 @@ function OrdersTab({
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((o) => (
+                pageItems.map((o) => (
                   <TableRow key={o.id}>
                     <TableCell>{o.customer_name}</TableCell>
                     <TableCell>{o.plan_name ?? "—"}</TableCell>
@@ -399,6 +412,31 @@ function OrdersTab({
             </TableBody>
           </Table>
         </div>
+        {filtered.length > 0 && (
+          <div className="flex items-center justify-between gap-2 mt-3 flex-wrap">
+            <div className="text-sm text-muted-foreground">
+              第 {page} 頁，共 {filtered.length} 筆
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                上一頁
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                下一頁
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
 
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
