@@ -617,9 +617,10 @@ export default function TeamOrders() {
 
 function ReadField({ label, value }: { label: string; value: string }) {
   return (
-    <div className="text-sm">
+    <div>
       <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="font-medium">{value}</div>
+      <div className="text-base font-medium">{value}</div>
     </div>
   );
 }
+
