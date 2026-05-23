@@ -137,6 +137,26 @@ export default function TeamFranchise() {
   const { roles, userId } = useTeam();
   const canManage = roles.includes("super_admin") || roles.includes("admin");
   const canView = canManage || roles.includes("franchise");
+  const [canManageDistributions, setCanManageDistributions] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    if (!userId) return;
+    (async () => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId);
+      if (!active) return;
+      const rs = (data ?? []).map((r: { role: string }) => r.role);
+      setCanManageDistributions(
+        rs.includes("super_admin") || rs.includes("admin") || rs.includes("franchise_manager")
+      );
+    })();
+    return () => {
+      active = false;
+    };
+  }, [userId]);
 
   if (!canView) {
     return (
@@ -159,6 +179,9 @@ export default function TeamFranchise() {
           <TabsTrigger value="orders">訂單列表（內部）</TabsTrigger>
           <TabsTrigger value="external">外部銷售</TabsTrigger>
           <TabsTrigger value="stats">業績統計</TabsTrigger>
+          {canManageDistributions && (
+            <TabsTrigger value="distributions">會員分潤</TabsTrigger>
+          )}
           <TabsTrigger value="settings">分潤設定</TabsTrigger>
         </TabsList>
         <TabsContent value="orders" className="mt-4">
@@ -170,6 +193,11 @@ export default function TeamFranchise() {
         <TabsContent value="stats" className="mt-4">
           <StatsTab />
         </TabsContent>
+        {canManageDistributions && (
+          <TabsContent value="distributions" className="mt-4">
+            <MemberDistributionTab currentUserId={userId} />
+          </TabsContent>
+        )}
         <TabsContent value="settings" className="mt-4">
           <SettingsTab canManage={canManage} />
         </TabsContent>
