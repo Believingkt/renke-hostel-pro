@@ -567,12 +567,11 @@ export default function TeamOrders() {
                     成交組協助
                   </Label>
                 </div>
-                {form.closer_assisted && (
-                  <p className="text-xs text-muted-foreground">
-                    星探分潤將從 5% 調整為 2%，成交組追加 3%
-                  </p>
-                )}
+                <p className="text-xs text-muted-foreground">
+                  勾選後星探分潤將從 5% 調整為 2%，成交組追加 3%
+                </p>
               </div>
+
 
               <div className="flex items-center gap-2">
                 <Checkbox
