@@ -180,7 +180,7 @@ export default function TeamMembers() {
       display_name: p.display_name,
       email: emailMap.get(p.user_id) ?? "",
       is_active: p.is_active ?? true,
-      roles: rolesMap.get(p.user_id) ?? [],
+      roles: Array.from(rolesMap.get(p.user_id) ?? []),
     }));
 
     // scout_manager 僅看到有 scout 或 kol 角色的成員
