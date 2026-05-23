@@ -1625,7 +1625,7 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
               />
             </div>
             <div className="space-y-1">
-              <Label>分潤比例 (0~1)</Label>
+              <Label>個人分潤比例</Label>
               <Input
                 type="number"
                 step="0.01"
@@ -1633,14 +1633,9 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
                 onChange={(e) => setNewMember({ ...newMember, commission_rate: e.target.value })}
                 placeholder="例：0.1"
               />
+              <p className="text-xs text-muted-foreground">輸入 0~1 之間的小數，例如 0.1 代表 10%</p>
             </div>
-            <div className="space-y-1">
-              <Label>Scout Tier</Label>
-              <Input
-                value={newMember.scout_tier}
-                onChange={(e) => setNewMember({ ...newMember, scout_tier: e.target.value })}
-              />
-            </div>
+
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddOpen(false)}>取消</Button>
