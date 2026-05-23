@@ -811,11 +811,11 @@ function OrdersTab({
                   detailOrder.customer_phone ?? "—"
                 )}
               </DetailRow>
-              <DetailRow label="方案">
+              <DetailRow label="專案">
                 {detailEditing ? (
-                  <Input
+                  <ProjectSelect
                     value={(detailForm.plan_name as string) ?? ""}
-                    onChange={(e) => setDetailForm({ ...detailForm, plan_name: e.target.value })}
+                    onChange={(v) => setDetailForm({ ...detailForm, plan_name: v })}
                   />
                 ) : (
                   detailOrder.plan_name ?? "—"
