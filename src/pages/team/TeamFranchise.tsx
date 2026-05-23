@@ -51,6 +51,7 @@ interface TeamSetting {
 interface FranchiseOrder {
   id: string;
   customer_name: string;
+  customer_phone: string | null;
   plan_name: string | null;
   plan_price: number;
   sold_by: string;
@@ -64,7 +65,10 @@ interface FranchiseOrder {
   company_amount: number | null;
   sold_at: string | null;
   payment_confirmed: boolean | null;
+  payment_at: string | null;
   payout_status: string | null;
+  invoice_number: string | null;
+  notes: string | null;
 }
 
 const fmtMoney = (n: number | null | undefined) =>
