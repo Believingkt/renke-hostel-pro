@@ -562,7 +562,7 @@ export default function TeamOrders() {
                     checked={!!form.closer_assisted}
                     onCheckedChange={(v) => toggleCloserAssisted(!!v)}
                   />
-                  <Label htmlFor="closer_assisted" className="cursor-pointer">
+                  <Label htmlFor="closer_assisted" className="cursor-pointer text-sm">
                     成交組協助
                   </Label>
                 </div>
@@ -580,7 +580,7 @@ export default function TeamOrders() {
                     setForm((f) => ({ ...f, is_excluded: !!v }))
                   }
                 />
-                <Label htmlFor="is_excluded" className="cursor-pointer">
+                <Label htmlFor="is_excluded" className="cursor-pointer text-sm">
                   不分潤
                 </Label>
               </div>
