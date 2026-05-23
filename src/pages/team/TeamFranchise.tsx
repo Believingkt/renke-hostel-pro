@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTeam } from "@/components/team/TeamContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,6 +51,7 @@ interface TeamSetting {
 interface FranchiseOrder {
   id: string;
   customer_name: string;
+  customer_phone: string | null;
   plan_name: string | null;
   plan_price: number;
   sold_by: string;
@@ -64,13 +65,25 @@ interface FranchiseOrder {
   company_amount: number | null;
   sold_at: string | null;
   payment_confirmed: boolean | null;
+  payment_at: string | null;
   payout_status: string | null;
+  invoice_number: string | null;
+  notes: string | null;
 }
 
 const fmtMoney = (n: number | null | undefined) =>
   `NT$ ${Number(n ?? 0).toLocaleString()}`;
 const fmtRate = (n: number | null | undefined) =>
   n == null ? "—" : `${(Number(n) * 100).toFixed(1)}%`;
+
+function DetailRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="grid grid-cols-[110px_1fr] items-center gap-3">
+      <Label className="text-muted-foreground">{label}</Label>
+      <div>{children}</div>
+    </div>
+  );
+}
 
 export default function TeamFranchise() {
   const { roles, userId } = useTeam();
@@ -95,11 +108,27 @@ export default function TeamFranchise() {
       <h2 className="text-2xl font-bold">特許加盟</h2>
       <Tabs defaultValue="orders">
         <TabsList>
-          <TabsTrigger value="orders">訂單列表</TabsTrigger>
+          <TabsTrigger value="orders">訂單列表（內部）</TabsTrigger>
+          <TabsTrigger value="external">外部銷售</TabsTrigger>
+          <TabsTrigger value="stats">業績統計</TabsTrigger>
           <TabsTrigger value="settings">分潤設定</TabsTrigger>
         </TabsList>
         <TabsContent value="orders" className="mt-4">
           <OrdersTab canManage={canManage} currentUserId={userId} />
+        </TabsContent>
+        <TabsContent value="external" className="mt-4">
+          <Card>
+            <CardContent className="py-16 text-center text-muted-foreground">
+              外部銷售功能開發中
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="stats" className="mt-4">
+          <Card>
+            <CardContent className="py-16 text-center text-muted-foreground">
+              業績統計功能開發中
+            </CardContent>
+          </Card>
         </TabsContent>
         <TabsContent value="settings" className="mt-4">
           <SettingsTab canManage={canManage} />
@@ -147,6 +176,24 @@ function OrdersTab({
   });
   const [saving, setSaving] = useState(false);
 
+  const [detailOrder, setDetailOrder] = useState<FranchiseOrder | null>(null);
+  const [detailEditing, setDetailEditing] = useState(false);
+  const [detailForm, setDetailForm] = useState<Partial<FranchiseOrder> & { customer_phone?: string | null; invoice_number?: string | null; notes?: string | null }>({});
+  const [detailSaving, setDetailSaving] = useState(false);
+
+  useEffect(() => {
+    if (detailOrder) {
+      setDetailForm({
+        customer_name: detailOrder.customer_name,
+        plan_name: detailOrder.plan_name,
+        plan_price: detailOrder.plan_price,
+        sold_at: detailOrder.sold_at,
+        payment_confirmed: detailOrder.payment_confirmed,
+      } as any);
+    }
+  }, [detailOrder]);
+
+
   useEffect(() => {
     void loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -157,7 +204,7 @@ function OrdersTab({
       supabase
         .from("franchise_orders")
         .select(
-          "id,customer_name,plan_name,plan_price,sold_by,sold_by_name,team_leader,commission_rate,leader_rate,company_rate,commission_amount,leader_amount,company_amount,sold_at,payment_confirmed,payout_status",
+          "id,customer_name,customer_phone,plan_name,plan_price,sold_by,sold_by_name,team_leader,commission_rate,leader_rate,company_rate,commission_amount,leader_amount,company_amount,sold_at,payment_confirmed,payment_at,payout_status,invoice_number,notes",
         )
         .order("sold_at", { ascending: false }),
       supabase.from("franchise_team_settings").select("*"),
@@ -362,10 +409,6 @@ function OrdersTab({
                 <TableHead>方案</TableHead>
                 <TableHead className="text-right">方案金額</TableHead>
                 <TableHead>銷售人</TableHead>
-                <TableHead>直屬隊長</TableHead>
-                <TableHead className="text-right">個人分潤</TableHead>
-                <TableHead className="text-right">隊長補差額</TableHead>
-                <TableHead className="text-right">公司提撥</TableHead>
                 <TableHead>成交日期</TableHead>
                 <TableHead>付款</TableHead>
                 <TableHead>結算</TableHead>
@@ -374,27 +417,24 @@ function OrdersTab({
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center text-muted-foreground py-12">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-12">
                     尚無訂單資料
                   </TableCell>
                 </TableRow>
               ) : (
                 pageItems.map((o) => (
-                  <TableRow key={o.id}>
+                  <TableRow
+                    key={o.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => {
+                      setDetailOrder(o);
+                      setDetailEditing(false);
+                    }}
+                  >
                     <TableCell>{o.customer_name}</TableCell>
                     <TableCell>{o.plan_name ?? "—"}</TableCell>
                     <TableCell className="text-right tabular-nums">{fmtMoney(o.plan_price)}</TableCell>
                     <TableCell>{memberName(o.sold_by, o.sold_by_name)}</TableCell>
-                    <TableCell>{memberName(o.team_leader)}</TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {fmtMoney(o.commission_amount)} <span className="text-xs text-muted-foreground">({fmtRate(o.commission_rate)})</span>
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {fmtMoney(o.leader_amount)} <span className="text-xs text-muted-foreground">({fmtRate(o.leader_rate)})</span>
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {fmtMoney(o.company_amount)} <span className="text-xs text-muted-foreground">({fmtRate(o.company_rate)})</span>
-                    </TableCell>
                     <TableCell>{o.sold_at ?? "—"}</TableCell>
                     <TableCell>
                       <Badge variant={o.payment_confirmed ? "success" : "secondary"}>
@@ -562,6 +602,170 @@ function OrdersTab({
               {saving ? "儲存中..." : "儲存"}
             </Button>
           </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={!!detailOrder} onOpenChange={(o) => { if (!o) { setDetailOrder(null); setDetailEditing(false); } }}>
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+          <SheetHeader>
+            <div className="flex items-center justify-between pr-8">
+              <SheetTitle>訂單明細</SheetTitle>
+              {detailOrder && (canManage || detailOrder.sold_by === currentUserId) && !detailEditing && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDetailEditing(true);
+                  }}
+                >
+                  <Pencil className="h-4 w-4 mr-1" /> 編輯
+                </Button>
+              )}
+            </div>
+          </SheetHeader>
+          {detailOrder && (
+            <div className="space-y-3 mt-4 text-sm">
+              <DetailRow label="客戶姓名">
+                {detailEditing ? (
+                  <Input
+                    value={(detailForm.customer_name as string) ?? ""}
+                    onChange={(e) => setDetailForm({ ...detailForm, customer_name: e.target.value })}
+                  />
+                ) : (
+                  detailOrder.customer_name
+                )}
+              </DetailRow>
+              <DetailRow label="客戶電話">
+                {detailEditing ? (
+                  <Input
+                    value={(detailForm.customer_phone as string) ?? ""}
+                    onChange={(e) => setDetailForm({ ...detailForm, customer_phone: e.target.value })}
+                  />
+                ) : (
+                  detailOrder.customer_phone ?? "—"
+                )}
+              </DetailRow>
+              <DetailRow label="方案">
+                {detailEditing ? (
+                  <Input
+                    value={(detailForm.plan_name as string) ?? ""}
+                    onChange={(e) => setDetailForm({ ...detailForm, plan_name: e.target.value })}
+                  />
+                ) : (
+                  detailOrder.plan_name ?? "—"
+                )}
+              </DetailRow>
+              <DetailRow label="方案金額">
+                {detailEditing ? (
+                  <Input
+                    type="number"
+                    value={(detailForm.plan_price as number) ?? 0}
+                    onChange={(e) => setDetailForm({ ...detailForm, plan_price: Number(e.target.value) || 0 })}
+                  />
+                ) : (
+                  fmtMoney(detailOrder.plan_price)
+                )}
+              </DetailRow>
+              <DetailRow label="銷售人">{memberName(detailOrder.sold_by, detailOrder.sold_by_name)}</DetailRow>
+              <DetailRow label="直屬隊長">{memberName(detailOrder.team_leader)}</DetailRow>
+              <DetailRow label="個人分潤">
+                {fmtMoney(detailOrder.commission_amount)}
+                <span className="text-xs text-muted-foreground ml-1">({fmtRate(detailOrder.commission_rate)})</span>
+              </DetailRow>
+              <DetailRow label="隊長補差額">
+                {fmtMoney(detailOrder.leader_amount)}
+                <span className="text-xs text-muted-foreground ml-1">({fmtRate(detailOrder.leader_rate)})</span>
+              </DetailRow>
+              <DetailRow label="公司提撥">
+                {fmtMoney(detailOrder.company_amount)}
+                <span className="text-xs text-muted-foreground ml-1">({fmtRate(detailOrder.company_rate)})</span>
+              </DetailRow>
+              <DetailRow label="成交日期">
+                {detailEditing ? (
+                  <Input
+                    type="date"
+                    value={(detailForm.sold_at as string) ?? ""}
+                    onChange={(e) => setDetailForm({ ...detailForm, sold_at: e.target.value })}
+                  />
+                ) : (
+                  detailOrder.sold_at ?? "—"
+                )}
+              </DetailRow>
+              <DetailRow label="付款狀態">
+                {detailEditing ? (
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="detail_payment"
+                      checked={!!detailForm.payment_confirmed}
+                      onCheckedChange={(v) => setDetailForm({ ...detailForm, payment_confirmed: !!v })}
+                    />
+                    <Label htmlFor="detail_payment">已付款</Label>
+                  </div>
+                ) : (
+                  <Badge variant={detailOrder.payment_confirmed ? "success" : "secondary"}>
+                    {detailOrder.payment_confirmed ? "已付款" : "未付款"}
+                  </Badge>
+                )}
+              </DetailRow>
+              <DetailRow label="發票號碼">
+                {detailEditing ? (
+                  <Input
+                    value={(detailForm.invoice_number as string) ?? ""}
+                    onChange={(e) => setDetailForm({ ...detailForm, invoice_number: e.target.value })}
+                  />
+                ) : (
+                  detailOrder.invoice_number ?? "—"
+                )}
+              </DetailRow>
+              <DetailRow label="備註">
+                {detailEditing ? (
+                  <Textarea
+                    rows={3}
+                    value={(detailForm.notes as string) ?? ""}
+                    onChange={(e) => setDetailForm({ ...detailForm, notes: e.target.value })}
+                  />
+                ) : (
+                  <span className="whitespace-pre-wrap">{detailOrder.notes ?? "—"}</span>
+                )}
+              </DetailRow>
+            </div>
+          )}
+          {detailEditing && (
+            <SheetFooter className="mt-4">
+              <Button variant="outline" onClick={() => setDetailEditing(false)}>取消</Button>
+              <Button
+                disabled={detailSaving}
+                onClick={async () => {
+                  if (!detailOrder) return;
+                  setDetailSaving(true);
+                  const payload: Record<string, unknown> = {
+                    customer_name: (detailForm.customer_name as string)?.trim() || detailOrder.customer_name,
+                    customer_phone: (detailForm.customer_phone as string)?.trim() || null,
+                    plan_name: (detailForm.plan_name as string)?.trim() || null,
+                    plan_price: Number(detailForm.plan_price ?? detailOrder.plan_price) || 0,
+                    sold_at: (detailForm.sold_at as string) || null,
+                    payment_confirmed: !!detailForm.payment_confirmed,
+                    payment_at: detailForm.payment_confirmed ? ((detailForm.sold_at as string) || detailOrder.sold_at) : null,
+                    invoice_number: (detailForm.invoice_number as string)?.trim() || null,
+                    notes: (detailForm.notes as string)?.trim() || null,
+                  };
+                  const { error } = await supabase.from("franchise_orders").update(payload).eq("id", detailOrder.id);
+                  setDetailSaving(false);
+                  if (error) {
+                    toast.error("儲存失敗：" + error.message);
+                    return;
+                  }
+                  toast.success("已更新");
+                  setDetailEditing(false);
+                  setDetailOrder(null);
+                  void loadAll();
+                }}
+              >
+                {detailSaving ? "儲存中..." : "儲存"}
+              </Button>
+            </SheetFooter>
+          )}
         </SheetContent>
       </Sheet>
     </Card>

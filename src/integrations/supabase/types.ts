@@ -2097,6 +2097,99 @@ export type Database = {
           },
         ]
       }
+      franchise_external_orders: {
+        Row: {
+          co_sales_bonus: number | null
+          co_sales_bonus2: number | null
+          co_sales_name: string | null
+          co_sales_name2: string | null
+          contract_progress: string | null
+          created_at: string | null
+          created_by: string | null
+          customer_name: string
+          customer_phone: string | null
+          id: string
+          invoice_address: string | null
+          invoice_carrier: boolean | null
+          invoice_number: string | null
+          invoice_progress: string | null
+          member_number: string | null
+          notes: string | null
+          payment_at: string | null
+          plan_price: number
+          project_name: string
+          sales_bonus: number | null
+          sales_email: string | null
+          sales_name: string | null
+          sales_phone: string | null
+          signed_at: string | null
+          tax_id: string | null
+          total_amount: number | null
+          unit_count: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          co_sales_bonus?: number | null
+          co_sales_bonus2?: number | null
+          co_sales_name?: string | null
+          co_sales_name2?: string | null
+          contract_progress?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          customer_name: string
+          customer_phone?: string | null
+          id?: string
+          invoice_address?: string | null
+          invoice_carrier?: boolean | null
+          invoice_number?: string | null
+          invoice_progress?: string | null
+          member_number?: string | null
+          notes?: string | null
+          payment_at?: string | null
+          plan_price?: number
+          project_name?: string
+          sales_bonus?: number | null
+          sales_email?: string | null
+          sales_name?: string | null
+          sales_phone?: string | null
+          signed_at?: string | null
+          tax_id?: string | null
+          total_amount?: number | null
+          unit_count?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          co_sales_bonus?: number | null
+          co_sales_bonus2?: number | null
+          co_sales_name?: string | null
+          co_sales_name2?: string | null
+          contract_progress?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          customer_name?: string
+          customer_phone?: string | null
+          id?: string
+          invoice_address?: string | null
+          invoice_carrier?: boolean | null
+          invoice_number?: string | null
+          invoice_progress?: string | null
+          member_number?: string | null
+          notes?: string | null
+          payment_at?: string | null
+          plan_price?: number
+          project_name?: string
+          sales_bonus?: number | null
+          sales_email?: string | null
+          sales_name?: string | null
+          sales_phone?: string | null
+          signed_at?: string | null
+          tax_id?: string | null
+          total_amount?: number | null
+          unit_count?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       franchise_orders: {
         Row: {
           accommodation_type: string | null
