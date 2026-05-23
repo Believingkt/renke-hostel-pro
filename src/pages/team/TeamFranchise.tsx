@@ -1500,7 +1500,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
     void load();
   }, []);
 
-  // Auto-fill bonuses when project / unit / price change (only for new order, not edit)
+  // Auto-fill bonuses when project / unit / price / co-sales names change (only for new order, not edit)
   useEffect(() => {
     if (editingId) return;
     const project = (form.project_name ?? "").trim();
@@ -1511,11 +1511,14 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
     setForm((prev) => ({
       ...prev,
       sales_bonus: Math.round(total * r.sales_rate),
-      co_sales_bonus: Math.round(total * r.co_sales1_rate),
-      co_sales_bonus2: Math.round(total * r.co_sales2_rate),
+      co_sales_bonus: (prev.co_sales_name ?? "").trim() ? Math.round(total * r.co_sales1_rate) : null,
+      co_sales_bonus2: (prev.co_sales_name2 ?? "").trim() ? Math.round(total * r.co_sales2_rate) : null,
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.project_name, form.unit_count, form.plan_price, externalRates, editingId, sheetOpen]);
+  }, [form.project_name, form.unit_count, form.plan_price, form.co_sales_name, form.co_sales_name2, externalRates, editingId, sheetOpen]);
+
+  const currentRates = externalRates[(form.project_name ?? "").trim()] ?? null;
+  const pct = (n: number | null | undefined) => n == null ? "" : `${parseFloat((n * 100).toFixed(2))}%`;
 
   const projects = useMemo(() => {
     const set = new Set<string>();
@@ -1870,7 +1873,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
               <Input value={form.invoice_address ?? ""} onChange={(e) => onChange("invoice_address", e.target.value)} />
             </div>
             <div className="space-y-1">
-              <Label>銷售獎金（開發業務）</Label>
+              <Label>銷售獎金（開發業務）{currentRates ? `（${pct(currentRates.sales_rate)}）` : ""}</Label>
               <Input type="number" value={form.sales_bonus ?? ""} onChange={(e) => onChange("sales_bonus", e.target.value === "" ? null : Number(e.target.value))} />
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -1878,20 +1881,24 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
                 <Label>協同業務1 姓名</Label>
                 <Input value={form.co_sales_name ?? ""} onChange={(e) => onChange("co_sales_name", e.target.value)} />
               </div>
-              <div className="space-y-1">
-                <Label>協同業務1 獎金</Label>
-                <Input type="number" value={form.co_sales_bonus ?? ""} onChange={(e) => onChange("co_sales_bonus", e.target.value === "" ? null : Number(e.target.value))} />
-              </div>
+              {(form.co_sales_name ?? "").trim() && (
+                <div className="space-y-1">
+                  <Label>協同業務1 獎金{currentRates ? `（${pct(currentRates.co_sales1_rate)}）` : ""}</Label>
+                  <Input type="number" value={form.co_sales_bonus ?? ""} onChange={(e) => onChange("co_sales_bonus", e.target.value === "" ? null : Number(e.target.value))} />
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>協同業務2 姓名</Label>
                 <Input value={form.co_sales_name2 ?? ""} onChange={(e) => onChange("co_sales_name2", e.target.value)} />
               </div>
-              <div className="space-y-1">
-                <Label>協同業務2 獎金</Label>
-                <Input type="number" value={form.co_sales_bonus2 ?? ""} onChange={(e) => onChange("co_sales_bonus2", e.target.value === "" ? null : Number(e.target.value))} />
-              </div>
+              {(form.co_sales_name2 ?? "").trim() && (
+                <div className="space-y-1">
+                  <Label>協同業務2 獎金{currentRates ? `（${pct(currentRates.co_sales2_rate)}）` : ""}</Label>
+                  <Input type="number" value={form.co_sales_bonus2 ?? ""} onChange={(e) => onChange("co_sales_bonus2", e.target.value === "" ? null : Number(e.target.value))} />
+                </div>
+              )}
             </div>
             <div className="space-y-1">
               <Label>備註</Label>
