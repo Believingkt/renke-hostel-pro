@@ -2621,6 +2621,8 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
     unit_price: 0,
   });
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editPrice, setEditPrice] = useState<number>(0);
 
   // 篩選器
   const [filterYear, setFilterYear] = useState<string>("ALL");
