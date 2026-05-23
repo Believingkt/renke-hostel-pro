@@ -1205,28 +1205,29 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
   }, []);
 
   const load = async () => {
-    const [m, s] = await Promise.all([
+    const [r, s] = await Promise.all([
       supabase
         .from("user_roles")
-        .select("user_id, team_member_profiles!inner(user_id, display_name)")
+        .select("user_id")
         .eq("role", "franchise")
         .is("accommodation_id", null),
       supabase.from("franchise_team_settings").select("*"),
     ]);
-    if (m.data) {
-      const seen = new Set<string>();
-      const list: Member[] = [];
-      (m.data as any[]).forEach((row) => {
-        const pid = row.team_member_profiles?.user_id;
-        if (pid && !seen.has(pid)) {
-          seen.add(pid);
-          list.push({
-            user_id: pid,
-            display_name: row.team_member_profiles?.display_name ?? pid,
-          });
-        }
-      });
-      setMembers(list);
+    if (r.data) {
+      const ids = Array.from(new Set((r.data as any[]).map((x) => x.user_id).filter(Boolean)));
+      if (ids.length > 0) {
+        const { data: profs } = await supabase
+          .from("team_member_profiles")
+          .select("user_id, display_name")
+          .in("user_id", ids);
+        const profMap = new Map<string, string>();
+        (profs ?? []).forEach((p: any) => profMap.set(p.user_id, p.display_name));
+        setMembers(
+          ids.map((id) => ({ user_id: id, display_name: profMap.get(id) ?? id }))
+        );
+      } else {
+        setMembers([]);
+      }
     }
     if (s.data) setSettings(s.data as TeamSetting[]);
   };
