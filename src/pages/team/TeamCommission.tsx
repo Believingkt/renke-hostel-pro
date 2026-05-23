@@ -542,6 +542,26 @@ function PayoutRulesBlock() {
     effective_from: todayStr(),
   });
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const latestIdByType = new Map<string, string>();
+  const countByType = new Map<string, number>();
+  for (const r of rows) {
+    countByType.set(r.commission_type, (countByType.get(r.commission_type) ?? 0) + 1);
+    if (!latestIdByType.has(r.commission_type)) latestIdByType.set(r.commission_type, r.id);
+  }
+
+  const handleDelete = async () => {
+    if (!deletingId) return;
+    setDeleting(true);
+    const { error } = await supabase.from("commission_payout_rules").delete().eq("id", deletingId);
+    setDeleting(false);
+    if (error) return toast.error(error.message);
+    toast.success("已刪除");
+    setDeletingId(null);
+    fetchRows();
+  };
 
   const fetchRows = useCallback(async () => {
     setLoading(true);
