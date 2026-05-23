@@ -2824,7 +2824,7 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
                   <TableHead>專案名稱</TableHead>
                   <TableHead className="text-right">每單位金額</TableHead>
                   <TableHead>預計匯款日</TableHead>
-                  <TableHead className="w-20" />
+                  <TableHead className="w-32" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -2835,24 +2835,52 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  distributions.map((d) => (
+                  distributions.map((d) => {
+                    const isEditing = editingId === d.id;
+                    return (
                     <TableRow key={d.id}>
                       <TableCell>{d.year}</TableCell>
                       <TableCell>{d.month} 月</TableCell>
                       <TableCell>{d.project_name}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmtMoney(d.unit_price)}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {isEditing ? (
+                          <Input
+                            type="number"
+                            className="h-8 text-right"
+                            value={editPrice}
+                            onChange={(e) => setEditPrice(Number(e.target.value))}
+                          />
+                        ) : (
+                          fmtMoney(d.unit_price)
+                        )}
+                      </TableCell>
                       <TableCell>{d.payment_date}</TableCell>
                       <TableCell>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDelete(d.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        <div className="flex justify-end gap-1">
+                          {isEditing ? (
+                            <>
+                              <Button size="sm" variant="outline" onClick={() => saveEdit(d.id)}>
+                                儲存
+                              </Button>
+                              <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
+                                取消
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button size="sm" variant="ghost" onClick={() => startEdit(d)}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button size="sm" variant="ghost" onClick={() => handleDelete(d.id)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
-                  ))
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
