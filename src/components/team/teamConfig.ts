@@ -19,6 +19,7 @@ export type TeamRole =
   | "scout_manager"
   | "video"
   | "franchise"
+  | "franchise_manager"
   | "starlink"
   | "kol"
   | "owner"
@@ -32,6 +33,7 @@ export const TEAM_ROLES: TeamRole[] = [
   "scout_manager",
   "video",
   "franchise",
+  "franchise_manager",
   "starlink",
   "kol",
   "owner",
