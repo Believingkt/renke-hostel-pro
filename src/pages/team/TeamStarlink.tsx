@@ -450,7 +450,7 @@ function OrdersTab({
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((o) => (
+                pageItems.map((o) => (
                   <TableRow
                     key={o.id}
                     onClick={() => openDetail(o)}
