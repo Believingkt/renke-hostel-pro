@@ -897,7 +897,7 @@ interface ScoutOption {
   display_name: string;
 }
 
-function PayoutsBlock() {
+function PayoutsBlock({ scoutManagerOnly = false }: { scoutManagerOnly?: boolean }) {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
