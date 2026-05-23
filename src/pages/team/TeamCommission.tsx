@@ -57,7 +57,10 @@ const formatMoney = (n: number | null | undefined) =>
 
 export default function TeamCommission() {
   const { roles } = useTeam();
-  const canAccess = roles.includes("super_admin") || roles.includes("admin");
+  const isAdmin = roles.includes("super_admin") || roles.includes("admin");
+  const isScoutManager = roles.includes("scout_manager");
+  const canAccess = isAdmin || isScoutManager;
+  const scoutManagerOnly = !isAdmin && isScoutManager;
 
   if (!canAccess) {
     return (
@@ -78,22 +81,26 @@ export default function TeamCommission() {
       <Tabs defaultValue="scout">
         <TabsList>
           <TabsTrigger value="scout">星探獎金設定</TabsTrigger>
-          <TabsTrigger value="payout">結算規則</TabsTrigger>
-          <TabsTrigger value="multiplier">獎金加倍活動</TabsTrigger>
+          {isAdmin && <TabsTrigger value="payout">結算規則</TabsTrigger>}
+          {isAdmin && <TabsTrigger value="multiplier">獎金加倍活動</TabsTrigger>}
           <TabsTrigger value="payouts">發放管理</TabsTrigger>
         </TabsList>
         <TabsContent value="scout" className="space-y-6">
           <TierSettingsBlock />
           <SalarySettingsBlock />
         </TabsContent>
-        <TabsContent value="payout">
-          <PayoutRulesBlock />
-        </TabsContent>
-        <TabsContent value="multiplier">
-          <MultiplierBlock />
-        </TabsContent>
+        {isAdmin && (
+          <TabsContent value="payout">
+            <PayoutRulesBlock />
+          </TabsContent>
+        )}
+        {isAdmin && (
+          <TabsContent value="multiplier">
+            <MultiplierBlock />
+          </TabsContent>
+        )}
         <TabsContent value="payouts">
-          <PayoutsBlock />
+          <PayoutsBlock scoutManagerOnly={scoutManagerOnly} />
         </TabsContent>
       </Tabs>
     </div>
