@@ -337,7 +337,8 @@ function OrdersTab({
     if (!plan) return;
     setSaving(true);
 
-    const rate = Number(form.commission_rate ?? 0);
+    const ratePct = Number(form.commission_rate ?? 0);
+    const rate = ratePct / 100;
     const payload = {
       client_name: form.client_name.trim(),
       client_tax_id: form.client_tax_id.trim() || null,
