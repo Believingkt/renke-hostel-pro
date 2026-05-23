@@ -200,20 +200,26 @@ function OrdersTab({
       : name ?? "—";
 
   const filtered = useMemo(() => {
-    return orders.filter((o) => {
-      if (!canManage && o.sold_by !== currentUserId) return false;
-      if (o.sold_at) {
-        const d = new Date(o.sold_at);
-        if (String(d.getFullYear()) !== year) return false;
-        if (month !== "ALL" && d.getMonth() + 1 !== Number(month)) return false;
-      } else if (year !== "ALL") {
-        return false;
-      }
-      if (statusFilter !== "ALL" && o.payout_status !== statusFilter) return false;
-      if (salesFilter !== "ALL" && o.sold_by !== salesFilter) return false;
-      return true;
-    });
+    return orders
+      .filter((o) => {
+        if (!canManage && o.sold_by !== currentUserId) return false;
+        if (o.sold_at) {
+          const d = new Date(o.sold_at);
+          if (year !== "ALL" && String(d.getFullYear()) !== year) return false;
+          if (month !== "ALL" && d.getMonth() + 1 !== Number(month)) return false;
+        }
+        if (statusFilter !== "ALL" && o.payout_status !== statusFilter) return false;
+        if (salesFilter !== "ALL" && o.sold_by !== salesFilter) return false;
+        return true;
+      })
+      .sort((a, b) => (b.sold_at ?? "").localeCompare(a.sold_at ?? ""));
   }, [orders, year, month, statusFilter, salesFilter, canManage, currentUserId]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageItems = useMemo(
+    () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [filtered, page],
+  );
 
   const computeRates = (soldBy: string) => {
     const setting = teamSettings[soldBy];
