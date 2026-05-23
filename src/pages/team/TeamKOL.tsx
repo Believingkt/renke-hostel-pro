@@ -302,18 +302,19 @@ function InvitationsTab({
   // 載入下拉資料
   useEffect(() => {
     (async () => {
-      const [accRes, scoutRes] = await Promise.all([
+      const [accRes, scoutRes, scoutMgrRes] = await Promise.all([
         supabase
           .from("accommodation_info")
           .select("id, name, booking_type, short_url_alias")
           .order("name"),
         supabase.rpc("get_team_role_members", { p_role: "scout" }),
+        supabase.rpc("get_team_role_members", { p_role: "scout_manager" as any }),
       ]);
       if (accRes.data) setAccommodations(accRes.data as Accommodation[]);
-      if (scoutRes.data) {
+      {
         const seen = new Set<string>();
         const list: Scout[] = [];
-        for (const r of scoutRes.data as any[]) {
+        for (const r of [...((scoutRes.data as any[]) ?? []), ...((scoutMgrRes.data as any[]) ?? [])]) {
           const uid = r.user_id;
           const dn = r.display_name ?? uid;
           if (!seen.has(uid)) {
@@ -324,6 +325,7 @@ function InvitationsTab({
         list.sort((a, b) => a.display_name.localeCompare(b.display_name));
         setScouts(list);
       }
+
     })();
   }, []);
 
