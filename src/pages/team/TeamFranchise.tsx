@@ -747,7 +747,7 @@ function OrdersTab({
                   <SelectValue placeholder="選擇銷售人" />
                 </SelectTrigger>
                 <SelectContent>
-                  {accountedMembers.map((m) => (
+                  {members.map((m) => (
                     <SelectItem key={m.user_id} value={m.user_id}>
                       {m.display_name}
                     </SelectItem>
