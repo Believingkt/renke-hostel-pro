@@ -91,6 +91,7 @@ export default function TeamMembers() {
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [pending, setPending] = useState<PendingInviteRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterRole, setFilterRole] = useState<"all" | TeamRole>("all");
 
   // 邀請表單
   const [inviteName, setInviteName] = useState("");
