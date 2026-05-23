@@ -894,20 +894,6 @@ function PayoutsBlock({ scoutManagerOnly = false }: { scoutManagerOnly?: boolean
   const [scouts, setScouts] = useState<ScoutOption[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [open, setOpen] = useState(false);
-  const [smCommissionType, setSmCommissionType] = useState<"scout_kol" | "scout_base">("scout_kol");
-  const [draft, setDraft] = useState({
-    scout_id: "",
-    year: now.getFullYear(),
-    month: now.getMonth() + 1,
-    base_salary: "0",
-    team_bonus: "0",
-    kol_commission: "0",
-    individual_achieved: false,
-    team_achieved: false,
-    import_note: "",
-  });
-  const [saving, setSaving] = useState(false);
 
   const fetchScouts = useCallback(async () => {
     const { data: roles } = await supabase
@@ -977,61 +963,17 @@ function PayoutsBlock({ scoutManagerOnly = false }: { scoutManagerOnly?: boolean
     fetchRows();
   };
 
-  const save = async () => {
-    if (!draft.scout_id) return toast.error("請選擇星探");
-    setSaving(true);
-    const total =
-      Number(draft.base_salary) + Number(draft.team_bonus) + Number(draft.kol_commission);
-    const { error } = await supabase.from("scout_monthly_payouts").insert({
-      scout_id: draft.scout_id,
-      year: draft.year,
-      month: draft.month,
-      base_salary: Number(draft.base_salary),
-      team_bonus: Number(draft.team_bonus),
-      kol_commission: Number(draft.kol_commission),
-      total_payout: total,
-      individual_achieved: draft.individual_achieved,
-      team_achieved: draft.team_achieved,
-      import_note: draft.import_note || null,
-      data_source: "historical_import",
-      payout_status: "pending",
-    });
-    setSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success("已新增");
-    setOpen(false);
-    fetchRows();
-  };
-
   const yearOptions = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader>
         <CardTitle>發放管理</CardTitle>
-        <Button
-          size="sm"
-          onClick={() => {
-            setDraft({
-              scout_id: "",
-              year,
-              month,
-              base_salary: "0",
-              team_bonus: "0",
-              kol_commission: "0",
-              individual_achieved: false,
-              team_achieved: false,
-              import_note: "",
-            });
-            setOpen(true);
-          }}
-        >
-          <Plus className="h-4 w-4 mr-1" /> 新增記錄
-        </Button>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-2 items-end">
           <div>
+
             <Label className="text-xs">年份</Label>
             <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
               <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
@@ -1065,6 +1007,12 @@ function PayoutsBlock({ scoutManagerOnly = false }: { scoutManagerOnly?: boolean
             </Select>
           </div>
         </div>
+
+        <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+          獎金自動計算功能開發中，目前顯示已手動建立的歷史記錄。
+        </div>
+
+
 
         {loading ? null : rows.length === 0 ? (
           <p className="text-sm text-muted-foreground">本月份無記錄</p>
@@ -1115,103 +1063,7 @@ function PayoutsBlock({ scoutManagerOnly = false }: { scoutManagerOnly?: boolean
           </Table>
         )}
       </CardContent>
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>新增發放記錄</DialogTitle>
-            <DialogDescription>手動匯入歷史資料</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label>星探</Label>
-              <Select value={draft.scout_id} onValueChange={(v) => setDraft({ ...draft, scout_id: v })}>
-                <SelectTrigger><SelectValue placeholder="選擇星探" /></SelectTrigger>
-                <SelectContent>
-                  {scouts.map((s) => (
-                    <SelectItem key={s.user_id} value={s.user_id}>{s.display_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label>年份</Label>
-                <Input type="number" value={draft.year} onChange={(e) => setDraft({ ...draft, year: Number(e.target.value) })} />
-              </div>
-              <div>
-                <Label>月份</Label>
-                <Input type="number" min="1" max="12" value={draft.month} onChange={(e) => setDraft({ ...draft, month: Number(e.target.value) })} />
-              </div>
-            </div>
-            {scoutManagerOnly && (
-              <div>
-                <Label>獎金類型</Label>
-                <Select
-                  value={smCommissionType}
-                  onValueChange={(v) => {
-                    const t = v as "scout_kol" | "scout_base";
-                    setSmCommissionType(t);
-                    if (t === "scout_kol") {
-                      setDraft((d) => ({ ...d, base_salary: "0", team_bonus: "0" }));
-                    } else {
-                      setDraft((d) => ({ ...d, kol_commission: "0" }));
-                    }
-                  }}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="scout_kol">{BONUS_TYPE_LABEL.scout_kol}</SelectItem>
-                    <SelectItem value="scout_base">{BONUS_TYPE_LABEL.scout_base}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            {(!scoutManagerOnly || smCommissionType === "scout_base") && (
-              <>
-                <div>
-                  <Label>底薪</Label>
-                  <Input type="number" value={draft.base_salary} onChange={(e) => setDraft({ ...draft, base_salary: e.target.value })} />
-                </div>
-                <div>
-                  <Label>團隊獎金</Label>
-                  <Input type="number" value={draft.team_bonus} onChange={(e) => setDraft({ ...draft, team_bonus: e.target.value })} />
-                </div>
-              </>
-            )}
-            {(!scoutManagerOnly || smCommissionType === "scout_kol") && (
-              <div>
-                <Label>KOL分潤</Label>
-                <Input type="number" value={draft.kol_commission} onChange={(e) => setDraft({ ...draft, kol_commission: e.target.value })} />
-              </div>
-            )}
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={draft.individual_achieved}
-                  onCheckedChange={(c) => setDraft({ ...draft, individual_achieved: !!c })}
-                />
-                個人達標
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={draft.team_achieved}
-                  onCheckedChange={(c) => setDraft({ ...draft, team_achieved: !!c })}
-                />
-                團隊達標
-              </label>
-            </div>
-            <div>
-              <Label>備註</Label>
-              <Textarea value={draft.import_note} onChange={(e) => setDraft({ ...draft, import_note: e.target.value })} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>取消</Button>
-            <Button onClick={save} disabled={saving}>{saving ? "儲存中…" : "儲存"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Card>
+
   );
 }
