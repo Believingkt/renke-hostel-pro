@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
 const NORRIS_USER_ID = "1bc5761a-49a3-40ee-aa45-96ab87070c2e";
@@ -90,6 +91,7 @@ export default function TeamMembers() {
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [pending, setPending] = useState<PendingInviteRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterRole, setFilterRole] = useState<"all" | TeamRole>("all");
 
   // 邀請表單
   const [inviteName, setInviteName] = useState("");
@@ -384,6 +386,10 @@ export default function TeamMembers() {
   const displayRoles = (m: MemberRow): TeamRole[] =>
     m.user_id === NORRIS_USER_ID ? m.roles.filter((r) => r !== "super_admin") : m.roles;
 
+  const filteredMembers = filterRole === "all"
+    ? members
+    : members.filter((m) => displayRoles(m).includes(filterRole));
+
   return (
     <div className="space-y-6 max-w-5xl">
       <h2 className="text-2xl font-bold">成員管理</h2>
@@ -476,16 +482,31 @@ export default function TeamMembers() {
       {/* 區塊三：現有成員列表 */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">現有成員 ({members.length})</CardTitle>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CardTitle className="text-base">
+              現有成員 ({filterRole === "all" ? members.length : `${filteredMembers.length} / ${members.length}`})
+            </CardTitle>
+            <Select value={filterRole} onValueChange={(v) => setFilterRole(v as "all" | TeamRole)}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="篩選角色" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部</SelectItem>
+                {ALL_INVITABLE_ROLES.map((r) => (
+                  <SelectItem key={r} value={r}>{ROLE_LABEL[r]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
             <p className="text-sm text-muted-foreground py-6 text-center">載入中...</p>
-          ) : members.length === 0 ? (
+          ) : filteredMembers.length === 0 ? (
             <p className="text-sm text-muted-foreground py-6 text-center">尚無成員</p>
           ) : (
             <div className="space-y-2">
-              {members.map((m) => {
+              {filteredMembers.map((m) => {
                 const Wrapper = canEditAll ? "button" : "div";
                 return (
                   <Wrapper
