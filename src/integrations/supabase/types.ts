@@ -2546,7 +2546,7 @@ export type Database = {
             columns: ["member_id"]
             isOneToOne: true
             referencedRelation: "team_member_profiles"
-            referencedColumns: ["user_id"]
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "franchise_team_settings_sub_leader_id_fkey"
