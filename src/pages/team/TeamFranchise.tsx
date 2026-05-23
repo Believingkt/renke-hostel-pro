@@ -1929,8 +1929,8 @@ function StatsTab() {
     let cancelled = false;
     (async () => {
       const [intRes, extRes, profRes] = await Promise.all([
-        supabase.from("franchise_orders").select("sold_at, plan_name, plan_price, sold_by, sold_by_name"),
-        supabase.from("franchise_external_orders").select("signed_at, project_name, unit_count, plan_price, sales_name"),
+        supabase.from("franchise_orders").select("sold_at, plan_name, plan_price, sold_by, sold_by_name, commission_amount, leader_amount, company_amount"),
+        supabase.from("franchise_external_orders").select("signed_at, project_name, unit_count, plan_price, sales_name, sales_bonus, co_sales_name, co_sales_bonus, co_sales_name2, co_sales_bonus2"),
         supabase.from("team_member_profiles").select("user_id, display_name"),
       ]);
       if (cancelled) return;
