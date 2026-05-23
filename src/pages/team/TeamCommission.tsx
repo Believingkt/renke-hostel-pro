@@ -46,8 +46,14 @@ const COMMISSION_TYPE_LABEL: Record<string, string> = Object.fromEntries(
 
 const CYCLE_LABEL: Record<string, string> = {
   bimonthly: "每月兩次",
-  fixed_day: "固定日",
-  monthly_end: "月底",
+  monthly_early: "月初發放",
+  monthly_late: "月底發放",
+};
+
+const CYCLE_PAYOUT_DAYS: Record<string, number[]> = {
+  bimonthly: [10, 25],
+  monthly_early: [10],
+  monthly_late: [25],
 };
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
