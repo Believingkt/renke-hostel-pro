@@ -26,7 +26,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Pencil, StopCircle } from "lucide-react";
+import { Plus, Pencil, StopCircle, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // 統一獎金類型清單（結算規則 + 加倍活動共用）
 const BONUS_TYPE_LABEL: Record<string, string> = {
@@ -531,6 +542,26 @@ function PayoutRulesBlock() {
     effective_from: todayStr(),
   });
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const latestIdByType = new Map<string, string>();
+  const countByType = new Map<string, number>();
+  for (const r of rows) {
+    countByType.set(r.commission_type, (countByType.get(r.commission_type) ?? 0) + 1);
+    if (!latestIdByType.has(r.commission_type)) latestIdByType.set(r.commission_type, r.id);
+  }
+
+  const handleDelete = async () => {
+    if (!deletingId) return;
+    setDeleting(true);
+    const { error } = await supabase.from("commission_payout_rules").delete().eq("id", deletingId);
+    setDeleting(false);
+    if (error) return toast.error(error.message);
+    toast.success("已刪除");
+    setDeletingId(null);
+    fetchRows();
+  };
 
   const fetchRows = useCallback(async () => {
     setLoading(true);
@@ -599,6 +630,9 @@ function PayoutRulesBlock() {
         </Button>
       </CardHeader>
       <CardContent>
+        <p className="text-sm text-muted-foreground mb-3">
+          每新增一筆規則版本，新獎金計算將從該版本的生效日期開始套用。若新增錯誤，可刪除最新版本。
+        </p>
         {loading ? null : (
           <Table>
             <TableHeader>
@@ -612,29 +646,71 @@ function PayoutRulesBlock() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell>{COMMISSION_TYPE_LABEL[r.commission_type] ?? r.commission_type}</TableCell>
-                  <TableCell>{CYCLE_LABEL[r.cycle_type ?? ""] ?? r.cycle_type}</TableCell>
-                  <TableCell>{(r.payout_days ?? []).join(", ") || "-"}</TableCell>
-                  <TableCell>{r.cutoff_description ?? "-"}</TableCell>
-                  <TableCell>{r.effective_from}</TableCell>
-                  <TableCell>
-                    <Button size="sm" variant="ghost" onClick={() => openEdit(r)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {rows.map((r) => {
+                const isLatest = latestIdByType.get(r.commission_type) === r.id;
+                const onlyOne = (countByType.get(r.commission_type) ?? 0) <= 1;
+                return (
+                  <TableRow key={r.id}>
+                    <TableCell>{COMMISSION_TYPE_LABEL[r.commission_type] ?? r.commission_type}</TableCell>
+                    <TableCell>{CYCLE_LABEL[r.cycle_type ?? ""] ?? r.cycle_type}</TableCell>
+                    <TableCell>{(r.payout_days ?? []).join(", ") || "-"}</TableCell>
+                    <TableCell>{r.cutoff_description ?? "-"}</TableCell>
+                    <TableCell>{r.effective_from}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button size="sm" variant="outline" onClick={() => openEdit(r)}>
+                          以此為範本新增版本
+                        </Button>
+                        {isLatest && (
+                          onlyOne ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span>
+                                    <Button size="sm" variant="ghost" disabled>
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>至少保留一筆版本</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <Button size="sm" variant="ghost" onClick={() => setDeletingId(r.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         )}
       </CardContent>
 
+      <AlertDialog open={!!deletingId} onOpenChange={(o) => !o && setDeletingId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>刪除此版本</AlertDialogTitle>
+            <AlertDialogDescription>確定刪除此版本嗎？此操作無法復原。</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={deleting}>
+              {deleting ? "刪除中…" : "確認刪除"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>結算規則</DialogTitle>
+            <DialogTitle>新增結算規則版本（以此為範本）</DialogTitle>
             <DialogDescription>儲存後會新增一筆生效日期版本</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
