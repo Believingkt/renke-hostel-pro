@@ -2132,7 +2132,35 @@ function StatsTab() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>專案統計</CardTitle></CardHeader>
+        <CardHeader><CardTitle>銷售人分潤統計</CardTitle></CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>銷售人</TableHead>
+                <TableHead className="text-right">內部分潤</TableHead>
+                <TableHead className="text-right">外部分潤</TableHead>
+                <TableHead className="text-right">合計分潤</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {salesCommission.length === 0 ? (
+                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">無資料</TableCell></TableRow>
+              ) : salesCommission.map((r) => (
+                <TableRow key={r.name}>
+                  <TableCell>{r.name}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtMoney(r.intCommission)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtMoney(r.extCommission)}</TableCell>
+                  <TableCell className="text-right tabular-nums font-semibold">{fmtMoney(r.total)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>專案業績統計</CardTitle></CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
@@ -2142,7 +2170,7 @@ function StatsTab() {
                 <TableHead className="text-right">內部金額</TableHead>
                 <TableHead className="text-right">外部筆數</TableHead>
                 <TableHead className="text-right">外部金額</TableHead>
-                <TableHead className="text-right">合計</TableHead>
+                <TableHead className="text-right">合計金額</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -2155,6 +2183,34 @@ function StatsTab() {
                   <TableCell className="text-right tabular-nums">{fmtMoney(r.intAmount)}</TableCell>
                   <TableCell className="text-right tabular-nums">{r.extCount}</TableCell>
                   <TableCell className="text-right tabular-nums">{fmtMoney(r.extAmount)}</TableCell>
+                  <TableCell className="text-right tabular-nums font-semibold">{fmtMoney(r.total)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>專案分潤統計</CardTitle></CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>專案名稱</TableHead>
+                <TableHead className="text-right">內部分潤總額</TableHead>
+                <TableHead className="text-right">外部分潤總額</TableHead>
+                <TableHead className="text-right">分潤合計</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {projectCommission.length === 0 ? (
+                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">無資料</TableCell></TableRow>
+              ) : projectCommission.map((r) => (
+                <TableRow key={r.name}>
+                  <TableCell>{r.name}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtMoney(r.intCommission)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtMoney(r.extCommission)}</TableCell>
                   <TableCell className="text-right tabular-nums font-semibold">{fmtMoney(r.total)}</TableCell>
                 </TableRow>
               ))}
