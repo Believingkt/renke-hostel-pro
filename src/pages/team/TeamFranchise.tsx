@@ -285,6 +285,9 @@ export default function TeamFranchise() {
           {canManageDistributions && (
             <TabsTrigger value="distributions">會員分潤</TabsTrigger>
           )}
+          {canManageDistributions && (
+            <TabsTrigger value="vouchers">住宿券進度</TabsTrigger>
+          )}
           <TabsTrigger value="settings">分潤設定</TabsTrigger>
         </TabsList>
         <TabsContent value="orders" className="mt-4">
@@ -301,9 +304,15 @@ export default function TeamFranchise() {
             <MemberDistributionTab currentUserId={userId} />
           </TabsContent>
         )}
+        {canManageDistributions && (
+          <TabsContent value="vouchers" className="mt-4">
+            <VoucherProgressTab />
+          </TabsContent>
+        )}
         <TabsContent value="settings" className="mt-4">
           <SettingsTab canManage={canManage} canManageProjects={canManageDistributions} />
         </TabsContent>
+
       </Tabs>
     </div>
   );
