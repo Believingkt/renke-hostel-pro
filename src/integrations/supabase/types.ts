@@ -2244,6 +2244,42 @@ export type Database = {
         }
         Relationships: []
       }
+      franchise_monthly_distributions: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          month: number
+          payment_date: string | null
+          project_name: string
+          unit_price: number
+          updated_at: string | null
+          year: number
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          month: number
+          payment_date?: string | null
+          project_name: string
+          unit_price: number
+          updated_at?: string | null
+          year: number
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          month?: number
+          payment_date?: string | null
+          project_name?: string
+          unit_price?: number
+          updated_at?: string | null
+          year?: number
+        }
+        Relationships: []
+      }
       franchise_orders: {
         Row: {
           accommodation_type: string | null
