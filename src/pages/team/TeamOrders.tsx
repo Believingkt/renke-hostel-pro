@@ -154,8 +154,9 @@ export default function TeamOrders() {
           .from("orders")
           .select(
             `id, order_number, guest_name, check_in_date, check_out_date,
-             final_price, discount_code, order_source, accommodation_id, created_at`
+             final_price, discount_code, order_source, ota_channel, accommodation_id, created_at`
           )
+
           .order("created_at", { ascending: false })
           .limit(2000),
         supabase.from("accommodation_info").select("id, name"),
