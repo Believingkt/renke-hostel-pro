@@ -2629,7 +2629,7 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
         .order("month", { ascending: false }),
       supabase
         .from("franchise_external_orders")
-        .select("id,project_name,customer_name,unit_count")
+        .select("id,project_name,member_number,customer_name,customer_phone,unit_count,signed_at,sales_name")
         .order("unit_count", { ascending: false, nullsFirst: false }),
     ]);
     if (distRes.error) {
