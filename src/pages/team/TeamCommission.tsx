@@ -963,61 +963,17 @@ function PayoutsBlock({ scoutManagerOnly = false }: { scoutManagerOnly?: boolean
     fetchRows();
   };
 
-  const save = async () => {
-    if (!draft.scout_id) return toast.error("請選擇星探");
-    setSaving(true);
-    const total =
-      Number(draft.base_salary) + Number(draft.team_bonus) + Number(draft.kol_commission);
-    const { error } = await supabase.from("scout_monthly_payouts").insert({
-      scout_id: draft.scout_id,
-      year: draft.year,
-      month: draft.month,
-      base_salary: Number(draft.base_salary),
-      team_bonus: Number(draft.team_bonus),
-      kol_commission: Number(draft.kol_commission),
-      total_payout: total,
-      individual_achieved: draft.individual_achieved,
-      team_achieved: draft.team_achieved,
-      import_note: draft.import_note || null,
-      data_source: "historical_import",
-      payout_status: "pending",
-    });
-    setSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success("已新增");
-    setOpen(false);
-    fetchRows();
-  };
-
   const yearOptions = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader>
         <CardTitle>發放管理</CardTitle>
-        <Button
-          size="sm"
-          onClick={() => {
-            setDraft({
-              scout_id: "",
-              year,
-              month,
-              base_salary: "0",
-              team_bonus: "0",
-              kol_commission: "0",
-              individual_achieved: false,
-              team_achieved: false,
-              import_note: "",
-            });
-            setOpen(true);
-          }}
-        >
-          <Plus className="h-4 w-4 mr-1" /> 新增記錄
-        </Button>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-2 items-end">
           <div>
+
             <Label className="text-xs">年份</Label>
             <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
               <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
