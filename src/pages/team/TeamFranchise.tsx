@@ -379,7 +379,7 @@ function OrdersTab({
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((o) => (
+                pageItems.map((o) => (
                   <TableRow key={o.id}>
                     <TableCell>{o.customer_name}</TableCell>
                     <TableCell>{o.plan_name ?? "—"}</TableCell>
