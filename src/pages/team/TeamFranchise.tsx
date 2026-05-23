@@ -3038,7 +3038,8 @@ function VoucherProgressTab() {
   const [filterProject, setFilterProject] = useState("ALL");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [filterCard, setFilterCard] = useState("ALL");
-  const [editing, setEditing] = useState<VoucherRow | null>(null);
+  const [detail, setDetail] = useState<VoucherRow | null>(null);
+  const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<Partial<VoucherRow>>({});
   const [saving, setSaving] = useState(false);
 
@@ -3076,23 +3077,29 @@ function VoucherProgressTab() {
     return max + 1;
   }, [rows]);
 
-  const openEdit = (row: VoucherRow) => {
-    setEditing(row);
-    const start = row.voucher_serial_start ?? nextSerialStart;
-    const count = row.voucher_count ?? null;
-    const end = count != null ? start + count - 1 : row.voucher_serial_end ?? null;
+  const openDetail = (row: VoucherRow) => {
+    setDetail(row);
+    setEditing(false);
+  };
+
+  const startEdit = () => {
+    if (!detail) return;
+    const start = detail.voucher_serial_start ?? nextSerialStart;
+    const count = detail.voucher_count ?? null;
+    const end = count != null ? start + count - 1 : detail.voucher_serial_end ?? null;
     setForm({
-      card_status: row.card_status ?? "未完成",
+      card_status: detail.card_status ?? "未完成",
       voucher_count: count,
-      voucher_batch: row.voucher_batch ?? "",
+      voucher_batch: detail.voucher_batch ?? "",
       voucher_serial_start: start,
       voucher_serial_end: end,
-      voucher_status: row.voucher_status ?? "未寄出",
-      voucher_handler: row.voucher_handler ?? "",
-      voucher_start_date: row.voucher_start_date ?? "",
-      voucher_note: row.voucher_note ?? "",
-      voucher_address: row.voucher_address ?? "",
+      voucher_status: detail.voucher_status ?? "未寄出",
+      voucher_handler: detail.voucher_handler ?? "",
+      voucher_start_date: detail.voucher_start_date ?? "",
+      voucher_note: detail.voucher_note ?? "",
+      voucher_address: detail.voucher_address ?? "",
     });
+    setEditing(true);
   };
 
   const recalcEnd = (start: number | null | undefined, count: number | null | undefined) => {
@@ -3111,7 +3118,7 @@ function VoucherProgressTab() {
   };
 
   const save = async () => {
-    if (!editing) return;
+    if (!detail) return;
     setSaving(true);
     const payload = {
       card_status: form.card_status || null,
@@ -3125,12 +3132,22 @@ function VoucherProgressTab() {
       voucher_note: form.voucher_note?.toString().trim() || null,
       voucher_address: form.voucher_address?.toString().trim() || null,
     };
-    const { error } = await supabase.from("franchise_external_orders").update(payload).eq("id", editing.id);
+    const { error } = await supabase.from("franchise_external_orders").update(payload).eq("id", detail.id);
     setSaving(false);
     if (error) { toast.error("儲存失敗"); return; }
     toast.success("已儲存");
-    setEditing(null);
+    setEditing(false);
+    setDetail(null);
     load();
+  };
+
+  const cardBadge = (s: string | null) => {
+    const v = s ?? "未完成";
+    return <Badge variant={v === "完成" ? "success" : "secondary"}>{v}</Badge>;
+  };
+  const statusBadge = (s: string | null) => {
+    const v = s ?? "未寄出";
+    return <Badge variant={v === "已寄出" ? "success" : "outline"}>{v}</Badge>;
   };
 
   return (
@@ -3169,37 +3186,23 @@ function VoucherProgressTab() {
                 <TableHead className="whitespace-nowrap">會員姓名</TableHead>
                 <TableHead className="whitespace-nowrap">名片製作</TableHead>
                 <TableHead className="whitespace-nowrap">發放張數</TableHead>
-                <TableHead className="whitespace-nowrap">編號(批號)</TableHead>
-                <TableHead className="whitespace-nowrap">序號範圍</TableHead>
                 <TableHead className="whitespace-nowrap">狀態</TableHead>
-                <TableHead className="whitespace-nowrap">負責人</TableHead>
-                <TableHead className="whitespace-nowrap">起始日</TableHead>
-                <TableHead className="whitespace-nowrap">備註</TableHead>
-                <TableHead className="whitespace-nowrap">更改寄件地址</TableHead>
                 <TableHead className="whitespace-nowrap">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? null : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={13} className="text-center text-muted-foreground">無資料</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">無資料</TableCell></TableRow>
               ) : filtered.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell className="whitespace-nowrap">{r.signed_at ?? "—"}</TableCell>
                   <TableCell className="whitespace-nowrap">{r.member_number ?? "—"}</TableCell>
                   <TableCell className="whitespace-nowrap">{r.customer_name}</TableCell>
-                  <TableCell className="whitespace-nowrap">{r.card_status ?? "未完成"}</TableCell>
+                  <TableCell className="whitespace-nowrap">{cardBadge(r.card_status)}</TableCell>
                   <TableCell className="whitespace-nowrap tabular-nums">{r.voucher_count ?? "—"}</TableCell>
-                  <TableCell className="whitespace-nowrap">{r.voucher_batch ?? "—"}</TableCell>
-                  <TableCell className="whitespace-nowrap tabular-nums">{formatSerialRange(r.voucher_serial_start, r.voucher_serial_end) || "—"}</TableCell>
-                  <TableCell className="whitespace-nowrap">{r.voucher_status ?? "未寄出"}</TableCell>
-                  <TableCell className="whitespace-nowrap">{r.voucher_handler ?? "—"}</TableCell>
-                  <TableCell className="whitespace-nowrap">{r.voucher_start_date ?? "—"}</TableCell>
-                  <TableCell className="whitespace-nowrap">{r.voucher_note ?? "—"}</TableCell>
-                  <TableCell className="whitespace-nowrap">{r.voucher_address ?? "—"}</TableCell>
+                  <TableCell className="whitespace-nowrap">{statusBadge(r.voucher_status)}</TableCell>
                   <TableCell>
-                    <Button size="sm" variant="outline" onClick={() => openEdit(r)}>
-                      <Pencil className="h-3.5 w-3.5 mr-1" />編輯
-                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => openDetail(r)}>明細</Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -3207,14 +3210,56 @@ function VoucherProgressTab() {
           </Table>
         </div>
 
-        <Sheet open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-          <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-            <SheetHeader><SheetTitle>編輯住宿券進度</SheetTitle></SheetHeader>
-            {editing && (
+        <Sheet open={!!detail} onOpenChange={(o) => { if (!o) { setDetail(null); setEditing(false); } }}>
+          <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+            <SheetHeader>
+              <div className="flex items-center justify-between pr-8">
+                <SheetTitle>{editing ? "編輯住宿券進度" : "住宿券進度明細"}</SheetTitle>
+                {detail && !editing && (
+                  <Button size="sm" variant="outline" onClick={startEdit}>
+                    <Pencil className="h-4 w-4 mr-1" /> 編輯
+                  </Button>
+                )}
+              </div>
+            </SheetHeader>
+            {detail && !editing && (
+              <div className="mt-4 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+                  <Field label="簽約日期" value={detail.signed_at} />
+                  <Field label="會員編號" value={detail.member_number} />
+                  <Field label="會員姓名" value={detail.customer_name} />
+                </div>
+
+                <div className="border-t pt-3 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-1">名片製作</div>
+                    <div>{cardBadge(detail.card_status)}</div>
+                  </div>
+                  <Field label="發放張數" value={detail.voucher_count == null ? null : String(detail.voucher_count)} />
+                  <Field label="編號（批號）" value={detail.voucher_batch} />
+                  <Field label="序號範圍" value={formatSerialRange(detail.voucher_serial_start, detail.voucher_serial_end) || null} />
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-1">狀態</div>
+                    <div>{statusBadge(detail.voucher_status)}</div>
+                  </div>
+                  <Field label="起始日" value={detail.voucher_start_date} />
+                </div>
+
+                <div className="border-t pt-3 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+                  <Field label="負責人" value={detail.voucher_handler} />
+                  <Field label="更改寄件地址" value={detail.voucher_address} breakAll />
+                  <div className="md:col-span-2">
+                    <div className="text-xs text-muted-foreground mb-1">備註</div>
+                    <div className="text-sm whitespace-pre-wrap break-all">{detail.voucher_note ?? "—"}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+            {detail && editing && (
               <div className="space-y-3 py-4">
-                <DetailRow label="簽約日期"><span>{editing.signed_at ?? "—"}</span></DetailRow>
-                <DetailRow label="會員編號"><span>{editing.member_number ?? "—"}</span></DetailRow>
-                <DetailRow label="會員姓名"><span>{editing.customer_name}</span></DetailRow>
+                <DetailRow label="簽約日期"><span>{detail.signed_at ?? "—"}</span></DetailRow>
+                <DetailRow label="會員編號"><span>{detail.member_number ?? "—"}</span></DetailRow>
+                <DetailRow label="會員姓名"><span>{detail.customer_name}</span></DetailRow>
                 <DetailRow label="名片製作">
                   <Select value={(form.card_status as string) ?? "未完成"} onValueChange={(v) => updateField({ card_status: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
@@ -3265,10 +3310,12 @@ function VoucherProgressTab() {
                 </DetailRow>
               </div>
             )}
-            <SheetFooter>
-              <Button variant="outline" onClick={() => setEditing(null)}>取消</Button>
-              <Button onClick={save} disabled={saving}>{saving ? "儲存中…" : "儲存"}</Button>
-            </SheetFooter>
+            {detail && editing && (
+              <SheetFooter>
+                <Button variant="outline" onClick={() => setEditing(false)}>取消</Button>
+                <Button onClick={save} disabled={saving}>{saving ? "儲存中…" : "儲存"}</Button>
+              </SheetFooter>
+            )}
           </SheetContent>
         </Sheet>
       </CardContent>
