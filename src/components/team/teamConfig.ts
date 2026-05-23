@@ -51,12 +51,6 @@ export const TEAM_MENU: TeamMenuItem[] = [
   { title: "KOL 星探", url: "/team/kol", icon: Star },
   { title: "訂單資訊", url: "/team/orders", icon: ClipboardList },
   {
-    title: "獎金管理",
-    url: "/team/commission",
-    icon: Coins,
-    allowedRoles: ["super_admin", "admin", "finance"],
-  },
-  {
     title: "廣告追蹤",
     url: "/team/ads",
     icon: BarChart2,
@@ -75,10 +69,16 @@ export const TEAM_MENU: TeamMenuItem[] = [
     allowedRoles: ["starlink"],
   },
   {
-    title: "業績通報",
+    title: "民宿業績通報",
     url: "/team/notification",
     icon: Bell,
     allowedRoles: ["super_admin", "admin"],
+  },
+  {
+    title: "獎金管理",
+    url: "/team/commission",
+    icon: Coins,
+    allowedRoles: ["super_admin", "admin", "finance"],
   },
   {
     title: "成員管理",
