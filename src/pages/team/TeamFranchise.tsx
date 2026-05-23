@@ -285,6 +285,9 @@ export default function TeamFranchise() {
           {canManageDistributions && (
             <TabsTrigger value="distributions">會員分潤</TabsTrigger>
           )}
+          {canManageDistributions && (
+            <TabsTrigger value="vouchers">住宿券進度</TabsTrigger>
+          )}
           <TabsTrigger value="settings">分潤設定</TabsTrigger>
         </TabsList>
         <TabsContent value="orders" className="mt-4">
@@ -301,9 +304,15 @@ export default function TeamFranchise() {
             <MemberDistributionTab currentUserId={userId} />
           </TabsContent>
         )}
+        {canManageDistributions && (
+          <TabsContent value="vouchers" className="mt-4">
+            <VoucherProgressTab />
+          </TabsContent>
+        )}
         <TabsContent value="settings" className="mt-4">
           <SettingsTab canManage={canManage} canManageProjects={canManageDistributions} />
         </TabsContent>
+
       </Tabs>
     </div>
   );
@@ -2936,6 +2945,275 @@ function ProjectsManagementCard() {
             </TableBody>
           </Table>
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+interface VoucherRow {
+  id: string;
+  signed_at: string | null;
+  member_number: string | null;
+  customer_name: string;
+  project_name: string | null;
+  sales_name: string | null;
+  card_status: string | null;
+  voucher_count: number | null;
+  voucher_batch: string | null;
+  voucher_serial_start: number | null;
+  voucher_serial_end: number | null;
+  voucher_status: string | null;
+  voucher_handler: string | null;
+  voucher_start_date: string | null;
+  voucher_note: string | null;
+  voucher_address: string | null;
+}
+
+function formatSerialRange(start: number | null, end: number | null): string {
+  if (start == null || end == null) return "";
+  const pad = (n: number) => String(n).padStart(4, "0");
+  return `${pad(start)}-${pad(end)}`;
+}
+
+function VoucherProgressTab() {
+  const [rows, setRows] = useState<VoucherRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filterProject, setFilterProject] = useState("ALL");
+  const [filterStatus, setFilterStatus] = useState("ALL");
+  const [filterCard, setFilterCard] = useState("ALL");
+  const [editing, setEditing] = useState<VoucherRow | null>(null);
+  const [form, setForm] = useState<Partial<VoucherRow>>({});
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("franchise_external_orders")
+      .select("id,signed_at,member_number,customer_name,project_name,sales_name,card_status,voucher_count,voucher_batch,voucher_serial_start,voucher_serial_end,voucher_status,voucher_handler,voucher_start_date,voucher_note,voucher_address")
+      .order("signed_at", { ascending: true, nullsFirst: false });
+    if (error) {
+      toast.error("讀取失敗");
+    } else {
+      setRows((data ?? []) as VoucherRow[]);
+    }
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
+
+  const filtered = useMemo(() => rows.filter((r) => {
+    if (filterProject !== "ALL" && r.project_name !== filterProject) return false;
+    if (filterStatus !== "ALL" && (r.voucher_status ?? "未寄出") !== filterStatus) return false;
+    if (filterCard !== "ALL" && (r.card_status ?? "未完成") !== filterCard) return false;
+    return true;
+  }), [rows, filterProject, filterStatus, filterCard]);
+
+  const handlerOptions = useMemo(() => {
+    const set = new Set<string>();
+    rows.forEach((r) => { const n = r.sales_name?.trim(); if (n) set.add(n); });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [rows]);
+
+  const nextSerialStart = useMemo(() => {
+    let max = 0;
+    rows.forEach((r) => { if (r.voucher_serial_end != null && r.voucher_serial_end > max) max = r.voucher_serial_end; });
+    return max + 1;
+  }, [rows]);
+
+  const openEdit = (row: VoucherRow) => {
+    setEditing(row);
+    const start = row.voucher_serial_start ?? nextSerialStart;
+    const count = row.voucher_count ?? null;
+    const end = count != null ? start + count - 1 : row.voucher_serial_end ?? null;
+    setForm({
+      card_status: row.card_status ?? "未完成",
+      voucher_count: count,
+      voucher_batch: row.voucher_batch ?? "",
+      voucher_serial_start: start,
+      voucher_serial_end: end,
+      voucher_status: row.voucher_status ?? "未寄出",
+      voucher_handler: row.voucher_handler ?? "",
+      voucher_start_date: row.voucher_start_date ?? "",
+      voucher_note: row.voucher_note ?? "",
+      voucher_address: row.voucher_address ?? "",
+    });
+  };
+
+  const recalcEnd = (start: number | null | undefined, count: number | null | undefined) => {
+    if (start == null || count == null) return null;
+    return start + count - 1;
+  };
+
+  const updateField = (patch: Partial<VoucherRow>) => {
+    setForm((prev) => {
+      const next = { ...prev, ...patch };
+      if ("voucher_count" in patch || "voucher_serial_start" in patch) {
+        next.voucher_serial_end = recalcEnd(next.voucher_serial_start ?? null, next.voucher_count ?? null);
+      }
+      return next;
+    });
+  };
+
+  const save = async () => {
+    if (!editing) return;
+    setSaving(true);
+    const payload = {
+      card_status: form.card_status || null,
+      voucher_count: form.voucher_count ?? null,
+      voucher_batch: form.voucher_batch?.toString().trim() || null,
+      voucher_serial_start: form.voucher_serial_start ?? null,
+      voucher_serial_end: form.voucher_serial_end ?? null,
+      voucher_status: form.voucher_status || null,
+      voucher_handler: form.voucher_handler?.toString().trim() || null,
+      voucher_start_date: form.voucher_start_date || null,
+      voucher_note: form.voucher_note?.toString().trim() || null,
+      voucher_address: form.voucher_address?.toString().trim() || null,
+    };
+    const { error } = await supabase.from("franchise_external_orders").update(payload).eq("id", editing.id);
+    setSaving(false);
+    if (error) { toast.error("儲存失敗"); return; }
+    toast.success("已儲存");
+    setEditing(null);
+    load();
+  };
+
+  return (
+    <Card>
+      <CardHeader><CardTitle>住宿券進度</CardTitle></CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Label className="text-muted-foreground">專案</Label>
+          <FilterProjectSelect value={filterProject} onChange={setFilterProject} />
+          <Label className="text-muted-foreground ml-2">狀態</Label>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">全部</SelectItem>
+              <SelectItem value="未寄出">未寄出</SelectItem>
+              <SelectItem value="已寄出">已寄出</SelectItem>
+            </SelectContent>
+          </Select>
+          <Label className="text-muted-foreground ml-2">名片製作</Label>
+          <Select value={filterCard} onValueChange={setFilterCard}>
+            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">全部</SelectItem>
+              <SelectItem value="完成">完成</SelectItem>
+              <SelectItem value="未完成">未完成</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="overflow-x-auto">
+          <Table className="fixed-table">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="whitespace-nowrap">簽約日期</TableHead>
+                <TableHead className="whitespace-nowrap">會員編號</TableHead>
+                <TableHead className="whitespace-nowrap">會員姓名</TableHead>
+                <TableHead className="whitespace-nowrap">名片製作</TableHead>
+                <TableHead className="whitespace-nowrap">發放張數</TableHead>
+                <TableHead className="whitespace-nowrap">編號(批號)</TableHead>
+                <TableHead className="whitespace-nowrap">序號範圍</TableHead>
+                <TableHead className="whitespace-nowrap">狀態</TableHead>
+                <TableHead className="whitespace-nowrap">負責人</TableHead>
+                <TableHead className="whitespace-nowrap">起始日</TableHead>
+                <TableHead className="whitespace-nowrap">備註</TableHead>
+                <TableHead className="whitespace-nowrap">更改寄件地址</TableHead>
+                <TableHead className="whitespace-nowrap">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? null : filtered.length === 0 ? (
+                <TableRow><TableCell colSpan={13} className="text-center text-muted-foreground">無資料</TableCell></TableRow>
+              ) : filtered.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell className="whitespace-nowrap">{r.signed_at ?? "—"}</TableCell>
+                  <TableCell className="whitespace-nowrap">{r.member_number ?? "—"}</TableCell>
+                  <TableCell className="whitespace-nowrap">{r.customer_name}</TableCell>
+                  <TableCell className="whitespace-nowrap">{r.card_status ?? "未完成"}</TableCell>
+                  <TableCell className="whitespace-nowrap tabular-nums">{r.voucher_count ?? "—"}</TableCell>
+                  <TableCell className="whitespace-nowrap">{r.voucher_batch ?? "—"}</TableCell>
+                  <TableCell className="whitespace-nowrap tabular-nums">{formatSerialRange(r.voucher_serial_start, r.voucher_serial_end) || "—"}</TableCell>
+                  <TableCell className="whitespace-nowrap">{r.voucher_status ?? "未寄出"}</TableCell>
+                  <TableCell className="whitespace-nowrap">{r.voucher_handler ?? "—"}</TableCell>
+                  <TableCell className="whitespace-nowrap">{r.voucher_start_date ?? "—"}</TableCell>
+                  <TableCell className="whitespace-nowrap">{r.voucher_note ?? "—"}</TableCell>
+                  <TableCell className="whitespace-nowrap">{r.voucher_address ?? "—"}</TableCell>
+                  <TableCell>
+                    <Button size="sm" variant="outline" onClick={() => openEdit(r)}>
+                      <Pencil className="h-3.5 w-3.5 mr-1" />編輯
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        <Sheet open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+          <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+            <SheetHeader><SheetTitle>編輯住宿券進度</SheetTitle></SheetHeader>
+            {editing && (
+              <div className="space-y-3 py-4">
+                <DetailRow label="簽約日期"><span>{editing.signed_at ?? "—"}</span></DetailRow>
+                <DetailRow label="會員編號"><span>{editing.member_number ?? "—"}</span></DetailRow>
+                <DetailRow label="會員姓名"><span>{editing.customer_name}</span></DetailRow>
+                <DetailRow label="名片製作">
+                  <Select value={(form.card_status as string) ?? "未完成"} onValueChange={(v) => updateField({ card_status: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="完成">完成</SelectItem>
+                      <SelectItem value="未完成">未完成</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </DetailRow>
+                <DetailRow label="發放張數">
+                  <Input type="number" min={0} value={form.voucher_count ?? ""} onChange={(e) => updateField({ voucher_count: e.target.value === "" ? null : Number(e.target.value) })} />
+                </DetailRow>
+                <DetailRow label="編號(批號)">
+                  <Input value={(form.voucher_batch as string) ?? ""} onChange={(e) => setForm((p) => ({ ...p, voucher_batch: e.target.value }))} />
+                </DetailRow>
+                <DetailRow label="序號起始">
+                  <Input type="number" min={1} value={form.voucher_serial_start ?? ""} onChange={(e) => updateField({ voucher_serial_start: e.target.value === "" ? null : Number(e.target.value) })} />
+                </DetailRow>
+                <DetailRow label="序號範圍">
+                  <span className="tabular-nums">{formatSerialRange(form.voucher_serial_start ?? null, form.voucher_serial_end ?? null) || "—"}</span>
+                </DetailRow>
+                <DetailRow label="狀態">
+                  <Select value={(form.voucher_status as string) ?? "未寄出"} onValueChange={(v) => setForm((p) => ({ ...p, voucher_status: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="未寄出">未寄出</SelectItem>
+                      <SelectItem value="已寄出">已寄出</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </DetailRow>
+                <DetailRow label="負責人">
+                  <Select value={(form.voucher_handler as string) || "none"} onValueChange={(v) => setForm((p) => ({ ...p, voucher_handler: v === "none" ? "" : v }))}>
+                    <SelectTrigger><SelectValue placeholder="選擇負責人" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">未指定</SelectItem>
+                      {handlerOptions.map((n) => (<SelectItem key={n} value={n}>{n}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                </DetailRow>
+                <DetailRow label="起始日">
+                  <Input type="date" value={(form.voucher_start_date as string) ?? ""} onChange={(e) => setForm((p) => ({ ...p, voucher_start_date: e.target.value }))} />
+                </DetailRow>
+                <DetailRow label="備註">
+                  <Input value={(form.voucher_note as string) ?? ""} onChange={(e) => setForm((p) => ({ ...p, voucher_note: e.target.value }))} />
+                </DetailRow>
+                <DetailRow label="更改寄件地址">
+                  <Input value={(form.voucher_address as string) ?? ""} onChange={(e) => setForm((p) => ({ ...p, voucher_address: e.target.value }))} />
+                </DetailRow>
+              </div>
+            )}
+            <SheetFooter>
+              <Button variant="outline" onClick={() => setEditing(null)}>取消</Button>
+              <Button onClick={save} disabled={saving}>{saving ? "儲存中…" : "儲存"}</Button>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
       </CardContent>
     </Card>
   );
