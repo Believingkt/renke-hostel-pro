@@ -2025,6 +2025,50 @@ function StatsTab() {
       .sort((a, b) => b.total - a.total);
   }, [filteredInt, filteredExt]);
 
+  const salesCommission = useMemo(() => {
+    const map = new Map<string, { name: string; intCommission: number; extCommission: number }>();
+    const ensure = (name: string) => {
+      if (!map.has(name)) map.set(name, { name, intCommission: 0, extCommission: 0 });
+      return map.get(name)!;
+    };
+    filteredInt.forEach((r) => {
+      const name = (r.sold_by_name?.trim()) || (r.sold_by ? memberMap[r.sold_by] : null) || "未指定";
+      ensure(name).intCommission += Number(r.commission_amount ?? 0);
+    });
+    filteredExt.forEach((r) => {
+      const main = r.sales_name?.trim() || "未指定";
+      ensure(main).extCommission += Number(r.sales_bonus ?? 0);
+      const co1 = r.co_sales_name?.trim();
+      if (co1) ensure(co1).extCommission += Number(r.co_sales_bonus ?? 0);
+      const co2 = r.co_sales_name2?.trim();
+      if (co2) ensure(co2).extCommission += Number(r.co_sales_bonus2 ?? 0);
+    });
+    return Array.from(map.values())
+      .map((r) => ({ ...r, total: r.intCommission + r.extCommission }))
+      .filter((r) => r.total > 0)
+      .sort((a, b) => b.total - a.total);
+  }, [filteredInt, filteredExt, memberMap]);
+
+  const projectCommission = useMemo(() => {
+    const map = new Map<string, { name: string; intCommission: number; extCommission: number }>();
+    const ensure = (name: string) => {
+      if (!map.has(name)) map.set(name, { name, intCommission: 0, extCommission: 0 });
+      return map.get(name)!;
+    };
+    filteredInt.forEach((r) => {
+      const row = ensure(r.plan_name?.trim() || "未指定");
+      row.intCommission += Number(r.commission_amount ?? 0) + Number(r.leader_amount ?? 0) + Number(r.company_amount ?? 0);
+    });
+    filteredExt.forEach((r) => {
+      const row = ensure(r.project_name?.trim() || "未指定");
+      row.extCommission += Number(r.sales_bonus ?? 0) + Number(r.co_sales_bonus ?? 0) + Number(r.co_sales_bonus2 ?? 0);
+    });
+    return Array.from(map.values())
+      .map((r) => ({ ...r, total: r.intCommission + r.extCommission }))
+      .filter((r) => r.total > 0)
+      .sort((a, b) => b.total - a.total);
+  }, [filteredInt, filteredExt]);
+
   if (!loaded && loading) return null;
 
   return (
