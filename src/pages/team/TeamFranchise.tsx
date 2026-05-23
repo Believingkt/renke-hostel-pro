@@ -117,11 +117,7 @@ export default function TeamFranchise() {
           <OrdersTab canManage={canManage} currentUserId={userId} />
         </TabsContent>
         <TabsContent value="external" className="mt-4">
-          <Card>
-            <CardContent className="py-16 text-center text-muted-foreground">
-              外部銷售功能開發中
-            </CardContent>
-          </Card>
+          <ExternalSalesTab canManage={canManage} />
         </TabsContent>
         <TabsContent value="stats" className="mt-4">
           <Card>
