@@ -28,23 +28,21 @@ import {
 import { toast } from "sonner";
 import { Plus, Pencil, StopCircle } from "lucide-react";
 
-const COMMISSION_TYPE_LABEL: Record<string, string> = {
+// 統一獎金類型清單（結算規則 + 加倍活動共用）
+const BONUS_TYPE_LABEL: Record<string, string> = {
+  all: "全部獎金",
   closer: "成交組訂房佣金",
   video: "影音組分潤",
   scout_kol: "星探KOL分潤",
+  scout_base: "星探底薪+團隊獎金",
   franchise: "特許加盟獎金",
   starlink: "星鏈方案獎金",
 };
 
-const BONUS_TYPE_LABEL: Record<string, string> = {
-  all: "全部獎金",
-  closer: "成交組",
-  video: "影音組",
-  scout_kol: "星探KOL分潤",
-  scout_base: "星探底薪+團隊獎金",
-  franchise: "特許加盟",
-  starlink: "星鏈",
-};
+// 結算規則用（不含「全部」）
+const COMMISSION_TYPE_LABEL: Record<string, string> = Object.fromEntries(
+  Object.entries(BONUS_TYPE_LABEL).filter(([k]) => k !== "all"),
+);
 
 const CYCLE_LABEL: Record<string, string> = {
   bimonthly: "每月兩次",
