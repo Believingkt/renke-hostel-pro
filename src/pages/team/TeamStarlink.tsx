@@ -115,17 +115,17 @@ export default function TeamStarlink() {
       <Tabs defaultValue="orders">
         <TabsList>
           <TabsTrigger value="orders">訂單列表</TabsTrigger>
-          <TabsTrigger value="tiers">等級設定</TabsTrigger>
           <TabsTrigger value="plans">方案設定</TabsTrigger>
+          <TabsTrigger value="tiers">等級設定</TabsTrigger>
         </TabsList>
         <TabsContent value="orders" className="mt-4">
           <OrdersTab canManage={canManage} currentUserId={userId} />
         </TabsContent>
-        <TabsContent value="tiers" className="mt-4">
-          <TiersTab canManage={canManage} />
-        </TabsContent>
         <TabsContent value="plans" className="mt-4">
           <PlansTab canManage={canManage} />
+        </TabsContent>
+        <TabsContent value="tiers" className="mt-4">
+          <TiersTab canManage={canManage} />
         </TabsContent>
       </Tabs>
     </div>
@@ -477,7 +477,14 @@ function OrdersTab({
             </Select>
           )}
         </div>
-        <Button onClick={() => setSheetOpen(true)}>
+        <Button
+          onClick={() => {
+            if (!canManage && currentUserId) {
+              void selectSoldBy(currentUserId);
+            }
+            setSheetOpen(true);
+          }}
+        >
           <Plus className="h-4 w-4 mr-1" /> 新增訂單
         </Button>
       </CardHeader>
@@ -526,16 +533,18 @@ function OrdersTab({
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openEdit(o);
-                        }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
+                      {(canManage || o.sold_by === currentUserId) && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEdit(o);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))
