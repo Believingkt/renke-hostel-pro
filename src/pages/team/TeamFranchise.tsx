@@ -1378,7 +1378,7 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
         .or("is_active.is.null,is_active.eq.true")
         .order("display_name"),
       supabase.from("franchise_team_settings").select("*"),
-      (supabase as any).from("user_roles").select("user_id").eq("role", "franchise"),
+      (supabase as any).from("user_roles").select("user_id").in("role", ["franchise", "franchise_manager"]),
     ]);
     const franchiseUserIds = new Set(
       ((roleRes?.data ?? []) as { user_id: string }[]).map((r) => r.user_id)
