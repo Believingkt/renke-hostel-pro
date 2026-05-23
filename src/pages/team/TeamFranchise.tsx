@@ -115,6 +115,82 @@ const fmtMoney = (n: number | null | undefined) =>
 const fmtRate = (n: number | null | undefined) =>
   n == null ? "—" : `${(Number(n) * 100).toFixed(1)}%`;
 
+interface FranchiseProject {
+  id: string;
+  name: string;
+  is_active: boolean;
+}
+
+// 全域刷新計數器 — 任何元件呼叫 bumpFranchiseProjects() 都會觸發所有 hook 重新載入
+let franchiseProjectsVersion = 0;
+const franchiseProjectsListeners = new Set<() => void>();
+function bumpFranchiseProjects() {
+  franchiseProjectsVersion += 1;
+  franchiseProjectsListeners.forEach((fn) => fn());
+}
+
+function useFranchiseProjects(includeInactive = false) {
+  const [projects, setProjects] = useState<FranchiseProject[]>([]);
+  const [version, setVersion] = useState(franchiseProjectsVersion);
+
+  useEffect(() => {
+    const listener = () => setVersion(franchiseProjectsVersion);
+    franchiseProjectsListeners.add(listener);
+    return () => {
+      franchiseProjectsListeners.delete(listener);
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const q = (supabase as any).from("franchise_projects").select("id,name,is_active").order("name");
+      const { data } = await q;
+      if (!active) return;
+      setProjects((data ?? []) as FranchiseProject[]);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [version]);
+
+  return includeInactive ? projects : projects.filter((p) => p.is_active);
+}
+
+function ProjectSelect({
+  value,
+  onChange,
+  placeholder = "選擇專案",
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
+  const projects = useFranchiseProjects();
+  // 若目前值不在啟用清單中（例如歷史專案或已停用），仍保留顯示
+  const valueExists = !value || projects.some((p) => p.name === value);
+  return (
+    <Select value={value || undefined} onValueChange={onChange}>
+      <SelectTrigger>
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent>
+        {!valueExists && value && (
+          <SelectItem value={value}>{value}（已停用）</SelectItem>
+        )}
+        {projects.map((p) => (
+          <SelectItem key={p.id} value={p.name}>
+            {p.name}
+          </SelectItem>
+        ))}
+        {projects.length === 0 && valueExists && (
+          <div className="px-3 py-2 text-xs text-muted-foreground">尚無啟用中的專案</div>
+        )}
+      </SelectContent>
+    </Select>
+  );
+}
+
 function DetailRow({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="grid grid-cols-[110px_1fr] items-center gap-3">
