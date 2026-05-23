@@ -1439,7 +1439,6 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
       display_name: name,
       user_id: null,
       commission_rate: newMember.commission_rate === "" ? null : Number(newMember.commission_rate),
-      scout_tier: newMember.scout_tier.trim() || null,
       is_active: true,
     };
     const { error } = await (supabase as any).from("team_member_profiles").insert(payload);
@@ -1447,7 +1446,8 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
     if (error) return toast.error("新增失敗：" + error.message);
     toast.success("已新增成員");
     setAddOpen(false);
-    setNewMember({ display_name: "", commission_rate: "", scout_tier: "" });
+    setNewMember({ display_name: "", commission_rate: "" });
+
     void load();
   };
 
