@@ -620,15 +620,28 @@ export default function TeamMembers() {
               <div className="space-y-2">
                 <Label>角色</Label>
                 <div className="grid grid-cols-2 gap-2">
-                  {ALL_INVITABLE_ROLES.map((role) => (
-                    <label
-                      key={role}
-                      className="flex items-center gap-2 border rounded-md px-2 py-1.5 cursor-pointer hover:bg-muted/50"
-                    >
-                      <Checkbox checked={editRoles.includes(role)} onCheckedChange={() => toggleEditRole(role)} />
-                      <span className="text-sm">{ROLE_LABEL[role]}</span>
-                    </label>
-                  ))}
+                  {ALL_INVITABLE_ROLES.map((role) => {
+                    const parent = CHILD_OF[role];
+                    const lockedByManager = !!(parent && editRoles.includes(parent));
+                    return (
+                      <label
+                        key={role}
+                        title={lockedByManager ? "已由主管角色包含" : undefined}
+                        className={`flex items-center gap-2 border rounded-md px-2 py-1.5 ${
+                          lockedByManager ? "opacity-50 cursor-not-allowed bg-muted/30" : "cursor-pointer hover:bg-muted/50"
+                        }`}
+                      >
+                        <Checkbox
+                          checked={editRoles.includes(role)}
+                          disabled={lockedByManager}
+                          onCheckedChange={() => !lockedByManager && toggleEditRole(role)}
+                        />
+                        <span className="text-sm">{ROLE_LABEL[role]}</span>
+                        {lockedByManager && <span className="text-[10px] text-muted-foreground">已含於主管</span>}
+                      </label>
+                    );
+                  })}
+
                   {editTarget?.roles.includes("super_admin") && !isNorris && (
                     <label className="flex items-center gap-2 border rounded-md px-2 py-1.5 opacity-50 cursor-not-allowed">
                       <Checkbox checked disabled />
