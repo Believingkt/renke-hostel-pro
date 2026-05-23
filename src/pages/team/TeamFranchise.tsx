@@ -666,11 +666,10 @@ function OrdersTab({
               />
             </div>
             <div className="space-y-1">
-              <Label>方案名稱 *</Label>
-              <Input
-                placeholder="例如：森山第一期"
+              <Label>專案名稱 *</Label>
+              <ProjectSelect
                 value={form.plan_name}
-                onChange={(e) => setForm({ ...form, plan_name: e.target.value })}
+                onChange={(v) => setForm({ ...form, plan_name: v })}
               />
             </div>
             <div className="grid grid-cols-3 gap-2">
