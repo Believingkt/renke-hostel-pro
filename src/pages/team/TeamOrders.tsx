@@ -191,7 +191,9 @@ export default function TeamOrders() {
         final_price: o.final_price,
         discount_code: o.discount_code,
         order_source: o.order_source,
+        ota_channel: o.ota_channel,
         accommodation_id: o.accommodation_id,
+
         created_at: o.created_at,
         accommodation_name: accMap.get(o.accommodation_id) || "-",
         meta: metaMap.get(o.id) || null,
