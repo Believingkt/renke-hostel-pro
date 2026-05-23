@@ -939,9 +939,9 @@ function SettingsTab({ canManage }: { canManage: boolean }) {
     if (latest) {
       setExternalForm({
         project_name: latest.project_name,
-        sales_rate: Number(latest.sales_rate ?? 0.2) * 100,
-        co_sales1_rate: Number(latest.co_sales1_rate ?? 0.1) * 100,
-        co_sales2_rate: Number(latest.co_sales2_rate ?? 0.15) * 100,
+        sales_rate: parseFloat((Number(latest.sales_rate ?? 0.2) * 100).toFixed(4)),
+        co_sales1_rate: parseFloat((Number(latest.co_sales1_rate ?? 0.1) * 100).toFixed(4)),
+        co_sales2_rate: parseFloat((Number(latest.co_sales2_rate ?? 0.15) * 100).toFixed(4)),
         payout_day: latest.payout_day ?? "10",
         effective_from: new Date().toISOString().slice(0, 10),
       });
