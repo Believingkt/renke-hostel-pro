@@ -2012,13 +2012,12 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
                 <TableHead className="text-right">金額</TableHead>
                 <TableHead>簽約日期</TableHead>
                 <TableHead>合約進度</TableHead>
-                <TableHead className="w-16"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-12">
                     尚無資料
                   </TableCell>
                 </TableRow>
