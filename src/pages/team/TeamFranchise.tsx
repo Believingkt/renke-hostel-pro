@@ -123,6 +123,15 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
   );
 }
 
+function Field({ label, value, breakAll }: { label: string; value: ReactNode; breakAll?: boolean }) {
+  return (
+    <div className="space-y-0.5">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className={`text-sm ${breakAll ? "break-all" : ""}`}>{value == null || value === "" ? "—" : value}</div>
+    </div>
+  );
+}
+
 export default function TeamFranchise() {
   const { roles, userId } = useTeam();
   const canManage = roles.includes("super_admin") || roles.includes("admin");
