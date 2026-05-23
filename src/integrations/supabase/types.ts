@@ -2436,6 +2436,7 @@ export type Database = {
           kpi_month: string | null
           lihi_url: string | null
           name: string | null
+          notes: string | null
           order_id: string | null
           order_number: string | null
           publish_date: string | null
@@ -2475,6 +2476,7 @@ export type Database = {
           kpi_month?: string | null
           lihi_url?: string | null
           name?: string | null
+          notes?: string | null
           order_id?: string | null
           order_number?: string | null
           publish_date?: string | null
@@ -2514,6 +2516,7 @@ export type Database = {
           kpi_month?: string | null
           lihi_url?: string | null
           name?: string | null
+          notes?: string | null
           order_id?: string | null
           order_number?: string | null
           publish_date?: string | null
