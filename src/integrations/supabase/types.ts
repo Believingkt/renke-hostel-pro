@@ -2097,6 +2097,60 @@ export type Database = {
           },
         ]
       }
+      franchise_commission_settings: {
+        Row: {
+          base_rate: number | null
+          co_sales1_rate: number | null
+          co_sales2_rate: number | null
+          company_rate: number | null
+          created_at: string | null
+          created_by: string | null
+          effective_from: string
+          id: string
+          leader_supplement_rate: number | null
+          payout_day: string | null
+          project_name: string
+          sales_rate: number | null
+          tier1_rate: number | null
+          tier2_rate: number | null
+          type: string
+        }
+        Insert: {
+          base_rate?: number | null
+          co_sales1_rate?: number | null
+          co_sales2_rate?: number | null
+          company_rate?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          effective_from?: string
+          id?: string
+          leader_supplement_rate?: number | null
+          payout_day?: string | null
+          project_name?: string
+          sales_rate?: number | null
+          tier1_rate?: number | null
+          tier2_rate?: number | null
+          type: string
+        }
+        Update: {
+          base_rate?: number | null
+          co_sales1_rate?: number | null
+          co_sales2_rate?: number | null
+          company_rate?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          effective_from?: string
+          id?: string
+          leader_supplement_rate?: number | null
+          payout_day?: string | null
+          project_name?: string
+          sales_rate?: number | null
+          tier1_rate?: number | null
+          tier2_rate?: number | null
+          type?: string
+        }
+        Relationships: []
+      }
       franchise_external_orders: {
         Row: {
           co_sales_bonus: number | null
