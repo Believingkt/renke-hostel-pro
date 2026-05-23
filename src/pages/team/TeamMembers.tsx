@@ -17,6 +17,14 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 import { toast } from "sonner";
 
 const NORRIS_USER_ID = "1bc5761a-49a3-40ee-aa45-96ab87070c2e";
