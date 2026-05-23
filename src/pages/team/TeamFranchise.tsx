@@ -191,6 +191,33 @@ function ProjectSelect({
   );
 }
 
+function FilterProjectSelect({
+  value,
+  onChange,
+  className = "w-48",
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  className?: string;
+}) {
+  const projects = useFranchiseProjects();
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className={className}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="ALL">全部</SelectItem>
+        {projects.map((p) => (
+          <SelectItem key={p.id} value={p.name}>
+            {p.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
 function DetailRow({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="grid grid-cols-[110px_1fr] items-center gap-3">
