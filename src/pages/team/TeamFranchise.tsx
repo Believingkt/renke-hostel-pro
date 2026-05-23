@@ -2518,10 +2518,9 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
             </div>
             <div className="space-y-1">
               <Label>專案名稱</Label>
-              <Input
+              <ProjectSelect
                 value={form.project_name}
-                onChange={(e) => setForm({ ...form, project_name: e.target.value })}
-                placeholder="例：森山第一期"
+                onChange={(v) => setForm({ ...form, project_name: v })}
               />
             </div>
             <div className="space-y-1">
