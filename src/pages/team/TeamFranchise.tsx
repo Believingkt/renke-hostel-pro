@@ -1494,6 +1494,55 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
     return map;
   }, [settings]);
 
+  // user_id -> profile (for traversing leader chains; direct_leader_id 仍以 user_id 儲存)
+  const profileByUserId = useMemo(() => {
+    const map: Record<string, TeamMemberProfile> = {};
+    profiles.forEach((p) => {
+      if (p.user_id) map[p.user_id] = p;
+    });
+    return map;
+  }, [profiles]);
+
+  // 此人 user_id 被多少筆設定當作 direct_leader_id
+  const directReportCount = useMemo(() => {
+    const counts: Record<string, number> = {};
+    settings.forEach((s) => {
+      if (s.direct_leader_id) counts[s.direct_leader_id] = (counts[s.direct_leader_id] ?? 0) + 1;
+    });
+    return counts;
+  }, [settings]);
+
+  const computeTitle = (p: TeamMemberProfile) => {
+    if (!p.user_id) return "";
+    const c = directReportCount[p.user_id] ?? 0;
+    if (c >= 2) return "總監";
+    if (c === 1) return "隊長";
+    return "";
+  };
+
+  // 沿著 direct_leader_id 向上追溯，找最上層
+  const computeTopLeaderName = (p: TeamMemberProfile): string => {
+    const visited = new Set<string>();
+    let currentProfileId = p.id;
+    let lastLeaderUserId: string | null = null;
+    while (currentProfileId && !visited.has(currentProfileId)) {
+      visited.add(currentProfileId);
+      const s = settingsByMember[currentProfileId];
+      const leaderUserId = s?.direct_leader_id ?? null;
+      if (!leaderUserId) break;
+      // 自己指向自己 → 停止
+      const leaderProfile = profileByUserId[leaderUserId];
+      if (!leaderProfile || leaderProfile.id === currentProfileId) {
+        lastLeaderUserId = leaderUserId;
+        break;
+      }
+      lastLeaderUserId = leaderUserId;
+      currentProfileId = leaderProfile.id;
+    }
+    return lastLeaderUserId ? memberName(lastLeaderUserId) : "—";
+  };
+
+
 
   return (
     <Card>
