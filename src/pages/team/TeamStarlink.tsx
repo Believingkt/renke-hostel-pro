@@ -218,7 +218,7 @@ function OrdersTab({
       payout_status: o.payout_status ?? "pending",
       notes: o.notes ?? "",
       level_at_sale: o.level_at_sale ?? "",
-      commission_rate: Number(o.commission_rate ?? 0),
+      commission_rate: Number(o.commission_rate ?? 0) * 100,
       plan_price: Number(o.plan_price ?? 0),
     });
     setEditOpen(true);
