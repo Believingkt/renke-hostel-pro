@@ -829,232 +829,358 @@ function OrdersTab({
 }
 
 function SettingsTab({ canManage }: { canManage: boolean }) {
-  const [members, setMembers] = useState<Member[]>([]);
-  const [settings, setSettings] = useState<TeamSetting[]>([]);
-  const [editing, setEditing] = useState<TeamSetting | null>(null);
-  const [form, setForm] = useState<TeamSetting>({
-    member_id: "",
-    direct_leader_id: null,
-    title: "",
-    sub_leader_id: null,
-    top_leader_id: null,
+  const [rows, setRows] = useState<CommissionSettingRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [internalDialogOpen, setInternalDialogOpen] = useState(false);
+  const [internalForm, setInternalForm] = useState({
+    base_rate: 10,
+    tier1_rate: 11,
+    tier2_rate: 13,
+    company_rate: 3.5,
+    payout_day: "10",
+    effective_from: new Date().toISOString().slice(0, 10),
   });
+
+  const [externalDialogOpen, setExternalDialogOpen] = useState(false);
+  const [externalForm, setExternalForm] = useState({
+    project_name: "",
+    sales_rate: 20,
+    co_sales1_rate: 10,
+    co_sales2_rate: 15,
+    payout_day: "10",
+    effective_from: new Date().toISOString().slice(0, 10),
+  });
+
+  const load = async () => {
+    setLoading(true);
+    const { data, error } = await (supabase as any)
+      .from("franchise_commission_settings")
+      .select("*")
+      .order("effective_from", { ascending: false });
+    setLoading(false);
+    if (error) {
+      toast.error("讀取失敗：" + error.message);
+      return;
+    }
+    setRows((data ?? []) as CommissionSettingRow[]);
+  };
 
   useEffect(() => {
     void load();
   }, []);
 
-  const load = async () => {
-    // 步驟一：撈所有 franchise_team_settings
-    const { data: ftsData } = await supabase
-      .from("franchise_team_settings")
-      .select("*");
-    const rows = (ftsData ?? []) as any[];
-
-    const settingsData: TeamSetting[] = rows.map((r) => ({
-      member_id: r.member_id,
-      direct_leader_id: r.direct_leader_id ?? null,
-      title: r.title ?? null,
-      sub_leader_id: r.sub_leader_id ?? null,
-      top_leader_id: r.top_leader_id ?? null,
-    }));
-    setSettings(settingsData);
-
-    // 步驟二：收集所有 user_id (member + leaders) 後查 profiles
-    const allIds = new Set<string>();
-    rows.forEach((row) => {
-      if (row.member_id) allIds.add(row.member_id);
-      if (row.direct_leader_id) allIds.add(row.direct_leader_id);
-      if (row.sub_leader_id) allIds.add(row.sub_leader_id);
-      if (row.top_leader_id) allIds.add(row.top_leader_id);
+  const internalRows = useMemo(() => rows.filter((r) => r.type === "internal"), [rows]);
+  const externalRows = useMemo(() => rows.filter((r) => r.type === "external"), [rows]);
+  const externalByProject = useMemo(() => {
+    const map: Record<string, CommissionSettingRow[]> = {};
+    externalRows.forEach((r) => {
+      (map[r.project_name] ||= []).push(r);
     });
-
-    if (allIds.size === 0) {
-      setMembers([]);
-      return;
-    }
-
-    const { data: profilesData } = await supabase
-      .from("team_member_profiles")
-      .select("user_id, display_name")
-      .in("user_id", Array.from(allIds));
-
-    const list: Member[] = (profilesData ?? [])
-      .map((p: any) => ({
-        user_id: p.user_id,
-        display_name: p.display_name ?? p.user_id,
-      }))
-      .sort((a, b) => a.display_name.localeCompare(b.display_name));
-    setMembers(list);
-  };
-
-
-  const memberName = (id: string | null) =>
-    !id ? "—" : members.find((m) => m.user_id === id)?.display_name ?? "—";
-
-  const settingsByMember = useMemo(() => {
-    const map: Record<string, TeamSetting> = {};
-    settings.forEach((s) => (map[s.member_id] = s));
     return map;
-  }, [settings]);
+  }, [externalRows]);
 
-  // 前端即時計算：稱號
-  const computeTitle = (memberId: string): string => {
-    const count = settings.filter(
-      (s) => s.direct_leader_id === memberId,
-    ).length;
-    if (count >= 2) return "總監";
-    if (count === 1) return "隊長";
-    return "";
-  };
+  const latestInternal = internalRows[0];
 
-  // 前端即時計算:最上層隊長
-  // 從此人的 direct_leader_id 往上追溯,
-  // 直到 direct_leader_id = 自己 或 為 null 為止
-  const computeTopLeader = (memberId: string): string | null => {
-    const start = settingsByMember[memberId];
-    let currentId = start?.direct_leader_id ?? null;
-    if (!currentId) return null;
-    const visited = new Set<string>([memberId]);
-    while (currentId) {
-      if (visited.has(currentId)) return currentId;
-      visited.add(currentId);
-      const next = settingsByMember[currentId];
-      const nextLeader = next?.direct_leader_id ?? null;
-      if (!nextLeader || nextLeader === currentId) return currentId;
-      currentId = nextLeader;
-    }
-    return null;
-  };
-
-  const openEdit = (row: TeamSetting | null, memberId?: string) => {
-    if (row) {
-      setForm(row);
-      setEditing(row);
-    } else {
-      const next: TeamSetting = {
-        member_id: memberId ?? "",
-        direct_leader_id: null,
-        title: null,
-        sub_leader_id: null,
-        top_leader_id: null,
-      };
-      setForm(next);
-      setEditing(next);
-    }
-  };
-
-  const save = async () => {
-    if (!form.member_id) return toast.error("請選擇成員");
+  const saveInternal = async () => {
     const payload = {
-      member_id: form.member_id,
-      direct_leader_id: form.direct_leader_id || null,
-      updated_at: new Date().toISOString(),
+      type: "internal",
+      project_name: "森山第一期",
+      base_rate: internalForm.base_rate / 100,
+      tier1_rate: internalForm.tier1_rate / 100,
+      tier2_rate: internalForm.tier2_rate / 100,
+      leader_supplement_rate: 0,
+      company_rate: internalForm.company_rate / 100,
+      payout_day: internalForm.payout_day,
+      effective_from: internalForm.effective_from,
     };
-    const { error } = await supabase
-      .from("franchise_team_settings")
-      .upsert(payload, { onConflict: "member_id" });
-    if (error) return toast.error("儲存失敗：" + error.message);
-    toast.success("已儲存");
-    setEditing(null);
+    const { error } = await (supabase as any).from("franchise_commission_settings").insert(payload);
+    if (error) return toast.error("新增失敗：" + error.message);
+    toast.success("已新增版本");
+    setInternalDialogOpen(false);
     void load();
   };
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">小隊分潤設定</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>隊員</TableHead>
-              <TableHead>直屬隊長</TableHead>
-              <TableHead>稱號</TableHead>
-              <TableHead>小組隊長</TableHead>
-              <TableHead>最上層隊長</TableHead>
-              {canManage && <TableHead className="w-20"></TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {members.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={canManage ? 6 : 5} className="text-center text-muted-foreground py-8">
-                  尚無成員
-                </TableCell>
-              </TableRow>
-            ) : (
-              members.filter((m) => settingsByMember[m.user_id]).map((m) => {
-                const s = settingsByMember[m.user_id];
-                const directLeaderId = s?.direct_leader_id ?? null;
-                const title = computeTitle(m.user_id);
-                const topLeaderId = computeTopLeader(m.user_id);
-                return (
-                  <TableRow key={m.user_id}>
-                    <TableCell>{m.display_name}</TableCell>
-                    <TableCell>{memberName(directLeaderId)}</TableCell>
-                    <TableCell>{title || "—"}</TableCell>
-                    <TableCell>{memberName(directLeaderId)}</TableCell>
-                    <TableCell>{memberName(topLeaderId)}</TableCell>
-                    {canManage && (
-                      <TableCell>
-                        <Button size="icon" variant="ghost" onClick={() => openEdit(s ?? null, m.user_id)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </CardContent>
+  const saveExternal = async (projectName?: string) => {
+    const project = (projectName ?? externalForm.project_name).trim();
+    if (!project) return toast.error("請填寫專案名稱");
+    const payload = {
+      type: "external",
+      project_name: project,
+      sales_rate: externalForm.sales_rate / 100,
+      co_sales1_rate: externalForm.co_sales1_rate / 100,
+      co_sales2_rate: externalForm.co_sales2_rate / 100,
+      payout_day: externalForm.payout_day,
+      effective_from: externalForm.effective_from,
+    };
+    const { error } = await (supabase as any).from("franchise_commission_settings").insert(payload);
+    if (error) return toast.error("新增失敗：" + error.message);
+    toast.success("已新增版本");
+    setExternalDialogOpen(false);
+    void load();
+  };
 
-      <Sheet open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>編輯小隊設定</SheetTitle>
-          </SheetHeader>
-          <div className="space-y-3 mt-4">
-            <div className="space-y-1">
-              <Label>隊員</Label>
-              <Input value={memberName(form.member_id)} disabled />
-            </div>
-            <div className="space-y-1">
-              <Label>直屬隊長</Label>
-              <Select
-                value={form.direct_leader_id || "none"}
-                onValueChange={(v) =>
-                  setForm({ ...form, direct_leader_id: v === "none" ? null : v })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">無</SelectItem>
-                  {members
-                    .filter((m) => m.user_id !== form.member_id)
-                    .map((m) => (
-                      <SelectItem key={m.user_id} value={m.user_id}>
-                        {m.display_name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+  const openInternalDialog = () => {
+    if (latestInternal) {
+      setInternalForm({
+        base_rate: Number(latestInternal.base_rate ?? 0.1) * 100,
+        tier1_rate: Number(latestInternal.tier1_rate ?? 0.11) * 100,
+        tier2_rate: Number(latestInternal.tier2_rate ?? 0.13) * 100,
+        company_rate: Number(latestInternal.company_rate ?? 0.035) * 100,
+        payout_day: latestInternal.payout_day ?? "10",
+        effective_from: new Date().toISOString().slice(0, 10),
+      });
+    }
+    setInternalDialogOpen(true);
+  };
+
+  const openExternalDialog = (projectName?: string) => {
+    const latest = projectName ? externalByProject[projectName]?.[0] : null;
+    if (latest) {
+      setExternalForm({
+        project_name: latest.project_name,
+        sales_rate: Number(latest.sales_rate ?? 0.2) * 100,
+        co_sales1_rate: Number(latest.co_sales1_rate ?? 0.1) * 100,
+        co_sales2_rate: Number(latest.co_sales2_rate ?? 0.15) * 100,
+        payout_day: latest.payout_day ?? "10",
+        effective_from: new Date().toISOString().slice(0, 10),
+      });
+    } else {
+      setExternalForm({
+        project_name: projectName ?? "",
+        sales_rate: 20,
+        co_sales1_rate: 10,
+        co_sales2_rate: 15,
+        payout_day: "10",
+        effective_from: new Date().toISOString().slice(0, 10),
+      });
+    }
+    setExternalDialogOpen(true);
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-base">內部分潤設定</CardTitle>
+          {canManage && (
+            <Button size="sm" onClick={openInternalDialog}>
+              <Plus className="h-4 w-4 mr-1" /> 新增版本
+            </Button>
+          )}
+        </CardHeader>
+        <CardContent>
+          {loading ? null : !latestInternal ? (
+            <div className="text-center text-muted-foreground py-6">尚無設定</div>
+          ) : (
+            <>
+              <div className="rounded-md border p-3 bg-muted/30 mb-4">
+                <div className="text-xs text-muted-foreground mb-2">
+                  目前版本（生效日：{latestInternal.effective_from}）
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+                  <div><span className="text-muted-foreground">個人基本比例：</span>{fmtRate(latestInternal.base_rate)}</div>
+                  <div><span className="text-muted-foreground">帶 1 人比例：</span>{fmtRate(latestInternal.tier1_rate)}</div>
+                  <div><span className="text-muted-foreground">帶 2 人以上：</span>{fmtRate(latestInternal.tier2_rate)}</div>
+                  <div><span className="text-muted-foreground">公司提撥：</span>{fmtRate(latestInternal.company_rate)}</div>
+                  <div><span className="text-muted-foreground">發放日：</span>{latestInternal.payout_day ?? "—"}</div>
+                </div>
+              </div>
+              {internalRows.length > 1 && (
+                <div>
+                  <div className="text-xs text-muted-foreground mb-2">歷史版本</div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>生效日</TableHead>
+                        <TableHead className="text-right">個人</TableHead>
+                        <TableHead className="text-right">帶1人</TableHead>
+                        <TableHead className="text-right">帶2人+</TableHead>
+                        <TableHead className="text-right">公司</TableHead>
+                        <TableHead>發放日</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {internalRows.slice(1).map((r) => (
+                        <TableRow key={r.id}>
+                          <TableCell>{r.effective_from}</TableCell>
+                          <TableCell className="text-right tabular-nums">{fmtRate(r.base_rate)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{fmtRate(r.tier1_rate)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{fmtRate(r.tier2_rate)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{fmtRate(r.company_rate)}</TableCell>
+                          <TableCell>{r.payout_day ?? "—"}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-base">外部分潤設定</CardTitle>
+          {canManage && (
+            <Button size="sm" onClick={() => openExternalDialog()}>
+              <Plus className="h-4 w-4 mr-1" /> 新增專案
+            </Button>
+          )}
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {loading ? null : Object.keys(externalByProject).length === 0 ? (
+            <div className="text-center text-muted-foreground py-6">尚無設定</div>
+          ) : (
+            Object.entries(externalByProject).map(([project, list]) => {
+              const latest = list[0];
+              return (
+                <div key={project} className="rounded-md border p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="font-medium">{project}</div>
+                    {canManage && (
+                      <Button size="sm" variant="outline" onClick={() => openExternalDialog(project)}>
+                        <Plus className="h-4 w-4 mr-1" /> 新增版本
+                      </Button>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground mb-2">
+                    目前版本（生效日：{latest.effective_from}）
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                    <div><span className="text-muted-foreground">開發業務：</span>{fmtRate(latest.sales_rate)}</div>
+                    <div><span className="text-muted-foreground">協同業務1：</span>{fmtRate(latest.co_sales1_rate)}</div>
+                    <div><span className="text-muted-foreground">協同業務2：</span>{fmtRate(latest.co_sales2_rate)}</div>
+                    <div><span className="text-muted-foreground">發放日：</span>{latest.payout_day ?? "—"}</div>
+                  </div>
+                  {list.length > 1 && (
+                    <div className="mt-3">
+                      <div className="text-xs text-muted-foreground mb-1">歷史版本</div>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>生效日</TableHead>
+                            <TableHead className="text-right">開發業務</TableHead>
+                            <TableHead className="text-right">協同1</TableHead>
+                            <TableHead className="text-right">協同2</TableHead>
+                            <TableHead>發放日</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {list.slice(1).map((r) => (
+                            <TableRow key={r.id}>
+                              <TableCell>{r.effective_from}</TableCell>
+                              <TableCell className="text-right tabular-nums">{fmtRate(r.sales_rate)}</TableCell>
+                              <TableCell className="text-right tabular-nums">{fmtRate(r.co_sales1_rate)}</TableCell>
+                              <TableCell className="text-right tabular-nums">{fmtRate(r.co_sales2_rate)}</TableCell>
+                              <TableCell>{r.payout_day ?? "—"}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={internalDialogOpen} onOpenChange={setInternalDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>新增內部分潤版本</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label>個人基本比例 (%)</Label>
+                <Input type="number" step="0.1" value={internalForm.base_rate}
+                  onChange={(e) => setInternalForm({ ...internalForm, base_rate: Number(e.target.value) || 0 })} />
+              </div>
+              <div className="space-y-1">
+                <Label>帶 1 人比例 (%)</Label>
+                <Input type="number" step="0.1" value={internalForm.tier1_rate}
+                  onChange={(e) => setInternalForm({ ...internalForm, tier1_rate: Number(e.target.value) || 0 })} />
+              </div>
+              <div className="space-y-1">
+                <Label>帶 2 人以上 (%)</Label>
+                <Input type="number" step="0.1" value={internalForm.tier2_rate}
+                  onChange={(e) => setInternalForm({ ...internalForm, tier2_rate: Number(e.target.value) || 0 })} />
+              </div>
+              <div className="space-y-1">
+                <Label>公司提撥比例 (%)</Label>
+                <Input type="number" step="0.1" value={internalForm.company_rate}
+                  onChange={(e) => setInternalForm({ ...internalForm, company_rate: Number(e.target.value) || 0 })} />
+              </div>
+              <div className="space-y-1">
+                <Label>發放日</Label>
+                <Input value={internalForm.payout_day}
+                  placeholder="例：10 或 10,25"
+                  onChange={(e) => setInternalForm({ ...internalForm, payout_day: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label>生效日期</Label>
+                <Input type="date" value={internalForm.effective_from}
+                  onChange={(e) => setInternalForm({ ...internalForm, effective_from: e.target.value })} />
+              </div>
             </div>
           </div>
-          <SheetFooter className="mt-4">
-            <Button variant="outline" onClick={() => setEditing(null)}>
-              取消
-            </Button>
-            <Button onClick={save}>儲存</Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
-    </Card>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInternalDialogOpen(false)}>取消</Button>
+            <Button onClick={saveInternal}>儲存</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={externalDialogOpen} onOpenChange={setExternalDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>新增外部分潤版本</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>專案名稱 *</Label>
+              <Input value={externalForm.project_name}
+                onChange={(e) => setExternalForm({ ...externalForm, project_name: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label>開發業務比例 (%)</Label>
+                <Input type="number" step="0.1" value={externalForm.sales_rate}
+                  onChange={(e) => setExternalForm({ ...externalForm, sales_rate: Number(e.target.value) || 0 })} />
+              </div>
+              <div className="space-y-1">
+                <Label>協同業務1 比例 (%)</Label>
+                <Input type="number" step="0.1" value={externalForm.co_sales1_rate}
+                  onChange={(e) => setExternalForm({ ...externalForm, co_sales1_rate: Number(e.target.value) || 0 })} />
+              </div>
+              <div className="space-y-1">
+                <Label>協同業務2 比例 (%)</Label>
+                <Input type="number" step="0.1" value={externalForm.co_sales2_rate}
+                  onChange={(e) => setExternalForm({ ...externalForm, co_sales2_rate: Number(e.target.value) || 0 })} />
+              </div>
+              <div className="space-y-1">
+                <Label>發放日</Label>
+                <Input value={externalForm.payout_day}
+                  onChange={(e) => setExternalForm({ ...externalForm, payout_day: e.target.value })} />
+              </div>
+              <div className="space-y-1 col-span-2">
+                <Label>生效日期</Label>
+                <Input type="date" value={externalForm.effective_from}
+                  onChange={(e) => setExternalForm({ ...externalForm, effective_from: e.target.value })} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExternalDialogOpen(false)}>取消</Button>
+            <Button onClick={() => saveExternal()}>儲存</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
 
