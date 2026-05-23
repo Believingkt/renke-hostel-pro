@@ -163,6 +163,24 @@ function OrdersTab({
   });
   const [saving, setSaving] = useState(false);
 
+  const [detailOrder, setDetailOrder] = useState<FranchiseOrder | null>(null);
+  const [detailEditing, setDetailEditing] = useState(false);
+  const [detailForm, setDetailForm] = useState<Partial<FranchiseOrder> & { customer_phone?: string | null; invoice_number?: string | null; notes?: string | null }>({});
+  const [detailSaving, setDetailSaving] = useState(false);
+
+  useEffect(() => {
+    if (detailOrder) {
+      setDetailForm({
+        customer_name: detailOrder.customer_name,
+        plan_name: detailOrder.plan_name,
+        plan_price: detailOrder.plan_price,
+        sold_at: detailOrder.sold_at,
+        payment_confirmed: detailOrder.payment_confirmed,
+      } as any);
+    }
+  }, [detailOrder]);
+
+
   useEffect(() => {
     void loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
