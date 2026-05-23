@@ -187,9 +187,30 @@ export default function TeamMembers() {
     if (canAccess) fetchMembers();
   }, [canAccess, fetchMembers]);
 
-  const toggleInviteRole = (role: TeamRole) => {
-    setInviteRoles((prev) => (prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]));
+  // 主管角色 → 自動包含的子角色（勾選主管時，子角色強制取消並 disabled）
+  const MANAGER_CHILD_MAP: Partial<Record<TeamRole, TeamRole>> = {
+    scout_manager: "scout",
+    ["franchise_manager" as TeamRole]: "franchise",
   };
+  const CHILD_OF: Partial<Record<TeamRole, TeamRole>> = Object.fromEntries(
+    Object.entries(MANAGER_CHILD_MAP).map(([m, c]) => [c as string, m as TeamRole]),
+  ) as Partial<Record<TeamRole, TeamRole>>;
+
+  const applyManagerExclusion = (roles: TeamRole[]): TeamRole[] => {
+    let next = [...roles];
+    for (const [mgr, child] of Object.entries(MANAGER_CHILD_MAP)) {
+      if (next.includes(mgr as TeamRole)) next = next.filter((r) => r !== child);
+    }
+    return next;
+  };
+
+  const toggleInviteRole = (role: TeamRole) => {
+    setInviteRoles((prev) => {
+      const next = prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role];
+      return applyManagerExclusion(next);
+    });
+  };
+
 
   const handleInvite = async () => {
     if (!inviteName.trim()) return toast.error("請輸入顯示名稱");
