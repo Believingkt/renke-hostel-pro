@@ -430,6 +430,11 @@ export default function TeamMembers() {
       ? m.roles.filter((r) => r !== "super_admin")
       : m.roles;
 
+  const filteredMembers = filterRole === "all"
+    ? members
+    : members.filter((m) => displayRoles(m).includes(filterRole));
+
+
   return (
     <div className="space-y-6 max-w-5xl">
       <h2 className="text-2xl font-bold">成員管理</h2>
