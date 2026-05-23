@@ -3230,23 +3230,23 @@ function VoucherProgressTab() {
                 <TableHead className="whitespace-nowrap">名片製作</TableHead>
                 <TableHead className="whitespace-nowrap">發放張數</TableHead>
                 <TableHead className="whitespace-nowrap">狀態</TableHead>
-                <TableHead className="whitespace-nowrap">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? null : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">無資料</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">無資料</TableCell></TableRow>
               ) : filtered.map((r) => (
-                <TableRow key={r.id}>
+                <TableRow
+                  key={r.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => openDetail(r)}
+                >
                   <TableCell className="whitespace-nowrap">{r.signed_at ?? "—"}</TableCell>
                   <TableCell className="whitespace-nowrap">{r.member_number ?? "—"}</TableCell>
                   <TableCell className="whitespace-nowrap">{r.customer_name}</TableCell>
                   <TableCell className="whitespace-nowrap">{cardBadge(r.card_status)}</TableCell>
                   <TableCell className="whitespace-nowrap tabular-nums">{r.voucher_count ?? "—"}</TableCell>
                   <TableCell className="whitespace-nowrap">{statusBadge(r.voucher_status)}</TableCell>
-                  <TableCell>
-                    <Button size="sm" variant="outline" onClick={() => openDetail(r)}>明細</Button>
-                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
