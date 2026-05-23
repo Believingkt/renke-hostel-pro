@@ -1500,7 +1500,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
     void load();
   }, []);
 
-  // Auto-fill bonuses when project / unit / price change (only for new order, not edit)
+  // Auto-fill bonuses when project / unit / price / co-sales names change (only for new order, not edit)
   useEffect(() => {
     if (editingId) return;
     const project = (form.project_name ?? "").trim();
@@ -1511,11 +1511,14 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
     setForm((prev) => ({
       ...prev,
       sales_bonus: Math.round(total * r.sales_rate),
-      co_sales_bonus: Math.round(total * r.co_sales1_rate),
-      co_sales_bonus2: Math.round(total * r.co_sales2_rate),
+      co_sales_bonus: (prev.co_sales_name ?? "").trim() ? Math.round(total * r.co_sales1_rate) : null,
+      co_sales_bonus2: (prev.co_sales_name2 ?? "").trim() ? Math.round(total * r.co_sales2_rate) : null,
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.project_name, form.unit_count, form.plan_price, externalRates, editingId, sheetOpen]);
+  }, [form.project_name, form.unit_count, form.plan_price, form.co_sales_name, form.co_sales_name2, externalRates, editingId, sheetOpen]);
+
+  const currentRates = externalRates[(form.project_name ?? "").trim()] ?? null;
+  const pct = (n: number | null | undefined) => n == null ? "" : `${parseFloat((n * 100).toFixed(2))}%`;
 
   const projects = useMemo(() => {
     const set = new Set<string>();
