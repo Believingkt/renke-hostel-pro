@@ -2697,6 +2697,29 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
     load();
   };
 
+  const startEdit = (d: MonthlyDistribution) => {
+    setEditingId(d.id);
+    setEditPrice(Number(d.unit_price));
+  };
+
+  const saveEdit = async (id: string) => {
+    if (editPrice <= 0) {
+      toast.error("每單位金額需大於 0");
+      return;
+    }
+    const { error } = await (supabase as any)
+      .from("franchise_monthly_distributions")
+      .update({ unit_price: Number(editPrice) })
+      .eq("id", id);
+    if (error) {
+      toast.error("更新失敗：" + error.message);
+      return;
+    }
+    toast.success("已更新");
+    setEditingId(null);
+    load();
+  };
+
   // 動態選項
   const yearOptions = useMemo(
     () => Array.from(new Set(distributions.map((d) => d.year))).sort((a, b) => b - a),
