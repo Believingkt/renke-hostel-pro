@@ -405,7 +405,7 @@ function OrdersTab({
 
   const selectLevelForForm = (level: string) => {
     const tier = tiers.find((t) => t.level === level);
-    const ratePct = Number(tier?.signup_bonus_rate ?? 0) * 100;
+    const ratePct = parseFloat((Number(tier?.signup_bonus_rate ?? 0) * 100).toFixed(2));
     setForm((f) => ({ ...f, level_at_sale: level, commission_rate: ratePct }));
   };
 
