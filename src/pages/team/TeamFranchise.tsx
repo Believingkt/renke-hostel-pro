@@ -32,7 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -137,6 +137,26 @@ export default function TeamFranchise() {
   const { roles, userId } = useTeam();
   const canManage = roles.includes("super_admin") || roles.includes("admin");
   const canView = canManage || roles.includes("franchise");
+  const [canManageDistributions, setCanManageDistributions] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    if (!userId) return;
+    (async () => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId);
+      if (!active) return;
+      const rs = (data ?? []).map((r: { role: string }) => r.role);
+      setCanManageDistributions(
+        rs.includes("super_admin") || rs.includes("admin") || rs.includes("franchise_manager")
+      );
+    })();
+    return () => {
+      active = false;
+    };
+  }, [userId]);
 
   if (!canView) {
     return (
@@ -159,6 +179,9 @@ export default function TeamFranchise() {
           <TabsTrigger value="orders">訂單列表（內部）</TabsTrigger>
           <TabsTrigger value="external">外部銷售</TabsTrigger>
           <TabsTrigger value="stats">業績統計</TabsTrigger>
+          {canManageDistributions && (
+            <TabsTrigger value="distributions">會員分潤</TabsTrigger>
+          )}
           <TabsTrigger value="settings">分潤設定</TabsTrigger>
         </TabsList>
         <TabsContent value="orders" className="mt-4">
@@ -170,6 +193,11 @@ export default function TeamFranchise() {
         <TabsContent value="stats" className="mt-4">
           <StatsTab />
         </TabsContent>
+        {canManageDistributions && (
+          <TabsContent value="distributions" className="mt-4">
+            <MemberDistributionTab currentUserId={userId} />
+          </TabsContent>
+        )}
         <TabsContent value="settings" className="mt-4">
           <SettingsTab canManage={canManage} />
         </TabsContent>
@@ -2236,6 +2264,334 @@ function StatsChart({ data }: { data: Array<{ month: string; internal: number; e
           <Bar dataKey="external" name="外部銷售" fill="hsl(217 91% 60%)" />
         </BarChart>
       </ResponsiveContainer>
+    </div>
+  );
+}
+
+// ============== 會員分潤 Tab ==============
+interface MonthlyDistribution {
+  id: string;
+  year: number;
+  month: number;
+  project_name: string;
+  unit_price: number;
+  payment_date: string;
+}
+
+function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
+  const [distributions, setDistributions] = useState<MonthlyDistribution[]>([]);
+  const [externalOrders, setExternalOrders] = useState<ExternalOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const nowY = new Date().getFullYear();
+  const nowM = new Date().getMonth() + 1;
+  const [form, setForm] = useState({
+    year: nowY,
+    month: nowM,
+    project_name: "",
+    unit_price: 0,
+  });
+  const [saving, setSaving] = useState(false);
+
+  // 篩選器
+  const [filterYear, setFilterYear] = useState<string>("ALL");
+  const [filterMonth, setFilterMonth] = useState<string>("ALL");
+  const [filterProject, setFilterProject] = useState<string>("ALL");
+
+  const load = async () => {
+    setLoading(true);
+    const [distRes, extRes] = await Promise.all([
+      (supabase as any)
+        .from("franchise_monthly_distributions")
+        .select("*")
+        .order("year", { ascending: false })
+        .order("month", { ascending: false }),
+      supabase
+        .from("franchise_external_orders")
+        .select("id,project_name,customer_name,unit_count")
+        .order("unit_count", { ascending: false, nullsFirst: false }),
+    ]);
+    if (distRes.error) {
+      toast.error("讀取失敗：" + distRes.error.message);
+    } else {
+      setDistributions((distRes.data ?? []) as MonthlyDistribution[]);
+    }
+    if (!extRes.error) {
+      setExternalOrders((extRes.data ?? []) as ExternalOrder[]);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSubmit = async () => {
+    if (!form.project_name.trim() || form.unit_price <= 0 || form.year < 2000 || form.month < 1 || form.month > 12) {
+      toast.error("請完整填寫表單");
+      return;
+    }
+    setSaving(true);
+    const { error } = await (supabase as any)
+      .from("franchise_monthly_distributions")
+      .insert({
+        year: Number(form.year),
+        month: Number(form.month),
+        project_name: form.project_name.trim(),
+        unit_price: Number(form.unit_price),
+        created_by: currentUserId || null,
+      });
+    setSaving(false);
+    if (error) {
+      toast.error("新增失敗：" + error.message);
+      return;
+    }
+    toast.success("已新增");
+    setForm({ year: nowY, month: nowM, project_name: "", unit_price: 0 });
+    load();
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("確定刪除這筆分潤設定？")) return;
+    const { error } = await (supabase as any)
+      .from("franchise_monthly_distributions")
+      .delete()
+      .eq("id", id);
+    if (error) {
+      toast.error("刪除失敗：" + error.message);
+      return;
+    }
+    toast.success("已刪除");
+    load();
+  };
+
+  // 動態選項
+  const yearOptions = useMemo(
+    () => Array.from(new Set(distributions.map((d) => d.year))).sort((a, b) => b - a),
+    [distributions]
+  );
+  const monthOptions = useMemo(
+    () => Array.from(new Set(distributions.map((d) => d.month))).sort((a, b) => a - b),
+    [distributions]
+  );
+  const projectOptions = useMemo(
+    () => Array.from(new Set(distributions.map((d) => d.project_name))),
+    [distributions]
+  );
+
+  // 找到符合篩選條件的「分潤設定」
+  const matchedDist = useMemo(() => {
+    return distributions.find(
+      (d) =>
+        (filterYear === "ALL" || String(d.year) === filterYear) &&
+        (filterMonth === "ALL" || String(d.month) === filterMonth) &&
+        (filterProject === "ALL" || d.project_name === filterProject)
+    );
+  }, [distributions, filterYear, filterMonth, filterProject]);
+
+  // 會員明細：依篩選 project_name 對應 franchise_external_orders
+  const memberRows = useMemo(() => {
+    if (!matchedDist) return [];
+    return externalOrders
+      .filter((o) => o.project_name === matchedDist.project_name)
+      .map((o) => ({
+        id: o.id,
+        customer_name: o.customer_name,
+        unit_count: Number(o.unit_count ?? 0),
+        unit_price: Number(matchedDist.unit_price),
+        bonus: Number(o.unit_count ?? 0) * Number(matchedDist.unit_price),
+        payment_date: matchedDist.payment_date,
+      }))
+      .sort((a, b) => b.unit_count - a.unit_count);
+  }, [externalOrders, matchedDist]);
+
+  return (
+    <div className="space-y-6">
+      {/* 上半部：每月分潤設定 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>每月分潤設定</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 items-end">
+            <div className="space-y-1">
+              <Label>年份</Label>
+              <Input
+                type="number"
+                value={form.year}
+                onChange={(e) => setForm({ ...form, year: Number(e.target.value) })}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>月份</Label>
+              <Select
+                value={String(form.month)}
+                onValueChange={(v) => setForm({ ...form, month: Number(v) })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                    <SelectItem key={m} value={String(m)}>
+                      {m} 月
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>專案名稱</Label>
+              <Input
+                value={form.project_name}
+                onChange={(e) => setForm({ ...form, project_name: e.target.value })}
+                placeholder="例：森山第一期"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>每單位金額 (NT$)</Label>
+              <Input
+                type="number"
+                value={form.unit_price}
+                onChange={(e) => setForm({ ...form, unit_price: Number(e.target.value) })}
+              />
+            </div>
+            <Button onClick={handleSubmit} disabled={saving}>
+              <Plus className="h-4 w-4 mr-1" /> 新增
+            </Button>
+          </div>
+
+          <div className="border rounded-md">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>年份</TableHead>
+                  <TableHead>月份</TableHead>
+                  <TableHead>專案名稱</TableHead>
+                  <TableHead className="text-right">每單位金額</TableHead>
+                  <TableHead>預計匯款日</TableHead>
+                  <TableHead className="w-20" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? null : distributions.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                      尚無資料
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  distributions.map((d) => (
+                    <TableRow key={d.id}>
+                      <TableCell>{d.year}</TableCell>
+                      <TableCell>{d.month} 月</TableCell>
+                      <TableCell>{d.project_name}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtMoney(d.unit_price)}</TableCell>
+                      <TableCell>{d.payment_date}</TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDelete(d.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 下半部：會員分潤明細 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>會員分潤明細</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">年份</Label>
+              <Select value={filterYear} onValueChange={setFilterYear}>
+                <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">全部</SelectItem>
+                  {yearOptions.map((y) => (
+                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">月份</Label>
+              <Select value={filterMonth} onValueChange={setFilterMonth}>
+                <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">全部</SelectItem>
+                  {monthOptions.map((m) => (
+                    <SelectItem key={m} value={String(m)}>{m} 月</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">專案名稱</Label>
+              <Select value={filterProject} onValueChange={setFilterProject}>
+                <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">全部</SelectItem>
+                  {projectOptions.map((p) => (
+                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="border rounded-md">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>會員姓名</TableHead>
+                  <TableHead className="text-right">購買單位數</TableHead>
+                  <TableHead className="text-right">每單位金額</TableHead>
+                  <TableHead className="text-right">分潤金額</TableHead>
+                  <TableHead>預計匯款日</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {!matchedDist ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                      請選擇對應的年份、月份、專案
+                    </TableCell>
+                  </TableRow>
+                ) : memberRows.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                      此專案尚無會員資料
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  memberRows.map((r) => (
+                    <TableRow key={r.id}>
+                      <TableCell>{r.customer_name}</TableCell>
+                      <TableCell className="text-right tabular-nums">{r.unit_count}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtMoney(r.unit_price)}</TableCell>
+                      <TableCell className="text-right tabular-nums font-medium">{fmtMoney(r.bonus)}</TableCell>
+                      <TableCell>{r.payment_date}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
