@@ -1,0 +1,2 @@
+ALTER TABLE public.franchise_monthly_distributions DROP COLUMN payment_date;
+ALTER TABLE public.franchise_monthly_distributions ADD COLUMN payment_date date GENERATED ALWAYS AS (((make_date(year, month, 1) + '2 mon'::interval) - '1 day'::interval)::date) STORED;
