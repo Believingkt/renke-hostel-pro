@@ -183,6 +183,13 @@ function OrdersTab({
   });
   const [editSaving, setEditSaving] = useState(false);
 
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailOrder, setDetailOrder] = useState<StarlinkOrder | null>(null);
+  const openDetail = (o: StarlinkOrder) => {
+    setDetailOrder(o);
+    setDetailOpen(true);
+  };
+
   const openEdit = (o: StarlinkOrder) => {
     setEditId(o.id);
     setEditForm({
