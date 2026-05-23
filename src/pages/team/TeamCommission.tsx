@@ -1156,18 +1156,47 @@ function PayoutsBlock({ scoutManagerOnly = false }: { scoutManagerOnly?: boolean
                 <Input type="number" min="1" max="12" value={draft.month} onChange={(e) => setDraft({ ...draft, month: Number(e.target.value) })} />
               </div>
             </div>
-            <div>
-              <Label>底薪</Label>
-              <Input type="number" value={draft.base_salary} onChange={(e) => setDraft({ ...draft, base_salary: e.target.value })} />
-            </div>
-            <div>
-              <Label>團隊獎金</Label>
-              <Input type="number" value={draft.team_bonus} onChange={(e) => setDraft({ ...draft, team_bonus: e.target.value })} />
-            </div>
-            <div>
-              <Label>KOL分潤</Label>
-              <Input type="number" value={draft.kol_commission} onChange={(e) => setDraft({ ...draft, kol_commission: e.target.value })} />
-            </div>
+            {scoutManagerOnly && (
+              <div>
+                <Label>獎金類型</Label>
+                <Select
+                  value={smCommissionType}
+                  onValueChange={(v) => {
+                    const t = v as "scout_kol" | "scout_base";
+                    setSmCommissionType(t);
+                    if (t === "scout_kol") {
+                      setDraft((d) => ({ ...d, base_salary: "0", team_bonus: "0" }));
+                    } else {
+                      setDraft((d) => ({ ...d, kol_commission: "0" }));
+                    }
+                  }}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="scout_kol">{BONUS_TYPE_LABEL.scout_kol}</SelectItem>
+                    <SelectItem value="scout_base">{BONUS_TYPE_LABEL.scout_base}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {(!scoutManagerOnly || smCommissionType === "scout_base") && (
+              <>
+                <div>
+                  <Label>底薪</Label>
+                  <Input type="number" value={draft.base_salary} onChange={(e) => setDraft({ ...draft, base_salary: e.target.value })} />
+                </div>
+                <div>
+                  <Label>團隊獎金</Label>
+                  <Input type="number" value={draft.team_bonus} onChange={(e) => setDraft({ ...draft, team_bonus: e.target.value })} />
+                </div>
+              </>
+            )}
+            {(!scoutManagerOnly || smCommissionType === "scout_kol") && (
+              <div>
+                <Label>KOL分潤</Label>
+                <Input type="number" value={draft.kol_commission} onChange={(e) => setDraft({ ...draft, kol_commission: e.target.value })} />
+              </div>
+            )}
             <div className="flex gap-4">
               <label className="flex items-center gap-2 text-sm">
                 <Checkbox
