@@ -964,7 +964,7 @@ function OrdersTab({
   );
 }
 
-function SettingsTab({ canManage }: { canManage: boolean }) {
+function SettingsTab({ canManage, canManageProjects }: { canManage: boolean; canManageProjects: boolean }) {
   const [rows, setRows] = useState<CommissionSettingRow[]>([]);
   const [loading, setLoading] = useState(true);
 
