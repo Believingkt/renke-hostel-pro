@@ -759,6 +759,37 @@ function OrdersTab({
                 </SelectContent>
               </Select>
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label>成交時等級</Label>
+                <Input
+                  value={editForm.level_at_sale}
+                  onChange={(e) => setEditForm({ ...editForm, level_at_sale: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>分潤比例 (%)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  max={100}
+                  value={editForm.commission_rate ? (editForm.commission_rate * 100).toString() : ""}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    setEditForm({ ...editForm, commission_rate: isNaN(v) ? 0 : v / 100 });
+                  }}
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>分潤金額</Label>
+              <Input
+                readOnly
+                className="bg-muted"
+                value={fmtMoney(Math.round(editForm.plan_price * (editForm.commission_rate || 0)))}
+              />
+            </div>
             <div className="space-y-1">
               <Label>成交日期</Label>
               <Input
