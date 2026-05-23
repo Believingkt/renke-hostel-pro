@@ -46,8 +46,14 @@ const COMMISSION_TYPE_LABEL: Record<string, string> = Object.fromEntries(
 
 const CYCLE_LABEL: Record<string, string> = {
   bimonthly: "每月兩次",
-  fixed_day: "固定日",
-  monthly_end: "月底",
+  monthly_early: "月初發放",
+  monthly_late: "月底發放",
+};
+
+const CYCLE_PAYOUT_DAYS: Record<string, number[]> = {
+  bimonthly: [10, 25],
+  monthly_early: [10],
+  monthly_late: [25],
 };
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
@@ -520,9 +526,7 @@ function PayoutRulesBlock() {
   const [editing, setEditing] = useState<PayoutRuleRow | null>(null);
   const [draft, setDraft] = useState({
     commission_type: "closer",
-    rule_name: "",
     cycle_type: "bimonthly",
-    payout_days: "10,25",
     cutoff_description: "",
     effective_from: todayStr(),
   });
@@ -548,9 +552,7 @@ function PayoutRulesBlock() {
     setEditing({} as PayoutRuleRow);
     setDraft({
       commission_type: "closer",
-      rule_name: "",
       cycle_type: "bimonthly",
-      payout_days: "10,25",
       cutoff_description: "",
       effective_from: todayStr(),
     });
@@ -560,9 +562,7 @@ function PayoutRulesBlock() {
     setEditing(r);
     setDraft({
       commission_type: r.commission_type,
-      rule_name: r.rule_name ?? "",
       cycle_type: r.cycle_type ?? "bimonthly",
-      payout_days: (r.payout_days ?? []).join(","),
       cutoff_description: r.cutoff_description ?? "",
       effective_from: todayStr(),
     });
@@ -571,13 +571,10 @@ function PayoutRulesBlock() {
   const save = async () => {
     setSaving(true);
     const { data: auth } = await supabase.auth.getUser();
-    const days = draft.payout_days
-      .split(",")
-      .map((s) => Number(s.trim()))
-      .filter((n) => !isNaN(n));
+    const days = CYCLE_PAYOUT_DAYS[draft.cycle_type] ?? [];
     const { error } = await supabase.from("commission_payout_rules").insert({
       commission_type: draft.commission_type,
-      rule_name: draft.rule_name || null,
+      rule_name: null,
       cycle_type: draft.cycle_type,
       payout_days: days.length > 0 ? days : null,
       cutoff_description: draft.cutoff_description || null,
@@ -590,6 +587,8 @@ function PayoutRulesBlock() {
     setEditing(null);
     fetchRows();
   };
+
+  const currentPayoutDays = CYCLE_PAYOUT_DAYS[draft.cycle_type] ?? [];
 
   return (
     <Card>
@@ -605,7 +604,6 @@ function PayoutRulesBlock() {
             <TableHeader>
               <TableRow>
                 <TableHead>獎金類型</TableHead>
-                <TableHead>備註</TableHead>
                 <TableHead>結算週期</TableHead>
                 <TableHead>發放日</TableHead>
                 <TableHead>說明</TableHead>
@@ -617,7 +615,6 @@ function PayoutRulesBlock() {
               {rows.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell>{COMMISSION_TYPE_LABEL[r.commission_type] ?? r.commission_type}</TableCell>
-                  <TableCell>{r.rule_name ?? "-"}</TableCell>
                   <TableCell>{CYCLE_LABEL[r.cycle_type ?? ""] ?? r.cycle_type}</TableCell>
                   <TableCell>{(r.payout_days ?? []).join(", ") || "-"}</TableCell>
                   <TableCell>{r.cutoff_description ?? "-"}</TableCell>
@@ -635,7 +632,7 @@ function PayoutRulesBlock() {
       </CardContent>
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent>
+        <DialogContent className="max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>結算規則</DialogTitle>
             <DialogDescription>儲存後會新增一筆生效日期版本</DialogDescription>
@@ -653,14 +650,6 @@ function PayoutRulesBlock() {
               </Select>
             </div>
             <div>
-              <Label>備註（選填）</Label>
-              <Input
-                placeholder="備註（選填）"
-                value={draft.rule_name}
-                onChange={(e) => setDraft({ ...draft, rule_name: e.target.value })}
-              />
-            </div>
-            <div>
               <Label>生效日期</Label>
               <Input type="date" value={draft.effective_from} onChange={(e) => setDraft({ ...draft, effective_from: e.target.value })} />
             </div>
@@ -670,14 +659,13 @@ function PayoutRulesBlock() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="bimonthly">每月兩次</SelectItem>
-                  <SelectItem value="fixed_day">固定日</SelectItem>
-                  <SelectItem value="monthly_end">月底</SelectItem>
+                  <SelectItem value="monthly_early">月初發放</SelectItem>
+                  <SelectItem value="monthly_late">月底發放</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>發放日（逗號分隔，例如 10, 25）</Label>
-              <Input value={draft.payout_days} onChange={(e) => setDraft({ ...draft, payout_days: e.target.value })} />
+            <div className="text-sm text-muted-foreground">
+              發放日：{currentPayoutDays.map((d) => `${d} 日`).join(" / ")}
             </div>
             <div>
               <Label>說明</Label>
