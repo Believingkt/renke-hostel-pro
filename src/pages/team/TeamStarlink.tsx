@@ -218,7 +218,7 @@ function OrdersTab({
       payout_status: o.payout_status ?? "pending",
       notes: o.notes ?? "",
       level_at_sale: o.level_at_sale ?? "",
-      commission_rate: Number(o.commission_rate ?? 0),
+      commission_rate: Number(o.commission_rate ?? 0) * 100,
       plan_price: Number(o.plan_price ?? 0),
     });
     setEditOpen(true);
@@ -243,8 +243,8 @@ function OrdersTab({
         payout_status: editForm.payout_status,
         notes: editForm.notes.trim() || null,
         level_at_sale: editForm.level_at_sale.trim() || null,
-        commission_rate: editForm.commission_rate || null,
-        commission_amount: Math.round(editForm.plan_price * editForm.commission_rate),
+        commission_rate: editForm.commission_rate ? editForm.commission_rate / 100 : null,
+        commission_amount: Math.round(editForm.plan_price * (editForm.commission_rate / 100)),
       })
       .eq("id", editId);
     setEditSaving(false);
@@ -337,7 +337,8 @@ function OrdersTab({
     if (!plan) return;
     setSaving(true);
 
-    const rate = Number(form.commission_rate ?? 0);
+    const ratePct = Number(form.commission_rate ?? 0);
+    const rate = ratePct / 100;
     const payload = {
       client_name: form.client_name.trim(),
       client_tax_id: form.client_tax_id.trim() || null,
@@ -392,15 +393,41 @@ function OrdersTab({
       .eq("payout_status", "paid");
     const c = count ?? 0;
     const tier = findTierForCount(c);
-    const rate = Number(tier?.signup_bonus_rate ?? 0);
-    setAutoTierInfo({ level: tier?.tier_name ?? tier?.level ?? "—", rate, count: c });
+    const ratePct = Number(tier?.signup_bonus_rate ?? 0) * 100;
+    setAutoTierInfo({ level: tier?.tier_name ?? tier?.level ?? "—", rate: ratePct / 100, count: c });
     setForm((f) => ({
       ...f,
       sold_by: userIdSel,
       level_at_sale: tier?.level ?? "",
-      commission_rate: rate,
+      commission_rate: ratePct,
     }));
   };
+
+  const selectLevelForForm = (level: string) => {
+    const tier = tiers.find((t) => t.level === level);
+    const ratePct = Number(tier?.signup_bonus_rate ?? 0) * 100;
+    setForm((f) => ({ ...f, level_at_sale: level, commission_rate: ratePct }));
+  };
+
+  const selectLevelForEdit = (level: string) => {
+    const tier = tiers.find((t) => t.level === level);
+    const ratePct = Number(tier?.signup_bonus_rate ?? 0) * 100;
+    setEditForm((f) => ({ ...f, level_at_sale: level, commission_rate: ratePct }));
+  };
+
+  const tierByLevel = (level: string) => tiers.find((t) => t.level === level);
+  const renderTierHint = (level: string) => {
+    const tier = tierByLevel(level);
+    if (!tier) return null;
+    const maxLabel = tier.max_count == null ? "∞" : tier.max_count;
+    const rate = ((tier.signup_bonus_rate ?? 0) * 100).toFixed(2);
+    return (
+      <p className="text-xs text-muted-foreground mt-1">
+        {tier.tier_name}｜累積 {tier.min_count}～{maxLabel} 間｜簽約獎金 {rate}%
+      </p>
+    );
+  };
+
 
 
   const years = useMemo(() => {
@@ -610,24 +637,36 @@ function OrdersTab({
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>成交時等級</Label>
-                <Input
-                  value={form.level_at_sale}
-                  onChange={(e) => setForm({ ...form, level_at_sale: e.target.value })}
-                />
+                <Select
+                  value={form.level_at_sale || undefined}
+                  onValueChange={selectLevelForForm}
+                >
+                  <SelectTrigger><SelectValue placeholder="選擇等級" /></SelectTrigger>
+                  <SelectContent>
+                    {tiers.map((t) => (
+                      <SelectItem key={t.id} value={t.level}>{t.level}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {form.level_at_sale && renderTierHint(form.level_at_sale)}
               </div>
               <div className="space-y-1">
-                <Label>分潤比例 (%)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min={0}
-                  max={100}
-                  value={form.commission_rate ? (form.commission_rate * 100).toString() : ""}
-                  onChange={(e) => {
-                    const v = Number(e.target.value);
-                    setForm({ ...form, commission_rate: isNaN(v) ? 0 : v / 100 });
-                  }}
-                />
+                <Label>分潤比例</Label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min={0}
+                    max={100}
+                    className="pr-8"
+                    value={form.commission_rate || form.commission_rate === 0 ? form.commission_rate : ""}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      setForm({ ...form, commission_rate: isNaN(v) ? 0 : v });
+                    }}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">%</span>
+                </div>
               </div>
             </div>
             <div className="space-y-1">
@@ -638,10 +677,11 @@ function OrdersTab({
                 value={(() => {
                   const plan = plans.find((p) => p.plan_name === form.plan_name);
                   const price = plan?.price ?? 0;
-                  return fmtMoney(Math.round(price * (form.commission_rate || 0)));
+                  return fmtMoney(Math.round(price * ((form.commission_rate || 0) / 100)));
                 })()}
               />
             </div>
+
             <div className="space-y-1">
               <Label>成交日期</Label>
               <Input
@@ -762,24 +802,36 @@ function OrdersTab({
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>成交時等級</Label>
-                <Input
-                  value={editForm.level_at_sale}
-                  onChange={(e) => setEditForm({ ...editForm, level_at_sale: e.target.value })}
-                />
+                <Select
+                  value={editForm.level_at_sale || undefined}
+                  onValueChange={selectLevelForEdit}
+                >
+                  <SelectTrigger><SelectValue placeholder="選擇等級" /></SelectTrigger>
+                  <SelectContent>
+                    {tiers.map((t) => (
+                      <SelectItem key={t.id} value={t.level}>{t.level}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {editForm.level_at_sale && renderTierHint(editForm.level_at_sale)}
               </div>
               <div className="space-y-1">
-                <Label>分潤比例 (%)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min={0}
-                  max={100}
-                  value={editForm.commission_rate ? (editForm.commission_rate * 100).toString() : ""}
-                  onChange={(e) => {
-                    const v = Number(e.target.value);
-                    setEditForm({ ...editForm, commission_rate: isNaN(v) ? 0 : v / 100 });
-                  }}
-                />
+                <Label>分潤比例</Label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min={0}
+                    max={100}
+                    className="pr-8"
+                    value={editForm.commission_rate || editForm.commission_rate === 0 ? editForm.commission_rate : ""}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      setEditForm({ ...editForm, commission_rate: isNaN(v) ? 0 : v });
+                    }}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">%</span>
+                </div>
               </div>
             </div>
             <div className="space-y-1">
@@ -787,9 +839,10 @@ function OrdersTab({
               <Input
                 readOnly
                 className="bg-muted"
-                value={fmtMoney(Math.round(editForm.plan_price * (editForm.commission_rate || 0)))}
+                value={fmtMoney(Math.round(editForm.plan_price * ((editForm.commission_rate || 0) / 100)))}
               />
             </div>
+
             <div className="space-y-1">
               <Label>成交日期</Label>
               <Input
