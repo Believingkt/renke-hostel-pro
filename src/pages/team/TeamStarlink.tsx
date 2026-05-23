@@ -337,15 +337,7 @@ function OrdersTab({
     if (!plan) return;
     setSaving(true);
 
-    // count paid orders for this sales person
-    const { count } = await supabase
-      .from("starlink_orders")
-      .select("id", { count: "exact", head: true })
-      .eq("sold_by", form.sold_by)
-      .eq("payout_status", "paid");
-    const tier = findTierForCount(count ?? 0);
-    const rate = Number(tier?.signup_bonus_rate ?? 0);
-
+    const rate = Number(form.commission_rate ?? 0);
     const payload = {
       client_name: form.client_name.trim(),
       client_tax_id: form.client_tax_id.trim() || null,
@@ -353,7 +345,7 @@ function OrdersTab({
       plan_name: plan.plan_name,
       plan_price: plan.price,
       sold_by: form.sold_by,
-      level_at_sale: tier?.level ?? null,
+      level_at_sale: form.level_at_sale.trim() || null,
       commission_rate: rate || null,
       commission_amount: Math.round(plan.price * rate),
       sold_at: form.sold_at,
@@ -372,6 +364,7 @@ function OrdersTab({
     }
     toast.success("已新增訂單");
     setSheetOpen(false);
+    setAutoTierInfo(null);
     setForm({
       client_name: "",
       client_tax_id: "",
@@ -384,9 +377,31 @@ function OrdersTab({
       invoice_number: "",
       contract_uploaded: false,
       notes: "",
+      level_at_sale: "",
+      commission_rate: 0,
     });
     void loadAll();
   };
+
+  const selectSoldBy = async (userIdSel: string) => {
+    setForm((f) => ({ ...f, sold_by: userIdSel }));
+    const { count } = await supabase
+      .from("starlink_orders")
+      .select("id", { count: "exact", head: true })
+      .eq("sold_by", userIdSel)
+      .eq("payout_status", "paid");
+    const c = count ?? 0;
+    const tier = findTierForCount(c);
+    const rate = Number(tier?.signup_bonus_rate ?? 0);
+    setAutoTierInfo({ level: tier?.tier_name ?? tier?.level ?? "—", rate, count: c });
+    setForm((f) => ({
+      ...f,
+      sold_by: userIdSel,
+      level_at_sale: tier?.level ?? "",
+      commission_rate: rate,
+    }));
+  };
+
 
   const years = useMemo(() => {
     const cur = new Date().getFullYear();
