@@ -217,6 +217,9 @@ function OrdersTab({
       contract_uploaded: !!o.contract_uploaded,
       payout_status: o.payout_status ?? "pending",
       notes: o.notes ?? "",
+      level_at_sale: o.level_at_sale ?? "",
+      commission_rate: Number(o.commission_rate ?? 0),
+      plan_price: Number(o.plan_price ?? 0),
     });
     setEditOpen(true);
   };
