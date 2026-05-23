@@ -313,8 +313,12 @@ export default function TeamMembers() {
   const isNorris = editTarget?.user_id === NORRIS_USER_ID;
 
   const toggleEditRole = (role: TeamRole) => {
-    setEditRoles((prev) => (prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]));
+    setEditRoles((prev) => {
+      const next = prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role];
+      return applyManagerExclusion(next);
+    });
   };
+
 
   const handleSave = async () => {
     if (!editTarget) return;
