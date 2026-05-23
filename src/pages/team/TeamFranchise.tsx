@@ -176,7 +176,7 @@ export default function TeamFranchise() {
       <h2 className="text-2xl font-bold">特許加盟</h2>
       <Tabs defaultValue="orders">
         <TabsList>
-          <TabsTrigger value="orders">訂單列表（內部）</TabsTrigger>
+          <TabsTrigger value="orders">內部銷售</TabsTrigger>
           <TabsTrigger value="external">外部銷售</TabsTrigger>
           <TabsTrigger value="stats">業績統計</TabsTrigger>
           {canManageDistributions && (
@@ -199,7 +199,7 @@ export default function TeamFranchise() {
           </TabsContent>
         )}
         <TabsContent value="settings" className="mt-4">
-          <SettingsTab canManage={canManage} />
+          <SettingsTab canManage={canManage} canManageProjects={canManageDistributions} />
         </TabsContent>
       </Tabs>
     </div>
