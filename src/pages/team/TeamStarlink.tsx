@@ -25,6 +25,12 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -176,6 +182,13 @@ function OrdersTab({
     notes: "",
   });
   const [editSaving, setEditSaving] = useState(false);
+
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailOrder, setDetailOrder] = useState<StarlinkOrder | null>(null);
+  const openDetail = (o: StarlinkOrder) => {
+    setDetailOrder(o);
+    setDetailOpen(true);
+  };
 
   const openEdit = (o: StarlinkOrder) => {
     setEditId(o.id);
@@ -408,38 +421,30 @@ function OrdersTab({
                 <TableHead>方案</TableHead>
                 <TableHead className="text-right">方案金額</TableHead>
                 <TableHead>銷售人</TableHead>
-                <TableHead>成交時等級</TableHead>
-                <TableHead className="text-right">分潤比例</TableHead>
-                <TableHead className="text-right">分潤金額</TableHead>
                 <TableHead>成交日期</TableHead>
                 <TableHead>付款</TableHead>
                 <TableHead>結算</TableHead>
-                <TableHead>統編</TableHead>
-                <TableHead>行業類型</TableHead>
-                <TableHead>匯款末5碼</TableHead>
-                <TableHead>發票號碼</TableHead>
-                <TableHead>合約</TableHead>
-                <TableHead>備註</TableHead>
                 <TableHead className="text-right">編輯</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={17} className="text-center text-muted-foreground py-12">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
                     尚無訂單資料
                   </TableCell>
                 </TableRow>
               ) : (
                 filtered.map((o) => (
-                  <TableRow key={o.id}>
+                  <TableRow
+                    key={o.id}
+                    onClick={() => openDetail(o)}
+                    className="cursor-pointer hover:bg-muted/50"
+                  >
                     <TableCell>{o.client_name}</TableCell>
                     <TableCell>{o.plan_name ?? "—"}</TableCell>
                     <TableCell className="text-right tabular-nums">{fmtMoney(o.plan_price)}</TableCell>
                     <TableCell>{memberName(o.sold_by)}</TableCell>
-                    <TableCell>{o.level_at_sale ?? "—"}</TableCell>
-                    <TableCell className="text-right tabular-nums">{fmtRate(o.commission_rate)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{fmtMoney(o.commission_amount)}</TableCell>
                     <TableCell>{o.sold_at ?? "—"}</TableCell>
                     <TableCell>
                       <Badge variant={o.payment_confirmed ? "success" : "secondary"}>
@@ -451,18 +456,15 @@ function OrdersTab({
                         {o.payout_status === "paid" ? "已發放" : "待結算"}
                       </Badge>
                     </TableCell>
-                    <TableCell>{o.client_tax_id ?? "—"}</TableCell>
-                    <TableCell>{o.business_type ?? "—"}</TableCell>
-                    <TableCell>{o.payment_last5 ?? "—"}</TableCell>
-                    <TableCell>{o.invoice_number ?? "—"}</TableCell>
-                    <TableCell>
-                      <Badge variant={o.contract_uploaded ? "success" : "secondary"}>
-                        {o.contract_uploaded ? "已上傳" : "未上傳"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="max-w-[200px] truncate" title={o.notes ?? ""}>{o.notes ?? "—"}</TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(o)}>
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEdit(o);
+                        }}
+                      >
                         <Pencil className="h-4 w-4" />
                       </Button>
                     </TableCell>
@@ -718,6 +720,80 @@ function OrdersTab({
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      <Drawer open={detailOpen} onOpenChange={setDetailOpen}>
+        <DrawerContent className="max-h-[90vh]">
+          <DrawerHeader className="flex flex-row items-center justify-between">
+            <DrawerTitle>訂單明細</DrawerTitle>
+            {detailOrder && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  const o = detailOrder;
+                  setDetailOpen(false);
+                  openEdit(o);
+                }}
+              >
+                <Pencil className="h-4 w-4 mr-1" /> 編輯
+              </Button>
+            )}
+          </DrawerHeader>
+          {detailOrder && (
+            <div className="px-4 pb-6 overflow-y-auto">
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                {[
+                  ["客戶名稱", detailOrder.client_name],
+                  ["統編", detailOrder.client_tax_id ?? "—"],
+                  ["行業類型", detailOrder.business_type ?? "—"],
+                  ["方案", detailOrder.plan_name ?? "—"],
+                  ["方案金額", fmtMoney(detailOrder.plan_price)],
+                  ["銷售人", memberName(detailOrder.sold_by)],
+                  ["成交時等級", detailOrder.level_at_sale ?? "—"],
+                  ["分潤比例", fmtRate(detailOrder.commission_rate)],
+                  ["分潤金額", fmtMoney(detailOrder.commission_amount)],
+                  ["成交日期", detailOrder.sold_at ?? "—"],
+                  ["匯款末5碼", detailOrder.payment_last5 ?? "—"],
+                  ["發票號碼", detailOrder.invoice_number ?? "—"],
+                ].map(([k, v]) => (
+                  <div key={k as string} className="flex flex-col">
+                    <dt className="text-muted-foreground text-xs">{k}</dt>
+                    <dd className="font-medium">{v}</dd>
+                  </div>
+                ))}
+                <div className="flex flex-col">
+                  <dt className="text-muted-foreground text-xs">付款狀態</dt>
+                  <dd>
+                    <Badge variant={detailOrder.payment_confirmed ? "success" : "secondary"}>
+                      {detailOrder.payment_confirmed ? "已付款" : "未付款"}
+                    </Badge>
+                  </dd>
+                </div>
+                <div className="flex flex-col">
+                  <dt className="text-muted-foreground text-xs">合約已上傳</dt>
+                  <dd>
+                    <Badge variant={detailOrder.contract_uploaded ? "success" : "secondary"}>
+                      {detailOrder.contract_uploaded ? "已上傳" : "未上傳"}
+                    </Badge>
+                  </dd>
+                </div>
+                <div className="flex flex-col">
+                  <dt className="text-muted-foreground text-xs">結算狀態</dt>
+                  <dd>
+                    <Badge variant={detailOrder.payout_status === "paid" ? "success" : "secondary"}>
+                      {detailOrder.payout_status === "paid" ? "已發放" : "待結算"}
+                    </Badge>
+                  </dd>
+                </div>
+                <div className="flex flex-col sm:col-span-2">
+                  <dt className="text-muted-foreground text-xs">備註</dt>
+                  <dd className="whitespace-pre-wrap font-medium">{detailOrder.notes ?? "—"}</dd>
+                </div>
+              </dl>
+            </div>
+          )}
+        </DrawerContent>
+      </Drawer>
     </Card>
   );
 }
