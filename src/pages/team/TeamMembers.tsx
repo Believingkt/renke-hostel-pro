@@ -46,6 +46,21 @@ const ALL_INVITABLE_ROLES: TeamRole[] = [
 // scout_manager 僅能指派的角色
 const SCOUT_MANAGER_INVITABLE_ROLES: TeamRole[] = ["scout", "kol"];
 
+// 篩選下拉的角色選項（不含 super_admin）
+const FILTER_ROLE_OPTIONS: TeamRole[] = [
+  "admin",
+  "closer",
+  "scout",
+  "scout_manager",
+  "video",
+  "franchise",
+  "starlink",
+  "owner",
+  "kol",
+  "finance",
+];
+
+
 const ROLE_LABEL: Record<TeamRole, string> = {
   super_admin: "超級管理員",
   admin: "管理員",
