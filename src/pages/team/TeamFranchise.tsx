@@ -2038,16 +2038,6 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
                       <Badge variant={r.contract_progress === "已完成" ? "success" : r.contract_progress === "取消" ? "destructive" : "secondary"}>
                         {r.contract_progress ?? "—"}
                       </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={(e) => { e.stopPropagation(); setDetail(r); setEditing(false); }}
-                      >
-                        明細
-                      </Button>
-                    </TableCell>
                   </TableRow>
                 ))
               )}
