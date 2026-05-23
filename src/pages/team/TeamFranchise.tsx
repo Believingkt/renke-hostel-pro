@@ -1425,11 +1425,12 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
     const payload = {
       member_id: form.member_id,
       direct_leader_id: form.direct_leader_id || null,
-      title: form.title || null,
-      sub_leader_id: form.sub_leader_id || null,
-      top_leader_id: form.top_leader_id || null,
+      title: null,
+      sub_leader_id: null,
+      top_leader_id: null,
       updated_at: new Date().toISOString(),
     };
+
     const { error } = await supabase
       .from("franchise_team_settings")
       .upsert(payload, { onConflict: "member_id" });
