@@ -923,10 +923,10 @@ function SettingsTab({ canManage }: { canManage: boolean }) {
   const openInternalDialog = () => {
     if (latestInternal) {
       setInternalForm({
-        base_rate: Number(latestInternal.base_rate ?? 0.1) * 100,
-        tier1_rate: Number(latestInternal.tier1_rate ?? 0.11) * 100,
-        tier2_rate: Number(latestInternal.tier2_rate ?? 0.13) * 100,
-        company_rate: Number(latestInternal.company_rate ?? 0.035) * 100,
+        base_rate: parseFloat((Number(latestInternal.base_rate ?? 0.1) * 100).toFixed(4)),
+        tier1_rate: parseFloat((Number(latestInternal.tier1_rate ?? 0.11) * 100).toFixed(4)),
+        tier2_rate: parseFloat((Number(latestInternal.tier2_rate ?? 0.13) * 100).toFixed(4)),
+        company_rate: parseFloat((Number(latestInternal.company_rate ?? 0.035) * 100).toFixed(4)),
         payout_day: latestInternal.payout_day ?? "10",
         effective_from: new Date().toISOString().slice(0, 10),
       });
