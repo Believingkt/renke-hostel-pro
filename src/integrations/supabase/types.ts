@@ -5696,6 +5696,33 @@ export type Database = {
         }
         Relationships: []
       }
+      team_pending_invites: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          email: string
+          id: string
+          invited_by: string | null
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          email: string
+          id?: string
+          invited_by?: string | null
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          email?: string
+          id?: string
+          invited_by?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           accommodation_id: string | null
@@ -5962,6 +5989,7 @@ export type Database = {
       is_admin: { Args: { user_id_param: string }; Returns: boolean }
       is_admin_or_super: { Args: never; Returns: boolean }
       is_super_admin: { Args: { user_uuid: string }; Returns: boolean }
+      is_team_inviter: { Args: { _user_id: string }; Returns: boolean }
       is_user_admin: { Args: { _user_id: string }; Returns: boolean }
       resolve_pricing_template_by_numeric_code: {
         Args: { p_accommodation_id: string; p_code: number }
