@@ -95,11 +95,27 @@ export default function TeamFranchise() {
       <h2 className="text-2xl font-bold">特許加盟</h2>
       <Tabs defaultValue="orders">
         <TabsList>
-          <TabsTrigger value="orders">訂單列表</TabsTrigger>
+          <TabsTrigger value="orders">訂單列表（內部）</TabsTrigger>
+          <TabsTrigger value="external">外部銷售</TabsTrigger>
+          <TabsTrigger value="stats">業績統計</TabsTrigger>
           <TabsTrigger value="settings">分潤設定</TabsTrigger>
         </TabsList>
         <TabsContent value="orders" className="mt-4">
           <OrdersTab canManage={canManage} currentUserId={userId} />
+        </TabsContent>
+        <TabsContent value="external" className="mt-4">
+          <Card>
+            <CardContent className="py-16 text-center text-muted-foreground">
+              外部銷售功能開發中
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="stats" className="mt-4">
+          <Card>
+            <CardContent className="py-16 text-center text-muted-foreground">
+              業績統計功能開發中
+            </CardContent>
+          </Card>
         </TabsContent>
         <TabsContent value="settings" className="mt-4">
           <SettingsTab canManage={canManage} />
