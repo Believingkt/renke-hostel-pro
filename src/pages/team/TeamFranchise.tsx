@@ -1096,6 +1096,7 @@ function SettingsTab({ canManage, canManageProjects }: { canManage: boolean; can
 
   return (
     <div className="space-y-4">
+      {canManageProjects && <ProjectsManagementCard />}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">內部分潤設定</CardTitle>
