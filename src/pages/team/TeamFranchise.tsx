@@ -1882,7 +1882,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>專案名稱</Label>
-                <Input value={form.project_name ?? ""} onChange={(e) => onChange("project_name", e.target.value)} />
+                <ProjectSelect value={form.project_name ?? ""} onChange={(v) => onChange("project_name", v)} />
               </div>
               <div className="space-y-1">
                 <Label>簽約日期</Label>
