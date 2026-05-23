@@ -1913,8 +1913,8 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
 }
 
 // =================== Stats Tab ===================
-interface InternalStatRow { sold_at: string | null; plan_name: string | null; plan_price: number | null; sold_by: string | null; sold_by_name: string | null; }
-interface ExternalStatRow { signed_at: string | null; project_name: string | null; unit_count: number | null; plan_price: number | null; sales_name: string | null; }
+interface InternalStatRow { sold_at: string | null; plan_name: string | null; plan_price: number | null; sold_by: string | null; sold_by_name: string | null; commission_amount: number | null; leader_amount: number | null; company_amount: number | null; }
+interface ExternalStatRow { signed_at: string | null; project_name: string | null; unit_count: number | null; plan_price: number | null; sales_name: string | null; sales_bonus: number | null; co_sales_name: string | null; co_sales_bonus: number | null; co_sales_name2: string | null; co_sales_bonus2: number | null; }
 
 function StatsTab() {
   const [loaded, setLoaded] = useState(false);
