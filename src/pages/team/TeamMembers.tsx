@@ -17,9 +17,9 @@ const NORRIS_USER_ID = "1bc5761a-49a3-40ee-aa45-96ab87070c2e";
 // 完整可指派角色（僅 admin 可選）
 const ALL_INVITABLE_ROLES: TeamRole[] = [
   "admin",
-  "closer",
-  "scout",
   "scout_manager",
+  "scout",
+  "closer",
   "video",
   "franchise",
   "starlink",
