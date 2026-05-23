@@ -1325,8 +1325,17 @@ function SettingsTab({ canManage, canManageProjects }: { canManage: boolean; can
   );
 }
 
+interface TeamMemberProfile {
+  id: string;
+  user_id: string | null;
+  display_name: string;
+  commission_rate: number | null;
+  scout_tier: string | null;
+  is_active: boolean | null;
+}
+
 function TeamSettingsCard({ canManage }: { canManage: boolean }) {
-  const [members, setMembers] = useState<Member[]>([]);
+  const [profiles, setProfiles] = useState<TeamMemberProfile[]>([]);
   const [settings, setSettings] = useState<TeamSetting[]>([]);
   const [editing, setEditing] = useState<TeamSetting | null>(null);
   const [form, setForm] = useState<TeamSetting>({
@@ -1337,48 +1346,53 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
     top_leader_id: null,
   });
 
+  // 新增無帳號成員
+  const [addOpen, setAddOpen] = useState(false);
+  const [newMember, setNewMember] = useState({ display_name: "", commission_rate: "", scout_tier: "" });
+  const [addSaving, setAddSaving] = useState(false);
+
+  // 綁定帳號
+  const [bindingFor, setBindingFor] = useState<TeamMemberProfile | null>(null);
+  const [availableUsers, setAvailableUsers] = useState<{ id: string; email: string | null; name: string | null }[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [bindSaving, setBindSaving] = useState(false);
+
   useEffect(() => {
     void load();
   }, []);
 
   const load = async () => {
-    const [r, s] = await Promise.all([
-      supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "franchise")
-        .is("accommodation_id", null),
+    const [profRes, setRes] = await Promise.all([
+      (supabase as any)
+        .from("team_member_profiles")
+        .select("id,user_id,display_name,commission_rate,scout_tier,is_active")
+        .or("is_active.is.null,is_active.eq.true")
+        .order("display_name"),
       supabase.from("franchise_team_settings").select("*"),
     ]);
-    if (r.data) {
-      const ids = Array.from(new Set((r.data as any[]).map((x) => x.user_id).filter(Boolean)));
-      if (ids.length > 0) {
-        const { data: profs } = await supabase
-          .from("team_member_profiles")
-          .select("user_id, display_name")
-          .in("user_id", ids);
-        const profMap = new Map<string, string>();
-        (profs ?? []).forEach((p: any) => profMap.set(p.user_id, p.display_name));
-        setMembers(
-          ids.map((id) => ({ user_id: id, display_name: profMap.get(id) ?? id }))
-        );
-      } else {
-        setMembers([]);
-      }
-    }
-    if (s.data) setSettings(s.data as TeamSetting[]);
+    setProfiles((profRes.data ?? []) as TeamMemberProfile[]);
+    if (setRes.data) setSettings(setRes.data as TeamSetting[]);
   };
 
-  const memberName = (id: string | null) =>
-    !id ? "—" : members.find((m) => m.user_id === id)?.display_name ?? "—";
+  // 用於下拉選單（隊長）：只有有帳號的成員
+  const accountedMembers: Member[] = useMemo(
+    () =>
+      profiles
+        .filter((p) => p.user_id)
+        .map((p) => ({ user_id: p.user_id as string, display_name: p.display_name })),
+    [profiles]
+  );
 
-  const openEdit = (row: TeamSetting | null, memberId?: string) => {
+  const memberName = (id: string | null) =>
+    !id ? "—" : accountedMembers.find((m) => m.user_id === id)?.display_name ?? "—";
+
+  const openEdit = (row: TeamSetting | null, memberId: string) => {
     if (row) {
       setForm(row);
       setEditing(row);
     } else {
       const next: TeamSetting = {
-        member_id: memberId ?? "",
+        member_id: memberId,
         direct_leader_id: null,
         title: "",
         sub_leader_id: null,
@@ -1408,6 +1422,55 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
     void load();
   };
 
+  const handleAddMember = async () => {
+    const name = newMember.display_name.trim();
+    if (!name) return toast.error("請輸入姓名");
+    setAddSaving(true);
+    const payload: Record<string, unknown> = {
+      display_name: name,
+      user_id: null,
+      commission_rate: newMember.commission_rate === "" ? null : Number(newMember.commission_rate),
+      scout_tier: newMember.scout_tier.trim() || null,
+      is_active: true,
+    };
+    const { error } = await (supabase as any).from("team_member_profiles").insert(payload);
+    setAddSaving(false);
+    if (error) return toast.error("新增失敗：" + error.message);
+    toast.success("已新增成員");
+    setAddOpen(false);
+    setNewMember({ display_name: "", commission_rate: "", scout_tier: "" });
+    void load();
+  };
+
+  const openBind = async (p: TeamMemberProfile) => {
+    setBindingFor(p);
+    setSelectedUserId("");
+    // 撈所有 profiles（系統帳號），排除已被 team_member_profiles.user_id 綁定的
+    const boundIds = new Set(profiles.map((x) => x.user_id).filter(Boolean) as string[]);
+    const { data } = await (supabase as any)
+      .from("profiles")
+      .select("id,email,name")
+      .order("email");
+    const list = ((data ?? []) as { id: string; email: string | null; name: string | null }[]).filter(
+      (u) => !boundIds.has(u.id)
+    );
+    setAvailableUsers(list);
+  };
+
+  const handleBind = async () => {
+    if (!bindingFor || !selectedUserId) return toast.error("請選擇要綁定的帳號");
+    setBindSaving(true);
+    const { error } = await (supabase as any)
+      .from("team_member_profiles")
+      .update({ user_id: selectedUserId })
+      .eq("id", bindingFor.id);
+    setBindSaving(false);
+    if (error) return toast.error("綁定失敗：" + error.message);
+    toast.success("已綁定帳號");
+    setBindingFor(null);
+    void load();
+  };
+
   const settingsByMember = useMemo(() => {
     const map: Record<string, TeamSetting> = {};
     settings.forEach((s) => (map[s.member_id] = s));
@@ -1416,43 +1479,62 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-base">小隊分潤設定</CardTitle>
+        {canManage && (
+          <Button size="sm" onClick={() => setAddOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" /> 新增無帳號成員
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>隊員</TableHead>
+              <TableHead>帳號</TableHead>
               <TableHead>直屬隊長</TableHead>
               <TableHead>稱號</TableHead>
               <TableHead>小組隊長</TableHead>
               <TableHead>最上層隊長</TableHead>
-              {canManage && <TableHead className="w-20"></TableHead>}
+              {canManage && <TableHead className="w-32 text-right">操作</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {members.length === 0 ? (
+            {profiles.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={canManage ? 6 : 5} className="text-center text-muted-foreground py-8">
-                  尚無 franchise 角色成員
+                <TableCell colSpan={canManage ? 7 : 6} className="text-center text-muted-foreground py-8">
+                  尚無成員
                 </TableCell>
               </TableRow>
             ) : (
-              members.map((m) => {
-                const s = settingsByMember[m.user_id];
+              profiles.map((p) => {
+                const s = p.user_id ? settingsByMember[p.user_id] : undefined;
                 return (
-                  <TableRow key={m.user_id}>
-                    <TableCell>{m.display_name}</TableCell>
+                  <TableRow key={p.id}>
+                    <TableCell>{p.display_name}</TableCell>
+                    <TableCell>
+                      {p.user_id ? (
+                        <Badge variant="success">已綁定</Badge>
+                      ) : (
+                        <Badge variant="secondary">無帳號</Badge>
+                      )}
+                    </TableCell>
                     <TableCell>{memberName(s?.direct_leader_id ?? null)}</TableCell>
                     <TableCell>{s?.title ?? "—"}</TableCell>
                     <TableCell>{memberName(s?.sub_leader_id ?? null)}</TableCell>
                     <TableCell>{memberName(s?.top_leader_id ?? null)}</TableCell>
                     {canManage && (
-                      <TableCell>
-                        <Button size="icon" variant="ghost" onClick={() => openEdit(s ?? null, m.user_id)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+                      <TableCell className="text-right">
+                        {p.user_id ? (
+                          <Button size="icon" variant="ghost" onClick={() => openEdit(s ?? null, p.user_id as string)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button size="sm" variant="outline" onClick={() => openBind(p)}>
+                            綁定帳號
+                          </Button>
+                        )}
                       </TableCell>
                     )}
                   </TableRow>
@@ -1491,7 +1573,7 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">無</SelectItem>
-                    {members
+                    {accountedMembers
                       .filter((m) => m.user_id !== form.member_id)
                       .map((m) => (
                         <SelectItem key={m.user_id} value={m.user_id}>
@@ -1518,9 +1600,87 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      {/* 新增無帳號成員 Dialog */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>新增無帳號成員</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>姓名 *</Label>
+              <Input
+                value={newMember.display_name}
+                onChange={(e) => setNewMember({ ...newMember, display_name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>分潤比例 (0~1)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={newMember.commission_rate}
+                onChange={(e) => setNewMember({ ...newMember, commission_rate: e.target.value })}
+                placeholder="例：0.1"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Scout Tier</Label>
+              <Input
+                value={newMember.scout_tier}
+                onChange={(e) => setNewMember({ ...newMember, scout_tier: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddOpen(false)}>取消</Button>
+            <Button onClick={handleAddMember} disabled={addSaving}>
+              {addSaving ? "儲存中..." : "儲存"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 綁定帳號 Dialog */}
+      <Dialog open={!!bindingFor} onOpenChange={(o) => !o && setBindingFor(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>綁定帳號：{bindingFor?.display_name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>選擇帳號</Label>
+              <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="選擇要綁定的使用者" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableUsers.length === 0 ? (
+                    <div className="px-3 py-2 text-xs text-muted-foreground">無可綁定的帳號</div>
+                  ) : (
+                    availableUsers.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.email ?? u.name ?? u.id}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBindingFor(null)}>取消</Button>
+            <Button onClick={handleBind} disabled={bindSaving || !selectedUserId}>
+              {bindSaving ? "綁定中..." : "綁定"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
+
 
 interface ExternalOrder {
   id: string;
