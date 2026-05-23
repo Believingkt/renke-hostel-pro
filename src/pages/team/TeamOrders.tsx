@@ -147,20 +147,39 @@ export default function TeamOrders() {
   async function loadOrders() {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("orders")
-        .select(
-          `id, order_number, guest_name, check_in_date, check_out_date,
-           final_price, discount_code, order_source, accommodation_id, created_at,
-           accommodation_info:accommodation_id ( name ),
-           order_meta ( closer_id, video_creator_id, scout_id, traffic_source,
+      const [ordersRes, accRes] = await Promise.all([
+        supabase
+          .from("orders")
+          .select(
+            `id, order_number, guest_name, check_in_date, check_out_date,
+             final_price, discount_code, order_source, accommodation_id, created_at`
+          )
+          .order("created_at", { ascending: false })
+          .limit(2000),
+        supabase.from("accommodation_info").select("id, name"),
+      ]);
+      if (ordersRes.error) throw ordersRes.error;
+      if (accRes.error) throw accRes.error;
+
+      const orderIds = (ordersRes.data || []).map((o: any) => o.id);
+      let metaMap = new Map<string, MetaRow>();
+      if (orderIds.length > 0) {
+        const { data: metaData, error: metaErr } = await supabase
+          .from("order_meta")
+          .select(
+            `order_id, closer_id, video_creator_id, scout_id, traffic_source,
              booking_method, ad_id, is_excluded, closer_assisted,
-             scout_commission_rate, closer_commission_rate, exclusion_note )`
-        )
-        .order("created_at", { ascending: false })
-        .limit(2000);
-      if (error) throw error;
-      const rows: OrderRow[] = (data || []).map((o: any) => ({
+             scout_commission_rate, closer_commission_rate, exclusion_note`
+          )
+          .in("order_id", orderIds);
+        if (metaErr) throw metaErr;
+        (metaData || []).forEach((m: any) => metaMap.set(m.order_id, m));
+      }
+
+      const accMap = new Map<string, string>();
+      (accRes.data || []).forEach((a: any) => accMap.set(a.id, a.name));
+
+      const rows: OrderRow[] = (ordersRes.data || []).map((o: any) => ({
         id: o.id,
         order_number: o.order_number,
         guest_name: o.guest_name,
@@ -171,10 +190,8 @@ export default function TeamOrders() {
         order_source: o.order_source,
         accommodation_id: o.accommodation_id,
         created_at: o.created_at,
-        accommodation_name: o.accommodation_info?.name || "-",
-        meta: Array.isArray(o.order_meta)
-          ? o.order_meta[0] || null
-          : o.order_meta || null,
+        accommodation_name: accMap.get(o.accommodation_id) || "-",
+        meta: metaMap.get(o.id) || null,
       }));
       setOrders(rows);
     } catch (e: any) {
