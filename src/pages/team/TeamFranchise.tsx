@@ -2689,3 +2689,94 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
     </div>
   );
 }
+
+// ============== 專案管理 Card ==============
+function ProjectsManagementCard() {
+  const projects = useFranchiseProjects(true);
+  const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const handleAdd = async () => {
+    const trimmed = name.trim();
+    if (!trimmed) return toast.error("請輸入專案名稱");
+    setSaving(true);
+    const { error } = await (supabase as any)
+      .from("franchise_projects")
+      .insert({ name: trimmed });
+    setSaving(false);
+    if (error) return toast.error("新增失敗：" + error.message);
+    toast.success("已新增專案");
+    setName("");
+    bumpFranchiseProjects();
+  };
+
+  const handleToggle = async (p: FranchiseProject) => {
+    const { error } = await (supabase as any)
+      .from("franchise_projects")
+      .update({ is_active: !p.is_active })
+      .eq("id", p.id);
+    if (error) return toast.error("更新失敗：" + error.message);
+    toast.success(p.is_active ? "已停用" : "已啟用");
+    bumpFranchiseProjects();
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">專案管理</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex gap-2">
+          <Input
+            placeholder="新增專案名稱"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void handleAdd();
+            }}
+            className="max-w-sm"
+          />
+          <Button onClick={handleAdd} disabled={saving}>
+            <Plus className="h-4 w-4 mr-1" /> 新增
+          </Button>
+        </div>
+        <div className="border rounded-md">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>專案名稱</TableHead>
+                <TableHead>狀態</TableHead>
+                <TableHead className="w-24 text-right">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {projects.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center text-muted-foreground py-6">
+                    尚無專案
+                  </TableCell>
+                </TableRow>
+              ) : (
+                projects.map((p) => (
+                  <TableRow key={p.id}>
+                    <TableCell>{p.name}</TableCell>
+                    <TableCell>
+                      <Badge variant={p.is_active ? "success" : "secondary"}>
+                        {p.is_active ? "啟用" : "停用"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button size="sm" variant="outline" onClick={() => handleToggle(p)}>
+                        {p.is_active ? "停用" : "啟用"}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
