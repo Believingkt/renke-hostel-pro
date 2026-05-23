@@ -1188,6 +1188,202 @@ function SettingsTab({ canManage }: { canManage: boolean }) {
   );
 }
 
+function TeamSettingsCard({ canManage }: { canManage: boolean }) {
+  const [members, setMembers] = useState<Member[]>([]);
+  const [settings, setSettings] = useState<TeamSetting[]>([]);
+  const [editing, setEditing] = useState<TeamSetting | null>(null);
+  const [form, setForm] = useState<TeamSetting>({
+    member_id: "",
+    direct_leader_id: null,
+    title: "",
+    sub_leader_id: null,
+    top_leader_id: null,
+  });
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  const load = async () => {
+    const [m, s] = await Promise.all([
+      supabase
+        .from("user_roles")
+        .select("user_id, team_member_profiles!inner(user_id, display_name)")
+        .eq("role", "franchise")
+        .is("accommodation_id", null),
+      supabase.from("franchise_team_settings").select("*"),
+    ]);
+    if (m.data) {
+      const seen = new Set<string>();
+      const list: Member[] = [];
+      (m.data as any[]).forEach((row) => {
+        const pid = row.team_member_profiles?.user_id;
+        if (pid && !seen.has(pid)) {
+          seen.add(pid);
+          list.push({
+            user_id: pid,
+            display_name: row.team_member_profiles?.display_name ?? pid,
+          });
+        }
+      });
+      setMembers(list);
+    }
+    if (s.data) setSettings(s.data as TeamSetting[]);
+  };
+
+  const memberName = (id: string | null) =>
+    !id ? "—" : members.find((m) => m.user_id === id)?.display_name ?? "—";
+
+  const openEdit = (row: TeamSetting | null, memberId?: string) => {
+    if (row) {
+      setForm(row);
+      setEditing(row);
+    } else {
+      const next: TeamSetting = {
+        member_id: memberId ?? "",
+        direct_leader_id: null,
+        title: "",
+        sub_leader_id: null,
+        top_leader_id: null,
+      };
+      setForm(next);
+      setEditing(next);
+    }
+  };
+
+  const save = async () => {
+    if (!form.member_id) return toast.error("請選擇成員");
+    const payload = {
+      member_id: form.member_id,
+      direct_leader_id: form.direct_leader_id || null,
+      title: form.title || null,
+      sub_leader_id: form.sub_leader_id || null,
+      top_leader_id: form.top_leader_id || null,
+      updated_at: new Date().toISOString(),
+    };
+    const { error } = await supabase
+      .from("franchise_team_settings")
+      .upsert(payload, { onConflict: "member_id" });
+    if (error) return toast.error("儲存失敗：" + error.message);
+    toast.success("已儲存");
+    setEditing(null);
+    void load();
+  };
+
+  const settingsByMember = useMemo(() => {
+    const map: Record<string, TeamSetting> = {};
+    settings.forEach((s) => (map[s.member_id] = s));
+    return map;
+  }, [settings]);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">小隊分潤設定</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>隊員</TableHead>
+              <TableHead>直屬隊長</TableHead>
+              <TableHead>稱號</TableHead>
+              <TableHead>小組隊長</TableHead>
+              <TableHead>最上層隊長</TableHead>
+              {canManage && <TableHead className="w-20"></TableHead>}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {members.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={canManage ? 6 : 5} className="text-center text-muted-foreground py-8">
+                  尚無 franchise 角色成員
+                </TableCell>
+              </TableRow>
+            ) : (
+              members.map((m) => {
+                const s = settingsByMember[m.user_id];
+                return (
+                  <TableRow key={m.user_id}>
+                    <TableCell>{m.display_name}</TableCell>
+                    <TableCell>{memberName(s?.direct_leader_id ?? null)}</TableCell>
+                    <TableCell>{s?.title ?? "—"}</TableCell>
+                    <TableCell>{memberName(s?.sub_leader_id ?? null)}</TableCell>
+                    <TableCell>{memberName(s?.top_leader_id ?? null)}</TableCell>
+                    {canManage && (
+                      <TableCell>
+                        <Button size="icon" variant="ghost" onClick={() => openEdit(s ?? null, m.user_id)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </CardContent>
+
+      <Sheet open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>編輯小隊設定</SheetTitle>
+          </SheetHeader>
+          <div className="space-y-3 mt-4">
+            <div className="space-y-1">
+              <Label>隊員</Label>
+              <Input value={memberName(form.member_id)} disabled />
+            </div>
+            {[
+              { key: "direct_leader_id", label: "直屬隊長" },
+              { key: "sub_leader_id", label: "小組隊長" },
+              { key: "top_leader_id", label: "最上層隊長" },
+            ].map((f) => (
+              <div key={f.key} className="space-y-1">
+                <Label>{f.label}</Label>
+                <Select
+                  value={(form as any)[f.key] || "none"}
+                  onValueChange={(v) =>
+                    setForm({ ...form, [f.key]: v === "none" ? null : v } as TeamSetting)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">無</SelectItem>
+                    {members
+                      .filter((m) => m.user_id !== form.member_id)
+                      .map((m) => (
+                        <SelectItem key={m.user_id} value={m.user_id}>
+                          {m.display_name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
+            <div className="space-y-1">
+              <Label>稱號</Label>
+              <Input
+                value={form.title ?? ""}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+              />
+            </div>
+          </div>
+          <SheetFooter className="mt-4">
+            <Button variant="outline" onClick={() => setEditing(null)}>
+              取消
+            </Button>
+            <Button onClick={save}>儲存</Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+    </Card>
+  );
+}
+
 interface ExternalOrder {
   id: string;
   project_name: string;
