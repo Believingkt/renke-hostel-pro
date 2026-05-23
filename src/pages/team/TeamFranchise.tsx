@@ -410,33 +410,38 @@ function OrdersTab({
     if (o.data) setOrders(o.data as FranchiseOrder[]);
 
     const ftsRows = (ftsRes.data ?? []) as any[];
-    if (ftsRows.length > 0) {
-      const ids = Array.from(
-        new Set(ftsRows.map((r) => r.member_id).filter(Boolean)),
-      );
-      if (ids.length > 0) {
-        const { data: pd } = await supabase
-          .from("team_member_profiles")
-          .select("user_id, display_name")
-          .in("user_id", ids);
-        if (pd) {
-          setMembers(
-            (pd as any[]).map((p) => ({
-              user_id: p.user_id,
-              display_name: p.display_name ?? p.user_id,
-            })),
-          );
-        }
-      } else {
-        setMembers([]);
+    // 銷售人下拉：合併 franchise_team_settings 成員 + 擁有 franchise / franchise_manager role 的使用者
+    const memberIdSet = new Set<string>(
+      ftsRows.map((r) => r.member_id).filter(Boolean) as string[],
+    );
+    const { data: roleRows } = await (supabase as any)
+      .from("user_roles")
+      .select("user_id")
+      .in("role", ["franchise", "franchise_manager"]);
+    for (const r of (roleRows ?? []) as { user_id: string }[]) {
+      if (r.user_id) memberIdSet.add(r.user_id);
+    }
+    const allIds = Array.from(memberIdSet);
+    if (allIds.length > 0) {
+      const { data: pd } = await supabase
+        .from("team_member_profiles")
+        .select("user_id, display_name")
+        .in("user_id", allIds);
+      const seen = new Set<string>();
+      const list: Member[] = [];
+      for (const p of ((pd ?? []) as any[])) {
+        if (seen.has(p.user_id)) continue;
+        seen.add(p.user_id);
+        list.push({ user_id: p.user_id, display_name: p.display_name ?? p.user_id });
       }
-      const map: Record<string, TeamSetting> = {};
-      ftsRows.forEach((row) => (map[row.member_id] = row));
-      setTeamSettings(map);
+      list.sort((a, b) => a.display_name.localeCompare(b.display_name));
+      setMembers(list);
     } else {
       setMembers([]);
-      setTeamSettings({});
     }
+    const map: Record<string, TeamSetting> = {};
+    ftsRows.forEach((row) => (map[row.member_id] = row));
+    setTeamSettings(map);
   };
 
   const memberName = (id: string | null, name?: string | null) =>
