@@ -1357,7 +1357,7 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
 
   // 新增無帳號成員
   const [addOpen, setAddOpen] = useState(false);
-  const [newMember, setNewMember] = useState({ display_name: "", commission_rate: "", scout_tier: "" });
+  const [newMember, setNewMember] = useState({ display_name: "", commission_rate: "" });
   const [addSaving, setAddSaving] = useState(false);
 
   // 綁定帳號
