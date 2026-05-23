@@ -1088,6 +1088,10 @@ function SettingsTab({ canManage }: { canManage: boolean }) {
         </CardContent>
       </Card>
 
+      <TeamSettingsCard canManage={canManage} />
+
+
+
       <Dialog open={internalDialogOpen} onOpenChange={setInternalDialogOpen}>
         <DialogContent>
           <DialogHeader>
