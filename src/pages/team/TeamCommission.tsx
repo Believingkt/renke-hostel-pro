@@ -605,7 +605,7 @@ function PayoutRulesBlock() {
             <TableHeader>
               <TableRow>
                 <TableHead>獎金類型</TableHead>
-                <TableHead>規則名稱</TableHead>
+                <TableHead>備註</TableHead>
                 <TableHead>結算週期</TableHead>
                 <TableHead>發放日</TableHead>
                 <TableHead>說明</TableHead>
