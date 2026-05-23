@@ -146,13 +146,12 @@ export default function TeamMembers() {
           .is("accommodation_id", null)
       : { data: [] as { user_id: string; role: string }[] };
 
-    const rolesMap = new Map<string, TeamRole[]>();
+    const rolesMap = new Map<string, Set<TeamRole>>();
     (rolesData ?? []).forEach((r) => {
-      const arr = rolesMap.get(r.user_id) ?? [];
-      if (TEAM_ROLES.includes(r.role as TeamRole)) {
-        arr.push(r.role as TeamRole);
-      }
-      rolesMap.set(r.user_id, arr);
+      if (!TEAM_ROLES.includes(r.role as TeamRole)) return;
+      const set = rolesMap.get(r.user_id) ?? new Set<TeamRole>();
+      set.add(r.role as TeamRole);
+      rolesMap.set(r.user_id, set);
     });
 
     // 3. 取得 email
