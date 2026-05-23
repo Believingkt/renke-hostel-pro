@@ -653,6 +653,14 @@ function PayoutRulesBlock() {
               </Select>
             </div>
             <div>
+              <Label>備註（選填）</Label>
+              <Input
+                placeholder="備註（選填）"
+                value={draft.rule_name}
+                onChange={(e) => setDraft({ ...draft, rule_name: e.target.value })}
+              />
+            </div>
+            <div>
               <Label>規則名稱</Label>
               <Input value={draft.rule_name} onChange={(e) => setDraft({ ...draft, rule_name: e.target.value })} />
             </div>
