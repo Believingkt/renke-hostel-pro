@@ -1714,7 +1714,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
                 </div>
                 <div className="space-y-2">
                   <DetailRow label="開發業務">{detail.sales_name ?? "—"}</DetailRow>
-                  <DetailRow label="業務 Email">{detail.sales_email ?? "—"}</DetailRow>
+                  <DetailRow label="業務 Email"><div className="break-all">{detail.sales_email ?? "—"}</div></DetailRow>
                   <DetailRow label="業務電話">{detail.sales_phone ?? "—"}</DetailRow>
                 </div>
                 <div className="space-y-2">
