@@ -122,7 +122,7 @@ export default function TeamMembers() {
       return;
     }
 
-    const userIds = (profiles ?? []).map((p) => p.user_id);
+    const userIds = (profiles ?? []).map((p) => p.user_id).filter((id): id is string => !!id);
 
     // 2. 取得對應角色 (accommodation_id IS NULL)
     const { data: rolesData } = userIds.length
