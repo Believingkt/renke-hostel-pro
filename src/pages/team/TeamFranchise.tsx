@@ -412,6 +412,31 @@ function OrdersTab({
             </TableBody>
           </Table>
         </div>
+        {filtered.length > 0 && (
+          <div className="flex items-center justify-between gap-2 mt-3 flex-wrap">
+            <div className="text-sm text-muted-foreground">
+              第 {page} 頁，共 {filtered.length} 筆
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                上一頁
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                下一頁
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
 
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
