@@ -168,7 +168,10 @@ function OrdersTab({
     invoice_number: "",
     contract_uploaded: false,
     notes: "",
+    level_at_sale: "",
+    commission_rate: 0,
   });
+  const [autoTierInfo, setAutoTierInfo] = useState<{ level: string; rate: number; count: number } | null>(null);
   const [saving, setSaving] = useState(false);
 
   const [editOpen, setEditOpen] = useState(false);
@@ -186,6 +189,9 @@ function OrdersTab({
     contract_uploaded: false,
     payout_status: "pending",
     notes: "",
+    level_at_sale: "",
+    commission_rate: 0,
+    plan_price: 0,
   });
   const [editSaving, setEditSaving] = useState(false);
 
@@ -211,6 +217,9 @@ function OrdersTab({
       contract_uploaded: !!o.contract_uploaded,
       payout_status: o.payout_status ?? "pending",
       notes: o.notes ?? "",
+      level_at_sale: o.level_at_sale ?? "",
+      commission_rate: Number(o.commission_rate ?? 0),
+      plan_price: Number(o.plan_price ?? 0),
     });
     setEditOpen(true);
   };
@@ -233,6 +242,9 @@ function OrdersTab({
         contract_uploaded: editForm.contract_uploaded,
         payout_status: editForm.payout_status,
         notes: editForm.notes.trim() || null,
+        level_at_sale: editForm.level_at_sale.trim() || null,
+        commission_rate: editForm.commission_rate || null,
+        commission_amount: Math.round(editForm.plan_price * editForm.commission_rate),
       })
       .eq("id", editId);
     setEditSaving(false);
@@ -325,15 +337,7 @@ function OrdersTab({
     if (!plan) return;
     setSaving(true);
 
-    // count paid orders for this sales person
-    const { count } = await supabase
-      .from("starlink_orders")
-      .select("id", { count: "exact", head: true })
-      .eq("sold_by", form.sold_by)
-      .eq("payout_status", "paid");
-    const tier = findTierForCount(count ?? 0);
-    const rate = Number(tier?.signup_bonus_rate ?? 0);
-
+    const rate = Number(form.commission_rate ?? 0);
     const payload = {
       client_name: form.client_name.trim(),
       client_tax_id: form.client_tax_id.trim() || null,
@@ -341,7 +345,7 @@ function OrdersTab({
       plan_name: plan.plan_name,
       plan_price: plan.price,
       sold_by: form.sold_by,
-      level_at_sale: tier?.level ?? null,
+      level_at_sale: form.level_at_sale.trim() || null,
       commission_rate: rate || null,
       commission_amount: Math.round(plan.price * rate),
       sold_at: form.sold_at,
@@ -360,6 +364,7 @@ function OrdersTab({
     }
     toast.success("已新增訂單");
     setSheetOpen(false);
+    setAutoTierInfo(null);
     setForm({
       client_name: "",
       client_tax_id: "",
@@ -372,9 +377,31 @@ function OrdersTab({
       invoice_number: "",
       contract_uploaded: false,
       notes: "",
+      level_at_sale: "",
+      commission_rate: 0,
     });
     void loadAll();
   };
+
+  const selectSoldBy = async (userIdSel: string) => {
+    setForm((f) => ({ ...f, sold_by: userIdSel }));
+    const { count } = await supabase
+      .from("starlink_orders")
+      .select("id", { count: "exact", head: true })
+      .eq("sold_by", userIdSel)
+      .eq("payout_status", "paid");
+    const c = count ?? 0;
+    const tier = findTierForCount(c);
+    const rate = Number(tier?.signup_bonus_rate ?? 0);
+    setAutoTierInfo({ level: tier?.tier_name ?? tier?.level ?? "—", rate, count: c });
+    setForm((f) => ({
+      ...f,
+      sold_by: userIdSel,
+      level_at_sale: tier?.level ?? "",
+      commission_rate: rate,
+    }));
+  };
+
 
   const years = useMemo(() => {
     const cur = new Date().getFullYear();
@@ -565,7 +592,7 @@ function OrdersTab({
               <Label>銷售人 *</Label>
               <Select
                 value={form.sold_by || undefined}
-                onValueChange={(v) => setForm({ ...form, sold_by: v })}
+                onValueChange={(v) => void selectSoldBy(v)}
               >
                 <SelectTrigger><SelectValue placeholder="選擇銷售人" /></SelectTrigger>
                 <SelectContent>
@@ -574,6 +601,46 @@ function OrdersTab({
                   ))}
                 </SelectContent>
               </Select>
+              {autoTierInfo && (
+                <p className="text-xs text-muted-foreground">
+                  目前等級：{autoTierInfo.level}，分潤比例：{(autoTierInfo.rate * 100).toFixed(2)}%（共 {autoTierInfo.count} 筆有效訂單）
+                </p>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label>成交時等級</Label>
+                <Input
+                  value={form.level_at_sale}
+                  onChange={(e) => setForm({ ...form, level_at_sale: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>分潤比例 (%)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  max={100}
+                  value={form.commission_rate ? (form.commission_rate * 100).toString() : ""}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    setForm({ ...form, commission_rate: isNaN(v) ? 0 : v / 100 });
+                  }}
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>分潤金額</Label>
+              <Input
+                readOnly
+                className="bg-muted"
+                value={(() => {
+                  const plan = plans.find((p) => p.plan_name === form.plan_name);
+                  const price = plan?.price ?? 0;
+                  return fmtMoney(Math.round(price * (form.commission_rate || 0)));
+                })()}
+              />
             </div>
             <div className="space-y-1">
               <Label>成交日期</Label>
@@ -691,6 +758,37 @@ function OrdersTab({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label>成交時等級</Label>
+                <Input
+                  value={editForm.level_at_sale}
+                  onChange={(e) => setEditForm({ ...editForm, level_at_sale: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>分潤比例 (%)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  max={100}
+                  value={editForm.commission_rate ? (editForm.commission_rate * 100).toString() : ""}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    setEditForm({ ...editForm, commission_rate: isNaN(v) ? 0 : v / 100 });
+                  }}
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>分潤金額</Label>
+              <Input
+                readOnly
+                className="bg-muted"
+                value={fmtMoney(Math.round(editForm.plan_price * (editForm.commission_rate || 0)))}
+              />
             </div>
             <div className="space-y-1">
               <Label>成交日期</Label>
