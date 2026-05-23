@@ -378,10 +378,6 @@ function OrdersTab({
                 <TableHead>方案</TableHead>
                 <TableHead className="text-right">方案金額</TableHead>
                 <TableHead>銷售人</TableHead>
-                <TableHead>直屬隊長</TableHead>
-                <TableHead className="text-right">個人分潤</TableHead>
-                <TableHead className="text-right">隊長補差額</TableHead>
-                <TableHead className="text-right">公司提撥</TableHead>
                 <TableHead>成交日期</TableHead>
                 <TableHead>付款</TableHead>
                 <TableHead>結算</TableHead>
@@ -390,27 +386,24 @@ function OrdersTab({
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center text-muted-foreground py-12">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-12">
                     尚無訂單資料
                   </TableCell>
                 </TableRow>
               ) : (
                 pageItems.map((o) => (
-                  <TableRow key={o.id}>
+                  <TableRow
+                    key={o.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => {
+                      setDetailOrder(o);
+                      setDetailEditing(false);
+                    }}
+                  >
                     <TableCell>{o.customer_name}</TableCell>
                     <TableCell>{o.plan_name ?? "—"}</TableCell>
                     <TableCell className="text-right tabular-nums">{fmtMoney(o.plan_price)}</TableCell>
                     <TableCell>{memberName(o.sold_by, o.sold_by_name)}</TableCell>
-                    <TableCell>{memberName(o.team_leader)}</TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {fmtMoney(o.commission_amount)} <span className="text-xs text-muted-foreground">({fmtRate(o.commission_rate)})</span>
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {fmtMoney(o.leader_amount)} <span className="text-xs text-muted-foreground">({fmtRate(o.leader_rate)})</span>
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {fmtMoney(o.company_amount)} <span className="text-xs text-muted-foreground">({fmtRate(o.company_rate)})</span>
-                    </TableCell>
                     <TableCell>{o.sold_at ?? "—"}</TableCell>
                     <TableCell>
                       <Badge variant={o.payment_confirmed ? "success" : "secondary"}>
