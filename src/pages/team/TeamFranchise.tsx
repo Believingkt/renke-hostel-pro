@@ -1252,22 +1252,60 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
   const [form, setForm] = useState<Partial<ExternalOrder>>(emptyExternalForm());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [externalRates, setExternalRates] = useState<Record<string, ExternalRates>>({});
 
   const load = async () => {
-    const { data, error } = await supabase
-      .from("franchise_external_orders")
-      .select("*")
-      .order("signed_at", { ascending: false, nullsFirst: false });
-    if (error) {
-      toast.error("讀取失敗：" + error.message);
+    const [ordersRes, ratesRes] = await Promise.all([
+      supabase
+        .from("franchise_external_orders")
+        .select("*")
+        .order("signed_at", { ascending: false, nullsFirst: false }),
+      (supabase as any)
+        .from("franchise_commission_settings")
+        .select("*")
+        .eq("type", "external")
+        .order("effective_from", { ascending: false }),
+    ]);
+    if (ordersRes.error) {
+      toast.error("讀取失敗：" + ordersRes.error.message);
       return;
     }
-    setRows((data ?? []) as ExternalOrder[]);
+    setRows((ordersRes.data ?? []) as ExternalOrder[]);
+
+    const rateMap: Record<string, ExternalRates> = {};
+    ((ratesRes.data ?? []) as any[]).forEach((r) => {
+      if (!rateMap[r.project_name]) {
+        rateMap[r.project_name] = {
+          sales_rate: Number(r.sales_rate ?? 0.2),
+          co_sales1_rate: Number(r.co_sales1_rate ?? 0.1),
+          co_sales2_rate: Number(r.co_sales2_rate ?? 0.15),
+          payout_day: r.payout_day ?? null,
+        };
+      }
+    });
+    setExternalRates(rateMap);
   };
 
   useEffect(() => {
     void load();
   }, []);
+
+  // Auto-fill bonuses when project / unit / price change (only for new order, not edit)
+  useEffect(() => {
+    if (editingId) return;
+    const project = (form.project_name ?? "").trim();
+    if (!project) return;
+    const r = externalRates[project];
+    if (!r) return;
+    const total = (Number(form.unit_count) || 0) * (Number(form.plan_price) || 0);
+    setForm((prev) => ({
+      ...prev,
+      sales_bonus: Math.round(total * r.sales_rate),
+      co_sales_bonus: Math.round(total * r.co_sales1_rate),
+      co_sales_bonus2: Math.round(total * r.co_sales2_rate),
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.project_name, form.unit_count, form.plan_price, externalRates, editingId, sheetOpen]);
 
   const projects = useMemo(() => {
     const set = new Set<string>();
