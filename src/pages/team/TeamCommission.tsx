@@ -28,23 +28,21 @@ import {
 import { toast } from "sonner";
 import { Plus, Pencil, StopCircle } from "lucide-react";
 
-const COMMISSION_TYPE_LABEL: Record<string, string> = {
+// 統一獎金類型清單（結算規則 + 加倍活動共用）
+const BONUS_TYPE_LABEL: Record<string, string> = {
+  all: "全部獎金",
   closer: "成交組訂房佣金",
   video: "影音組分潤",
   scout_kol: "星探KOL分潤",
+  scout_base: "星探底薪+團隊獎金",
   franchise: "特許加盟獎金",
   starlink: "星鏈方案獎金",
 };
 
-const BONUS_TYPE_LABEL: Record<string, string> = {
-  all: "全部獎金",
-  closer: "成交組",
-  video: "影音組",
-  scout_kol: "星探KOL分潤",
-  scout_base: "星探底薪+團隊獎金",
-  franchise: "特許加盟",
-  starlink: "星鏈",
-};
+// 結算規則用（不含「全部」）
+const COMMISSION_TYPE_LABEL: Record<string, string> = Object.fromEntries(
+  Object.entries(BONUS_TYPE_LABEL).filter(([k]) => k !== "all"),
+);
 
 const CYCLE_LABEL: Record<string, string> = {
   bimonthly: "每月兩次",
@@ -59,7 +57,10 @@ const formatMoney = (n: number | null | undefined) =>
 
 export default function TeamCommission() {
   const { roles } = useTeam();
-  const canAccess = roles.includes("super_admin") || roles.includes("admin");
+  const isAdmin = roles.includes("super_admin") || roles.includes("admin");
+  const isScoutManager = roles.includes("scout_manager");
+  const canAccess = isAdmin || isScoutManager;
+  const scoutManagerOnly = !isAdmin && isScoutManager;
 
   if (!canAccess) {
     return (
@@ -80,22 +81,26 @@ export default function TeamCommission() {
       <Tabs defaultValue="scout">
         <TabsList>
           <TabsTrigger value="scout">星探獎金設定</TabsTrigger>
-          <TabsTrigger value="payout">結算規則</TabsTrigger>
-          <TabsTrigger value="multiplier">獎金加倍活動</TabsTrigger>
+          {isAdmin && <TabsTrigger value="payout">結算規則</TabsTrigger>}
+          {isAdmin && <TabsTrigger value="multiplier">獎金加倍活動</TabsTrigger>}
           <TabsTrigger value="payouts">發放管理</TabsTrigger>
         </TabsList>
         <TabsContent value="scout" className="space-y-6">
           <TierSettingsBlock />
           <SalarySettingsBlock />
         </TabsContent>
-        <TabsContent value="payout">
-          <PayoutRulesBlock />
-        </TabsContent>
-        <TabsContent value="multiplier">
-          <MultiplierBlock />
-        </TabsContent>
+        {isAdmin && (
+          <TabsContent value="payout">
+            <PayoutRulesBlock />
+          </TabsContent>
+        )}
+        {isAdmin && (
+          <TabsContent value="multiplier">
+            <MultiplierBlock />
+          </TabsContent>
+        )}
         <TabsContent value="payouts">
-          <PayoutsBlock />
+          <PayoutsBlock scoutManagerOnly={scoutManagerOnly} />
         </TabsContent>
       </Tabs>
     </div>
@@ -241,7 +246,7 @@ function TierSettingsBlock() {
       </CardContent>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>新增 KOL 分潤等級版本</DialogTitle>
             <DialogDescription>修改後只影響新訂單</DialogDescription>
@@ -600,7 +605,7 @@ function PayoutRulesBlock() {
             <TableHeader>
               <TableRow>
                 <TableHead>獎金類型</TableHead>
-                <TableHead>規則名稱</TableHead>
+                <TableHead>備註</TableHead>
                 <TableHead>結算週期</TableHead>
                 <TableHead>發放日</TableHead>
                 <TableHead>說明</TableHead>
@@ -648,8 +653,12 @@ function PayoutRulesBlock() {
               </Select>
             </div>
             <div>
-              <Label>規則名稱</Label>
-              <Input value={draft.rule_name} onChange={(e) => setDraft({ ...draft, rule_name: e.target.value })} />
+              <Label>備註（選填）</Label>
+              <Input
+                placeholder="備註（選填）"
+                value={draft.rule_name}
+                onChange={(e) => setDraft({ ...draft, rule_name: e.target.value })}
+              />
             </div>
             <div>
               <Label>生效日期</Label>
@@ -888,7 +897,7 @@ interface ScoutOption {
   display_name: string;
 }
 
-function PayoutsBlock() {
+function PayoutsBlock({ scoutManagerOnly = false }: { scoutManagerOnly?: boolean }) {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -898,6 +907,7 @@ function PayoutsBlock() {
   const [loading, setLoading] = useState(true);
 
   const [open, setOpen] = useState(false);
+  const [smCommissionType, setSmCommissionType] = useState<"scout_kol" | "scout_base">("scout_kol");
   const [draft, setDraft] = useState({
     scout_id: "",
     year: now.getFullYear(),
@@ -1146,18 +1156,47 @@ function PayoutsBlock() {
                 <Input type="number" min="1" max="12" value={draft.month} onChange={(e) => setDraft({ ...draft, month: Number(e.target.value) })} />
               </div>
             </div>
-            <div>
-              <Label>底薪</Label>
-              <Input type="number" value={draft.base_salary} onChange={(e) => setDraft({ ...draft, base_salary: e.target.value })} />
-            </div>
-            <div>
-              <Label>團隊獎金</Label>
-              <Input type="number" value={draft.team_bonus} onChange={(e) => setDraft({ ...draft, team_bonus: e.target.value })} />
-            </div>
-            <div>
-              <Label>KOL分潤</Label>
-              <Input type="number" value={draft.kol_commission} onChange={(e) => setDraft({ ...draft, kol_commission: e.target.value })} />
-            </div>
+            {scoutManagerOnly && (
+              <div>
+                <Label>獎金類型</Label>
+                <Select
+                  value={smCommissionType}
+                  onValueChange={(v) => {
+                    const t = v as "scout_kol" | "scout_base";
+                    setSmCommissionType(t);
+                    if (t === "scout_kol") {
+                      setDraft((d) => ({ ...d, base_salary: "0", team_bonus: "0" }));
+                    } else {
+                      setDraft((d) => ({ ...d, kol_commission: "0" }));
+                    }
+                  }}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="scout_kol">{BONUS_TYPE_LABEL.scout_kol}</SelectItem>
+                    <SelectItem value="scout_base">{BONUS_TYPE_LABEL.scout_base}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {(!scoutManagerOnly || smCommissionType === "scout_base") && (
+              <>
+                <div>
+                  <Label>底薪</Label>
+                  <Input type="number" value={draft.base_salary} onChange={(e) => setDraft({ ...draft, base_salary: e.target.value })} />
+                </div>
+                <div>
+                  <Label>團隊獎金</Label>
+                  <Input type="number" value={draft.team_bonus} onChange={(e) => setDraft({ ...draft, team_bonus: e.target.value })} />
+                </div>
+              </>
+            )}
+            {(!scoutManagerOnly || smCommissionType === "scout_kol") && (
+              <div>
+                <Label>KOL分潤</Label>
+                <Input type="number" value={draft.kol_commission} onChange={(e) => setDraft({ ...draft, kol_commission: e.target.value })} />
+              </div>
+            )}
             <div className="flex gap-4">
               <label className="flex items-center gap-2 text-sm">
                 <Checkbox
