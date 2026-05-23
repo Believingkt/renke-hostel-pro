@@ -447,15 +447,28 @@ export default function TeamMembers() {
           <div className="space-y-2">
             <Label>預設角色（可多選）</Label>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-              {invitableRoles.map((role) => (
-                <label
-                  key={role}
-                  className="flex items-center gap-2 border rounded-md px-2 py-1.5 cursor-pointer hover:bg-muted/50"
-                >
-                  <Checkbox checked={inviteRoles.includes(role)} onCheckedChange={() => toggleInviteRole(role)} />
-                  <span className="text-sm">{ROLE_LABEL[role]}</span>
-                </label>
-              ))}
+              {invitableRoles.map((role) => {
+                const parent = CHILD_OF[role];
+                const lockedByManager = !!(parent && inviteRoles.includes(parent));
+                return (
+                  <label
+                    key={role}
+                    title={lockedByManager ? "已由主管角色包含" : undefined}
+                    className={`flex items-center gap-2 border rounded-md px-2 py-1.5 ${
+                      lockedByManager ? "opacity-50 cursor-not-allowed bg-muted/30" : "cursor-pointer hover:bg-muted/50"
+                    }`}
+                  >
+                    <Checkbox
+                      checked={inviteRoles.includes(role)}
+                      disabled={lockedByManager}
+                      onCheckedChange={() => !lockedByManager && toggleInviteRole(role)}
+                    />
+                    <span className="text-sm">{ROLE_LABEL[role]}</span>
+                    {lockedByManager && <span className="text-[10px] text-muted-foreground">已含於主管</span>}
+                  </label>
+                );
+              })}
+
             </div>
             {!isAdmin && <p className="text-xs text-muted-foreground">您僅能指派 星探 / KOL 角色</p>}
             <p className="text-xs text-muted-foreground">對方若尚未註冊，預設角色將暫存，首次登入時自動套用。</p>
