@@ -720,6 +720,80 @@ function OrdersTab({
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      <Drawer open={detailOpen} onOpenChange={setDetailOpen}>
+        <DrawerContent className="max-h-[90vh]">
+          <DrawerHeader className="flex flex-row items-center justify-between">
+            <DrawerTitle>訂單明細</DrawerTitle>
+            {detailOrder && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  const o = detailOrder;
+                  setDetailOpen(false);
+                  openEdit(o);
+                }}
+              >
+                <Pencil className="h-4 w-4 mr-1" /> 編輯
+              </Button>
+            )}
+          </DrawerHeader>
+          {detailOrder && (
+            <div className="px-4 pb-6 overflow-y-auto">
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                {[
+                  ["客戶名稱", detailOrder.client_name],
+                  ["統編", detailOrder.client_tax_id ?? "—"],
+                  ["行業類型", detailOrder.business_type ?? "—"],
+                  ["方案", detailOrder.plan_name ?? "—"],
+                  ["方案金額", fmtMoney(detailOrder.plan_price)],
+                  ["銷售人", memberName(detailOrder.sold_by)],
+                  ["成交時等級", detailOrder.level_at_sale ?? "—"],
+                  ["分潤比例", fmtRate(detailOrder.commission_rate)],
+                  ["分潤金額", fmtMoney(detailOrder.commission_amount)],
+                  ["成交日期", detailOrder.sold_at ?? "—"],
+                  ["匯款末5碼", detailOrder.payment_last5 ?? "—"],
+                  ["發票號碼", detailOrder.invoice_number ?? "—"],
+                ].map(([k, v]) => (
+                  <div key={k as string} className="flex flex-col">
+                    <dt className="text-muted-foreground text-xs">{k}</dt>
+                    <dd className="font-medium">{v}</dd>
+                  </div>
+                ))}
+                <div className="flex flex-col">
+                  <dt className="text-muted-foreground text-xs">付款狀態</dt>
+                  <dd>
+                    <Badge variant={detailOrder.payment_confirmed ? "success" : "secondary"}>
+                      {detailOrder.payment_confirmed ? "已付款" : "未付款"}
+                    </Badge>
+                  </dd>
+                </div>
+                <div className="flex flex-col">
+                  <dt className="text-muted-foreground text-xs">合約已上傳</dt>
+                  <dd>
+                    <Badge variant={detailOrder.contract_uploaded ? "success" : "secondary"}>
+                      {detailOrder.contract_uploaded ? "已上傳" : "未上傳"}
+                    </Badge>
+                  </dd>
+                </div>
+                <div className="flex flex-col">
+                  <dt className="text-muted-foreground text-xs">結算狀態</dt>
+                  <dd>
+                    <Badge variant={detailOrder.payout_status === "paid" ? "success" : "secondary"}>
+                      {detailOrder.payout_status === "paid" ? "已發放" : "待結算"}
+                    </Badge>
+                  </dd>
+                </div>
+                <div className="flex flex-col sm:col-span-2">
+                  <dt className="text-muted-foreground text-xs">備註</dt>
+                  <dd className="whitespace-pre-wrap font-medium">{detailOrder.notes ?? "—"}</dd>
+                </div>
+              </dl>
+            </div>
+          )}
+        </DrawerContent>
+      </Drawer>
     </Card>
   );
 }
