@@ -40,6 +40,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 interface InternalRates {
   base_rate: number;
@@ -167,11 +168,7 @@ export default function TeamFranchise() {
           <ExternalSalesTab canManage={canManage} />
         </TabsContent>
         <TabsContent value="stats" className="mt-4">
-          <Card>
-            <CardContent className="py-16 text-center text-muted-foreground">
-              業績統計功能開發中
-            </CardContent>
-          </Card>
+          <StatsTab />
         </TabsContent>
         <TabsContent value="settings" className="mt-4">
           <SettingsTab canManage={canManage} />
@@ -1912,5 +1909,233 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
         </SheetContent>
       </Sheet>
     </Card>
+  );
+}
+
+// =================== Stats Tab ===================
+interface InternalStatRow { sold_at: string | null; plan_name: string | null; plan_price: number | null; sold_by: string | null; sold_by_name: string | null; }
+interface ExternalStatRow { signed_at: string | null; project_name: string | null; unit_count: number | null; plan_price: number | null; sales_name: string | null; }
+
+function StatsTab() {
+  const [loaded, setLoaded] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [internal, setInternal] = useState<InternalStatRow[]>([]);
+  const [external, setExternal] = useState<ExternalStatRow[]>([]);
+  const [year, setYear] = useState<string>("all");
+  const [month, setMonth] = useState<string>("all");
+  const [memberMap, setMemberMap] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const [intRes, extRes, profRes] = await Promise.all([
+        supabase.from("franchise_orders").select("sold_at, plan_name, plan_price, sold_by, sold_by_name"),
+        supabase.from("franchise_external_orders").select("signed_at, project_name, unit_count, plan_price, sales_name"),
+        supabase.from("team_member_profiles").select("user_id, display_name"),
+      ]);
+      if (cancelled) return;
+      setInternal((intRes.data ?? []) as InternalStatRow[]);
+      setExternal((extRes.data ?? []) as ExternalStatRow[]);
+      const m: Record<string, string> = {};
+      (profRes.data ?? []).forEach((p: { user_id: string; display_name: string | null }) => {
+        if (p.display_name) m[p.user_id] = p.display_name;
+      });
+      setMemberMap(m);
+      setLoading(false);
+      setLoaded(true);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const years = useMemo(() => {
+    const s = new Set<string>();
+    internal.forEach((r) => r.sold_at && s.add(r.sold_at.slice(0, 4)));
+    external.forEach((r) => r.signed_at && s.add(r.signed_at.slice(0, 4)));
+    return Array.from(s).sort((a, b) => b.localeCompare(a));
+  }, [internal, external]);
+
+  const matchDate = (d: string | null) => {
+    if (!d) return year === "all" && month === "all";
+    const y = d.slice(0, 4);
+    const m = String(parseInt(d.slice(5, 7), 10));
+    if (year !== "all" && y !== year) return false;
+    if (month !== "all" && m !== month) return false;
+    return true;
+  };
+
+  const filteredInt = useMemo(() => internal.filter((r) => matchDate(r.sold_at)), [internal, year, month]);
+  const filteredExt = useMemo(() => external.filter((r) => matchDate(r.signed_at)), [external, year, month]);
+
+  const chartData = useMemo(() => {
+    const arr = Array.from({ length: 12 }, (_, i) => ({ month: `${i + 1}月`, internal: 0, external: 0 }));
+    filteredInt.forEach((r) => {
+      if (!r.sold_at) return;
+      const m = parseInt(r.sold_at.slice(5, 7), 10) - 1;
+      arr[m].internal += Number(r.plan_price ?? 0);
+    });
+    filteredExt.forEach((r) => {
+      if (!r.signed_at) return;
+      const m = parseInt(r.signed_at.slice(5, 7), 10) - 1;
+      arr[m].external += Number(r.unit_count ?? 0) * Number(r.plan_price ?? 0);
+    });
+    return arr;
+  }, [filteredInt, filteredExt]);
+
+  const salesRanking = useMemo(() => {
+    const map = new Map<string, { name: string; intCount: number; intAmount: number; extCount: number; extAmount: number }>();
+    const ensure = (name: string) => {
+      if (!map.has(name)) map.set(name, { name, intCount: 0, intAmount: 0, extCount: 0, extAmount: 0 });
+      return map.get(name)!;
+    };
+    filteredInt.forEach((r) => {
+      const name = (r.sold_by_name?.trim()) || (r.sold_by ? memberMap[r.sold_by] : null) || "未指定";
+      const row = ensure(name);
+      row.intCount++;
+      row.intAmount += Number(r.plan_price ?? 0);
+    });
+    filteredExt.forEach((r) => {
+      const name = r.sales_name?.trim() || "未指定";
+      const row = ensure(name);
+      row.extCount++;
+      row.extAmount += Number(r.unit_count ?? 0) * Number(r.plan_price ?? 0);
+    });
+    return Array.from(map.values())
+      .map((r) => ({ ...r, total: r.intAmount + r.extAmount }))
+      .sort((a, b) => b.total - a.total);
+  }, [filteredInt, filteredExt, memberMap]);
+
+  const projectStats = useMemo(() => {
+    const map = new Map<string, { name: string; intCount: number; intAmount: number; extCount: number; extAmount: number }>();
+    const ensure = (name: string) => {
+      if (!map.has(name)) map.set(name, { name, intCount: 0, intAmount: 0, extCount: 0, extAmount: 0 });
+      return map.get(name)!;
+    };
+    filteredInt.forEach((r) => {
+      const row = ensure(r.plan_name?.trim() || "未指定");
+      row.intCount++;
+      row.intAmount += Number(r.plan_price ?? 0);
+    });
+    filteredExt.forEach((r) => {
+      const row = ensure(r.project_name?.trim() || "未指定");
+      row.extCount++;
+      row.extAmount += Number(r.unit_count ?? 0) * Number(r.plan_price ?? 0);
+    });
+    return Array.from(map.values())
+      .map((r) => ({ ...r, total: r.intAmount + r.extAmount }))
+      .sort((a, b) => b.total - a.total);
+  }, [filteredInt, filteredExt]);
+
+  if (!loaded && loading) return null;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2">
+        <Select value={year} onValueChange={setYear}>
+          <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">全部年份</SelectItem>
+            {years.map((y) => (<SelectItem key={y} value={y}>{y} 年</SelectItem>))}
+          </SelectContent>
+        </Select>
+        <Select value={month} onValueChange={setMonth}>
+          <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">全年</SelectItem>
+            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+              <SelectItem key={m} value={String(m)}>{m} 月</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <Card>
+        <CardHeader><CardTitle>月度銷售趨勢</CardTitle></CardHeader>
+        <CardContent>
+          <StatsChart data={chartData} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>銷售人業績排行</CardTitle></CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>銷售人</TableHead>
+                <TableHead className="text-right">內部筆數</TableHead>
+                <TableHead className="text-right">內部金額</TableHead>
+                <TableHead className="text-right">外部筆數</TableHead>
+                <TableHead className="text-right">外部金額</TableHead>
+                <TableHead className="text-right">合計金額</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {salesRanking.length === 0 ? (
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">無資料</TableCell></TableRow>
+              ) : salesRanking.map((r) => (
+                <TableRow key={r.name}>
+                  <TableCell>{r.name}</TableCell>
+                  <TableCell className="text-right tabular-nums">{r.intCount}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtMoney(r.intAmount)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{r.extCount}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtMoney(r.extAmount)}</TableCell>
+                  <TableCell className="text-right tabular-nums font-semibold">{fmtMoney(r.total)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>專案統計</CardTitle></CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>專案名稱</TableHead>
+                <TableHead className="text-right">內部筆數</TableHead>
+                <TableHead className="text-right">內部金額</TableHead>
+                <TableHead className="text-right">外部筆數</TableHead>
+                <TableHead className="text-right">外部金額</TableHead>
+                <TableHead className="text-right">合計</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {projectStats.length === 0 ? (
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">無資料</TableCell></TableRow>
+              ) : projectStats.map((r) => (
+                <TableRow key={r.name}>
+                  <TableCell>{r.name}</TableCell>
+                  <TableCell className="text-right tabular-nums">{r.intCount}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtMoney(r.intAmount)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{r.extCount}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtMoney(r.extAmount)}</TableCell>
+                  <TableCell className="text-right tabular-nums font-semibold">{fmtMoney(r.total)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function StatsChart({ data }: { data: Array<{ month: string; internal: number; external: number }> }) {
+  return (
+    <div className="w-full h-72">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+          <YAxis tick={{ fontSize: 12 }} tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : String(v)} />
+          <Tooltip formatter={(v: number) => fmtMoney(v)} />
+          <Legend />
+          <Bar dataKey="internal" name="內部銷售" fill="hsl(var(--primary))" />
+          <Bar dataKey="external" name="外部銷售" fill="hsl(217 91% 60%)" />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
