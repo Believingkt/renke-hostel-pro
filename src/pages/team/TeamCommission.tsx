@@ -103,8 +103,8 @@ export default function TeamCommission() {
           <TabsTrigger value="payouts">發放管理</TabsTrigger>
         </TabsList>
         <TabsContent value="scout" className="space-y-6">
-          <TierSettingsBlock />
           <SalarySettingsBlock />
+          <TierSettingsBlock />
         </TabsContent>
         {isAdmin && (
           <TabsContent value="payout">
