@@ -2746,9 +2746,13 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
         unit_price: Number(matchedDist.unit_price),
         bonus: Number(o.unit_count ?? 0) * Number(matchedDist.unit_price),
         payment_date: matchedDist.payment_date,
+        order: o,
       }))
       .sort((a, b) => b.unit_count - a.unit_count);
   }, [externalOrders, matchedDist]);
+
+  const [memberDetail, setMemberDetail] = useState<(typeof memberRows)[number] | null>(null);
+
 
   return (
     <div className="space-y-6">
