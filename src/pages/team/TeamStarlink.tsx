@@ -189,6 +189,9 @@ function OrdersTab({
     contract_uploaded: false,
     payout_status: "pending",
     notes: "",
+    level_at_sale: "",
+    commission_rate: 0,
+    plan_price: 0,
   });
   const [editSaving, setEditSaving] = useState(false);
 
