@@ -120,8 +120,12 @@ export default function TeamMembers() {
   const [inviteRoles, setInviteRoles] = useState<TeamRole[]>([]);
   const [inviting, setInviting] = useState(false);
 
+  // 角色篩選
+  const [filterRole, setFilterRole] = useState<"all" | TeamRole>("all");
+
   // 編輯側邊面板
   const [editTarget, setEditTarget] = useState<MemberRow | null>(null);
+
   const [editName, setEditName] = useState("");
   const [editRoles, setEditRoles] = useState<TeamRole[]>([]);
   const [editActive, setEditActive] = useState(true);
