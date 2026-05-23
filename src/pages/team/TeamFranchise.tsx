@@ -2038,6 +2038,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
                       <Badge variant={r.contract_progress === "已完成" ? "success" : r.contract_progress === "取消" ? "destructive" : "secondary"}>
                         {r.contract_progress ?? "—"}
                       </Badge>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
