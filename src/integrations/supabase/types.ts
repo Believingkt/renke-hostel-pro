@@ -2153,6 +2153,7 @@ export type Database = {
       }
       franchise_external_orders: {
         Row: {
+          card_status: string | null
           co_sales_bonus: number | null
           co_sales_bonus2: number | null
           co_sales_name: string | null
@@ -2181,8 +2182,18 @@ export type Database = {
           total_amount: number | null
           unit_count: number | null
           updated_at: string | null
+          voucher_address: string | null
+          voucher_batch: string | null
+          voucher_count: number | null
+          voucher_handler: string | null
+          voucher_note: string | null
+          voucher_serial_end: number | null
+          voucher_serial_start: number | null
+          voucher_start_date: string | null
+          voucher_status: string | null
         }
         Insert: {
+          card_status?: string | null
           co_sales_bonus?: number | null
           co_sales_bonus2?: number | null
           co_sales_name?: string | null
@@ -2211,8 +2222,18 @@ export type Database = {
           total_amount?: number | null
           unit_count?: number | null
           updated_at?: string | null
+          voucher_address?: string | null
+          voucher_batch?: string | null
+          voucher_count?: number | null
+          voucher_handler?: string | null
+          voucher_note?: string | null
+          voucher_serial_end?: number | null
+          voucher_serial_start?: number | null
+          voucher_start_date?: string | null
+          voucher_status?: string | null
         }
         Update: {
+          card_status?: string | null
           co_sales_bonus?: number | null
           co_sales_bonus2?: number | null
           co_sales_name?: string | null
@@ -2241,6 +2262,15 @@ export type Database = {
           total_amount?: number | null
           unit_count?: number | null
           updated_at?: string | null
+          voucher_address?: string | null
+          voucher_batch?: string | null
+          voucher_count?: number | null
+          voucher_handler?: string | null
+          voucher_note?: string | null
+          voucher_serial_end?: number | null
+          voucher_serial_start?: number | null
+          voucher_start_date?: string | null
+          voucher_status?: string | null
         }
         Relationships: []
       }
