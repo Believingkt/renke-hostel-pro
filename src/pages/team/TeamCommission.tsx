@@ -1008,6 +1008,12 @@ function PayoutsBlock({ scoutManagerOnly = false }: { scoutManagerOnly?: boolean
           </div>
         </div>
 
+        <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+          獎金自動計算功能開發中，目前顯示已手動建立的歷史記錄。
+        </div>
+
+
+
         {loading ? null : rows.length === 0 ? (
           <p className="text-sm text-muted-foreground">本月份無記錄</p>
         ) : (
