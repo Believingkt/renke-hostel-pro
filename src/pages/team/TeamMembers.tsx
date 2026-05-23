@@ -233,63 +233,24 @@ export default function TeamMembers() {
     setInviting(true);
     try {
       const targetEmail = inviteEmail.trim().toLowerCase();
+      const { data, error } = await supabase.functions.invoke(
+        "send-team-invite",
+        {
+          body: {
+            email: targetEmail,
+            display_name: inviteName.trim(),
+            roles: inviteRoles,
+          },
+        },
+      );
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error ?? "邀請失敗");
 
-      // 先嘗試 lookup 既有用戶
-      let targetUserId: string | null = null;
-      try {
-        const { data: lookup } = await supabase.functions.invoke(
-          "team-lookup-user-by-email",
-          { body: { email: targetEmail } },
-        );
-        if (lookup?.success && lookup.user?.id) {
-          targetUserId = lookup.user.id as string;
-        }
-      } catch {
-        // ignore — 視為新用戶
-      }
-
-      if (targetUserId) {
-        // 既有用戶：直接套用 profile + roles
-        const { error: profileErr } = await supabase
-          .from("team_member_profiles")
-          .upsert(
-            { user_id: targetUserId, display_name: inviteName.trim() },
-            { onConflict: "user_id" },
-          );
-        if (profileErr) throw profileErr;
-
-        const { data: existingRoles } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", targetUserId)
-          .is("accommodation_id", null);
-        const existSet = new Set((existingRoles ?? []).map((r) => r.role));
-        const newRoles = inviteRoles.filter((r) => !existSet.has(r));
-        if (newRoles.length > 0) {
-          const { error: roleErr } = await supabase.from("user_roles").insert(
-            newRoles.map((role) => ({
-              user_id: targetUserId,
-              accommodation_id: null,
-              role,
-            })),
-          );
-          if (roleErr) throw roleErr;
-        }
-        toast.success("已新增成員權限");
-      } else {
-        // 新用戶：寫入 pending invites（每個角色一筆）
-        const rows = inviteRoles.map((role) => ({
-          email: targetEmail,
-          display_name: inviteName.trim(),
-          role,
-          invited_by: myUserId,
-        }));
-        const { error: pendingErr } = await supabase
-          .from("team_pending_invites")
-          .upsert(rows, { onConflict: "email,role" });
-        if (pendingErr) throw pendingErr;
-        toast.success("已建立邀請，對方首次登入時將自動套用角色");
-      }
+      toast.success(
+        data.isNewUser
+          ? "邀請信已寄出，請通知對方查收"
+          : "已將團隊角色授予既有用戶",
+      );
 
       setInviteName("");
       setInviteEmail("");
@@ -301,6 +262,7 @@ export default function TeamMembers() {
       setInviting(false);
     }
   };
+
 
   const handleCancelPending = async (email: string) => {
     if (!confirm(`確定要取消對 ${email} 的所有邀請嗎？`)) return;
