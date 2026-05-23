@@ -21,7 +21,8 @@ import { toast } from "sonner";
 
 const NORRIS_USER_ID = "1bc5761a-49a3-40ee-aa45-96ab87070c2e";
 
-const INVITABLE_ROLES: TeamRole[] = [
+// 完整可指派角色（僅 admin 可選）
+const ALL_INVITABLE_ROLES: TeamRole[] = [
   "admin",
   "closer",
   "scout",
@@ -33,6 +34,9 @@ const INVITABLE_ROLES: TeamRole[] = [
   "owner",
   "finance",
 ];
+
+// scout_manager 僅能指派的角色
+const SCOUT_MANAGER_INVITABLE_ROLES: TeamRole[] = ["scout", "kol"];
 
 const ROLE_LABEL: Record<TeamRole, string> = {
   super_admin: "超級管理員",
@@ -70,17 +74,36 @@ interface MemberRow {
   roles: TeamRole[];
 }
 
+interface PendingInviteRow {
+  id: string;
+  email: string;
+  display_name: string | null;
+  role: TeamRole;
+  created_at: string;
+}
+
 export default function TeamMembers() {
   const { roles: myRoles, userId: myUserId } = useTeam();
-  const canManage = useMemo(
-    () =>
-      myRoles.includes("super_admin") ||
-      myRoles.includes("admin") ||
-      myRoles.includes("scout_manager"),
+  const isAdmin = useMemo(
+    () => myRoles.includes("super_admin") || myRoles.includes("admin"),
     [myRoles],
   );
+  const isScoutManager = useMemo(
+    () => myRoles.includes("scout_manager"),
+    [myRoles],
+  );
+  // 僅 admin 與 scout_manager 可進入
+  const canAccess = isAdmin || isScoutManager;
+  // 僅 admin 可邀請任意角色 / 編輯 / 刪除
+  const canEditAll = isAdmin;
+
+  // 邀請可選角色（依當前使用者身份）
+  const invitableRoles = isAdmin
+    ? ALL_INVITABLE_ROLES
+    : SCOUT_MANAGER_INVITABLE_ROLES;
 
   const [members, setMembers] = useState<MemberRow[]>([]);
+  const [pending, setPending] = useState<PendingInviteRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   // 邀請表單
@@ -95,6 +118,7 @@ export default function TeamMembers() {
   const [editRoles, setEditRoles] = useState<TeamRole[]>([]);
   const [editActive, setEditActive] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [removing, setRemoving] = useState(false);
 
   const fetchMembers = useCallback(async () => {
     setLoading(true);
@@ -112,18 +136,15 @@ export default function TeamMembers() {
     }
 
     const userIds = (profiles ?? []).map((p) => p.user_id);
-    if (userIds.length === 0) {
-      setMembers([]);
-      setLoading(false);
-      return;
-    }
 
     // 2. 取得對應角色 (accommodation_id IS NULL)
-    const { data: rolesData } = await supabase
-      .from("user_roles")
-      .select("user_id, role")
-      .in("user_id", userIds)
-      .is("accommodation_id", null);
+    const { data: rolesData } = userIds.length
+      ? await supabase
+          .from("user_roles")
+          .select("user_id, role")
+          .in("user_id", userIds)
+          .is("accommodation_id", null)
+      : { data: [] as { user_id: string; role: string }[] };
 
     const rolesMap = new Map<string, TeamRole[]>();
     (rolesData ?? []).forEach((r) => {
@@ -134,31 +155,28 @@ export default function TeamMembers() {
       rolesMap.set(r.user_id, arr);
     });
 
-    // 3. 取得 email (via profiles or auth helper) - 用 RPC/View 取不到,改從 user 自身 session 推不出
-    //    改使用 admin lookup 不必要;改從 customers/auth 取不到。
-    //    暫採: 透過 team-lookup-user-by-email 反查不適合批次。
-    //    這裡使用 supabase.auth admin 不可,改建立簡單 view 機制需 migration。
-    //    為避免新增 migration,從 admin 端使用 service-role edge function 取得;
-    //    暫先以 user_id 顯示;若已有 lookup-team-members function 則使用之。
+    // 3. 取得 email
     let emailMap = new Map<string, string>();
-    try {
-      const { data: emailRes } = await supabase.functions.invoke(
-        "team-list-emails",
-        { body: { user_ids: userIds } },
-      );
-      if (emailRes?.success && Array.isArray(emailRes.users)) {
-        emailMap = new Map(
-          emailRes.users.map((u: { id: string; email: string }) => [
-            u.id,
-            u.email,
-          ]),
+    if (userIds.length > 0) {
+      try {
+        const { data: emailRes } = await supabase.functions.invoke(
+          "team-list-emails",
+          { body: { user_ids: userIds } },
         );
+        if (emailRes?.success && Array.isArray(emailRes.users)) {
+          emailMap = new Map(
+            emailRes.users.map((u: { id: string; email: string }) => [
+              u.id,
+              u.email,
+            ]),
+          );
+        }
+      } catch {
+        // ignore
       }
-    } catch {
-      // ignore - emails 暫不顯示
     }
 
-    const rows: MemberRow[] = (profiles ?? []).map((p) => ({
+    let rows: MemberRow[] = (profiles ?? []).map((p) => ({
       user_id: p.user_id,
       display_name: p.display_name,
       email: emailMap.get(p.user_id) ?? "",
@@ -166,13 +184,35 @@ export default function TeamMembers() {
       roles: rolesMap.get(p.user_id) ?? [],
     }));
 
+    // scout_manager 僅看到有 scout 或 kol 角色的成員
+    if (!isAdmin && isScoutManager) {
+      rows = rows.filter(
+        (r) => r.roles.includes("scout") || r.roles.includes("kol"),
+      );
+    }
+
     setMembers(rows);
+
+    // 4. 取得 pending invites（依角色過濾）
+    const { data: pendingData } = await supabase
+      .from("team_pending_invites")
+      .select("id, email, display_name, role, created_at")
+      .order("created_at", { ascending: false });
+
+    let pendingRows = (pendingData ?? []) as PendingInviteRow[];
+    if (!isAdmin && isScoutManager) {
+      pendingRows = pendingRows.filter(
+        (p) => p.role === "scout" || p.role === "kol",
+      );
+    }
+    setPending(pendingRows);
+
     setLoading(false);
-  }, []);
+  }, [isAdmin, isScoutManager]);
 
   useEffect(() => {
-    if (canManage) fetchMembers();
-  }, [canManage, fetchMembers]);
+    if (canAccess) fetchMembers();
+  }, [canAccess, fetchMembers]);
 
   const toggleInviteRole = (role: TeamRole) => {
     setInviteRoles((prev) =>
@@ -185,49 +225,73 @@ export default function TeamMembers() {
     if (!inviteEmail.trim()) return toast.error("請輸入 Email");
     if (inviteRoles.length === 0) return toast.error("請至少選擇一個角色");
 
+    // 角色權限檢查
+    const allowed = new Set(invitableRoles);
+    if (inviteRoles.some((r) => !allowed.has(r))) {
+      return toast.error("您沒有權限指派部分角色");
+    }
+
     setInviting(true);
     try {
-      const { data: lookup, error: lookupErr } =
-        await supabase.functions.invoke("team-lookup-user-by-email", {
-          body: { email: inviteEmail.trim() },
-        });
+      const targetEmail = inviteEmail.trim().toLowerCase();
 
-      if (lookupErr || !lookup?.success) {
-        toast.error("找不到此 Email,請確認對方已有 Lakeze 帳號");
-        return;
+      // 先嘗試 lookup 既有用戶
+      let targetUserId: string | null = null;
+      try {
+        const { data: lookup } = await supabase.functions.invoke(
+          "team-lookup-user-by-email",
+          { body: { email: targetEmail } },
+        );
+        if (lookup?.success && lookup.user?.id) {
+          targetUserId = lookup.user.id as string;
+        }
+      } catch {
+        // ignore — 視為新用戶
       }
 
-      const targetUserId = lookup.user.id as string;
+      if (targetUserId) {
+        // 既有用戶：直接套用 profile + roles
+        const { error: profileErr } = await supabase
+          .from("team_member_profiles")
+          .upsert(
+            { user_id: targetUserId, display_name: inviteName.trim() },
+            { onConflict: "user_id" },
+          );
+        if (profileErr) throw profileErr;
 
-      // upsert profile
-      const { error: profileErr } = await supabase
-        .from("team_member_profiles")
-        .upsert(
-          { user_id: targetUserId, display_name: inviteName.trim() },
-          { onConflict: "user_id" },
-        );
-      if (profileErr) throw profileErr;
-
-      // insert roles (NULL accommodation_id 不會觸發 unique 衝突,需先查再補)
-      const { data: existingRoles } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", targetUserId)
-        .is("accommodation_id", null);
-      const existSet = new Set((existingRoles ?? []).map((r) => r.role));
-      const newRoles = inviteRoles.filter((r) => !existSet.has(r));
-      if (newRoles.length > 0) {
-        const { error: roleErr } = await supabase.from("user_roles").insert(
-          newRoles.map((role) => ({
-            user_id: targetUserId,
-            accommodation_id: null,
-            role,
-          })),
-        );
-        if (roleErr) throw roleErr;
+        const { data: existingRoles } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", targetUserId)
+          .is("accommodation_id", null);
+        const existSet = new Set((existingRoles ?? []).map((r) => r.role));
+        const newRoles = inviteRoles.filter((r) => !existSet.has(r));
+        if (newRoles.length > 0) {
+          const { error: roleErr } = await supabase.from("user_roles").insert(
+            newRoles.map((role) => ({
+              user_id: targetUserId,
+              accommodation_id: null,
+              role,
+            })),
+          );
+          if (roleErr) throw roleErr;
+        }
+        toast.success("已新增成員權限");
+      } else {
+        // 新用戶：寫入 pending invites（每個角色一筆）
+        const rows = inviteRoles.map((role) => ({
+          email: targetEmail,
+          display_name: inviteName.trim(),
+          role,
+          invited_by: myUserId,
+        }));
+        const { error: pendingErr } = await supabase
+          .from("team_pending_invites")
+          .upsert(rows, { onConflict: "email,role" });
+        if (pendingErr) throw pendingErr;
+        toast.success("已建立邀請，對方首次登入時將自動套用角色");
       }
 
-      toast.success("已新增成員權限");
       setInviteName("");
       setInviteEmail("");
       setInviteRoles([]);
@@ -239,7 +303,22 @@ export default function TeamMembers() {
     }
   };
 
+  const handleCancelPending = async (email: string) => {
+    if (!confirm(`確定要取消對 ${email} 的所有邀請嗎？`)) return;
+    const { error } = await supabase
+      .from("team_pending_invites")
+      .delete()
+      .eq("email", email);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("已取消邀請");
+    fetchMembers();
+  };
+
   const openEdit = (m: MemberRow) => {
+    if (!canEditAll) return; // scout_manager 無編輯權
     setEditTarget(m);
     setEditName(m.display_name);
     setEditRoles(m.roles);
@@ -259,17 +338,15 @@ export default function TeamMembers() {
     if (!editName.trim()) return toast.error("顯示名稱不可空白");
     setSaving(true);
     try {
-      // 1. 更新 profile
       const { error: pErr } = await supabase
         .from("team_member_profiles")
         .update({
           display_name: editName.trim(),
-          is_active: isNorris ? true : editActive,
+          is_active: editActive,
         })
         .eq("user_id", editTarget.user_id);
       if (pErr) throw pErr;
 
-      // 2. 角色 diff (super_admin 角色一律保留,不在可編輯清單)
       const original = new Set(editTarget.roles);
       const next = new Set(editRoles);
       const toAdd = [...next].filter((r) => !original.has(r));
@@ -308,7 +385,45 @@ export default function TeamMembers() {
     }
   };
 
-  if (!canManage) {
+  const handleRemoveMember = async () => {
+    if (!editTarget) return;
+    if (editTarget.user_id === myUserId)
+      return toast.error("無法移除自己");
+    if (isNorris) return toast.error("此成員受系統保護");
+    if (
+      !confirm(
+        `確定移除 ${editTarget.display_name} 嗎？將清除其團隊角色與 profile，登入帳號不受影響。`,
+      )
+    )
+      return;
+    setRemoving(true);
+    try {
+      // 1. 移除所有全域角色
+      const { error: rErr } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", editTarget.user_id)
+        .is("accommodation_id", null);
+      if (rErr) throw rErr;
+
+      // 2. 移除 team profile
+      const { error: pErr } = await supabase
+        .from("team_member_profiles")
+        .delete()
+        .eq("user_id", editTarget.user_id);
+      if (pErr) throw pErr;
+
+      toast.success("已移除成員");
+      setEditTarget(null);
+      fetchMembers();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "移除失敗");
+    } finally {
+      setRemoving(false);
+    }
+  };
+
+  if (!canAccess) {
     return (
       <div className="space-y-4">
         <h2 className="text-2xl font-bold">成員管理</h2>
@@ -321,11 +436,17 @@ export default function TeamMembers() {
     );
   }
 
+  // 顯示用：移除 Norris 的 super_admin 標籤（DB 已改為 admin，但保險過濾）
+  const displayRoles = (m: MemberRow): TeamRole[] =>
+    m.user_id === NORRIS_USER_ID
+      ? m.roles.filter((r) => r !== "super_admin")
+      : m.roles;
+
   return (
     <div className="space-y-6 max-w-5xl">
       <h2 className="text-2xl font-bold">成員管理</h2>
 
-      {/* 區塊一:邀請新成員 */}
+      {/* 區塊一：邀請新成員 */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">邀請新成員</CardTitle>
@@ -337,7 +458,7 @@ export default function TeamMembers() {
               <Input
                 value={inviteName}
                 onChange={(e) => setInviteName(e.target.value)}
-                placeholder="例如:小王"
+                placeholder="例如：小王"
               />
             </div>
             <div className="space-y-2">
@@ -352,9 +473,9 @@ export default function TeamMembers() {
           </div>
 
           <div className="space-y-2">
-            <Label>角色(可多選)</Label>
+            <Label>預設角色（可多選）</Label>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-              {INVITABLE_ROLES.map((role) => (
+              {invitableRoles.map((role) => (
                 <label
                   key={role}
                   className="flex items-center gap-2 border rounded-md px-2 py-1.5 cursor-pointer hover:bg-muted/50"
@@ -367,6 +488,14 @@ export default function TeamMembers() {
                 </label>
               ))}
             </div>
+            {!isAdmin && (
+              <p className="text-xs text-muted-foreground">
+                您僅能指派 星探 / KOL 角色
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              對方若尚未註冊，預設角色將暫存，首次登入時自動套用。
+            </p>
           </div>
 
           <div className="flex justify-end">
@@ -377,7 +506,60 @@ export default function TeamMembers() {
         </CardContent>
       </Card>
 
-      {/* 區塊二:現有成員列表 */}
+      {/* 區塊二：待生效邀請 */}
+      {pending.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              待生效邀請 ({new Set(pending.map((p) => p.email)).size})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {Array.from(
+                pending.reduce((acc, p) => {
+                  const arr = acc.get(p.email) ?? [];
+                  arr.push(p);
+                  acc.set(p.email, arr);
+                  return acc;
+                }, new Map<string, PendingInviteRow[]>()),
+              ).map(([email, items]) => (
+                <div
+                  key={email}
+                  className="border rounded-lg p-3 flex flex-wrap items-center justify-between gap-2"
+                >
+                  <div className="min-w-0">
+                    <div className="font-medium text-sm">
+                      {items[0].display_name || email}
+                    </div>
+                    <div className="text-xs text-muted-foreground">{email}</div>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {items.map((it) => (
+                        <Badge
+                          key={it.id}
+                          variant="outline"
+                          className={`text-xs ${ROLE_BADGE_CLASS[it.role]}`}
+                        >
+                          {ROLE_LABEL[it.role]}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleCancelPending(email)}
+                  >
+                    取消邀請
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 區塊三：現有成員列表 */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">
@@ -395,145 +577,160 @@ export default function TeamMembers() {
             </p>
           ) : (
             <div className="space-y-2">
-              {members.map((m) => (
-                <button
-                  key={m.user_id}
-                  type="button"
-                  onClick={() => openEdit(m)}
-                  className="w-full text-left border rounded-lg p-3 hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{m.display_name}</span>
-                        {!m.is_active && (
-                          <Badge variant="outline" className="text-xs">
-                            已停用
-                          </Badge>
-                        )}
-                        {m.user_id === myUserId && (
-                          <Badge variant="secondary" className="text-xs">
-                            您
-                          </Badge>
+              {members.map((m) => {
+                const Wrapper = canEditAll ? "button" : "div";
+                return (
+                  <Wrapper
+                    key={m.user_id}
+                    type={canEditAll ? "button" : undefined}
+                    onClick={canEditAll ? () => openEdit(m) : undefined}
+                    className={`w-full text-left border rounded-lg p-3 transition-colors ${
+                      canEditAll ? "hover:bg-muted/50 cursor-pointer" : ""
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{m.display_name}</span>
+                          {!m.is_active && (
+                            <Badge variant="outline" className="text-xs">
+                              已停用
+                            </Badge>
+                          )}
+                          {m.user_id === myUserId && (
+                            <Badge variant="secondary" className="text-xs">
+                              您
+                            </Badge>
+                          )}
+                        </div>
+                        {m.email && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {m.email}
+                          </p>
                         )}
                       </div>
-                      {m.email && (
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {m.email}
-                        </p>
-                      )}
+                      <div className="flex flex-wrap gap-1">
+                        {displayRoles(m).length === 0 ? (
+                          <span className="text-xs text-muted-foreground">
+                            無角色
+                          </span>
+                        ) : (
+                          displayRoles(m).map((r) => (
+                            <Badge
+                              key={r}
+                              variant="outline"
+                              className={`text-xs ${ROLE_BADGE_CLASS[r]}`}
+                            >
+                              {ROLE_LABEL[r]}
+                            </Badge>
+                          ))
+                        )}
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-1">
-                      {m.roles.length === 0 ? (
-                        <span className="text-xs text-muted-foreground">
-                          無角色
-                        </span>
-                      ) : (
-                        m.roles.map((r) => (
-                          <Badge
-                            key={r}
-                            variant="outline"
-                            className={`text-xs ${ROLE_BADGE_CLASS[r]}`}
-                          >
-                            {ROLE_LABEL[r]}
-                          </Badge>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </button>
-              ))}
+                  </Wrapper>
+                );
+              })}
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* 編輯側邊面板 */}
-      <Sheet
-        open={!!editTarget}
-        onOpenChange={(open) => !open && setEditTarget(null)}
-      >
-        <SheetContent
-          side="right"
-          className="w-full sm:max-w-md flex flex-col overflow-y-auto"
+      {/* 編輯側邊面板（僅 admin） */}
+      {canEditAll && (
+        <Sheet
+          open={!!editTarget}
+          onOpenChange={(open) => !open && setEditTarget(null)}
         >
-          <SheetHeader>
-            <SheetTitle>編輯成員</SheetTitle>
-            <SheetDescription>
-              {isNorris ? "超級管理員角色不可修改" : "修改顯示名稱、角色與啟用狀態"}
-            </SheetDescription>
-          </SheetHeader>
+          <SheetContent
+            side="right"
+            className="w-full sm:max-w-md flex flex-col overflow-y-auto"
+          >
+            <SheetHeader>
+              <SheetTitle>編輯成員</SheetTitle>
+              <SheetDescription>
+                修改顯示名稱、角色與啟用狀態
+              </SheetDescription>
+            </SheetHeader>
 
-          <div className="flex-1 space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>顯示名稱</Label>
-              <Input
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-              />
-            </div>
-
-            {editTarget?.email && (
+            <div className="flex-1 space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Email</Label>
-                <Input value={editTarget.email} disabled />
+                <Label>顯示名稱</Label>
+                <Input
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                />
               </div>
-            )}
 
-            <div className="space-y-2">
-              <Label>角色</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {INVITABLE_ROLES.map((role) => (
-                  <label
-                    key={role}
-                    className="flex items-center gap-2 border rounded-md px-2 py-1.5 cursor-pointer hover:bg-muted/50"
-                  >
-                    <Checkbox
-                      checked={editRoles.includes(role)}
-                      onCheckedChange={() => toggleEditRole(role)}
-                    />
-                    <span className="text-sm">{ROLE_LABEL[role]}</span>
-                  </label>
-                ))}
-                {editTarget?.roles.includes("super_admin") && (
-                  <label className="flex items-center gap-2 border rounded-md px-2 py-1.5 opacity-50 cursor-not-allowed">
-                    <Checkbox checked disabled />
-                    <span className="text-sm">{ROLE_LABEL.super_admin}</span>
-                  </label>
-                )}
-              </div>
-              {isNorris && (
-                <p className="text-xs text-muted-foreground">
-                  超級管理員角色受系統保護,無法移除
-                </p>
+              {editTarget?.email && (
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input value={editTarget.email} disabled />
+                </div>
               )}
+
+              <div className="space-y-2">
+                <Label>角色</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {ALL_INVITABLE_ROLES.map((role) => (
+                    <label
+                      key={role}
+                      className="flex items-center gap-2 border rounded-md px-2 py-1.5 cursor-pointer hover:bg-muted/50"
+                    >
+                      <Checkbox
+                        checked={editRoles.includes(role)}
+                        onCheckedChange={() => toggleEditRole(role)}
+                      />
+                      <span className="text-sm">{ROLE_LABEL[role]}</span>
+                    </label>
+                  ))}
+                  {editTarget?.roles.includes("super_admin") && !isNorris && (
+                    <label className="flex items-center gap-2 border rounded-md px-2 py-1.5 opacity-50 cursor-not-allowed">
+                      <Checkbox checked disabled />
+                      <span className="text-sm">{ROLE_LABEL.super_admin}</span>
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between border-t pt-4">
+                <Label htmlFor="active-switch">啟用狀態</Label>
+                <Switch
+                  id="active-switch"
+                  checked={editActive}
+                  onCheckedChange={setEditActive}
+                />
+              </div>
             </div>
 
-            <div className="flex items-center justify-between border-t pt-4">
-              <Label htmlFor="active-switch">啟用狀態</Label>
-              <Switch
-                id="active-switch"
-                checked={editActive}
-                disabled={isNorris}
-                onCheckedChange={setEditActive}
-              />
-            </div>
-          </div>
-
-          <SheetFooter className="flex flex-row justify-end gap-2 pt-2 border-t">
-            <Button
-              variant="outline"
-              onClick={() => setEditTarget(null)}
-              disabled={saving}
-            >
-              取消
-            </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? "儲存中..." : "儲存"}
-            </Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
+            <SheetFooter className="flex flex-row justify-between gap-2 pt-2 border-t">
+              <Button
+                variant="destructive"
+                onClick={handleRemoveMember}
+                disabled={
+                  removing ||
+                  saving ||
+                  editTarget?.user_id === myUserId ||
+                  isNorris
+                }
+              >
+                {removing ? "移除中..." : "移除成員"}
+              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setEditTarget(null)}
+                  disabled={saving || removing}
+                >
+                  取消
+                </Button>
+                <Button onClick={handleSave} disabled={saving || removing}>
+                  {saving ? "儲存中..." : "儲存"}
+                </Button>
+              </div>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
+      )}
     </div>
   );
 }
