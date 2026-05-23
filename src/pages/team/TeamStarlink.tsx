@@ -243,8 +243,8 @@ function OrdersTab({
         payout_status: editForm.payout_status,
         notes: editForm.notes.trim() || null,
         level_at_sale: editForm.level_at_sale.trim() || null,
-        commission_rate: editForm.commission_rate || null,
-        commission_amount: Math.round(editForm.plan_price * editForm.commission_rate),
+        commission_rate: editForm.commission_rate ? editForm.commission_rate / 100 : null,
+        commission_amount: Math.round(editForm.plan_price * (editForm.commission_rate / 100)),
       })
       .eq("id", editId);
     setEditSaving(false);
