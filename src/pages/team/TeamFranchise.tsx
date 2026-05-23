@@ -2746,9 +2746,13 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
         unit_price: Number(matchedDist.unit_price),
         bonus: Number(o.unit_count ?? 0) * Number(matchedDist.unit_price),
         payment_date: matchedDist.payment_date,
+        order: o,
       }))
       .sort((a, b) => b.unit_count - a.unit_count);
   }, [externalOrders, matchedDist]);
+
+  const [memberDetail, setMemberDetail] = useState<(typeof memberRows)[number] | null>(null);
+
 
   return (
     <div className="space-y-6">
@@ -2941,7 +2945,11 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
                   </TableRow>
                 ) : (
                   memberRows.map((r) => (
-                    <TableRow key={r.id}>
+                    <TableRow
+                      key={r.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => setMemberDetail(r)}
+                    >
                       <TableCell>{r.customer_name}</TableCell>
                       <TableCell className="text-right tabular-nums">{r.unit_count}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtMoney(r.unit_price)}</TableCell>
@@ -2953,6 +2961,39 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
               </TableBody>
             </Table>
           </div>
+
+          <Sheet open={!!memberDetail} onOpenChange={(o) => { if (!o) setMemberDetail(null); }}>
+            <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle>會員分潤明細</SheetTitle>
+              </SheetHeader>
+              {memberDetail && (
+                <div className="mt-4 space-y-4 text-sm">
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                    <Field label="會員編號" value={memberDetail.order.member_number} />
+                    <Field label="會員姓名" value={memberDetail.customer_name} />
+                    <Field label="聯絡電話" value={memberDetail.order.customer_phone} />
+                    <Field label="專案" value={memberDetail.order.project_name} />
+                    <Field label="簽約日期" value={memberDetail.order.signed_at} />
+                    <Field label="開發業務" value={memberDetail.order.sales_name} />
+                  </div>
+                  <div className="border-t pt-3 grid grid-cols-2 gap-x-6 gap-y-2">
+                    <Field label="購買單位數" value={String(memberDetail.unit_count)} />
+                    <Field label="每單位金額" value={fmtMoney(memberDetail.unit_price)} />
+                    <Field label="分潤金額" value={fmtMoney(memberDetail.bonus)} />
+                    <Field label="預計匯款日" value={memberDetail.payment_date} />
+                  </div>
+                  {memberDetail.order.notes && (
+                    <div className="border-t pt-3">
+                      <div className="text-xs text-muted-foreground mb-1">備註</div>
+                      <div className="whitespace-pre-wrap break-all">{memberDetail.order.notes}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </SheetContent>
+          </Sheet>
+
         </CardContent>
       </Card>
     </div>
