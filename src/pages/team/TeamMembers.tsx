@@ -33,7 +33,7 @@ const ALL_INVITABLE_ROLES: TeamRole[] = [
 // scout_manager 僅能指派的角色
 const SCOUT_MANAGER_INVITABLE_ROLES: TeamRole[] = ["scout", "kol"];
 
-const ROLE_LABEL: Record<TeamRole, string> = {
+const ROLE_LABEL = {
   super_admin: "超級管理員",
   admin: "管理員",
   scout_manager: "星探主管",
@@ -48,7 +48,7 @@ const ROLE_LABEL: Record<TeamRole, string> = {
   finance: "財務",
 } as Record<TeamRole, string>;
 
-const ROLE_BADGE_CLASS: Record<TeamRole, string> = {
+const ROLE_BADGE_CLASS = {
   super_admin: "bg-purple-100 text-purple-700 border-purple-200",
   admin: "bg-blue-100 text-blue-700 border-blue-200",
   scout_manager: "bg-orange-100 text-orange-700 border-orange-200",
