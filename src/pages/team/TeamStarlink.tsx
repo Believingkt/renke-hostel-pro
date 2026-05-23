@@ -637,24 +637,36 @@ function OrdersTab({
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>成交時等級</Label>
-                <Input
-                  value={form.level_at_sale}
-                  onChange={(e) => setForm({ ...form, level_at_sale: e.target.value })}
-                />
+                <Select
+                  value={form.level_at_sale || undefined}
+                  onValueChange={selectLevelForForm}
+                >
+                  <SelectTrigger><SelectValue placeholder="選擇等級" /></SelectTrigger>
+                  <SelectContent>
+                    {tiers.map((t) => (
+                      <SelectItem key={t.id} value={t.level}>{t.level}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {form.level_at_sale && renderTierHint(form.level_at_sale)}
               </div>
               <div className="space-y-1">
-                <Label>分潤比例 (%)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min={0}
-                  max={100}
-                  value={form.commission_rate ? (form.commission_rate * 100).toString() : ""}
-                  onChange={(e) => {
-                    const v = Number(e.target.value);
-                    setForm({ ...form, commission_rate: isNaN(v) ? 0 : v / 100 });
-                  }}
-                />
+                <Label>分潤比例</Label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min={0}
+                    max={100}
+                    className="pr-8"
+                    value={form.commission_rate || form.commission_rate === 0 ? form.commission_rate : ""}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      setForm({ ...form, commission_rate: isNaN(v) ? 0 : v });
+                    }}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">%</span>
+                </div>
               </div>
             </div>
             <div className="space-y-1">
@@ -665,10 +677,11 @@ function OrdersTab({
                 value={(() => {
                   const plan = plans.find((p) => p.plan_name === form.plan_name);
                   const price = plan?.price ?? 0;
-                  return fmtMoney(Math.round(price * (form.commission_rate || 0)));
+                  return fmtMoney(Math.round(price * ((form.commission_rate || 0) / 100)));
                 })()}
               />
             </div>
+
             <div className="space-y-1">
               <Label>成交日期</Label>
               <Input
