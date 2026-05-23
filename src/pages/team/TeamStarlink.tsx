@@ -592,7 +592,7 @@ function OrdersTab({
               <Label>銷售人 *</Label>
               <Select
                 value={form.sold_by || undefined}
-                onValueChange={(v) => setForm({ ...form, sold_by: v })}
+                onValueChange={(v) => void selectSoldBy(v)}
               >
                 <SelectTrigger><SelectValue placeholder="選擇銷售人" /></SelectTrigger>
                 <SelectContent>
@@ -601,6 +601,46 @@ function OrdersTab({
                   ))}
                 </SelectContent>
               </Select>
+              {autoTierInfo && (
+                <p className="text-xs text-muted-foreground">
+                  目前等級：{autoTierInfo.level}，分潤比例：{(autoTierInfo.rate * 100).toFixed(2)}%（共 {autoTierInfo.count} 筆有效訂單）
+                </p>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label>成交時等級</Label>
+                <Input
+                  value={form.level_at_sale}
+                  onChange={(e) => setForm({ ...form, level_at_sale: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>分潤比例 (%)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  max={100}
+                  value={form.commission_rate ? (form.commission_rate * 100).toString() : ""}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    setForm({ ...form, commission_rate: isNaN(v) ? 0 : v / 100 });
+                  }}
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>分潤金額</Label>
+              <Input
+                readOnly
+                className="bg-muted"
+                value={(() => {
+                  const plan = plans.find((p) => p.plan_name === form.plan_name);
+                  const price = plan?.price ?? 0;
+                  return fmtMoney(Math.round(price * (form.commission_rate || 0)));
+                })()}
+              />
             </div>
             <div className="space-y-1">
               <Label>成交日期</Label>
