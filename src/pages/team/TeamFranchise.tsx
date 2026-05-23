@@ -1357,7 +1357,7 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
 
   // 新增無帳號成員
   const [addOpen, setAddOpen] = useState(false);
-  const [newMember, setNewMember] = useState({ display_name: "", commission_rate: "", scout_tier: "" });
+  const [newMember, setNewMember] = useState({ display_name: "", commission_rate: "" });
   const [addSaving, setAddSaving] = useState(false);
 
   // 綁定帳號
@@ -1439,7 +1439,6 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
       display_name: name,
       user_id: null,
       commission_rate: newMember.commission_rate === "" ? null : Number(newMember.commission_rate),
-      scout_tier: newMember.scout_tier.trim() || null,
       is_active: true,
     };
     const { error } = await (supabase as any).from("team_member_profiles").insert(payload);
@@ -1447,7 +1446,8 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
     if (error) return toast.error("新增失敗：" + error.message);
     toast.success("已新增成員");
     setAddOpen(false);
-    setNewMember({ display_name: "", commission_rate: "", scout_tier: "" });
+    setNewMember({ display_name: "", commission_rate: "" });
+
     void load();
   };
 
@@ -1625,7 +1625,7 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
               />
             </div>
             <div className="space-y-1">
-              <Label>分潤比例 (0~1)</Label>
+              <Label>個人分潤比例</Label>
               <Input
                 type="number"
                 step="0.01"
@@ -1633,14 +1633,9 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
                 onChange={(e) => setNewMember({ ...newMember, commission_rate: e.target.value })}
                 placeholder="例：0.1"
               />
+              <p className="text-xs text-muted-foreground">輸入 0~1 之間的小數，例如 0.1 代表 10%</p>
             </div>
-            <div className="space-y-1">
-              <Label>Scout Tier</Label>
-              <Input
-                value={newMember.scout_tier}
-                onChange={(e) => setNewMember({ ...newMember, scout_tier: e.target.value })}
-              />
-            </div>
+
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddOpen(false)}>取消</Button>
