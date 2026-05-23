@@ -1873,7 +1873,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
               <Input value={form.invoice_address ?? ""} onChange={(e) => onChange("invoice_address", e.target.value)} />
             </div>
             <div className="space-y-1">
-              <Label>銷售獎金（開發業務）</Label>
+              <Label>銷售獎金（開發業務）{currentRates ? `（${pct(currentRates.sales_rate)}）` : ""}</Label>
               <Input type="number" value={form.sales_bonus ?? ""} onChange={(e) => onChange("sales_bonus", e.target.value === "" ? null : Number(e.target.value))} />
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -1881,20 +1881,24 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
                 <Label>協同業務1 姓名</Label>
                 <Input value={form.co_sales_name ?? ""} onChange={(e) => onChange("co_sales_name", e.target.value)} />
               </div>
-              <div className="space-y-1">
-                <Label>協同業務1 獎金</Label>
-                <Input type="number" value={form.co_sales_bonus ?? ""} onChange={(e) => onChange("co_sales_bonus", e.target.value === "" ? null : Number(e.target.value))} />
-              </div>
+              {(form.co_sales_name ?? "").trim() && (
+                <div className="space-y-1">
+                  <Label>協同業務1 獎金{currentRates ? `（${pct(currentRates.co_sales1_rate)}）` : ""}</Label>
+                  <Input type="number" value={form.co_sales_bonus ?? ""} onChange={(e) => onChange("co_sales_bonus", e.target.value === "" ? null : Number(e.target.value))} />
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>協同業務2 姓名</Label>
                 <Input value={form.co_sales_name2 ?? ""} onChange={(e) => onChange("co_sales_name2", e.target.value)} />
               </div>
-              <div className="space-y-1">
-                <Label>協同業務2 獎金</Label>
-                <Input type="number" value={form.co_sales_bonus2 ?? ""} onChange={(e) => onChange("co_sales_bonus2", e.target.value === "" ? null : Number(e.target.value))} />
-              </div>
+              {(form.co_sales_name2 ?? "").trim() && (
+                <div className="space-y-1">
+                  <Label>協同業務2 獎金{currentRates ? `（${pct(currentRates.co_sales2_rate)}）` : ""}</Label>
+                  <Input type="number" value={form.co_sales_bonus2 ?? ""} onChange={(e) => onChange("co_sales_bonus2", e.target.value === "" ? null : Number(e.target.value))} />
+                </div>
+              )}
             </div>
             <div className="space-y-1">
               <Label>備註</Label>
