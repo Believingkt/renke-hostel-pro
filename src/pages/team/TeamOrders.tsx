@@ -51,11 +51,13 @@ interface OrderRow {
   final_price: number;
   discount_code: string | null;
   order_source: string | null;
+  ota_channel: string | null;
   accommodation_id: string;
   created_at: string;
   accommodation_name: string;
   meta: MetaRow | null;
 }
+
 
 interface MetaRow {
   closer_id: string | null;
