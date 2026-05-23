@@ -475,14 +475,14 @@ export default function TeamOrders() {
               {/* 編輯欄位 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>成交人</Label>
+                  <Label className="text-sm">成交人</Label>
                   <Select
                     value={form.closer_id ?? NONE}
                     onValueChange={(v) =>
                       setForm((f) => ({ ...f, closer_id: v === NONE ? null : v }))
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="text-base">
                       <SelectValue placeholder="選擇成交人" />
                     </SelectTrigger>
                     <SelectContent>
@@ -497,7 +497,7 @@ export default function TeamOrders() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>影音組</Label>
+                  <Label className="text-sm">影音組</Label>
                   <Select
                     value={form.video_creator_id ?? NONE}
                     onValueChange={(v) =>
@@ -507,7 +507,7 @@ export default function TeamOrders() {
                       }))
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="text-base">
                       <SelectValue placeholder="選擇影音組" />
                     </SelectTrigger>
                     <SelectContent>
@@ -522,14 +522,14 @@ export default function TeamOrders() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>星探</Label>
+                  <Label className="text-sm">星探</Label>
                   <Select
                     value={form.scout_id ?? NONE}
                     onValueChange={(v) =>
                       setForm((f) => ({ ...f, scout_id: v === NONE ? null : v }))
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="text-base">
                       <SelectValue placeholder="選擇星探" />
                     </SelectTrigger>
                     <SelectContent>
@@ -545,8 +545,8 @@ export default function TeamOrders() {
 
                 <div className="space-y-2">
 
-                  <Label>廣告編號</Label>
-                  <Input
+                  <Label className="text-sm">廣告編號</Label>
+                  <Input className="text-base"
                     value={form.ad_id ?? ""}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, ad_id: e.target.value || null }))
@@ -586,7 +586,7 @@ export default function TeamOrders() {
               </div>
 
               <div className="space-y-2">
-                <Label>備註</Label>
+                <Label className="text-sm">備註</Label>
                 <Textarea
                   rows={3}
                   value={form.exclusion_note ?? ""}
