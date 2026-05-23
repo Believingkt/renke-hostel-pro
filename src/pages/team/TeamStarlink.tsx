@@ -168,7 +168,10 @@ function OrdersTab({
     invoice_number: "",
     contract_uploaded: false,
     notes: "",
+    level_at_sale: "",
+    commission_rate: 0,
   });
+  const [autoTierInfo, setAutoTierInfo] = useState<{ level: string; rate: number; count: number } | null>(null);
   const [saving, setSaving] = useState(false);
 
   const [editOpen, setEditOpen] = useState(false);
