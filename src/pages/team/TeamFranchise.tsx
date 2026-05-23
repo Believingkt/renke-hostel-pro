@@ -2614,15 +2614,7 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">專案名稱</Label>
-              <Select value={filterProject} onValueChange={setFilterProject}>
-                <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">全部</SelectItem>
-                  {projectOptions.map((p) => (
-                    <SelectItem key={p} value={p}>{p}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <FilterProjectSelect value={filterProject} onChange={setFilterProject} />
             </div>
           </div>
 
