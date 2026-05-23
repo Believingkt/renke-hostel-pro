@@ -1371,17 +1371,25 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
   }, []);
 
   const load = async () => {
-    const [profRes, setRes] = await Promise.all([
+    const [profRes, setRes, roleRes] = await Promise.all([
       (supabase as any)
         .from("team_member_profiles")
         .select("id,user_id,display_name,commission_rate,scout_tier,is_active")
         .or("is_active.is.null,is_active.eq.true")
         .order("display_name"),
       supabase.from("franchise_team_settings").select("*"),
+      (supabase as any).from("user_roles").select("user_id").eq("role", "franchise"),
     ]);
-    setProfiles((profRes.data ?? []) as TeamMemberProfile[]);
+    const franchiseUserIds = new Set(
+      ((roleRes?.data ?? []) as { user_id: string }[]).map((r) => r.user_id)
+    );
+    const all = (profRes.data ?? []) as TeamMemberProfile[];
+    // 只保留：無帳號成員（這個 Tab 專屬新增）或有 franchise 角色的成員
+    const filtered = all.filter((p) => !p.user_id || franchiseUserIds.has(p.user_id));
+    setProfiles(filtered);
     if (setRes.data) setSettings(setRes.data as TeamSetting[]);
   };
+
 
   // 用於下拉選單（隊長）：只有有帳號的成員
   const accountedMembers: Member[] = useMemo(
