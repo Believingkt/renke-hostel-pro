@@ -535,23 +535,48 @@ export default function TeamMembers() {
       {/* 區塊三：現有成員列表 */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">
-            現有成員 ({members.length})
-          </CardTitle>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <CardTitle className="text-base">
+              現有成員 ({filteredMembers.length}
+              {filterRole !== "all" && ` / ${members.length}`})
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Label className="text-xs text-muted-foreground whitespace-nowrap">
+                篩選角色
+              </Label>
+              <Select
+                value={filterRole}
+                onValueChange={(v) => setFilterRole(v as "all" | TeamRole)}
+              >
+                <SelectTrigger className="h-8 w-36">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部</SelectItem>
+                  {FILTER_ROLE_OPTIONS.map((role) => (
+                    <SelectItem key={role} value={role}>
+                      {ROLE_LABEL[role]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
             <p className="text-sm text-muted-foreground py-6 text-center">
               載入中...
             </p>
-          ) : members.length === 0 ? (
+          ) : filteredMembers.length === 0 ? (
             <p className="text-sm text-muted-foreground py-6 text-center">
-              尚無成員
+              {members.length === 0 ? "尚無成員" : "沒有符合此角色的成員"}
             </p>
           ) : (
             <div className="space-y-2">
-              {members.map((m) => {
+              {filteredMembers.map((m) => {
                 const Wrapper = canEditAll ? "button" : "div";
+
                 return (
                   <Wrapper
                     key={m.user_id}
