@@ -482,16 +482,31 @@ export default function TeamMembers() {
       {/* 區塊三：現有成員列表 */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">現有成員 ({members.length})</CardTitle>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CardTitle className="text-base">
+              現有成員 ({filterRole === "all" ? members.length : `${filteredMembers.length} / ${members.length}`})
+            </CardTitle>
+            <Select value={filterRole} onValueChange={(v) => setFilterRole(v as "all" | TeamRole)}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="篩選角色" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部</SelectItem>
+                {ALL_INVITABLE_ROLES.map((r) => (
+                  <SelectItem key={r} value={r}>{ROLE_LABEL[r]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
             <p className="text-sm text-muted-foreground py-6 text-center">載入中...</p>
-          ) : members.length === 0 ? (
+          ) : filteredMembers.length === 0 ? (
             <p className="text-sm text-muted-foreground py-6 text-center">尚無成員</p>
           ) : (
             <div className="space-y-2">
-              {members.map((m) => {
+              {filteredMembers.map((m) => {
                 const Wrapper = canEditAll ? "button" : "div";
                 return (
                   <Wrapper
