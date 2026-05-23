@@ -246,7 +246,7 @@ function TierSettingsBlock() {
       </CardContent>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>新增 KOL 分潤等級版本</DialogTitle>
             <DialogDescription>修改後只影響新訂單</DialogDescription>
