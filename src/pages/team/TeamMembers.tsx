@@ -9,22 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
 
 const NORRIS_USER_ID = "1bc5761a-49a3-40ee-aa45-96ab87070c2e";
@@ -46,27 +31,12 @@ const ALL_INVITABLE_ROLES: TeamRole[] = [
 // scout_manager 僅能指派的角色
 const SCOUT_MANAGER_INVITABLE_ROLES: TeamRole[] = ["scout", "kol"];
 
-// 篩選下拉的角色選項（不含 super_admin）
-const FILTER_ROLE_OPTIONS: TeamRole[] = [
-  "admin",
-  "closer",
-  "scout",
-  "scout_manager",
-  "video",
-  "franchise",
-  "starlink",
-  "owner",
-  "kol",
-  "finance",
-];
-
-
 const ROLE_LABEL: Record<TeamRole, string> = {
   super_admin: "超級管理員",
   admin: "管理員",
-  closer: "成交組",
-  scout: "星探",
   scout_manager: "星探主管",
+  scout: "星探",
+  closer: "成交組",
   video: "影音組",
   franchise: "特許加盟",
   starlink: "星鏈",
@@ -107,23 +77,15 @@ interface PendingInviteRow {
 
 export default function TeamMembers() {
   const { roles: myRoles, userId: myUserId } = useTeam();
-  const isAdmin = useMemo(
-    () => myRoles.includes("super_admin") || myRoles.includes("admin"),
-    [myRoles],
-  );
-  const isScoutManager = useMemo(
-    () => myRoles.includes("scout_manager"),
-    [myRoles],
-  );
+  const isAdmin = useMemo(() => myRoles.includes("super_admin") || myRoles.includes("admin"), [myRoles]);
+  const isScoutManager = useMemo(() => myRoles.includes("scout_manager"), [myRoles]);
   // 僅 admin 與 scout_manager 可進入
   const canAccess = isAdmin || isScoutManager;
   // 僅 admin 可邀請任意角色 / 編輯 / 刪除
   const canEditAll = isAdmin;
 
   // 邀請可選角色（依當前使用者身份）
-  const invitableRoles = isAdmin
-    ? ALL_INVITABLE_ROLES
-    : SCOUT_MANAGER_INVITABLE_ROLES;
+  const invitableRoles = isAdmin ? ALL_INVITABLE_ROLES : SCOUT_MANAGER_INVITABLE_ROLES;
 
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [pending, setPending] = useState<PendingInviteRow[]>([]);
@@ -135,12 +97,8 @@ export default function TeamMembers() {
   const [inviteRoles, setInviteRoles] = useState<TeamRole[]>([]);
   const [inviting, setInviting] = useState(false);
 
-  // 角色篩選
-  const [filterRole, setFilterRole] = useState<"all" | TeamRole>("all");
-
   // 編輯側邊面板
   const [editTarget, setEditTarget] = useState<MemberRow | null>(null);
-
   const [editName, setEditName] = useState("");
   const [editRoles, setEditRoles] = useState<TeamRole[]>([]);
   const [editActive, setEditActive] = useState(true);
@@ -166,11 +124,7 @@ export default function TeamMembers() {
 
     // 2. 取得對應角色 (accommodation_id IS NULL)
     const { data: rolesData } = userIds.length
-      ? await supabase
-          .from("user_roles")
-          .select("user_id, role")
-          .in("user_id", userIds)
-          .is("accommodation_id", null)
+      ? await supabase.from("user_roles").select("user_id, role").in("user_id", userIds).is("accommodation_id", null)
       : { data: [] as { user_id: string; role: string }[] };
 
     const rolesMap = new Map<string, Set<TeamRole>>();
@@ -185,17 +139,9 @@ export default function TeamMembers() {
     let emailMap = new Map<string, string>();
     if (userIds.length > 0) {
       try {
-        const { data: emailRes } = await supabase.functions.invoke(
-          "team-list-emails",
-          { body: { user_ids: userIds } },
-        );
+        const { data: emailRes } = await supabase.functions.invoke("team-list-emails", { body: { user_ids: userIds } });
         if (emailRes?.success && Array.isArray(emailRes.users)) {
-          emailMap = new Map(
-            emailRes.users.map((u: { id: string; email: string }) => [
-              u.id,
-              u.email,
-            ]),
-          );
+          emailMap = new Map(emailRes.users.map((u: { id: string; email: string }) => [u.id, u.email]));
         }
       } catch {
         // ignore
@@ -212,9 +158,7 @@ export default function TeamMembers() {
 
     // scout_manager 僅看到有 scout 或 kol 角色的成員
     if (!isAdmin && isScoutManager) {
-      rows = rows.filter(
-        (r) => r.roles.includes("scout") || r.roles.includes("kol"),
-      );
+      rows = rows.filter((r) => r.roles.includes("scout") || r.roles.includes("kol"));
     }
 
     setMembers(rows);
@@ -227,9 +171,7 @@ export default function TeamMembers() {
 
     let pendingRows = (pendingData ?? []) as PendingInviteRow[];
     if (!isAdmin && isScoutManager) {
-      pendingRows = pendingRows.filter(
-        (p) => p.role === "scout" || p.role === "kol",
-      );
+      pendingRows = pendingRows.filter((p) => p.role === "scout" || p.role === "kol");
     }
     setPending(pendingRows);
 
@@ -241,9 +183,7 @@ export default function TeamMembers() {
   }, [canAccess, fetchMembers]);
 
   const toggleInviteRole = (role: TeamRole) => {
-    setInviteRoles((prev) =>
-      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role],
-    );
+    setInviteRoles((prev) => (prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]));
   };
 
   const handleInvite = async () => {
@@ -260,24 +200,59 @@ export default function TeamMembers() {
     setInviting(true);
     try {
       const targetEmail = inviteEmail.trim().toLowerCase();
-      const { data, error } = await supabase.functions.invoke(
-        "send-team-invite",
-        {
-          body: {
-            email: targetEmail,
-            display_name: inviteName.trim(),
-            roles: inviteRoles,
-          },
-        },
-      );
-      if (error) throw error;
-      if (!data?.success) throw new Error(data?.error ?? "邀請失敗");
 
-      toast.success(
-        data.isNewUser
-          ? "邀請信已寄出，請通知對方查收"
-          : "已將團隊角色授予既有用戶",
-      );
+      // 先嘗試 lookup 既有用戶
+      let targetUserId: string | null = null;
+      try {
+        const { data: lookup } = await supabase.functions.invoke("team-lookup-user-by-email", {
+          body: { email: targetEmail },
+        });
+        if (lookup?.success && lookup.user?.id) {
+          targetUserId = lookup.user.id as string;
+        }
+      } catch {
+        // ignore — 視為新用戶
+      }
+
+      if (targetUserId) {
+        // 既有用戶：直接套用 profile + roles
+        const { error: profileErr } = await supabase
+          .from("team_member_profiles")
+          .upsert({ user_id: targetUserId, display_name: inviteName.trim() }, { onConflict: "user_id" });
+        if (profileErr) throw profileErr;
+
+        const { data: existingRoles } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", targetUserId)
+          .is("accommodation_id", null);
+        const existSet = new Set((existingRoles ?? []).map((r) => r.role));
+        const newRoles = inviteRoles.filter((r) => !existSet.has(r));
+        if (newRoles.length > 0) {
+          const { error: roleErr } = await supabase.from("user_roles").insert(
+            newRoles.map((role) => ({
+              user_id: targetUserId,
+              accommodation_id: null,
+              role,
+            })),
+          );
+          if (roleErr) throw roleErr;
+        }
+        toast.success("已新增成員權限");
+      } else {
+        // 新用戶：寫入 pending invites（每個角色一筆）
+        const rows = inviteRoles.map((role) => ({
+          email: targetEmail,
+          display_name: inviteName.trim(),
+          role,
+          invited_by: myUserId,
+        }));
+        const { error: pendingErr } = await supabase
+          .from("team_pending_invites")
+          .upsert(rows, { onConflict: "email,role" });
+        if (pendingErr) throw pendingErr;
+        toast.success("已建立邀請，對方首次登入時將自動套用角色");
+      }
 
       setInviteName("");
       setInviteEmail("");
@@ -290,13 +265,9 @@ export default function TeamMembers() {
     }
   };
 
-
   const handleCancelPending = async (email: string) => {
     if (!confirm(`確定要取消對 ${email} 的所有邀請嗎？`)) return;
-    const { error } = await supabase
-      .from("team_pending_invites")
-      .delete()
-      .eq("email", email);
+    const { error } = await supabase.from("team_pending_invites").delete().eq("email", email);
     if (error) {
       toast.error(error.message);
       return;
@@ -316,9 +287,7 @@ export default function TeamMembers() {
   const isNorris = editTarget?.user_id === NORRIS_USER_ID;
 
   const toggleEditRole = (role: TeamRole) => {
-    setEditRoles((prev) =>
-      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role],
-    );
+    setEditRoles((prev) => (prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]));
   };
 
   const handleSave = async () => {
@@ -338,9 +307,7 @@ export default function TeamMembers() {
       const original = new Set(editTarget.roles);
       const next = new Set(editRoles);
       const toAdd = [...next].filter((r) => !original.has(r));
-      const toRemove = [...original].filter(
-        (r) => !next.has(r) && r !== "super_admin",
-      );
+      const toRemove = [...original].filter((r) => !next.has(r) && r !== "super_admin");
 
       if (toAdd.length > 0) {
         const { error } = await supabase.from("user_roles").insert(
@@ -375,15 +342,9 @@ export default function TeamMembers() {
 
   const handleRemoveMember = async () => {
     if (!editTarget) return;
-    if (editTarget.user_id === myUserId)
-      return toast.error("無法移除自己");
+    if (editTarget.user_id === myUserId) return toast.error("無法移除自己");
     if (isNorris) return toast.error("此成員受系統保護");
-    if (
-      !confirm(
-        `確定移除 ${editTarget.display_name} 嗎？將清除其團隊角色與 profile，登入帳號不受影響。`,
-      )
-    )
-      return;
+    if (!confirm(`確定移除 ${editTarget.display_name} 嗎？將清除其團隊角色與 profile，登入帳號不受影響。`)) return;
     setRemoving(true);
     try {
       // 1. 移除所有全域角色
@@ -395,10 +356,7 @@ export default function TeamMembers() {
       if (rErr) throw rErr;
 
       // 2. 移除 team profile
-      const { error: pErr } = await supabase
-        .from("team_member_profiles")
-        .delete()
-        .eq("user_id", editTarget.user_id);
+      const { error: pErr } = await supabase.from("team_member_profiles").delete().eq("user_id", editTarget.user_id);
       if (pErr) throw pErr;
 
       toast.success("已移除成員");
@@ -416,9 +374,7 @@ export default function TeamMembers() {
       <div className="space-y-4">
         <h2 className="text-2xl font-bold">成員管理</h2>
         <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            您沒有權限訪問此頁面
-          </CardContent>
+          <CardContent className="py-12 text-center text-muted-foreground">您沒有權限訪問此頁面</CardContent>
         </Card>
       </div>
     );
@@ -426,14 +382,7 @@ export default function TeamMembers() {
 
   // 顯示用：移除 Norris 的 super_admin 標籤（DB 已改為 admin，但保險過濾）
   const displayRoles = (m: MemberRow): TeamRole[] =>
-    m.user_id === NORRIS_USER_ID
-      ? m.roles.filter((r) => r !== "super_admin")
-      : m.roles;
-
-  const filteredMembers = filterRole === "all"
-    ? members
-    : members.filter((m) => displayRoles(m).includes(filterRole));
-
+    m.user_id === NORRIS_USER_ID ? m.roles.filter((r) => r !== "super_admin") : m.roles;
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -448,11 +397,7 @@ export default function TeamMembers() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>顯示名稱</Label>
-              <Input
-                value={inviteName}
-                onChange={(e) => setInviteName(e.target.value)}
-                placeholder="例如：小王"
-              />
+              <Input value={inviteName} onChange={(e) => setInviteName(e.target.value)} placeholder="例如：小王" />
             </div>
             <div className="space-y-2">
               <Label>Email</Label>
@@ -473,22 +418,13 @@ export default function TeamMembers() {
                   key={role}
                   className="flex items-center gap-2 border rounded-md px-2 py-1.5 cursor-pointer hover:bg-muted/50"
                 >
-                  <Checkbox
-                    checked={inviteRoles.includes(role)}
-                    onCheckedChange={() => toggleInviteRole(role)}
-                  />
+                  <Checkbox checked={inviteRoles.includes(role)} onCheckedChange={() => toggleInviteRole(role)} />
                   <span className="text-sm">{ROLE_LABEL[role]}</span>
                 </label>
               ))}
             </div>
-            {!isAdmin && (
-              <p className="text-xs text-muted-foreground">
-                您僅能指派 星探 / KOL 角色
-              </p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              對方若尚未註冊，預設角色將暫存，首次登入時自動套用。
-            </p>
+            {!isAdmin && <p className="text-xs text-muted-foreground">您僅能指派 星探 / KOL 角色</p>}
+            <p className="text-xs text-muted-foreground">對方若尚未註冊，預設角色將暫存，首次登入時自動套用。</p>
           </div>
 
           <div className="flex justify-end">
@@ -503,9 +439,7 @@ export default function TeamMembers() {
       {pending.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">
-              待生效邀請 ({new Set(pending.map((p) => p.email)).size})
-            </CardTitle>
+            <CardTitle className="text-base">待生效邀請 ({new Set(pending.map((p) => p.email)).size})</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -517,32 +451,19 @@ export default function TeamMembers() {
                   return acc;
                 }, new Map<string, PendingInviteRow[]>()),
               ).map(([email, items]) => (
-                <div
-                  key={email}
-                  className="border rounded-lg p-3 flex flex-wrap items-center justify-between gap-2"
-                >
+                <div key={email} className="border rounded-lg p-3 flex flex-wrap items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <div className="font-medium text-sm">
-                      {items[0].display_name || email}
-                    </div>
+                    <div className="font-medium text-sm">{items[0].display_name || email}</div>
                     <div className="text-xs text-muted-foreground">{email}</div>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {items.map((it) => (
-                        <Badge
-                          key={it.id}
-                          variant="outline"
-                          className={`text-xs ${ROLE_BADGE_CLASS[it.role]}`}
-                        >
+                        <Badge key={it.id} variant="outline" className={`text-xs ${ROLE_BADGE_CLASS[it.role]}`}>
                           {ROLE_LABEL[it.role]}
                         </Badge>
                       ))}
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleCancelPending(email)}
-                  >
+                  <Button variant="ghost" size="sm" onClick={() => handleCancelPending(email)}>
                     取消邀請
                   </Button>
                 </div>
@@ -555,48 +476,17 @@ export default function TeamMembers() {
       {/* 區塊三：現有成員列表 */}
       <Card>
         <CardHeader>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <CardTitle className="text-base">
-              現有成員 ({filteredMembers.length}
-              {filterRole !== "all" && ` / ${members.length}`})
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              <Label className="text-xs text-muted-foreground whitespace-nowrap">
-                篩選角色
-              </Label>
-              <Select
-                value={filterRole}
-                onValueChange={(v) => setFilterRole(v as "all" | TeamRole)}
-              >
-                <SelectTrigger className="h-8 w-36">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">全部</SelectItem>
-                  {FILTER_ROLE_OPTIONS.map((role) => (
-                    <SelectItem key={role} value={role}>
-                      {ROLE_LABEL[role]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          <CardTitle className="text-base">現有成員 ({members.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">
-              載入中...
-            </p>
-          ) : filteredMembers.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">
-              {members.length === 0 ? "尚無成員" : "沒有符合此角色的成員"}
-            </p>
+            <p className="text-sm text-muted-foreground py-6 text-center">載入中...</p>
+          ) : members.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-6 text-center">尚無成員</p>
           ) : (
             <div className="space-y-2">
-              {filteredMembers.map((m) => {
+              {members.map((m) => {
                 const Wrapper = canEditAll ? "button" : "div";
-
                 return (
                   <Wrapper
                     key={m.user_id}
@@ -621,24 +511,14 @@ export default function TeamMembers() {
                             </Badge>
                           )}
                         </div>
-                        {m.email && (
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {m.email}
-                          </p>
-                        )}
+                        {m.email && <p className="text-xs text-muted-foreground mt-0.5">{m.email}</p>}
                       </div>
                       <div className="flex flex-wrap gap-1">
                         {displayRoles(m).length === 0 ? (
-                          <span className="text-xs text-muted-foreground">
-                            無角色
-                          </span>
+                          <span className="text-xs text-muted-foreground">無角色</span>
                         ) : (
                           displayRoles(m).map((r) => (
-                            <Badge
-                              key={r}
-                              variant="outline"
-                              className={`text-xs ${ROLE_BADGE_CLASS[r]}`}
-                            >
+                            <Badge key={r} variant="outline" className={`text-xs ${ROLE_BADGE_CLASS[r]}`}>
                               {ROLE_LABEL[r]}
                             </Badge>
                           ))
@@ -655,28 +535,17 @@ export default function TeamMembers() {
 
       {/* 編輯側邊面板（僅 admin） */}
       {canEditAll && (
-        <Sheet
-          open={!!editTarget}
-          onOpenChange={(open) => !open && setEditTarget(null)}
-        >
-          <SheetContent
-            side="right"
-            className="w-full sm:max-w-md flex flex-col overflow-y-auto"
-          >
+        <Sheet open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>
+          <SheetContent side="right" className="w-full sm:max-w-md flex flex-col overflow-y-auto">
             <SheetHeader>
               <SheetTitle>編輯成員</SheetTitle>
-              <SheetDescription>
-                修改顯示名稱、角色與啟用狀態
-              </SheetDescription>
+              <SheetDescription>修改顯示名稱、角色與啟用狀態</SheetDescription>
             </SheetHeader>
 
             <div className="flex-1 space-y-4 py-4">
               <div className="space-y-2">
                 <Label>顯示名稱</Label>
-                <Input
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                />
+                <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
               </div>
 
               {editTarget?.email && (
@@ -694,10 +563,7 @@ export default function TeamMembers() {
                       key={role}
                       className="flex items-center gap-2 border rounded-md px-2 py-1.5 cursor-pointer hover:bg-muted/50"
                     >
-                      <Checkbox
-                        checked={editRoles.includes(role)}
-                        onCheckedChange={() => toggleEditRole(role)}
-                      />
+                      <Checkbox checked={editRoles.includes(role)} onCheckedChange={() => toggleEditRole(role)} />
                       <span className="text-sm">{ROLE_LABEL[role]}</span>
                     </label>
                   ))}
@@ -712,11 +578,7 @@ export default function TeamMembers() {
 
               <div className="flex items-center justify-between border-t pt-4">
                 <Label htmlFor="active-switch">啟用狀態</Label>
-                <Switch
-                  id="active-switch"
-                  checked={editActive}
-                  onCheckedChange={setEditActive}
-                />
+                <Switch id="active-switch" checked={editActive} onCheckedChange={setEditActive} />
               </div>
             </div>
 
@@ -724,21 +586,12 @@ export default function TeamMembers() {
               <Button
                 variant="destructive"
                 onClick={handleRemoveMember}
-                disabled={
-                  removing ||
-                  saving ||
-                  editTarget?.user_id === myUserId ||
-                  isNorris
-                }
+                disabled={removing || saving || editTarget?.user_id === myUserId || isNorris}
               >
                 {removing ? "移除中..." : "移除成員"}
               </Button>
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setEditTarget(null)}
-                  disabled={saving || removing}
-                >
+                <Button variant="outline" onClick={() => setEditTarget(null)} disabled={saving || removing}>
                   取消
                 </Button>
                 <Button onClick={handleSave} disabled={saving || removing}>
