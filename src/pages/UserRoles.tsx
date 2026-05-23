@@ -42,7 +42,7 @@ interface UserRole {
   id: string;
   user_id: string;
   accommodation_id: string;
-  role: "super_admin" | "hotel_admin" | "staff" | "admin" | "closer" | "scout" | "scout_manager" | "video" | "franchise" | "starlink" | "owner" | "kol" | "finance";
+  role: "super_admin" | "hotel_admin" | "staff" | "admin" | "closer" | "scout" | "scout_manager" | "video" | "franchise" | "franchise_manager" | "starlink" | "owner" | "kol" | "finance";
   created_at: string;
 }
 
