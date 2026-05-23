@@ -710,7 +710,7 @@ function PayoutRulesBlock() {
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>結算規則</DialogTitle>
+            <DialogTitle>新增結算規則版本（以此為範本）</DialogTitle>
             <DialogDescription>儲存後會新增一筆生效日期版本</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
