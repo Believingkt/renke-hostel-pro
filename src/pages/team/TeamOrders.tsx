@@ -545,56 +545,7 @@ export default function TeamOrders() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>來源管道</Label>
-                  <Select
-                    value={form.traffic_source ?? NONE}
-                    onValueChange={(v) =>
-                      setForm((f) => ({
-                        ...f,
-                        traffic_source: v === NONE ? null : v,
-                      }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="選擇來源" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NONE}>未指定</SelectItem>
-                      {TRAFFIC_OPTIONS.map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {s}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
 
-                <div className="space-y-2">
-                  <Label>訂房方式</Label>
-                  <Select
-                    value={form.booking_method ?? NONE}
-                    onValueChange={(v) =>
-                      setForm((f) => ({
-                        ...f,
-                        booking_method: v === NONE ? null : v,
-                      }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="選擇訂房方式" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NONE}>未指定</SelectItem>
-                      {BOOKING_OPTIONS.map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {s}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
                   <Label>廣告編號</Label>
                   <Input
                     value={form.ad_id ?? ""}
