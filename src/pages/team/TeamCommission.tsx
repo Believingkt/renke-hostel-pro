@@ -894,20 +894,6 @@ function PayoutsBlock({ scoutManagerOnly = false }: { scoutManagerOnly?: boolean
   const [scouts, setScouts] = useState<ScoutOption[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [open, setOpen] = useState(false);
-  const [smCommissionType, setSmCommissionType] = useState<"scout_kol" | "scout_base">("scout_kol");
-  const [draft, setDraft] = useState({
-    scout_id: "",
-    year: now.getFullYear(),
-    month: now.getMonth() + 1,
-    base_salary: "0",
-    team_bonus: "0",
-    kol_commission: "0",
-    individual_achieved: false,
-    team_achieved: false,
-    import_note: "",
-  });
-  const [saving, setSaving] = useState(false);
 
   const fetchScouts = useCallback(async () => {
     const { data: roles } = await supabase
