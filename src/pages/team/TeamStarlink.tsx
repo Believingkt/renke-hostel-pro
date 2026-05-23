@@ -144,10 +144,16 @@ function OrdersTab({
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [plans, setPlans] = useState<PlanSetting[]>([]);
 
-  const [year, setYear] = useState<string>(String(new Date().getFullYear()));
+  const [year, setYear] = useState<string>("ALL");
   const [month, setMonth] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [salesFilter, setSalesFilter] = useState<string>("ALL");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 50;
+
+  useEffect(() => {
+    setPage(1);
+  }, [year, month, statusFilter, salesFilter]);
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [form, setForm] = useState({
