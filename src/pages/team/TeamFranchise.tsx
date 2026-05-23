@@ -302,6 +302,7 @@ function OrdersTab({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="ALL">全部年份</SelectItem>
               {years.map((y) => (
                 <SelectItem key={y} value={y}>
                   {y} 年
