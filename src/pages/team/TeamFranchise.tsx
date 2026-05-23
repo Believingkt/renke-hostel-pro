@@ -1913,8 +1913,8 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
 }
 
 // =================== Stats Tab ===================
-interface InternalStatRow { sold_at: string | null; plan_name: string | null; plan_price: number | null; sold_by: string | null; sold_by_name: string | null; }
-interface ExternalStatRow { signed_at: string | null; project_name: string | null; unit_count: number | null; plan_price: number | null; sales_name: string | null; }
+interface InternalStatRow { sold_at: string | null; plan_name: string | null; plan_price: number | null; sold_by: string | null; sold_by_name: string | null; commission_amount: number | null; leader_amount: number | null; company_amount: number | null; }
+interface ExternalStatRow { signed_at: string | null; project_name: string | null; unit_count: number | null; plan_price: number | null; sales_name: string | null; sales_bonus: number | null; co_sales_name: string | null; co_sales_bonus: number | null; co_sales_name2: string | null; co_sales_bonus2: number | null; }
 
 function StatsTab() {
   const [loaded, setLoaded] = useState(false);
@@ -1929,8 +1929,8 @@ function StatsTab() {
     let cancelled = false;
     (async () => {
       const [intRes, extRes, profRes] = await Promise.all([
-        supabase.from("franchise_orders").select("sold_at, plan_name, plan_price, sold_by, sold_by_name"),
-        supabase.from("franchise_external_orders").select("signed_at, project_name, unit_count, plan_price, sales_name"),
+        supabase.from("franchise_orders").select("sold_at, plan_name, plan_price, sold_by, sold_by_name, commission_amount, leader_amount, company_amount"),
+        supabase.from("franchise_external_orders").select("signed_at, project_name, unit_count, plan_price, sales_name, sales_bonus, co_sales_name, co_sales_bonus, co_sales_name2, co_sales_bonus2"),
         supabase.from("team_member_profiles").select("user_id, display_name"),
       ]);
       if (cancelled) return;
@@ -2025,6 +2025,50 @@ function StatsTab() {
       .sort((a, b) => b.total - a.total);
   }, [filteredInt, filteredExt]);
 
+  const salesCommission = useMemo(() => {
+    const map = new Map<string, { name: string; intCommission: number; extCommission: number }>();
+    const ensure = (name: string) => {
+      if (!map.has(name)) map.set(name, { name, intCommission: 0, extCommission: 0 });
+      return map.get(name)!;
+    };
+    filteredInt.forEach((r) => {
+      const name = (r.sold_by_name?.trim()) || (r.sold_by ? memberMap[r.sold_by] : null) || "未指定";
+      ensure(name).intCommission += Number(r.commission_amount ?? 0);
+    });
+    filteredExt.forEach((r) => {
+      const main = r.sales_name?.trim() || "未指定";
+      ensure(main).extCommission += Number(r.sales_bonus ?? 0);
+      const co1 = r.co_sales_name?.trim();
+      if (co1) ensure(co1).extCommission += Number(r.co_sales_bonus ?? 0);
+      const co2 = r.co_sales_name2?.trim();
+      if (co2) ensure(co2).extCommission += Number(r.co_sales_bonus2 ?? 0);
+    });
+    return Array.from(map.values())
+      .map((r) => ({ ...r, total: r.intCommission + r.extCommission }))
+      .filter((r) => r.total > 0)
+      .sort((a, b) => b.total - a.total);
+  }, [filteredInt, filteredExt, memberMap]);
+
+  const projectCommission = useMemo(() => {
+    const map = new Map<string, { name: string; intCommission: number; extCommission: number }>();
+    const ensure = (name: string) => {
+      if (!map.has(name)) map.set(name, { name, intCommission: 0, extCommission: 0 });
+      return map.get(name)!;
+    };
+    filteredInt.forEach((r) => {
+      const row = ensure(r.plan_name?.trim() || "未指定");
+      row.intCommission += Number(r.commission_amount ?? 0) + Number(r.leader_amount ?? 0) + Number(r.company_amount ?? 0);
+    });
+    filteredExt.forEach((r) => {
+      const row = ensure(r.project_name?.trim() || "未指定");
+      row.extCommission += Number(r.sales_bonus ?? 0) + Number(r.co_sales_bonus ?? 0) + Number(r.co_sales_bonus2 ?? 0);
+    });
+    return Array.from(map.values())
+      .map((r) => ({ ...r, total: r.intCommission + r.extCommission }))
+      .filter((r) => r.total > 0)
+      .sort((a, b) => b.total - a.total);
+  }, [filteredInt, filteredExt]);
+
   if (!loaded && loading) return null;
 
   return (
@@ -2088,7 +2132,35 @@ function StatsTab() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>專案統計</CardTitle></CardHeader>
+        <CardHeader><CardTitle>銷售人分潤統計</CardTitle></CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>銷售人</TableHead>
+                <TableHead className="text-right">內部分潤</TableHead>
+                <TableHead className="text-right">外部分潤</TableHead>
+                <TableHead className="text-right">合計分潤</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {salesCommission.length === 0 ? (
+                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">無資料</TableCell></TableRow>
+              ) : salesCommission.map((r) => (
+                <TableRow key={r.name}>
+                  <TableCell>{r.name}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtMoney(r.intCommission)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtMoney(r.extCommission)}</TableCell>
+                  <TableCell className="text-right tabular-nums font-semibold">{fmtMoney(r.total)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>專案業績統計</CardTitle></CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
@@ -2098,7 +2170,7 @@ function StatsTab() {
                 <TableHead className="text-right">內部金額</TableHead>
                 <TableHead className="text-right">外部筆數</TableHead>
                 <TableHead className="text-right">外部金額</TableHead>
-                <TableHead className="text-right">合計</TableHead>
+                <TableHead className="text-right">合計金額</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -2111,6 +2183,34 @@ function StatsTab() {
                   <TableCell className="text-right tabular-nums">{fmtMoney(r.intAmount)}</TableCell>
                   <TableCell className="text-right tabular-nums">{r.extCount}</TableCell>
                   <TableCell className="text-right tabular-nums">{fmtMoney(r.extAmount)}</TableCell>
+                  <TableCell className="text-right tabular-nums font-semibold">{fmtMoney(r.total)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>專案分潤統計</CardTitle></CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>專案名稱</TableHead>
+                <TableHead className="text-right">內部分潤總額</TableHead>
+                <TableHead className="text-right">外部分潤總額</TableHead>
+                <TableHead className="text-right">分潤合計</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {projectCommission.length === 0 ? (
+                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">無資料</TableCell></TableRow>
+              ) : projectCommission.map((r) => (
+                <TableRow key={r.name}>
+                  <TableCell>{r.name}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtMoney(r.intCommission)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtMoney(r.extCommission)}</TableCell>
                   <TableCell className="text-right tabular-nums font-semibold">{fmtMoney(r.total)}</TableCell>
                 </TableRow>
               ))}
