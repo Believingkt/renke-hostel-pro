@@ -51,11 +51,13 @@ interface OrderRow {
   final_price: number;
   discount_code: string | null;
   order_source: string | null;
+  ota_channel: string | null;
   accommodation_id: string;
   created_at: string;
   accommodation_name: string;
   meta: MetaRow | null;
 }
+
 
 interface MetaRow {
   closer_id: string | null;
@@ -152,8 +154,9 @@ export default function TeamOrders() {
           .from("orders")
           .select(
             `id, order_number, guest_name, check_in_date, check_out_date,
-             final_price, discount_code, order_source, accommodation_id, created_at`
+             final_price, discount_code, order_source, ota_channel, accommodation_id, created_at`
           )
+
           .order("created_at", { ascending: false })
           .limit(2000),
         supabase.from("accommodation_info").select("id, name"),
@@ -188,7 +191,9 @@ export default function TeamOrders() {
         final_price: o.final_price,
         discount_code: o.discount_code,
         order_source: o.order_source,
+        ota_channel: o.ota_channel,
         accommodation_id: o.accommodation_id,
+
         created_at: o.created_at,
         accommodation_name: accMap.get(o.accommodation_id) || "-",
         meta: metaMap.get(o.id) || null,
@@ -259,9 +264,8 @@ export default function TeamOrders() {
         closer_id: form.closer_id,
         video_creator_id: form.video_creator_id,
         scout_id: form.scout_id,
-        traffic_source: form.traffic_source,
-        booking_method: form.booking_method,
         ad_id: form.ad_id,
+
         is_excluded: !!form.is_excluded,
         closer_assisted: !!form.closer_assisted,
         scout_commission_rate: form.scout_commission_rate,
@@ -463,19 +467,22 @@ export default function TeamOrders() {
                   value={`$${editOrder.final_price?.toLocaleString()}`}
                 />
                 <ReadField label="折扣碼" value={editOrder.discount_code || "-"} />
+                <ReadField label="來源" value={editOrder.order_source || "-"} />
+                <ReadField label="訂房方式" value={editOrder.ota_channel || "-"} />
               </div>
+
 
               {/* 編輯欄位 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>成交人</Label>
+                  <Label className="text-sm">成交人</Label>
                   <Select
                     value={form.closer_id ?? NONE}
                     onValueChange={(v) =>
                       setForm((f) => ({ ...f, closer_id: v === NONE ? null : v }))
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="text-base">
                       <SelectValue placeholder="選擇成交人" />
                     </SelectTrigger>
                     <SelectContent>
@@ -490,7 +497,7 @@ export default function TeamOrders() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>影音組</Label>
+                  <Label className="text-sm">影音組</Label>
                   <Select
                     value={form.video_creator_id ?? NONE}
                     onValueChange={(v) =>
@@ -500,7 +507,7 @@ export default function TeamOrders() {
                       }))
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="text-base">
                       <SelectValue placeholder="選擇影音組" />
                     </SelectTrigger>
                     <SelectContent>
@@ -515,14 +522,14 @@ export default function TeamOrders() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>星探</Label>
+                  <Label className="text-sm">星探</Label>
                   <Select
                     value={form.scout_id ?? NONE}
                     onValueChange={(v) =>
                       setForm((f) => ({ ...f, scout_id: v === NONE ? null : v }))
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="text-base">
                       <SelectValue placeholder="選擇星探" />
                     </SelectTrigger>
                     <SelectContent>
@@ -537,58 +544,9 @@ export default function TeamOrders() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>來源管道</Label>
-                  <Select
-                    value={form.traffic_source ?? NONE}
-                    onValueChange={(v) =>
-                      setForm((f) => ({
-                        ...f,
-                        traffic_source: v === NONE ? null : v,
-                      }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="選擇來源" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NONE}>未指定</SelectItem>
-                      {TRAFFIC_OPTIONS.map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {s}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
 
-                <div className="space-y-2">
-                  <Label>訂房方式</Label>
-                  <Select
-                    value={form.booking_method ?? NONE}
-                    onValueChange={(v) =>
-                      setForm((f) => ({
-                        ...f,
-                        booking_method: v === NONE ? null : v,
-                      }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="選擇訂房方式" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NONE}>未指定</SelectItem>
-                      {BOOKING_OPTIONS.map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {s}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>廣告編號</Label>
-                  <Input
+                  <Label className="text-sm">廣告編號</Label>
+                  <Input className="text-base"
                     value={form.ad_id ?? ""}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, ad_id: e.target.value || null }))
@@ -604,16 +562,15 @@ export default function TeamOrders() {
                     checked={!!form.closer_assisted}
                     onCheckedChange={(v) => toggleCloserAssisted(!!v)}
                   />
-                  <Label htmlFor="closer_assisted" className="cursor-pointer">
+                  <Label htmlFor="closer_assisted" className="cursor-pointer text-sm">
                     成交組協助
                   </Label>
                 </div>
-                {form.closer_assisted && (
-                  <p className="text-xs text-muted-foreground">
-                    星探分潤將從 5% 調整為 2%，成交組追加 3%
-                  </p>
-                )}
+                <p className="text-xs text-muted-foreground">
+                  勾選後星探分潤將從 5% 調整為 2%，成交組追加 3%
+                </p>
               </div>
+
 
               <div className="flex items-center gap-2">
                 <Checkbox
@@ -623,13 +580,13 @@ export default function TeamOrders() {
                     setForm((f) => ({ ...f, is_excluded: !!v }))
                   }
                 />
-                <Label htmlFor="is_excluded" className="cursor-pointer">
+                <Label htmlFor="is_excluded" className="cursor-pointer text-sm">
                   不分潤
                 </Label>
               </div>
 
               <div className="space-y-2">
-                <Label>備註</Label>
+                <Label className="text-sm">備註</Label>
                 <Textarea
                   rows={3}
                   value={form.exclusion_note ?? ""}
@@ -660,9 +617,10 @@ export default function TeamOrders() {
 
 function ReadField({ label, value }: { label: string; value: string }) {
   return (
-    <div className="text-sm">
+    <div>
       <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="font-medium">{value}</div>
+      <div className="text-base font-medium">{value}</div>
     </div>
   );
 }
+
