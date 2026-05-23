@@ -76,6 +76,15 @@ const fmtMoney = (n: number | null | undefined) =>
 const fmtRate = (n: number | null | undefined) =>
   n == null ? "—" : `${(Number(n) * 100).toFixed(1)}%`;
 
+function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-[110px_1fr] items-center gap-3">
+      <Label className="text-muted-foreground">{label}</Label>
+      <div>{children}</div>
+    </div>
+  );
+}
+
 export default function TeamFranchise() {
   const { roles, userId } = useTeam();
   const canManage = roles.includes("super_admin") || roles.includes("admin");
