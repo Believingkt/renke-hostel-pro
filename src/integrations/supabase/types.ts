@@ -5989,6 +5989,7 @@ export type Database = {
       is_admin: { Args: { user_id_param: string }; Returns: boolean }
       is_admin_or_super: { Args: never; Returns: boolean }
       is_super_admin: { Args: { user_uuid: string }; Returns: boolean }
+      is_team_admin: { Args: { _user_id: string }; Returns: boolean }
       is_team_inviter: { Args: { _user_id: string }; Returns: boolean }
       is_user_admin: { Args: { _user_id: string }; Returns: boolean }
       resolve_pricing_template_by_numeric_code: {
