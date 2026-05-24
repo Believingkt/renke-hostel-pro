@@ -631,6 +631,15 @@ function OrdersTab({
     <Card>
       <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div className="flex flex-wrap gap-2">
+          <Select value={projectFilter} onValueChange={setProjectFilter}>
+            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">全部專案</SelectItem>
+              {projectOptions.map((p) => (
+                <SelectItem key={p} value={p}>{p}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={year} onValueChange={setYear}>
             <SelectTrigger className="w-28">
               <SelectValue />
@@ -655,25 +664,6 @@ function OrdersTab({
                   {m} 月
                 </SelectItem>
               ))}
-            </SelectContent>
-          </Select>
-          <Select value={projectFilter} onValueChange={setProjectFilter}>
-            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">全部專案</SelectItem>
-              {projectOptions.map((p) => (
-                <SelectItem key={p} value={p}>{p}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">全部狀態</SelectItem>
-              <SelectItem value="pending">待結算</SelectItem>
-              <SelectItem value="paid">已發放</SelectItem>
             </SelectContent>
           </Select>
           {canManage && (
@@ -2197,57 +2187,61 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
 
   return (
     <Card>
-      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+      <CardHeader className="flex flex-col gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Select value={projectFilter} onValueChange={setProjectFilter}>
+              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">全部專案</SelectItem>
+                {projects.map((p) => (
+                  <SelectItem key={p} value={p}>{p}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={year} onValueChange={setYear}>
+              <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">全部年份</SelectItem>
+                {years.map((y) => (<SelectItem key={y} value={y}>{y} 年</SelectItem>))}
+              </SelectContent>
+            </Select>
+            <Select value={month} onValueChange={setMonth}>
+              <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">全年</SelectItem>
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                  <SelectItem key={m} value={String(m)}>{m} 月</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={salesFilter} onValueChange={setSalesFilter}>
+              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">全部開發業務</SelectItem>
+                {salesOptions.map((s) => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {canManage && (
+            <Button onClick={openCreate}>
+              <Plus className="h-4 w-4 mr-1" /> 新增
+            </Button>
+          )}
+        </div>
         <div className="flex flex-wrap gap-2">
-          <Select value={projectFilter} onValueChange={setProjectFilter}>
-            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">全部專案</SelectItem>
-              {projects.map((p) => (
-                <SelectItem key={p} value={p}>{p}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={year} onValueChange={setYear}>
-            <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">全部年份</SelectItem>
-              {years.map((y) => (<SelectItem key={y} value={y}>{y} 年</SelectItem>))}
-            </SelectContent>
-          </Select>
-          <Select value={month} onValueChange={setMonth}>
-            <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">全年</SelectItem>
-              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                <SelectItem key={m} value={String(m)}>{m} 月</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={salesFilter} onValueChange={setSalesFilter}>
-            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">全部開發業務</SelectItem>
-              {salesOptions.map((s) => (
-                <SelectItem key={s} value={s}>{s}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
           <Select value={progressFilter} onValueChange={setProgressFilter}>
-            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">全部</SelectItem>
+              <SelectItem value="ALL">全部合約進度</SelectItem>
               {CONTRACT_PROGRESS_OPTIONS.map((p) => (
                 <SelectItem key={p} value={p}>{p}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
-        {canManage && (
-          <Button onClick={openCreate}>
-            <Plus className="h-4 w-4 mr-1" /> 新增
-          </Button>
-        )}
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
@@ -2257,7 +2251,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
                 <TableHead>會員編號</TableHead>
                 <TableHead>會員姓名</TableHead>
                 <TableHead>開發業務</TableHead>
-                <TableHead className="text-right">購買單位數</TableHead>
+                <TableHead>專案名稱</TableHead>
                 <TableHead className="text-right">金額</TableHead>
                 <TableHead>簽約日期</TableHead>
                 <TableHead>合約進度</TableHead>
@@ -2280,7 +2274,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
                     <TableCell>{r.member_number ?? "—"}</TableCell>
                     <TableCell>{r.customer_name}</TableCell>
                     <TableCell>{r.sales_name ?? "—"}</TableCell>
-                    <TableCell className="text-right tabular-nums">{r.unit_count ?? 0}</TableCell>
+                    <TableCell>{r.project_name ?? "—"}</TableCell>
                     <TableCell className="text-right tabular-nums">{fmtMoney(r.total_amount ?? (r.unit_count ?? 0) * r.plan_price)}</TableCell>
                     <TableCell>{r.signed_at ?? "—"}</TableCell>
                     <TableCell>
