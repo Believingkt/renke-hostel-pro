@@ -678,7 +678,13 @@ function InvitationsTab({
     setEditingId(row.id);
     setForm({
       id: row.id,
+      accommodation_select: row.accommodation_id
+        ? `acc:${row.accommodation_id}`
+        : row.venue_name
+          ? `venue:${row.venue_name}`
+          : "",
       accommodation_id: row.accommodation_id ?? "",
+      venue_name: row.venue_name ?? "",
       name: row.name ?? "",
       ig_handle: row.ig_handle ?? "",
       rarity: row.rarity ?? "",
@@ -702,6 +708,7 @@ function InvitationsTab({
       inventory_count:
         row.inventory_count != null ? String(row.inventory_count) : "",
       kol_tags: row.kol_tags ?? [],
+      kpi_qualified: !!row.kpi_qualified,
     });
     setDupWarning(null);
     setSheetOpen(true);
