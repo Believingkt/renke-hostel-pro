@@ -3093,7 +3093,9 @@ export type Database = {
           msg_started: number | null
           reach: number | null
           spend: number | null
+          start_date: string | null
           status: string | null
+          stop_date: string | null
           synced_at: string | null
         }
         Insert: {
@@ -3105,7 +3107,9 @@ export type Database = {
           msg_started?: number | null
           reach?: number | null
           spend?: number | null
+          start_date?: string | null
           status?: string | null
+          stop_date?: string | null
           synced_at?: string | null
         }
         Update: {
@@ -3117,7 +3121,9 @@ export type Database = {
           msg_started?: number | null
           reach?: number | null
           spend?: number | null
+          start_date?: string | null
           status?: string | null
+          stop_date?: string | null
           synced_at?: string | null
         }
         Relationships: []
