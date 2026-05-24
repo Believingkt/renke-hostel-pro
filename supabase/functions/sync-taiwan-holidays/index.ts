@@ -174,11 +174,13 @@ Deno.serve(async (req) => {
 
       for (const accommodation of accommodations) {
         // 先刪除該年範圍內、不在本次來源中的舊紀錄（處理政府公告變更/撤回的情境）
+        // 僅刪除 is_custom = false 的同步資料，保留使用者自訂假日
         const incomingDates = holidays.map((h) => h.date);
         let staleQuery = supabase
           .from('public_holidays')
           .delete()
           .eq('accommodation_id', accommodation.id)
+          .eq('is_custom', false)
           .gte('holiday_date', `${year}-01-01`)
           .lte('holiday_date', `${year}-12-31`);
 
@@ -192,28 +194,43 @@ Deno.serve(async (req) => {
         }
 
         if (holidays.length > 0) {
-          const holidaysToUpsert = holidays.map((holiday) => ({
-            accommodation_id: accommodation.id,
-            holiday_date: holiday.date,
-            holiday_name: holiday.name,
-            holiday_type: holiday.type,
-          }));
-
-          // Upsert by (accommodation_id, holiday_date) — 依賴 unique constraint 防重複
-          const { error: upsertError } = await supabase
+          // 取得該日已存在的自訂假日，避免覆寫
+          const { data: customRows } = await supabase
             .from('public_holidays')
-            .upsert(holidaysToUpsert, { onConflict: 'accommodation_id,holiday_date' });
+            .select('holiday_date')
+            .eq('accommodation_id', accommodation.id)
+            .eq('is_custom', true)
+            .gte('holiday_date', `${year}-01-01`)
+            .lte('holiday_date', `${year}-12-31`);
+          const customDates = new Set((customRows ?? []).map((r) => r.holiday_date));
 
-          if (upsertError) {
-            throw new Error(`Failed to upsert holidays for ${accommodation.name}: ${upsertError.message}`);
+          const holidaysToUpsert = holidays
+            .filter((h) => !customDates.has(h.date))
+            .map((holiday) => ({
+              accommodation_id: accommodation.id,
+              holiday_date: holiday.date,
+              holiday_name: holiday.name,
+              holiday_type: holiday.type,
+              is_custom: false,
+            }));
+
+          if (holidaysToUpsert.length > 0) {
+            // Upsert by (accommodation_id, holiday_date) — 依賴 unique constraint 防重複
+            const { error: upsertError } = await supabase
+              .from('public_holidays')
+              .upsert(holidaysToUpsert, { onConflict: 'accommodation_id,holiday_date' });
+
+            if (upsertError) {
+              throw new Error(`Failed to upsert holidays for ${accommodation.name}: ${upsertError.message}`);
+            }
+
+            totalSynced += holidaysToUpsert.length;
+            results.push({
+              year,
+              accommodation_id: accommodation.id,
+              inserted: holidaysToUpsert.length,
+            });
           }
-
-          totalSynced += holidaysToUpsert.length;
-          results.push({
-            year,
-            accommodation_id: accommodation.id,
-            inserted: holidaysToUpsert.length,
-          });
         }
       }
     }
