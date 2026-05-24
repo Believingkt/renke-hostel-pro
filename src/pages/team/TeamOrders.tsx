@@ -29,8 +29,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Pencil } from "lucide-react";
+import { Pencil, Check, X } from "lucide-react";
 
 interface Member {
   user_id: string;
@@ -99,6 +101,22 @@ export default function TeamOrders() {
   const [form, setForm] = useState<MetaRow>(emptyMeta());
   const [saving, setSaving] = useState(false);
 
+  // Tab + Settings
+  const [tab, setTab] = useState<string>("orders");
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [trafficSources, setTrafficSources] = useState<
+    { id: string; name: string; is_active: boolean; sort_order: number | null }[]
+  >([]);
+  const [bookingMethods, setBookingMethods] = useState<
+    { id: string; name: string; is_active: boolean; sort_order: number | null }[]
+  >([]);
+  const [newTraffic, setNewTraffic] = useState("");
+  const [newBooking, setNewBooking] = useState("");
+  const [editingTrafficId, setEditingTrafficId] = useState<string | null>(null);
+  const [editingTrafficName, setEditingTrafficName] = useState("");
+  const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
+  const [editingBookingName, setEditingBookingName] = useState("");
+
   function emptyMeta(): MetaRow {
     return {
       closer_id: null,
@@ -127,6 +145,122 @@ export default function TeamOrders() {
   useEffect(() => {
     setPage(1);
   }, [accFilter, year, month]);
+
+  // Load admin role + options for settings tab
+  useEffect(() => {
+    (async () => {
+      const { data: sess } = await supabase.auth.getSession();
+      const uid = sess.session?.user.id;
+      if (uid) {
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", uid);
+        const admin = (roles ?? []).some(
+          (r: any) => r.role === "hotel_admin" || r.role === "super_admin",
+        );
+        setIsAdmin(admin);
+      }
+      loadOptions();
+    })();
+  }, []);
+
+  async function loadOptions() {
+    const [{ data: ts }, { data: bm }] = await Promise.all([
+      supabase
+        .from("traffic_sources")
+        .select("id, name, is_active, sort_order")
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("booking_methods")
+        .select("id, name, is_active, sort_order")
+        .order("sort_order", { ascending: true }),
+    ]);
+    setTrafficSources((ts ?? []) as any);
+    setBookingMethods((bm ?? []) as any);
+  }
+
+  async function handleAddOption(table: "traffic_sources" | "booking_methods") {
+    const name = (table === "traffic_sources" ? newTraffic : newBooking).trim();
+    if (!name) return;
+    const list = table === "traffic_sources" ? trafficSources : bookingMethods;
+    if (list.some((o) => o.name === name)) {
+      toast.error("已有相同選項");
+      return;
+    }
+    const maxOrder = list.reduce(
+      (m, o) => Math.max(m, o.sort_order ?? 0),
+      0,
+    );
+    const { error } = await supabase
+      .from(table)
+      .insert({ name, sort_order: maxOrder + 1 });
+    if (error) {
+      toast.error(error.message.includes("unique") ? "已有相同選項" : error.message);
+      return;
+    }
+    toast.success("已新增");
+    if (table === "traffic_sources") setNewTraffic("");
+    else setNewBooking("");
+    await loadOptions();
+  }
+
+  async function handleToggleActive(
+    table: "traffic_sources" | "booking_methods",
+    id: string,
+    next: boolean,
+  ) {
+    const { error, count } = await supabase
+      .from(table)
+      .update({ is_active: next }, { count: "exact" })
+      .eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    if (!count) {
+      toast.error("無權限或更新失敗");
+      return;
+    }
+    await loadOptions();
+  }
+
+  async function handleRenameOption(
+    table: "traffic_sources" | "booking_methods",
+    id: string,
+    name: string,
+  ) {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const list = table === "traffic_sources" ? trafficSources : bookingMethods;
+    if (list.some((o) => o.id !== id && o.name === trimmed)) {
+      toast.error("已有相同選項");
+      return;
+    }
+    const { error, count } = await supabase
+      .from(table)
+      .update({ name: trimmed }, { count: "exact" })
+      .eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    if (!count) {
+      toast.error("無權限或更新失敗");
+      return;
+    }
+    if (table === "traffic_sources") {
+      setEditingTrafficId(null);
+      setEditingTrafficName("");
+    } else {
+      setEditingBookingId(null);
+      setEditingBookingName("");
+    }
+    toast.success("已更新");
+    await loadOptions();
+  }
+
+
 
   async function loadAccommodations() {
     const { data } = await supabase
@@ -307,7 +441,14 @@ export default function TeamOrders() {
         <h1 className="text-2xl font-semibold">訂單補充資料</h1>
       </div>
 
-      <Card>
+      <Tabs value={tab} onValueChange={setTab} className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="orders">訂單列表</TabsTrigger>
+          <TabsTrigger value="settings">設定</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="orders" className="space-y-4">
+          <Card>
         <CardContent className="p-4 space-y-4">
           <div className="flex flex-wrap gap-2">
             <Select value={accFilter} onValueChange={setAccFilter}>
@@ -450,6 +591,53 @@ export default function TeamOrders() {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="settings" className="space-y-4">
+          <OptionsCard
+            title="來源管道"
+            items={trafficSources}
+            isAdmin={isAdmin}
+            newValue={newTraffic}
+            setNewValue={setNewTraffic}
+            onAdd={() => handleAddOption("traffic_sources")}
+            onToggle={(id, next) => handleToggleActive("traffic_sources", id, next)}
+            editingId={editingTrafficId}
+            editingName={editingTrafficName}
+            onStartEdit={(id, name) => {
+              setEditingTrafficId(id);
+              setEditingTrafficName(name);
+            }}
+            onCancelEdit={() => {
+              setEditingTrafficId(null);
+              setEditingTrafficName("");
+            }}
+            onChangeEditName={setEditingTrafficName}
+            onSaveEdit={(id) => handleRenameOption("traffic_sources", id, editingTrafficName)}
+          />
+          <OptionsCard
+            title="訂房方式"
+            items={bookingMethods}
+            isAdmin={isAdmin}
+            newValue={newBooking}
+            setNewValue={setNewBooking}
+            onAdd={() => handleAddOption("booking_methods")}
+            onToggle={(id, next) => handleToggleActive("booking_methods", id, next)}
+            editingId={editingBookingId}
+            editingName={editingBookingName}
+            onStartEdit={(id, name) => {
+              setEditingBookingId(id);
+              setEditingBookingName(name);
+            }}
+            onCancelEdit={() => {
+              setEditingBookingId(null);
+              setEditingBookingName("");
+            }}
+            onChangeEditName={setEditingBookingName}
+            onSaveEdit={(id) => handleRenameOption("booking_methods", id, editingBookingName)}
+          />
+        </TabsContent>
+      </Tabs>
 
       <Drawer open={editOpen} onOpenChange={setEditOpen}>
         <DrawerContent className="max-h-[92vh]">
@@ -630,3 +818,164 @@ function ReadField({ label, value }: { label: string; value: string }) {
   );
 }
 
+
+interface OptionItem {
+  id: string;
+  name: string;
+  is_active: boolean;
+  sort_order: number | null;
+}
+
+interface OptionsCardProps {
+  title: string;
+  items: OptionItem[];
+  isAdmin: boolean;
+  newValue: string;
+  setNewValue: (v: string) => void;
+  onAdd: () => void;
+  onToggle: (id: string, next: boolean) => void;
+  editingId: string | null;
+  editingName: string;
+  onStartEdit: (id: string, name: string) => void;
+  onCancelEdit: () => void;
+  onChangeEditName: (v: string) => void;
+  onSaveEdit: (id: string) => void;
+}
+
+function OptionsCard({
+  title,
+  items,
+  isAdmin,
+  newValue,
+  setNewValue,
+  onAdd,
+  onToggle,
+  editingId,
+  editingName,
+  onStartEdit,
+  onCancelEdit,
+  onChangeEditName,
+  onSaveEdit,
+}: OptionsCardProps) {
+  return (
+    <Card>
+      <CardContent className="p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">{title}</h2>
+          <span className="text-sm text-muted-foreground">
+            共 {items.length} 個選項
+          </span>
+        </div>
+
+        <Table className="fixed-table">
+          <TableHeader>
+            <TableRow>
+              <TableHead>名稱</TableHead>
+              <TableHead className="w-28">狀態</TableHead>
+              <TableHead className="w-32 text-right">操作</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {items.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={3} className="text-center py-6 text-muted-foreground">
+                  尚無選項
+                </TableCell>
+              </TableRow>
+            ) : (
+              items.map((o) => (
+                <TableRow key={o.id}>
+                  <TableCell>
+                    {editingId === o.id ? (
+                      <Input
+                        value={editingName}
+                        onChange={(e) => onChangeEditName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") onSaveEdit(o.id);
+                          if (e.key === "Escape") onCancelEdit();
+                        }}
+                        className="h-8"
+                        autoFocus
+                      />
+                    ) : (
+                      <span className={!o.is_active ? "text-muted-foreground line-through" : ""}>
+                        {o.name}
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {isAdmin ? (
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={o.is_active}
+                          onCheckedChange={(v) => onToggle(o.id, !!v)}
+                        />
+                        <span className="text-xs text-muted-foreground">
+                          {o.is_active ? "啟用" : "停用"}
+                        </span>
+                      </div>
+                    ) : (
+                      <Badge variant={o.is_active ? "default" : "outline"}>
+                        {o.is_active ? "啟用" : "停用"}
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {isAdmin && (
+                      editingId === o.id ? (
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => onSaveEdit(o.id)}
+                          >
+                            <Check className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={onCancelEdit}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => onStartEdit(o.id, o.name)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+
+        {isAdmin && (
+          <div className="flex gap-2 border-t pt-4">
+            <Input
+              value={newValue}
+              onChange={(e) => setNewValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  onAdd();
+                }
+              }}
+              placeholder={`新增${title}`}
+              className="h-9"
+            />
+            <Button onClick={onAdd} disabled={!newValue.trim()}>
+              新增
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
