@@ -734,6 +734,37 @@ export default function TeamMembers() {
           </SheetContent>
         </Sheet>
       )}
+
+      {/* 新增無帳號成員 Dialog（僅 admin） */}
+      {canEditAll && (
+        <Dialog open={noAccountOpen} onOpenChange={setNoAccountOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>新增無帳號成員</DialogTitle>
+              <DialogDescription>
+                建立純顯示/管理用的成員資料，不會建立登入帳號，也無法被指派角色或於其他模組中選取。
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 py-2">
+              <Label>顯示名稱</Label>
+              <Input
+                value={noAccountName}
+                onChange={(e) => setNoAccountName(e.target.value)}
+                placeholder="例如：小王"
+                autoFocus
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setNoAccountOpen(false)} disabled={creatingNoAccount}>
+                取消
+              </Button>
+              <Button onClick={handleCreateNoAccount} disabled={creatingNoAccount}>
+                {creatingNoAccount ? "建立中..." : "建立"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
