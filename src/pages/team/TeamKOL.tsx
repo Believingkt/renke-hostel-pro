@@ -721,7 +721,7 @@ function InvitationsTab({
     row.created_by === currentUserId || isManager;
 
   const handleSave = async () => {
-    if (!form.accommodation_id) {
+    if (!form.accommodation_id && !form.venue_name) {
       toast.error("請選擇館別");
       return;
     }
@@ -742,7 +742,8 @@ function InvitationsTab({
     const tags = form.kol_tags;
 
     const payload: Record<string, any> = {
-      accommodation_id: form.accommodation_id,
+      accommodation_id: form.accommodation_id || null,
+      venue_name: form.accommodation_id ? null : (form.venue_name || null),
       name: form.name.trim(),
       ig_handle: form.ig_handle.trim(),
       rarity: form.rarity || null,
@@ -768,6 +769,9 @@ function InvitationsTab({
       kpi_eligible: kpiEligible,
       kpi_month: kpiMonth,
     };
+    if (isManager) {
+      payload.kpi_qualified = form.kpi_qualified;
+    }
 
     let err;
     let newId: string | null = null;
