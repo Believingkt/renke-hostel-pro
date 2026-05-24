@@ -166,6 +166,7 @@ interface FranchiseProject {
   id: string;
   name: string;
   is_active: boolean;
+  created_at?: string | null;
 }
 
 // 全域刷新計數器 — 任何元件呼叫 bumpFranchiseProjects() 都會觸發所有 hook 重新載入
@@ -191,7 +192,10 @@ function useFranchiseProjects(includeInactive = false) {
   useEffect(() => {
     let active = true;
     (async () => {
-      const q = (supabase as any).from("franchise_projects").select("id,name,is_active").order("name");
+      const q = (supabase as any)
+        .from("franchise_projects")
+        .select("id,name,is_active,created_at")
+        .order("created_at", { ascending: true });
       const { data } = await q;
       if (!active) return;
       setProjects((data ?? []) as FranchiseProject[]);
@@ -203,6 +207,20 @@ function useFranchiseProjects(includeInactive = false) {
 
   return includeInactive ? projects : projects.filter((p) => p.is_active);
 }
+
+// Build a map of project name -> 1-based order index based on created_at asc.
+// Includes inactive projects so the ordering remains stable.
+function useProjectOrderMap(): Record<string, number> {
+  const all = useFranchiseProjects(true);
+  return useMemo(() => {
+    const map: Record<string, number> = {};
+    all.forEach((p, idx) => {
+      if (p?.name) map[p.name] = idx + 1;
+    });
+    return map;
+  }, [all]);
+}
+
 
 function ProjectSelect({
   value,
