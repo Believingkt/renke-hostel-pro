@@ -643,10 +643,16 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
       </Dialog>
 
       {/* Dialog: rule */}
-      <Dialog open={ruleDialogOpen} onOpenChange={setRuleDialogOpen}>
+      <Dialog
+        open={ruleDialogOpen}
+        onOpenChange={(o) => {
+          setRuleDialogOpen(o);
+          if (!o) setEditingRuleId(null);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>新增對照規則</DialogTitle>
+            <DialogTitle>{editingRuleId ? "編輯對照規則" : "新增對照規則"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1">
