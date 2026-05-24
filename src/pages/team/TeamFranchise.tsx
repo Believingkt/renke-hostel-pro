@@ -391,6 +391,7 @@ function OrdersTab({
         plan_price: detailOrder.plan_price,
         sold_at: detailOrder.sold_at,
         payment_confirmed: detailOrder.payment_confirmed,
+        payment_at: detailOrder.payment_at,
       } as any);
     }
   }, [detailOrder]);
