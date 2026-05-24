@@ -1116,8 +1116,23 @@ function OrdersTab({
                 disabled={detailSaving}
                 onClick={async () => {
                   if (!detailOrder) return;
+                  const mn = (detailForm.member_number as string)?.trim() || "";
+                  if (mn) {
+                    const { data: dupRows } = await supabase
+                      .from("franchise_orders")
+                      .select("id")
+                      .eq("member_number", mn)
+                      .neq("id", detailOrder.id)
+                      .limit(1);
+                    if ((dupRows ?? []).length > 0) {
+                      setDetailMemberNumberError("此編號已使用");
+                      toast.error("此編號已使用");
+                      return;
+                    }
+                  }
                   setDetailSaving(true);
                   const payload: Record<string, unknown> = {
+                    member_number: mn || null,
                     customer_name: (detailForm.customer_name as string)?.trim() || detailOrder.customer_name,
                     customer_phone: (detailForm.customer_phone as string)?.trim() || null,
                     plan_name: (detailForm.plan_name as string)?.trim() || null,
