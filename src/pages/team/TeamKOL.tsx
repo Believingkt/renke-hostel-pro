@@ -923,9 +923,7 @@ function InvitationsTab({
               </TableHeader>
               <TableBody>
                 {filtered.map((r) => {
-                  const igUrl = r.ig_handle
-                    ? `https://instagram.com/${r.ig_handle.replace(/^@/, "")}`
-                    : null;
+                  const igUrl = r.ig_handle || null;
                   const contractDone =
                     (r.contract_progress ?? "").includes("已上傳") ||
                     (r.contract_progress ?? "").toLowerCase().includes("uploaded");
@@ -936,28 +934,33 @@ function InvitationsTab({
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => setViewingRow(r)}
                     >
-                      <TableCell>
-                        {igUrl ? (
-                          <a
-                            href={igUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-primary hover:underline"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {r.name ?? "-"}
-                          </a>
-                        ) : (
-                          r.name ?? "-"
-                        )}
-                        {r.is_error && (
-                          <Badge
-                            variant="outline"
-                            className="ml-2 bg-red-100 text-red-700 border-red-300"
-                          >
-                            填錯
-                          </Badge>
-                        )}
+                      <TableCell className="max-w-[180px]">
+                        <div className="flex items-center gap-2 max-w-[180px]">
+                          {igUrl ? (
+                            <a
+                              href={igUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-primary hover:underline truncate"
+                              title={r.name ?? ""}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {r.name ?? "-"}
+                            </a>
+                          ) : (
+                            <span className="truncate" title={r.name ?? ""}>
+                              {r.name ?? "-"}
+                            </span>
+                          )}
+                          {r.is_error && (
+                            <Badge
+                              variant="outline"
+                              className="bg-red-100 text-red-700 border-red-300 shrink-0"
+                            >
+                              填錯
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>{codeOrCid}</TableCell>
                       <TableCell>
