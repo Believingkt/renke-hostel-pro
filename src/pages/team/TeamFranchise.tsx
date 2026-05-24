@@ -412,8 +412,7 @@ function OrdersTab({
       .limit(1);
     if ((data ?? []).length > 0) setDetailMemberNumberError("此編號已使用");
   };
-    }
-  }, [detailOrder]);
+
 
 
   useEffect(() => {
