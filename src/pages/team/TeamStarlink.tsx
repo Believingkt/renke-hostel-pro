@@ -115,11 +115,15 @@ export default function TeamStarlink() {
       <Tabs defaultValue="orders">
         <TabsList>
           <TabsTrigger value="orders">訂單列表</TabsTrigger>
+          <TabsTrigger value="stats">業績統計</TabsTrigger>
           <TabsTrigger value="plans">方案設定</TabsTrigger>
           <TabsTrigger value="tiers">等級設定</TabsTrigger>
         </TabsList>
         <TabsContent value="orders" className="mt-4">
           <OrdersTab canManage={canManage} currentUserId={userId} />
+        </TabsContent>
+        <TabsContent value="stats" className="mt-4">
+          <StatsTab />
         </TabsContent>
         <TabsContent value="plans" className="mt-4">
           <PlansTab canManage={canManage} />
