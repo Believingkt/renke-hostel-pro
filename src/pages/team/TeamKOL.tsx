@@ -1080,7 +1080,58 @@ function InvitationsTab({
       <Sheet open={!!viewingRow} onOpenChange={(o) => !o && setViewingRow(null)}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
           <SheetHeader>
-            <SheetTitle>邀約明細</SheetTitle>
+            <div className="flex items-center gap-2 pr-12">
+              <SheetTitle className="flex-1">邀約明細</SheetTitle>
+              {viewingRow && canReportError(viewingRow) && !viewingRow.is_error && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setErrorTarget(viewingRow);
+                    setErrorReason("");
+                    setViewingRow(null);
+                  }}
+                >
+                  回報填錯
+                </Button>
+              )}
+              {viewingRow && canEditRow(viewingRow) && (
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    const target = viewingRow;
+                    setViewingRow(null);
+                    openEdit(target);
+                  }}
+                >
+                  編輯
+                </Button>
+              )}
+              {viewingRow && isManager && (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={async () => {
+                    const target = viewingRow;
+                    if (!target) return;
+                    if (!window.confirm(`確定要刪除「${target.name ?? "此筆"}」邀約紀錄嗎？此動作無法復原。`)) return;
+                    const { error } = await supabase
+                      .from("kol_profiles")
+                      .delete()
+                      .eq("id", target.id);
+                    if (error) {
+                      toast.error(`刪除失敗：${error.message}`);
+                      return;
+                    }
+                    toast.success("已刪除");
+                    setViewingRow(null);
+                    fetchRows();
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </SheetHeader>
           {viewingRow && (() => {
             const r = viewingRow;
@@ -1171,33 +1222,9 @@ function InvitationsTab({
               </div>
             );
           })()}
-          <SheetFooter className="mt-6">
-            {viewingRow && canReportError(viewingRow) && !viewingRow.is_error && (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setErrorTarget(viewingRow);
-                  setErrorReason("");
-                  setViewingRow(null);
-                }}
-              >
-                回報填錯
-              </Button>
-            )}
-            {viewingRow && canEditRow(viewingRow) && (
-              <Button
-                onClick={() => {
-                  const target = viewingRow;
-                  setViewingRow(null);
-                  openEdit(target);
-                }}
-              >
-                編輯
-              </Button>
-            )}
-          </SheetFooter>
         </SheetContent>
       </Sheet>
+
 
 
       {/* 新增/編輯 Sheet */}
