@@ -74,6 +74,7 @@ interface MetaRow {
 }
 
 const PAGE_SIZE = 50;
+const META_BATCH_SIZE = 100;
 
 const TRAFFIC_OPTIONS = ["自然流量", "廣告", "KOL", "星探", "其他"];
 const BOOKING_OPTIONS = ["官網", "電話", "Line", "現場", "其他"];
@@ -167,16 +168,21 @@ export default function TeamOrders() {
       const orderIds = (ordersRes.data || []).map((o: any) => o.id);
       let metaMap = new Map<string, MetaRow>();
       if (orderIds.length > 0) {
-        const { data: metaData, error: metaErr } = await supabase
-          .from("order_meta")
-          .select(
-            `order_id, closer_id, video_creator_id, scout_id, traffic_source,
-             booking_method, ad_id, is_excluded, closer_assisted,
-             scout_commission_rate, closer_commission_rate, exclusion_note`
-          )
-          .in("order_id", orderIds);
-        if (metaErr) throw metaErr;
-        (metaData || []).forEach((m: any) => metaMap.set(m.order_id, m));
+        const metaRows: any[] = [];
+        for (let i = 0; i < orderIds.length; i += META_BATCH_SIZE) {
+          const batchIds = orderIds.slice(i, i + META_BATCH_SIZE);
+          const { data: metaData, error: metaErr } = await supabase
+            .from("order_meta")
+            .select(
+              `order_id, closer_id, video_creator_id, scout_id, traffic_source,
+               booking_method, ad_id, is_excluded, closer_assisted,
+               scout_commission_rate, closer_commission_rate, exclusion_note`
+            )
+            .in("order_id", batchIds);
+          if (metaErr) throw metaErr;
+          metaRows.push(...(metaData || []));
+        }
+        metaRows.forEach((m: any) => metaMap.set(m.order_id, m));
       }
 
       const accMap = new Map<string, string>();
