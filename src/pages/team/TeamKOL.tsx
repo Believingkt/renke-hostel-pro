@@ -520,7 +520,12 @@ function InvitationsTab({
 
   const openCreate = () => {
     setEditingId(null);
-    setForm(EMPTY_FORM);
+    setForm({
+      ...EMPTY_FORM,
+      invited_at: todayStr(),
+      // scout 角色：自動帶入登入者
+      scout_id: !isManager ? currentUserId : "",
+    });
     setDupWarning(null);
     setProspectLink(null);
     setSheetOpen(true);
@@ -534,14 +539,14 @@ function InvitationsTab({
       ...EMPTY_FORM,
       name: prefill.name,
       ig_handle: prefill.ig_handle,
-      ig_url: prefill.ig_url,
-      scout_id: prefill.scout_id,
+      scout_id: prefill.scout_id || (!isManager ? currentUserId : ""),
+      invited_at: todayStr(),
     });
     setProspectLink(prefill.prospect_id);
     setDupWarning(null);
     setSheetOpen(true);
     onPrefillConsumed?.();
-  }, [prefill, onPrefillConsumed]);
+  }, [prefill, onPrefillConsumed, isManager, currentUserId]);
 
   const openEdit = (row: KolRow) => {
     if (!canEditRow(row)) {
@@ -554,8 +559,7 @@ function InvitationsTab({
       accommodation_id: row.accommodation_id ?? "",
       name: row.name ?? "",
       ig_handle: row.ig_handle ?? "",
-      ig_url: row.ig_url ?? "",
-      rarity: (row.rarity as Rarity) ?? "",
+      rarity: row.rarity ?? "",
       scout_id: row.scout_id ?? "",
       invited_at: row.invited_at ?? "",
       check_in_date: row.check_in_date ?? "",
@@ -575,7 +579,7 @@ function InvitationsTab({
       order_number: row.order_number ?? "",
       inventory_count:
         row.inventory_count != null ? String(row.inventory_count) : "",
-      kol_tags_input: (row.kol_tags ?? []).join(", "),
+      kol_tags: row.kol_tags ?? [],
     });
     setDupWarning(null);
     setSheetOpen(true);
