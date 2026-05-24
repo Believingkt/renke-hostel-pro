@@ -355,7 +355,8 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
   const [videoMembers, setVideoMembers] = useState<VideoMember[]>([]);
 
   const [adDialogOpen, setAdDialogOpen] = useState(false);
-  const [adForm, setAdForm] = useState({ label: "", ad_id: "", sort_order: 0 });
+  const [editingAdId, setEditingAdId] = useState<string | null>(null);
+  const [adForm, setAdForm] = useState({ label: "", ad_id: "" });
 
   const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
