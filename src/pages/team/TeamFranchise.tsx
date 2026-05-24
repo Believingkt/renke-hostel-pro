@@ -1987,6 +1987,8 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
   const filtered = useMemo(() => {
     return rows.filter((r) => {
       if (projectFilter !== "ALL" && r.project_name !== projectFilter) return false;
+      if (salesFilter !== "ALL" && (r.sales_name ?? "") !== salesFilter) return false;
+      if (progressFilter !== "ALL" && (r.contract_progress ?? "") !== progressFilter) return false;
       if (r.signed_at) {
         const d = new Date(r.signed_at);
         if (year !== "ALL" && String(d.getFullYear()) !== year) return false;
@@ -1996,11 +1998,24 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
       }
       return true;
     });
-  }, [rows, projectFilter, year, month]);
+  }, [rows, projectFilter, salesFilter, progressFilter, year, month]);
+
+  const checkExtMemberNumberDup = async (val: string) => {
+    const v = val.trim();
+    if (!v) { setMemberNumberError(""); return; }
+    const q = supabase.from("franchise_external_orders").select("id").eq("member_number", v).limit(1);
+    const { data } = editingId ? await q.neq("id", editingId) : await q;
+    if ((data ?? []).length > 0) setMemberNumberError("此編號已使用");
+    else setMemberNumberError("");
+  };
 
   const openCreate = () => {
     setEditingId(null);
-    setForm(emptyExternalForm());
+    setForm({
+      ...emptyExternalForm(),
+      member_number: nextMemberNumber(rows.map((r) => r.member_number), "T"),
+    });
+    setMemberNumberError("");
     setSheetOpen(true);
   };
 
