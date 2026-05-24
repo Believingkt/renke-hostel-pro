@@ -592,14 +592,13 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
               <TableRow>
                 <TableHead>關鍵字</TableHead>
                 <TableHead>影音組成員</TableHead>
-                <TableHead className="w-20">排序</TableHead>
                 <TableHead className="w-24"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {rules.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
                     尚無規則
                   </TableCell>
                 </TableRow>
@@ -608,7 +607,6 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
                   <TableRow key={r.id}>
                     <TableCell>{r.keyword}</TableCell>
                     <TableCell>{memberName(r.video_creator_id)}</TableCell>
-                    <TableCell>{r.sort_order}</TableCell>
                     <TableCell className="flex gap-1">
                       <Button
                         size="icon"
