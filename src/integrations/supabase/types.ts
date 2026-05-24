@@ -2723,6 +2723,7 @@ export type Database = {
           task_post_story: boolean | null
           task_pre_stay: boolean | null
           updated_at: string | null
+          venue_name: string | null
         }
         Insert: {
           accommodation_id?: string | null
@@ -2764,6 +2765,7 @@ export type Database = {
           task_post_story?: boolean | null
           task_pre_stay?: boolean | null
           updated_at?: string | null
+          venue_name?: string | null
         }
         Update: {
           accommodation_id?: string | null
@@ -2805,6 +2807,7 @@ export type Database = {
           task_post_story?: boolean | null
           task_pre_stay?: boolean | null
           updated_at?: string | null
+          venue_name?: string | null
         }
         Relationships: [
           {
