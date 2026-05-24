@@ -1834,21 +1834,6 @@ function Field({
 // ====== Tab 二:潛在名單 ======
 // ============================================================
 
-type ProspectStatus = "negotiating" | "rejected" | "on_hold" | "converted";
-
-const PROSPECT_STATUS_LABEL: Record<ProspectStatus, string> = {
-  negotiating: "洽談中",
-  rejected: "拒絕",
-  on_hold: "暫緩",
-  converted: "已轉正式邀約",
-};
-
-const PROSPECT_STATUS_CLASS: Record<ProspectStatus, string> = {
-  negotiating: "bg-blue-100 text-blue-700 border-blue-200",
-  rejected: "bg-red-200 text-red-900 border-red-300",
-  on_hold: "bg-orange-100 text-orange-700 border-orange-200",
-  converted: "bg-green-100 text-green-700 border-green-200",
-};
 
 interface ProspectRow {
   id: string;
