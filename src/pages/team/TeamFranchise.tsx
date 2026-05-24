@@ -681,6 +681,8 @@ function OrdersTab({
             setSheetOpen(true);
           }}
         >
+          <Plus className="h-4 w-4 mr-1" /> 新增訂單
+        </Button>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
