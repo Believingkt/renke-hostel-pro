@@ -6456,6 +6456,7 @@ export type Database = {
         Args: { _accommodation_id: string; _user_id: string }
         Returns: boolean
       }
+      user_has_any_team_role: { Args: { _user_id: string }; Returns: boolean }
       user_has_role: {
         Args: {
           _accommodation_id: string
