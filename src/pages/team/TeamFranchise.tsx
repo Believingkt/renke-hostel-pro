@@ -631,6 +631,15 @@ function OrdersTab({
     <Card>
       <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div className="flex flex-wrap gap-2">
+          <Select value={projectFilter} onValueChange={setProjectFilter}>
+            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">全部專案</SelectItem>
+              {projectOptions.map((p) => (
+                <SelectItem key={p} value={p}>{p}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={year} onValueChange={setYear}>
             <SelectTrigger className="w-28">
               <SelectValue />
@@ -655,25 +664,6 @@ function OrdersTab({
                   {m} 月
                 </SelectItem>
               ))}
-            </SelectContent>
-          </Select>
-          <Select value={projectFilter} onValueChange={setProjectFilter}>
-            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">全部專案</SelectItem>
-              {projectOptions.map((p) => (
-                <SelectItem key={p} value={p}>{p}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">全部狀態</SelectItem>
-              <SelectItem value="pending">待結算</SelectItem>
-              <SelectItem value="paid">已發放</SelectItem>
             </SelectContent>
           </Select>
           {canManage && (
