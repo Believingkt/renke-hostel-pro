@@ -854,9 +854,31 @@ function OrdersTab({
               <Checkbox
                 id="payment_confirmed"
                 checked={form.payment_confirmed}
-                onCheckedChange={(v) => setForm({ ...form, payment_confirmed: !!v })}
+                onCheckedChange={(v) => {
+                  const confirmed = !!v;
+                  setForm({
+                    ...form,
+                    payment_confirmed: confirmed,
+                    payment_at: confirmed ? form.payment_at : "",
+                  });
+                }}
               />
               <Label htmlFor="payment_confirmed">付款已確認</Label>
+            </div>
+            <div className="space-y-1">
+              <Label>匯款日期</Label>
+              <Input
+                type="date"
+                value={form.payment_at}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setForm({
+                    ...form,
+                    payment_at: v,
+                    payment_confirmed: v ? true : false,
+                  });
+                }}
+              />
             </div>
             <div className="space-y-1">
               <Label>發票號碼</Label>
