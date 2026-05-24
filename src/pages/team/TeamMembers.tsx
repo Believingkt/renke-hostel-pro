@@ -340,33 +340,36 @@ export default function TeamMembers() {
           display_name: editName.trim(),
           is_active: editActive,
         })
-        .eq("user_id", editTarget.user_id);
+        .eq("id", editTarget.id);
       if (pErr) throw pErr;
 
-      const original = new Set(editTarget.roles);
-      const next = new Set(editRoles);
-      const toAdd = [...next].filter((r) => !original.has(r));
-      const toRemove = [...original].filter((r) => !next.has(r) && r !== "super_admin");
+      // 無帳號成員：不處理 user_roles
+      if (editTarget.user_id) {
+        const original = new Set(editTarget.roles);
+        const next = new Set(editRoles);
+        const toAdd = [...next].filter((r) => !original.has(r));
+        const toRemove = [...original].filter((r) => !next.has(r) && r !== "super_admin");
 
-      if (toAdd.length > 0) {
-        const { error } = await supabase.from("user_roles").insert(
-          toAdd.map((role) => ({
-            user_id: editTarget.user_id,
-            accommodation_id: null,
-            role,
-          })),
-        );
-        if (error) throw error;
-      }
+        if (toAdd.length > 0) {
+          const { error } = await supabase.from("user_roles").insert(
+            toAdd.map((role) => ({
+              user_id: editTarget.user_id!,
+              accommodation_id: null,
+              role,
+            })),
+          );
+          if (error) throw error;
+        }
 
-      for (const role of toRemove) {
-        const { error } = await supabase
-          .from("user_roles")
-          .delete()
-          .eq("user_id", editTarget.user_id)
-          .is("accommodation_id", null)
-          .eq("role", role);
-        if (error) throw error;
+        for (const role of toRemove) {
+          const { error } = await supabase
+            .from("user_roles")
+            .delete()
+            .eq("user_id", editTarget.user_id)
+            .is("accommodation_id", null)
+            .eq("role", role);
+          if (error) throw error;
+        }
       }
 
       toast.success("已更新成員資料");
@@ -381,21 +384,26 @@ export default function TeamMembers() {
 
   const handleRemoveMember = async () => {
     if (!editTarget) return;
-    if (editTarget.user_id === myUserId) return toast.error("無法移除自己");
+    if (editTarget.user_id && editTarget.user_id === myUserId) return toast.error("無法移除自己");
     if (isNorris) return toast.error("此成員受系統保護");
-    if (!confirm(`確定移除 ${editTarget.display_name} 嗎？將清除其團隊角色與 profile，登入帳號不受影響。`)) return;
+    const confirmMsg = editTarget.user_id
+      ? `確定移除 ${editTarget.display_name} 嗎？將清除其團隊角色與 profile，登入帳號不受影響。`
+      : `確定移除無帳號成員 ${editTarget.display_name} 嗎？`;
+    if (!confirm(confirmMsg)) return;
     setRemoving(true);
     try {
-      // 1. 移除所有全域角色
-      const { error: rErr } = await supabase
-        .from("user_roles")
-        .delete()
-        .eq("user_id", editTarget.user_id)
-        .is("accommodation_id", null);
-      if (rErr) throw rErr;
+      // 1. 移除所有全域角色（僅有帳號成員）
+      if (editTarget.user_id) {
+        const { error: rErr } = await supabase
+          .from("user_roles")
+          .delete()
+          .eq("user_id", editTarget.user_id)
+          .is("accommodation_id", null);
+        if (rErr) throw rErr;
+      }
 
       // 2. 移除 team profile
-      const { error: pErr } = await supabase.from("team_member_profiles").delete().eq("user_id", editTarget.user_id);
+      const { error: pErr } = await supabase.from("team_member_profiles").delete().eq("id", editTarget.id);
       if (pErr) throw pErr;
 
       toast.success("已移除成員");
@@ -407,6 +415,27 @@ export default function TeamMembers() {
       setRemoving(false);
     }
   };
+
+  const handleCreateNoAccount = async () => {
+    if (!noAccountName.trim()) return toast.error("請輸入顯示名稱");
+    setCreatingNoAccount(true);
+    try {
+      const { error } = await supabase
+        .from("team_member_profiles")
+        .insert({ user_id: null, display_name: noAccountName.trim() });
+      if (error) throw error;
+      toast.success("已建立無帳號成員");
+      setNoAccountName("");
+      setNoAccountOpen(false);
+      fetchMembers();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "建立失敗");
+    } finally {
+      setCreatingNoAccount(false);
+    }
+  };
+
+
 
   if (!canAccess) {
     return (
