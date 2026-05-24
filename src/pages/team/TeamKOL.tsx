@@ -2027,7 +2027,7 @@ function ProspectsTab({
     [filtered, page],
   );
 
-  }, [rows, search, filterScout, filterTags]);
+
 
   const openCreate = () => {
     setEditingId(null);
