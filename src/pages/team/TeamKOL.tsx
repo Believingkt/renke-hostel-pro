@@ -689,9 +689,7 @@ function InvitationsTab({
       publish_url: toNullable(form.publish_url),
       publish_date: form.publish_date || null,
       order_number: toNullable(form.order_number),
-      inventory_count: form.inventory_count
-        ? parseInt(form.inventory_count, 10)
-        : null,
+      inventory_count: form.booking_status === "booked" ? 1 : 0,
       kol_tags: tags.length > 0 ? tags : null,
       kpi_eligible: kpiEligible,
       kpi_month: kpiMonth,
