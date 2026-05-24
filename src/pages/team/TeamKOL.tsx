@@ -523,21 +523,19 @@ function InvitationsTab({
     };
   }, [form.accommodation_id, form.check_in_date]); // eslint-disable-line
 
-  // 訂單編號 → 自動切換訂房狀態（不覆蓋手動 cancelled / rejected / on_hold / checked_in）
+  // 訂單編號 → 自動切換訂房狀態
+  // 只在狀態為 invited / booked 時才自動切換，其餘狀態（含「訂房編號有誤」、「訂房確認中」、
+  // cancelled / rejected / on_hold / checked_in 等）一律保留不動。
   useEffect(() => {
+    const current = form.booking_status as string;
+    if (current !== "invited" && current !== "booked") return;
     const hasOrder = !!form.order_number.trim();
     const next: BookingStatus = hasOrder ? "booked" : "invited";
-    const protectedStates: BookingStatus[] = [
-      "cancelled",
-      "rejected",
-      "on_hold",
-      "checked_in",
-    ];
-    if (protectedStates.includes(form.booking_status)) return;
-    if (form.booking_status !== next) {
+    if (current !== next) {
       setForm((f) => ({ ...f, booking_status: next }));
     }
   }, [form.order_number]); // eslint-disable-line
+
 
   // ig_handle 即時重複檢查
   useEffect(() => {
