@@ -1261,7 +1261,15 @@ function InvitationsTab({
                 </Row>
                 <Row label="館別">{r._accommodation_name ?? "-"}</Row>
                 <Row label="入住日期">{r.check_in_date ?? "-"}</Row>
+                <Row label="星期">{r.day_of_week ?? "-"}</Row>
                 <Row label="邀約人">{r._scout_name ?? "-"}</Row>
+                <Row label="累積資格">
+                  {r.kpi_qualified ? (
+                    <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">符合資格</Badge>
+                  ) : (
+                    <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-200">未確認</Badge>
+                  )}
+                </Row>
                 <Row label="折扣碼 / CID">{r.cid_code ?? r.short_url ?? "-"}</Row>
                 <Row label="合約進度">{r.contract_progress ?? "-"}</Row>
                 <Row label="合約檔案">
