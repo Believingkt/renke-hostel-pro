@@ -2754,6 +2754,16 @@ interface MonthlyDistribution {
 function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
   const [distributions, setDistributions] = useState<MonthlyDistribution[]>([]);
   const [externalOrders, setExternalOrders] = useState<ExternalOrder[]>([]);
+  const [internalOrders, setInternalOrders] = useState<Array<{
+    id: string;
+    member_number: string | null;
+    customer_name: string;
+    customer_phone: string | null;
+    plan_name: string | null;
+    sold_at: string | null;
+    sold_by_name: string | null;
+    notes: string | null;
+  }>>([]);
   const [loading, setLoading] = useState(true);
 
   const nowY = new Date().getFullYear();
@@ -2772,10 +2782,11 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
   const [filterYear, setFilterYear] = useState<string>("ALL");
   const [filterMonth, setFilterMonth] = useState<string>("ALL");
   const [filterProject, setFilterProject] = useState<string>("ALL");
+  const [filterSource, setFilterSource] = useState<"ALL" | "internal" | "external">("ALL");
 
   const load = async () => {
     setLoading(true);
-    const [distRes, extRes] = await Promise.all([
+    const [distRes, extRes, intRes] = await Promise.all([
       (supabase as any)
         .from("franchise_monthly_distributions")
         .select("*")
@@ -2783,8 +2794,11 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
         .order("month", { ascending: false }),
       supabase
         .from("franchise_external_orders")
-        .select("id,project_name,member_number,customer_name,customer_phone,unit_count,signed_at,sales_name")
+        .select("id,project_name,member_number,customer_name,customer_phone,unit_count,signed_at,sales_name,notes")
         .order("unit_count", { ascending: false, nullsFirst: false }),
+      supabase
+        .from("franchise_orders")
+        .select("id,member_number,customer_name,customer_phone,plan_name,sold_at,sold_by_name,notes"),
     ]);
     if (distRes.error) {
       toast.error("讀取失敗：" + distRes.error.message);
@@ -2793,6 +2807,9 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
     }
     if (!extRes.error) {
       setExternalOrders((extRes.data ?? []) as ExternalOrder[]);
+    }
+    if (!intRes.error) {
+      setInternalOrders((intRes.data ?? []) as any);
     }
     setLoading(false);
   };
@@ -2888,24 +2905,74 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
     );
   }, [distributions, filterYear, filterMonth, filterProject]);
 
-  // 會員明細：依篩選 project_name 對應 franchise_external_orders
-  const memberRows = useMemo(() => {
-    if (!matchedDist) return [];
-    return externalOrders
-      .filter((o) => o.project_name === matchedDist.project_name)
-      .map((o) => ({
-        id: o.id,
-        customer_name: o.customer_name,
-        unit_count: Number(o.unit_count ?? 0),
-        unit_price: Number(matchedDist.unit_price),
-        bonus: Number(o.unit_count ?? 0) * Number(matchedDist.unit_price),
-        payment_date: matchedDist.payment_date,
-        order: o,
-      }))
-      .sort((a, b) => b.unit_count - a.unit_count);
-  }, [externalOrders, matchedDist]);
+  type UnifiedMemberRow = {
+    id: string;
+    source: "internal" | "external";
+    member_number: string | null;
+    customer_name: string;
+    customer_phone: string | null;
+    project_name: string | null;
+    signed_at: string | null;
+    sales_or_sold_by_name: string | null;
+    unit_count: number;
+    unit_price: number;
+    bonus: number;
+    payment_date: string | null;
+    notes: string | null;
+  };
 
-  const [memberDetail, setMemberDetail] = useState<(typeof memberRows)[number] | null>(null);
+  // 會員明細：依篩選 project_name 對應 franchise_external_orders / franchise_orders
+  const memberRows = useMemo<UnifiedMemberRow[]>(() => {
+    if (!matchedDist) return [];
+    const price = Number(matchedDist.unit_price);
+    const rows: UnifiedMemberRow[] = [];
+    if (filterSource === "ALL" || filterSource === "external") {
+      for (const o of externalOrders) {
+        if (o.project_name !== matchedDist.project_name) continue;
+        const uc = Number(o.unit_count ?? 0);
+        rows.push({
+          id: `ext-${o.id}`,
+          source: "external",
+          member_number: o.member_number ?? null,
+          customer_name: o.customer_name,
+          customer_phone: o.customer_phone ?? null,
+          project_name: o.project_name,
+          signed_at: o.signed_at ?? null,
+          sales_or_sold_by_name: o.sales_name ?? null,
+          unit_count: uc,
+          unit_price: price,
+          bonus: uc * price,
+          payment_date: matchedDist.payment_date,
+          notes: (o as any).notes ?? null,
+        });
+      }
+    }
+    if (filterSource === "ALL" || filterSource === "internal") {
+      for (const o of internalOrders) {
+        if ((o.plan_name ?? "") !== matchedDist.project_name) continue;
+        rows.push({
+          id: `int-${o.id}`,
+          source: "internal",
+          member_number: o.member_number ?? null,
+          customer_name: o.customer_name,
+          customer_phone: o.customer_phone ?? null,
+          project_name: o.plan_name,
+          signed_at: o.sold_at ?? null,
+          sales_or_sold_by_name: o.sold_by_name ?? null,
+          unit_count: 1,
+          unit_price: price,
+          bonus: 1 * price,
+          payment_date: matchedDist.payment_date,
+          notes: o.notes ?? null,
+        });
+      }
+    }
+    return rows.sort((a, b) => b.unit_count - a.unit_count);
+  }, [externalOrders, internalOrders, matchedDist, filterSource]);
+
+  const [memberDetail, setMemberDetail] = useState<UnifiedMemberRow | null>(null);
+
+
 
 
   return (
@@ -3071,12 +3138,24 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
               <Label className="text-xs">專案名稱</Label>
               <FilterProjectSelect value={filterProject} onChange={setFilterProject} />
             </div>
+            <div className="space-y-1">
+              <Label className="text-xs">來源</Label>
+              <Select value={filterSource} onValueChange={(v) => setFilterSource(v as typeof filterSource)}>
+                <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">全部</SelectItem>
+                  <SelectItem value="internal">內部銷售</SelectItem>
+                  <SelectItem value="external">外部銷售</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="border rounded-md">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>會員編號</TableHead>
                   <TableHead>會員姓名</TableHead>
                   <TableHead className="text-right">購買單位數</TableHead>
                   <TableHead className="text-right">每單位金額</TableHead>
@@ -3087,13 +3166,13 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
               <TableBody>
                 {!matchedDist ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                       請選擇對應的年份、月份、專案
                     </TableCell>
                   </TableRow>
                 ) : memberRows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                       此專案尚無會員資料
                     </TableCell>
                   </TableRow>
@@ -3104,6 +3183,7 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => setMemberDetail(r)}
                     >
+                      <TableCell>{r.member_number ?? "—"}</TableCell>
                       <TableCell>{r.customer_name}</TableCell>
                       <TableCell className="text-right tabular-nums">{r.unit_count}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtMoney(r.unit_price)}</TableCell>
@@ -3124,12 +3204,18 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
               {memberDetail && (
                 <div className="mt-4 space-y-4 text-sm">
                   <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-                    <Field label="會員編號" value={memberDetail.order.member_number} />
+                    <Field label="會員編號" value={memberDetail.member_number} />
                     <Field label="會員姓名" value={memberDetail.customer_name} />
-                    <Field label="聯絡電話" value={memberDetail.order.customer_phone} />
-                    <Field label="專案" value={memberDetail.order.project_name} />
-                    <Field label="簽約日期" value={memberDetail.order.signed_at} />
-                    <Field label="開發業務" value={memberDetail.order.sales_name} />
+                    <Field label="聯絡電話" value={memberDetail.customer_phone} />
+                    <Field
+                      label={memberDetail.source === "internal" ? "專案名稱" : "專案"}
+                      value={memberDetail.project_name}
+                    />
+                    <Field label="簽約日期" value={memberDetail.signed_at} />
+                    <Field
+                      label={memberDetail.source === "internal" ? "銷售人" : "開發業務"}
+                      value={memberDetail.sales_or_sold_by_name}
+                    />
                   </div>
                   <div className="border-t pt-3 grid grid-cols-2 gap-x-6 gap-y-2">
                     <Field label="購買單位數" value={String(memberDetail.unit_count)} />
@@ -3137,10 +3223,10 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
                     <Field label="分潤金額" value={fmtMoney(memberDetail.bonus)} />
                     <Field label="預計匯款日" value={memberDetail.payment_date} />
                   </div>
-                  {memberDetail.order.notes && (
+                  {memberDetail.notes && (
                     <div className="border-t pt-3">
                       <div className="text-xs text-muted-foreground mb-1">備註</div>
-                      <div className="whitespace-pre-wrap break-all">{memberDetail.order.notes}</div>
+                      <div className="whitespace-pre-wrap break-all">{memberDetail.notes}</div>
                     </div>
                   )}
                 </div>
