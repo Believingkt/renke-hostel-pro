@@ -766,6 +766,17 @@ function OrdersTab({
           </SheetHeader>
           <div className="space-y-3 mt-4">
             <div className="space-y-1">
+              <Label>會員編號</Label>
+              <Input
+                value={form.member_number}
+                onChange={(e) => { setForm({ ...form, member_number: e.target.value }); setMemberNumberError(""); }}
+                onBlur={(e) => void checkMemberNumberDup(e.target.value)}
+              />
+              {memberNumberError && (
+                <p className="text-xs text-destructive">{memberNumberError}</p>
+              )}
+            </div>
+            <div className="space-y-1">
               <Label>客戶姓名 *</Label>
               <Input
                 value={form.customer_name}
