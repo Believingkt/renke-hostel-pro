@@ -8,49 +8,18 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { Plus, AlertTriangle, Check, X, Pencil, ExternalLink, Trash2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // ====== 型別 & 常數 ======
-type BookingStatus =
-  | "invited"
-  | "booked"
-  | "checked_in"
-  | "cancelled"
-  | "rejected"
-  | "on_hold";
+type BookingStatus = "invited" | "booked" | "checked_in" | "cancelled" | "rejected" | "on_hold";
 
 const BOOKING_STATUS_LABEL: Record<BookingStatus, string> = {
   invited: "邀約中",
@@ -106,7 +75,7 @@ interface VenueOption {
   source: "pms" | "venue";
   badge: string; // 小標籤文字
   accommodation_id: string | null; // PMS 時為 uuid，venue 時 null
-  venue_name: string | null;       // venue 時為名稱，PMS 時 null
+  venue_name: string | null; // venue 時為名稱，PMS 時 null
 }
 
 interface Scout {
@@ -236,8 +205,7 @@ function toNullable(v: string): string | null {
 function normalizeBookingStatus(v: string | null | undefined): BookingStatus {
   if (!v) return "invited";
   if ((BOOKING_STATUS_LABEL as Record<string, string>)[v]) return v as BookingStatus;
-  const hit = (Object.entries(BOOKING_STATUS_LABEL) as [BookingStatus, string][])
-    .find(([, label]) => label === v);
+  const hit = (Object.entries(BOOKING_STATUS_LABEL) as [BookingStatus, string][]).find(([, label]) => label === v);
   return hit ? hit[0] : "invited";
 }
 
@@ -251,10 +219,7 @@ function calcDayOfWeek(dateStr: string): string {
 // ====== 主元件 ======
 export default function TeamKOL() {
   const { roles, userId } = useTeam();
-  const isManager =
-    roles.includes("super_admin") ||
-    roles.includes("admin") ||
-    roles.includes("scout_manager");
+  const isManager = roles.includes("super_admin") || roles.includes("admin") || roles.includes("scout_manager");
 
   const [tab, setTab] = useState("invitations");
   const [prefill, setPrefill] = useState<InvitationPrefill | null>(null);
@@ -268,9 +233,7 @@ export default function TeamKOL() {
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-bold">KOL 星探管理</h1>
-        <p className="text-sm text-muted-foreground">
-          管理 KOL 邀約、潛在名單與邀約目標
-        </p>
+        <p className="text-sm text-muted-foreground">管理 KOL 邀約、潛在名單與邀約目標</p>
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
@@ -291,11 +254,7 @@ export default function TeamKOL() {
         </TabsContent>
 
         <TabsContent value="prospects" className="mt-4">
-          <ProspectsTab
-            currentUserId={userId}
-            isManager={isManager}
-            onConvert={handleConvertFromProspect}
-          />
+          <ProspectsTab currentUserId={userId} isManager={isManager} onConvert={handleConvertFromProspect} />
         </TabsContent>
 
         <TabsContent value="targets" className="mt-4">
@@ -317,7 +276,6 @@ interface InvitationPrefill {
   scout_id: string;
   prospect_id: string;
 }
-
 
 // ====== Tab 一：正式邀約 ======
 function InvitationsTab({
@@ -394,10 +352,7 @@ function InvitationsTab({
   useEffect(() => {
     (async () => {
       const [accRes, venueRes, scoutRes, scoutMgrRes, rarRes, tagRes] = await Promise.all([
-        supabase
-          .from("accommodation_info")
-          .select("id, name, booking_type, short_url_alias")
-          .order("name"),
+        supabase.from("accommodation_info").select("id, name, booking_type, short_url_alias").order("name"),
         supabase
           .from("kol_venues" as any)
           .select("id, name, type, is_active")
@@ -408,7 +363,10 @@ function InvitationsTab({
           .from("kol_rarity_settings" as any)
           .select("rarity, fan_range_desc, bonus_amount, effective_from")
           .order("effective_from", { ascending: false }),
-        supabase.from("kol_tags" as any).select("name").order("name"),
+        supabase
+          .from("kol_tags" as any)
+          .select("name")
+          .order("name"),
       ]);
       if (accRes.data) setAccommodations(accRes.data as Accommodation[]);
       if (venueRes.data) setVenues(venueRes.data as unknown as KolVenue[]);
@@ -448,7 +406,10 @@ function InvitationsTab({
   }, []);
 
   const reloadTags = useCallback(async () => {
-    const { data } = await supabase.from("kol_tags" as any).select("name").order("name");
+    const { data } = await supabase
+      .from("kol_tags" as any)
+      .select("name")
+      .order("name");
     if (data) setAllTags((data as any[]).map((t) => t.name));
   }, []);
 
@@ -468,16 +429,12 @@ function InvitationsTab({
     toast.success("已新增標籤");
   };
 
-
   const fetchRows = useCallback(async () => {
     setLoading(true);
     const from = (page - 1) * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
 
-    let q = supabase
-      .from("kol_profiles")
-      .select("*", { count: "exact" })
-      .eq("is_error", false);
+    let q = supabase.from("kol_profiles").select("*", { count: "exact" }).eq("is_error", false);
 
     if (filterAcc !== "all") {
       if (filterAcc.startsWith("acc:")) {
@@ -494,9 +451,7 @@ function InvitationsTab({
       q = q.or(`name.ilike.%${esc}%,ig_handle.ilike.%${esc}%`);
     }
 
-    const { data, count, error } = await q
-      .order("created_at", { ascending: false })
-      .range(from, to);
+    const { data, count, error } = await q.order("created_at", { ascending: false }).range(from, to);
 
     if (error) {
       toast.error(error.message);
@@ -504,26 +459,20 @@ function InvitationsTab({
       return;
     }
     // 取 scout 姓名
-    const scoutIds = Array.from(
-      new Set((data ?? []).map((r) => r.scout_id).filter(Boolean) as string[]),
-    );
+    const scoutIds = Array.from(new Set((data ?? []).map((r) => r.scout_id).filter(Boolean) as string[]));
     let scoutMap = new Map<string, string>();
     if (scoutIds.length > 0) {
       const { data: profs } = await supabase
         .from("team_member_profiles")
         .select("user_id, display_name")
         .in("user_id", scoutIds);
-      profs?.forEach((p) =>
-        scoutMap.set(p.user_id, p.display_name ?? p.user_id),
-      );
+      profs?.forEach((p) => scoutMap.set(p.user_id, p.display_name ?? p.user_id));
     }
     const accMap = new Map(accommodations.map((a) => [a.id, a.name]));
     const enriched = (data ?? []).map((r: any) => ({
       ...r,
-      _accommodation_name: r.accommodation_id
-        ? accMap.get(r.accommodation_id) ?? "-"
-        : r.venue_name ?? "-",
-      _scout_name: r.scout_id ? scoutMap.get(r.scout_id) ?? "-" : "-",
+      _accommodation_name: r.accommodation_id ? (accMap.get(r.accommodation_id) ?? "-") : (r.venue_name ?? "-"),
+      _scout_name: r.scout_id ? (scoutMap.get(r.scout_id) ?? "-") : "-",
     })) as KolRow[];
     setRows(enriched);
     setTotalCount(count ?? 0);
@@ -542,7 +491,6 @@ function InvitationsTab({
   // 伺服器端已套用篩選，直接使用 rows
   const filtered = rows;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-
 
   // 入住日期 → 自動計算星期幾
   useEffect(() => {
@@ -566,10 +514,7 @@ function InvitationsTab({
     }
     let cancelled = false;
     (async () => {
-      const { data: rts } = await supabase
-        .from("room_types")
-        .select("id")
-        .eq("accommodation_id", accId);
+      const { data: rts } = await supabase.from("room_types").select("id").eq("accommodation_id", accId);
       const ids = (rts ?? []).map((r: any) => r.id);
       if (ids.length === 0) {
         if (!cancelled) setForm((f) => ({ ...f, inventory_status: "查無房型" }));
@@ -581,8 +526,7 @@ function InvitationsTab({
         .in("room_type_id", ids)
         .eq("date", date);
       const total = (inv ?? []).reduce(
-        (sum: number, r: any) =>
-          sum + (r.is_available === false ? 0 : r.available_rooms ?? 0),
+        (sum: number, r: any) => sum + (r.is_available === false ? 0 : (r.available_rooms ?? 0)),
         0,
       );
       const status = total > 0 ? `有 ${total} 間` : "額滿";
@@ -606,7 +550,6 @@ function InvitationsTab({
     }
   }, [form.order_number]); // eslint-disable-line
 
-
   // ig_handle 即時重複檢查
   useEffect(() => {
     const ig = form.ig_handle.trim();
@@ -617,23 +560,16 @@ function InvitationsTab({
     const handle = setTimeout(async () => {
       let q = supabase
         .from("kol_profiles")
-        .select(
-          "id, scout_id, invited_at, booking_status, team_member_profiles:scout_id(display_name)",
-        )
+        .select("id, scout_id, invited_at, booking_status, team_member_profiles:scout_id(display_name)")
         .eq("ig_handle", ig)
         .eq("is_error", false);
       if (editingId) q = q.neq("id", editingId);
       const { data } = await q.limit(1);
       if (data && data.length > 0) {
         const d: any = data[0];
-        const sn =
-          d.team_member_profiles?.display_name ?? d.scout_id ?? "未知";
-        const stLabel =
-          BOOKING_STATUS_LABEL[d.booking_status as BookingStatus] ??
-          (d.booking_status ?? "-");
-        setDupWarning(
-          `此 KOL 已有邀約紀錄：${sn} 於 ${d.invited_at ?? "-"}，狀態：${stLabel}`,
-        );
+        const sn = d.team_member_profiles?.display_name ?? d.scout_id ?? "未知";
+        const stLabel = BOOKING_STATUS_LABEL[d.booking_status as BookingStatus] ?? d.booking_status ?? "-";
+        setDupWarning(`此 KOL 已有邀約紀錄：${sn} 於 ${d.invited_at ?? "-"}，狀態：${stLabel}`);
       } else {
         setDupWarning(null);
       }
@@ -706,8 +642,7 @@ function InvitationsTab({
       publish_url: row.publish_url ?? "",
       publish_date: row.publish_date ?? "",
       order_number: row.order_number ?? "",
-      inventory_count:
-        row.inventory_count != null ? String(row.inventory_count) : "",
+      inventory_count: row.inventory_count != null ? String(row.inventory_count) : "",
       kol_tags: row.kol_tags ?? [],
       kpi_qualified: !!row.kpi_qualified,
     });
@@ -715,11 +650,9 @@ function InvitationsTab({
     setSheetOpen(true);
   };
 
-  const canEditRow = (row: KolRow) =>
-    isManager || row.created_by === currentUserId;
+  const canEditRow = (row: KolRow) => isManager || row.created_by === currentUserId;
 
-  const canReportError = (row: KolRow) =>
-    row.created_by === currentUserId || isManager;
+  const canReportError = (row: KolRow) => row.created_by === currentUserId || isManager;
 
   const handleSave = async () => {
     if (!form.accommodation_id && !form.venue_name) {
@@ -737,14 +670,12 @@ function InvitationsTab({
 
     setSaving(true);
     const kpiEligible = !!form.check_in_date;
-    const kpiMonth = form.check_in_date
-      ? form.check_in_date.slice(0, 7) + "-01"
-      : null;
+    const kpiMonth = form.check_in_date ? form.check_in_date.slice(0, 7) + "-01" : null;
     const tags = form.kol_tags;
 
     const payload: Record<string, any> = {
       accommodation_id: form.accommodation_id || null,
-      venue_name: form.accommodation_id ? null : (form.venue_name || null),
+      venue_name: form.accommodation_id ? null : form.venue_name || null,
       name: form.name.trim(),
       ig_handle: form.ig_handle.trim(),
       rarity: form.rarity || null,
@@ -777,18 +708,11 @@ function InvitationsTab({
     let err;
     let newId: string | null = null;
     if (editingId) {
-      ({ error: err } = await supabase
-        .from("kol_profiles")
-        .update(payload)
-        .eq("id", editingId));
+      ({ error: err } = await supabase.from("kol_profiles").update(payload).eq("id", editingId));
     } else {
       payload.created_by = currentUserId;
       payload.is_error = false;
-      const { data: inserted, error } = await supabase
-        .from("kol_profiles")
-        .insert(payload)
-        .select("id")
-        .single();
+      const { data: inserted, error } = await supabase.from("kol_profiles").insert(payload).select("id").single();
       err = error;
       newId = inserted?.id ?? null;
     }
@@ -844,21 +768,17 @@ function InvitationsTab({
   };
 
   // 表單上選定的館別 booking_type
-  const selectedAcc = accommodations.find(
-    (a) => a.id === form.accommodation_id,
-  );
+  const selectedAcc = accommodations.find((a) => a.id === form.accommodation_id);
   const showCid = selectedAcc?.booking_type !== "short_url";
   const showShortUrl = selectedAcc?.booking_type === "short_url";
-  const shortUrlPrefix = selectedAcc?.short_url_alias
-    ? `https://liker.land/${selectedAcc.short_url_alias}/`
-    : "";
+  const shortUrlPrefix = selectedAcc?.short_url_alias ? `https://liker.land/${selectedAcc.short_url_alias}/` : "";
 
   return (
     <div className="space-y-4">
       {/* 篩選列 */}
       <div className="flex flex-wrap items-center gap-2">
         <Input
-          placeholder="搜尋 KOL 名稱或 IG 帳號"
+          placeholder="搜尋 KOL 名稱 或 網紅帳號連結"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-64"
@@ -882,24 +802,13 @@ function InvitationsTab({
 
         <Popover>
           <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-10 font-normal"
-              type="button"
-            >
-              {filterTags.length === 0
-                ? "標籤篩選"
-                : `標籤：已選 ${filterTags.length}`}
+            <Button variant="outline" size="sm" className="h-10 font-normal" type="button">
+              {filterTags.length === 0 ? "標籤篩選" : `標籤：已選 ${filterTags.length}`}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-56 p-2" align="start">
             <div className="max-h-60 overflow-y-auto space-y-1">
-              {allTags.length === 0 && (
-                <div className="text-xs text-muted-foreground py-2 text-center">
-                  尚無標籤
-                </div>
-              )}
+              {allTags.length === 0 && <div className="text-xs text-muted-foreground py-2 text-center">尚無標籤</div>}
               {allTags.map((t) => {
                 const checked = filterTags.includes(t);
                 return (
@@ -909,13 +818,7 @@ function InvitationsTab({
                   >
                     <Checkbox
                       checked={checked}
-                      onCheckedChange={(v) =>
-                        setFilterTags(
-                          v
-                            ? [...filterTags, t]
-                            : filterTags.filter((x) => x !== t),
-                        )
-                      }
+                      onCheckedChange={(v) => setFilterTags(v ? [...filterTags, t] : filterTags.filter((x) => x !== t))}
                     />
                     {t}
                   </label>
@@ -924,12 +827,7 @@ function InvitationsTab({
             </div>
             {filterTags.length > 0 && (
               <div className="border-t mt-2 pt-2">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="w-full h-7 text-xs"
-                  onClick={() => setFilterTags([])}
-                >
+                <Button size="sm" variant="ghost" className="w-full h-7 text-xs" onClick={() => setFilterTags([])}>
                   清除標籤篩選
                 </Button>
               </div>
@@ -948,9 +846,7 @@ function InvitationsTab({
                 variant={active ? "default" : "outline"}
                 className="h-9 min-w-[40px] px-2"
                 type="button"
-                onClick={() =>
-                  setFilterRarity(active ? "all" : r)
-                }
+                onClick={() => setFilterRarity(active ? "all" : r)}
               >
                 {r}
               </Button>
@@ -980,9 +876,7 @@ function InvitationsTab({
       {/* 結果 */}
       {loading ? null : filtered.length === 0 ? (
         <Card>
-          <CardContent className="p-8 text-center text-sm text-muted-foreground">
-            尚無資料
-          </CardContent>
+          <CardContent className="p-8 text-center text-sm text-muted-foreground">尚無資料</CardContent>
         </Card>
       ) : (
         <Card>
@@ -1012,11 +906,7 @@ function InvitationsTab({
                     (r.contract_progress ?? "").toLowerCase().includes("uploaded");
                   const codeOrCid = r.cid_code ?? r.short_url ?? "-";
                   return (
-                    <TableRow
-                      key={r.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => setViewingRow(r)}
-                    >
+                    <TableRow key={r.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setViewingRow(r)}>
                       <TableCell className="max-w-[180px]">
                         <div className="flex items-center gap-2 max-w-[180px]">
                           {igUrl ? (
@@ -1036,10 +926,7 @@ function InvitationsTab({
                             </span>
                           )}
                           {r.is_error && (
-                            <Badge
-                              variant="outline"
-                              className="bg-red-100 text-red-700 border-red-300 shrink-0"
-                            >
+                            <Badge variant="outline" className="bg-red-100 text-red-700 border-red-300 shrink-0">
                               填錯
                             </Badge>
                           )}
@@ -1048,10 +935,7 @@ function InvitationsTab({
                       <TableCell>{codeOrCid}</TableCell>
                       <TableCell>
                         {r.rarity && (
-                          <Badge
-                            variant="outline"
-                            className={RARITY_CLASS[r.rarity as Rarity] ?? ""}
-                          >
+                          <Badge variant="outline" className={RARITY_CLASS[r.rarity as Rarity] ?? ""}>
                             {r.rarity}
                           </Badge>
                         )}
@@ -1063,24 +947,18 @@ function InvitationsTab({
                       <TableCell>
                         {(() => {
                           const label =
-                            BOOKING_STATUS_LABEL[
-                              r.booking_status as BookingStatus
-                            ] ??
-                            r.booking_status ??
-                            "-";
+                            BOOKING_STATUS_LABEL[r.booking_status as BookingStatus] ?? r.booking_status ?? "-";
                           const labelColorMap: Record<string, string> = {
-                            "邀約中": "bg-blue-100 text-blue-700 border-blue-200",
-                            "已入住": "bg-purple-100 text-purple-700 border-purple-200",
-                            "已取消": "bg-red-100 text-red-700 border-red-200",
-                            "已拒絕": "bg-rose-200 text-rose-900 border-rose-300",
-                            "暫緩": "bg-orange-100 text-orange-700 border-orange-200",
-                            "訂房確認中": "bg-amber-100 text-amber-700 border-amber-200",
-                            "訂房編號有誤": "bg-red-600 text-white border-red-700",
+                            邀約中: "bg-blue-100 text-blue-700 border-blue-200",
+                            已入住: "bg-purple-100 text-purple-700 border-purple-200",
+                            已取消: "bg-red-100 text-red-700 border-red-200",
+                            已拒絕: "bg-rose-200 text-rose-900 border-rose-300",
+                            暫緩: "bg-orange-100 text-orange-700 border-orange-200",
+                            訂房確認中: "bg-amber-100 text-amber-700 border-amber-200",
+                            訂房編號有誤: "bg-red-600 text-white border-red-700",
                           };
-                          let cls = labelColorMap[label] ??
-                            BOOKING_STATUS_CLASS[
-                              r.booking_status as BookingStatus
-                            ] ?? "";
+                          let cls =
+                            labelColorMap[label] ?? BOOKING_STATUS_CLASS[r.booking_status as BookingStatus] ?? "";
                           if (label === "成功訂房" || label === "-") {
                             cls = "bg-white text-foreground border-border";
                           }
@@ -1116,17 +994,9 @@ function InvitationsTab({
                           ].map((t, i) => (
                             <span
                               key={i}
-                              title={
-                                t.label === "前"
-                                  ? "入住前四件套"
-                                  : t.label === "後"
-                                    ? "入住後限動"
-                                    : "IG 協作"
-                              }
+                              title={t.label === "前" ? "入住前四件套" : t.label === "後" ? "入住後限動" : "IG 協作"}
                               className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] ${
-                                t.ok
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-gray-100 text-gray-400"
+                                t.ok ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-400"
                               }`}
                             >
                               {t.ok ? <Check className="h-3 w-3" /> : t.label}
@@ -1154,10 +1024,7 @@ function InvitationsTab({
                           <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
-                      <TableCell
-                        className="text-right"
-                        onClick={(e) => e.stopPropagation()}
-                      >
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <Button
                           size="icon"
                           variant="ghost"
@@ -1204,7 +1071,6 @@ function InvitationsTab({
         </div>
       )}
 
-
       {/* 詳情 Drawer */}
       <Sheet open={!!viewingRow} onOpenChange={(o) => !o && setViewingRow(null)}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
@@ -1238,107 +1104,128 @@ function InvitationsTab({
               )}
             </div>
           </SheetHeader>
-          {viewingRow && (() => {
-            const r = viewingRow;
-            const igUrl = r.ig_handle || null;
-            const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
-              <div className="grid grid-cols-3 gap-2 py-1.5 border-b border-border/50 last:border-0">
-                <div className="text-xs text-muted-foreground">{label}</div>
-                <div className="col-span-2 text-sm break-all">{children}</div>
-              </div>
-            );
-            return (
-              <div className="mt-4">
-                <Row label="KOL 名稱">
-                  {igUrl ? (
-                    <a href={igUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline">
-                      {r.name ?? "-"}
-                    </a>
-                  ) : (
-                    r.name ?? "-"
-                  )}
-                </Row>
-                <Row label="網紅帳號連結">
-                  {igUrl ? (
-                    <a href={igUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
-                      {igUrl}
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  ) : (
-                    "-"
-                  )}
-                </Row>
-                <Row label="稀有度">
-                  {r.rarity ? (
-                    <Badge variant="outline" className={RARITY_CLASS[r.rarity as Rarity] ?? ""}>
-                      {r.rarity}
+          {viewingRow &&
+            (() => {
+              const r = viewingRow;
+              const igUrl = r.ig_handle || null;
+              const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
+                <div className="grid grid-cols-3 gap-2 py-1.5 border-b border-border/50 last:border-0">
+                  <div className="text-xs text-muted-foreground">{label}</div>
+                  <div className="col-span-2 text-sm break-all">{children}</div>
+                </div>
+              );
+              return (
+                <div className="mt-4">
+                  <Row label="KOL 名稱">
+                    {igUrl ? (
+                      <a href={igUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                        {r.name ?? "-"}
+                      </a>
+                    ) : (
+                      (r.name ?? "-")
+                    )}
+                  </Row>
+                  <Row label="網紅帳號連結">
+                    {igUrl ? (
+                      <a
+                        href={igUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary hover:underline inline-flex items-center gap-1"
+                      >
+                        {igUrl}
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ) : (
+                      "-"
+                    )}
+                  </Row>
+                  <Row label="稀有度">
+                    {r.rarity ? (
+                      <Badge variant="outline" className={RARITY_CLASS[r.rarity as Rarity] ?? ""}>
+                        {r.rarity}
+                      </Badge>
+                    ) : (
+                      "-"
+                    )}
+                  </Row>
+                  <Row label="館別">{r._accommodation_name ?? "-"}</Row>
+                  <Row label="入住日期">{r.check_in_date ?? "-"}</Row>
+                  <Row label="星期">{r.day_of_week ?? "-"}</Row>
+                  <Row label="邀約人">{r._scout_name ?? "-"}</Row>
+                  <Row label="累積資格">
+                    {r.kpi_qualified ? (
+                      <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
+                        符合資格
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-200">
+                        未確認
+                      </Badge>
+                    )}
+                  </Row>
+                  <Row label="折扣碼 / CID">{r.cid_code ?? r.short_url ?? "-"}</Row>
+                  <Row label="合約進度">{r.contract_progress ?? "-"}</Row>
+                  <Row label="合約檔案">
+                    {r.contract_file_url ? (
+                      <a
+                        href={r.contract_file_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary hover:underline inline-flex items-center gap-1"
+                      >
+                        開啟連結 <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ) : (
+                      "-"
+                    )}
+                  </Row>
+                  <Row label="任務完成">
+                    <div className="flex flex-col gap-1">
+                      {[
+                        { ok: !!r.task_pre_stay, label: "入住前四件套" },
+                        { ok: !!r.task_post_story, label: "入住後限動" },
+                        { ok: !!r.task_ig_collab, label: "IG 協作" },
+                      ].map((t, i) => (
+                        <div key={i} className="flex items-center gap-2 text-sm">
+                          {t.ok ? (
+                            <Check className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <X className="h-4 w-4 text-muted-foreground" />
+                          )}
+                          {t.label}
+                        </div>
+                      ))}
+                    </div>
+                  </Row>
+                  <Row label="發布連結">
+                    {r.publish_url ? (
+                      <a
+                        href={r.publish_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary hover:underline inline-flex items-center gap-1"
+                      >
+                        {r.publish_url}
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ) : (
+                      "-"
+                    )}
+                  </Row>
+                  <Row label="發布日期">{r.publish_date ?? "-"}</Row>
+                  <Row label="訂單編號">{r.order_number ?? "-"}</Row>
+                  <Row label="狀態">
+                    <Badge variant="outline" className={BOOKING_STATUS_CLASS[r.booking_status as BookingStatus] ?? ""}>
+                      {BOOKING_STATUS_LABEL[r.booking_status as BookingStatus] ?? r.booking_status ?? "-"}
                     </Badge>
-                  ) : "-"}
-                </Row>
-                <Row label="館別">{r._accommodation_name ?? "-"}</Row>
-                <Row label="入住日期">{r.check_in_date ?? "-"}</Row>
-                <Row label="星期">{r.day_of_week ?? "-"}</Row>
-                <Row label="邀約人">{r._scout_name ?? "-"}</Row>
-                <Row label="累積資格">
-                  {r.kpi_qualified ? (
-                    <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">符合資格</Badge>
-                  ) : (
-                    <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-200">未確認</Badge>
-                  )}
-                </Row>
-                <Row label="折扣碼 / CID">{r.cid_code ?? r.short_url ?? "-"}</Row>
-                <Row label="合約進度">{r.contract_progress ?? "-"}</Row>
-                <Row label="合約檔案">
-                  {r.contract_file_url ? (
-                    <a href={r.contract_file_url} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
-                      開啟連結 <ExternalLink className="h-3 w-3" />
-                    </a>
-                  ) : "-"}
-                </Row>
-                <Row label="任務完成">
-                  <div className="flex flex-col gap-1">
-                    {[
-                      { ok: !!r.task_pre_stay, label: "入住前四件套" },
-                      { ok: !!r.task_post_story, label: "入住後限動" },
-                      { ok: !!r.task_ig_collab, label: "IG 協作" },
-                    ].map((t, i) => (
-                      <div key={i} className="flex items-center gap-2 text-sm">
-                        {t.ok ? (
-                          <Check className="h-4 w-4 text-green-600" />
-                        ) : (
-                          <X className="h-4 w-4 text-muted-foreground" />
-                        )}
-                        {t.label}
-                      </div>
-                    ))}
-                  </div>
-                </Row>
-                <Row label="發布連結">
-                  {r.publish_url ? (
-                    <a href={r.publish_url} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
-                      {r.publish_url}
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  ) : "-"}
-                </Row>
-                <Row label="發布日期">{r.publish_date ?? "-"}</Row>
-                <Row label="訂單編號">{r.order_number ?? "-"}</Row>
-                <Row label="狀態">
-                  <Badge
-                    variant="outline"
-                    className={BOOKING_STATUS_CLASS[r.booking_status as BookingStatus] ?? ""}
-                  >
-                    {BOOKING_STATUS_LABEL[r.booking_status as BookingStatus] ?? r.booking_status ?? "-"}
-                  </Badge>
-                </Row>
-                <Row label="填寫日期">{r.invited_at ?? "-"}</Row>
-              </div>
-            );
-          })()}
+                  </Row>
+                  <Row label="填寫日期">{r.invited_at ?? "-"}</Row>
+                </div>
+              );
+            })()}
         </SheetContent>
       </Sheet>
-
-
 
       {/* 新增/編輯 Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
@@ -1379,18 +1266,10 @@ function InvitationsTab({
 
             <div className="grid grid-cols-2 gap-3">
               <Field label="KOL 名稱 *">
-                <Input
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                />
+                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
               </Field>
               <Field label="網紅帳號連結 *">
-                <Input
-                  value={form.ig_handle}
-                  onChange={(e) =>
-                    setForm({ ...form, ig_handle: e.target.value })
-                  }
-                />
+                <Input value={form.ig_handle} onChange={(e) => setForm({ ...form, ig_handle: e.target.value })} />
               </Field>
             </div>
 
@@ -1402,10 +1281,7 @@ function InvitationsTab({
 
             <div className="grid grid-cols-2 gap-3">
               <Field label="稀有度">
-                <Select
-                  value={form.rarity || "ck"}
-                  onValueChange={(v) => setForm({ ...form, rarity: v })}
-                >
+                <Select value={form.rarity || "ck"} onValueChange={(v) => setForm({ ...form, rarity: v })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -1425,22 +1301,14 @@ function InvitationsTab({
               <Field label="KOL 標籤">
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start font-normal h-10"
-                      type="button"
-                    >
-                      {form.kol_tags.length === 0
-                        ? "選擇標籤"
-                        : `已選 ${form.kol_tags.length} 個`}
+                    <Button variant="outline" className="w-full justify-start font-normal h-10" type="button">
+                      {form.kol_tags.length === 0 ? "選擇標籤" : `已選 ${form.kol_tags.length} 個`}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-64 p-2" align="start">
                     <div className="max-h-60 overflow-y-auto space-y-1">
                       {allTags.length === 0 && (
-                        <div className="text-xs text-muted-foreground py-2 text-center">
-                          尚無標籤，請於下方新增
-                        </div>
+                        <div className="text-xs text-muted-foreground py-2 text-center">尚無標籤，請於下方新增</div>
                       )}
                       {allTags.map((t) => {
                         const checked = form.kol_tags.includes(t);
@@ -1454,9 +1322,7 @@ function InvitationsTab({
                               onCheckedChange={(v) => {
                                 setForm({
                                   ...form,
-                                  kol_tags: v
-                                    ? [...form.kol_tags, t]
-                                    : form.kol_tags.filter((x) => x !== t),
+                                  kol_tags: v ? [...form.kol_tags, t] : form.kol_tags.filter((x) => x !== t),
                                 });
                               }}
                             />
@@ -1479,9 +1345,7 @@ function InvitationsTab({
                               handleAddNewTag(t).then(() => {
                                 setForm((f) => ({
                                   ...f,
-                                  kol_tags: f.kol_tags.includes(t)
-                                    ? f.kol_tags
-                                    : [...f.kol_tags, t],
+                                  kol_tags: f.kol_tags.includes(t) ? f.kol_tags : [...f.kol_tags, t],
                                 }));
                                 setNewTagInput("");
                               });
@@ -1499,9 +1363,7 @@ function InvitationsTab({
                           await handleAddNewTag(t);
                           setForm((f) => ({
                             ...f,
-                            kol_tags: f.kol_tags.includes(t)
-                              ? f.kol_tags
-                              : [...f.kol_tags, t],
+                            kol_tags: f.kol_tags.includes(t) ? f.kol_tags : [...f.kol_tags, t],
                           }));
                           setNewTagInput("");
                         }}
@@ -1514,11 +1376,7 @@ function InvitationsTab({
                 {form.kol_tags.length > 0 && (
                   <div className="mt-1 flex flex-wrap gap-1">
                     {form.kol_tags.map((t) => (
-                      <Badge
-                        key={t}
-                        variant="outline"
-                        className="text-xs gap-1"
-                      >
+                      <Badge key={t} variant="outline" className="text-xs gap-1">
                         {t}
                         <button
                           type="button"
@@ -1543,9 +1401,7 @@ function InvitationsTab({
               {isManager ? (
                 <Select
                   value={form.scout_id || "none"}
-                  onValueChange={(v) =>
-                    setForm({ ...form, scout_id: v === "none" ? "" : v })
-                  }
+                  onValueChange={(v) => setForm({ ...form, scout_id: v === "none" ? "" : v })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="選擇邀約人" />
@@ -1561,10 +1417,7 @@ function InvitationsTab({
                 </Select>
               ) : (
                 <Input
-                  value={
-                    scouts.find((s) => s.user_id === form.scout_id)
-                      ?.display_name ?? "（你本人）"
-                  }
+                  value={scouts.find((s) => s.user_id === form.scout_id)?.display_name ?? "（你本人）"}
                   readOnly
                   className="bg-muted"
                 />
@@ -1575,9 +1428,7 @@ function InvitationsTab({
               <Input
                 type="date"
                 value={form.check_in_date}
-                onChange={(e) =>
-                  setForm({ ...form, check_in_date: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, check_in_date: e.target.value })}
               />
             </Field>
 
@@ -1586,29 +1437,17 @@ function InvitationsTab({
                 <Input value={form.day_of_week} readOnly className="bg-muted" />
               </Field>
               <Field label="庫存狀態（自動）">
-                <Input
-                  value={form.inventory_status}
-                  readOnly
-                  className="bg-muted"
-                />
+                <Input value={form.inventory_status} readOnly className="bg-muted" />
               </Field>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <Field label="訂單編號">
-                <Input
-                  value={form.order_number}
-                  onChange={(e) =>
-                    setForm({ ...form, order_number: e.target.value })
-                  }
-                />
+                <Input value={form.order_number} onChange={(e) => setForm({ ...form, order_number: e.target.value })} />
               </Field>
               <Field label="訂房狀態（自動）">
                 <Input
-                  value={
-                    BOOKING_STATUS_LABEL[form.booking_status] ??
-                    form.booking_status
-                  }
+                  value={BOOKING_STATUS_LABEL[form.booking_status] ?? form.booking_status}
                   readOnly
                   className="bg-muted"
                 />
@@ -1617,23 +1456,13 @@ function InvitationsTab({
 
             {showCid && (
               <Field label="折扣碼 / CID">
-                <Input
-                  value={form.cid_code}
-                  onChange={(e) =>
-                    setForm({ ...form, cid_code: e.target.value })
-                  }
-                />
+                <Input value={form.cid_code} onChange={(e) => setForm({ ...form, cid_code: e.target.value })} />
               </Field>
             )}
 
             {showShortUrl && (
               <Field label="短網址後綴">
-                <Input
-                  value={form.short_url}
-                  onChange={(e) =>
-                    setForm({ ...form, short_url: e.target.value })
-                  }
-                />
+                <Input value={form.short_url} onChange={(e) => setForm({ ...form, short_url: e.target.value })} />
                 {shortUrlPrefix && (
                   <p className="mt-1 text-xs text-muted-foreground">
                     完整網址：{shortUrlPrefix}
@@ -1646,18 +1475,14 @@ function InvitationsTab({
             <Field label="合約進度">
               <Input
                 value={form.contract_progress}
-                onChange={(e) =>
-                  setForm({ ...form, contract_progress: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, contract_progress: e.target.value })}
               />
             </Field>
 
             <Field label="合約檔案連結">
               <Input
                 value={form.contract_file_url}
-                onChange={(e) =>
-                  setForm({ ...form, contract_file_url: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, contract_file_url: e.target.value })}
               />
             </Field>
 
@@ -1671,9 +1496,7 @@ function InvitationsTab({
                   <label key={k} className="flex items-center gap-2 text-sm">
                     <Checkbox
                       checked={!!form[k]}
-                      onCheckedChange={(v) =>
-                        setForm({ ...form, [k]: !!v } as FormState)
-                      }
+                      onCheckedChange={(v) => setForm({ ...form, [k]: !!v } as FormState)}
                     />
                     {label}
                   </label>
@@ -1683,32 +1506,22 @@ function InvitationsTab({
 
             <div className="grid grid-cols-2 gap-3">
               <Field label="發布連結">
-                <Input
-                  value={form.publish_url}
-                  onChange={(e) =>
-                    setForm({ ...form, publish_url: e.target.value })
-                  }
-                />
+                <Input value={form.publish_url} onChange={(e) => setForm({ ...form, publish_url: e.target.value })} />
               </Field>
               <Field label="發布日期">
                 <Input
                   type="date"
                   value={form.publish_date}
-                  onChange={(e) =>
-                    setForm({ ...form, publish_date: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, publish_date: e.target.value })}
                 />
               </Field>
             </div>
-
 
             <Field label="填寫日期">
               <Input
                 type="date"
                 value={form.invited_at}
-                onChange={(e) =>
-                  isManager && setForm({ ...form, invited_at: e.target.value })
-                }
+                onChange={(e) => isManager && setForm({ ...form, invited_at: e.target.value })}
                 readOnly={!isManager}
                 className={!isManager ? "bg-muted" : ""}
               />
@@ -1719,18 +1532,12 @@ function InvitationsTab({
                 <label className="flex items-center gap-2 text-sm">
                   <Checkbox
                     checked={form.kpi_qualified}
-                    onCheckedChange={(v) =>
-                      setForm({ ...form, kpi_qualified: !!v })
-                    }
+                    onCheckedChange={(v) => setForm({ ...form, kpi_qualified: !!v })}
                   />
                   符合資格
                 </label>
               ) : (
-                <Input
-                  value={form.kpi_qualified ? "符合資格" : "未確認"}
-                  readOnly
-                  className="bg-muted"
-                />
+                <Input value={form.kpi_qualified ? "符合資格" : "未確認"} readOnly className="bg-muted" />
               )}
             </Field>
           </div>
@@ -1743,10 +1550,7 @@ function InvitationsTab({
                 onClick={async () => {
                   if (!editingId) return;
                   if (!window.confirm(`確定要刪除「${form.name || "此筆"}」邀約紀錄嗎？此動作無法復原。`)) return;
-                  const { error } = await supabase
-                    .from("kol_profiles")
-                    .delete()
-                    .eq("id", editingId);
+                  const { error } = await supabase.from("kol_profiles").delete().eq("id", editingId);
                   if (error) {
                     toast.error(`刪除失敗：${error.message}`);
                     return;
@@ -1759,13 +1563,11 @@ function InvitationsTab({
                 <Trash2 className="h-4 w-4 mr-1" />
                 刪除
               </Button>
-            ) : <div />}
+            ) : (
+              <div />
+            )}
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setSheetOpen(false)}
-                disabled={saving}
-              >
+              <Button variant="outline" onClick={() => setSheetOpen(false)} disabled={saving}>
                 取消
               </Button>
               <Button onClick={handleSave} disabled={saving}>
@@ -1777,17 +1579,12 @@ function InvitationsTab({
       </Sheet>
 
       {/* 填錯 Dialog */}
-      <Dialog
-        open={!!errorTarget}
-        onOpenChange={(o) => !o && setErrorTarget(null)}
-      >
+      <Dialog open={!!errorTarget} onOpenChange={(o) => !o && setErrorTarget(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>回報填錯</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            將標記「{errorTarget?.name}」此筆紀錄為填錯，請填寫原因：
-          </p>
+          <p className="text-sm text-muted-foreground">將標記「{errorTarget?.name}」此筆紀錄為填錯，請填寫原因：</p>
           <Textarea
             value={errorReason}
             onChange={(e) => setErrorReason(e.target.value)}
@@ -1795,18 +1592,10 @@ function InvitationsTab({
             rows={4}
           />
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setErrorTarget(null)}
-              disabled={reportingError}
-            >
+            <Button variant="outline" onClick={() => setErrorTarget(null)} disabled={reportingError}>
               取消
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleReportError}
-              disabled={reportingError}
-            >
+            <Button variant="destructive" onClick={handleReportError} disabled={reportingError}>
               {reportingError ? "送出中..." : "確認回報"}
             </Button>
           </DialogFooter>
@@ -1816,13 +1605,7 @@ function InvitationsTab({
   );
 }
 
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
       <Label className="text-xs text-muted-foreground">{label}</Label>
@@ -1834,7 +1617,6 @@ function Field({
 // ============================================================
 // ====== Tab 二:潛在名單 ======
 // ============================================================
-
 
 interface ProspectRow {
   id: string;
@@ -1902,7 +1684,10 @@ function ProspectsTab({
   const [saving, setSaving] = useState(false);
 
   const reloadTags = useCallback(async () => {
-    const { data } = await supabase.from("kol_tags" as any).select("name").order("name");
+    const { data } = await supabase
+      .from("kol_tags" as any)
+      .select("name")
+      .order("name");
     if (data) setAllTags((data as any[]).map((t) => t.name));
   }, []);
 
@@ -1926,7 +1711,10 @@ function ProspectsTab({
     (async () => {
       const [scoutRes, tagRes] = await Promise.all([
         supabase.rpc("get_team_role_members", { p_role: "scout" }),
-        supabase.from("kol_tags" as any).select("name").order("name"),
+        supabase
+          .from("kol_tags" as any)
+          .select("name")
+          .order("name"),
       ]);
       if (scoutRes.data) {
         const seen = new Set<string>();
@@ -1948,32 +1736,25 @@ function ProspectsTab({
 
   const fetchRows = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("kol_prospects")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("kol_prospects").select("*").order("created_at", { ascending: false });
     if (error) {
       toast.error(error.message);
       setLoading(false);
       return;
     }
-    const scoutIds = Array.from(
-      new Set((data ?? []).map((r) => r.scout_id).filter(Boolean) as string[]),
-    );
+    const scoutIds = Array.from(new Set((data ?? []).map((r) => r.scout_id).filter(Boolean) as string[]));
     const scoutMap = new Map<string, string>();
     if (scoutIds.length > 0) {
       const { data: profs } = await supabase
         .from("team_member_profiles")
         .select("user_id, display_name")
         .in("user_id", scoutIds);
-      profs?.forEach((p) =>
-        scoutMap.set(p.user_id, p.display_name ?? p.user_id),
-      );
+      profs?.forEach((p) => scoutMap.set(p.user_id, p.display_name ?? p.user_id));
     }
     setRows(
       (data ?? []).map((r) => ({
         ...r,
-        _scout_name: r.scout_id ? scoutMap.get(r.scout_id) ?? "-" : "-",
+        _scout_name: r.scout_id ? (scoutMap.get(r.scout_id) ?? "-") : "-",
       })) as ProspectRow[],
     );
     setLoading(false);
@@ -1984,9 +1765,7 @@ function ProspectsTab({
   }, [fetchRows]);
 
   const scoutFilterOptions = useMemo(() => {
-    const ids = Array.from(
-      new Set(rows.map((r) => r.scout_id).filter(Boolean) as string[]),
-    );
+    const ids = Array.from(new Set(rows.map((r) => r.scout_id).filter(Boolean) as string[]));
     return ids.map((id) => ({
       id,
       name: rows.find((r) => r.scout_id === id)?._scout_name ?? id,
@@ -2022,12 +1801,7 @@ function ProspectsTab({
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
-  const paged = useMemo(
-    () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [filtered, page],
-  );
-
-
+  const paged = useMemo(() => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [filtered, page]);
 
   const openCreate = () => {
     setEditingId(null);
@@ -2068,10 +1842,7 @@ function ProspectsTab({
       screenshot_url: toNullable(form.screenshot_url),
     };
     const { error } = editingId
-      ? await supabase
-          .from("kol_prospects")
-          .update(payload)
-          .eq("id", editingId)
+      ? await supabase.from("kol_prospects").update(payload).eq("id", editingId)
       : await supabase.from("kol_prospects").insert(payload);
     setSaving(false);
     if (error) {
@@ -2119,61 +1890,41 @@ function ProspectsTab({
 
         <Popover>
           <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-10 font-normal"
-              type="button"
-            >
-              {filterTags.length === 0
-                ? "標籤篩選"
-                : `標籤：已選 ${filterTags.length}`}
+            <Button variant="outline" size="sm" className="h-10 font-normal" type="button">
+              {filterTags.length === 0 ? "標籤篩選" : `標籤：已選 ${filterTags.length}`}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-56 p-2" align="start">
             <div className="max-h-60 overflow-y-auto space-y-1">
               {(() => {
-                const usedTags = Array.from(
-                  new Set(rows.flatMap((r) => r.tags ?? [])),
-                ).sort((a, b) => a.localeCompare(b));
+                const usedTags = Array.from(new Set(rows.flatMap((r) => r.tags ?? []))).sort((a, b) =>
+                  a.localeCompare(b),
+                );
                 if (usedTags.length === 0) {
-                  return (
-                    <div className="text-xs text-muted-foreground py-2 text-center">
-                      尚無標籤
-                    </div>
-                  );
+                  return <div className="text-xs text-muted-foreground py-2 text-center">尚無標籤</div>;
                 }
                 return usedTags.map((t) => {
-                const checked = filterTags.includes(t);
-                return (
-                  <label
-                    key={t}
-                    className="flex items-center gap-2 text-sm px-2 py-1 rounded hover:bg-muted cursor-pointer"
-                  >
-                    <Checkbox
-                      checked={checked}
-                      onCheckedChange={(v) =>
-                        setFilterTags(
-                          v
-                            ? [...filterTags, t]
-                            : filterTags.filter((x) => x !== t),
-                        )
-                      }
-                    />
-                    {t}
-                  </label>
-                );
-              });
+                  const checked = filterTags.includes(t);
+                  return (
+                    <label
+                      key={t}
+                      className="flex items-center gap-2 text-sm px-2 py-1 rounded hover:bg-muted cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) =>
+                          setFilterTags(v ? [...filterTags, t] : filterTags.filter((x) => x !== t))
+                        }
+                      />
+                      {t}
+                    </label>
+                  );
+                });
               })()}
             </div>
             {filterTags.length > 0 && (
               <div className="border-t mt-2 pt-2">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="w-full h-7 text-xs"
-                  onClick={() => setFilterTags([])}
-                >
+                <Button size="sm" variant="ghost" className="w-full h-7 text-xs" onClick={() => setFilterTags([])}>
                   清除標籤篩選
                 </Button>
               </div>
@@ -2189,9 +1940,7 @@ function ProspectsTab({
 
       {loading ? null : filtered.length === 0 ? (
         <Card>
-          <CardContent className="p-8 text-center text-sm text-muted-foreground">
-            尚無資料
-          </CardContent>
+          <CardContent className="p-8 text-center text-sm text-muted-foreground">尚無資料</CardContent>
         </Card>
       ) : (
         <Card>
@@ -2211,9 +1960,7 @@ function ProspectsTab({
               {paged.map((r) => {
                 const tags = r.tags ?? [];
                 const displayName = r.name ?? "-";
-                const nameNode = (
-                  <span className="block max-w-[180px] truncate">{displayName}</span>
-                );
+                const nameNode = <span className="block max-w-[180px] truncate">{displayName}</span>;
                 return (
                   <TableRow key={r.id}>
                     <TableCell className="max-w-[180px]">
@@ -2265,9 +2012,7 @@ function ProspectsTab({
                     <TableCell>{r._scout_name}</TableCell>
                     <TableCell>{r.contacted_at ?? "-"}</TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {r.fee_quote != null
-                        ? `$${r.fee_quote.toLocaleString()}`
-                        : "-"}
+                      {r.fee_quote != null ? `$${r.fee_quote.toLocaleString()}` : "-"}
                     </TableCell>
                     <TableCell>
                       {r.screenshot_url ? (
@@ -2285,20 +2030,11 @@ function ProspectsTab({
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => openEdit(r)}
-                        aria-label="編輯"
-                      >
+                      <Button size="icon" variant="ghost" onClick={() => openEdit(r)} aria-label="編輯">
                         <Pencil className="h-4 w-4" />
                       </Button>
                       {r.status !== "converted" && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleConvert(r)}
-                        >
+                        <Button size="sm" variant="ghost" onClick={() => handleConvert(r)}>
                           轉為正式邀約
                         </Button>
                       )}
@@ -2317,12 +2053,7 @@ function ProspectsTab({
             共 {totalCount} 筆，第 {page} / {totalPages} 頁
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
+            <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
               上一頁
             </Button>
             <Button
@@ -2337,35 +2068,22 @@ function ProspectsTab({
         </div>
       )}
 
-
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
           <SheetHeader>
-            <SheetTitle>
-              {editingId ? "編輯潛在名單" : "新增潛在名單"}
-            </SheetTitle>
+            <SheetTitle>{editingId ? "編輯潛在名單" : "新增潛在名單"}</SheetTitle>
           </SheetHeader>
           <div className="mt-4 space-y-4">
             <Field label="名稱 *">
-              <Input
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-              />
+              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             </Field>
             <Field label="網紅帳號連結">
-              <Input
-                value={form.ig_url}
-                onChange={(e) =>
-                  setForm({ ...form, ig_url: e.target.value })
-                }
-              />
+              <Input value={form.ig_url} onChange={(e) => setForm({ ...form, ig_url: e.target.value })} />
             </Field>
             <Field label="負責星探">
               <Select
                 value={form.scout_id || "none"}
-                onValueChange={(v) =>
-                  setForm({ ...form, scout_id: v === "none" ? "" : v })
-                }
+                onValueChange={(v) => setForm({ ...form, scout_id: v === "none" ? "" : v })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="選擇星探" />
@@ -2385,71 +2103,54 @@ function ProspectsTab({
                 <Input
                   type="date"
                   value={form.contacted_at}
-                  onChange={(e) =>
-                    setForm({ ...form, contacted_at: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, contacted_at: e.target.value })}
                 />
               </Field>
               <Field label="報價">
                 <Input
                   type="number"
                   value={form.fee_quote}
-                  onChange={(e) =>
-                    setForm({ ...form, fee_quote: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, fee_quote: e.target.value })}
                 />
               </Field>
             </div>
             <Field label="KOL 標籤">
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start font-normal h-10"
-                    type="button"
-                  >
-                    {form.tags.length === 0
-                      ? "選擇標籤"
-                      : `已選 ${form.tags.length} 個`}
+                  <Button variant="outline" className="w-full justify-start font-normal h-10" type="button">
+                    {form.tags.length === 0 ? "選擇標籤" : `已選 ${form.tags.length} 個`}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-64 p-2" align="start">
                   <div className="max-h-60 overflow-y-auto space-y-1">
                     {(() => {
-                      const usedTags = Array.from(
-                        new Set([
-                          ...rows.flatMap((r) => r.tags ?? []),
-                          ...form.tags,
-                        ]),
-                      ).sort((a, b) => a.localeCompare(b));
+                      const usedTags = Array.from(new Set([...rows.flatMap((r) => r.tags ?? []), ...form.tags])).sort(
+                        (a, b) => a.localeCompare(b),
+                      );
                       if (usedTags.length === 0) {
                         return (
-                          <div className="text-xs text-muted-foreground py-2 text-center">
-                            尚無標籤，請於下方新增
-                          </div>
+                          <div className="text-xs text-muted-foreground py-2 text-center">尚無標籤，請於下方新增</div>
                         );
                       }
                       return usedTags.map((t) => {
-                      const checked = form.tags.includes(t);
-                      return (
-                        <label
-                          key={t}
-                          className="flex items-center gap-2 text-sm px-2 py-1 rounded hover:bg-muted cursor-pointer"
-                        >
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={(v) => {
-                              setForm({
-                                ...form,
-                                tags: v
-                                  ? [...form.tags, t]
-                                  : form.tags.filter((x) => x !== t),
-                              });
-                            }}
-                          />
-                          {t}
-                        </label>
-                      );
+                        const checked = form.tags.includes(t);
+                        return (
+                          <label
+                            key={t}
+                            className="flex items-center gap-2 text-sm px-2 py-1 rounded hover:bg-muted cursor-pointer"
+                          >
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={(v) => {
+                                setForm({
+                                  ...form,
+                                  tags: v ? [...form.tags, t] : form.tags.filter((x) => x !== t),
+                                });
+                              }}
+                            />
+                            {t}
+                          </label>
+                        );
                       });
                     })()}
                   </div>
@@ -2467,9 +2168,7 @@ function ProspectsTab({
                             handleAddNewTag(t).then(() => {
                               setForm((f) => ({
                                 ...f,
-                                tags: f.tags.includes(t)
-                                  ? f.tags
-                                  : [...f.tags, t],
+                                tags: f.tags.includes(t) ? f.tags : [...f.tags, t],
                               }));
                               setNewTagInput("");
                             });
@@ -2487,9 +2186,7 @@ function ProspectsTab({
                         await handleAddNewTag(t);
                         setForm((f) => ({
                           ...f,
-                          tags: f.tags.includes(t)
-                            ? f.tags
-                            : [...f.tags, t],
+                          tags: f.tags.includes(t) ? f.tags : [...f.tags, t],
                         }));
                         setNewTagInput("");
                       }}
@@ -2502,11 +2199,7 @@ function ProspectsTab({
               {form.tags.length > 0 && (
                 <div className="mt-1 flex flex-wrap gap-1">
                   {form.tags.map((t) => (
-                    <Badge
-                      key={t}
-                      variant="outline"
-                      className="text-xs gap-1"
-                    >
+                    <Badge key={t} variant="outline" className="text-xs gap-1">
                       {t}
                       <button
                         type="button"
@@ -2526,27 +2219,17 @@ function ProspectsTab({
               )}
             </Field>
             <Field label="合作期待">
-              <Textarea
-                rows={4}
-                value={form.notes}
-                onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              />
+              <Textarea rows={4} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
             </Field>
             <Field label="截圖連結">
               <Input
                 value={form.screenshot_url}
-                onChange={(e) =>
-                  setForm({ ...form, screenshot_url: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, screenshot_url: e.target.value })}
               />
             </Field>
           </div>
           <SheetFooter className="mt-6">
-            <Button
-              variant="outline"
-              onClick={() => setSheetOpen(false)}
-              disabled={saving}
-            >
+            <Button variant="outline" onClick={() => setSheetOpen(false)} disabled={saving}>
               取消
             </Button>
             <Button onClick={handleSave} disabled={saving}>
@@ -2597,13 +2280,7 @@ function achievementIcon(actual: number, target: number): string {
   return "❌";
 }
 
-function TargetsTab({
-  isManager,
-  currentUserId,
-}: {
-  isManager: boolean;
-  currentUserId: string;
-}) {
+function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentUserId: string }) {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -2616,9 +2293,7 @@ function TargetsTab({
   const [loading, setLoading] = useState(true);
 
   const [editTarget, setEditTarget] = useState<
-    | { kind: "team"; row: TeamTargetRow }
-    | { kind: "personal"; row: PersonalTargetRow }
-    | null
+    { kind: "team"; row: TeamTargetRow } | { kind: "personal"; row: PersonalTargetRow } | null
   >(null);
   const [editValue, setEditValue] = useState("");
   const [savingTarget, setSavingTarget] = useState(false);
@@ -2631,10 +2306,7 @@ function TargetsTab({
   useEffect(() => {
     (async () => {
       const [accRes, scoutRes] = await Promise.all([
-        supabase
-          .from("accommodation_info")
-          .select("id, name, booking_type, short_url_alias")
-          .order("name"),
+        supabase.from("accommodation_info").select("id, name, booking_type, short_url_alias").order("name"),
         supabase.rpc("get_team_role_members", { p_role: "scout" }),
       ]);
       if (accRes.data) setAccommodations(accRes.data as Accommodation[]);
@@ -2664,16 +2336,8 @@ function TargetsTab({
     const scoutMap = new Map(scouts.map((s) => [s.user_id, s.display_name]));
 
     const [teamRes, personalRes, kolRes] = await Promise.all([
-      supabase
-        .from("scout_team_targets")
-        .select("*")
-        .eq("year", year)
-        .eq("month", month),
-      supabase
-        .from("scout_monthly_targets")
-        .select("*")
-        .eq("year", year)
-        .eq("month", month),
+      supabase.from("scout_team_targets").select("*").eq("year", year).eq("month", month),
+      supabase.from("scout_monthly_targets").select("*").eq("year", year).eq("month", month),
       supabase
         .from("kol_profiles")
         .select("accommodation_id, scout_id")
@@ -2685,10 +2349,7 @@ function TargetsTab({
     const personalActual = new Map<string, number>();
     (kolRes.data ?? []).forEach((k: any) => {
       if (k.accommodation_id) {
-        teamActual.set(
-          k.accommodation_id,
-          (teamActual.get(k.accommodation_id) ?? 0) + 1,
-        );
+        teamActual.set(k.accommodation_id, (teamActual.get(k.accommodation_id) ?? 0) + 1);
         if (k.scout_id) {
           const key = `${k.scout_id}|${k.accommodation_id}`;
           personalActual.set(key, (personalActual.get(key) ?? 0) + 1);
@@ -2713,8 +2374,7 @@ function TargetsTab({
         accommodation_id: t.accommodation_id,
         accommodation_name: accMap.get(t.accommodation_id) ?? "-",
         target_count: t.target_count,
-        actual_count:
-          personalActual.get(`${t.scout_id}|${t.accommodation_id}`) ?? 0,
+        actual_count: personalActual.get(`${t.scout_id}|${t.accommodation_id}`) ?? 0,
       })),
     );
     setLoading(false);
@@ -2732,14 +2392,8 @@ function TargetsTab({
       return;
     }
     setSavingTarget(true);
-    const table =
-      editTarget.kind === "team"
-        ? "scout_team_targets"
-        : "scout_monthly_targets";
-    const { error } = await supabase
-      .from(table)
-      .update({ target_count: n })
-      .eq("id", editTarget.row.id!);
+    const table = editTarget.kind === "team" ? "scout_team_targets" : "scout_monthly_targets";
+    const { error } = await supabase.from(table).update({ target_count: n }).eq("id", editTarget.row.id!);
     setSavingTarget(false);
     if (error) {
       toast.error(error.message);
@@ -2781,8 +2435,7 @@ function TargetsTab({
     };
     if (addKind === "personal") payload.scout_id = addScout;
 
-    const table =
-      addKind === "team" ? "scout_team_targets" : "scout_monthly_targets";
+    const table = addKind === "team" ? "scout_team_targets" : "scout_monthly_targets";
     const { error } = await (supabase.from(table) as any).insert(payload);
     if (error) {
       toast.error(error.message);
@@ -2793,20 +2446,13 @@ function TargetsTab({
     fetchAll();
   };
 
-  const years = [
-    now.getFullYear() - 1,
-    now.getFullYear(),
-    now.getFullYear() + 1,
-  ];
+  const years = [now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1];
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
         <Label>年月:</Label>
-        <Select
-          value={String(year)}
-          onValueChange={(v) => setYear(parseInt(v, 10))}
-        >
+        <Select value={String(year)} onValueChange={(v) => setYear(parseInt(v, 10))}>
           <SelectTrigger className="w-28">
             <SelectValue />
           </SelectTrigger>
@@ -2818,10 +2464,7 @@ function TargetsTab({
             ))}
           </SelectContent>
         </Select>
-        <Select
-          value={String(month)}
-          onValueChange={(v) => setMonth(parseInt(v, 10))}
-        >
+        <Select value={String(month)} onValueChange={(v) => setMonth(parseInt(v, 10))}>
           <SelectTrigger className="w-24">
             <SelectValue />
           </SelectTrigger>
@@ -2854,47 +2497,27 @@ function TargetsTab({
                 <TableHead className="text-right">實際邀約數</TableHead>
                 <TableHead className="text-right">達標率</TableHead>
                 <TableHead className="text-right">狀態</TableHead>
-                {isManager && (
-                  <TableHead className="text-right">操作</TableHead>
-                )}
+                {isManager && <TableHead className="text-right">操作</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? null : teamRows.length === 0 ? (
                 <TableRow>
-                  <TableCell
-                    colSpan={isManager ? 6 : 5}
-                    className="text-center text-sm text-muted-foreground"
-                  >
+                  <TableCell colSpan={isManager ? 6 : 5} className="text-center text-sm text-muted-foreground">
                     本月尚未設定團體目標
                   </TableCell>
                 </TableRow>
               ) : (
                 teamRows.map((r) => {
-                  const rate =
-                    r.target_count > 0
-                      ? Math.round((r.actual_count / r.target_count) * 100)
-                      : 0;
+                  const rate = r.target_count > 0 ? Math.round((r.actual_count / r.target_count) * 100) : 0;
                   return (
                     <TableRow key={r.id}>
                       <TableCell>{r.accommodation_name}</TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {r.target_count}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {r.actual_count}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {rate}%
-                      </TableCell>
+                      <TableCell className="text-right tabular-nums">{r.target_count}</TableCell>
+                      <TableCell className="text-right tabular-nums">{r.actual_count}</TableCell>
+                      <TableCell className="text-right tabular-nums">{rate}%</TableCell>
                       <TableCell className="text-right">
-                        <Badge
-                          variant="outline"
-                          className={achievementColor(
-                            r.actual_count,
-                            r.target_count,
-                          )}
-                        >
+                        <Badge variant="outline" className={achievementColor(r.actual_count, r.target_count)}>
                           {achievementIcon(r.actual_count, r.target_count)}
                         </Badge>
                       </TableCell>
@@ -2925,11 +2548,7 @@ function TargetsTab({
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">個人目標</h2>
           {isManager && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => openAdd("personal")}
-            >
+            <Button size="sm" variant="outline" onClick={() => openAdd("personal")}>
               <Plus className="mr-1 h-4 w-4" />
               新增目標
             </Button>
@@ -2944,18 +2563,13 @@ function TargetsTab({
                 <TableHead className="text-right">目標數</TableHead>
                 <TableHead className="text-right">實際邀約數</TableHead>
                 <TableHead className="text-right">達標狀態</TableHead>
-                {isManager && (
-                  <TableHead className="text-right">操作</TableHead>
-                )}
+                {isManager && <TableHead className="text-right">操作</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? null : personalRows.length === 0 ? (
                 <TableRow>
-                  <TableCell
-                    colSpan={isManager ? 6 : 5}
-                    className="text-center text-sm text-muted-foreground"
-                  >
+                  <TableCell colSpan={isManager ? 6 : 5} className="text-center text-sm text-muted-foreground">
                     本月尚未設定個人目標
                   </TableCell>
                 </TableRow>
@@ -2964,24 +2578,12 @@ function TargetsTab({
                   <TableRow key={r.id}>
                     <TableCell>{r.scout_name}</TableCell>
                     <TableCell>{r.accommodation_name}</TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {r.target_count}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {r.actual_count}
-                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{r.target_count}</TableCell>
+                    <TableCell className="text-right tabular-nums">{r.actual_count}</TableCell>
                     <TableCell className="text-right">
-                      <Badge
-                        variant="outline"
-                        className={achievementColor(
-                          r.actual_count,
-                          r.target_count,
-                        )}
-                      >
+                      <Badge variant="outline" className={achievementColor(r.actual_count, r.target_count)}>
                         {achievementIcon(r.actual_count, r.target_count)}{" "}
-                        {r.target_count > 0
-                          ? `${Math.round((r.actual_count / r.target_count) * 100)}%`
-                          : ""}
+                        {r.target_count > 0 ? `${Math.round((r.actual_count / r.target_count) * 100)}%` : ""}
                       </Badge>
                     </TableCell>
                     {isManager && (
@@ -3006,10 +2608,7 @@ function TargetsTab({
         </Card>
       </div>
 
-      <Dialog
-        open={!!editTarget}
-        onOpenChange={(o) => !o && setEditTarget(null)}
-      >
+      <Dialog open={!!editTarget} onOpenChange={(o) => !o && setEditTarget(null)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>編輯目標數</DialogTitle>
@@ -3021,20 +2620,11 @@ function TargetsTab({
                   ? `館別:${editTarget.row.accommodation_name}`
                   : `${(editTarget.row as PersonalTargetRow).scout_name} × ${editTarget.row.accommodation_name}`}
               </p>
-              <Input
-                type="number"
-                min={0}
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-              />
+              <Input type="number" min={0} value={editValue} onChange={(e) => setEditValue(e.target.value)} />
             </div>
           )}
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setEditTarget(null)}
-              disabled={savingTarget}
-            >
+            <Button variant="outline" onClick={() => setEditTarget(null)} disabled={savingTarget}>
               取消
             </Button>
             <Button onClick={handleSaveEdit} disabled={savingTarget}>
@@ -3047,9 +2637,7 @@ function TargetsTab({
       <Dialog open={!!addKind} onOpenChange={(o) => !o && setAddKind(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              新增{addKind === "team" ? "團體" : "個人"}目標
-            </DialogTitle>
+            <DialogTitle>新增{addKind === "team" ? "團體" : "個人"}目標</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <Field label="館別">
@@ -3083,12 +2671,7 @@ function TargetsTab({
               </Field>
             )}
             <Field label={`目標邀約數(${year} 年 ${month} 月)`}>
-              <Input
-                type="number"
-                min={0}
-                value={addCount}
-                onChange={(e) => setAddCount(e.target.value)}
-              />
+              <Input type="number" min={0} value={addCount} onChange={(e) => setAddCount(e.target.value)} />
             </Field>
           </div>
           <DialogFooter>
@@ -3118,11 +2701,8 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newEffectiveFrom, setNewEffectiveFrom] = useState(todayStr());
-  const [draft, setDraft] = useState<Record<string, { fan_range_desc: string; bonus_amount: string }>>(
-    () =>
-      Object.fromEntries(
-        RARITY_ORDER.map((r) => [r, { fan_range_desc: "", bonus_amount: "0" }]),
-      ),
+  const [draft, setDraft] = useState<Record<string, { fan_range_desc: string; bonus_amount: string }>>(() =>
+    Object.fromEntries(RARITY_ORDER.map((r) => [r, { fan_range_desc: "", bonus_amount: "0" }])),
   );
   const [saving, setSaving] = useState(false);
 
@@ -3138,16 +2718,13 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
       return;
     }
     const groups = new Map<string, RaritySetting[]>();
-    for (const r of ((data ?? []) as unknown as RaritySetting[])) {
+    for (const r of (data ?? []) as unknown as RaritySetting[]) {
       if (!groups.has(r.effective_from)) groups.set(r.effective_from, []);
       groups.get(r.effective_from)!.push(r);
     }
     const list: RarityVersion[] = Array.from(groups.entries()).map(([ef, items]) => ({
       effective_from: ef,
-      items: items.sort(
-        (a, b) =>
-          RARITY_ORDER.indexOf(a.rarity as any) - RARITY_ORDER.indexOf(b.rarity as any),
-      ),
+      items: items.sort((a, b) => RARITY_ORDER.indexOf(a.rarity as any) - RARITY_ORDER.indexOf(b.rarity as any)),
     }));
     setVersions(list);
     setLoading(false);
@@ -3209,9 +2786,7 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
             <div>
               <h3 className="font-semibold">目前生效版本</h3>
               <p className="text-xs text-muted-foreground">
-                {current
-                  ? `生效日期：${current.effective_from}`
-                  : "尚無任何版本"}
+                {current ? `生效日期：${current.effective_from}` : "尚無任何版本"}
               </p>
             </div>
             <Button onClick={openCreate}>
@@ -3234,16 +2809,11 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
                   return (
                     <TableRow key={r}>
                       <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={RARITY_CLASS[r as Rarity] ?? ""}
-                        >
+                        <Badge variant="outline" className={RARITY_CLASS[r as Rarity] ?? ""}>
                           {r}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm">
-                        {hit?.fan_range_desc ?? "-"}
-                      </TableCell>
+                      <TableCell className="text-sm">{hit?.fan_range_desc ?? "-"}</TableCell>
                       <TableCell className="text-right tabular-nums">
                         NT$ {(hit?.bonus_amount ?? 0).toLocaleString()}
                       </TableCell>
@@ -3278,10 +2848,7 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
                     {RARITY_ORDER.map((r) => {
                       const hit = v.items.find((x) => x.rarity === r);
                       return (
-                        <TableCell
-                          key={r}
-                          className="text-right tabular-nums text-xs"
-                        >
+                        <TableCell key={r} className="text-right tabular-nums text-xs">
                           {hit ? `$${hit.bonus_amount.toLocaleString()}` : "-"}
                         </TableCell>
                       );
@@ -3301,11 +2868,7 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
           </DialogHeader>
           <div className="space-y-4">
             <Field label="生效日期 *">
-              <Input
-                type="date"
-                value={newEffectiveFrom}
-                onChange={(e) => setNewEffectiveFrom(e.target.value)}
-              />
+              <Input type="date" value={newEffectiveFrom} onChange={(e) => setNewEffectiveFrom(e.target.value)} />
             </Field>
             <Table>
               <TableHeader>
@@ -3319,10 +2882,7 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
                 {RARITY_ORDER.map((r) => (
                   <TableRow key={r}>
                     <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={RARITY_CLASS[r as Rarity] ?? ""}
-                      >
+                      <Badge variant="outline" className={RARITY_CLASS[r as Rarity] ?? ""}>
                         {r}
                       </Badge>
                     </TableCell>
@@ -3357,11 +2917,7 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
             </Table>
           </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDialogOpen(false)}
-              disabled={saving}
-            >
+            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>
               取消
             </Button>
             <Button onClick={handleSave} disabled={saving}>
@@ -3416,19 +2972,26 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const handleAdd = async () => {
     const n = newName.trim();
-    if (!n) { toast.error("請輸入場域名稱"); return; }
+    if (!n) {
+      toast.error("請輸入場域名稱");
+      return;
+    }
     setSaving(true);
-    const { error } = await supabase
-      .from("kol_venues" as any)
-      .insert({ name: n, type: newType, is_active: true });
+    const { error } = await supabase.from("kol_venues" as any).insert({ name: n, type: newType, is_active: true });
     setSaving(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("已新增場域");
-    setNewName(""); setNewType("民宿");
+    setNewName("");
+    setNewType("民宿");
     load();
   };
 
@@ -3441,12 +3004,18 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
   const saveEdit = async () => {
     if (!editingId) return;
     const n = editName.trim();
-    if (!n) { toast.error("請輸入場域名稱"); return; }
+    if (!n) {
+      toast.error("請輸入場域名稱");
+      return;
+    }
     const { error } = await supabase
       .from("kol_venues" as any)
       .update({ name: n, type: editType })
       .eq("id", editingId);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("已更新");
     setEditingId(null);
     load();
@@ -3457,7 +3026,10 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
       .from("kol_venues" as any)
       .update({ is_active: !r.is_active })
       .eq("id", r.id);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     load();
   };
 
@@ -3485,12 +3057,15 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
               </SelectTrigger>
               <SelectContent>
                 {VENUE_TYPES.map((t) => (
-                  <SelectItem key={t} value={t}>{t}</SelectItem>
+                  <SelectItem key={t} value={t}>
+                    {t}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <Button onClick={handleAdd} disabled={saving}>
-              <Plus className="mr-1 h-4 w-4" />新增
+              <Plus className="mr-1 h-4 w-4" />
+              新增
             </Button>
           </div>
         )}
@@ -3513,41 +3088,60 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                   <TableCell>
                     {editingId === r.id ? (
                       <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-8" />
-                    ) : r.name}
+                    ) : (
+                      r.name
+                    )}
                   </TableCell>
                   <TableCell>
                     {editingId === r.id ? (
                       <Select value={editType} onValueChange={setEditType}>
-                        <SelectTrigger className="h-8 w-28"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="h-8 w-28">
+                          <SelectValue />
+                        </SelectTrigger>
                         <SelectContent>
-                          {VENUE_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                          {VENUE_TYPES.map((t) => (
+                            <SelectItem key={t} value={t}>
+                              {t}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
-                    ) : (r.type || "-")}
+                    ) : (
+                      r.type || "-"
+                    )}
                   </TableCell>
                   <TableCell>
                     {r.is_active ? (
-                      <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">啟用</Badge>
+                      <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
+                        啟用
+                      </Badge>
                     ) : (
-                      <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-200">停用</Badge>
+                      <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-200">
+                        停用
+                      </Badge>
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    {isManager && (editingId === r.id ? (
-                      <>
-                        <Button size="sm" variant="ghost" onClick={saveEdit}>儲存</Button>
-                        <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>取消</Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => startEdit(r)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => toggleActive(r)}>
-                          {r.is_active ? "停用" : "啟用"}
-                        </Button>
-                      </>
-                    ))}
+                    {isManager &&
+                      (editingId === r.id ? (
+                        <>
+                          <Button size="sm" variant="ghost" onClick={saveEdit}>
+                            儲存
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
+                            取消
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => startEdit(r)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => toggleActive(r)}>
+                            {r.is_active ? "停用" : "啟用"}
+                          </Button>
+                        </>
+                      ))}
                   </TableCell>
                 </TableRow>
               ))}
