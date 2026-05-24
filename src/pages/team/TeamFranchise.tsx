@@ -2231,17 +2231,6 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
             </Button>
           )}
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Select value={progressFilter} onValueChange={setProgressFilter}>
-            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">全部合約進度</SelectItem>
-              {CONTRACT_PROGRESS_OPTIONS.map((p) => (
-                <SelectItem key={p} value={p}>{p}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
