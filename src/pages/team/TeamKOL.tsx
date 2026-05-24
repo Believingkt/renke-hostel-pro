@@ -1697,6 +1697,26 @@ function InvitationsTab({
                 className={!isManager ? "bg-muted" : ""}
               />
             </Field>
+
+            <Field label="累積資格">
+              {isManager ? (
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={form.kpi_qualified}
+                    onCheckedChange={(v) =>
+                      setForm({ ...form, kpi_qualified: !!v })
+                    }
+                  />
+                  符合資格
+                </label>
+              ) : (
+                <Input
+                  value={form.kpi_qualified ? "符合資格" : "未確認"}
+                  readOnly
+                  className="bg-muted"
+                />
+              )}
+            </Field>
           </div>
 
           <SheetFooter className="mt-6 sm:justify-between">
