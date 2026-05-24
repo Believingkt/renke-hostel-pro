@@ -2012,6 +2012,23 @@ function ProspectsTab({
     });
   }, [rows, search, filterScout, filterTags]);
 
+  const PAGE_SIZE = 50;
+  const [page, setPage] = useState(1);
+  const totalCount = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  useEffect(() => {
+    setPage(1);
+  }, [search, filterScout, filterTags]);
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+  const paged = useMemo(
+    () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [filtered, page],
+  );
+
+  }, [rows, search, filterScout, filterTags]);
+
   const openCreate = () => {
     setEditingId(null);
     setForm(EMPTY_PROSPECT_FORM);
