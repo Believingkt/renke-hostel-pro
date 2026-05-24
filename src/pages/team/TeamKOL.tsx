@@ -881,24 +881,6 @@ function InvitationsTab({
         )}
 
         <div className="ml-auto flex items-center gap-2">
-          <div className="flex rounded-md border">
-            <Button
-              size="sm"
-              variant={viewMode === "card" ? "secondary" : "ghost"}
-              onClick={() => setViewMode("card")}
-              className="rounded-r-none"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant={viewMode === "table" ? "secondary" : "ghost"}
-              onClick={() => setViewMode("table")}
-              className="rounded-l-none"
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
           <Button onClick={openCreate}>
             <Plus className="mr-1 h-4 w-4" />
             新增邀約
