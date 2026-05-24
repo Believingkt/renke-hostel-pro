@@ -671,9 +671,16 @@ function OrdersTab({
             </Select>
           )}
         </div>
-        <Button onClick={() => setSheetOpen(true)}>
-          <Plus className="h-4 w-4 mr-1" /> 新增訂單
-        </Button>
+        <Button
+          onClick={() => {
+            setForm((prev) => ({
+              ...prev,
+              member_number: nextMemberNumber(orders.map((o) => o.member_number), "S"),
+            }));
+            setMemberNumberError("");
+            setSheetOpen(true);
+          }}
+        >
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
