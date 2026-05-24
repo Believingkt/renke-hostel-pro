@@ -991,7 +991,7 @@ function InvitationsTab({
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                 />
               </Field>
-              <Field label="IG 帳號 *">
+              <Field label="網紅帳號 *">
                 <Input
                   value={form.ig_handle}
                   onChange={(e) =>
@@ -1007,38 +1007,147 @@ function InvitationsTab({
               </div>
             )}
 
-            <Field label="IG 網址">
-              <Input
-                value={form.ig_url}
-                onChange={(e) => setForm({ ...form, ig_url: e.target.value })}
-              />
-            </Field>
-
             <div className="grid grid-cols-2 gap-3">
               <Field label="稀有度">
                 <Select
-                  value={form.rarity || "none"}
-                  onValueChange={(v) =>
-                    setForm({
-                      ...form,
-                      rarity: v === "none" ? "" : (v as Rarity),
-                    })
-                  }
+                  value={form.rarity || "ck"}
+                  onValueChange={(v) => setForm({ ...form, rarity: v })}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">未設定</SelectItem>
-                    {RARITY_OPTIONS.map((r) => (
-                      <SelectItem key={r} value={r}>
-                        {r}
-                      </SelectItem>
-                    ))}
+                    {rarities.length === 0 ? (
+                      <SelectItem value="ck">ck</SelectItem>
+                    ) : (
+                      rarities.map((r) => (
+                        <SelectItem key={r.rarity} value={r.rarity}>
+                          {r.rarity}：{r.fan_range_desc ?? "-"}｜獎金 NT${r.bonus_amount.toLocaleString()}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="邀約人">
+              <Field label="KOL 標籤">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start font-normal h-10"
+                      type="button"
+                    >
+                      {form.kol_tags.length === 0
+                        ? "選擇標籤"
+                        : `已選 ${form.kol_tags.length} 個`}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-2" align="start">
+                    <div className="max-h-60 overflow-y-auto space-y-1">
+                      {allTags.length === 0 && (
+                        <div className="text-xs text-muted-foreground py-2 text-center">
+                          尚無標籤，請於下方新增
+                        </div>
+                      )}
+                      {allTags.map((t) => {
+                        const checked = form.kol_tags.includes(t);
+                        return (
+                          <label
+                            key={t}
+                            className="flex items-center gap-2 text-sm px-2 py-1 rounded hover:bg-muted cursor-pointer"
+                          >
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={(v) => {
+                                setForm({
+                                  ...form,
+                                  kol_tags: v
+                                    ? [...form.kol_tags, t]
+                                    : form.kol_tags.filter((x) => x !== t),
+                                });
+                              }}
+                            />
+                            {t}
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <div className="border-t mt-2 pt-2 flex gap-1">
+                      <Input
+                        value={newTagInput}
+                        onChange={(e) => setNewTagInput(e.target.value)}
+                        placeholder="新增標籤..."
+                        className="h-8 text-xs"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            const t = newTagInput.trim();
+                            if (t) {
+                              handleAddNewTag(t).then(() => {
+                                setForm((f) => ({
+                                  ...f,
+                                  kol_tags: f.kol_tags.includes(t)
+                                    ? f.kol_tags
+                                    : [...f.kol_tags, t],
+                                }));
+                                setNewTagInput("");
+                              });
+                            }
+                          }
+                        }}
+                      />
+                      <Button
+                        size="sm"
+                        type="button"
+                        variant="secondary"
+                        onClick={async () => {
+                          const t = newTagInput.trim();
+                          if (!t) return;
+                          await handleAddNewTag(t);
+                          setForm((f) => ({
+                            ...f,
+                            kol_tags: f.kol_tags.includes(t)
+                              ? f.kol_tags
+                              : [...f.kol_tags, t],
+                          }));
+                          setNewTagInput("");
+                        }}
+                      >
+                        新增
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                {form.kol_tags.length > 0 && (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {form.kol_tags.map((t) => (
+                      <Badge
+                        key={t}
+                        variant="outline"
+                        className="text-xs gap-1"
+                      >
+                        {t}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setForm({
+                              ...form,
+                              kol_tags: form.kol_tags.filter((x) => x !== t),
+                            })
+                          }
+                          className="hover:text-destructive"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </Field>
+            </div>
+
+            <Field label="邀約人">
+              {isManager ? (
                 <Select
                   value={form.scout_id || "none"}
                   onValueChange={(v) =>
@@ -1057,19 +1166,19 @@ function InvitationsTab({
                     ))}
                   </SelectContent>
                 </Select>
-              </Field>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3">
-              <Field label="邀約日期">
+              ) : (
                 <Input
-                  type="date"
-                  value={form.invited_at}
-                  onChange={(e) =>
-                    setForm({ ...form, invited_at: e.target.value })
+                  value={
+                    scouts.find((s) => s.user_id === form.scout_id)
+                      ?.display_name ?? "（你本人）"
                   }
+                  readOnly
+                  className="bg-muted"
                 />
-              </Field>
+              )}
+            </Field>
+
+            <div className="grid grid-cols-2 gap-3">
               <Field label="入住日期">
                 <Input
                   type="date"
@@ -1092,39 +1201,37 @@ function InvitationsTab({
 
             <div className="grid grid-cols-2 gap-3">
               <Field label="星期幾（自動）">
-                <Input value={form.day_of_week} readOnly />
+                <Input value={form.day_of_week} readOnly className="bg-muted" />
               </Field>
-              <Field label="庫存狀態">
+              <Field label="庫存狀態（自動）">
                 <Input
                   value={form.inventory_status}
-                  onChange={(e) =>
-                    setForm({ ...form, inventory_status: e.target.value })
-                  }
+                  readOnly
+                  className="bg-muted"
                 />
               </Field>
             </div>
 
-            <Field label="訂房狀態">
-              <Select
-                value={form.booking_status}
-                onValueChange={(v) =>
-                  setForm({ ...form, booking_status: v as BookingStatus })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(Object.keys(BOOKING_STATUS_LABEL) as BookingStatus[]).map(
-                    (k) => (
-                      <SelectItem key={k} value={k}>
-                        {BOOKING_STATUS_LABEL[k]}
-                      </SelectItem>
-                    ),
-                  )}
-                </SelectContent>
-              </Select>
-            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="訂單編號">
+                <Input
+                  value={form.order_number}
+                  onChange={(e) =>
+                    setForm({ ...form, order_number: e.target.value })
+                  }
+                />
+              </Field>
+              <Field label="訂房狀態（自動）">
+                <Input
+                  value={
+                    BOOKING_STATUS_LABEL[form.booking_status] ??
+                    form.booking_status
+                  }
+                  readOnly
+                  className="bg-muted"
+                />
+              </Field>
+            </div>
 
             {showCid && (
               <Field label="折扣碼 / CID">
@@ -1212,33 +1319,22 @@ function InvitationsTab({
               </Field>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="訂單編號">
-                <Input
-                  value={form.order_number}
-                  onChange={(e) =>
-                    setForm({ ...form, order_number: e.target.value })
-                  }
-                />
-              </Field>
-              <Field label="佔用庫存間數">
-                <Input
-                  type="number"
-                  value={form.inventory_count}
-                  onChange={(e) =>
-                    setForm({ ...form, inventory_count: e.target.value })
-                  }
-                />
-              </Field>
-            </div>
-
-            <Field label="KOL 標籤（以逗號分隔）">
+            <Field label="佔用庫存間數">
               <Input
-                value={form.kol_tags_input}
+                type="number"
+                value={form.inventory_count}
                 onChange={(e) =>
-                  setForm({ ...form, kol_tags_input: e.target.value })
+                  setForm({ ...form, inventory_count: e.target.value })
                 }
-                placeholder="例如：美食, 親子, 寵物"
+              />
+            </Field>
+
+            <Field label="填寫日期">
+              <Input
+                type="date"
+                value={form.invited_at}
+                readOnly
+                className="bg-muted"
               />
             </Field>
           </div>
