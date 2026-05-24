@@ -2903,6 +2903,57 @@ export type Database = {
           },
         ]
       }
+      kol_rarity_settings: {
+        Row: {
+          bonus_amount: number
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          fan_range_desc: string | null
+          id: string
+          rarity: string
+        }
+        Insert: {
+          bonus_amount?: number
+          created_at?: string
+          created_by?: string | null
+          effective_from: string
+          fan_range_desc?: string | null
+          id?: string
+          rarity: string
+        }
+        Update: {
+          bonus_amount?: number
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          fan_range_desc?: string | null
+          id?: string
+          rarity?: string
+        }
+        Relationships: []
+      }
+      kol_tags: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       location_info: {
         Row: {
           accommodation_id: string | null

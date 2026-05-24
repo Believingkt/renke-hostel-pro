@@ -39,7 +39,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { LayoutGrid, List, Plus, AlertTriangle } from "lucide-react";
+import { LayoutGrid, List, Plus, AlertTriangle, Check, X } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 // ====== 型別 & 常數 ======
 type BookingStatus =
@@ -134,8 +135,7 @@ interface FormState {
   accommodation_id: string;
   name: string;
   ig_handle: string;
-  ig_url: string;
-  rarity: Rarity | "";
+  rarity: string;
   scout_id: string;
   invited_at: string;
   check_in_date: string;
@@ -154,15 +154,14 @@ interface FormState {
   publish_date: string;
   order_number: string;
   inventory_count: string;
-  kol_tags_input: string;
+  kol_tags: string[];
 }
 
 const EMPTY_FORM: FormState = {
   accommodation_id: "",
   name: "",
   ig_handle: "",
-  ig_url: "",
-  rarity: "",
+  rarity: "ck",
   scout_id: "",
   invited_at: "",
   check_in_date: "",
@@ -181,8 +180,23 @@ const EMPTY_FORM: FormState = {
   publish_date: "",
   order_number: "",
   inventory_count: "",
-  kol_tags_input: "",
+  kol_tags: [],
 };
+
+interface RaritySetting {
+  rarity: string;
+  fan_range_desc: string | null;
+  bonus_amount: number;
+  effective_from: string;
+}
+
+function todayStr(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 function toNullable(v: string): string | null {
   const t = v.trim();
@@ -235,6 +249,9 @@ export default function TeamKOL() {
           <TabsTrigger value="invitations">正式邀約</TabsTrigger>
           <TabsTrigger value="prospects">潛在名單</TabsTrigger>
           <TabsTrigger value="targets">邀約目標</TabsTrigger>
+          {isManager && (
+            <TabsTrigger value="settings">等級設定</TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="invitations" className="mt-4">
@@ -257,6 +274,12 @@ export default function TeamKOL() {
         <TabsContent value="targets" className="mt-4">
           <TargetsTab isManager={isManager} currentUserId={userId} />
         </TabsContent>
+
+        {isManager && (
+          <TabsContent value="settings" className="mt-4">
+            <RaritySettingsTab />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
@@ -293,8 +316,13 @@ function InvitationsTab({
   const [search, setSearch] = useState("");
   const [filterAcc, setFilterAcc] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterTags, setFilterTags] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
   const [showInvalid, setShowInvalid] = useState(false);
+
+  // 稀有度版本 & 標籤字典
+  const [rarities, setRarities] = useState<RaritySetting[]>([]);
+  const [allTags, setAllTags] = useState<string[]>([]);
 
   // Sheet 表單
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -302,6 +330,7 @@ function InvitationsTab({
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [dupWarning, setDupWarning] = useState<string | null>(null);
+  const [newTagInput, setNewTagInput] = useState("");
 
   // 填錯 Dialog
   const [errorTarget, setErrorTarget] = useState<KolRow | null>(null);
@@ -311,13 +340,18 @@ function InvitationsTab({
   // 載入下拉資料
   useEffect(() => {
     (async () => {
-      const [accRes, scoutRes, scoutMgrRes] = await Promise.all([
+      const [accRes, scoutRes, scoutMgrRes, rarRes, tagRes] = await Promise.all([
         supabase
           .from("accommodation_info")
           .select("id, name, booking_type, short_url_alias")
           .order("name"),
         supabase.rpc("get_team_role_members", { p_role: "scout" }),
         supabase.rpc("get_team_role_members", { p_role: "scout_manager" as any }),
+        supabase
+          .from("kol_rarity_settings" as any)
+          .select("rarity, fan_range_desc, bonus_amount, effective_from")
+          .order("effective_from", { ascending: false }),
+        supabase.from("kol_tags" as any).select("name").order("name"),
       ]);
       if (accRes.data) setAccommodations(accRes.data as Accommodation[]);
       {
@@ -334,9 +368,48 @@ function InvitationsTab({
         list.sort((a, b) => a.display_name.localeCompare(b.display_name));
         setScouts(list);
       }
-
+      if (rarRes.data) {
+        // 只保留最新版本的六個稀有度
+        const seen = new Set<string>();
+        const latest: RaritySetting[] = [];
+        for (const r of rarRes.data as any[]) {
+          if (!seen.has(r.rarity)) {
+            seen.add(r.rarity);
+            latest.push(r as RaritySetting);
+          }
+        }
+        // 依固定順序排
+        const order = ["N", "R", "SR", "SSR", "UR", "ck"];
+        latest.sort((a, b) => order.indexOf(a.rarity) - order.indexOf(b.rarity));
+        setRarities(latest);
+      }
+      if (tagRes.data) {
+        setAllTags((tagRes.data as any[]).map((t) => t.name));
+      }
     })();
   }, []);
+
+  const reloadTags = useCallback(async () => {
+    const { data } = await supabase.from("kol_tags" as any).select("name").order("name");
+    if (data) setAllTags((data as any[]).map((t) => t.name));
+  }, []);
+
+  const handleAddNewTag = async (name: string) => {
+    const t = name.trim();
+    if (!t) return;
+    if (allTags.includes(t)) {
+      toast.error("此標籤已存在");
+      return;
+    }
+    const { error } = await supabase.from("kol_tags" as any).insert({ name: t });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    await reloadTags();
+    toast.success("已新增標籤");
+  };
+
 
   const fetchRows = useCallback(async () => {
     setLoading(true);
@@ -388,6 +461,10 @@ function InvitationsTab({
       if (filterAcc !== "all" && r.accommodation_id !== filterAcc) return false;
       if (filterStatus !== "all" && r.booking_status !== filterStatus)
         return false;
+      if (filterTags.length > 0) {
+        const tagSet = new Set(r.kol_tags ?? []);
+        if (!filterTags.some((t) => tagSet.has(t))) return false;
+      }
       if (s) {
         const a = (r.name ?? "").toLowerCase();
         const b = (r.ig_handle ?? "").toLowerCase();
@@ -395,7 +472,7 @@ function InvitationsTab({
       }
       return true;
     });
-  }, [rows, search, filterAcc, filterStatus]);
+  }, [rows, search, filterAcc, filterStatus, filterTags]);
 
   // 入住日期 → 自動計算星期幾 & kpi_eligible（前端只算 day_of_week，kpi_eligible 寫入時帶上）
   useEffect(() => {
@@ -443,7 +520,12 @@ function InvitationsTab({
 
   const openCreate = () => {
     setEditingId(null);
-    setForm(EMPTY_FORM);
+    setForm({
+      ...EMPTY_FORM,
+      invited_at: todayStr(),
+      // scout 角色：自動帶入登入者
+      scout_id: !isManager ? currentUserId : "",
+    });
     setDupWarning(null);
     setProspectLink(null);
     setSheetOpen(true);
@@ -457,14 +539,14 @@ function InvitationsTab({
       ...EMPTY_FORM,
       name: prefill.name,
       ig_handle: prefill.ig_handle,
-      ig_url: prefill.ig_url,
-      scout_id: prefill.scout_id,
+      scout_id: prefill.scout_id || (!isManager ? currentUserId : ""),
+      invited_at: todayStr(),
     });
     setProspectLink(prefill.prospect_id);
     setDupWarning(null);
     setSheetOpen(true);
     onPrefillConsumed?.();
-  }, [prefill, onPrefillConsumed]);
+  }, [prefill, onPrefillConsumed, isManager, currentUserId]);
 
   const openEdit = (row: KolRow) => {
     if (!canEditRow(row)) {
@@ -477,8 +559,7 @@ function InvitationsTab({
       accommodation_id: row.accommodation_id ?? "",
       name: row.name ?? "",
       ig_handle: row.ig_handle ?? "",
-      ig_url: row.ig_url ?? "",
-      rarity: (row.rarity as Rarity) ?? "",
+      rarity: row.rarity ?? "",
       scout_id: row.scout_id ?? "",
       invited_at: row.invited_at ?? "",
       check_in_date: row.check_in_date ?? "",
@@ -498,7 +579,7 @@ function InvitationsTab({
       order_number: row.order_number ?? "",
       inventory_count:
         row.inventory_count != null ? String(row.inventory_count) : "",
-      kol_tags_input: (row.kol_tags ?? []).join(", "),
+      kol_tags: row.kol_tags ?? [],
     });
     setDupWarning(null);
     setSheetOpen(true);
@@ -529,16 +610,12 @@ function InvitationsTab({
     const kpiMonth = form.check_in_date
       ? form.check_in_date.slice(0, 7) + "-01"
       : null;
-    const tags = form.kol_tags_input
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean);
+    const tags = form.kol_tags;
 
     const payload: Record<string, any> = {
       accommodation_id: form.accommodation_id,
       name: form.name.trim(),
       ig_handle: form.ig_handle.trim(),
-      ig_url: toNullable(form.ig_url),
       rarity: form.rarity || null,
       scout_id: form.scout_id || null,
       invited_at: form.invited_at || null,
@@ -914,7 +991,7 @@ function InvitationsTab({
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                 />
               </Field>
-              <Field label="IG 帳號 *">
+              <Field label="網紅帳號 *">
                 <Input
                   value={form.ig_handle}
                   onChange={(e) =>
@@ -930,38 +1007,147 @@ function InvitationsTab({
               </div>
             )}
 
-            <Field label="IG 網址">
-              <Input
-                value={form.ig_url}
-                onChange={(e) => setForm({ ...form, ig_url: e.target.value })}
-              />
-            </Field>
-
             <div className="grid grid-cols-2 gap-3">
               <Field label="稀有度">
                 <Select
-                  value={form.rarity || "none"}
-                  onValueChange={(v) =>
-                    setForm({
-                      ...form,
-                      rarity: v === "none" ? "" : (v as Rarity),
-                    })
-                  }
+                  value={form.rarity || "ck"}
+                  onValueChange={(v) => setForm({ ...form, rarity: v })}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">未設定</SelectItem>
-                    {RARITY_OPTIONS.map((r) => (
-                      <SelectItem key={r} value={r}>
-                        {r}
-                      </SelectItem>
-                    ))}
+                    {rarities.length === 0 ? (
+                      <SelectItem value="ck">ck</SelectItem>
+                    ) : (
+                      rarities.map((r) => (
+                        <SelectItem key={r.rarity} value={r.rarity}>
+                          {r.rarity}：{r.fan_range_desc ?? "-"}｜獎金 NT${r.bonus_amount.toLocaleString()}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="邀約人">
+              <Field label="KOL 標籤">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start font-normal h-10"
+                      type="button"
+                    >
+                      {form.kol_tags.length === 0
+                        ? "選擇標籤"
+                        : `已選 ${form.kol_tags.length} 個`}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-2" align="start">
+                    <div className="max-h-60 overflow-y-auto space-y-1">
+                      {allTags.length === 0 && (
+                        <div className="text-xs text-muted-foreground py-2 text-center">
+                          尚無標籤，請於下方新增
+                        </div>
+                      )}
+                      {allTags.map((t) => {
+                        const checked = form.kol_tags.includes(t);
+                        return (
+                          <label
+                            key={t}
+                            className="flex items-center gap-2 text-sm px-2 py-1 rounded hover:bg-muted cursor-pointer"
+                          >
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={(v) => {
+                                setForm({
+                                  ...form,
+                                  kol_tags: v
+                                    ? [...form.kol_tags, t]
+                                    : form.kol_tags.filter((x) => x !== t),
+                                });
+                              }}
+                            />
+                            {t}
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <div className="border-t mt-2 pt-2 flex gap-1">
+                      <Input
+                        value={newTagInput}
+                        onChange={(e) => setNewTagInput(e.target.value)}
+                        placeholder="新增標籤..."
+                        className="h-8 text-xs"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            const t = newTagInput.trim();
+                            if (t) {
+                              handleAddNewTag(t).then(() => {
+                                setForm((f) => ({
+                                  ...f,
+                                  kol_tags: f.kol_tags.includes(t)
+                                    ? f.kol_tags
+                                    : [...f.kol_tags, t],
+                                }));
+                                setNewTagInput("");
+                              });
+                            }
+                          }
+                        }}
+                      />
+                      <Button
+                        size="sm"
+                        type="button"
+                        variant="secondary"
+                        onClick={async () => {
+                          const t = newTagInput.trim();
+                          if (!t) return;
+                          await handleAddNewTag(t);
+                          setForm((f) => ({
+                            ...f,
+                            kol_tags: f.kol_tags.includes(t)
+                              ? f.kol_tags
+                              : [...f.kol_tags, t],
+                          }));
+                          setNewTagInput("");
+                        }}
+                      >
+                        新增
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                {form.kol_tags.length > 0 && (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {form.kol_tags.map((t) => (
+                      <Badge
+                        key={t}
+                        variant="outline"
+                        className="text-xs gap-1"
+                      >
+                        {t}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setForm({
+                              ...form,
+                              kol_tags: form.kol_tags.filter((x) => x !== t),
+                            })
+                          }
+                          className="hover:text-destructive"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </Field>
+            </div>
+
+            <Field label="邀約人">
+              {isManager ? (
                 <Select
                   value={form.scout_id || "none"}
                   onValueChange={(v) =>
@@ -980,19 +1166,19 @@ function InvitationsTab({
                     ))}
                   </SelectContent>
                 </Select>
-              </Field>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3">
-              <Field label="邀約日期">
+              ) : (
                 <Input
-                  type="date"
-                  value={form.invited_at}
-                  onChange={(e) =>
-                    setForm({ ...form, invited_at: e.target.value })
+                  value={
+                    scouts.find((s) => s.user_id === form.scout_id)
+                      ?.display_name ?? "（你本人）"
                   }
+                  readOnly
+                  className="bg-muted"
                 />
-              </Field>
+              )}
+            </Field>
+
+            <div className="grid grid-cols-2 gap-3">
               <Field label="入住日期">
                 <Input
                   type="date"
@@ -1015,39 +1201,37 @@ function InvitationsTab({
 
             <div className="grid grid-cols-2 gap-3">
               <Field label="星期幾（自動）">
-                <Input value={form.day_of_week} readOnly />
+                <Input value={form.day_of_week} readOnly className="bg-muted" />
               </Field>
-              <Field label="庫存狀態">
+              <Field label="庫存狀態（自動）">
                 <Input
                   value={form.inventory_status}
-                  onChange={(e) =>
-                    setForm({ ...form, inventory_status: e.target.value })
-                  }
+                  readOnly
+                  className="bg-muted"
                 />
               </Field>
             </div>
 
-            <Field label="訂房狀態">
-              <Select
-                value={form.booking_status}
-                onValueChange={(v) =>
-                  setForm({ ...form, booking_status: v as BookingStatus })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(Object.keys(BOOKING_STATUS_LABEL) as BookingStatus[]).map(
-                    (k) => (
-                      <SelectItem key={k} value={k}>
-                        {BOOKING_STATUS_LABEL[k]}
-                      </SelectItem>
-                    ),
-                  )}
-                </SelectContent>
-              </Select>
-            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="訂單編號">
+                <Input
+                  value={form.order_number}
+                  onChange={(e) =>
+                    setForm({ ...form, order_number: e.target.value })
+                  }
+                />
+              </Field>
+              <Field label="訂房狀態（自動）">
+                <Input
+                  value={
+                    BOOKING_STATUS_LABEL[form.booking_status] ??
+                    form.booking_status
+                  }
+                  readOnly
+                  className="bg-muted"
+                />
+              </Field>
+            </div>
 
             {showCid && (
               <Field label="折扣碼 / CID">
@@ -1135,33 +1319,22 @@ function InvitationsTab({
               </Field>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="訂單編號">
-                <Input
-                  value={form.order_number}
-                  onChange={(e) =>
-                    setForm({ ...form, order_number: e.target.value })
-                  }
-                />
-              </Field>
-              <Field label="佔用庫存間數">
-                <Input
-                  type="number"
-                  value={form.inventory_count}
-                  onChange={(e) =>
-                    setForm({ ...form, inventory_count: e.target.value })
-                  }
-                />
-              </Field>
-            </div>
-
-            <Field label="KOL 標籤（以逗號分隔）">
+            <Field label="佔用庫存間數">
               <Input
-                value={form.kol_tags_input}
+                type="number"
+                value={form.inventory_count}
                 onChange={(e) =>
-                  setForm({ ...form, kol_tags_input: e.target.value })
+                  setForm({ ...form, inventory_count: e.target.value })
                 }
-                placeholder="例如：美食, 親子, 寵物"
+              />
+            </Field>
+
+            <Field label="填寫日期">
+              <Input
+                type="date"
+                value={form.invited_at}
+                readOnly
+                className="bg-muted"
               />
             </Field>
           </div>
