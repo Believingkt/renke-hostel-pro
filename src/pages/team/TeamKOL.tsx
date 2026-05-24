@@ -1086,9 +1086,7 @@ function InvitationsTab({
           </SheetHeader>
           {viewingRow && (() => {
             const r = viewingRow;
-            const igUrl = r.ig_handle
-              ? `https://instagram.com/${r.ig_handle.replace(/^@/, "")}`
-              : null;
+            const igUrl = r.ig_handle || null;
             const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
               <div className="grid grid-cols-3 gap-2 py-1.5 border-b border-border/50 last:border-0">
                 <div className="text-xs text-muted-foreground">{label}</div>
@@ -1106,7 +1104,7 @@ function InvitationsTab({
                     r.name ?? "-"
                   )}
                 </Row>
-                <Row label="IG 帳號">
+                <Row label="網紅帳號連結">
                   {igUrl ? (
                     <a href={igUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
                       {igUrl}
@@ -1116,7 +1114,6 @@ function InvitationsTab({
                     "-"
                   )}
                 </Row>
-                <Row label="網紅帳號">{r.ig_handle ? `@${r.ig_handle}` : "-"}</Row>
                 <Row label="稀有度">
                   {r.rarity ? (
                     <Badge variant="outline" className={RARITY_CLASS[r.rarity as Rarity] ?? ""}>
