@@ -474,7 +474,7 @@ function InvitationsTab({
     });
   }, [rows, search, filterAcc, filterStatus, filterTags]);
 
-  // 入住日期 → 自動計算星期幾 & kpi_eligible（前端只算 day_of_week，kpi_eligible 寫入時帶上）
+  // 入住日期 → 自動計算星期幾
   useEffect(() => {
     if (form.check_in_date) {
       const dow = calcDayOfWeek(form.check_in_date);
@@ -483,6 +483,61 @@ function InvitationsTab({
       }
     }
   }, [form.check_in_date]); // eslint-disable-line
+
+  // 入住日期 + 館別 → 自動查詢庫存
+  useEffect(() => {
+    const accId = form.accommodation_id;
+    const date = form.check_in_date;
+    if (!accId || !date) {
+      if (form.inventory_status !== "") {
+        setForm((f) => ({ ...f, inventory_status: "" }));
+      }
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data: rts } = await supabase
+        .from("room_types")
+        .select("id")
+        .eq("accommodation_id", accId);
+      const ids = (rts ?? []).map((r: any) => r.id);
+      if (ids.length === 0) {
+        if (!cancelled) setForm((f) => ({ ...f, inventory_status: "查無房型" }));
+        return;
+      }
+      const { data: inv } = await supabase
+        .from("room_inventory_pricing")
+        .select("available_rooms, is_available")
+        .in("room_type_id", ids)
+        .eq("date", date);
+      const total = (inv ?? []).reduce(
+        (sum: number, r: any) =>
+          sum + (r.is_available === false ? 0 : r.available_rooms ?? 0),
+        0,
+      );
+      const status = total > 0 ? `有 ${total} 間` : "額滿";
+      if (!cancelled) setForm((f) => ({ ...f, inventory_status: status }));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [form.accommodation_id, form.check_in_date]); // eslint-disable-line
+
+  // 訂單編號 → 自動切換訂房狀態（不覆蓋手動 cancelled / rejected / on_hold / checked_in）
+  useEffect(() => {
+    const hasOrder = !!form.order_number.trim();
+    const next: BookingStatus = hasOrder ? "booked" : "invited";
+    const protectedStates: BookingStatus[] = [
+      "cancelled",
+      "rejected",
+      "on_hold",
+      "checked_in",
+    ];
+    if (protectedStates.includes(form.booking_status)) return;
+    if (form.booking_status !== next) {
+      setForm((f) => ({ ...f, booking_status: next }));
+    }
+  }, [form.order_number]); // eslint-disable-line
 
   // ig_handle 即時重複檢查
   useEffect(() => {
@@ -757,6 +812,63 @@ function InvitationsTab({
             ))}
           </SelectContent>
         </Select>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-10 font-normal"
+              type="button"
+            >
+              {filterTags.length === 0
+                ? "標籤篩選"
+                : `標籤：已選 ${filterTags.length}`}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-56 p-2" align="start">
+            <div className="max-h-60 overflow-y-auto space-y-1">
+              {allTags.length === 0 && (
+                <div className="text-xs text-muted-foreground py-2 text-center">
+                  尚無標籤
+                </div>
+              )}
+              {allTags.map((t) => {
+                const checked = filterTags.includes(t);
+                return (
+                  <label
+                    key={t}
+                    className="flex items-center gap-2 text-sm px-2 py-1 rounded hover:bg-muted cursor-pointer"
+                  >
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={(v) =>
+                        setFilterTags(
+                          v
+                            ? [...filterTags, t]
+                            : filterTags.filter((x) => x !== t),
+                        )
+                      }
+                    />
+                    {t}
+                  </label>
+                );
+              })}
+            </div>
+            {filterTags.length > 0 && (
+              <div className="border-t mt-2 pt-2">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="w-full h-7 text-xs"
+                  onClick={() => setFilterTags([])}
+                >
+                  清除標籤篩選
+                </Button>
+              </div>
+            )}
+          </PopoverContent>
+        </Popover>
 
         {isManager && (
           <label className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -2436,6 +2548,277 @@ function TargetsTab({
               取消
             </Button>
             <Button onClick={handleAdd}>新增</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ============================================================
+// ====== Tab 四：等級設定 ======
+// ============================================================
+const RARITY_ORDER = ["N", "R", "SR", "SSR", "UR", "ck"] as const;
+
+interface RarityVersion {
+  effective_from: string;
+  items: RaritySetting[];
+}
+
+function RaritySettingsTab() {
+  const [versions, setVersions] = useState<RarityVersion[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [newEffectiveFrom, setNewEffectiveFrom] = useState(todayStr());
+  const [draft, setDraft] = useState<Record<string, { fan_range_desc: string; bonus_amount: string }>>(
+    () =>
+      Object.fromEntries(
+        RARITY_ORDER.map((r) => [r, { fan_range_desc: "", bonus_amount: "0" }]),
+      ),
+  );
+  const [saving, setSaving] = useState(false);
+
+  const loadVersions = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("kol_rarity_settings" as any)
+      .select("rarity, fan_range_desc, bonus_amount, effective_from")
+      .order("effective_from", { ascending: false });
+    if (error) {
+      toast.error(error.message);
+      setLoading(false);
+      return;
+    }
+    const groups = new Map<string, RaritySetting[]>();
+    for (const r of ((data ?? []) as unknown as RaritySetting[])) {
+      if (!groups.has(r.effective_from)) groups.set(r.effective_from, []);
+      groups.get(r.effective_from)!.push(r);
+    }
+    const list: RarityVersion[] = Array.from(groups.entries()).map(([ef, items]) => ({
+      effective_from: ef,
+      items: items.sort(
+        (a, b) =>
+          RARITY_ORDER.indexOf(a.rarity as any) - RARITY_ORDER.indexOf(b.rarity as any),
+      ),
+    }));
+    setVersions(list);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadVersions();
+  }, [loadVersions]);
+
+  const current = versions[0];
+  const history = versions.slice(1);
+
+  const openCreate = () => {
+    // 預填當前版本作為基底
+    const base = current?.items ?? [];
+    const next: typeof draft = {};
+    for (const r of RARITY_ORDER) {
+      const hit = base.find((x) => x.rarity === r);
+      next[r] = {
+        fan_range_desc: hit?.fan_range_desc ?? "",
+        bonus_amount: hit ? String(hit.bonus_amount) : "0",
+      };
+    }
+    setDraft(next);
+    setNewEffectiveFrom(todayStr());
+    setDialogOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!newEffectiveFrom) {
+      toast.error("請填寫生效日期");
+      return;
+    }
+    setSaving(true);
+    const rows = RARITY_ORDER.map((r) => ({
+      rarity: r,
+      fan_range_desc: draft[r].fan_range_desc.trim() || null,
+      bonus_amount: parseInt(draft[r].bonus_amount || "0", 10) || 0,
+      effective_from: newEffectiveFrom,
+    }));
+    const { error } = await supabase.from("kol_rarity_settings" as any).insert(rows);
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("已新增版本");
+    setDialogOpen(false);
+    loadVersions();
+  };
+
+  if (loading) return null;
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold">目前生效版本</h3>
+              <p className="text-xs text-muted-foreground">
+                {current
+                  ? `生效日期：${current.effective_from}`
+                  : "尚無任何版本"}
+              </p>
+            </div>
+            <Button onClick={openCreate}>
+              <Plus className="mr-1 h-4 w-4" />
+              新增版本
+            </Button>
+          </div>
+          {current && (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>稀有度</TableHead>
+                  <TableHead>粉絲數範圍說明</TableHead>
+                  <TableHead className="text-right">每期獎金</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {RARITY_ORDER.map((r) => {
+                  const hit = current.items.find((x) => x.rarity === r);
+                  return (
+                    <TableRow key={r}>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={RARITY_CLASS[r as Rarity] ?? ""}
+                        >
+                          {r}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {hit?.fan_range_desc ?? "-"}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        NT$ {(hit?.bonus_amount ?? 0).toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {history.length > 0 && (
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <h3 className="font-semibold">歷史版本</h3>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>生效日期</TableHead>
+                  {RARITY_ORDER.map((r) => (
+                    <TableHead key={r} className="text-right">
+                      {r}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {history.map((v) => (
+                  <TableRow key={v.effective_from}>
+                    <TableCell>{v.effective_from}</TableCell>
+                    {RARITY_ORDER.map((r) => {
+                      const hit = v.items.find((x) => x.rarity === r);
+                      return (
+                        <TableCell
+                          key={r}
+                          className="text-right tabular-nums text-xs"
+                        >
+                          {hit ? `$${hit.bonus_amount.toLocaleString()}` : "-"}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>新增稀有度版本</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Field label="生效日期 *">
+              <Input
+                type="date"
+                value={newEffectiveFrom}
+                onChange={(e) => setNewEffectiveFrom(e.target.value)}
+              />
+            </Field>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-20">稀有度</TableHead>
+                  <TableHead>粉絲數範圍說明</TableHead>
+                  <TableHead className="w-40">每期獎金 (NT$)</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {RARITY_ORDER.map((r) => (
+                  <TableRow key={r}>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={RARITY_CLASS[r as Rarity] ?? ""}
+                      >
+                        {r}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={draft[r].fan_range_desc}
+                        onChange={(e) =>
+                          setDraft((d) => ({
+                            ...d,
+                            [r]: { ...d[r], fan_range_desc: e.target.value },
+                          }))
+                        }
+                        placeholder="例如：1萬以下 / 1萬~5萬"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={draft[r].bonus_amount}
+                        onChange={(e) =>
+                          setDraft((d) => ({
+                            ...d,
+                            [r]: { ...d[r], bonus_amount: e.target.value },
+                          }))
+                        }
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+              disabled={saving}
+            >
+              取消
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "儲存中..." : "儲存為新版本"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
