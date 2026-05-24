@@ -90,6 +90,24 @@ interface Accommodation {
   short_url_alias: string | null;
 }
 
+interface KolVenue {
+  id: string;
+  name: string;
+  type: string | null;
+  is_active: boolean;
+}
+
+// 館別下拉的合併選項
+interface VenueOption {
+  // 複合 value：PMS 用 "acc:<uuid>"，自訂場域用 "venue:<name>"
+  value: string;
+  label: string;
+  source: "pms" | "venue";
+  badge: string; // 小標籤文字
+  accommodation_id: string | null; // PMS 時為 uuid，venue 時 null
+  venue_name: string | null;       // venue 時為名稱，PMS 時 null
+}
+
 interface Scout {
   user_id: string;
   display_name: string;
@@ -98,6 +116,7 @@ interface Scout {
 interface KolRow {
   id: string;
   accommodation_id: string | null;
+  venue_name: string | null;
   name: string | null;
   ig_handle: string | null;
   ig_url: string | null;
@@ -122,6 +141,7 @@ interface KolRow {
   kol_tags: string[] | null;
   order_number: string | null;
   inventory_count: number | null;
+  kpi_qualified: boolean | null;
   is_error: boolean | null;
   error_note: string | null;
   created_by: string | null;
