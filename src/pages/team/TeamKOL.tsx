@@ -1057,7 +1057,24 @@ function InvitationsTab({
                       </TableCell>
                       <TableCell>{r._accommodation_name}</TableCell>
                       <TableCell>{r.check_in_date ?? "-"}</TableCell>
+                      <TableCell>{r.day_of_week ?? "-"}</TableCell>
                       <TableCell>{r._scout_name}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={
+                            BOOKING_STATUS_CLASS[
+                              r.booking_status as BookingStatus
+                            ] ?? ""
+                          }
+                        >
+                          {BOOKING_STATUS_LABEL[
+                            r.booking_status as BookingStatus
+                          ] ??
+                            r.booking_status ??
+                            "-"}
+                        </Badge>
+                      </TableCell>
                       <TableCell>
                         {r.contract_progress ? (
                           <Badge
@@ -1120,22 +1137,6 @@ function InvitationsTab({
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={
-                            BOOKING_STATUS_CLASS[
-                              r.booking_status as BookingStatus
-                            ] ?? ""
-                          }
-                        >
-                          {BOOKING_STATUS_LABEL[
-                            r.booking_status as BookingStatus
-                          ] ??
-                            r.booking_status ??
-                            "-"}
-                        </Badge>
                       </TableCell>
                       <TableCell
                         className="text-right"
