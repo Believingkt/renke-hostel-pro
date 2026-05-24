@@ -460,17 +460,20 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
   const saveRule = async () => {
     if (!ruleForm.keyword.trim() || !ruleForm.video_creator_id)
       return toast.error("請填寫關鍵字並選擇影音組成員");
-    const payload = {
+    const basePayload = {
       keyword: ruleForm.keyword.trim(),
       video_creator_id: ruleForm.video_creator_id,
-      sort_order: Number(ruleForm.sort_order) || 0,
     };
     const { error } = editingRuleId
       ? await supabase
           .from("ad_video_creator_rules")
-          .update(payload)
+          .update(basePayload)
           .eq("id", editingRuleId)
-      : await supabase.from("ad_video_creator_rules").insert(payload);
+      : await supabase.from("ad_video_creator_rules").insert({
+          ...basePayload,
+          sort_order:
+            rules.reduce((m, r) => Math.max(m, r.sort_order ?? 0), 0) + 1,
+        });
     if (error) return toast.error((editingRuleId ? "更新" : "新增") + "失敗：" + error.message);
     toast.success(editingRuleId ? "已更新" : "已新增");
     setRuleDialogOpen(false);
