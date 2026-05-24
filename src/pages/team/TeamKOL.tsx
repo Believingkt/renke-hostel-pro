@@ -39,7 +39,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { LayoutGrid, List, Plus, AlertTriangle } from "lucide-react";
+import { LayoutGrid, List, Plus, AlertTriangle, Check, X } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 // ====== 型別 & 常數 ======
 type BookingStatus =
