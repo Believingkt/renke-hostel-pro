@@ -415,16 +415,39 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
   const saveAd = async () => {
     if (!adForm.label.trim() || !adForm.ad_id.trim())
       return toast.error("請填寫標籤與廣告編號");
-    const { error } = await supabase.from("common_ad_ids").insert({
-      label: adForm.label.trim(),
-      ad_id: adForm.ad_id.trim(),
-      sort_order: Number(adForm.sort_order) || 0,
-    });
-    if (error) return toast.error("新增失敗：" + error.message);
-    toast.success("已新增");
+    let error;
+    if (editingAdId) {
+      ({ error } = await supabase
+        .from("common_ad_ids")
+        .update({ label: adForm.label.trim(), ad_id: adForm.ad_id.trim() })
+        .eq("id", editingAdId));
+    } else {
+      const nextSort =
+        commonAds.reduce((m, a) => Math.max(m, a.sort_order ?? 0), 0) + 1;
+      ({ error } = await supabase.from("common_ad_ids").insert({
+        label: adForm.label.trim(),
+        ad_id: adForm.ad_id.trim(),
+        sort_order: nextSort,
+      }));
+    }
+    if (error) return toast.error((editingAdId ? "更新" : "新增") + "失敗：" + error.message);
+    toast.success(editingAdId ? "已更新" : "已新增");
     setAdDialogOpen(false);
-    setAdForm({ label: "", ad_id: "", sort_order: 0 });
+    setEditingAdId(null);
+    setAdForm({ label: "", ad_id: "" });
     void loadAll();
+  };
+
+  const openEditAd = (a: CommonAdId) => {
+    setEditingAdId(a.id);
+    setAdForm({ label: a.label, ad_id: a.ad_id });
+    setAdDialogOpen(true);
+  };
+
+  const openNewAd = () => {
+    setEditingAdId(null);
+    setAdForm({ label: "", ad_id: "" });
+    setAdDialogOpen(true);
   };
 
   const deleteAd = async (id: string) => {
