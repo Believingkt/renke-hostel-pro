@@ -436,16 +436,39 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
   const saveRule = async () => {
     if (!ruleForm.keyword.trim() || !ruleForm.video_creator_id)
       return toast.error("請填寫關鍵字並選擇影音組成員");
-    const { error } = await supabase.from("ad_video_creator_rules").insert({
+    const payload = {
       keyword: ruleForm.keyword.trim(),
       video_creator_id: ruleForm.video_creator_id,
       sort_order: Number(ruleForm.sort_order) || 0,
-    });
-    if (error) return toast.error("新增失敗：" + error.message);
-    toast.success("已新增");
+    };
+    const { error } = editingRuleId
+      ? await supabase
+          .from("ad_video_creator_rules")
+          .update(payload)
+          .eq("id", editingRuleId)
+      : await supabase.from("ad_video_creator_rules").insert(payload);
+    if (error) return toast.error((editingRuleId ? "更新" : "新增") + "失敗：" + error.message);
+    toast.success(editingRuleId ? "已更新" : "已新增");
     setRuleDialogOpen(false);
+    setEditingRuleId(null);
     setRuleForm({ keyword: "", video_creator_id: "", sort_order: 0 });
     void loadAll();
+  };
+
+  const openEditRule = (r: VideoCreatorRule) => {
+    setEditingRuleId(r.id);
+    setRuleForm({
+      keyword: r.keyword,
+      video_creator_id: r.video_creator_id,
+      sort_order: r.sort_order ?? 0,
+    });
+    setRuleDialogOpen(true);
+  };
+
+  const openNewRule = () => {
+    setEditingRuleId(null);
+    setRuleForm({ keyword: "", video_creator_id: "", sort_order: 0 });
+    setRuleDialogOpen(true);
   };
 
   const deleteRule = async (id: string) => {
