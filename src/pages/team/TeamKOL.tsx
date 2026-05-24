@@ -799,19 +799,6 @@ function InvitationsTab({
             ))}
           </SelectContent>
         </Select>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="狀態" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">全部狀態</SelectItem>
-            {(Object.keys(BOOKING_STATUS_LABEL) as BookingStatus[]).map((k) => (
-              <SelectItem key={k} value={k}>
-                {BOOKING_STATUS_LABEL[k]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
 
         <Popover>
           <PopoverTrigger asChild>
@@ -870,15 +857,37 @@ function InvitationsTab({
           </PopoverContent>
         </Popover>
 
-        {isManager && (
-          <label className="flex items-center gap-1 text-sm text-muted-foreground">
-            <Checkbox
-              checked={showInvalid}
-              onCheckedChange={(v) => setShowInvalid(!!v)}
-            />
-            含無效記錄
-          </label>
-        )}
+        {/* 稀有度篩選按鈕 */}
+        <div className="flex items-center gap-1">
+          {RARITY_OPTIONS.map((r) => {
+            const active = filterRarity === r;
+            return (
+              <Button
+                key={r}
+                size="sm"
+                variant={active ? "default" : "outline"}
+                className="h-9 min-w-[40px] px-2"
+                type="button"
+                onClick={() =>
+                  setFilterRarity(active ? "all" : r)
+                }
+              >
+                {r}
+              </Button>
+            );
+          })}
+          {filterRarity !== "all" && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-9 px-2 text-xs"
+              type="button"
+              onClick={() => setFilterRarity("all")}
+            >
+              全部
+            </Button>
+          )}
+        </div>
 
         <div className="ml-auto flex items-center gap-2">
           <Button onClick={openCreate}>
