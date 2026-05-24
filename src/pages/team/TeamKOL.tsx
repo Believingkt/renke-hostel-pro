@@ -318,6 +318,9 @@ function InvitationsTab({
   const [filterAcc, setFilterAcc] = useState<string>("all");
   const [filterRarity, setFilterRarity] = useState<string>("all");
   const [filterTags, setFilterTags] = useState<string[]>([]);
+  const PAGE_SIZE = 50;
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
   // 詳情 Drawer
   const [viewingRow, setViewingRow] = useState<KolRow | null>(null);
@@ -415,11 +418,27 @@ function InvitationsTab({
 
   const fetchRows = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const from = (page - 1) * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+
+    let q = supabase
       .from("kol_profiles")
-      .select("*")
-      .eq("is_error", false)
-      .order("created_at", { ascending: false });
+      .select("*", { count: "exact" })
+      .eq("is_error", false);
+
+    if (filterAcc !== "all") q = q.eq("accommodation_id", filterAcc);
+    if (filterRarity !== "all") q = q.eq("rarity", filterRarity);
+    if (filterTags.length > 0) q = q.overlaps("kol_tags", filterTags);
+    const s = search.trim();
+    if (s) {
+      const esc = s.replace(/[%,()]/g, " ");
+      q = q.or(`name.ilike.%${esc}%,ig_handle.ilike.%${esc}%`);
+    }
+
+    const { data, count, error } = await q
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
     if (error) {
       toast.error(error.message);
       setLoading(false);
@@ -448,31 +467,23 @@ function InvitationsTab({
       _scout_name: r.scout_id ? scoutMap.get(r.scout_id) ?? "-" : "-",
     })) as KolRow[];
     setRows(enriched);
+    setTotalCount(count ?? 0);
     setLoading(false);
-  }, [accommodations]);
+  }, [accommodations, page, search, filterAcc, filterRarity, filterTags]);
 
   useEffect(() => {
     if (accommodations.length > 0) fetchRows();
   }, [fetchRows, accommodations.length]);
 
-  // 篩選
-  const filtered = useMemo(() => {
-    const s = search.trim().toLowerCase();
-    return rows.filter((r) => {
-      if (filterAcc !== "all" && r.accommodation_id !== filterAcc) return false;
-      if (filterRarity !== "all" && r.rarity !== filterRarity) return false;
-      if (filterTags.length > 0) {
-        const tagSet = new Set(r.kol_tags ?? []);
-        if (!filterTags.some((t) => tagSet.has(t))) return false;
-      }
-      if (s) {
-        const a = (r.name ?? "").toLowerCase();
-        const b = (r.ig_handle ?? "").toLowerCase();
-        if (!a.includes(s) && !b.includes(s)) return false;
-      }
-      return true;
-    });
-  }, [rows, search, filterAcc, filterRarity, filterTags]);
+  // 篩選條件變更時，重置到第一頁
+  useEffect(() => {
+    setPage(1);
+  }, [search, filterAcc, filterRarity, filterTags]);
+
+  // 伺服器端已套用篩選，直接使用 rows
+  const filtered = rows;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
 
   // 入住日期 → 自動計算星期幾
   useEffect(() => {
@@ -1075,6 +1086,34 @@ function InvitationsTab({
           </div>
         </Card>
       )}
+
+      {/* 分頁 */}
+      {!loading && totalCount > 0 && (
+        <div className="flex items-center justify-between text-sm">
+          <div className="text-muted-foreground">
+            共 {totalCount} 筆，第 {page} / {totalPages} 頁
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={page <= 1 || loading}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              上一頁
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={page >= totalPages || loading}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            >
+              下一頁
+            </Button>
+          </div>
+        </div>
+      )}
+
 
       {/* 詳情 Drawer */}
       <Sheet open={!!viewingRow} onOpenChange={(o) => !o && setViewingRow(null)}>
