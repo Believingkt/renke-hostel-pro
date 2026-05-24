@@ -665,7 +665,123 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
                         {syncingHolidays ? "同步中..." : "立即同步"}
                       </Button>
                     </div>
+
+                    {/* 假日預覽 + 自訂假日 */}
+                    <div className="space-y-3 pt-4 border-t">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <Label>已同步 / 自訂假日</Label>
+                        <Select value={String(previewYear)} onValueChange={(v) => setPreviewYear(Number(v))}>
+                          <SelectTrigger className="w-[120px] h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(() => {
+                              const cy = new Date().getFullYear();
+                              return [cy - 1, cy, cy + 1, cy + 2].map(y => (
+                                <SelectItem key={y} value={String(y)}>{y} 年</SelectItem>
+                              ));
+                            })()}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* 新增自訂假日 */}
+                      <div className="grid grid-cols-1 md:grid-cols-[160px_1fr_140px_auto] gap-2 items-end p-3 rounded-md bg-muted/30">
+                        <div className="space-y-1">
+                          <Label className="text-xs">日期</Label>
+                          <Input
+                            type="date"
+                            value={newCustomHoliday.date}
+                            onChange={(e) => setNewCustomHoliday(p => ({ ...p, date: e.target.value }))}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">名稱</Label>
+                          <Input
+                            placeholder="例如：公司週年慶"
+                            value={newCustomHoliday.name}
+                            onChange={(e) => setNewCustomHoliday(p => ({ ...p, name: e.target.value }))}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">類型</Label>
+                          <Select
+                            value={newCustomHoliday.type}
+                            onValueChange={(v) => setNewCustomHoliday(p => ({ ...p, type: v }))}
+                          >
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="holiday">假日（假日定價）</SelectItem>
+                              <SelectItem value="compensatory_day_off">補假（假日定價）</SelectItem>
+                              <SelectItem value="work_on_weekend">補班（平日定價）</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button onClick={addCustomHoliday} disabled={addingCustom} size="sm" className="gap-1">
+                          {addingCustom ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                          新增
+                        </Button>
+                      </div>
+
+                      {/* 列表 */}
+                      <div className="rounded-md border max-h-[360px] overflow-auto">
+                        {loadingHolidays ? (
+                          <div className="p-6 text-center text-sm text-muted-foreground">載入中…</div>
+                        ) : syncedHolidays.length === 0 ? (
+                          <div className="p-6 text-center text-sm text-muted-foreground">{previewYear} 年尚無假日資料</div>
+                        ) : (
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-[120px]">日期</TableHead>
+                                <TableHead>名稱</TableHead>
+                                <TableHead className="w-[110px]">類型</TableHead>
+                                <TableHead className="w-[80px]">來源</TableHead>
+                                <TableHead className="w-[60px]"></TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {syncedHolidays.map(h => (
+                                <TableRow key={h.date + h.name}>
+                                  <TableCell className="tabular-nums">{h.date}</TableCell>
+                                  <TableCell>{h.name}</TableCell>
+                                  <TableCell>
+                                    {h.type === "work_on_weekend" || h.type === "workday" ? (
+                                      <Badge variant="secondary">補班</Badge>
+                                    ) : h.type === "compensatory_day_off" ? (
+                                      <Badge>補假</Badge>
+                                    ) : (
+                                      <Badge>假日</Badge>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    {h.is_custom ? (
+                                      <Badge variant="outline">自訂</Badge>
+                                    ) : (
+                                      <Badge variant="outline">政府</Badge>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => deleteHolidayByDate(h.date, h.name)}
+                                    >
+                                      <XCircle className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        新增自訂假日會套用至所有民宿，且不會被「立即同步」覆寫。
+                      </p>
+                    </div>
                   </>
+
                 );
               })()}
             </CardContent>
