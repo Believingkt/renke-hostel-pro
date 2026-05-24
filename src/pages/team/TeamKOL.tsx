@@ -90,6 +90,24 @@ interface Accommodation {
   short_url_alias: string | null;
 }
 
+interface KolVenue {
+  id: string;
+  name: string;
+  type: string | null;
+  is_active: boolean;
+}
+
+// 館別下拉的合併選項
+interface VenueOption {
+  // 複合 value：PMS 用 "acc:<uuid>"，自訂場域用 "venue:<name>"
+  value: string;
+  label: string;
+  source: "pms" | "venue";
+  badge: string; // 小標籤文字
+  accommodation_id: string | null; // PMS 時為 uuid，venue 時 null
+  venue_name: string | null;       // venue 時為名稱，PMS 時 null
+}
+
 interface Scout {
   user_id: string;
   display_name: string;
@@ -98,6 +116,7 @@ interface Scout {
 interface KolRow {
   id: string;
   accommodation_id: string | null;
+  venue_name: string | null;
   name: string | null;
   ig_handle: string | null;
   ig_url: string | null;
@@ -122,6 +141,7 @@ interface KolRow {
   kol_tags: string[] | null;
   order_number: string | null;
   inventory_count: number | null;
+  kpi_qualified: boolean | null;
   is_error: boolean | null;
   error_note: string | null;
   created_by: string | null;
@@ -133,7 +153,10 @@ interface KolRow {
 
 interface FormState {
   id?: string;
+  // 複合下拉選中的 value（"acc:<uuid>" 或 "venue:<name>"）
+  accommodation_select: string;
   accommodation_id: string;
+  venue_name: string;
   name: string;
   ig_handle: string;
   rarity: string;
@@ -156,10 +179,13 @@ interface FormState {
   order_number: string;
   inventory_count: string;
   kol_tags: string[];
+  kpi_qualified: boolean;
 }
 
 const EMPTY_FORM: FormState = {
+  accommodation_select: "",
   accommodation_id: "",
+  venue_name: "",
   name: "",
   ig_handle: "",
   rarity: "ck",
@@ -182,6 +208,7 @@ const EMPTY_FORM: FormState = {
   order_number: "",
   inventory_count: "",
   kol_tags: [],
+  kpi_qualified: false,
 };
 
 interface RaritySetting {
@@ -250,9 +277,7 @@ export default function TeamKOL() {
           <TabsTrigger value="invitations">正式邀約</TabsTrigger>
           <TabsTrigger value="prospects">潛在名單</TabsTrigger>
           <TabsTrigger value="targets">邀約目標</TabsTrigger>
-          {isManager && (
-            <TabsTrigger value="settings">等級設定</TabsTrigger>
-          )}
+          <TabsTrigger value="settings">設定</TabsTrigger>
         </TabsList>
 
         <TabsContent value="invitations" className="mt-4">
@@ -276,11 +301,9 @@ export default function TeamKOL() {
           <TargetsTab isManager={isManager} currentUserId={userId} />
         </TabsContent>
 
-        {isManager && (
-          <TabsContent value="settings" className="mt-4">
-            <RaritySettingsTab />
-          </TabsContent>
-        )}
+        <TabsContent value="settings" className="mt-4">
+          <SettingsTab isManager={isManager} />
+        </TabsContent>
       </Tabs>
     </div>
   );
@@ -312,7 +335,31 @@ function InvitationsTab({
   const [loading, setLoading] = useState(true);
 
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
+  const [venues, setVenues] = useState<KolVenue[]>([]);
   const [scouts, setScouts] = useState<Scout[]>([]);
+
+  // 館別合併選項（PMS + kol_venues，依名稱排序）
+  const accommodationOptions = useMemo<VenueOption[]>(() => {
+    const pms: VenueOption[] = accommodations.map((a) => ({
+      value: `acc:${a.id}`,
+      label: a.name,
+      source: "pms",
+      badge: "民宿",
+      accommodation_id: a.id,
+      venue_name: null,
+    }));
+    const v: VenueOption[] = venues
+      .filter((x) => x.is_active)
+      .map((x) => ({
+        value: `venue:${x.name}`,
+        label: x.name,
+        source: "venue",
+        badge: x.type || "其他",
+        accommodation_id: null,
+        venue_name: x.name,
+      }));
+    return [...pms, ...v].sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
+  }, [accommodations, venues]);
 
   const [search, setSearch] = useState("");
   const [filterAcc, setFilterAcc] = useState<string>("all");
@@ -345,10 +392,14 @@ function InvitationsTab({
   // 載入下拉資料
   useEffect(() => {
     (async () => {
-      const [accRes, scoutRes, scoutMgrRes, rarRes, tagRes] = await Promise.all([
+      const [accRes, venueRes, scoutRes, scoutMgrRes, rarRes, tagRes] = await Promise.all([
         supabase
           .from("accommodation_info")
           .select("id, name, booking_type, short_url_alias")
+          .order("name"),
+        supabase
+          .from("kol_venues" as any)
+          .select("id, name, type, is_active")
           .order("name"),
         supabase.rpc("get_team_role_members", { p_role: "scout" }),
         supabase.rpc("get_team_role_members", { p_role: "scout_manager" as any }),
@@ -359,6 +410,7 @@ function InvitationsTab({
         supabase.from("kol_tags" as any).select("name").order("name"),
       ]);
       if (accRes.data) setAccommodations(accRes.data as Accommodation[]);
+      if (venueRes.data) setVenues(venueRes.data as unknown as KolVenue[]);
       {
         const seen = new Set<string>();
         const list: Scout[] = [];
@@ -426,7 +478,13 @@ function InvitationsTab({
       .select("*", { count: "exact" })
       .eq("is_error", false);
 
-    if (filterAcc !== "all") q = q.eq("accommodation_id", filterAcc);
+    if (filterAcc !== "all") {
+      if (filterAcc.startsWith("acc:")) {
+        q = q.eq("accommodation_id", filterAcc.slice(4));
+      } else if (filterAcc.startsWith("venue:")) {
+        q = q.eq("venue_name", filterAcc.slice(6));
+      }
+    }
     if (filterRarity !== "all") q = q.eq("rarity", filterRarity);
     if (filterTags.length > 0) q = q.overlaps("kol_tags", filterTags);
     const s = search.trim();
@@ -459,11 +517,11 @@ function InvitationsTab({
       );
     }
     const accMap = new Map(accommodations.map((a) => [a.id, a.name]));
-    const enriched = (data ?? []).map((r) => ({
+    const enriched = (data ?? []).map((r: any) => ({
       ...r,
       _accommodation_name: r.accommodation_id
         ? accMap.get(r.accommodation_id) ?? "-"
-        : "-",
+        : r.venue_name ?? "-",
       _scout_name: r.scout_id ? scoutMap.get(r.scout_id) ?? "-" : "-",
     })) as KolRow[];
     setRows(enriched);
@@ -620,7 +678,13 @@ function InvitationsTab({
     setEditingId(row.id);
     setForm({
       id: row.id,
+      accommodation_select: row.accommodation_id
+        ? `acc:${row.accommodation_id}`
+        : row.venue_name
+          ? `venue:${row.venue_name}`
+          : "",
       accommodation_id: row.accommodation_id ?? "",
+      venue_name: row.venue_name ?? "",
       name: row.name ?? "",
       ig_handle: row.ig_handle ?? "",
       rarity: row.rarity ?? "",
@@ -644,6 +708,7 @@ function InvitationsTab({
       inventory_count:
         row.inventory_count != null ? String(row.inventory_count) : "",
       kol_tags: row.kol_tags ?? [],
+      kpi_qualified: !!row.kpi_qualified,
     });
     setDupWarning(null);
     setSheetOpen(true);
@@ -656,7 +721,7 @@ function InvitationsTab({
     row.created_by === currentUserId || isManager;
 
   const handleSave = async () => {
-    if (!form.accommodation_id) {
+    if (!form.accommodation_id && !form.venue_name) {
       toast.error("請選擇館別");
       return;
     }
@@ -677,7 +742,8 @@ function InvitationsTab({
     const tags = form.kol_tags;
 
     const payload: Record<string, any> = {
-      accommodation_id: form.accommodation_id,
+      accommodation_id: form.accommodation_id || null,
+      venue_name: form.accommodation_id ? null : (form.venue_name || null),
       name: form.name.trim(),
       ig_handle: form.ig_handle.trim(),
       rarity: form.rarity || null,
@@ -703,6 +769,9 @@ function InvitationsTab({
       kpi_eligible: kpiEligible,
       kpi_month: kpiMonth,
     };
+    if (isManager) {
+      payload.kpi_qualified = form.kpi_qualified;
+    }
 
     let err;
     let newId: string | null = null;
@@ -799,9 +868,12 @@ function InvitationsTab({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">全部館別</SelectItem>
-            {accommodations.map((a) => (
-              <SelectItem key={a.id} value={a.id}>
-                {a.name}
+            {accommodationOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                <span className="inline-flex items-center gap-2">
+                  <span>{opt.label}</span>
+                  <span className="text-[10px] text-muted-foreground">{opt.badge}</span>
+                </span>
               </SelectItem>
             ))}
           </SelectContent>
@@ -922,11 +994,12 @@ function InvitationsTab({
                   <TableHead>稀有度</TableHead>
                   <TableHead>館別</TableHead>
                   <TableHead>入住日期</TableHead>
+                  <TableHead>星期</TableHead>
                   <TableHead>邀約人</TableHead>
+                  <TableHead>狀態</TableHead>
                   <TableHead>合約進度</TableHead>
                   <TableHead>任務</TableHead>
                   <TableHead>發布日期</TableHead>
-                  <TableHead>狀態</TableHead>
                   <TableHead className="text-right">操作</TableHead>
                 </TableRow>
               </TableHeader>
@@ -984,7 +1057,24 @@ function InvitationsTab({
                       </TableCell>
                       <TableCell>{r._accommodation_name}</TableCell>
                       <TableCell>{r.check_in_date ?? "-"}</TableCell>
+                      <TableCell>{r.day_of_week ?? "-"}</TableCell>
                       <TableCell>{r._scout_name}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={
+                            BOOKING_STATUS_CLASS[
+                              r.booking_status as BookingStatus
+                            ] ?? ""
+                          }
+                        >
+                          {BOOKING_STATUS_LABEL[
+                            r.booking_status as BookingStatus
+                          ] ??
+                            r.booking_status ??
+                            "-"}
+                        </Badge>
+                      </TableCell>
                       <TableCell>
                         {r.contract_progress ? (
                           <Badge
@@ -1047,22 +1137,6 @@ function InvitationsTab({
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={
-                            BOOKING_STATUS_CLASS[
-                              r.booking_status as BookingStatus
-                            ] ?? ""
-                          }
-                        >
-                          {BOOKING_STATUS_LABEL[
-                            r.booking_status as BookingStatus
-                          ] ??
-                            r.booking_status ??
-                            "-"}
-                        </Badge>
                       </TableCell>
                       <TableCell
                         className="text-right"
@@ -1187,7 +1261,15 @@ function InvitationsTab({
                 </Row>
                 <Row label="館別">{r._accommodation_name ?? "-"}</Row>
                 <Row label="入住日期">{r.check_in_date ?? "-"}</Row>
+                <Row label="星期">{r.day_of_week ?? "-"}</Row>
                 <Row label="邀約人">{r._scout_name ?? "-"}</Row>
+                <Row label="累積資格">
+                  {r.kpi_qualified ? (
+                    <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">符合資格</Badge>
+                  ) : (
+                    <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-200">未確認</Badge>
+                  )}
+                </Row>
                 <Row label="折扣碼 / CID">{r.cid_code ?? r.short_url ?? "-"}</Row>
                 <Row label="合約進度">{r.contract_progress ?? "-"}</Row>
                 <Row label="合約檔案">
@@ -1252,18 +1334,27 @@ function InvitationsTab({
           <div className="mt-4 space-y-4">
             <Field label="館別 *">
               <Select
-                value={form.accommodation_id}
-                onValueChange={(v) =>
-                  setForm({ ...form, accommodation_id: v })
-                }
+                value={form.accommodation_select}
+                onValueChange={(v) => {
+                  const opt = accommodationOptions.find((o) => o.value === v);
+                  setForm({
+                    ...form,
+                    accommodation_select: v,
+                    accommodation_id: opt?.accommodation_id ?? "",
+                    venue_name: opt?.venue_name ?? "",
+                  });
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="選擇館別" />
                 </SelectTrigger>
                 <SelectContent>
-                  {accommodations.map((a) => (
-                    <SelectItem key={a.id} value={a.id}>
-                      {a.name}
+                  {accommodationOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      <span className="inline-flex items-center gap-2">
+                        <span>{opt.label}</span>
+                        <span className="text-[10px] text-muted-foreground">{opt.badge}</span>
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1605,6 +1696,26 @@ function InvitationsTab({
                 readOnly={!isManager}
                 className={!isManager ? "bg-muted" : ""}
               />
+            </Field>
+
+            <Field label="累積資格">
+              {isManager ? (
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={form.kpi_qualified}
+                    onCheckedChange={(v) =>
+                      setForm({ ...form, kpi_qualified: !!v })
+                    }
+                  />
+                  符合資格
+                </label>
+              ) : (
+                <Input
+                  value={form.kpi_qualified ? "符合資格" : "未確認"}
+                  readOnly
+                  className="bg-muted"
+                />
+              )}
             </Field>
           </div>
 
@@ -3006,5 +3117,190 @@ function RaritySettingsTab() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+// ============================================================
+// ====== Tab 四：設定 (稀有度 + 合作場域) ======
+// ============================================================
+function SettingsTab({ isManager }: { isManager: boolean }) {
+  return (
+    <div className="space-y-4">
+      <RaritySettingsTab isManager={isManager} />
+      <VenuesCard isManager={isManager} />
+    </div>
+  );
+}
+
+interface VenueRow {
+  id: string;
+  name: string;
+  type: string | null;
+  is_active: boolean;
+}
+
+const VENUE_TYPES = ["民宿", "餐廳", "農場", "其他"] as const;
+
+function VenuesCard({ isManager }: { isManager: boolean }) {
+  const [rows, setRows] = useState<VenueRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [newName, setNewName] = useState("");
+  const [newType, setNewType] = useState<string>("民宿");
+  const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editType, setEditType] = useState("民宿");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("kol_venues" as any)
+      .select("id, name, type, is_active")
+      .order("name");
+    if (error) toast.error(error.message);
+    setRows((data ?? []) as unknown as VenueRow[]);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleAdd = async () => {
+    const n = newName.trim();
+    if (!n) { toast.error("請輸入場域名稱"); return; }
+    setSaving(true);
+    const { error } = await supabase
+      .from("kol_venues" as any)
+      .insert({ name: n, type: newType, is_active: true });
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("已新增場域");
+    setNewName(""); setNewType("民宿");
+    load();
+  };
+
+  const startEdit = (r: VenueRow) => {
+    setEditingId(r.id);
+    setEditName(r.name);
+    setEditType(r.type || "其他");
+  };
+
+  const saveEdit = async () => {
+    if (!editingId) return;
+    const n = editName.trim();
+    if (!n) { toast.error("請輸入場域名稱"); return; }
+    const { error } = await supabase
+      .from("kol_venues" as any)
+      .update({ name: n, type: editType })
+      .eq("id", editingId);
+    if (error) { toast.error(error.message); return; }
+    toast.success("已更新");
+    setEditingId(null);
+    load();
+  };
+
+  const toggleActive = async (r: VenueRow) => {
+    const { error } = await supabase
+      .from("kol_venues" as any)
+      .update({ is_active: !r.is_active })
+      .eq("id", r.id);
+    if (error) { toast.error(error.message); return; }
+    load();
+  };
+
+  return (
+    <Card>
+      <CardContent className="p-4 space-y-3">
+        <div>
+          <h3 className="font-semibold">合作場域管理</h3>
+          <p className="text-xs text-muted-foreground">
+            管理非 PMS 民宿的合作場域（餐廳、農場等），將同步顯示於館別下拉
+          </p>
+        </div>
+
+        {isManager && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              placeholder="場域名稱"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              className="w-48"
+            />
+            <Select value={newType} onValueChange={setNewType}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {VENUE_TYPES.map((t) => (
+                  <SelectItem key={t} value={t}>{t}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={handleAdd} disabled={saving}>
+              <Plus className="mr-1 h-4 w-4" />新增
+            </Button>
+          </div>
+        )}
+
+        {loading ? null : rows.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">尚無資料</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>場域名稱</TableHead>
+                <TableHead>類型</TableHead>
+                <TableHead>狀態</TableHead>
+                <TableHead className="text-right">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell>
+                    {editingId === r.id ? (
+                      <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-8" />
+                    ) : r.name}
+                  </TableCell>
+                  <TableCell>
+                    {editingId === r.id ? (
+                      <Select value={editType} onValueChange={setEditType}>
+                        <SelectTrigger className="h-8 w-28"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {VENUE_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    ) : (r.type || "-")}
+                  </TableCell>
+                  <TableCell>
+                    {r.is_active ? (
+                      <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">啟用</Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-200">停用</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {isManager && (editingId === r.id ? (
+                      <>
+                        <Button size="sm" variant="ghost" onClick={saveEdit}>儲存</Button>
+                        <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>取消</Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => startEdit(r)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => toggleActive(r)}>
+                          {r.is_active ? "停用" : "啟用"}
+                        </Button>
+                      </>
+                    ))}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
   );
 }
