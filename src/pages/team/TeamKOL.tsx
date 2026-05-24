@@ -316,10 +316,11 @@ function InvitationsTab({
 
   const [search, setSearch] = useState("");
   const [filterAcc, setFilterAcc] = useState<string>("all");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterRarity, setFilterRarity] = useState<string>("all");
   const [filterTags, setFilterTags] = useState<string[]>([]);
-  // 列表為唯一檢視模式（原卡片切換已移除）
-  const [showInvalid, setShowInvalid] = useState(false);
+
+  // 詳情 Drawer
+  const [viewingRow, setViewingRow] = useState<KolRow | null>(null);
 
   // 稀有度版本 & 標籤字典
   const [rarities, setRarities] = useState<RaritySetting[]>([]);
