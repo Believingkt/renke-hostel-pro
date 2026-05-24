@@ -1424,26 +1424,15 @@ function InvitationsTab({
               )}
             </Field>
 
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="入住日期">
-                <Input
-                  type="date"
-                  value={form.check_in_date}
-                  onChange={(e) =>
-                    setForm({ ...form, check_in_date: e.target.value })
-                  }
-                />
-              </Field>
-              <Field label="退房日期">
-                <Input
-                  type="date"
-                  value={form.check_out_date}
-                  onChange={(e) =>
-                    setForm({ ...form, check_out_date: e.target.value })
-                  }
-                />
-              </Field>
-            </div>
+            <Field label="入住日期">
+              <Input
+                type="date"
+                value={form.check_in_date}
+                onChange={(e) =>
+                  setForm({ ...form, check_in_date: e.target.value })
+                }
+              />
+            </Field>
 
             <div className="grid grid-cols-2 gap-3">
               <Field label="星期幾（自動）">
