@@ -1014,7 +1014,14 @@ function OrdersTab({
                     <Checkbox
                       id="detail_payment"
                       checked={!!detailForm.payment_confirmed}
-                      onCheckedChange={(v) => setDetailForm({ ...detailForm, payment_confirmed: !!v })}
+                      onCheckedChange={(v) => {
+                        const confirmed = !!v;
+                        setDetailForm({
+                          ...detailForm,
+                          payment_confirmed: confirmed,
+                          payment_at: confirmed ? (detailForm.payment_at ?? null) : null,
+                        });
+                      }}
                     />
                     <Label htmlFor="detail_payment">已付款</Label>
                   </div>
@@ -1022,6 +1029,24 @@ function OrdersTab({
                   <Badge variant={detailOrder.payment_confirmed ? "success" : "secondary"}>
                     {detailOrder.payment_confirmed ? "已付款" : "未付款"}
                   </Badge>
+                )}
+              </DetailRow>
+              <DetailRow label="匯款日期">
+                {detailEditing ? (
+                  <Input
+                    type="date"
+                    value={(detailForm.payment_at as string) ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setDetailForm({
+                        ...detailForm,
+                        payment_at: v || null,
+                        payment_confirmed: v ? true : false,
+                      });
+                    }}
+                  />
+                ) : (
+                  detailOrder.payment_at ?? "—"
                 )}
               </DetailRow>
               <DetailRow label="發票號碼">
