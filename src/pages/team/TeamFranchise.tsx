@@ -1087,7 +1087,7 @@ function OrdersTab({
                     plan_price: Number(detailForm.plan_price ?? detailOrder.plan_price) || 0,
                     sold_at: (detailForm.sold_at as string) || null,
                     payment_confirmed: !!detailForm.payment_confirmed,
-                    payment_at: detailForm.payment_confirmed ? ((detailForm.sold_at as string) || detailOrder.sold_at) : null,
+                    payment_at: (detailForm.payment_at as string) || null,
                     invoice_number: (detailForm.invoice_number as string)?.trim() || null,
                     notes: (detailForm.notes as string)?.trim() || null,
                   };
