@@ -41,6 +41,7 @@ import {
 import { toast } from "sonner";
 import { Plus, AlertTriangle, Check, X, Pencil, ExternalLink, Trash2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // ====== 型別 & 常數 ======
 type BookingStatus =
@@ -1893,6 +1894,7 @@ function ProspectsTab({
 
   const [search, setSearch] = useState("");
   const [filterScout, setFilterScout] = useState<string>("all");
+  const [filterTags, setFilterTags] = useState<string[]>([]);
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -1997,14 +1999,18 @@ function ProspectsTab({
       if (filterScout !== "all") {
         if (filterScout === "none" ? r.scout_id : r.scout_id !== filterScout) return false;
       }
+      if (filterTags.length > 0) {
+        const tags = r.tags ?? [];
+        if (!filterTags.some((t) => tags.includes(t))) return false;
+      }
       if (s) {
         const a = (r.name ?? "").toLowerCase();
-        const b = (r.ig_handle ?? "").toLowerCase();
+        const b = (r.ig_url ?? "").toLowerCase();
         if (!a.includes(s) && !b.includes(s)) return false;
       }
       return true;
     });
-  }, [rows, search, filterScout]);
+  }, [rows, search, filterScout, filterTags]);
 
   const openCreate = () => {
     setEditingId(null);
@@ -2074,7 +2080,7 @@ function ProspectsTab({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <Input
-          placeholder="搜尋名稱或 IG 帳號"
+          placeholder="搜尋 KOL 名稱或網紅帳號連結"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-64"
@@ -2094,6 +2100,63 @@ function ProspectsTab({
           </SelectContent>
         </Select>
 
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-10 font-normal"
+              type="button"
+            >
+              {filterTags.length === 0
+                ? "標籤篩選"
+                : `標籤：已選 ${filterTags.length}`}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-56 p-2" align="start">
+            <div className="max-h-60 overflow-y-auto space-y-1">
+              {allTags.length === 0 && (
+                <div className="text-xs text-muted-foreground py-2 text-center">
+                  尚無標籤
+                </div>
+              )}
+              {allTags.map((t) => {
+                const checked = filterTags.includes(t);
+                return (
+                  <label
+                    key={t}
+                    className="flex items-center gap-2 text-sm px-2 py-1 rounded hover:bg-muted cursor-pointer"
+                  >
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={(v) =>
+                        setFilterTags(
+                          v
+                            ? [...filterTags, t]
+                            : filterTags.filter((x) => x !== t),
+                        )
+                      }
+                    />
+                    {t}
+                  </label>
+                );
+              })}
+            </div>
+            {filterTags.length > 0 && (
+              <div className="border-t mt-2 pt-2">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="w-full h-7 text-xs"
+                  onClick={() => setFilterTags([])}
+                >
+                  清除標籤篩選
+                </Button>
+              </div>
+            )}
+          </PopoverContent>
+        </Popover>
+
         <Button className="ml-auto" onClick={openCreate}>
           <Plus className="mr-1 h-4 w-4" />
           新增潛在名單
@@ -2112,6 +2175,7 @@ function ProspectsTab({
             <TableHeader>
               <TableRow>
                 <TableHead>名稱</TableHead>
+                <TableHead>標籤</TableHead>
                 <TableHead>負責星探</TableHead>
                 <TableHead>聯繫日期</TableHead>
                 <TableHead className="text-right">報價</TableHead>
@@ -2120,64 +2184,104 @@ function ProspectsTab({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell>
-                    {r.ig_url ? (
-                      <a
-                        href={r.ig_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-primary hover:underline"
-                      >
-                        {r.name ?? "-"}
-                      </a>
-                    ) : (
-                      r.name ?? "-"
-                    )}
-                  </TableCell>
-                  <TableCell>{r._scout_name}</TableCell>
-                  <TableCell>{r.contacted_at ?? "-"}</TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {r.fee_quote != null
-                      ? `$${r.fee_quote.toLocaleString()}`
-                      : "-"}
-                  </TableCell>
-                  <TableCell>
-                    {r.screenshot_url ? (
-                      <a
-                        href={r.screenshot_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-primary hover:underline inline-flex items-center gap-1"
-                      >
-                        查看截圖
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    ) : (
-                      "-"
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => openEdit(r)}
-                    >
-                      編輯
-                    </Button>
-                    {r.status !== "converted" && (
+              {filtered.map((r) => {
+                const tags = r.tags ?? [];
+                const displayName = r.name ?? "-";
+                const nameNode = (
+                  <span className="block max-w-[180px] truncate">{displayName}</span>
+                );
+                return (
+                  <TableRow key={r.id}>
+                    <TableCell className="max-w-[180px]">
+                      <TooltipProvider delayDuration={200}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            {r.ig_url ? (
+                              <a
+                                href={r.ig_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-primary hover:underline block max-w-[180px] truncate"
+                              >
+                                {displayName}
+                              </a>
+                            ) : (
+                              nameNode
+                            )}
+                          </TooltipTrigger>
+                          <TooltipContent>{displayName}</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableCell>
+                    <TableCell>
+                      {tags.length === 0 ? (
+                        <span className="text-muted-foreground">-</span>
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {tags.slice(0, 2).map((t) => (
+                            <Badge key={t} variant="secondary" className="text-xs">
+                              {t}
+                            </Badge>
+                          ))}
+                          {tags.length > 2 && (
+                            <TooltipProvider delayDuration={200}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="outline" className="text-xs">
+                                    +{tags.length - 2}
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>{tags.slice(2).join("、")}</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>{r._scout_name}</TableCell>
+                    <TableCell>{r.contacted_at ?? "-"}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {r.fee_quote != null
+                        ? `$${r.fee_quote.toLocaleString()}`
+                        : "-"}
+                    </TableCell>
+                    <TableCell>
+                      {r.screenshot_url ? (
+                        <a
+                          href={r.screenshot_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-primary hover:underline inline-flex items-center gap-1"
+                        >
+                          查看截圖
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      ) : (
+                        "-"
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
                       <Button
-                        size="sm"
+                        size="icon"
                         variant="ghost"
-                        onClick={() => handleConvert(r)}
+                        onClick={() => openEdit(r)}
+                        aria-label="編輯"
                       >
-                        轉為正式邀約
+                        <Pencil className="h-4 w-4" />
                       </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
+                      {r.status !== "converted" && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleConvert(r)}
+                        >
+                          轉為正式邀約
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </Card>
