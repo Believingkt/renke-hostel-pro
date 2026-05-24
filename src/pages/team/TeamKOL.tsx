@@ -1871,30 +1871,24 @@ interface ProspectRow {
 interface ProspectForm {
   id?: string;
   name: string;
-  ig_handle: string;
   ig_url: string;
   scout_id: string;
   contacted_at: string;
-  collab_type: string;
   fee_quote: string;
-  tags_input: string;
+  tags: string[];
   notes: string;
   screenshot_url: string;
-  status: ProspectStatus;
 }
 
 const EMPTY_PROSPECT_FORM: ProspectForm = {
   name: "",
-  ig_handle: "",
   ig_url: "",
   scout_id: "",
   contacted_at: "",
-  collab_type: "",
   fee_quote: "",
-  tags_input: "",
+  tags: [],
   notes: "",
   screenshot_url: "",
-  status: "negotiating",
 };
 
 function ProspectsTab({
