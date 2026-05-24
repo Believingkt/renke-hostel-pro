@@ -1894,6 +1894,7 @@ function ProspectsTab({
 
   const [search, setSearch] = useState("");
   const [filterScout, setFilterScout] = useState<string>("all");
+  const [filterTags, setFilterTags] = useState<string[]>([]);
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
