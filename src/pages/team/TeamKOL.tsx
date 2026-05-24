@@ -1060,20 +1060,28 @@ function InvitationsTab({
                       <TableCell>{r.day_of_week ?? "-"}</TableCell>
                       <TableCell>{r._scout_name}</TableCell>
                       <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={
+                        {(() => {
+                          const label =
+                            BOOKING_STATUS_LABEL[
+                              r.booking_status as BookingStatus
+                            ] ??
+                            r.booking_status ??
+                            "-";
+                          let cls =
                             BOOKING_STATUS_CLASS[
                               r.booking_status as BookingStatus
-                            ] ?? ""
+                            ] ?? "";
+                          if (label === "成功訂房") {
+                            cls = "bg-white text-foreground border-border";
+                          } else if (label === "訂房編號有誤") {
+                            cls = "bg-white border-border text-[#ff5722]";
                           }
-                        >
-                          {BOOKING_STATUS_LABEL[
-                            r.booking_status as BookingStatus
-                          ] ??
-                            r.booking_status ??
-                            "-"}
-                        </Badge>
+                          return (
+                            <Badge variant="outline" className={cls}>
+                              {label}
+                            </Badge>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell>
                         {r.contract_progress ? (
