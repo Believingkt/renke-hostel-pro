@@ -3333,6 +3333,7 @@ function ProjectsManagementCard() {
 
 interface VoucherRow {
   id: string;
+  source: "internal" | "external";
   signed_at: string | null;
   member_number: string | null;
   customer_name: string;
@@ -3356,12 +3357,15 @@ function formatSerialRange(start: number | null, end: number | null): string {
   return `${pad(start)}-${pad(end)}`;
 }
 
+const VOUCHER_FIELDS = "id,member_number,customer_name,card_status,voucher_count,voucher_batch,voucher_serial_start,voucher_serial_end,voucher_status,voucher_handler,voucher_start_date,voucher_note,voucher_address";
+
 function VoucherProgressTab() {
   const [rows, setRows] = useState<VoucherRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterProject, setFilterProject] = useState("ALL");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [filterCard, setFilterCard] = useState("ALL");
+  const [filterSource, setFilterSource] = useState<"ALL" | "internal" | "external">("ALL");
   const [detail, setDetail] = useState<VoucherRow | null>(null);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<Partial<VoucherRow>>({});
@@ -3369,25 +3373,83 @@ function VoucherProgressTab() {
 
   const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("franchise_external_orders")
-      .select("id,signed_at,member_number,customer_name,project_name,sales_name,card_status,voucher_count,voucher_batch,voucher_serial_start,voucher_serial_end,voucher_status,voucher_handler,voucher_start_date,voucher_note,voucher_address")
-      .order("signed_at", { ascending: true, nullsFirst: false });
-    if (error) {
+    const [extRes, intRes] = await Promise.all([
+      supabase
+        .from("franchise_external_orders")
+        .select(`${VOUCHER_FIELDS},signed_at,project_name,sales_name`),
+      supabase
+        .from("franchise_orders")
+        .select(`${VOUCHER_FIELDS},sold_at,plan_name,sold_by_name`),
+    ]);
+    if (extRes.error || intRes.error) {
       toast.error("讀取失敗");
-    } else {
-      setRows((data ?? []) as VoucherRow[]);
+      setLoading(false);
+      return;
     }
+    const ext: VoucherRow[] = (extRes.data ?? []).map((r: any) => ({
+      id: r.id,
+      source: "external",
+      signed_at: r.signed_at ?? null,
+      member_number: r.member_number ?? null,
+      customer_name: r.customer_name,
+      project_name: r.project_name ?? null,
+      sales_name: r.sales_name ?? null,
+      card_status: r.card_status ?? null,
+      voucher_count: r.voucher_count ?? null,
+      voucher_batch: r.voucher_batch ?? null,
+      voucher_serial_start: r.voucher_serial_start ?? null,
+      voucher_serial_end: r.voucher_serial_end ?? null,
+      voucher_status: r.voucher_status ?? null,
+      voucher_handler: r.voucher_handler ?? null,
+      voucher_start_date: r.voucher_start_date ?? null,
+      voucher_note: r.voucher_note ?? null,
+      voucher_address: r.voucher_address ?? null,
+    }));
+    const intl: VoucherRow[] = (intRes.data ?? []).map((r: any) => ({
+      id: r.id,
+      source: "internal",
+      signed_at: r.sold_at ?? null,
+      member_number: r.member_number ?? null,
+      customer_name: r.customer_name,
+      project_name: r.plan_name ?? null,
+      sales_name: r.sold_by_name ?? null,
+      card_status: r.card_status ?? null,
+      voucher_count: r.voucher_count ?? null,
+      voucher_batch: r.voucher_batch ?? null,
+      voucher_serial_start: r.voucher_serial_start ?? null,
+      voucher_serial_end: r.voucher_serial_end ?? null,
+      voucher_status: r.voucher_status ?? null,
+      voucher_handler: r.voucher_handler ?? null,
+      voucher_start_date: r.voucher_start_date ?? null,
+      voucher_note: r.voucher_note ?? null,
+      voucher_address: r.voucher_address ?? null,
+    }));
+    const merged = [...ext, ...intl].sort((a, b) => {
+      const av = a.signed_at ?? "";
+      const bv = b.signed_at ?? "";
+      if (!av && !bv) return 0;
+      if (!av) return 1;
+      if (!bv) return -1;
+      return av.localeCompare(bv);
+    });
+    setRows(merged);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
 
   const filtered = useMemo(() => rows.filter((r) => {
+    if (filterSource !== "ALL" && r.source !== filterSource) return false;
     if (filterProject !== "ALL" && r.project_name !== filterProject) return false;
     if (filterStatus !== "ALL" && (r.voucher_status ?? "未寄出") !== filterStatus) return false;
     if (filterCard !== "ALL" && (r.card_status ?? "未完成") !== filterCard) return false;
     return true;
-  }), [rows, filterProject, filterStatus, filterCard]);
+  }), [rows, filterSource, filterProject, filterStatus, filterCard]);
+
+  const projectOptions = useMemo(() => {
+    const set = new Set<string>();
+    rows.forEach((r) => { const n = r.project_name?.trim(); if (n) set.add(n); });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [rows]);
 
   const handlerOptions = useMemo(() => {
     const set = new Set<string>();
@@ -3456,7 +3518,8 @@ function VoucherProgressTab() {
       voucher_note: form.voucher_note?.toString().trim() || null,
       voucher_address: form.voucher_address?.toString().trim() || null,
     };
-    const { error } = await supabase.from("franchise_external_orders").update(payload).eq("id", detail.id);
+    const table = detail.source === "internal" ? "franchise_orders" : "franchise_external_orders";
+    const { error } = await supabase.from(table).update(payload).eq("id", detail.id);
     setSaving(false);
     if (error) { toast.error("儲存失敗"); return; }
     toast.success("已儲存");
@@ -3480,7 +3543,13 @@ function VoucherProgressTab() {
       <CardContent className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
           <Label className="text-muted-foreground">專案</Label>
-          <FilterProjectSelect value={filterProject} onChange={setFilterProject} />
+          <Select value={filterProject} onValueChange={setFilterProject}>
+            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">全部專案</SelectItem>
+              {projectOptions.map((n) => (<SelectItem key={n} value={n}>{n}</SelectItem>))}
+            </SelectContent>
+          </Select>
           <Label className="text-muted-foreground ml-2">狀態</Label>
           <Select value={filterStatus} onValueChange={setFilterStatus}>
             <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
@@ -3497,6 +3566,15 @@ function VoucherProgressTab() {
               <SelectItem value="ALL">全部</SelectItem>
               <SelectItem value="完成">完成</SelectItem>
               <SelectItem value="未完成">未完成</SelectItem>
+            </SelectContent>
+          </Select>
+          <Label className="text-muted-foreground ml-2">來源</Label>
+          <Select value={filterSource} onValueChange={(v) => setFilterSource(v as any)}>
+            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">全部</SelectItem>
+              <SelectItem value="internal">內部銷售</SelectItem>
+              <SelectItem value="external">外部銷售</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -3518,7 +3596,7 @@ function VoucherProgressTab() {
                 <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">無資料</TableCell></TableRow>
               ) : filtered.map((r) => (
                 <TableRow
-                  key={r.id}
+                  key={`${r.source}-${r.id}`}
                   className="cursor-pointer hover:bg-muted/50"
                   onClick={() => openDetail(r)}
                 >
