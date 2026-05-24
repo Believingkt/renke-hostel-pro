@@ -524,7 +524,7 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">常用廣告編號</CardTitle>
-          <Button size="sm" onClick={() => setAdDialogOpen(true)}>
+          <Button size="sm" onClick={openNewAd}>
             <Plus className="h-4 w-4 mr-1" /> 新增
           </Button>
         </CardHeader>
@@ -534,14 +534,13 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
               <TableRow>
                 <TableHead>標籤</TableHead>
                 <TableHead>廣告編號</TableHead>
-                <TableHead className="w-20">排序</TableHead>
-                <TableHead className="w-16"></TableHead>
+                <TableHead className="w-24"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {commonAds.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
                     尚無常用廣告編號
                   </TableCell>
                 </TableRow>
@@ -550,8 +549,14 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
                   <TableRow key={a.id}>
                     <TableCell>{a.label}</TableCell>
                     <TableCell className="font-mono text-xs">{a.ad_id}</TableCell>
-                    <TableCell>{a.sort_order}</TableCell>
-                    <TableCell>
+                    <TableCell className="flex gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => openEditAd(a)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                       <Button
                         size="icon"
                         variant="ghost"
