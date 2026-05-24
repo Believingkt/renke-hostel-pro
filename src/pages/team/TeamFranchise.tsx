@@ -2185,13 +2185,43 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
 
   const openCreate = () => {
     setEditingId(null);
-    setForm({
-      ...emptyExternalForm(),
-      member_number: nextMemberNumber(rows.map((r) => r.member_number), "T"),
-    });
+    const empty = emptyExternalForm();
+    const projectName = (empty.project_name ?? "").trim();
+    const order = projectName ? projectOrderMap[projectName] : 0;
+    const auto = order
+      ? nextMemberNumberForProject(
+          rows.filter((r) => (r.project_name ?? "") === projectName).map((r) => r.member_number),
+          "T",
+          order,
+        )
+      : "";
+    setForm({ ...empty, member_number: auto });
     setMemberNumberError("");
     setSheetOpen(true);
   };
+
+  // Auto recompute member_number when project_name changes in the new-order sheet,
+  // only if the field is empty or still holds an auto-generated value.
+  useEffect(() => {
+    if (!sheetOpen || editingId) return;
+    const projectName = (form.project_name ?? "").trim();
+    if (!projectName) return;
+    const order = projectOrderMap[projectName];
+    if (!order) return;
+    const current = (form.member_number ?? "").trim();
+    if (current && !isAutoMemberNumber(current, "T")) return;
+    const auto = nextMemberNumberForProject(
+      rows.filter((r) => (r.project_name ?? "") === projectName).map((r) => r.member_number),
+      "T",
+      order,
+    );
+    if (auto && auto !== current) {
+      setForm((prev) => ({ ...prev, member_number: auto }));
+      setMemberNumberError("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.project_name, sheetOpen, editingId, projectOrderMap, rows]);
+
 
   const openEdit = (row: ExternalOrder) => {
     setEditingId(row.id);
