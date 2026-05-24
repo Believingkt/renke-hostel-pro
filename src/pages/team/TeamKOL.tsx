@@ -1237,7 +1237,7 @@ function InvitationsTab({
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                 />
               </Field>
-              <Field label="網紅帳號 *">
+              <Field label="網紅帳號連結 *">
                 <Input
                   value={form.ig_handle}
                   onChange={(e) =>
