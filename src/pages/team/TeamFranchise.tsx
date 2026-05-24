@@ -371,6 +371,7 @@ function OrdersTab({
     sold_by: "",
     sold_at: new Date().toISOString().slice(0, 10),
     payment_confirmed: false,
+    payment_at: "",
     invoice_number: "",
     notes: "",
   });
@@ -390,6 +391,7 @@ function OrdersTab({
         plan_price: detailOrder.plan_price,
         sold_at: detailOrder.sold_at,
         payment_confirmed: detailOrder.payment_confirmed,
+        payment_at: detailOrder.payment_at,
       } as any);
     }
   }, [detailOrder]);
@@ -571,7 +573,7 @@ function OrdersTab({
       company_amount: Math.round(planPrice * company_rate),
       sold_at: form.sold_at,
       payment_confirmed: form.payment_confirmed,
-      payment_at: form.payment_confirmed ? form.sold_at : null,
+      payment_at: form.payment_at || null,
       invoice_number: form.invoice_number.trim() || null,
       notes: form.notes.trim() || null,
       created_by: currentUserId,
@@ -594,6 +596,7 @@ function OrdersTab({
       sold_by: "",
       sold_at: new Date().toISOString().slice(0, 10),
       payment_confirmed: false,
+      payment_at: "",
       invoice_number: "",
       notes: "",
     });
@@ -852,9 +855,31 @@ function OrdersTab({
               <Checkbox
                 id="payment_confirmed"
                 checked={form.payment_confirmed}
-                onCheckedChange={(v) => setForm({ ...form, payment_confirmed: !!v })}
+                onCheckedChange={(v) => {
+                  const confirmed = !!v;
+                  setForm({
+                    ...form,
+                    payment_confirmed: confirmed,
+                    payment_at: confirmed ? form.payment_at : "",
+                  });
+                }}
               />
               <Label htmlFor="payment_confirmed">付款已確認</Label>
+            </div>
+            <div className="space-y-1">
+              <Label>匯款日期</Label>
+              <Input
+                type="date"
+                value={form.payment_at}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setForm({
+                    ...form,
+                    payment_at: v,
+                    payment_confirmed: v ? true : false,
+                  });
+                }}
+              />
             </div>
             <div className="space-y-1">
               <Label>發票號碼</Label>
@@ -989,7 +1014,14 @@ function OrdersTab({
                     <Checkbox
                       id="detail_payment"
                       checked={!!detailForm.payment_confirmed}
-                      onCheckedChange={(v) => setDetailForm({ ...detailForm, payment_confirmed: !!v })}
+                      onCheckedChange={(v) => {
+                        const confirmed = !!v;
+                        setDetailForm({
+                          ...detailForm,
+                          payment_confirmed: confirmed,
+                          payment_at: confirmed ? (detailForm.payment_at ?? null) : null,
+                        });
+                      }}
                     />
                     <Label htmlFor="detail_payment">已付款</Label>
                   </div>
@@ -997,6 +1029,24 @@ function OrdersTab({
                   <Badge variant={detailOrder.payment_confirmed ? "success" : "secondary"}>
                     {detailOrder.payment_confirmed ? "已付款" : "未付款"}
                   </Badge>
+                )}
+              </DetailRow>
+              <DetailRow label="匯款日期">
+                {detailEditing ? (
+                  <Input
+                    type="date"
+                    value={(detailForm.payment_at as string) ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setDetailForm({
+                        ...detailForm,
+                        payment_at: v || null,
+                        payment_confirmed: v ? true : false,
+                      });
+                    }}
+                  />
+                ) : (
+                  detailOrder.payment_at ?? "—"
                 )}
               </DetailRow>
               <DetailRow label="發票號碼">
@@ -1037,7 +1087,7 @@ function OrdersTab({
                     plan_price: Number(detailForm.plan_price ?? detailOrder.plan_price) || 0,
                     sold_at: (detailForm.sold_at as string) || null,
                     payment_confirmed: !!detailForm.payment_confirmed,
-                    payment_at: detailForm.payment_confirmed ? ((detailForm.sold_at as string) || detailOrder.sold_at) : null,
+                    payment_at: (detailForm.payment_at as string) || null,
                     invoice_number: (detailForm.invoice_number as string)?.trim() || null,
                     notes: (detailForm.notes as string)?.trim() || null,
                   };
