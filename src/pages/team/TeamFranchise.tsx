@@ -2022,6 +2022,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
   const openEdit = (row: ExternalOrder) => {
     setEditingId(row.id);
     setForm({ ...row });
+    setMemberNumberError("");
     setDetail(null);
     setEditing(false);
     setSheetOpen(true);
