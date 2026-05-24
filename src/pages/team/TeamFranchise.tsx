@@ -2036,6 +2036,20 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
       toast.error("請填寫會員姓名");
       return;
     }
+    if (memberNumberError) {
+      toast.error(memberNumberError);
+      return;
+    }
+    const mn = (form.member_number ?? "").trim();
+    if (mn) {
+      const q = supabase.from("franchise_external_orders").select("id").eq("member_number", mn).limit(1);
+      const { data } = editingId ? await q.neq("id", editingId) : await q;
+      if ((data ?? []).length > 0) {
+        setMemberNumberError("此編號已使用");
+        toast.error("此編號已使用");
+        return;
+      }
+    }
     const payload = {
       project_name: form.project_name?.trim() || "森山第一期",
       signed_at: form.signed_at || null,
