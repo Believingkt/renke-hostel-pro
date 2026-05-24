@@ -29,8 +29,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Pencil } from "lucide-react";
+import { Pencil, Check, X } from "lucide-react";
 
 interface Member {
   user_id: string;
