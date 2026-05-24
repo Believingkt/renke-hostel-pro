@@ -668,39 +668,45 @@ export default function TeamMembers() {
                 </div>
               )}
 
-              <div className="space-y-2">
-                <Label>角色</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {ALL_INVITABLE_ROLES.map((role) => {
-                    const parent = CHILD_OF[role];
-                    const lockedByManager = !!(parent && editRoles.includes(parent));
-                    return (
-                      <label
-                        key={role}
-                        title={lockedByManager ? "已由主管角色包含" : undefined}
-                        className={`flex items-center gap-2 border rounded-md px-2 py-1.5 ${
-                          lockedByManager ? "opacity-50 cursor-not-allowed bg-muted/30" : "cursor-pointer hover:bg-muted/50"
-                        }`}
-                      >
-                        <Checkbox
-                          checked={editRoles.includes(role)}
-                          disabled={lockedByManager}
-                          onCheckedChange={() => !lockedByManager && toggleEditRole(role)}
-                        />
-                        <span className="text-sm">{ROLE_LABEL[role]}</span>
-                        {lockedByManager && <span className="text-[10px] text-muted-foreground">已含於主管</span>}
-                      </label>
-                    );
-                  })}
+              {editTarget?.user_id ? (
+                <div className="space-y-2">
+                  <Label>角色</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {ALL_INVITABLE_ROLES.map((role) => {
+                      const parent = CHILD_OF[role];
+                      const lockedByManager = !!(parent && editRoles.includes(parent));
+                      return (
+                        <label
+                          key={role}
+                          title={lockedByManager ? "已由主管角色包含" : undefined}
+                          className={`flex items-center gap-2 border rounded-md px-2 py-1.5 ${
+                            lockedByManager ? "opacity-50 cursor-not-allowed bg-muted/30" : "cursor-pointer hover:bg-muted/50"
+                          }`}
+                        >
+                          <Checkbox
+                            checked={editRoles.includes(role)}
+                            disabled={lockedByManager}
+                            onCheckedChange={() => !lockedByManager && toggleEditRole(role)}
+                          />
+                          <span className="text-sm">{ROLE_LABEL[role]}</span>
+                          {lockedByManager && <span className="text-[10px] text-muted-foreground">已含於主管</span>}
+                        </label>
+                      );
+                    })}
 
-                  {editTarget?.roles.includes("super_admin") && !isNorris && (
-                    <label className="flex items-center gap-2 border rounded-md px-2 py-1.5 opacity-50 cursor-not-allowed">
-                      <Checkbox checked disabled />
-                      <span className="text-sm">{ROLE_LABEL.super_admin}</span>
-                    </label>
-                  )}
+                    {editTarget?.roles.includes("super_admin") && !isNorris && (
+                      <label className="flex items-center gap-2 border rounded-md px-2 py-1.5 opacity-50 cursor-not-allowed">
+                        <Checkbox checked disabled />
+                        <span className="text-sm">{ROLE_LABEL.super_admin}</span>
+                      </label>
+                    )}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <p className="text-xs text-muted-foreground border rounded-md px-3 py-2 bg-muted/30">
+                  此為無帳號成員，僅供顯示管理用途，無法指派角色。
+                </p>
+              )}
 
               <div className="flex items-center justify-between border-t pt-4">
                 <Label htmlFor="active-switch">啟用狀態</Label>
