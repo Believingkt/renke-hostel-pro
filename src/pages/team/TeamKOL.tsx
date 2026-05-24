@@ -134,8 +134,7 @@ interface FormState {
   accommodation_id: string;
   name: string;
   ig_handle: string;
-  ig_url: string;
-  rarity: Rarity | "";
+  rarity: string;
   scout_id: string;
   invited_at: string;
   check_in_date: string;
@@ -154,15 +153,14 @@ interface FormState {
   publish_date: string;
   order_number: string;
   inventory_count: string;
-  kol_tags_input: string;
+  kol_tags: string[];
 }
 
 const EMPTY_FORM: FormState = {
   accommodation_id: "",
   name: "",
   ig_handle: "",
-  ig_url: "",
-  rarity: "",
+  rarity: "ck",
   scout_id: "",
   invited_at: "",
   check_in_date: "",
@@ -181,8 +179,23 @@ const EMPTY_FORM: FormState = {
   publish_date: "",
   order_number: "",
   inventory_count: "",
-  kol_tags_input: "",
+  kol_tags: [],
 };
+
+interface RaritySetting {
+  rarity: string;
+  fan_range_desc: string | null;
+  bonus_amount: number;
+  effective_from: string;
+}
+
+function todayStr(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 function toNullable(v: string): string | null {
   const t = v.trim();
