@@ -994,11 +994,12 @@ function InvitationsTab({
                   <TableHead>稀有度</TableHead>
                   <TableHead>館別</TableHead>
                   <TableHead>入住日期</TableHead>
+                  <TableHead>星期</TableHead>
                   <TableHead>邀約人</TableHead>
+                  <TableHead>狀態</TableHead>
                   <TableHead>合約進度</TableHead>
                   <TableHead>任務</TableHead>
                   <TableHead>發布日期</TableHead>
-                  <TableHead>狀態</TableHead>
                   <TableHead className="text-right">操作</TableHead>
                 </TableRow>
               </TableHeader>
