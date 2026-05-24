@@ -517,11 +517,11 @@ function InvitationsTab({
       );
     }
     const accMap = new Map(accommodations.map((a) => [a.id, a.name]));
-    const enriched = (data ?? []).map((r) => ({
+    const enriched = (data ?? []).map((r: any) => ({
       ...r,
       _accommodation_name: r.accommodation_id
         ? accMap.get(r.accommodation_id) ?? "-"
-        : "-",
+        : r.venue_name ?? "-",
       _scout_name: r.scout_id ? scoutMap.get(r.scout_id) ?? "-" : "-",
     })) as KolRow[];
     setRows(enriched);
