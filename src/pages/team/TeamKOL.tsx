@@ -418,11 +418,27 @@ function InvitationsTab({
 
   const fetchRows = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const from = (page - 1) * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+
+    let q = supabase
       .from("kol_profiles")
-      .select("*")
-      .eq("is_error", false)
-      .order("created_at", { ascending: false });
+      .select("*", { count: "exact" })
+      .eq("is_error", false);
+
+    if (filterAcc !== "all") q = q.eq("accommodation_id", filterAcc);
+    if (filterRarity !== "all") q = q.eq("rarity", filterRarity);
+    if (filterTags.length > 0) q = q.overlaps("kol_tags", filterTags);
+    const s = search.trim();
+    if (s) {
+      const esc = s.replace(/[%,()]/g, " ");
+      q = q.or(`name.ilike.%${esc}%,ig_handle.ilike.%${esc}%`);
+    }
+
+    const { data, count, error } = await q
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
     if (error) {
       toast.error(error.message);
       setLoading(false);
@@ -451,31 +467,23 @@ function InvitationsTab({
       _scout_name: r.scout_id ? scoutMap.get(r.scout_id) ?? "-" : "-",
     })) as KolRow[];
     setRows(enriched);
+    setTotalCount(count ?? 0);
     setLoading(false);
-  }, [accommodations]);
+  }, [accommodations, page, search, filterAcc, filterRarity, filterTags]);
 
   useEffect(() => {
     if (accommodations.length > 0) fetchRows();
   }, [fetchRows, accommodations.length]);
 
-  // 篩選
-  const filtered = useMemo(() => {
-    const s = search.trim().toLowerCase();
-    return rows.filter((r) => {
-      if (filterAcc !== "all" && r.accommodation_id !== filterAcc) return false;
-      if (filterRarity !== "all" && r.rarity !== filterRarity) return false;
-      if (filterTags.length > 0) {
-        const tagSet = new Set(r.kol_tags ?? []);
-        if (!filterTags.some((t) => tagSet.has(t))) return false;
-      }
-      if (s) {
-        const a = (r.name ?? "").toLowerCase();
-        const b = (r.ig_handle ?? "").toLowerCase();
-        if (!a.includes(s) && !b.includes(s)) return false;
-      }
-      return true;
-    });
-  }, [rows, search, filterAcc, filterRarity, filterTags]);
+  // 篩選條件變更時，重置到第一頁
+  useEffect(() => {
+    setPage(1);
+  }, [search, filterAcc, filterRarity, filterTags]);
+
+  // 伺服器端已套用篩選，直接使用 rows
+  const filtered = rows;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
 
   // 入住日期 → 自動計算星期幾
   useEffect(() => {
