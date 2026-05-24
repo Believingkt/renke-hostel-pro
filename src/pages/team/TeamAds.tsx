@@ -550,7 +550,7 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
               填寫廣告編號時，系統會根據廣告名稱自動比對關鍵字並帶入影音組成員
             </p>
           </div>
-          <Button size="sm" onClick={() => setRuleDialogOpen(true)}>
+          <Button size="sm" onClick={openNewRule}>
             <Plus className="h-4 w-4 mr-1" /> 新增規則
           </Button>
         </CardHeader>
