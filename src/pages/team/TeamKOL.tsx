@@ -2115,12 +2115,18 @@ function ProspectsTab({
           </PopoverTrigger>
           <PopoverContent className="w-56 p-2" align="start">
             <div className="max-h-60 overflow-y-auto space-y-1">
-              {allTags.length === 0 && (
-                <div className="text-xs text-muted-foreground py-2 text-center">
-                  尚無標籤
-                </div>
-              )}
-              {allTags.map((t) => {
+              {(() => {
+                const usedTags = Array.from(
+                  new Set(rows.flatMap((r) => r.tags ?? [])),
+                ).sort((a, b) => a.localeCompare(b));
+                if (usedTags.length === 0) {
+                  return (
+                    <div className="text-xs text-muted-foreground py-2 text-center">
+                      尚無標籤
+                    </div>
+                  );
+                }
+                return usedTags.map((t) => {
                 const checked = filterTags.includes(t);
                 return (
                   <label
