@@ -906,94 +906,303 @@ function InvitationsTab({
         </Card>
       ) : (
         <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>KOL 名稱</TableHead>
-                <TableHead>IG 帳號</TableHead>
-                <TableHead>稀有度</TableHead>
-                <TableHead>館別</TableHead>
-                <TableHead>入住日期</TableHead>
-                <TableHead>邀約人</TableHead>
-                <TableHead>狀態</TableHead>
-                <TableHead className="text-right">操作</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((r) => (
-                <TableRow
-                  key={r.id}
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => openEdit(r)}
-                >
-                  <TableCell>
-                    {r.name ?? "-"}
-                    {r.is_error && (
-                      <Badge
-                        variant="outline"
-                        className="ml-2 bg-red-100 text-red-700 border-red-300"
-                      >
-                        填錯
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>@{r.ig_handle ?? "-"}</TableCell>
-                  <TableCell>
-                    {r.rarity && (
-                      <Badge
-                        variant="outline"
-                        className={RARITY_CLASS[r.rarity as Rarity]}
-                      >
-                        {r.rarity}
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>{r._accommodation_name}</TableCell>
-                  <TableCell>{r.check_in_date ?? "-"}</TableCell>
-                  <TableCell>{r._scout_name}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={
-                        BOOKING_STATUS_CLASS[
-                          r.booking_status as BookingStatus
-                        ] ?? ""
-                      }
-                    >
-                      {BOOKING_STATUS_LABEL[
-                        r.booking_status as BookingStatus
-                      ] ??
-                        r.booking_status ??
-                        "-"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => openEdit(r)}
-                    >
-                      編輯
-                    </Button>
-                    {canReportError(r) && !r.is_error && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          setErrorTarget(r);
-                          setErrorReason("");
-                        }}
-                      >
-                        填錯
-                      </Button>
-                    )}
-                  </TableCell>
+          <div className="w-full overflow-x-auto">
+            <Table className="[&_th]:whitespace-nowrap [&_td]:whitespace-nowrap">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>KOL 名稱</TableHead>
+                  <TableHead>折扣碼 / CID</TableHead>
+                  <TableHead>稀有度</TableHead>
+                  <TableHead>館別</TableHead>
+                  <TableHead>入住日期</TableHead>
+                  <TableHead>邀約人</TableHead>
+                  <TableHead>合約進度</TableHead>
+                  <TableHead>任務</TableHead>
+                  <TableHead>發布日期</TableHead>
+                  <TableHead>狀態</TableHead>
+                  <TableHead className="text-right">操作</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((r) => {
+                  const igUrl = r.ig_handle
+                    ? `https://instagram.com/${r.ig_handle.replace(/^@/, "")}`
+                    : null;
+                  const contractDone =
+                    (r.contract_progress ?? "").includes("已上傳") ||
+                    (r.contract_progress ?? "").toLowerCase().includes("uploaded");
+                  const codeOrCid = r.cid_code ?? r.short_url ?? "-";
+                  return (
+                    <TableRow
+                      key={r.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => setViewingRow(r)}
+                    >
+                      <TableCell>
+                        {igUrl ? (
+                          <a
+                            href={igUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-primary hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {r.name ?? "-"}
+                          </a>
+                        ) : (
+                          r.name ?? "-"
+                        )}
+                        {r.is_error && (
+                          <Badge
+                            variant="outline"
+                            className="ml-2 bg-red-100 text-red-700 border-red-300"
+                          >
+                            填錯
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>{codeOrCid}</TableCell>
+                      <TableCell>
+                        {r.rarity && (
+                          <Badge
+                            variant="outline"
+                            className={RARITY_CLASS[r.rarity as Rarity] ?? ""}
+                          >
+                            {r.rarity}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>{r._accommodation_name}</TableCell>
+                      <TableCell>{r.check_in_date ?? "-"}</TableCell>
+                      <TableCell>{r._scout_name}</TableCell>
+                      <TableCell>
+                        {r.contract_progress ? (
+                          <Badge
+                            variant="outline"
+                            className={
+                              contractDone
+                                ? "bg-green-100 text-green-700 border-green-200"
+                                : "bg-gray-100 text-gray-700 border-gray-200"
+                            }
+                          >
+                            {r.contract_progress}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          {[
+                            { ok: !!r.task_pre_stay, label: "前" },
+                            { ok: !!r.task_post_story, label: "後" },
+                            { ok: !!r.task_ig_collab, label: "協" },
+                          ].map((t, i) => (
+                            <span
+                              key={i}
+                              title={
+                                t.label === "前"
+                                  ? "入住前四件套"
+                                  : t.label === "後"
+                                    ? "入住後限動"
+                                    : "IG 協作"
+                              }
+                              className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] ${
+                                t.ok
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-gray-100 text-gray-400"
+                              }`}
+                            >
+                              {t.ok ? <Check className="h-3 w-3" /> : t.label}
+                            </span>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {r.publish_date ? (
+                          r.publish_url ? (
+                            <a
+                              href={r.publish_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-primary hover:underline inline-flex items-center gap-1"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {r.publish_date}
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          ) : (
+                            r.publish_date
+                          )
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={
+                            BOOKING_STATUS_CLASS[
+                              r.booking_status as BookingStatus
+                            ] ?? ""
+                          }
+                        >
+                          {BOOKING_STATUS_LABEL[
+                            r.booking_status as BookingStatus
+                          ] ??
+                            r.booking_status ??
+                            "-"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell
+                        className="text-right"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8"
+                          onClick={() => openEdit(r)}
+                          aria-label="編輯"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         </Card>
       )}
+
+      {/* 詳情 Drawer */}
+      <Sheet open={!!viewingRow} onOpenChange={(o) => !o && setViewingRow(null)}>
+        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>邀約明細</SheetTitle>
+          </SheetHeader>
+          {viewingRow && (() => {
+            const r = viewingRow;
+            const igUrl = r.ig_handle
+              ? `https://instagram.com/${r.ig_handle.replace(/^@/, "")}`
+              : null;
+            const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
+              <div className="grid grid-cols-3 gap-2 py-1.5 border-b border-border/50 last:border-0">
+                <div className="text-xs text-muted-foreground">{label}</div>
+                <div className="col-span-2 text-sm break-all">{children}</div>
+              </div>
+            );
+            return (
+              <div className="mt-4">
+                <Row label="KOL 名稱">
+                  {igUrl ? (
+                    <a href={igUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                      {r.name ?? "-"}
+                    </a>
+                  ) : (
+                    r.name ?? "-"
+                  )}
+                </Row>
+                <Row label="IG 帳號">
+                  {igUrl ? (
+                    <a href={igUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
+                      {igUrl}
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  ) : (
+                    "-"
+                  )}
+                </Row>
+                <Row label="網紅帳號">{r.ig_handle ? `@${r.ig_handle}` : "-"}</Row>
+                <Row label="稀有度">
+                  {r.rarity ? (
+                    <Badge variant="outline" className={RARITY_CLASS[r.rarity as Rarity] ?? ""}>
+                      {r.rarity}
+                    </Badge>
+                  ) : "-"}
+                </Row>
+                <Row label="館別">{r._accommodation_name ?? "-"}</Row>
+                <Row label="入住日期">{r.check_in_date ?? "-"}</Row>
+                <Row label="邀約人">{r._scout_name ?? "-"}</Row>
+                <Row label="折扣碼 / CID">{r.cid_code ?? r.short_url ?? "-"}</Row>
+                <Row label="合約進度">{r.contract_progress ?? "-"}</Row>
+                <Row label="合約檔案">
+                  {r.contract_file_url ? (
+                    <a href={r.contract_file_url} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
+                      開啟連結 <ExternalLink className="h-3 w-3" />
+                    </a>
+                  ) : "-"}
+                </Row>
+                <Row label="任務完成">
+                  <div className="flex flex-col gap-1">
+                    {[
+                      { ok: !!r.task_pre_stay, label: "入住前四件套" },
+                      { ok: !!r.task_post_story, label: "入住後限動" },
+                      { ok: !!r.task_ig_collab, label: "IG 協作" },
+                    ].map((t, i) => (
+                      <div key={i} className="flex items-center gap-2 text-sm">
+                        {t.ok ? (
+                          <Check className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <X className="h-4 w-4 text-muted-foreground" />
+                        )}
+                        {t.label}
+                      </div>
+                    ))}
+                  </div>
+                </Row>
+                <Row label="發布連結">
+                  {r.publish_url ? (
+                    <a href={r.publish_url} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
+                      {r.publish_url}
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  ) : "-"}
+                </Row>
+                <Row label="發布日期">{r.publish_date ?? "-"}</Row>
+                <Row label="訂單編號">{r.order_number ?? "-"}</Row>
+                <Row label="狀態">
+                  <Badge
+                    variant="outline"
+                    className={BOOKING_STATUS_CLASS[r.booking_status as BookingStatus] ?? ""}
+                  >
+                    {BOOKING_STATUS_LABEL[r.booking_status as BookingStatus] ?? r.booking_status ?? "-"}
+                  </Badge>
+                </Row>
+                <Row label="填寫日期">{r.invited_at ?? "-"}</Row>
+              </div>
+            );
+          })()}
+          <SheetFooter className="mt-6">
+            {viewingRow && canReportError(viewingRow) && !viewingRow.is_error && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setErrorTarget(viewingRow);
+                  setErrorReason("");
+                  setViewingRow(null);
+                }}
+              >
+                回報填錯
+              </Button>
+            )}
+            {viewingRow && canEditRow(viewingRow) && (
+              <Button
+                onClick={() => {
+                  const target = viewingRow;
+                  setViewingRow(null);
+                  openEdit(target);
+                }}
+              >
+                編輯
+              </Button>
+            )}
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
 
       {/* 新增/編輯 Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
