@@ -73,10 +73,12 @@ serve(async (req) => {
           .filter((item: GovernmentHoliday) =>
             item.isHoliday === '是' &&
             (item.holidayCategory === '放假之紀念日及節日' ||
-             item.holidayCategory.includes('放假'))
+             item.holidayCategory.includes('放假') ||
+             item.holidayCategory.includes('補假') ||
+             (item.name || '').includes('補假'))
           )
           .filter((item: GovernmentHoliday) =>
-            // 過濾掉純例假日（星期六/星期日無名稱），只留有名稱的國定假日
+            // 過濾掉純例假日（星期六/星期日無名稱），只留有名稱的國定假日 / 補假
             item.name &&
             item.name.trim() !== '' &&
             !item.name.includes('星期')

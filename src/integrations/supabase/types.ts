@@ -5019,6 +5019,7 @@ export type Database = {
           holiday_name: string
           holiday_type: string
           id: string
+          is_custom: boolean
           updated_at: string
         }
         Insert: {
@@ -5028,6 +5029,7 @@ export type Database = {
           holiday_name: string
           holiday_type?: string
           id?: string
+          is_custom?: boolean
           updated_at?: string
         }
         Update: {
@@ -5037,6 +5039,7 @@ export type Database = {
           holiday_name?: string
           holiday_type?: string
           id?: string
+          is_custom?: boolean
           updated_at?: string
         }
         Relationships: [
