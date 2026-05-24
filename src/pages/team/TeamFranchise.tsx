@@ -960,6 +960,25 @@ function OrdersTab({
           </SheetHeader>
           {detailOrder && (
             <div className="space-y-3 mt-4 text-sm">
+              <DetailRow label="會員編號">
+                {detailEditing ? (
+                  <div className="space-y-1">
+                    <Input
+                      value={(detailForm.member_number as string) ?? ""}
+                      onChange={(e) => {
+                        setDetailForm({ ...detailForm, member_number: e.target.value });
+                        setDetailMemberNumberError("");
+                      }}
+                      onBlur={(e) => void checkDetailMemberNumberDup(e.target.value)}
+                    />
+                    {detailMemberNumberError && (
+                      <p className="text-xs text-destructive">{detailMemberNumberError}</p>
+                    )}
+                  </div>
+                ) : (
+                  detailOrder.member_number ?? "—"
+                )}
+              </DetailRow>
               <DetailRow label="客戶姓名">
                 {detailEditing ? (
                   <Input
