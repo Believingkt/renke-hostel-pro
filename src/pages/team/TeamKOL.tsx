@@ -316,8 +316,13 @@ function InvitationsTab({
   const [search, setSearch] = useState("");
   const [filterAcc, setFilterAcc] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterTags, setFilterTags] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
   const [showInvalid, setShowInvalid] = useState(false);
+
+  // 稀有度版本 & 標籤字典
+  const [rarities, setRarities] = useState<RaritySetting[]>([]);
+  const [allTags, setAllTags] = useState<string[]>([]);
 
   // Sheet 表單
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -325,6 +330,7 @@ function InvitationsTab({
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [dupWarning, setDupWarning] = useState<string | null>(null);
+  const [newTagInput, setNewTagInput] = useState("");
 
   // 填錯 Dialog
   const [errorTarget, setErrorTarget] = useState<KolRow | null>(null);
@@ -334,13 +340,18 @@ function InvitationsTab({
   // 載入下拉資料
   useEffect(() => {
     (async () => {
-      const [accRes, scoutRes, scoutMgrRes] = await Promise.all([
+      const [accRes, scoutRes, scoutMgrRes, rarRes, tagRes] = await Promise.all([
         supabase
           .from("accommodation_info")
           .select("id, name, booking_type, short_url_alias")
           .order("name"),
         supabase.rpc("get_team_role_members", { p_role: "scout" }),
         supabase.rpc("get_team_role_members", { p_role: "scout_manager" as any }),
+        supabase
+          .from("kol_rarity_settings" as any)
+          .select("rarity, fan_range_desc, bonus_amount, effective_from")
+          .order("effective_from", { ascending: false }),
+        supabase.from("kol_tags" as any).select("name").order("name"),
       ]);
       if (accRes.data) setAccommodations(accRes.data as Accommodation[]);
       {
@@ -357,9 +368,48 @@ function InvitationsTab({
         list.sort((a, b) => a.display_name.localeCompare(b.display_name));
         setScouts(list);
       }
-
+      if (rarRes.data) {
+        // 只保留最新版本的六個稀有度
+        const seen = new Set<string>();
+        const latest: RaritySetting[] = [];
+        for (const r of rarRes.data as any[]) {
+          if (!seen.has(r.rarity)) {
+            seen.add(r.rarity);
+            latest.push(r as RaritySetting);
+          }
+        }
+        // 依固定順序排
+        const order = ["N", "R", "SR", "SSR", "UR", "ck"];
+        latest.sort((a, b) => order.indexOf(a.rarity) - order.indexOf(b.rarity));
+        setRarities(latest);
+      }
+      if (tagRes.data) {
+        setAllTags((tagRes.data as any[]).map((t) => t.name));
+      }
     })();
   }, []);
+
+  const reloadTags = useCallback(async () => {
+    const { data } = await supabase.from("kol_tags" as any).select("name").order("name");
+    if (data) setAllTags((data as any[]).map((t) => t.name));
+  }, []);
+
+  const handleAddNewTag = async (name: string) => {
+    const t = name.trim();
+    if (!t) return;
+    if (allTags.includes(t)) {
+      toast.error("此標籤已存在");
+      return;
+    }
+    const { error } = await supabase.from("kol_tags" as any).insert({ name: t });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    await reloadTags();
+    toast.success("已新增標籤");
+  };
+
 
   const fetchRows = useCallback(async () => {
     setLoading(true);
