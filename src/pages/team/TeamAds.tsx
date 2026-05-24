@@ -632,10 +632,16 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
       </Card>
 
       {/* Dialog: common ad id */}
-      <Dialog open={adDialogOpen} onOpenChange={setAdDialogOpen}>
+      <Dialog
+        open={adDialogOpen}
+        onOpenChange={(o) => {
+          setAdDialogOpen(o);
+          if (!o) setEditingAdId(null);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>新增常用廣告編號</DialogTitle>
+            <DialogTitle>{editingAdId ? "編輯常用廣告編號" : "新增常用廣告編號"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1">
@@ -652,22 +658,12 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
                 onChange={(e) => setAdForm({ ...adForm, ad_id: e.target.value })}
               />
             </div>
-            <div className="space-y-1">
-              <Label>排序</Label>
-              <Input
-                type="number"
-                value={adForm.sort_order}
-                onChange={(e) =>
-                  setAdForm({ ...adForm, sort_order: Number(e.target.value) })
-                }
-              />
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAdDialogOpen(false)}>
               取消
             </Button>
-            <Button onClick={saveAd}>新增</Button>
+            <Button onClick={saveAd}>{editingAdId ? "更新" : "新增"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
