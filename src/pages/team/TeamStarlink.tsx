@@ -1604,7 +1604,7 @@ function MonthlyChart({ data }: { data: { month: string; amount: number }[] }) {
           <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" />
           <XAxis dataKey="month" tick={{ fontSize: 12 }} />
           <YAxis tick={{ fontSize: 12 }} tickFormatter={(v: number) => v.toLocaleString()} />
-          <Tooltip
+          <RTooltip
             formatter={(v: number) => [`NT$ ${Number(v).toLocaleString()}`, "銷售金額"]}
             labelStyle={{ color: "hsl(var(--foreground))" }}
             contentStyle={{
