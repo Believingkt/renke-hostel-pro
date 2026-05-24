@@ -470,6 +470,29 @@ function OrdersTab({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Auto recompute member_number when project (plan_name) changes in the new-order sheet,
+  // only if the field is empty or still holds an auto-generated value.
+  useEffect(() => {
+    if (!sheetOpen) return;
+    const planName = form.plan_name?.trim() || "";
+    if (!planName) return;
+    const order = projectOrderMap[planName];
+    if (!order) return;
+    const current = (form.member_number ?? "").trim();
+    if (current && !isAutoMemberNumber(current, "S")) return;
+    const auto = nextMemberNumberForProject(
+      orders.filter((o) => (o.plan_name ?? "") === planName).map((o) => o.member_number),
+      "S",
+      order,
+    );
+    if (auto && auto !== current) {
+      setForm((prev) => ({ ...prev, member_number: auto }));
+      setMemberNumberError("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.plan_name, sheetOpen, projectOrderMap, orders]);
+
+
   const loadAll = async () => {
     const [o, ftsRes, ratesRes] = await Promise.all([
       supabase
