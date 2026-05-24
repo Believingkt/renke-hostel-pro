@@ -2313,6 +2313,7 @@ export type Database = {
       franchise_orders: {
         Row: {
           accommodation_type: string | null
+          card_status: string | null
           commission_amount: number | null
           commission_rate: number | null
           company_amount: number | null
@@ -2344,9 +2345,19 @@ export type Database = {
           sold_by_name: string | null
           team_leader: string | null
           updated_at: string | null
+          voucher_address: string | null
+          voucher_batch: string | null
+          voucher_count: number | null
+          voucher_handler: string | null
+          voucher_note: string | null
+          voucher_serial_end: number | null
+          voucher_serial_start: number | null
+          voucher_start_date: string | null
+          voucher_status: string | null
         }
         Insert: {
           accommodation_type?: string | null
+          card_status?: string | null
           commission_amount?: number | null
           commission_rate?: number | null
           company_amount?: number | null
@@ -2378,9 +2389,19 @@ export type Database = {
           sold_by_name?: string | null
           team_leader?: string | null
           updated_at?: string | null
+          voucher_address?: string | null
+          voucher_batch?: string | null
+          voucher_count?: number | null
+          voucher_handler?: string | null
+          voucher_note?: string | null
+          voucher_serial_end?: number | null
+          voucher_serial_start?: number | null
+          voucher_start_date?: string | null
+          voucher_status?: string | null
         }
         Update: {
           accommodation_type?: string | null
+          card_status?: string | null
           commission_amount?: number | null
           commission_rate?: number | null
           company_amount?: number | null
@@ -2412,6 +2433,15 @@ export type Database = {
           sold_by_name?: string | null
           team_leader?: string | null
           updated_at?: string | null
+          voucher_address?: string | null
+          voucher_batch?: string | null
+          voucher_count?: number | null
+          voucher_handler?: string | null
+          voucher_note?: string | null
+          voucher_serial_end?: number | null
+          voucher_serial_start?: number | null
+          voucher_start_date?: string | null
+          voucher_status?: string | null
         }
         Relationships: [
           {
