@@ -2297,7 +2297,14 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
             <div className="grid grid-cols-3 gap-2">
               <div className="space-y-1">
                 <Label>會員編號</Label>
-                <Input value={form.member_number ?? ""} onChange={(e) => onChange("member_number", e.target.value)} />
+                <Input
+                  value={form.member_number ?? ""}
+                  onChange={(e) => { onChange("member_number", e.target.value); setMemberNumberError(""); }}
+                  onBlur={(e) => void checkExtMemberNumberDup(e.target.value)}
+                />
+                {memberNumberError && (
+                  <p className="text-xs text-destructive">{memberNumberError}</p>
+                )}
               </div>
               <div className="space-y-1">
                 <Label>會員姓名 *</Label>
