@@ -818,3 +818,164 @@ function ReadField({ label, value }: { label: string; value: string }) {
   );
 }
 
+
+interface OptionItem {
+  id: string;
+  name: string;
+  is_active: boolean;
+  sort_order: number | null;
+}
+
+interface OptionsCardProps {
+  title: string;
+  items: OptionItem[];
+  isAdmin: boolean;
+  newValue: string;
+  setNewValue: (v: string) => void;
+  onAdd: () => void;
+  onToggle: (id: string, next: boolean) => void;
+  editingId: string | null;
+  editingName: string;
+  onStartEdit: (id: string, name: string) => void;
+  onCancelEdit: () => void;
+  onChangeEditName: (v: string) => void;
+  onSaveEdit: (id: string) => void;
+}
+
+function OptionsCard({
+  title,
+  items,
+  isAdmin,
+  newValue,
+  setNewValue,
+  onAdd,
+  onToggle,
+  editingId,
+  editingName,
+  onStartEdit,
+  onCancelEdit,
+  onChangeEditName,
+  onSaveEdit,
+}: OptionsCardProps) {
+  return (
+    <Card>
+      <CardContent className="p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">{title}</h2>
+          <span className="text-sm text-muted-foreground">
+            共 {items.length} 個選項
+          </span>
+        </div>
+
+        <Table className="fixed-table">
+          <TableHeader>
+            <TableRow>
+              <TableHead>名稱</TableHead>
+              <TableHead className="w-28">狀態</TableHead>
+              <TableHead className="w-32 text-right">操作</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {items.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={3} className="text-center py-6 text-muted-foreground">
+                  尚無選項
+                </TableCell>
+              </TableRow>
+            ) : (
+              items.map((o) => (
+                <TableRow key={o.id}>
+                  <TableCell>
+                    {editingId === o.id ? (
+                      <Input
+                        value={editingName}
+                        onChange={(e) => onChangeEditName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") onSaveEdit(o.id);
+                          if (e.key === "Escape") onCancelEdit();
+                        }}
+                        className="h-8"
+                        autoFocus
+                      />
+                    ) : (
+                      <span className={!o.is_active ? "text-muted-foreground line-through" : ""}>
+                        {o.name}
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {isAdmin ? (
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={o.is_active}
+                          onCheckedChange={(v) => onToggle(o.id, !!v)}
+                        />
+                        <span className="text-xs text-muted-foreground">
+                          {o.is_active ? "啟用" : "停用"}
+                        </span>
+                      </div>
+                    ) : (
+                      <Badge variant={o.is_active ? "default" : "outline"}>
+                        {o.is_active ? "啟用" : "停用"}
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {isAdmin && (
+                      editingId === o.id ? (
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => onSaveEdit(o.id)}
+                          >
+                            <Check className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={onCancelEdit}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => onStartEdit(o.id, o.name)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+
+        {isAdmin && (
+          <div className="flex gap-2 border-t pt-4">
+            <Input
+              value={newValue}
+              onChange={(e) => setNewValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  onAdd();
+                }
+              }}
+              placeholder={`新增${title}`}
+              className="h-9"
+            />
+            <Button onClick={onAdd} disabled={!newValue.trim()}>
+              新增
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
