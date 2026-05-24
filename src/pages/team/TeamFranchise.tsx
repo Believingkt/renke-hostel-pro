@@ -689,13 +689,13 @@ function OrdersTab({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>客戶</TableHead>
-                <TableHead>方案</TableHead>
-                <TableHead className="text-right">方案金額</TableHead>
+                <TableHead>會員編號</TableHead>
+                <TableHead>會員姓名</TableHead>
                 <TableHead>銷售人</TableHead>
-                <TableHead>成交日期</TableHead>
+                <TableHead>專案名稱</TableHead>
+                <TableHead className="text-right">金額</TableHead>
+                <TableHead>簽約日期</TableHead>
                 <TableHead>付款</TableHead>
-                <TableHead>結算</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -715,19 +715,15 @@ function OrdersTab({
                       setDetailEditing(false);
                     }}
                   >
+                    <TableCell>{o.member_number ?? "—"}</TableCell>
                     <TableCell>{o.customer_name}</TableCell>
+                    <TableCell>{memberName(o.sold_by, o.sold_by_name)}</TableCell>
                     <TableCell>{o.plan_name ?? "—"}</TableCell>
                     <TableCell className="text-right tabular-nums">{fmtMoney(o.plan_price)}</TableCell>
-                    <TableCell>{memberName(o.sold_by, o.sold_by_name)}</TableCell>
                     <TableCell>{o.sold_at ?? "—"}</TableCell>
                     <TableCell>
                       <Badge variant={o.payment_confirmed ? "success" : "secondary"}>
                         {o.payment_confirmed ? "已付款" : "未付款"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={o.payout_status === "paid" ? "success" : "secondary"}>
-                        {o.payout_status === "paid" ? "已發放" : "待結算"}
                       </Badge>
                     </TableCell>
                   </TableRow>
