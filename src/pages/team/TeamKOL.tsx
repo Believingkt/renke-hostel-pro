@@ -153,7 +153,10 @@ interface KolRow {
 
 interface FormState {
   id?: string;
+  // 複合下拉選中的 value（"acc:<uuid>" 或 "venue:<name>"）
+  accommodation_select: string;
   accommodation_id: string;
+  venue_name: string;
   name: string;
   ig_handle: string;
   rarity: string;
@@ -176,10 +179,13 @@ interface FormState {
   order_number: string;
   inventory_count: string;
   kol_tags: string[];
+  kpi_qualified: boolean;
 }
 
 const EMPTY_FORM: FormState = {
+  accommodation_select: "",
   accommodation_id: "",
+  venue_name: "",
   name: "",
   ig_handle: "",
   rarity: "ck",
@@ -202,6 +208,7 @@ const EMPTY_FORM: FormState = {
   order_number: "",
   inventory_count: "",
   kol_tags: [],
+  kpi_qualified: false,
 };
 
 interface RaritySetting {
