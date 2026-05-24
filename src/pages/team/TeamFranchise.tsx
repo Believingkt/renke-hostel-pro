@@ -394,6 +394,8 @@ function OrdersTab({
   const [members, setMembers] = useState<Member[]>([]);
   const [teamSettings, setTeamSettings] = useState<Record<string, TeamSetting>>({});
   const [internalRates, setInternalRates] = useState<InternalRates | null>(null);
+  const projectOrderMap = useProjectOrderMap();
+
   
 
   const [year, setYear] = useState<string>("ALL");
