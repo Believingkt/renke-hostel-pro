@@ -2859,7 +2859,7 @@ interface RarityVersion {
   items: RaritySetting[];
 }
 
-function RaritySettingsTab() {
+function RaritySettingsTab({ isManager }: { isManager: boolean }) {
   const [versions, setVersions] = useState<RarityVersion[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
