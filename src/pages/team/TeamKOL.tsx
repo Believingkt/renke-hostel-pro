@@ -2175,6 +2175,7 @@ function ProspectsTab({
             <TableHeader>
               <TableRow>
                 <TableHead>名稱</TableHead>
+                <TableHead>標籤</TableHead>
                 <TableHead>負責星探</TableHead>
                 <TableHead>聯繫日期</TableHead>
                 <TableHead className="text-right">報價</TableHead>
@@ -2183,64 +2184,104 @@ function ProspectsTab({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell>
-                    {r.ig_url ? (
-                      <a
-                        href={r.ig_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-primary hover:underline"
-                      >
-                        {r.name ?? "-"}
-                      </a>
-                    ) : (
-                      r.name ?? "-"
-                    )}
-                  </TableCell>
-                  <TableCell>{r._scout_name}</TableCell>
-                  <TableCell>{r.contacted_at ?? "-"}</TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {r.fee_quote != null
-                      ? `$${r.fee_quote.toLocaleString()}`
-                      : "-"}
-                  </TableCell>
-                  <TableCell>
-                    {r.screenshot_url ? (
-                      <a
-                        href={r.screenshot_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-primary hover:underline inline-flex items-center gap-1"
-                      >
-                        查看截圖
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    ) : (
-                      "-"
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => openEdit(r)}
-                    >
-                      編輯
-                    </Button>
-                    {r.status !== "converted" && (
+              {filtered.map((r) => {
+                const tags = r.tags ?? [];
+                const displayName = r.name ?? "-";
+                const nameNode = (
+                  <span className="block max-w-[180px] truncate">{displayName}</span>
+                );
+                return (
+                  <TableRow key={r.id}>
+                    <TableCell className="max-w-[180px]">
+                      <TooltipProvider delayDuration={200}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            {r.ig_url ? (
+                              <a
+                                href={r.ig_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-primary hover:underline block max-w-[180px] truncate"
+                              >
+                                {displayName}
+                              </a>
+                            ) : (
+                              nameNode
+                            )}
+                          </TooltipTrigger>
+                          <TooltipContent>{displayName}</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableCell>
+                    <TableCell>
+                      {tags.length === 0 ? (
+                        <span className="text-muted-foreground">-</span>
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {tags.slice(0, 2).map((t) => (
+                            <Badge key={t} variant="secondary" className="text-xs">
+                              {t}
+                            </Badge>
+                          ))}
+                          {tags.length > 2 && (
+                            <TooltipProvider delayDuration={200}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="outline" className="text-xs">
+                                    +{tags.length - 2}
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>{tags.slice(2).join("、")}</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>{r._scout_name}</TableCell>
+                    <TableCell>{r.contacted_at ?? "-"}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {r.fee_quote != null
+                        ? `$${r.fee_quote.toLocaleString()}`
+                        : "-"}
+                    </TableCell>
+                    <TableCell>
+                      {r.screenshot_url ? (
+                        <a
+                          href={r.screenshot_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-primary hover:underline inline-flex items-center gap-1"
+                        >
+                          查看截圖
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      ) : (
+                        "-"
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
                       <Button
-                        size="sm"
+                        size="icon"
                         variant="ghost"
-                        onClick={() => handleConvert(r)}
+                        onClick={() => openEdit(r)}
+                        aria-label="編輯"
                       >
-                        轉為正式邀約
+                        <Pencil className="h-4 w-4" />
                       </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
+                      {r.status !== "converted" && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleConvert(r)}
+                        >
+                          轉為正式邀約
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </Card>
