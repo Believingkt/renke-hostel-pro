@@ -1565,15 +1565,6 @@ function InvitationsTab({
               </Field>
             </div>
 
-            <Field label="佔用庫存間數">
-              <Input
-                type="number"
-                value={form.inventory_count}
-                onChange={(e) =>
-                  setForm({ ...form, inventory_count: e.target.value })
-                }
-              />
-            </Field>
 
             <Field label="填寫日期">
               <Input
