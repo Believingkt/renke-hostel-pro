@@ -350,6 +350,7 @@ function OrdersTab({
 
   const [year, setYear] = useState<string>("ALL");
   const [month, setMonth] = useState<string>("ALL");
+  const [projectFilter, setProjectFilter] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [salesFilter, setSalesFilter] = useState<string>("ALL");
   const [page, setPage] = useState(1);
@@ -357,10 +358,11 @@ function OrdersTab({
 
   useEffect(() => {
     setPage(1);
-  }, [year, month, statusFilter, salesFilter]);
+  }, [year, month, projectFilter, statusFilter, salesFilter]);
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [form, setForm] = useState({
+    member_number: "",
     customer_name: "",
     customer_phone: "",
     plan_name: "",
@@ -372,6 +374,7 @@ function OrdersTab({
     invoice_number: "",
     notes: "",
   });
+  const [memberNumberError, setMemberNumberError] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
   const [detailOrder, setDetailOrder] = useState<FranchiseOrder | null>(null);
