@@ -1074,7 +1074,7 @@ function InvitationsTab({
                             "已拒絕": "bg-rose-200 text-rose-900 border-rose-300",
                             "暫緩": "bg-orange-100 text-orange-700 border-orange-200",
                             "訂房確認中": "bg-amber-100 text-amber-700 border-amber-200",
-                            "訂房編號有誤": "bg-white border-border text-[#ff5722]",
+                            "訂房編號有誤": "bg-red-600 text-white border-red-700",
                           };
                           let cls = labelColorMap[label] ??
                             BOOKING_STATUS_CLASS[
