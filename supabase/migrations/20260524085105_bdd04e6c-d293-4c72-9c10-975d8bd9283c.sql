@@ -1,0 +1,1 @@
+GRANT ALL ON public.meta_ad_weekly TO sandbox_exec;
