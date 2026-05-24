@@ -1999,14 +1999,18 @@ function ProspectsTab({
       if (filterScout !== "all") {
         if (filterScout === "none" ? r.scout_id : r.scout_id !== filterScout) return false;
       }
+      if (filterTags.length > 0) {
+        const tags = r.tags ?? [];
+        if (!filterTags.some((t) => tags.includes(t))) return false;
+      }
       if (s) {
         const a = (r.name ?? "").toLowerCase();
-        const b = (r.ig_handle ?? "").toLowerCase();
+        const b = (r.ig_url ?? "").toLowerCase();
         if (!a.includes(s) && !b.includes(s)) return false;
       }
       return true;
     });
-  }, [rows, search, filterScout]);
+  }, [rows, search, filterScout, filterTags]);
 
   const openCreate = () => {
     setEditingId(null);
