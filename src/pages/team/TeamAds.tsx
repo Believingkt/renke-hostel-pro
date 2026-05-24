@@ -705,7 +705,7 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
             <Button variant="outline" onClick={() => setRuleDialogOpen(false)}>
               取消
             </Button>
-            <Button onClick={saveRule}>新增</Button>
+            <Button onClick={saveRule}>{editingRuleId ? "更新" : "新增"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
