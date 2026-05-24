@@ -69,7 +69,7 @@ const BOOKING_STATUS_CLASS: Record<BookingStatus, string> = {
   on_hold: "bg-orange-100 text-orange-700 border-orange-200",
 };
 
-const RARITY_OPTIONS = ["N", "R", "SR", "SSR", "UR"] as const;
+const RARITY_OPTIONS = ["N", "R", "SR", "SSR", "UR", "ck"] as const;
 type Rarity = (typeof RARITY_OPTIONS)[number];
 
 const RARITY_CLASS: Record<Rarity, string> = {
@@ -78,6 +78,7 @@ const RARITY_CLASS: Record<Rarity, string> = {
   SR: "bg-violet-100 text-violet-700 border-violet-200",
   SSR: "bg-amber-100 text-amber-800 border-amber-300",
   UR: "bg-rose-100 text-rose-700 border-rose-300",
+  ck: "bg-zinc-100 text-zinc-700 border-zinc-200",
 };
 
 const WEEKDAYS = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
