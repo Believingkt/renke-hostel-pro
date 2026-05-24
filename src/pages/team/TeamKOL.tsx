@@ -474,7 +474,7 @@ function InvitationsTab({
     });
   }, [rows, search, filterAcc, filterStatus, filterTags]);
 
-  // 入住日期 → 自動計算星期幾 & kpi_eligible（前端只算 day_of_week，kpi_eligible 寫入時帶上）
+  // 入住日期 → 自動計算星期幾
   useEffect(() => {
     if (form.check_in_date) {
       const dow = calcDayOfWeek(form.check_in_date);
@@ -483,6 +483,61 @@ function InvitationsTab({
       }
     }
   }, [form.check_in_date]); // eslint-disable-line
+
+  // 入住日期 + 館別 → 自動查詢庫存
+  useEffect(() => {
+    const accId = form.accommodation_id;
+    const date = form.check_in_date;
+    if (!accId || !date) {
+      if (form.inventory_status !== "") {
+        setForm((f) => ({ ...f, inventory_status: "" }));
+      }
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data: rts } = await supabase
+        .from("room_types")
+        .select("id")
+        .eq("accommodation_id", accId);
+      const ids = (rts ?? []).map((r: any) => r.id);
+      if (ids.length === 0) {
+        if (!cancelled) setForm((f) => ({ ...f, inventory_status: "查無房型" }));
+        return;
+      }
+      const { data: inv } = await supabase
+        .from("room_inventory_pricing")
+        .select("available_rooms, is_available")
+        .in("room_type_id", ids)
+        .eq("date", date);
+      const total = (inv ?? []).reduce(
+        (sum: number, r: any) =>
+          sum + (r.is_available === false ? 0 : r.available_rooms ?? 0),
+        0,
+      );
+      const status = total > 0 ? `有 ${total} 間` : "額滿";
+      if (!cancelled) setForm((f) => ({ ...f, inventory_status: status }));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [form.accommodation_id, form.check_in_date]); // eslint-disable-line
+
+  // 訂單編號 → 自動切換訂房狀態（不覆蓋手動 cancelled / rejected / on_hold / checked_in）
+  useEffect(() => {
+    const hasOrder = !!form.order_number.trim();
+    const next: BookingStatus = hasOrder ? "booked" : "invited";
+    const protectedStates: BookingStatus[] = [
+      "cancelled",
+      "rejected",
+      "on_hold",
+      "checked_in",
+    ];
+    if (protectedStates.includes(form.booking_status)) return;
+    if (form.booking_status !== next) {
+      setForm((f) => ({ ...f, booking_status: next }));
+    }
+  }, [form.order_number]); // eslint-disable-line
 
   // ig_handle 即時重複檢查
   useEffect(() => {
