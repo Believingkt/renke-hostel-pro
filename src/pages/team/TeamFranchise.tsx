@@ -2122,6 +2122,24 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
               ))}
             </SelectContent>
           </Select>
+          <Select value={salesFilter} onValueChange={setSalesFilter}>
+            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">全部開發業務</SelectItem>
+              {salesOptions.map((s) => (
+                <SelectItem key={s} value={s}>{s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={progressFilter} onValueChange={setProgressFilter}>
+            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">全部</SelectItem>
+              {CONTRACT_PROGRESS_OPTIONS.map((p) => (
+                <SelectItem key={p} value={p}>{p}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         {canManage && (
           <Button onClick={openCreate}>
