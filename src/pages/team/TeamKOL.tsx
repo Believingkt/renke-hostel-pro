@@ -318,6 +318,9 @@ function InvitationsTab({
   const [filterAcc, setFilterAcc] = useState<string>("all");
   const [filterRarity, setFilterRarity] = useState<string>("all");
   const [filterTags, setFilterTags] = useState<string[]>([]);
+  const PAGE_SIZE = 50;
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
   // 詳情 Drawer
   const [viewingRow, setViewingRow] = useState<KolRow | null>(null);
