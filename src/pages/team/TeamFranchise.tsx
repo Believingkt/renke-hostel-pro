@@ -3627,7 +3627,6 @@ function VoucherProgressTab() {
       <CardHeader><CardTitle>住宿券進度</CardTitle></CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
-          <Label className="text-muted-foreground">專案</Label>
           <Select value={filterProject} onValueChange={setFilterProject}>
             <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -3635,34 +3634,32 @@ function VoucherProgressTab() {
               {projectOptions.map((n) => (<SelectItem key={n} value={n}>{n}</SelectItem>))}
             </SelectContent>
           </Select>
-          <Label className="text-muted-foreground ml-2">狀態</Label>
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">全部</SelectItem>
-              <SelectItem value="未寄出">未寄出</SelectItem>
-              <SelectItem value="已寄出">已寄出</SelectItem>
-            </SelectContent>
-          </Select>
-          <Label className="text-muted-foreground ml-2">名片製作</Label>
-          <Select value={filterCard} onValueChange={setFilterCard}>
-            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">全部</SelectItem>
-              <SelectItem value="完成">完成</SelectItem>
-              <SelectItem value="未完成">未完成</SelectItem>
-            </SelectContent>
-          </Select>
-          <Label className="text-muted-foreground ml-2">來源</Label>
           <Select value={filterSource} onValueChange={(v) => setFilterSource(v as any)}>
             <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">全部</SelectItem>
+              <SelectItem value="ALL">全部來源</SelectItem>
               <SelectItem value="internal">內部銷售</SelectItem>
               <SelectItem value="external">外部銷售</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={filterCard} onValueChange={setFilterCard}>
+            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">全部名片製作</SelectItem>
+              <SelectItem value="完成">完成</SelectItem>
+              <SelectItem value="未完成">未完成</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">全部狀態</SelectItem>
+              <SelectItem value="未寄出">未寄出</SelectItem>
+              <SelectItem value="已寄出">已寄出</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
+
 
         <div className="overflow-x-auto">
           <Table className="fixed-table">
