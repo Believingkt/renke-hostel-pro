@@ -460,8 +460,7 @@ function InvitationsTab({
     const s = search.trim().toLowerCase();
     return rows.filter((r) => {
       if (filterAcc !== "all" && r.accommodation_id !== filterAcc) return false;
-      if (filterStatus !== "all" && r.booking_status !== filterStatus)
-        return false;
+      if (filterRarity !== "all" && r.rarity !== filterRarity) return false;
       if (filterTags.length > 0) {
         const tagSet = new Set(r.kol_tags ?? []);
         if (!filterTags.some((t) => tagSet.has(t))) return false;
@@ -473,7 +472,7 @@ function InvitationsTab({
       }
       return true;
     });
-  }, [rows, search, filterAcc, filterStatus, filterTags]);
+  }, [rows, search, filterAcc, filterRarity, filterTags]);
 
   // 入住日期 → 自動計算星期幾
   useEffect(() => {
