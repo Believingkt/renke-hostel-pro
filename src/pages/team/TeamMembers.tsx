@@ -66,7 +66,8 @@ const ROLE_BADGE_CLASS = {
 };
 
 interface MemberRow {
-  user_id: string;
+  id: string; // team_member_profiles.id (PK)
+  user_id: string | null;
   display_name: string;
   email: string;
   is_active: boolean;
