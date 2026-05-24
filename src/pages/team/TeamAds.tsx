@@ -45,6 +45,7 @@ interface MetaAd {
 
 interface MetaAdWeekly {
   id: string;
+  campaign_id: string | null;
   campaign_name: string | null;
   date_range: string;
   spend: number | null;
@@ -52,6 +53,8 @@ interface MetaAdWeekly {
   reach: number | null;
   msg_started: number | null;
   status: string | null;
+  start_date: string | null;
+  stop_date: string | null;
 }
 
 interface CommonAdId {
