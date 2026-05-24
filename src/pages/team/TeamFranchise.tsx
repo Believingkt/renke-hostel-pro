@@ -2074,6 +2074,8 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
   const [year, setYear] = useState<string>("ALL");
   const [month, setMonth] = useState<string>("ALL");
   const [memberNumberError, setMemberNumberError] = useState<string>("");
+  const projectOrderMap = useProjectOrderMap();
+
 
   const [detail, setDetail] = useState<ExternalOrder | null>(null);
   const [editing, setEditing] = useState(false);
