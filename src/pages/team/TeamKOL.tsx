@@ -3119,3 +3119,188 @@ function RaritySettingsTab() {
     </div>
   );
 }
+
+// ============================================================
+// ====== Tab 四：設定 (稀有度 + 合作場域) ======
+// ============================================================
+function SettingsTab({ isManager }: { isManager: boolean }) {
+  return (
+    <div className="space-y-4">
+      <RaritySettingsTab isManager={isManager} />
+      <VenuesCard isManager={isManager} />
+    </div>
+  );
+}
+
+interface VenueRow {
+  id: string;
+  name: string;
+  type: string | null;
+  is_active: boolean;
+}
+
+const VENUE_TYPES = ["民宿", "餐廳", "農場", "其他"] as const;
+
+function VenuesCard({ isManager }: { isManager: boolean }) {
+  const [rows, setRows] = useState<VenueRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [newName, setNewName] = useState("");
+  const [newType, setNewType] = useState<string>("民宿");
+  const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editType, setEditType] = useState("民宿");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("kol_venues" as any)
+      .select("id, name, type, is_active")
+      .order("name");
+    if (error) toast.error(error.message);
+    setRows((data ?? []) as unknown as VenueRow[]);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleAdd = async () => {
+    const n = newName.trim();
+    if (!n) { toast.error("請輸入場域名稱"); return; }
+    setSaving(true);
+    const { error } = await supabase
+      .from("kol_venues" as any)
+      .insert({ name: n, type: newType, is_active: true });
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("已新增場域");
+    setNewName(""); setNewType("民宿");
+    load();
+  };
+
+  const startEdit = (r: VenueRow) => {
+    setEditingId(r.id);
+    setEditName(r.name);
+    setEditType(r.type || "其他");
+  };
+
+  const saveEdit = async () => {
+    if (!editingId) return;
+    const n = editName.trim();
+    if (!n) { toast.error("請輸入場域名稱"); return; }
+    const { error } = await supabase
+      .from("kol_venues" as any)
+      .update({ name: n, type: editType })
+      .eq("id", editingId);
+    if (error) { toast.error(error.message); return; }
+    toast.success("已更新");
+    setEditingId(null);
+    load();
+  };
+
+  const toggleActive = async (r: VenueRow) => {
+    const { error } = await supabase
+      .from("kol_venues" as any)
+      .update({ is_active: !r.is_active })
+      .eq("id", r.id);
+    if (error) { toast.error(error.message); return; }
+    load();
+  };
+
+  return (
+    <Card>
+      <CardContent className="p-4 space-y-3">
+        <div>
+          <h3 className="font-semibold">合作場域管理</h3>
+          <p className="text-xs text-muted-foreground">
+            管理非 PMS 民宿的合作場域（餐廳、農場等），將同步顯示於館別下拉
+          </p>
+        </div>
+
+        {isManager && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              placeholder="場域名稱"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              className="w-48"
+            />
+            <Select value={newType} onValueChange={setNewType}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {VENUE_TYPES.map((t) => (
+                  <SelectItem key={t} value={t}>{t}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={handleAdd} disabled={saving}>
+              <Plus className="mr-1 h-4 w-4" />新增
+            </Button>
+          </div>
+        )}
+
+        {loading ? null : rows.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">尚無資料</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>場域名稱</TableHead>
+                <TableHead>類型</TableHead>
+                <TableHead>狀態</TableHead>
+                <TableHead className="text-right">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell>
+                    {editingId === r.id ? (
+                      <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-8" />
+                    ) : r.name}
+                  </TableCell>
+                  <TableCell>
+                    {editingId === r.id ? (
+                      <Select value={editType} onValueChange={setEditType}>
+                        <SelectTrigger className="h-8 w-28"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {VENUE_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    ) : (r.type || "-")}
+                  </TableCell>
+                  <TableCell>
+                    {r.is_active ? (
+                      <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">啟用</Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-200">停用</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {isManager && (editingId === r.id ? (
+                      <>
+                        <Button size="sm" variant="ghost" onClick={saveEdit}>儲存</Button>
+                        <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>取消</Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => startEdit(r)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => toggleActive(r)}>
+                          {r.is_active ? "停用" : "啟用"}
+                        </Button>
+                      </>
+                    ))}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
