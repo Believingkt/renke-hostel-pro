@@ -127,6 +127,36 @@ const nextMemberNumber = (existing: (string | null | undefined)[], prefix: strin
   return `${prefix}${max + 1}`;
 };
 
+// Compute next member_number for a specific project order index.
+// Format: {prefix}{projectOrder}{NNN}  (NNN is 3-digit, starting at 001 per project)
+// e.g. ("T", 2) with max "T2003" -> "T2004". If no match found, returns "{prefix}{projectOrder}001".
+const nextMemberNumberForProject = (
+  existing: (string | null | undefined)[],
+  prefix: string,
+  projectOrder: number,
+) => {
+  if (!projectOrder || projectOrder < 1) return "";
+  const re = new RegExp(`^${prefix}${projectOrder}(\\d{3})$`);
+  let max = 0;
+  for (const v of existing) {
+    if (!v) continue;
+    const m = re.exec(v.trim());
+    if (m) {
+      const n = parseInt(m[1], 10);
+      if (!isNaN(n) && n > max) max = n;
+    }
+  }
+  return `${prefix}${projectOrder}${String(max + 1).padStart(3, "0")}`;
+};
+
+// Detect whether a value looks like an auto-generated project-prefixed member_number
+// matching `{prefix}{anyDigits}{3-digit}` so we can safely overwrite it when user changes project.
+const isAutoMemberNumber = (val: string | null | undefined, prefix: string) => {
+  if (!val) return false;
+  return new RegExp(`^${prefix}\\d+$`).test(val.trim());
+};
+
+
 const fmtMoney = (n: number | null | undefined) =>
   `NT$ ${Number(n ?? 0).toLocaleString()}`;
 const fmtRate = (n: number | null | undefined) =>
