@@ -469,6 +469,12 @@ function OrdersTab({
       ? members.find((m) => m.user_id === id)?.display_name ?? "—"
       : name ?? "—";
 
+  const projectOptions = useMemo(() => {
+    const s = new Set<string>();
+    orders.forEach((o) => o.plan_name && s.add(o.plan_name));
+    return Array.from(s).sort();
+  }, [orders]);
+
   const filtered = useMemo(() => {
     return orders
       .filter((o) => {
@@ -478,12 +484,13 @@ function OrdersTab({
           if (year !== "ALL" && String(d.getFullYear()) !== year) return false;
           if (month !== "ALL" && d.getMonth() + 1 !== Number(month)) return false;
         }
+        if (projectFilter !== "ALL" && o.plan_name !== projectFilter) return false;
         if (statusFilter !== "ALL" && o.payout_status !== statusFilter) return false;
         if (salesFilter !== "ALL" && o.sold_by !== salesFilter) return false;
         return true;
       })
       .sort((a, b) => (b.sold_at ?? "").localeCompare(a.sold_at ?? ""));
-  }, [orders, year, month, statusFilter, salesFilter, canManage, currentUserId]);
+  }, [orders, year, month, projectFilter, statusFilter, salesFilter, canManage, currentUserId]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = useMemo(
