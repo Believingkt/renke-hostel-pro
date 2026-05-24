@@ -1107,30 +1107,6 @@ function InvitationsTab({
                   編輯
                 </Button>
               )}
-              {viewingRow && isManager && (
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={async () => {
-                    const target = viewingRow;
-                    if (!target) return;
-                    if (!window.confirm(`確定要刪除「${target.name ?? "此筆"}」邀約紀錄嗎？此動作無法復原。`)) return;
-                    const { error } = await supabase
-                      .from("kol_profiles")
-                      .delete()
-                      .eq("id", target.id);
-                    if (error) {
-                      toast.error(`刪除失敗：${error.message}`);
-                      return;
-                    }
-                    toast.success("已刪除");
-                    setViewingRow(null);
-                    fetchRows();
-                  }}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
             </div>
           </SheetHeader>
           {viewingRow && (() => {
@@ -1593,17 +1569,43 @@ function InvitationsTab({
             </Field>
           </div>
 
-          <SheetFooter className="mt-6">
-            <Button
-              variant="outline"
-              onClick={() => setSheetOpen(false)}
-              disabled={saving}
-            >
-              取消
-            </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? "儲存中..." : "儲存"}
-            </Button>
+          <SheetFooter className="mt-6 sm:justify-between">
+            {editingId && isManager ? (
+              <Button
+                variant="destructive"
+                disabled={saving}
+                onClick={async () => {
+                  if (!editingId) return;
+                  if (!window.confirm(`確定要刪除「${form.name || "此筆"}」邀約紀錄嗎？此動作無法復原。`)) return;
+                  const { error } = await supabase
+                    .from("kol_profiles")
+                    .delete()
+                    .eq("id", editingId);
+                  if (error) {
+                    toast.error(`刪除失敗：${error.message}`);
+                    return;
+                  }
+                  toast.success("已刪除");
+                  setSheetOpen(false);
+                  fetchRows();
+                }}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                刪除
+              </Button>
+            ) : <div />}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setSheetOpen(false)}
+                disabled={saving}
+              >
+                取消
+              </Button>
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? "儲存中..." : "儲存"}
+              </Button>
+            </div>
           </SheetFooter>
         </SheetContent>
       </Sheet>
