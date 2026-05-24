@@ -1973,6 +1973,12 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
     return Array.from(set);
   }, [rows]);
 
+  const salesOptions = useMemo(() => {
+    const set = new Set<string>();
+    rows.forEach((r) => r.sales_name && set.add(r.sales_name));
+    return Array.from(set).sort();
+  }, [rows]);
+
   const years = useMemo(() => {
     const cur = new Date().getFullYear();
     return Array.from({ length: 5 }, (_, i) => String(cur - i));
