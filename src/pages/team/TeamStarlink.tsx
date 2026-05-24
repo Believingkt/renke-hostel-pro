@@ -1323,3 +1323,293 @@ function PlansTab({ canManage }: { canManage: boolean }) {
     </Card>
   );
 }
+
+// ============================================================
+// 業績統計 Tab
+// ============================================================
+interface StatsOrder {
+  plan_name: string | null;
+  plan_price: number | null;
+  sold_by: string | null;
+  commission_amount: number | null;
+  sold_at: string | null;
+  client_name: string | null;
+}
+
+function StatsTab() {
+  const [loading, setLoading] = useState(true);
+  const [orders, setOrders] = useState<StatsOrder[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [year, setYear] = useState<string>("ALL");
+  const [month, setMonth] = useState<string>("ALL");
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      const [ordersRes, membersRes] = await Promise.all([
+        supabase
+          .from("starlink_orders")
+          .select("plan_name,plan_price,sold_by,commission_amount,sold_at,client_name"),
+        supabase.rpc("get_team_role_members", { p_role: "starlink" }),
+      ]);
+      if (ordersRes.error) {
+        toast.error(`載入訂單失敗：${ordersRes.error.message}`);
+      } else {
+        setOrders((ordersRes.data ?? []) as StatsOrder[]);
+      }
+      if (!membersRes.error && membersRes.data) {
+        setMembers(membersRes.data as Member[]);
+      }
+      setLoading(false);
+    })();
+  }, []);
+
+  const memberName = (id: string | null) =>
+    !id ? "—" : members.find((m) => m.user_id === id)?.display_name ?? "—";
+
+  const years = useMemo(() => {
+    const set = new Set<string>();
+    orders.forEach((o) => {
+      if (o.sold_at) set.add(String(new Date(o.sold_at).getFullYear()));
+    });
+    return Array.from(set).sort((a, b) => Number(b) - Number(a));
+  }, [orders]);
+
+  const filtered = useMemo(() => {
+    return orders.filter((o) => {
+      if (!o.sold_at) return year === "ALL";
+      const d = new Date(o.sold_at);
+      if (year !== "ALL" && String(d.getFullYear()) !== year) return false;
+      if (month !== "ALL" && String(d.getMonth() + 1) !== month) return false;
+      return true;
+    });
+  }, [orders, year, month]);
+
+  // 月度趨勢
+  const monthly = useMemo(() => {
+    const arr = Array.from({ length: 12 }, (_, i) => ({
+      month: `${i + 1}月`,
+      amount: 0,
+    }));
+    filtered.forEach((o) => {
+      if (!o.sold_at) return;
+      const m = new Date(o.sold_at).getMonth();
+      arr[m].amount += Number(o.plan_price ?? 0);
+    });
+    return arr;
+  }, [filtered]);
+
+  // 銷售人排行
+  const salesRank = useMemo(() => {
+    const map = new Map<string, { count: number; sales: number; commission: number }>();
+    filtered.forEach((o) => {
+      const key = o.sold_by ?? "—";
+      const cur = map.get(key) ?? { count: 0, sales: 0, commission: 0 };
+      cur.count += 1;
+      cur.sales += Number(o.plan_price ?? 0);
+      cur.commission += Number(o.commission_amount ?? 0);
+      map.set(key, cur);
+    });
+    return Array.from(map.entries())
+      .map(([id, v]) => ({ id, name: memberName(id), ...v }))
+      .sort((a, b) => b.sales - a.sales);
+  }, [filtered, members]);
+
+  // 方案統計
+  const planStats = useMemo(() => {
+    const map = new Map<string, { count: number; sales: number; commission: number }>();
+    filtered.forEach((o) => {
+      const key = o.plan_name ?? "—";
+      const cur = map.get(key) ?? { count: 0, sales: 0, commission: 0 };
+      cur.count += 1;
+      cur.sales += Number(o.plan_price ?? 0);
+      cur.commission += Number(o.commission_amount ?? 0);
+      map.set(key, cur);
+    });
+    return Array.from(map.entries())
+      .map(([name, v]) => ({ name, ...v }))
+      .sort((a, b) => b.sales - a.sales);
+  }, [filtered]);
+
+  // 客戶統計
+  const clientStats = useMemo(() => {
+    const map = new Map<string, { count: number; sales: number; commission: number }>();
+    filtered.forEach((o) => {
+      const key = o.client_name ?? "—";
+      const cur = map.get(key) ?? { count: 0, sales: 0, commission: 0 };
+      cur.count += 1;
+      cur.sales += Number(o.plan_price ?? 0);
+      cur.commission += Number(o.commission_amount ?? 0);
+      map.set(key, cur);
+    });
+    return Array.from(map.entries())
+      .map(([name, v]) => ({ name, ...v }))
+      .sort((a, b) => b.sales - a.sales);
+  }, [filtered]);
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="py-10 text-center text-muted-foreground">載入中…</CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* 篩選器 */}
+      <Card>
+        <CardContent className="py-4 flex flex-wrap items-center gap-3">
+          <Select value={year} onValueChange={setYear}>
+            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">全部年份</SelectItem>
+              {years.map((y) => (
+                <SelectItem key={y} value={y}>{y} 年</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={month} onValueChange={setMonth}>
+            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">全年</SelectItem>
+              {Array.from({ length: 12 }, (_, i) => String(i + 1)).map((m) => (
+                <SelectItem key={m} value={m}>{m} 月</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
+      {/* Card 1：月度趨勢 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">月度銷售趨勢</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <MonthlyChart data={monthly} />
+        </CardContent>
+      </Card>
+
+      {/* Card 2：銷售人排行 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">銷售人業績排行</CardTitle>
+        </CardHeader>
+        <CardContent className="overflow-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>銷售人</TableHead>
+                <TableHead className="text-right">筆數</TableHead>
+                <TableHead className="text-right">銷售金額</TableHead>
+                <TableHead className="text-right">分潤金額</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {salesRank.length === 0 ? (
+                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">無資料</TableCell></TableRow>
+              ) : salesRank.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell>{r.name}</TableCell>
+                  <TableCell className="text-right tabular-nums">{r.count}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtMoney(r.sales)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtMoney(r.commission)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Card 3：方案統計 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">方案統計</CardTitle>
+        </CardHeader>
+        <CardContent className="overflow-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>方案名稱</TableHead>
+                <TableHead className="text-right">筆數</TableHead>
+                <TableHead className="text-right">銷售金額</TableHead>
+                <TableHead className="text-right">分潤金額</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {planStats.length === 0 ? (
+                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">無資料</TableCell></TableRow>
+              ) : planStats.map((r) => (
+                <TableRow key={r.name}>
+                  <TableCell>{r.name}</TableCell>
+                  <TableCell className="text-right tabular-nums">{r.count}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtMoney(r.sales)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtMoney(r.commission)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Card 4：客戶統計 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">客戶統計</CardTitle>
+        </CardHeader>
+        <CardContent className="overflow-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>客戶名稱</TableHead>
+                <TableHead className="text-right">購買筆數</TableHead>
+                <TableHead className="text-right">總金額</TableHead>
+                <TableHead className="text-right">總分潤</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {clientStats.length === 0 ? (
+                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">無資料</TableCell></TableRow>
+              ) : clientStats.map((r) => (
+                <TableRow key={r.name}>
+                  <TableCell>{r.name}</TableCell>
+                  <TableCell className="text-right tabular-nums">{r.count}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtMoney(r.sales)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtMoney(r.commission)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function MonthlyChart({ data }: { data: { month: string; amount: number }[] }) {
+  const { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } =
+    require("recharts");
+  return (
+    <div className="w-full h-[280px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" />
+          <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+          <YAxis tick={{ fontSize: 12 }} tickFormatter={(v: number) => v.toLocaleString()} />
+          <Tooltip
+            formatter={(v: number) => [`NT$ ${Number(v).toLocaleString()}`, "銷售金額"]}
+            labelStyle={{ color: "hsl(var(--foreground))" }}
+            contentStyle={{
+              background: "hsl(var(--background))",
+              border: "1px solid hsl(var(--border))",
+              borderRadius: 8,
+            }}
+          />
+          <Bar dataKey="amount" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
