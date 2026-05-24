@@ -1067,14 +1067,21 @@ function InvitationsTab({
                             ] ??
                             r.booking_status ??
                             "-";
-                          let cls =
+                          const labelColorMap: Record<string, string> = {
+                            "邀約中": "bg-blue-100 text-blue-700 border-blue-200",
+                            "已入住": "bg-purple-100 text-purple-700 border-purple-200",
+                            "已取消": "bg-red-100 text-red-700 border-red-200",
+                            "已拒絕": "bg-rose-200 text-rose-900 border-rose-300",
+                            "暫緩": "bg-orange-100 text-orange-700 border-orange-200",
+                            "訂房確認中": "bg-amber-100 text-amber-700 border-amber-200",
+                            "訂房編號有誤": "bg-white border-border text-[#ff5722]",
+                          };
+                          let cls = labelColorMap[label] ??
                             BOOKING_STATUS_CLASS[
                               r.booking_status as BookingStatus
                             ] ?? "";
-                          if (label === "成功訂房") {
+                          if (label === "成功訂房" || label === "-") {
                             cls = "bg-white text-foreground border-border";
-                          } else if (label === "訂房編號有誤") {
-                            cls = "bg-white border-border text-[#ff5722]";
                           }
                           return (
                             <Badge variant="outline" className={cls}>
