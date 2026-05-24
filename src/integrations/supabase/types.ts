@@ -2327,6 +2327,7 @@ export type Database = {
           invoice_number: string | null
           leader_amount: number | null
           leader_rate: number | null
+          member_number: string | null
           multiplier_applied: number | null
           multiplier_reason: string | null
           notes: string | null
@@ -2360,6 +2361,7 @@ export type Database = {
           invoice_number?: string | null
           leader_amount?: number | null
           leader_rate?: number | null
+          member_number?: string | null
           multiplier_applied?: number | null
           multiplier_reason?: string | null
           notes?: string | null
@@ -2393,6 +2395,7 @@ export type Database = {
           invoice_number?: string | null
           leader_amount?: number | null
           leader_rate?: number | null
+          member_number?: string | null
           multiplier_applied?: number | null
           multiplier_reason?: string | null
           notes?: string | null

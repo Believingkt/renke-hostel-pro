@@ -1,0 +1,1 @@
+ALTER TABLE public.franchise_orders ADD COLUMN IF NOT EXISTS member_number text;
