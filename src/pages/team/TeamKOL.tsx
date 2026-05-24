@@ -1334,18 +1334,27 @@ function InvitationsTab({
           <div className="mt-4 space-y-4">
             <Field label="館別 *">
               <Select
-                value={form.accommodation_id}
-                onValueChange={(v) =>
-                  setForm({ ...form, accommodation_id: v })
-                }
+                value={form.accommodation_select}
+                onValueChange={(v) => {
+                  const opt = accommodationOptions.find((o) => o.value === v);
+                  setForm({
+                    ...form,
+                    accommodation_select: v,
+                    accommodation_id: opt?.accommodation_id ?? "",
+                    venue_name: opt?.venue_name ?? "",
+                  });
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="選擇館別" />
                 </SelectTrigger>
                 <SelectContent>
-                  {accommodations.map((a) => (
-                    <SelectItem key={a.id} value={a.id}>
-                      {a.name}
+                  {accommodationOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      <span className="inline-flex items-center gap-2">
+                        <span>{opt.label}</span>
+                        <span className="text-[10px] text-muted-foreground">{opt.badge}</span>
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
