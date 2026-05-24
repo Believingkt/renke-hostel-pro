@@ -383,9 +383,12 @@ function OrdersTab({
   const [detailForm, setDetailForm] = useState<Partial<FranchiseOrder> & { customer_phone?: string | null; invoice_number?: string | null; notes?: string | null }>({});
   const [detailSaving, setDetailSaving] = useState(false);
 
+  const [detailMemberNumberError, setDetailMemberNumberError] = useState<string>("");
+
   useEffect(() => {
     if (detailOrder) {
       setDetailForm({
+        member_number: detailOrder.member_number,
         customer_name: detailOrder.customer_name,
         plan_name: detailOrder.plan_name,
         plan_price: detailOrder.plan_price,
@@ -393,8 +396,23 @@ function OrdersTab({
         payment_confirmed: detailOrder.payment_confirmed,
         payment_at: detailOrder.payment_at,
       } as any);
+      setDetailMemberNumberError("");
     }
   }, [detailOrder]);
+
+  const checkDetailMemberNumberDup = async (val: string) => {
+    const v = val.trim();
+    setDetailMemberNumberError("");
+    if (!v || !detailOrder) return;
+    const { data } = await supabase
+      .from("franchise_orders")
+      .select("id")
+      .eq("member_number", v)
+      .neq("id", detailOrder.id)
+      .limit(1);
+    if ((data ?? []).length > 0) setDetailMemberNumberError("此編號已使用");
+  };
+
 
 
   useEffect(() => {
@@ -942,6 +960,25 @@ function OrdersTab({
           </SheetHeader>
           {detailOrder && (
             <div className="space-y-3 mt-4 text-sm">
+              <DetailRow label="會員編號">
+                {detailEditing ? (
+                  <div className="space-y-1">
+                    <Input
+                      value={(detailForm.member_number as string) ?? ""}
+                      onChange={(e) => {
+                        setDetailForm({ ...detailForm, member_number: e.target.value });
+                        setDetailMemberNumberError("");
+                      }}
+                      onBlur={(e) => void checkDetailMemberNumberDup(e.target.value)}
+                    />
+                    {detailMemberNumberError && (
+                      <p className="text-xs text-destructive">{detailMemberNumberError}</p>
+                    )}
+                  </div>
+                ) : (
+                  detailOrder.member_number ?? "—"
+                )}
+              </DetailRow>
               <DetailRow label="客戶姓名">
                 {detailEditing ? (
                   <Input
@@ -1079,8 +1116,23 @@ function OrdersTab({
                 disabled={detailSaving}
                 onClick={async () => {
                   if (!detailOrder) return;
+                  const mn = (detailForm.member_number as string)?.trim() || "";
+                  if (mn) {
+                    const { data: dupRows } = await supabase
+                      .from("franchise_orders")
+                      .select("id")
+                      .eq("member_number", mn)
+                      .neq("id", detailOrder.id)
+                      .limit(1);
+                    if ((dupRows ?? []).length > 0) {
+                      setDetailMemberNumberError("此編號已使用");
+                      toast.error("此編號已使用");
+                      return;
+                    }
+                  }
                   setDetailSaving(true);
                   const payload: Record<string, unknown> = {
+                    member_number: mn || null,
                     customer_name: (detailForm.customer_name as string)?.trim() || detailOrder.customer_name,
                     customer_phone: (detailForm.customer_phone as string)?.trim() || null,
                     plan_name: (detailForm.plan_name as string)?.trim() || null,
