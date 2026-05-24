@@ -189,6 +189,15 @@ function toNullable(v: string): string | null {
   return t.length === 0 ? null : t;
 }
 
+// 將舊資料中的中文標籤反查回 enum key，相容歷史資料
+function normalizeBookingStatus(v: string | null | undefined): BookingStatus {
+  if (!v) return "invited";
+  if ((BOOKING_STATUS_LABEL as Record<string, string>)[v]) return v as BookingStatus;
+  const hit = (Object.entries(BOOKING_STATUS_LABEL) as [BookingStatus, string][])
+    .find(([, label]) => label === v);
+  return hit ? hit[0] : "invited";
+}
+
 function calcDayOfWeek(dateStr: string): string {
   if (!dateStr) return "";
   const d = new Date(dateStr);
@@ -476,7 +485,7 @@ function InvitationsTab({
       check_out_date: row.check_out_date ?? "",
       day_of_week: row.day_of_week ?? "",
       inventory_status: row.inventory_status ?? "",
-      booking_status: (row.booking_status as BookingStatus) ?? "invited",
+      booking_status: normalizeBookingStatus(row.booking_status),
       cid_code: row.cid_code ?? "",
       short_url: row.short_url ?? "",
       contract_progress: row.contract_progress ?? "",
