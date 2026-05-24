@@ -371,6 +371,7 @@ function OrdersTab({
     sold_by: "",
     sold_at: new Date().toISOString().slice(0, 10),
     payment_confirmed: false,
+    payment_at: "",
     invoice_number: "",
     notes: "",
   });
