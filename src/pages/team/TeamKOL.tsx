@@ -2012,6 +2012,23 @@ function ProspectsTab({
     });
   }, [rows, search, filterScout, filterTags]);
 
+  const PAGE_SIZE = 50;
+  const [page, setPage] = useState(1);
+  const totalCount = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  useEffect(() => {
+    setPage(1);
+  }, [search, filterScout, filterTags]);
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+  const paged = useMemo(
+    () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [filtered, page],
+  );
+
+
+
   const openCreate = () => {
     setEditingId(null);
     setForm(EMPTY_PROSPECT_FORM);
@@ -2191,7 +2208,7 @@ function ProspectsTab({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((r) => {
+              {paged.map((r) => {
                 const tags = r.tags ?? [];
                 const displayName = r.name ?? "-";
                 const nameNode = (
@@ -2293,6 +2310,33 @@ function ProspectsTab({
           </Table>
         </Card>
       )}
+
+      {!loading && totalCount > 0 && (
+        <div className="flex items-center justify-between text-sm">
+          <div className="text-muted-foreground">
+            共 {totalCount} 筆，第 {page} / {totalPages} 頁
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              上一頁
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            >
+              下一頁
+            </Button>
+          </div>
+        </div>
+      )}
+
 
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
