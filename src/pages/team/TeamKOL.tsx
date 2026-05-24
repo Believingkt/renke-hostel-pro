@@ -485,7 +485,7 @@ function InvitationsTab({
       check_out_date: row.check_out_date ?? "",
       day_of_week: row.day_of_week ?? "",
       inventory_status: row.inventory_status ?? "",
-      booking_status: (row.booking_status as BookingStatus) ?? "invited",
+      booking_status: normalizeBookingStatus(row.booking_status),
       cid_code: row.cid_code ?? "",
       short_url: row.short_url ?? "",
       contract_progress: row.contract_progress ?? "",
