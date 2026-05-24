@@ -415,12 +415,11 @@ function InvitationsTab({
 
   const fetchRows = useCallback(async () => {
     setLoading(true);
-    let q = supabase
+    const { data, error } = await supabase
       .from("kol_profiles")
       .select("*")
+      .eq("is_error", false)
       .order("created_at", { ascending: false });
-    if (!showInvalid) q = q.eq("is_error", false);
-    const { data, error } = await q;
     if (error) {
       toast.error(error.message);
       setLoading(false);
@@ -450,7 +449,7 @@ function InvitationsTab({
     })) as KolRow[];
     setRows(enriched);
     setLoading(false);
-  }, [showInvalid, accommodations]);
+  }, [accommodations]);
 
   useEffect(() => {
     if (accommodations.length > 0) fetchRows();
