@@ -30,7 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Pencil } from "lucide-react";
 
 interface MetaAd {
   id: string;
@@ -358,6 +358,7 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
   const [adForm, setAdForm] = useState({ label: "", ad_id: "", sort_order: 0 });
 
   const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const [ruleForm, setRuleForm] = useState({
     keyword: "",
     video_creator_id: "",
@@ -435,16 +436,39 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
   const saveRule = async () => {
     if (!ruleForm.keyword.trim() || !ruleForm.video_creator_id)
       return toast.error("請填寫關鍵字並選擇影音組成員");
-    const { error } = await supabase.from("ad_video_creator_rules").insert({
+    const payload = {
       keyword: ruleForm.keyword.trim(),
       video_creator_id: ruleForm.video_creator_id,
       sort_order: Number(ruleForm.sort_order) || 0,
-    });
-    if (error) return toast.error("新增失敗：" + error.message);
-    toast.success("已新增");
+    };
+    const { error } = editingRuleId
+      ? await supabase
+          .from("ad_video_creator_rules")
+          .update(payload)
+          .eq("id", editingRuleId)
+      : await supabase.from("ad_video_creator_rules").insert(payload);
+    if (error) return toast.error((editingRuleId ? "更新" : "新增") + "失敗：" + error.message);
+    toast.success(editingRuleId ? "已更新" : "已新增");
     setRuleDialogOpen(false);
+    setEditingRuleId(null);
     setRuleForm({ keyword: "", video_creator_id: "", sort_order: 0 });
     void loadAll();
+  };
+
+  const openEditRule = (r: VideoCreatorRule) => {
+    setEditingRuleId(r.id);
+    setRuleForm({
+      keyword: r.keyword,
+      video_creator_id: r.video_creator_id,
+      sort_order: r.sort_order ?? 0,
+    });
+    setRuleDialogOpen(true);
+  };
+
+  const openNewRule = () => {
+    setEditingRuleId(null);
+    setRuleForm({ keyword: "", video_creator_id: "", sort_order: 0 });
+    setRuleDialogOpen(true);
   };
 
   const deleteRule = async (id: string) => {
@@ -526,7 +550,7 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
               填寫廣告編號時，系統會根據廣告名稱自動比對關鍵字並帶入影音組成員
             </p>
           </div>
-          <Button size="sm" onClick={() => setRuleDialogOpen(true)}>
+          <Button size="sm" onClick={openNewRule}>
             <Plus className="h-4 w-4 mr-1" /> 新增規則
           </Button>
         </CardHeader>
@@ -537,7 +561,7 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
                 <TableHead>關鍵字</TableHead>
                 <TableHead>影音組成員</TableHead>
                 <TableHead className="w-20">排序</TableHead>
-                <TableHead className="w-16"></TableHead>
+                <TableHead className="w-24"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -553,7 +577,14 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
                     <TableCell>{r.keyword}</TableCell>
                     <TableCell>{memberName(r.video_creator_id)}</TableCell>
                     <TableCell>{r.sort_order}</TableCell>
-                    <TableCell>
+                    <TableCell className="flex gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => openEditRule(r)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                       <Button
                         size="icon"
                         variant="ghost"
@@ -612,10 +643,16 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
       </Dialog>
 
       {/* Dialog: rule */}
-      <Dialog open={ruleDialogOpen} onOpenChange={setRuleDialogOpen}>
+      <Dialog
+        open={ruleDialogOpen}
+        onOpenChange={(o) => {
+          setRuleDialogOpen(o);
+          if (!o) setEditingRuleId(null);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>新增對照規則</DialogTitle>
+            <DialogTitle>{editingRuleId ? "編輯對照規則" : "新增對照規則"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1">
@@ -668,7 +705,7 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
             <Button variant="outline" onClick={() => setRuleDialogOpen(false)}>
               取消
             </Button>
-            <Button onClick={saveRule}>新增</Button>
+            <Button onClick={saveRule}>{editingRuleId ? "更新" : "新增"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
