@@ -255,17 +255,26 @@ function AdsListTab() {
 }
 
 /* ---------------- Tab 2 ---------------- */
+type QuickRangeKey = "7d" | "30d" | "thisMonth" | "lastMonth" | "thisYear" | "lastYear" | "all" | null;
+
+const toISO = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
 function WeeklyTab() {
   const [rows, setRows] = useState<MetaAdWeekly[]>([]);
   const [search, setSearch] = useState("");
   const [fromDate, setFromDate] = useState<string>(() => {
     const d = new Date();
     d.setDate(d.getDate() - 28);
-    return d.toISOString().slice(0, 10);
+    return toISO(d);
   });
-  const [toDate, setToDate] = useState<string>(() =>
-    new Date().toISOString().slice(0, 10),
-  );
+  const [toDate, setToDate] = useState<string>(() => toISO(new Date()));
+  const [quickRange, setQuickRange] = useState<QuickRangeKey>(null);
+  const [detail, setDetail] = useState<MetaAdWeekly | null>(null);
 
   useEffect(() => {
     void load();
@@ -274,22 +283,70 @@ function WeeklyTab() {
   const load = async () => {
     const { data, error } = await supabase
       .from("meta_ad_weekly")
-      .select("id,campaign_name,date_range,spend,impressions,reach,msg_started,status")
+      .select(
+        "id,campaign_id,campaign_name,date_range,spend,impressions,reach,msg_started,status,start_date,stop_date",
+      )
       .order("date_range", { ascending: false });
     if (error) return toast.error("載入失敗：" + error.message);
     setRows((data || []) as MetaAdWeekly[]);
   };
 
+  const applyQuickRange = (key: QuickRangeKey) => {
+    setQuickRange(key);
+    const now = new Date();
+    if (key === "all") {
+      setFromDate("");
+      setToDate("");
+      return;
+    }
+    if (key === "7d") {
+      const f = new Date(); f.setDate(now.getDate() - 7);
+      setFromDate(toISO(f)); setToDate(toISO(now)); return;
+    }
+    if (key === "30d") {
+      const f = new Date(); f.setDate(now.getDate() - 30);
+      setFromDate(toISO(f)); setToDate(toISO(now)); return;
+    }
+    if (key === "thisMonth") {
+      setFromDate(toISO(new Date(now.getFullYear(), now.getMonth(), 1)));
+      setToDate(toISO(now)); return;
+    }
+    if (key === "lastMonth") {
+      const f = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const t = new Date(now.getFullYear(), now.getMonth(), 0);
+      setFromDate(toISO(f)); setToDate(toISO(t)); return;
+    }
+    if (key === "thisYear") {
+      setFromDate(toISO(new Date(now.getFullYear(), 0, 1)));
+      setToDate(toISO(now)); return;
+    }
+    if (key === "lastYear") {
+      setFromDate(toISO(new Date(now.getFullYear() - 1, 0, 1)));
+      setToDate(toISO(new Date(now.getFullYear() - 1, 11, 31))); return;
+    }
+  };
+
+  const quickRanges: { key: Exclude<QuickRangeKey, null>; label: string }[] = [
+    { key: "7d", label: "近7天" },
+    { key: "30d", label: "近30天" },
+    { key: "thisMonth", label: "本月" },
+    { key: "lastMonth", label: "上個月" },
+    { key: "thisYear", label: "今年" },
+    { key: "lastYear", label: "去年" },
+    { key: "all", label: "迄今" },
+  ];
+
   const filtered = useMemo(() => {
     return rows.filter((r) => {
       if (search && !(r.campaign_name?.toLowerCase().includes(search.toLowerCase())))
         return false;
-      // date_range stored as text e.g. "2025-05-01 ~ 2025-05-07"; do best-effort filtering
+      if (!fromDate && !toDate) return true;
       const m = r.date_range.match(/(\d{4}-\d{2}-\d{2})/g);
       if (m && m.length >= 1) {
         const start = m[0];
         const end = m[1] ?? m[0];
-        if (end < fromDate || start > toDate) return false;
+        if (toDate && start > toDate) return false;
+        if (fromDate && end < fromDate) return false;
       }
       return true;
     });
@@ -297,14 +354,26 @@ function WeeklyTab() {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          {quickRanges.map((q) => (
+            <Button
+              key={q.key}
+              size="sm"
+              variant={quickRange === q.key ? "default" : "outline"}
+              onClick={() => applyQuickRange(q.key)}
+            >
+              {q.label}
+            </Button>
+          ))}
+        </div>
         <div className="flex flex-wrap items-end gap-2">
           <div className="space-y-1">
             <Label className="text-xs">起始日</Label>
             <Input
               type="date"
               value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
+              onChange={(e) => { setFromDate(e.target.value); setQuickRange(null); }}
               className="w-40"
             />
           </div>
@@ -313,7 +382,7 @@ function WeeklyTab() {
             <Input
               type="date"
               value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
+              onChange={(e) => { setToDate(e.target.value); setQuickRange(null); }}
               className="w-40"
             />
           </div>
@@ -349,7 +418,11 @@ function WeeklyTab() {
               </TableRow>
             ) : (
               filtered.map((r) => (
-                <TableRow key={r.id}>
+                <TableRow
+                  key={r.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => setDetail(r)}
+                >
                   <TableCell>{r.campaign_name ?? "—"}</TableCell>
                   <TableCell className="text-xs">{r.date_range}</TableCell>
                   <TableCell className="text-right tabular-nums">{fmtMoney(r.spend)}</TableCell>
@@ -371,6 +444,38 @@ function WeeklyTab() {
           </TableBody>
         </Table>
       </CardContent>
+
+      <Sheet open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>週報明細</SheetTitle>
+          </SheetHeader>
+          {detail && (
+            <div className="mt-6 space-y-4 text-sm">
+              <DetailRow label="行銷活動ID" value={detail.campaign_id ?? "—"} mono />
+              <DetailRow label="行銷活動名稱" value={detail.campaign_name ?? "—"} />
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">廣告狀態</span>
+                {detail.status ? (
+                  <Badge variant={STATUS_VARIANT[detail.status] ?? "outline"}>
+                    {detail.status}
+                  </Badge>
+                ) : (
+                  <span>—</span>
+                )}
+              </div>
+              <DetailRow label="活動建立日期" value={fmtDate(detail.start_date)} />
+              <DetailRow label="截止日期" value={fmtDate(detail.stop_date)} />
+              <DetailRow label="日期區間" value={detail.date_range} />
+              <DetailRow label="週花費" value={fmtMoney(detail.spend)} />
+              <DetailRow label="曝光次數" value={fmtNum(detail.impressions)} />
+              <DetailRow label="觸及人數" value={fmtNum(detail.reach)} />
+              <DetailRow label="訊息對話數" value={fmtNum(detail.msg_started)} />
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+
     </Card>
   );
 }
