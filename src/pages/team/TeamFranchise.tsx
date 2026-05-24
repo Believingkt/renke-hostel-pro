@@ -2754,6 +2754,16 @@ interface MonthlyDistribution {
 function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
   const [distributions, setDistributions] = useState<MonthlyDistribution[]>([]);
   const [externalOrders, setExternalOrders] = useState<ExternalOrder[]>([]);
+  const [internalOrders, setInternalOrders] = useState<Array<{
+    id: string;
+    member_number: string | null;
+    customer_name: string;
+    customer_phone: string | null;
+    plan_name: string | null;
+    sold_at: string | null;
+    sold_by_name: string | null;
+    notes: string | null;
+  }>>([]);
   const [loading, setLoading] = useState(true);
 
   const nowY = new Date().getFullYear();
@@ -2772,10 +2782,11 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
   const [filterYear, setFilterYear] = useState<string>("ALL");
   const [filterMonth, setFilterMonth] = useState<string>("ALL");
   const [filterProject, setFilterProject] = useState<string>("ALL");
+  const [filterSource, setFilterSource] = useState<"ALL" | "internal" | "external">("ALL");
 
   const load = async () => {
     setLoading(true);
-    const [distRes, extRes] = await Promise.all([
+    const [distRes, extRes, intRes] = await Promise.all([
       (supabase as any)
         .from("franchise_monthly_distributions")
         .select("*")
@@ -2783,8 +2794,11 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
         .order("month", { ascending: false }),
       supabase
         .from("franchise_external_orders")
-        .select("id,project_name,member_number,customer_name,customer_phone,unit_count,signed_at,sales_name")
+        .select("id,project_name,member_number,customer_name,customer_phone,unit_count,signed_at,sales_name,notes")
         .order("unit_count", { ascending: false, nullsFirst: false }),
+      supabase
+        .from("franchise_orders")
+        .select("id,member_number,customer_name,customer_phone,plan_name,sold_at,sold_by_name,notes"),
     ]);
     if (distRes.error) {
       toast.error("讀取失敗：" + distRes.error.message);
@@ -2793,6 +2807,9 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
     }
     if (!extRes.error) {
       setExternalOrders((extRes.data ?? []) as ExternalOrder[]);
+    }
+    if (!intRes.error) {
+      setInternalOrders((intRes.data ?? []) as any);
     }
     setLoading(false);
   };
@@ -2888,24 +2905,74 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
     );
   }, [distributions, filterYear, filterMonth, filterProject]);
 
-  // 會員明細：依篩選 project_name 對應 franchise_external_orders
-  const memberRows = useMemo(() => {
-    if (!matchedDist) return [];
-    return externalOrders
-      .filter((o) => o.project_name === matchedDist.project_name)
-      .map((o) => ({
-        id: o.id,
-        customer_name: o.customer_name,
-        unit_count: Number(o.unit_count ?? 0),
-        unit_price: Number(matchedDist.unit_price),
-        bonus: Number(o.unit_count ?? 0) * Number(matchedDist.unit_price),
-        payment_date: matchedDist.payment_date,
-        order: o,
-      }))
-      .sort((a, b) => b.unit_count - a.unit_count);
-  }, [externalOrders, matchedDist]);
+  type UnifiedMemberRow = {
+    id: string;
+    source: "internal" | "external";
+    member_number: string | null;
+    customer_name: string;
+    customer_phone: string | null;
+    project_name: string | null;
+    signed_at: string | null;
+    sales_or_sold_by_name: string | null;
+    unit_count: number;
+    unit_price: number;
+    bonus: number;
+    payment_date: string | null;
+    notes: string | null;
+  };
 
-  const [memberDetail, setMemberDetail] = useState<(typeof memberRows)[number] | null>(null);
+  // 會員明細：依篩選 project_name 對應 franchise_external_orders / franchise_orders
+  const memberRows = useMemo<UnifiedMemberRow[]>(() => {
+    if (!matchedDist) return [];
+    const price = Number(matchedDist.unit_price);
+    const rows: UnifiedMemberRow[] = [];
+    if (filterSource === "ALL" || filterSource === "external") {
+      for (const o of externalOrders) {
+        if (o.project_name !== matchedDist.project_name) continue;
+        const uc = Number(o.unit_count ?? 0);
+        rows.push({
+          id: `ext-${o.id}`,
+          source: "external",
+          member_number: o.member_number ?? null,
+          customer_name: o.customer_name,
+          customer_phone: o.customer_phone ?? null,
+          project_name: o.project_name,
+          signed_at: o.signed_at ?? null,
+          sales_or_sold_by_name: o.sales_name ?? null,
+          unit_count: uc,
+          unit_price: price,
+          bonus: uc * price,
+          payment_date: matchedDist.payment_date,
+          notes: (o as any).notes ?? null,
+        });
+      }
+    }
+    if (filterSource === "ALL" || filterSource === "internal") {
+      for (const o of internalOrders) {
+        if ((o.plan_name ?? "") !== matchedDist.project_name) continue;
+        rows.push({
+          id: `int-${o.id}`,
+          source: "internal",
+          member_number: o.member_number ?? null,
+          customer_name: o.customer_name,
+          customer_phone: o.customer_phone ?? null,
+          project_name: o.plan_name,
+          signed_at: o.sold_at ?? null,
+          sales_or_sold_by_name: o.sold_by_name ?? null,
+          unit_count: 1,
+          unit_price: price,
+          bonus: 1 * price,
+          payment_date: matchedDist.payment_date,
+          notes: o.notes ?? null,
+        });
+      }
+    }
+    return rows.sort((a, b) => b.unit_count - a.unit_count);
+  }, [externalOrders, internalOrders, matchedDist, filterSource]);
+
+  const [memberDetail, setMemberDetail] = useState<UnifiedMemberRow | null>(null);
+
+
 
 
   return (
