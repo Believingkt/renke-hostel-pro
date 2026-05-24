@@ -1897,8 +1897,11 @@ const emptyExternalForm = (): Partial<ExternalOrder> => ({
 function ExternalSalesTab({ canManage }: { canManage: boolean }) {
   const [rows, setRows] = useState<ExternalOrder[]>([]);
   const [projectFilter, setProjectFilter] = useState<string>("ALL");
+  const [salesFilter, setSalesFilter] = useState<string>("ALL");
+  const [progressFilter, setProgressFilter] = useState<string>("ALL");
   const [year, setYear] = useState<string>("ALL");
   const [month, setMonth] = useState<string>("ALL");
+  const [memberNumberError, setMemberNumberError] = useState<string>("");
 
   const [detail, setDetail] = useState<ExternalOrder | null>(null);
   const [editing, setEditing] = useState(false);
