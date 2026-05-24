@@ -1087,6 +1087,34 @@ function InvitationsTab({
         </Card>
       )}
 
+      {/* 分頁 */}
+      {!loading && totalCount > 0 && (
+        <div className="flex items-center justify-between text-sm">
+          <div className="text-muted-foreground">
+            共 {totalCount} 筆，第 {page} / {totalPages} 頁
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={page <= 1 || loading}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              上一頁
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={page >= totalPages || loading}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            >
+              下一頁
+            </Button>
+          </div>
+        </div>
+      )}
+
+
       {/* 詳情 Drawer */}
       <Sheet open={!!viewingRow} onOpenChange={(o) => !o && setViewingRow(null)}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
