@@ -572,7 +572,7 @@ function OrdersTab({
       company_amount: Math.round(planPrice * company_rate),
       sold_at: form.sold_at,
       payment_confirmed: form.payment_confirmed,
-      payment_at: form.payment_confirmed ? form.sold_at : null,
+      payment_at: form.payment_at || null,
       invoice_number: form.invoice_number.trim() || null,
       notes: form.notes.trim() || null,
       created_by: currentUserId,
