@@ -461,6 +461,10 @@ function InvitationsTab({
       if (filterAcc !== "all" && r.accommodation_id !== filterAcc) return false;
       if (filterStatus !== "all" && r.booking_status !== filterStatus)
         return false;
+      if (filterTags.length > 0) {
+        const tagSet = new Set(r.kol_tags ?? []);
+        if (!filterTags.some((t) => tagSet.has(t))) return false;
+      }
       if (s) {
         const a = (r.name ?? "").toLowerCase();
         const b = (r.ig_handle ?? "").toLowerCase();
@@ -468,7 +472,7 @@ function InvitationsTab({
       }
       return true;
     });
-  }, [rows, search, filterAcc, filterStatus]);
+  }, [rows, search, filterAcc, filterStatus, filterTags]);
 
   // 入住日期 → 自動計算星期幾 & kpi_eligible（前端只算 day_of_week，kpi_eligible 寫入時帶上）
   useEffect(() => {
