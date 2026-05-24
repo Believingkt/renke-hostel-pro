@@ -561,7 +561,7 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
                 <TableHead>關鍵字</TableHead>
                 <TableHead>影音組成員</TableHead>
                 <TableHead className="w-20">排序</TableHead>
-                <TableHead className="w-16"></TableHead>
+                <TableHead className="w-24"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -577,7 +577,14 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
                     <TableCell>{r.keyword}</TableCell>
                     <TableCell>{memberName(r.video_creator_id)}</TableCell>
                     <TableCell>{r.sort_order}</TableCell>
-                    <TableCell>
+                    <TableCell className="flex gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => openEditRule(r)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                       <Button
                         size="icon"
                         variant="ghost"
