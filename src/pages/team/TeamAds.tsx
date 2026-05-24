@@ -355,7 +355,8 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
   const [videoMembers, setVideoMembers] = useState<VideoMember[]>([]);
 
   const [adDialogOpen, setAdDialogOpen] = useState(false);
-  const [adForm, setAdForm] = useState({ label: "", ad_id: "", sort_order: 0 });
+  const [editingAdId, setEditingAdId] = useState<string | null>(null);
+  const [adForm, setAdForm] = useState({ label: "", ad_id: "" });
 
   const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
@@ -414,16 +415,39 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
   const saveAd = async () => {
     if (!adForm.label.trim() || !adForm.ad_id.trim())
       return toast.error("請填寫標籤與廣告編號");
-    const { error } = await supabase.from("common_ad_ids").insert({
-      label: adForm.label.trim(),
-      ad_id: adForm.ad_id.trim(),
-      sort_order: Number(adForm.sort_order) || 0,
-    });
-    if (error) return toast.error("新增失敗：" + error.message);
-    toast.success("已新增");
+    let error;
+    if (editingAdId) {
+      ({ error } = await supabase
+        .from("common_ad_ids")
+        .update({ label: adForm.label.trim(), ad_id: adForm.ad_id.trim() })
+        .eq("id", editingAdId));
+    } else {
+      const nextSort =
+        commonAds.reduce((m, a) => Math.max(m, a.sort_order ?? 0), 0) + 1;
+      ({ error } = await supabase.from("common_ad_ids").insert({
+        label: adForm.label.trim(),
+        ad_id: adForm.ad_id.trim(),
+        sort_order: nextSort,
+      }));
+    }
+    if (error) return toast.error((editingAdId ? "更新" : "新增") + "失敗：" + error.message);
+    toast.success(editingAdId ? "已更新" : "已新增");
     setAdDialogOpen(false);
-    setAdForm({ label: "", ad_id: "", sort_order: 0 });
+    setEditingAdId(null);
+    setAdForm({ label: "", ad_id: "" });
     void loadAll();
+  };
+
+  const openEditAd = (a: CommonAdId) => {
+    setEditingAdId(a.id);
+    setAdForm({ label: a.label, ad_id: a.ad_id });
+    setAdDialogOpen(true);
+  };
+
+  const openNewAd = () => {
+    setEditingAdId(null);
+    setAdForm({ label: "", ad_id: "" });
+    setAdDialogOpen(true);
   };
 
   const deleteAd = async (id: string) => {
@@ -436,17 +460,20 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
   const saveRule = async () => {
     if (!ruleForm.keyword.trim() || !ruleForm.video_creator_id)
       return toast.error("請填寫關鍵字並選擇影音組成員");
-    const payload = {
+    const basePayload = {
       keyword: ruleForm.keyword.trim(),
       video_creator_id: ruleForm.video_creator_id,
-      sort_order: Number(ruleForm.sort_order) || 0,
     };
     const { error } = editingRuleId
       ? await supabase
           .from("ad_video_creator_rules")
-          .update(payload)
+          .update(basePayload)
           .eq("id", editingRuleId)
-      : await supabase.from("ad_video_creator_rules").insert(payload);
+      : await supabase.from("ad_video_creator_rules").insert({
+          ...basePayload,
+          sort_order:
+            rules.reduce((m, r) => Math.max(m, r.sort_order ?? 0), 0) + 1,
+        });
     if (error) return toast.error((editingRuleId ? "更新" : "新增") + "失敗：" + error.message);
     toast.success(editingRuleId ? "已更新" : "已新增");
     setRuleDialogOpen(false);
@@ -497,7 +524,7 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">常用廣告編號</CardTitle>
-          <Button size="sm" onClick={() => setAdDialogOpen(true)}>
+          <Button size="sm" onClick={openNewAd}>
             <Plus className="h-4 w-4 mr-1" /> 新增
           </Button>
         </CardHeader>
@@ -507,14 +534,13 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
               <TableRow>
                 <TableHead>標籤</TableHead>
                 <TableHead>廣告編號</TableHead>
-                <TableHead className="w-20">排序</TableHead>
-                <TableHead className="w-16"></TableHead>
+                <TableHead className="w-24"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {commonAds.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
                     尚無常用廣告編號
                   </TableCell>
                 </TableRow>
@@ -523,8 +549,14 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
                   <TableRow key={a.id}>
                     <TableCell>{a.label}</TableCell>
                     <TableCell className="font-mono text-xs">{a.ad_id}</TableCell>
-                    <TableCell>{a.sort_order}</TableCell>
-                    <TableCell>
+                    <TableCell className="flex gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => openEditAd(a)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                       <Button
                         size="icon"
                         variant="ghost"
@@ -560,14 +592,13 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
               <TableRow>
                 <TableHead>關鍵字</TableHead>
                 <TableHead>影音組成員</TableHead>
-                <TableHead className="w-20">排序</TableHead>
                 <TableHead className="w-24"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {rules.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
                     尚無規則
                   </TableCell>
                 </TableRow>
@@ -576,7 +607,6 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
                   <TableRow key={r.id}>
                     <TableCell>{r.keyword}</TableCell>
                     <TableCell>{memberName(r.video_creator_id)}</TableCell>
-                    <TableCell>{r.sort_order}</TableCell>
                     <TableCell className="flex gap-1">
                       <Button
                         size="icon"
@@ -602,10 +632,16 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
       </Card>
 
       {/* Dialog: common ad id */}
-      <Dialog open={adDialogOpen} onOpenChange={setAdDialogOpen}>
+      <Dialog
+        open={adDialogOpen}
+        onOpenChange={(o) => {
+          setAdDialogOpen(o);
+          if (!o) setEditingAdId(null);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>新增常用廣告編號</DialogTitle>
+            <DialogTitle>{editingAdId ? "編輯常用廣告編號" : "新增常用廣告編號"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1">
@@ -622,22 +658,12 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
                 onChange={(e) => setAdForm({ ...adForm, ad_id: e.target.value })}
               />
             </div>
-            <div className="space-y-1">
-              <Label>排序</Label>
-              <Input
-                type="number"
-                value={adForm.sort_order}
-                onChange={(e) =>
-                  setAdForm({ ...adForm, sort_order: Number(e.target.value) })
-                }
-              />
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAdDialogOpen(false)}>
               取消
             </Button>
-            <Button onClick={saveAd}>新增</Button>
+            <Button onClick={saveAd}>{editingAdId ? "更新" : "新增"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -689,16 +715,6 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
                   )}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-1">
-              <Label>排序</Label>
-              <Input
-                type="number"
-                value={ruleForm.sort_order}
-                onChange={(e) =>
-                  setRuleForm({ ...ruleForm, sort_order: Number(e.target.value) })
-                }
-              />
             </div>
           </div>
           <DialogFooter>
