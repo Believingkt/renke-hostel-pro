@@ -19,30 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
-const TRAFFIC_SOURCES = [
-  "貝瑞FB",
-  "貝瑞IG",
-  "人客多LINE@",
-  "人客多IG",
-  "人客多FB",
-  "森山LINE@",
-  "轉介紹",
-  "Threads",
-  "網站預訂",
-  "票券平台",
-];
-
-const BOOKING_METHODS = [
-  "人客多代訂",
-  "外移代訂",
-  "森山代訂",
-  "人客多票券",
-  "網站預訂",
-  "特殊價格",
-];
 
 interface TeamOption {
   user_id: string;
@@ -53,6 +32,12 @@ interface CommonAd {
   id: string;
   label: string;
   ad_id: string;
+}
+
+interface OptionRow {
+  id: string;
+  name: string;
+  sort_order: number | null;
 }
 
 interface Props {
@@ -69,6 +54,9 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [commonAds, setCommonAds] = useState<CommonAd[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
+  const [trafficSources, setTrafficSources] = useState<OptionRow[]>([]);
+  const [bookingMethods, setBookingMethods] = useState<OptionRow[]>([]);
+
   const [closerId, setCloserId] = useState<string>(NONE);
   const [videoCreatorId, setVideoCreatorId] = useState<string>(NONE);
   const [trafficSource, setTrafficSource] = useState<string>(NONE);
@@ -77,6 +65,12 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [isExcluded, setIsExcluded] = useState(false);
   const [exclusionNote, setExclusionNote] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Inline add option inputs
+  const [newTrafficSource, setNewTrafficSource] = useState("");
+  const [newBookingMethod, setNewBookingMethod] = useState("");
+  const [addingTraffic, setAddingTraffic] = useState(false);
+  const [addingBooking, setAddingBooking] = useState(false);
 
   // Reset form whenever a new order opens the drawer
   useEffect(() => {
@@ -88,10 +82,12 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setAdId("");
       setIsExcluded(false);
       setExclusionNote("");
+      setNewTrafficSource("");
+      setNewBookingMethod("");
     }
   }, [open, orderId]);
 
-  // Load team options + common ads + current user
+  // Load team options + common ads + current user + dynamic options
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
@@ -102,6 +98,8 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         { data: closerRoles },
         { data: videoRoles },
         { data: ads },
+        { data: tsRows },
+        { data: bmRows },
       ] = await Promise.all([
         supabase.auth.getSession(),
         supabase
@@ -117,6 +115,16 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         supabase
           .from("common_ad_ids")
           .select("id, label, ad_id")
+          .order("sort_order", { ascending: true }),
+        supabase
+          .from("traffic_sources")
+          .select("id, name, sort_order")
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true }),
+        supabase
+          .from("booking_methods")
+          .select("id, name, sort_order")
+          .eq("is_active", true)
           .order("sort_order", { ascending: true }),
       ]);
 
@@ -148,6 +156,8 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setClosers(toOptions(closerIds));
       setVideoCreators(toOptions(videoIds));
       setCommonAds(ads ?? []);
+      setTrafficSources((tsRows ?? []) as OptionRow[]);
+      setBookingMethods((bmRows ?? []) as OptionRow[]);
 
       // 預設成交人為目前登入者(若身分為 closer)
       if (uid && closerIds.includes(uid)) {
@@ -159,6 +169,84 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       cancelled = true;
     };
   }, [open]);
+
+  const handleAddTrafficSource = async () => {
+    const name = newTrafficSource.trim();
+    if (!name) return;
+    if (trafficSources.some((o) => o.name === name)) {
+      toast.error("已有相同選項");
+      return;
+    }
+    setAddingTraffic(true);
+    try {
+      const maxOrder = trafficSources.reduce(
+        (m, o) => Math.max(m, o.sort_order ?? 0),
+        0,
+      );
+      const { data, error } = await supabase
+        .from("traffic_sources")
+        .insert({
+          name,
+          sort_order: maxOrder + 1,
+          created_by: currentUserId,
+        })
+        .select("id, name, sort_order")
+        .single();
+      if (error) throw error;
+      setTrafficSources((prev) => [...prev, data as OptionRow]);
+      setTrafficSource(name);
+      setNewTrafficSource("");
+      toast.success("已新增來源管道");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "新增失敗";
+      if (msg.includes("duplicate") || msg.includes("unique")) {
+        toast.error("已有相同選項");
+      } else {
+        toast.error(msg);
+      }
+    } finally {
+      setAddingTraffic(false);
+    }
+  };
+
+  const handleAddBookingMethod = async () => {
+    const name = newBookingMethod.trim();
+    if (!name) return;
+    if (bookingMethods.some((o) => o.name === name)) {
+      toast.error("已有相同選項");
+      return;
+    }
+    setAddingBooking(true);
+    try {
+      const maxOrder = bookingMethods.reduce(
+        (m, o) => Math.max(m, o.sort_order ?? 0),
+        0,
+      );
+      const { data, error } = await supabase
+        .from("booking_methods")
+        .insert({
+          name,
+          sort_order: maxOrder + 1,
+          created_by: currentUserId,
+        })
+        .select("id, name, sort_order")
+        .single();
+      if (error) throw error;
+      setBookingMethods((prev) => [...prev, data as OptionRow]);
+      setBookingMethod(name);
+      setNewBookingMethod("");
+      toast.success("已新增訂房方式");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "新增失敗";
+      if (msg.includes("duplicate") || msg.includes("unique")) {
+        toast.error("已有相同選項");
+      } else {
+        toast.error(msg);
+      }
+    } finally {
+      setAddingBooking(false);
+    }
+  };
 
   const handleSkip = () => {
     if (saving) return;
@@ -266,11 +354,40 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={NONE}>未指定</SelectItem>
-                {TRAFFIC_SOURCES.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {s}
+                {trafficSources.map((s) => (
+                  <SelectItem key={s.id} value={s.name}>
+                    {s.name}
                   </SelectItem>
                 ))}
+                <div className="border-t mt-1 pt-2 px-2 pb-1 flex gap-1">
+                  <Input
+                    value={newTrafficSource}
+                    onChange={(e) => setNewTrafficSource(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddTrafficSource();
+                      }
+                    }}
+                    placeholder="新增來源管道"
+                    className="h-8 text-sm"
+                    onPointerDown={(e) => e.stopPropagation()}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-8 shrink-0"
+                    disabled={addingTraffic || !newTrafficSource.trim()}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleAddTrafficSource();
+                    }}
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    新增
+                  </Button>
+                </div>
               </SelectContent>
             </Select>
           </div>
@@ -284,11 +401,40 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={NONE}>未指定</SelectItem>
-                {BOOKING_METHODS.map((m) => (
-                  <SelectItem key={m} value={m}>
-                    {m}
+                {bookingMethods.map((m) => (
+                  <SelectItem key={m.id} value={m.name}>
+                    {m.name}
                   </SelectItem>
                 ))}
+                <div className="border-t mt-1 pt-2 px-2 pb-1 flex gap-1">
+                  <Input
+                    value={newBookingMethod}
+                    onChange={(e) => setNewBookingMethod(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddBookingMethod();
+                      }
+                    }}
+                    placeholder="新增訂房方式"
+                    className="h-8 text-sm"
+                    onPointerDown={(e) => e.stopPropagation()}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-8 shrink-0"
+                    disabled={addingBooking || !newBookingMethod.trim()}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleAddBookingMethod();
+                    }}
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    新增
+                  </Button>
+                </div>
               </SelectContent>
             </Select>
           </div>
