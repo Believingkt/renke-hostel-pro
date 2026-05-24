@@ -101,6 +101,22 @@ export default function TeamOrders() {
   const [form, setForm] = useState<MetaRow>(emptyMeta());
   const [saving, setSaving] = useState(false);
 
+  // Tab + Settings
+  const [tab, setTab] = useState<string>("orders");
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [trafficSources, setTrafficSources] = useState<
+    { id: string; name: string; is_active: boolean; sort_order: number | null }[]
+  >([]);
+  const [bookingMethods, setBookingMethods] = useState<
+    { id: string; name: string; is_active: boolean; sort_order: number | null }[]
+  >([]);
+  const [newTraffic, setNewTraffic] = useState("");
+  const [newBooking, setNewBooking] = useState("");
+  const [editingTrafficId, setEditingTrafficId] = useState<string | null>(null);
+  const [editingTrafficName, setEditingTrafficName] = useState("");
+  const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
+  const [editingBookingName, setEditingBookingName] = useState("");
+
   function emptyMeta(): MetaRow {
     return {
       closer_id: null,
