@@ -146,6 +146,122 @@ export default function TeamOrders() {
     setPage(1);
   }, [accFilter, year, month]);
 
+  // Load admin role + options for settings tab
+  useEffect(() => {
+    (async () => {
+      const { data: sess } = await supabase.auth.getSession();
+      const uid = sess.session?.user.id;
+      if (uid) {
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", uid);
+        const admin = (roles ?? []).some(
+          (r: any) => r.role === "hotel_admin" || r.role === "super_admin",
+        );
+        setIsAdmin(admin);
+      }
+      loadOptions();
+    })();
+  }, []);
+
+  async function loadOptions() {
+    const [{ data: ts }, { data: bm }] = await Promise.all([
+      supabase
+        .from("traffic_sources")
+        .select("id, name, is_active, sort_order")
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("booking_methods")
+        .select("id, name, is_active, sort_order")
+        .order("sort_order", { ascending: true }),
+    ]);
+    setTrafficSources((ts ?? []) as any);
+    setBookingMethods((bm ?? []) as any);
+  }
+
+  async function handleAddOption(table: "traffic_sources" | "booking_methods") {
+    const name = (table === "traffic_sources" ? newTraffic : newBooking).trim();
+    if (!name) return;
+    const list = table === "traffic_sources" ? trafficSources : bookingMethods;
+    if (list.some((o) => o.name === name)) {
+      toast.error("已有相同選項");
+      return;
+    }
+    const maxOrder = list.reduce(
+      (m, o) => Math.max(m, o.sort_order ?? 0),
+      0,
+    );
+    const { error } = await supabase
+      .from(table)
+      .insert({ name, sort_order: maxOrder + 1 });
+    if (error) {
+      toast.error(error.message.includes("unique") ? "已有相同選項" : error.message);
+      return;
+    }
+    toast.success("已新增");
+    if (table === "traffic_sources") setNewTraffic("");
+    else setNewBooking("");
+    await loadOptions();
+  }
+
+  async function handleToggleActive(
+    table: "traffic_sources" | "booking_methods",
+    id: string,
+    next: boolean,
+  ) {
+    const { error, count } = await supabase
+      .from(table)
+      .update({ is_active: next }, { count: "exact" })
+      .eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    if (!count) {
+      toast.error("無權限或更新失敗");
+      return;
+    }
+    await loadOptions();
+  }
+
+  async function handleRenameOption(
+    table: "traffic_sources" | "booking_methods",
+    id: string,
+    name: string,
+  ) {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const list = table === "traffic_sources" ? trafficSources : bookingMethods;
+    if (list.some((o) => o.id !== id && o.name === trimmed)) {
+      toast.error("已有相同選項");
+      return;
+    }
+    const { error, count } = await supabase
+      .from(table)
+      .update({ name: trimmed }, { count: "exact" })
+      .eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    if (!count) {
+      toast.error("無權限或更新失敗");
+      return;
+    }
+    if (table === "traffic_sources") {
+      setEditingTrafficId(null);
+      setEditingTrafficName("");
+    } else {
+      setEditingBookingId(null);
+      setEditingBookingName("");
+    }
+    toast.success("已更新");
+    await loadOptions();
+  }
+
+
+
   async function loadAccommodations() {
     const { data } = await supabase
       .from("accommodation_info")
