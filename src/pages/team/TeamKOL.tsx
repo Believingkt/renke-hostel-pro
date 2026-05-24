@@ -610,16 +610,12 @@ function InvitationsTab({
     const kpiMonth = form.check_in_date
       ? form.check_in_date.slice(0, 7) + "-01"
       : null;
-    const tags = form.kol_tags_input
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean);
+    const tags = form.kol_tags;
 
     const payload: Record<string, any> = {
       accommodation_id: form.accommodation_id,
       name: form.name.trim(),
       ig_handle: form.ig_handle.trim(),
-      ig_url: toNullable(form.ig_url),
       rarity: form.rarity || null,
       scout_id: form.scout_id || null,
       invited_at: form.invited_at || null,
