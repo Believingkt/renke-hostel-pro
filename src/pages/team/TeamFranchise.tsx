@@ -89,6 +89,7 @@ interface TeamSetting {
 
 interface FranchiseOrder {
   id: string;
+  member_number: string | null;
   customer_name: string;
   customer_phone: string | null;
   plan_name: string | null;
@@ -109,6 +110,22 @@ interface FranchiseOrder {
   invoice_number: string | null;
   notes: string | null;
 }
+
+// Compute next sequential member_number with a given prefix from existing records.
+// Returns e.g. "S1006" given existing max "S1005". Falls back to "{prefix}1001".
+const nextMemberNumber = (existing: (string | null | undefined)[], prefix: string) => {
+  const re = new RegExp(`^${prefix}(\\d+)$`);
+  let max = 1000;
+  for (const v of existing) {
+    if (!v) continue;
+    const m = re.exec(v.trim());
+    if (m) {
+      const n = parseInt(m[1], 10);
+      if (!isNaN(n) && n > max) max = n;
+    }
+  }
+  return `${prefix}${max + 1}`;
+};
 
 const fmtMoney = (n: number | null | undefined) =>
   `NT$ ${Number(n ?? 0).toLocaleString()}`;
