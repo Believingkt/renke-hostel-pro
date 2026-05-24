@@ -317,7 +317,7 @@ function InvitationsTab({
   const [filterAcc, setFilterAcc] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterTags, setFilterTags] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<"card" | "table">("card");
+  // 列表為唯一檢視模式（原卡片切換已移除）
   const [showInvalid, setShowInvalid] = useState(false);
 
   // 稀有度版本 & 標籤字典
