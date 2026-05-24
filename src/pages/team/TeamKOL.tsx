@@ -39,7 +39,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Plus, AlertTriangle, Check, X, Pencil, ExternalLink } from "lucide-react";
+import { Plus, AlertTriangle, Check, X, Pencil, ExternalLink, Trash2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 // ====== 型別 & 常數 ======
