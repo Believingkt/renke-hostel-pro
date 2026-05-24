@@ -716,16 +716,6 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1">
-              <Label>排序</Label>
-              <Input
-                type="number"
-                value={ruleForm.sort_order}
-                onChange={(e) =>
-                  setRuleForm({ ...ruleForm, sort_order: Number(e.target.value) })
-                }
-              />
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRuleDialogOpen(false)}>
