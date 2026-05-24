@@ -1730,7 +1730,7 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-base">小隊分潤設定</CardTitle>
+        <CardTitle className="text-base">內部小隊分潤設定</CardTitle>
         {canManage && (
           <Button size="sm" onClick={() => setAddOpen(true)}>
             <Plus className="h-4 w-4 mr-1" /> 新增無帳號成員
