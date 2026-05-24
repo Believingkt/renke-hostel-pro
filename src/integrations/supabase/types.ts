@@ -2707,6 +2707,7 @@ export type Database = {
           kol_tags: string[] | null
           kpi_eligible: boolean | null
           kpi_month: string | null
+          kpi_qualified: boolean | null
           lihi_url: string | null
           name: string | null
           notes: string | null
@@ -2747,6 +2748,7 @@ export type Database = {
           kol_tags?: string[] | null
           kpi_eligible?: boolean | null
           kpi_month?: string | null
+          kpi_qualified?: boolean | null
           lihi_url?: string | null
           name?: string | null
           notes?: string | null
@@ -2787,6 +2789,7 @@ export type Database = {
           kol_tags?: string[] | null
           kpi_eligible?: boolean | null
           kpi_month?: string | null
+          kpi_qualified?: boolean | null
           lihi_url?: string | null
           name?: string | null
           notes?: string | null
@@ -2951,6 +2954,36 @@ export type Database = {
           created_by?: string | null
           id?: string
           name?: string
+        }
+        Relationships: []
+      }
+      kol_venues: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          type?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
