@@ -2590,7 +2590,7 @@ function RaritySettingsTab() {
       return;
     }
     const groups = new Map<string, RaritySetting[]>();
-    for (const r of (data ?? []) as RaritySetting[]) {
+    for (const r of ((data ?? []) as unknown as RaritySetting[])) {
       if (!groups.has(r.effective_from)) groups.set(r.effective_from, []);
       groups.get(r.effective_from)!.push(r);
     }
