@@ -912,7 +912,11 @@ function InvitationsTab({
             </TableHeader>
             <TableBody>
               {filtered.map((r) => (
-                <TableRow key={r.id}>
+                <TableRow
+                  key={r.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => openEdit(r)}
+                >
                   <TableCell>
                     {r.name ?? "-"}
                     {r.is_error && (
