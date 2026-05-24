@@ -923,9 +923,7 @@ function InvitationsTab({
               </TableHeader>
               <TableBody>
                 {filtered.map((r) => {
-                  const igUrl = r.ig_handle
-                    ? `https://instagram.com/${r.ig_handle.replace(/^@/, "")}`
-                    : null;
+                  const igUrl = r.ig_handle || null;
                   const contractDone =
                     (r.contract_progress ?? "").includes("已上傳") ||
                     (r.contract_progress ?? "").toLowerCase().includes("uploaded");
@@ -936,28 +934,33 @@ function InvitationsTab({
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => setViewingRow(r)}
                     >
-                      <TableCell>
-                        {igUrl ? (
-                          <a
-                            href={igUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-primary hover:underline"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {r.name ?? "-"}
-                          </a>
-                        ) : (
-                          r.name ?? "-"
-                        )}
-                        {r.is_error && (
-                          <Badge
-                            variant="outline"
-                            className="ml-2 bg-red-100 text-red-700 border-red-300"
-                          >
-                            填錯
-                          </Badge>
-                        )}
+                      <TableCell className="max-w-[180px]">
+                        <div className="flex items-center gap-2 max-w-[180px]">
+                          {igUrl ? (
+                            <a
+                              href={igUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-primary hover:underline truncate"
+                              title={r.name ?? ""}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {r.name ?? "-"}
+                            </a>
+                          ) : (
+                            <span className="truncate" title={r.name ?? ""}>
+                              {r.name ?? "-"}
+                            </span>
+                          )}
+                          {r.is_error && (
+                            <Badge
+                              variant="outline"
+                              className="bg-red-100 text-red-700 border-red-300 shrink-0"
+                            >
+                              填錯
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>{codeOrCid}</TableCell>
                       <TableCell>
@@ -1083,9 +1086,7 @@ function InvitationsTab({
           </SheetHeader>
           {viewingRow && (() => {
             const r = viewingRow;
-            const igUrl = r.ig_handle
-              ? `https://instagram.com/${r.ig_handle.replace(/^@/, "")}`
-              : null;
+            const igUrl = r.ig_handle || null;
             const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
               <div className="grid grid-cols-3 gap-2 py-1.5 border-b border-border/50 last:border-0">
                 <div className="text-xs text-muted-foreground">{label}</div>
@@ -1103,7 +1104,7 @@ function InvitationsTab({
                     r.name ?? "-"
                   )}
                 </Row>
-                <Row label="IG 帳號">
+                <Row label="網紅帳號連結">
                   {igUrl ? (
                     <a href={igUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
                       {igUrl}
@@ -1113,7 +1114,6 @@ function InvitationsTab({
                     "-"
                   )}
                 </Row>
-                <Row label="網紅帳號">{r.ig_handle ? `@${r.ig_handle}` : "-"}</Row>
                 <Row label="稀有度">
                   {r.rarity ? (
                     <Badge variant="outline" className={RARITY_CLASS[r.rarity as Rarity] ?? ""}>
@@ -1237,7 +1237,7 @@ function InvitationsTab({
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                 />
               </Field>
-              <Field label="網紅帳號 *">
+              <Field label="網紅帳號連結 *">
                 <Input
                   value={form.ig_handle}
                   onChange={(e) =>
@@ -1424,26 +1424,15 @@ function InvitationsTab({
               )}
             </Field>
 
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="入住日期">
-                <Input
-                  type="date"
-                  value={form.check_in_date}
-                  onChange={(e) =>
-                    setForm({ ...form, check_in_date: e.target.value })
-                  }
-                />
-              </Field>
-              <Field label="退房日期">
-                <Input
-                  type="date"
-                  value={form.check_out_date}
-                  onChange={(e) =>
-                    setForm({ ...form, check_out_date: e.target.value })
-                  }
-                />
-              </Field>
-            </div>
+            <Field label="入住日期">
+              <Input
+                type="date"
+                value={form.check_in_date}
+                onChange={(e) =>
+                  setForm({ ...form, check_in_date: e.target.value })
+                }
+              />
+            </Field>
 
             <div className="grid grid-cols-2 gap-3">
               <Field label="星期幾（自動）">
@@ -1570,8 +1559,11 @@ function InvitationsTab({
               <Input
                 type="date"
                 value={form.invited_at}
-                readOnly
-                className="bg-muted"
+                onChange={(e) =>
+                  isManager && setForm({ ...form, invited_at: e.target.value })
+                }
+                readOnly={!isManager}
+                className={!isManager ? "bg-muted" : ""}
               />
             </Field>
           </div>
