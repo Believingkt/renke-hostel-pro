@@ -1834,21 +1834,6 @@ function Field({
 // ====== Tab 二:潛在名單 ======
 // ============================================================
 
-type ProspectStatus = "negotiating" | "rejected" | "on_hold" | "converted";
-
-const PROSPECT_STATUS_LABEL: Record<ProspectStatus, string> = {
-  negotiating: "洽談中",
-  rejected: "拒絕",
-  on_hold: "暫緩",
-  converted: "已轉正式邀約",
-};
-
-const PROSPECT_STATUS_CLASS: Record<ProspectStatus, string> = {
-  negotiating: "bg-blue-100 text-blue-700 border-blue-200",
-  rejected: "bg-red-200 text-red-900 border-red-300",
-  on_hold: "bg-orange-100 text-orange-700 border-orange-200",
-  converted: "bg-green-100 text-green-700 border-green-200",
-};
 
 interface ProspectRow {
   id: string;
@@ -1871,30 +1856,24 @@ interface ProspectRow {
 interface ProspectForm {
   id?: string;
   name: string;
-  ig_handle: string;
   ig_url: string;
   scout_id: string;
   contacted_at: string;
-  collab_type: string;
   fee_quote: string;
-  tags_input: string;
+  tags: string[];
   notes: string;
   screenshot_url: string;
-  status: ProspectStatus;
 }
 
 const EMPTY_PROSPECT_FORM: ProspectForm = {
   name: "",
-  ig_handle: "",
   ig_url: "",
   scout_id: "",
   contacted_at: "",
-  collab_type: "",
   fee_quote: "",
-  tags_input: "",
+  tags: [],
   notes: "",
   screenshot_url: "",
-  status: "negotiating",
 };
 
 function ProspectsTab({
@@ -1909,22 +1888,48 @@ function ProspectsTab({
   const [rows, setRows] = useState<ProspectRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [scouts, setScouts] = useState<Scout[]>([]);
+  const [allTags, setAllTags] = useState<string[]>([]);
+  const [newTagInput, setNewTagInput] = useState("");
 
   const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterScout, setFilterScout] = useState<string>("all");
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ProspectForm>(EMPTY_PROSPECT_FORM);
   const [saving, setSaving] = useState(false);
 
+  const reloadTags = useCallback(async () => {
+    const { data } = await supabase.from("kol_tags" as any).select("name").order("name");
+    if (data) setAllTags((data as any[]).map((t) => t.name));
+  }, []);
+
+  const handleAddNewTag = async (name: string) => {
+    const t = name.trim();
+    if (!t) return;
+    if (allTags.includes(t)) {
+      toast.error("此標籤已存在");
+      return;
+    }
+    const { error } = await supabase.from("kol_tags" as any).insert({ name: t });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    await reloadTags();
+    toast.success("已新增標籤");
+  };
+
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.rpc("get_team_role_members", { p_role: "scout" });
-      if (data) {
+      const [scoutRes, tagRes] = await Promise.all([
+        supabase.rpc("get_team_role_members", { p_role: "scout" }),
+        supabase.from("kol_tags" as any).select("name").order("name"),
+      ]);
+      if (scoutRes.data) {
         const seen = new Set<string>();
         const list: Scout[] = [];
-        for (const r of data as any[]) {
+        for (const r of scoutRes.data as any[]) {
           const uid = r.user_id;
           const dn = r.display_name ?? uid;
           if (!seen.has(uid)) {
@@ -1935,6 +1940,7 @@ function ProspectsTab({
         list.sort((a, b) => a.display_name.localeCompare(b.display_name));
         setScouts(list);
       }
+      if (tagRes.data) setAllTags((tagRes.data as any[]).map((t) => t.name));
     })();
   }, []);
 
@@ -1975,10 +1981,22 @@ function ProspectsTab({
     fetchRows();
   }, [fetchRows]);
 
+  const scoutFilterOptions = useMemo(() => {
+    const ids = Array.from(
+      new Set(rows.map((r) => r.scout_id).filter(Boolean) as string[]),
+    );
+    return ids.map((id) => ({
+      id,
+      name: rows.find((r) => r.scout_id === id)?._scout_name ?? id,
+    }));
+  }, [rows]);
+
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
     return rows.filter((r) => {
-      if (filterStatus !== "all" && r.status !== filterStatus) return false;
+      if (filterScout !== "all") {
+        if (filterScout === "none" ? r.scout_id : r.scout_id !== filterScout) return false;
+      }
       if (s) {
         const a = (r.name ?? "").toLowerCase();
         const b = (r.ig_handle ?? "").toLowerCase();
@@ -1986,7 +2004,7 @@ function ProspectsTab({
       }
       return true;
     });
-  }, [rows, search, filterStatus]);
+  }, [rows, search, filterScout]);
 
   const openCreate = () => {
     setEditingId(null);
@@ -1999,16 +2017,13 @@ function ProspectsTab({
     setForm({
       id: r.id,
       name: r.name ?? "",
-      ig_handle: r.ig_handle ?? "",
       ig_url: r.ig_url ?? "",
       scout_id: r.scout_id ?? "",
       contacted_at: r.contacted_at ?? "",
-      collab_type: r.collab_type ?? "",
       fee_quote: r.fee_quote != null ? String(r.fee_quote) : "",
-      tags_input: (r.tags ?? []).join(", "),
+      tags: r.tags ?? [],
       notes: r.notes ?? "",
       screenshot_url: r.screenshot_url ?? "",
-      status: (r.status as ProspectStatus) ?? "negotiating",
     });
     setSheetOpen(true);
   };
@@ -2019,22 +2034,15 @@ function ProspectsTab({
       return;
     }
     setSaving(true);
-    const tags = form.tags_input
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean);
     const payload: Record<string, any> = {
       name: form.name.trim(),
-      ig_handle: toNullable(form.ig_handle),
       ig_url: toNullable(form.ig_url),
       scout_id: form.scout_id || null,
       contacted_at: form.contacted_at || null,
-      collab_type: toNullable(form.collab_type),
       fee_quote: form.fee_quote ? parseFloat(form.fee_quote) : null,
-      tags: tags.length > 0 ? tags : null,
+      tags: form.tags.length > 0 ? form.tags : null,
       notes: toNullable(form.notes),
       screenshot_url: toNullable(form.screenshot_url),
-      status: form.status,
     };
     const { error } = editingId
       ? await supabase
@@ -2071,19 +2079,18 @@ function ProspectsTab({
           onChange={(e) => setSearch(e.target.value)}
           className="w-64"
         />
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="狀態" />
+        <Select value={filterScout} onValueChange={setFilterScout}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="負責星探" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">全部狀態</SelectItem>
-            {(Object.keys(PROSPECT_STATUS_LABEL) as ProspectStatus[]).map(
-              (k) => (
-                <SelectItem key={k} value={k}>
-                  {PROSPECT_STATUS_LABEL[k]}
-                </SelectItem>
-              ),
-            )}
+            <SelectItem value="all">全部星探</SelectItem>
+            <SelectItem value="none">未指定</SelectItem>
+            {scoutFilterOptions.map((s) => (
+              <SelectItem key={s.id} value={s.id}>
+                {s.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
 
@@ -2105,37 +2112,51 @@ function ProspectsTab({
             <TableHeader>
               <TableRow>
                 <TableHead>名稱</TableHead>
-                <TableHead>IG 帳號</TableHead>
                 <TableHead>負責星探</TableHead>
                 <TableHead>聯繫日期</TableHead>
-                <TableHead>狀態</TableHead>
                 <TableHead className="text-right">報價</TableHead>
+                <TableHead>溝通紀錄</TableHead>
                 <TableHead className="text-right">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map((r) => (
                 <TableRow key={r.id}>
-                  <TableCell>{r.name ?? "-"}</TableCell>
-                  <TableCell>@{r.ig_handle ?? "-"}</TableCell>
+                  <TableCell>
+                    {r.ig_url ? (
+                      <a
+                        href={r.ig_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        {r.name ?? "-"}
+                      </a>
+                    ) : (
+                      r.name ?? "-"
+                    )}
+                  </TableCell>
                   <TableCell>{r._scout_name}</TableCell>
                   <TableCell>{r.contacted_at ?? "-"}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={
-                        PROSPECT_STATUS_CLASS[r.status as ProspectStatus] ?? ""
-                      }
-                    >
-                      {PROSPECT_STATUS_LABEL[r.status as ProspectStatus] ??
-                        r.status ??
-                        "-"}
-                    </Badge>
-                  </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {r.fee_quote != null
                       ? `$${r.fee_quote.toLocaleString()}`
                       : "-"}
+                  </TableCell>
+                  <TableCell>
+                    {r.screenshot_url ? (
+                      <a
+                        href={r.screenshot_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary hover:underline inline-flex items-center gap-1"
+                      >
+                        查看截圖
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ) : (
+                      "-"
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <Button
@@ -2176,24 +2197,14 @@ function ProspectsTab({
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
               />
             </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="IG 帳號">
-                <Input
-                  value={form.ig_handle}
-                  onChange={(e) =>
-                    setForm({ ...form, ig_handle: e.target.value })
-                  }
-                />
-              </Field>
-              <Field label="IG 網址">
-                <Input
-                  value={form.ig_url}
-                  onChange={(e) =>
-                    setForm({ ...form, ig_url: e.target.value })
-                  }
-                />
-              </Field>
-            </div>
+            <Field label="網紅帳號連結">
+              <Input
+                value={form.ig_url}
+                onChange={(e) =>
+                  setForm({ ...form, ig_url: e.target.value })
+                }
+              />
+            </Field>
             <Field label="負責星探">
               <Select
                 value={form.scout_id || "none"}
@@ -2224,29 +2235,6 @@ function ProspectsTab({
                   }
                 />
               </Field>
-              <Field label="合作類型">
-                <Select
-                  value={form.collab_type || "none"}
-                  onValueChange={(v) =>
-                    setForm({
-                      ...form,
-                      collab_type: v === "none" ? "" : v,
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="選擇類型" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">未指定</SelectItem>
-                    <SelectItem value="圖文">圖文</SelectItem>
-                    <SelectItem value="Reels">Reels</SelectItem>
-                    <SelectItem value="限動">限動</SelectItem>
-                  </SelectContent>
-                </Select>
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
               <Field label="報價">
                 <Input
                   type="number"
@@ -2256,37 +2244,123 @@ function ProspectsTab({
                   }
                 />
               </Field>
-              <Field label="狀態">
-                <Select
-                  value={form.status}
-                  onValueChange={(v) =>
-                    setForm({ ...form, status: v as ProspectStatus })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(
-                      Object.keys(PROSPECT_STATUS_LABEL) as ProspectStatus[]
-                    ).map((k) => (
-                      <SelectItem key={k} value={k}>
-                        {PROSPECT_STATUS_LABEL[k]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
             </div>
-            <Field label="標籤(以逗號分隔)">
-              <Input
-                value={form.tags_input}
-                onChange={(e) =>
-                  setForm({ ...form, tags_input: e.target.value })
-                }
-              />
+            <Field label="KOL 標籤">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start font-normal h-10"
+                    type="button"
+                  >
+                    {form.tags.length === 0
+                      ? "選擇標籤"
+                      : `已選 ${form.tags.length} 個`}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-2" align="start">
+                  <div className="max-h-60 overflow-y-auto space-y-1">
+                    {allTags.length === 0 && (
+                      <div className="text-xs text-muted-foreground py-2 text-center">
+                        尚無標籤，請於下方新增
+                      </div>
+                    )}
+                    {allTags.map((t) => {
+                      const checked = form.tags.includes(t);
+                      return (
+                        <label
+                          key={t}
+                          className="flex items-center gap-2 text-sm px-2 py-1 rounded hover:bg-muted cursor-pointer"
+                        >
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(v) => {
+                              setForm({
+                                ...form,
+                                tags: v
+                                  ? [...form.tags, t]
+                                  : form.tags.filter((x) => x !== t),
+                              });
+                            }}
+                          />
+                          {t}
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <div className="border-t mt-2 pt-2 flex gap-1">
+                    <Input
+                      value={newTagInput}
+                      onChange={(e) => setNewTagInput(e.target.value)}
+                      placeholder="新增標籤..."
+                      className="h-8 text-xs"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          const t = newTagInput.trim();
+                          if (t) {
+                            handleAddNewTag(t).then(() => {
+                              setForm((f) => ({
+                                ...f,
+                                tags: f.tags.includes(t)
+                                  ? f.tags
+                                  : [...f.tags, t],
+                              }));
+                              setNewTagInput("");
+                            });
+                          }
+                        }
+                      }}
+                    />
+                    <Button
+                      size="sm"
+                      type="button"
+                      variant="secondary"
+                      onClick={async () => {
+                        const t = newTagInput.trim();
+                        if (!t) return;
+                        await handleAddNewTag(t);
+                        setForm((f) => ({
+                          ...f,
+                          tags: f.tags.includes(t)
+                            ? f.tags
+                            : [...f.tags, t],
+                        }));
+                        setNewTagInput("");
+                      }}
+                    >
+                      新增
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+              {form.tags.length > 0 && (
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {form.tags.map((t) => (
+                    <Badge
+                      key={t}
+                      variant="outline"
+                      className="text-xs gap-1"
+                    >
+                      {t}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setForm({
+                            ...form,
+                            tags: form.tags.filter((x) => x !== t),
+                          })
+                        }
+                        className="hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </Field>
-            <Field label="溝通紀錄">
+            <Field label="合作期待">
               <Textarea
                 rows={4}
                 value={form.notes}
