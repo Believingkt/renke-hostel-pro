@@ -10,7 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
 const NORRIS_USER_ID = "1bc5761a-49a3-40ee-aa45-96ab87070c2e";
@@ -64,7 +66,8 @@ const ROLE_BADGE_CLASS = {
 };
 
 interface MemberRow {
-  user_id: string;
+  id: string; // team_member_profiles.id (PK)
+  user_id: string | null;
   display_name: string;
   email: string;
   is_active: boolean;
@@ -110,13 +113,18 @@ export default function TeamMembers() {
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
 
+  // 新增無帳號成員
+  const [noAccountOpen, setNoAccountOpen] = useState(false);
+  const [noAccountName, setNoAccountName] = useState("");
+  const [creatingNoAccount, setCreatingNoAccount] = useState(false);
+
   const fetchMembers = useCallback(async () => {
     setLoading(true);
 
     // 1. 取得所有 team profiles
     const { data: profiles, error: pErr } = await supabase
       .from("team_member_profiles")
-      .select("user_id, display_name, is_active")
+      .select("id, user_id, display_name, is_active")
       .order("display_name", { ascending: true });
 
     if (pErr) {
@@ -154,11 +162,12 @@ export default function TeamMembers() {
     }
 
     let rows: MemberRow[] = (profiles ?? []).map((p) => ({
-      user_id: p.user_id,
+      id: p.id,
+      user_id: p.user_id ?? null,
       display_name: p.display_name,
-      email: emailMap.get(p.user_id) ?? "",
+      email: p.user_id ? (emailMap.get(p.user_id) ?? "") : "",
       is_active: p.is_active ?? true,
-      roles: Array.from(rolesMap.get(p.user_id) ?? []),
+      roles: p.user_id ? Array.from(rolesMap.get(p.user_id) ?? []) : [],
     }));
 
     // scout_manager 僅看到有 scout 或 kol 角色的成員
@@ -331,33 +340,36 @@ export default function TeamMembers() {
           display_name: editName.trim(),
           is_active: editActive,
         })
-        .eq("user_id", editTarget.user_id);
+        .eq("id", editTarget.id);
       if (pErr) throw pErr;
 
-      const original = new Set(editTarget.roles);
-      const next = new Set(editRoles);
-      const toAdd = [...next].filter((r) => !original.has(r));
-      const toRemove = [...original].filter((r) => !next.has(r) && r !== "super_admin");
+      // 無帳號成員：不處理 user_roles
+      if (editTarget.user_id) {
+        const original = new Set(editTarget.roles);
+        const next = new Set(editRoles);
+        const toAdd = [...next].filter((r) => !original.has(r));
+        const toRemove = [...original].filter((r) => !next.has(r) && r !== "super_admin");
 
-      if (toAdd.length > 0) {
-        const { error } = await supabase.from("user_roles").insert(
-          toAdd.map((role) => ({
-            user_id: editTarget.user_id,
-            accommodation_id: null,
-            role,
-          })),
-        );
-        if (error) throw error;
-      }
+        if (toAdd.length > 0) {
+          const { error } = await supabase.from("user_roles").insert(
+            toAdd.map((role) => ({
+              user_id: editTarget.user_id!,
+              accommodation_id: null,
+              role,
+            })),
+          );
+          if (error) throw error;
+        }
 
-      for (const role of toRemove) {
-        const { error } = await supabase
-          .from("user_roles")
-          .delete()
-          .eq("user_id", editTarget.user_id)
-          .is("accommodation_id", null)
-          .eq("role", role);
-        if (error) throw error;
+        for (const role of toRemove) {
+          const { error } = await supabase
+            .from("user_roles")
+            .delete()
+            .eq("user_id", editTarget.user_id)
+            .is("accommodation_id", null)
+            .eq("role", role);
+          if (error) throw error;
+        }
       }
 
       toast.success("已更新成員資料");
@@ -372,21 +384,26 @@ export default function TeamMembers() {
 
   const handleRemoveMember = async () => {
     if (!editTarget) return;
-    if (editTarget.user_id === myUserId) return toast.error("無法移除自己");
+    if (editTarget.user_id && editTarget.user_id === myUserId) return toast.error("無法移除自己");
     if (isNorris) return toast.error("此成員受系統保護");
-    if (!confirm(`確定移除 ${editTarget.display_name} 嗎？將清除其團隊角色與 profile，登入帳號不受影響。`)) return;
+    const confirmMsg = editTarget.user_id
+      ? `確定移除 ${editTarget.display_name} 嗎？將清除其團隊角色與 profile，登入帳號不受影響。`
+      : `確定移除無帳號成員 ${editTarget.display_name} 嗎？`;
+    if (!confirm(confirmMsg)) return;
     setRemoving(true);
     try {
-      // 1. 移除所有全域角色
-      const { error: rErr } = await supabase
-        .from("user_roles")
-        .delete()
-        .eq("user_id", editTarget.user_id)
-        .is("accommodation_id", null);
-      if (rErr) throw rErr;
+      // 1. 移除所有全域角色（僅有帳號成員）
+      if (editTarget.user_id) {
+        const { error: rErr } = await supabase
+          .from("user_roles")
+          .delete()
+          .eq("user_id", editTarget.user_id)
+          .is("accommodation_id", null);
+        if (rErr) throw rErr;
+      }
 
       // 2. 移除 team profile
-      const { error: pErr } = await supabase.from("team_member_profiles").delete().eq("user_id", editTarget.user_id);
+      const { error: pErr } = await supabase.from("team_member_profiles").delete().eq("id", editTarget.id);
       if (pErr) throw pErr;
 
       toast.success("已移除成員");
@@ -398,6 +415,27 @@ export default function TeamMembers() {
       setRemoving(false);
     }
   };
+
+  const handleCreateNoAccount = async () => {
+    if (!noAccountName.trim()) return toast.error("請輸入顯示名稱");
+    setCreatingNoAccount(true);
+    try {
+      const { error } = await supabase
+        .from("team_member_profiles")
+        .insert({ user_id: null, display_name: noAccountName.trim() });
+      if (error) throw error;
+      toast.success("已建立無帳號成員");
+      setNoAccountName("");
+      setNoAccountOpen(false);
+      fetchMembers();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "建立失敗");
+    } finally {
+      setCreatingNoAccount(false);
+    }
+  };
+
+
 
   if (!canAccess) {
     return (
@@ -527,17 +565,25 @@ export default function TeamMembers() {
             <CardTitle className="text-base">
               現有成員 ({filterRole === "all" ? members.length : `${filteredMembers.length} / ${members.length}`})
             </CardTitle>
-            <Select value={filterRole} onValueChange={(v) => setFilterRole(v as "all" | TeamRole)}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="篩選角色" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全部</SelectItem>
-                {ALL_INVITABLE_ROLES.map((r) => (
-                  <SelectItem key={r} value={r}>{ROLE_LABEL[r]}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              {canEditAll && (
+                <Button variant="outline" size="sm" onClick={() => setNoAccountOpen(true)}>
+                  <UserPlus className="mr-1" />
+                  新增無帳號成員
+                </Button>
+              )}
+              <Select value={filterRole} onValueChange={(v) => setFilterRole(v as "all" | TeamRole)}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="篩選角色" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部</SelectItem>
+                  {ALL_INVITABLE_ROLES.map((r) => (
+                    <SelectItem key={r} value={r}>{ROLE_LABEL[r]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -551,7 +597,7 @@ export default function TeamMembers() {
                 const Wrapper = canEditAll ? "button" : "div";
                 return (
                   <Wrapper
-                    key={m.user_id}
+                    key={m.id}
                     type={canEditAll ? "button" : undefined}
                     onClick={canEditAll ? () => openEdit(m) : undefined}
                     className={`w-full text-left border rounded-lg p-3 transition-colors ${
@@ -567,7 +613,12 @@ export default function TeamMembers() {
                               已停用
                             </Badge>
                           )}
-                          {m.user_id === myUserId && (
+                          {!m.user_id && (
+                            <Badge variant="outline" className="text-xs bg-slate-100 text-slate-700 border-slate-200">
+                              無帳號
+                            </Badge>
+                          )}
+                          {m.user_id && m.user_id === myUserId && (
                             <Badge variant="secondary" className="text-xs">
                               您
                             </Badge>
@@ -576,7 +627,7 @@ export default function TeamMembers() {
                         {m.email && <p className="text-xs text-muted-foreground mt-0.5">{m.email}</p>}
                       </div>
                       <div className="flex flex-wrap gap-1">
-                        {displayRoles(m).length === 0 ? (
+                        {!m.user_id ? null : displayRoles(m).length === 0 ? (
                           <span className="text-xs text-muted-foreground">無角色</span>
                         ) : (
                           displayRoles(m).map((r) => (
@@ -617,39 +668,45 @@ export default function TeamMembers() {
                 </div>
               )}
 
-              <div className="space-y-2">
-                <Label>角色</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {ALL_INVITABLE_ROLES.map((role) => {
-                    const parent = CHILD_OF[role];
-                    const lockedByManager = !!(parent && editRoles.includes(parent));
-                    return (
-                      <label
-                        key={role}
-                        title={lockedByManager ? "已由主管角色包含" : undefined}
-                        className={`flex items-center gap-2 border rounded-md px-2 py-1.5 ${
-                          lockedByManager ? "opacity-50 cursor-not-allowed bg-muted/30" : "cursor-pointer hover:bg-muted/50"
-                        }`}
-                      >
-                        <Checkbox
-                          checked={editRoles.includes(role)}
-                          disabled={lockedByManager}
-                          onCheckedChange={() => !lockedByManager && toggleEditRole(role)}
-                        />
-                        <span className="text-sm">{ROLE_LABEL[role]}</span>
-                        {lockedByManager && <span className="text-[10px] text-muted-foreground">已含於主管</span>}
-                      </label>
-                    );
-                  })}
+              {editTarget?.user_id ? (
+                <div className="space-y-2">
+                  <Label>角色</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {ALL_INVITABLE_ROLES.map((role) => {
+                      const parent = CHILD_OF[role];
+                      const lockedByManager = !!(parent && editRoles.includes(parent));
+                      return (
+                        <label
+                          key={role}
+                          title={lockedByManager ? "已由主管角色包含" : undefined}
+                          className={`flex items-center gap-2 border rounded-md px-2 py-1.5 ${
+                            lockedByManager ? "opacity-50 cursor-not-allowed bg-muted/30" : "cursor-pointer hover:bg-muted/50"
+                          }`}
+                        >
+                          <Checkbox
+                            checked={editRoles.includes(role)}
+                            disabled={lockedByManager}
+                            onCheckedChange={() => !lockedByManager && toggleEditRole(role)}
+                          />
+                          <span className="text-sm">{ROLE_LABEL[role]}</span>
+                          {lockedByManager && <span className="text-[10px] text-muted-foreground">已含於主管</span>}
+                        </label>
+                      );
+                    })}
 
-                  {editTarget?.roles.includes("super_admin") && !isNorris && (
-                    <label className="flex items-center gap-2 border rounded-md px-2 py-1.5 opacity-50 cursor-not-allowed">
-                      <Checkbox checked disabled />
-                      <span className="text-sm">{ROLE_LABEL.super_admin}</span>
-                    </label>
-                  )}
+                    {editTarget?.roles.includes("super_admin") && !isNorris && (
+                      <label className="flex items-center gap-2 border rounded-md px-2 py-1.5 opacity-50 cursor-not-allowed">
+                        <Checkbox checked disabled />
+                        <span className="text-sm">{ROLE_LABEL.super_admin}</span>
+                      </label>
+                    )}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <p className="text-xs text-muted-foreground border rounded-md px-3 py-2 bg-muted/30">
+                  此為無帳號成員，僅供顯示管理用途，無法指派角色。
+                </p>
+              )}
 
               <div className="flex items-center justify-between border-t pt-4">
                 <Label htmlFor="active-switch">啟用狀態</Label>
@@ -676,6 +733,37 @@ export default function TeamMembers() {
             </SheetFooter>
           </SheetContent>
         </Sheet>
+      )}
+
+      {/* 新增無帳號成員 Dialog（僅 admin） */}
+      {canEditAll && (
+        <Dialog open={noAccountOpen} onOpenChange={setNoAccountOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>新增無帳號成員</DialogTitle>
+              <DialogDescription>
+                建立純顯示/管理用的成員資料，不會建立登入帳號，也無法被指派角色或於其他模組中選取。
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 py-2">
+              <Label>顯示名稱</Label>
+              <Input
+                value={noAccountName}
+                onChange={(e) => setNoAccountName(e.target.value)}
+                placeholder="例如：小王"
+                autoFocus
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setNoAccountOpen(false)} disabled={creatingNoAccount}>
+                取消
+              </Button>
+              <Button onClick={handleCreateNoAccount} disabled={creatingNoAccount}>
+                {creatingNoAccount ? "建立中..." : "建立"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
