@@ -2554,3 +2554,274 @@ function TargetsTab({
     </div>
   );
 }
+
+// ============================================================
+// ====== Tab 四：等級設定 ======
+// ============================================================
+const RARITY_ORDER = ["N", "R", "SR", "SSR", "UR", "ck"] as const;
+
+interface RarityVersion {
+  effective_from: string;
+  items: RaritySetting[];
+}
+
+function RaritySettingsTab() {
+  const [versions, setVersions] = useState<RarityVersion[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [newEffectiveFrom, setNewEffectiveFrom] = useState(todayStr());
+  const [draft, setDraft] = useState<Record<string, { fan_range_desc: string; bonus_amount: string }>>(
+    () =>
+      Object.fromEntries(
+        RARITY_ORDER.map((r) => [r, { fan_range_desc: "", bonus_amount: "0" }]),
+      ),
+  );
+  const [saving, setSaving] = useState(false);
+
+  const loadVersions = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("kol_rarity_settings" as any)
+      .select("rarity, fan_range_desc, bonus_amount, effective_from")
+      .order("effective_from", { ascending: false });
+    if (error) {
+      toast.error(error.message);
+      setLoading(false);
+      return;
+    }
+    const groups = new Map<string, RaritySetting[]>();
+    for (const r of (data ?? []) as RaritySetting[]) {
+      if (!groups.has(r.effective_from)) groups.set(r.effective_from, []);
+      groups.get(r.effective_from)!.push(r);
+    }
+    const list: RarityVersion[] = Array.from(groups.entries()).map(([ef, items]) => ({
+      effective_from: ef,
+      items: items.sort(
+        (a, b) =>
+          RARITY_ORDER.indexOf(a.rarity as any) - RARITY_ORDER.indexOf(b.rarity as any),
+      ),
+    }));
+    setVersions(list);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadVersions();
+  }, [loadVersions]);
+
+  const current = versions[0];
+  const history = versions.slice(1);
+
+  const openCreate = () => {
+    // 預填當前版本作為基底
+    const base = current?.items ?? [];
+    const next: typeof draft = {};
+    for (const r of RARITY_ORDER) {
+      const hit = base.find((x) => x.rarity === r);
+      next[r] = {
+        fan_range_desc: hit?.fan_range_desc ?? "",
+        bonus_amount: hit ? String(hit.bonus_amount) : "0",
+      };
+    }
+    setDraft(next);
+    setNewEffectiveFrom(todayStr());
+    setDialogOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!newEffectiveFrom) {
+      toast.error("請填寫生效日期");
+      return;
+    }
+    setSaving(true);
+    const rows = RARITY_ORDER.map((r) => ({
+      rarity: r,
+      fan_range_desc: draft[r].fan_range_desc.trim() || null,
+      bonus_amount: parseInt(draft[r].bonus_amount || "0", 10) || 0,
+      effective_from: newEffectiveFrom,
+    }));
+    const { error } = await supabase.from("kol_rarity_settings" as any).insert(rows);
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("已新增版本");
+    setDialogOpen(false);
+    loadVersions();
+  };
+
+  if (loading) return null;
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold">目前生效版本</h3>
+              <p className="text-xs text-muted-foreground">
+                {current
+                  ? `生效日期：${current.effective_from}`
+                  : "尚無任何版本"}
+              </p>
+            </div>
+            <Button onClick={openCreate}>
+              <Plus className="mr-1 h-4 w-4" />
+              新增版本
+            </Button>
+          </div>
+          {current && (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>稀有度</TableHead>
+                  <TableHead>粉絲數範圍說明</TableHead>
+                  <TableHead className="text-right">每期獎金</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {RARITY_ORDER.map((r) => {
+                  const hit = current.items.find((x) => x.rarity === r);
+                  return (
+                    <TableRow key={r}>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={RARITY_CLASS[r as Rarity] ?? ""}
+                        >
+                          {r}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {hit?.fan_range_desc ?? "-"}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        NT$ {(hit?.bonus_amount ?? 0).toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {history.length > 0 && (
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <h3 className="font-semibold">歷史版本</h3>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>生效日期</TableHead>
+                  {RARITY_ORDER.map((r) => (
+                    <TableHead key={r} className="text-right">
+                      {r}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {history.map((v) => (
+                  <TableRow key={v.effective_from}>
+                    <TableCell>{v.effective_from}</TableCell>
+                    {RARITY_ORDER.map((r) => {
+                      const hit = v.items.find((x) => x.rarity === r);
+                      return (
+                        <TableCell
+                          key={r}
+                          className="text-right tabular-nums text-xs"
+                        >
+                          {hit ? `$${hit.bonus_amount.toLocaleString()}` : "-"}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>新增稀有度版本</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Field label="生效日期 *">
+              <Input
+                type="date"
+                value={newEffectiveFrom}
+                onChange={(e) => setNewEffectiveFrom(e.target.value)}
+              />
+            </Field>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-20">稀有度</TableHead>
+                  <TableHead>粉絲數範圍說明</TableHead>
+                  <TableHead className="w-40">每期獎金 (NT$)</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {RARITY_ORDER.map((r) => (
+                  <TableRow key={r}>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={RARITY_CLASS[r as Rarity] ?? ""}
+                      >
+                        {r}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={draft[r].fan_range_desc}
+                        onChange={(e) =>
+                          setDraft((d) => ({
+                            ...d,
+                            [r]: { ...d[r], fan_range_desc: e.target.value },
+                          }))
+                        }
+                        placeholder="例如：1萬以下 / 1萬~5萬"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={draft[r].bonus_amount}
+                        onChange={(e) =>
+                          setDraft((d) => ({
+                            ...d,
+                            [r]: { ...d[r], bonus_amount: e.target.value },
+                          }))
+                        }
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+              disabled={saving}
+            >
+              取消
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "儲存中..." : "儲存為新版本"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
