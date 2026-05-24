@@ -30,7 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Trash2, Pencil } from "lucide-react";
+import { Plus, Trash2, Pencil, RefreshCw } from "lucide-react";
 
 interface MetaAd {
   id: string;
@@ -121,6 +121,7 @@ function AdsListTab() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<string>("ALL");
   const [lastSync, setLastSync] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     void load();
@@ -135,6 +136,23 @@ function AdsListTab() {
     const list = (data || []) as MetaAd[];
     setRows(list);
     setLastSync(list[0]?.synced_at ?? null);
+  };
+
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-meta-ads", {
+        body: {},
+      });
+      if (error) throw error;
+      if (data && data.success === false) throw new Error(data.error || "同步失敗");
+      toast.success(`同步完成（${data?.written ?? 0} 筆）`);
+      await load();
+    } catch (e: any) {
+      toast.error("同步失敗：" + (e?.message || String(e)));
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const filtered = useMemo(() => {
@@ -173,9 +191,15 @@ function AdsListTab() {
             </SelectContent>
           </Select>
         </div>
-        <p className="text-xs text-muted-foreground">
-          最後同步：{lastSync ? new Date(lastSync).toLocaleString("zh-TW") : "—"}
-        </p>
+        <div className="flex items-center gap-3">
+          <p className="text-xs text-muted-foreground">
+            最後同步：{lastSync ? new Date(lastSync).toLocaleString("zh-TW") : "—"}
+          </p>
+          <Button size="sm" onClick={handleSync} disabled={syncing}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "同步中…" : "立即同步"}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <Table>

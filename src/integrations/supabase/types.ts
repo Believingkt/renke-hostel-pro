@@ -3134,6 +3134,7 @@ export type Database = {
           status: string | null
           stop_date: string | null
           synced_at: string | null
+          updated_at: string
         }
         Insert: {
           ad_id: string
@@ -3146,6 +3147,7 @@ export type Database = {
           status?: string | null
           stop_date?: string | null
           synced_at?: string | null
+          updated_at?: string
         }
         Update: {
           ad_id?: string
@@ -3158,6 +3160,7 @@ export type Database = {
           status?: string | null
           stop_date?: string | null
           synced_at?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
