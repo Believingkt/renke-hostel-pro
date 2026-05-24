@@ -597,7 +597,7 @@ export default function TeamMembers() {
                 const Wrapper = canEditAll ? "button" : "div";
                 return (
                   <Wrapper
-                    key={m.user_id}
+                    key={m.id}
                     type={canEditAll ? "button" : undefined}
                     onClick={canEditAll ? () => openEdit(m) : undefined}
                     className={`w-full text-left border rounded-lg p-3 transition-colors ${
@@ -613,7 +613,12 @@ export default function TeamMembers() {
                               已停用
                             </Badge>
                           )}
-                          {m.user_id === myUserId && (
+                          {!m.user_id && (
+                            <Badge variant="outline" className="text-xs bg-slate-100 text-slate-700 border-slate-200">
+                              無帳號
+                            </Badge>
+                          )}
+                          {m.user_id && m.user_id === myUserId && (
                             <Badge variant="secondary" className="text-xs">
                               您
                             </Badge>
@@ -622,7 +627,7 @@ export default function TeamMembers() {
                         {m.email && <p className="text-xs text-muted-foreground mt-0.5">{m.email}</p>}
                       </div>
                       <div className="flex flex-wrap gap-1">
-                        {displayRoles(m).length === 0 ? (
+                        {!m.user_id ? null : displayRoles(m).length === 0 ? (
                           <span className="text-xs text-muted-foreground">無角色</span>
                         ) : (
                           displayRoles(m).map((r) => (
