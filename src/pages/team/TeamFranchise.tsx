@@ -383,9 +383,12 @@ function OrdersTab({
   const [detailForm, setDetailForm] = useState<Partial<FranchiseOrder> & { customer_phone?: string | null; invoice_number?: string | null; notes?: string | null }>({});
   const [detailSaving, setDetailSaving] = useState(false);
 
+  const [detailMemberNumberError, setDetailMemberNumberError] = useState<string>("");
+
   useEffect(() => {
     if (detailOrder) {
       setDetailForm({
+        member_number: detailOrder.member_number,
         customer_name: detailOrder.customer_name,
         plan_name: detailOrder.plan_name,
         plan_price: detailOrder.plan_price,
@@ -393,6 +396,22 @@ function OrdersTab({
         payment_confirmed: detailOrder.payment_confirmed,
         payment_at: detailOrder.payment_at,
       } as any);
+      setDetailMemberNumberError("");
+    }
+  }, [detailOrder]);
+
+  const checkDetailMemberNumberDup = async (val: string) => {
+    const v = val.trim();
+    setDetailMemberNumberError("");
+    if (!v || !detailOrder) return;
+    const { data } = await supabase
+      .from("franchise_orders")
+      .select("id")
+      .eq("member_number", v)
+      .neq("id", detailOrder.id)
+      .limit(1);
+    if ((data ?? []).length > 0) setDetailMemberNumberError("此編號已使用");
+  };
     }
   }, [detailOrder]);
 
