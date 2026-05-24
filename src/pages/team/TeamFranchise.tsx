@@ -127,6 +127,36 @@ const nextMemberNumber = (existing: (string | null | undefined)[], prefix: strin
   return `${prefix}${max + 1}`;
 };
 
+// Compute next member_number for a specific project order index.
+// Format: {prefix}{projectOrder}{NNN}  (NNN is 3-digit, starting at 001 per project)
+// e.g. ("T", 2) with max "T2003" -> "T2004". If no match found, returns "{prefix}{projectOrder}001".
+const nextMemberNumberForProject = (
+  existing: (string | null | undefined)[],
+  prefix: string,
+  projectOrder: number,
+) => {
+  if (!projectOrder || projectOrder < 1) return "";
+  const re = new RegExp(`^${prefix}${projectOrder}(\\d{3})$`);
+  let max = 0;
+  for (const v of existing) {
+    if (!v) continue;
+    const m = re.exec(v.trim());
+    if (m) {
+      const n = parseInt(m[1], 10);
+      if (!isNaN(n) && n > max) max = n;
+    }
+  }
+  return `${prefix}${projectOrder}${String(max + 1).padStart(3, "0")}`;
+};
+
+// Detect whether a value looks like an auto-generated project-prefixed member_number
+// matching `{prefix}{anyDigits}{3-digit}` so we can safely overwrite it when user changes project.
+const isAutoMemberNumber = (val: string | null | undefined, prefix: string) => {
+  if (!val) return false;
+  return new RegExp(`^${prefix}\\d+$`).test(val.trim());
+};
+
+
 const fmtMoney = (n: number | null | undefined) =>
   `NT$ ${Number(n ?? 0).toLocaleString()}`;
 const fmtRate = (n: number | null | undefined) =>
@@ -136,6 +166,7 @@ interface FranchiseProject {
   id: string;
   name: string;
   is_active: boolean;
+  created_at?: string | null;
 }
 
 // 全域刷新計數器 — 任何元件呼叫 bumpFranchiseProjects() 都會觸發所有 hook 重新載入
@@ -161,7 +192,10 @@ function useFranchiseProjects(includeInactive = false) {
   useEffect(() => {
     let active = true;
     (async () => {
-      const q = (supabase as any).from("franchise_projects").select("id,name,is_active").order("name");
+      const q = (supabase as any)
+        .from("franchise_projects")
+        .select("id,name,is_active,created_at")
+        .order("created_at", { ascending: true });
       const { data } = await q;
       if (!active) return;
       setProjects((data ?? []) as FranchiseProject[]);
@@ -173,6 +207,20 @@ function useFranchiseProjects(includeInactive = false) {
 
   return includeInactive ? projects : projects.filter((p) => p.is_active);
 }
+
+// Build a map of project name -> 1-based order index based on created_at asc.
+// Includes inactive projects so the ordering remains stable.
+function useProjectOrderMap(): Record<string, number> {
+  const all = useFranchiseProjects(true);
+  return useMemo(() => {
+    const map: Record<string, number> = {};
+    all.forEach((p, idx) => {
+      if (p?.name) map[p.name] = idx + 1;
+    });
+    return map;
+  }, [all]);
+}
+
 
 function ProjectSelect({
   value,
@@ -346,6 +394,8 @@ function OrdersTab({
   const [members, setMembers] = useState<Member[]>([]);
   const [teamSettings, setTeamSettings] = useState<Record<string, TeamSetting>>({});
   const [internalRates, setInternalRates] = useState<InternalRates | null>(null);
+  const projectOrderMap = useProjectOrderMap();
+
   
 
   const [year, setYear] = useState<string>("ALL");
@@ -419,6 +469,29 @@ function OrdersTab({
     void loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Auto recompute member_number when project (plan_name) changes in the new-order sheet,
+  // only if the field is empty or still holds an auto-generated value.
+  useEffect(() => {
+    if (!sheetOpen) return;
+    const planName = form.plan_name?.trim() || "";
+    if (!planName) return;
+    const order = projectOrderMap[planName];
+    if (!order) return;
+    const current = (form.member_number ?? "").trim();
+    if (current && !isAutoMemberNumber(current, "S")) return;
+    const auto = nextMemberNumberForProject(
+      orders.filter((o) => (o.plan_name ?? "") === planName).map((o) => o.member_number),
+      "S",
+      order,
+    );
+    if (auto && auto !== current) {
+      setForm((prev) => ({ ...prev, member_number: auto }));
+      setMemberNumberError("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.plan_name, sheetOpen, projectOrderMap, orders]);
+
 
   const loadAll = async () => {
     const [o, ftsRes, ratesRes] = await Promise.all([
@@ -684,14 +757,21 @@ function OrdersTab({
         </div>
         <Button
           onClick={() => {
-            setForm((prev) => ({
-              ...prev,
-              member_number: nextMemberNumber(orders.map((o) => o.member_number), "S"),
-            }));
+            const planName = form.plan_name?.trim() || "";
+            const order = planName ? projectOrderMap[planName] : 0;
+            const auto = order
+              ? nextMemberNumberForProject(
+                  orders.filter((o) => (o.plan_name ?? "") === planName).map((o) => o.member_number),
+                  "S",
+                  order,
+                )
+              : "";
+            setForm((prev) => ({ ...prev, member_number: auto }));
             setMemberNumberError("");
             setSheetOpen(true);
           }}
         >
+
           <Plus className="h-4 w-4 mr-1" /> 新增
         </Button>
       </CardHeader>
@@ -1994,6 +2074,8 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
   const [year, setYear] = useState<string>("ALL");
   const [month, setMonth] = useState<string>("ALL");
   const [memberNumberError, setMemberNumberError] = useState<string>("");
+  const projectOrderMap = useProjectOrderMap();
+
 
   const [detail, setDetail] = useState<ExternalOrder | null>(null);
   const [editing, setEditing] = useState(false);
@@ -2103,13 +2185,43 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
 
   const openCreate = () => {
     setEditingId(null);
-    setForm({
-      ...emptyExternalForm(),
-      member_number: nextMemberNumber(rows.map((r) => r.member_number), "T"),
-    });
+    const empty = emptyExternalForm();
+    const projectName = (empty.project_name ?? "").trim();
+    const order = projectName ? projectOrderMap[projectName] : 0;
+    const auto = order
+      ? nextMemberNumberForProject(
+          rows.filter((r) => (r.project_name ?? "") === projectName).map((r) => r.member_number),
+          "T",
+          order,
+        )
+      : "";
+    setForm({ ...empty, member_number: auto });
     setMemberNumberError("");
     setSheetOpen(true);
   };
+
+  // Auto recompute member_number when project_name changes in the new-order sheet,
+  // only if the field is empty or still holds an auto-generated value.
+  useEffect(() => {
+    if (!sheetOpen || editingId) return;
+    const projectName = (form.project_name ?? "").trim();
+    if (!projectName) return;
+    const order = projectOrderMap[projectName];
+    if (!order) return;
+    const current = (form.member_number ?? "").trim();
+    if (current && !isAutoMemberNumber(current, "T")) return;
+    const auto = nextMemberNumberForProject(
+      rows.filter((r) => (r.project_name ?? "") === projectName).map((r) => r.member_number),
+      "T",
+      order,
+    );
+    if (auto && auto !== current) {
+      setForm((prev) => ({ ...prev, member_number: auto }));
+      setMemberNumberError("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.project_name, sheetOpen, editingId, projectOrderMap, rows]);
+
 
   const openEdit = (row: ExternalOrder) => {
     setEditingId(row.id);
