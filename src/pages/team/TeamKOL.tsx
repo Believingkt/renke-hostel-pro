@@ -813,6 +813,63 @@ function InvitationsTab({
           </SelectContent>
         </Select>
 
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-10 font-normal"
+              type="button"
+            >
+              {filterTags.length === 0
+                ? "標籤篩選"
+                : `標籤：已選 ${filterTags.length}`}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-56 p-2" align="start">
+            <div className="max-h-60 overflow-y-auto space-y-1">
+              {allTags.length === 0 && (
+                <div className="text-xs text-muted-foreground py-2 text-center">
+                  尚無標籤
+                </div>
+              )}
+              {allTags.map((t) => {
+                const checked = filterTags.includes(t);
+                return (
+                  <label
+                    key={t}
+                    className="flex items-center gap-2 text-sm px-2 py-1 rounded hover:bg-muted cursor-pointer"
+                  >
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={(v) =>
+                        setFilterTags(
+                          v
+                            ? [...filterTags, t]
+                            : filterTags.filter((x) => x !== t),
+                        )
+                      }
+                    />
+                    {t}
+                  </label>
+                );
+              })}
+            </div>
+            {filterTags.length > 0 && (
+              <div className="border-t mt-2 pt-2">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="w-full h-7 text-xs"
+                  onClick={() => setFilterTags([])}
+                >
+                  清除標籤篩選
+                </Button>
+              </div>
+            )}
+          </PopoverContent>
+        </Popover>
+
         {isManager && (
           <label className="flex items-center gap-1 text-sm text-muted-foreground">
             <Checkbox
