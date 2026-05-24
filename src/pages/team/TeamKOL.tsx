@@ -335,7 +335,31 @@ function InvitationsTab({
   const [loading, setLoading] = useState(true);
 
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
+  const [venues, setVenues] = useState<KolVenue[]>([]);
   const [scouts, setScouts] = useState<Scout[]>([]);
+
+  // 館別合併選項（PMS + kol_venues，依名稱排序）
+  const accommodationOptions = useMemo<VenueOption[]>(() => {
+    const pms: VenueOption[] = accommodations.map((a) => ({
+      value: `acc:${a.id}`,
+      label: a.name,
+      source: "pms",
+      badge: "民宿",
+      accommodation_id: a.id,
+      venue_name: null,
+    }));
+    const v: VenueOption[] = venues
+      .filter((x) => x.is_active)
+      .map((x) => ({
+        value: `venue:${x.name}`,
+        label: x.name,
+        source: "venue",
+        badge: x.type || "其他",
+        accommodation_id: null,
+        venue_name: x.name,
+      }));
+    return [...pms, ...v].sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
+  }, [accommodations, venues]);
 
   const [search, setSearch] = useState("");
   const [filterAcc, setFilterAcc] = useState<string>("all");
