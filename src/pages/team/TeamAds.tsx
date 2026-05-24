@@ -380,26 +380,30 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
         .order("sort_order"),
       supabase
         .from("user_roles")
-        .select("user_id, team_member_profiles!inner(user_id,display_name)")
+        .select("user_id")
         .eq("role", "video")
         .is("accommodation_id", null),
     ]);
     if (!c.error) setCommonAds((c.data || []) as CommonAdId[]);
     if (!r.error) setRules((r.data || []) as VideoCreatorRule[]);
     if (!v.error) {
-      const members: VideoMember[] = ((v.data || []) as any[]).map((row) => ({
-        user_id: row.team_member_profiles.user_id,
-        display_name: row.team_member_profiles.display_name,
-      }));
-      // dedup
-      const seen = new Set<string>();
-      setVideoMembers(
-        members.filter((m) => {
-          if (seen.has(m.user_id)) return false;
-          seen.add(m.user_id);
-          return true;
-        }),
+      const userIds = Array.from(
+        new Set(((v.data || []) as any[]).map((row) => row.user_id).filter(Boolean)),
       );
+      if (userIds.length === 0) {
+        setVideoMembers([]);
+      } else {
+        const { data: profiles } = await supabase
+          .from("team_member_profiles")
+          .select("user_id, display_name")
+          .in("user_id", userIds);
+        setVideoMembers(
+          (profiles || []).map((p: any) => ({
+            user_id: p.user_id,
+            display_name: p.display_name,
+          })),
+        );
+      }
     }
   };
 
