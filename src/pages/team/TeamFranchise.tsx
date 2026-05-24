@@ -89,6 +89,7 @@ interface TeamSetting {
 
 interface FranchiseOrder {
   id: string;
+  member_number: string | null;
   customer_name: string;
   customer_phone: string | null;
   plan_name: string | null;
@@ -109,6 +110,22 @@ interface FranchiseOrder {
   invoice_number: string | null;
   notes: string | null;
 }
+
+// Compute next sequential member_number with a given prefix from existing records.
+// Returns e.g. "S1006" given existing max "S1005". Falls back to "{prefix}1001".
+const nextMemberNumber = (existing: (string | null | undefined)[], prefix: string) => {
+  const re = new RegExp(`^${prefix}(\\d+)$`);
+  let max = 1000;
+  for (const v of existing) {
+    if (!v) continue;
+    const m = re.exec(v.trim());
+    if (m) {
+      const n = parseInt(m[1], 10);
+      if (!isNaN(n) && n > max) max = n;
+    }
+  }
+  return `${prefix}${max + 1}`;
+};
 
 const fmtMoney = (n: number | null | undefined) =>
   `NT$ ${Number(n ?? 0).toLocaleString()}`;
@@ -333,6 +350,7 @@ function OrdersTab({
 
   const [year, setYear] = useState<string>("ALL");
   const [month, setMonth] = useState<string>("ALL");
+  const [projectFilter, setProjectFilter] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [salesFilter, setSalesFilter] = useState<string>("ALL");
   const [page, setPage] = useState(1);
@@ -340,10 +358,11 @@ function OrdersTab({
 
   useEffect(() => {
     setPage(1);
-  }, [year, month, statusFilter, salesFilter]);
+  }, [year, month, projectFilter, statusFilter, salesFilter]);
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [form, setForm] = useState({
+    member_number: "",
     customer_name: "",
     customer_phone: "",
     plan_name: "",
@@ -355,6 +374,7 @@ function OrdersTab({
     invoice_number: "",
     notes: "",
   });
+  const [memberNumberError, setMemberNumberError] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
   const [detailOrder, setDetailOrder] = useState<FranchiseOrder | null>(null);
@@ -385,7 +405,7 @@ function OrdersTab({
       supabase
         .from("franchise_orders")
         .select(
-          "id,customer_name,customer_phone,plan_name,plan_price,sold_by,sold_by_name,team_leader,commission_rate,leader_rate,company_rate,commission_amount,leader_amount,company_amount,sold_at,payment_confirmed,payment_at,payout_status,invoice_number,notes",
+          "id,member_number,customer_name,customer_phone,plan_name,plan_price,sold_by,sold_by_name,team_leader,commission_rate,leader_rate,company_rate,commission_amount,leader_amount,company_amount,sold_at,payment_confirmed,payment_at,payout_status,invoice_number,notes",
         )
         .order("sold_at", { ascending: false }),
       supabase.from("franchise_team_settings").select("*"),
@@ -449,6 +469,12 @@ function OrdersTab({
       ? members.find((m) => m.user_id === id)?.display_name ?? "—"
       : name ?? "—";
 
+  const projectOptions = useMemo(() => {
+    const s = new Set<string>();
+    orders.forEach((o) => o.plan_name && s.add(o.plan_name));
+    return Array.from(s).sort();
+  }, [orders]);
+
   const filtered = useMemo(() => {
     return orders
       .filter((o) => {
@@ -458,12 +484,13 @@ function OrdersTab({
           if (year !== "ALL" && String(d.getFullYear()) !== year) return false;
           if (month !== "ALL" && d.getMonth() + 1 !== Number(month)) return false;
         }
+        if (projectFilter !== "ALL" && o.plan_name !== projectFilter) return false;
         if (statusFilter !== "ALL" && o.payout_status !== statusFilter) return false;
         if (salesFilter !== "ALL" && o.sold_by !== salesFilter) return false;
         return true;
       })
       .sort((a, b) => (b.sold_at ?? "").localeCompare(a.sold_at ?? ""));
-  }, [orders, year, month, statusFilter, salesFilter, canManage, currentUserId]);
+  }, [orders, year, month, projectFilter, statusFilter, salesFilter, canManage, currentUserId]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = useMemo(
@@ -490,16 +517,46 @@ function OrdersTab({
     return { commission_rate, leader_rate, company_rate, directLeader };
   };
 
+  const checkMemberNumberDup = async (val: string) => {
+    const v = val.trim();
+    if (!v) { setMemberNumberError(""); return; }
+    const { data } = await supabase
+      .from("franchise_orders")
+      .select("id")
+      .eq("member_number", v)
+      .limit(1);
+    if ((data ?? []).length > 0) setMemberNumberError("此編號已使用");
+    else setMemberNumberError("");
+  };
+
   const handleSave = async () => {
     if (!form.customer_name.trim() || !form.plan_name.trim() || !form.sold_by || form.unit_price <= 0) {
       toast.error("請填寫客戶姓名、專案名稱、單位金額與銷售人");
       return;
+    }
+    if (memberNumberError) {
+      toast.error(memberNumberError);
+      return;
+    }
+    // Final dup re-check at submit
+    if (form.member_number.trim()) {
+      const { data } = await supabase
+        .from("franchise_orders")
+        .select("id")
+        .eq("member_number", form.member_number.trim())
+        .limit(1);
+      if ((data ?? []).length > 0) {
+        setMemberNumberError("此編號已使用");
+        toast.error("此編號已使用");
+        return;
+      }
     }
     const planPrice = form.unit_price * form.unit_qty;
     setSaving(true);
     const { commission_rate, leader_rate, company_rate, directLeader } =
       computeRates(form.sold_by);
     const payload = {
+      member_number: form.member_number.trim() || null,
       customer_name: form.customer_name.trim(),
       customer_phone: form.customer_phone.trim() || null,
       plan_name: form.plan_name.trim(),
@@ -528,6 +585,7 @@ function OrdersTab({
     toast.success("已新增訂單");
     setSheetOpen(false);
     setForm({
+      member_number: "",
       customer_name: "",
       customer_phone: "",
       plan_name: "",
@@ -539,6 +597,7 @@ function OrdersTab({
       invoice_number: "",
       notes: "",
     });
+    setMemberNumberError("");
     void loadAll();
   };
 
@@ -577,6 +636,15 @@ function OrdersTab({
               ))}
             </SelectContent>
           </Select>
+          <Select value={projectFilter} onValueChange={setProjectFilter}>
+            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">全部專案</SelectItem>
+              {projectOptions.map((p) => (
+                <SelectItem key={p} value={p}>{p}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-32">
               <SelectValue />
@@ -603,7 +671,16 @@ function OrdersTab({
             </Select>
           )}
         </div>
-        <Button onClick={() => setSheetOpen(true)}>
+        <Button
+          onClick={() => {
+            setForm((prev) => ({
+              ...prev,
+              member_number: nextMemberNumber(orders.map((o) => o.member_number), "S"),
+            }));
+            setMemberNumberError("");
+            setSheetOpen(true);
+          }}
+        >
           <Plus className="h-4 w-4 mr-1" /> 新增訂單
         </Button>
       </CardHeader>
@@ -612,13 +689,13 @@ function OrdersTab({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>客戶</TableHead>
-                <TableHead>方案</TableHead>
-                <TableHead className="text-right">方案金額</TableHead>
+                <TableHead>會員編號</TableHead>
+                <TableHead>會員姓名</TableHead>
                 <TableHead>銷售人</TableHead>
-                <TableHead>成交日期</TableHead>
+                <TableHead>專案名稱</TableHead>
+                <TableHead className="text-right">金額</TableHead>
+                <TableHead>簽約日期</TableHead>
                 <TableHead>付款</TableHead>
-                <TableHead>結算</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -638,19 +715,15 @@ function OrdersTab({
                       setDetailEditing(false);
                     }}
                   >
+                    <TableCell>{o.member_number ?? "—"}</TableCell>
                     <TableCell>{o.customer_name}</TableCell>
+                    <TableCell>{memberName(o.sold_by, o.sold_by_name)}</TableCell>
                     <TableCell>{o.plan_name ?? "—"}</TableCell>
                     <TableCell className="text-right tabular-nums">{fmtMoney(o.plan_price)}</TableCell>
-                    <TableCell>{memberName(o.sold_by, o.sold_by_name)}</TableCell>
                     <TableCell>{o.sold_at ?? "—"}</TableCell>
                     <TableCell>
                       <Badge variant={o.payment_confirmed ? "success" : "secondary"}>
                         {o.payment_confirmed ? "已付款" : "未付款"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={o.payout_status === "paid" ? "success" : "secondary"}>
-                        {o.payout_status === "paid" ? "已發放" : "待結算"}
                       </Badge>
                     </TableCell>
                   </TableRow>
@@ -692,6 +765,17 @@ function OrdersTab({
             <SheetTitle>新增特許加盟訂單</SheetTitle>
           </SheetHeader>
           <div className="space-y-3 mt-4">
+            <div className="space-y-1">
+              <Label>會員編號</Label>
+              <Input
+                value={form.member_number}
+                onChange={(e) => { setForm({ ...form, member_number: e.target.value }); setMemberNumberError(""); }}
+                onBlur={(e) => void checkMemberNumberDup(e.target.value)}
+              />
+              {memberNumberError && (
+                <p className="text-xs text-destructive">{memberNumberError}</p>
+              )}
+            </div>
             <div className="space-y-1">
               <Label>客戶姓名 *</Label>
               <Input
@@ -1813,8 +1897,11 @@ const emptyExternalForm = (): Partial<ExternalOrder> => ({
 function ExternalSalesTab({ canManage }: { canManage: boolean }) {
   const [rows, setRows] = useState<ExternalOrder[]>([]);
   const [projectFilter, setProjectFilter] = useState<string>("ALL");
+  const [salesFilter, setSalesFilter] = useState<string>("ALL");
+  const [progressFilter, setProgressFilter] = useState<string>("ALL");
   const [year, setYear] = useState<string>("ALL");
   const [month, setMonth] = useState<string>("ALL");
+  const [memberNumberError, setMemberNumberError] = useState<string>("");
 
   const [detail, setDetail] = useState<ExternalOrder | null>(null);
   const [editing, setEditing] = useState(false);
@@ -1886,6 +1973,12 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
     return Array.from(set);
   }, [rows]);
 
+  const salesOptions = useMemo(() => {
+    const set = new Set<string>();
+    rows.forEach((r) => r.sales_name && set.add(r.sales_name));
+    return Array.from(set).sort();
+  }, [rows]);
+
   const years = useMemo(() => {
     const cur = new Date().getFullYear();
     return Array.from({ length: 5 }, (_, i) => String(cur - i));
@@ -1894,6 +1987,8 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
   const filtered = useMemo(() => {
     return rows.filter((r) => {
       if (projectFilter !== "ALL" && r.project_name !== projectFilter) return false;
+      if (salesFilter !== "ALL" && (r.sales_name ?? "") !== salesFilter) return false;
+      if (progressFilter !== "ALL" && (r.contract_progress ?? "") !== progressFilter) return false;
       if (r.signed_at) {
         const d = new Date(r.signed_at);
         if (year !== "ALL" && String(d.getFullYear()) !== year) return false;
@@ -1903,17 +1998,31 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
       }
       return true;
     });
-  }, [rows, projectFilter, year, month]);
+  }, [rows, projectFilter, salesFilter, progressFilter, year, month]);
+
+  const checkExtMemberNumberDup = async (val: string) => {
+    const v = val.trim();
+    if (!v) { setMemberNumberError(""); return; }
+    const q = supabase.from("franchise_external_orders").select("id").eq("member_number", v).limit(1);
+    const { data } = editingId ? await q.neq("id", editingId) : await q;
+    if ((data ?? []).length > 0) setMemberNumberError("此編號已使用");
+    else setMemberNumberError("");
+  };
 
   const openCreate = () => {
     setEditingId(null);
-    setForm(emptyExternalForm());
+    setForm({
+      ...emptyExternalForm(),
+      member_number: nextMemberNumber(rows.map((r) => r.member_number), "T"),
+    });
+    setMemberNumberError("");
     setSheetOpen(true);
   };
 
   const openEdit = (row: ExternalOrder) => {
     setEditingId(row.id);
     setForm({ ...row });
+    setMemberNumberError("");
     setDetail(null);
     setEditing(false);
     setSheetOpen(true);
@@ -1926,6 +2035,20 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
     if (!form.customer_name?.trim()) {
       toast.error("請填寫會員姓名");
       return;
+    }
+    if (memberNumberError) {
+      toast.error(memberNumberError);
+      return;
+    }
+    const mn = (form.member_number ?? "").trim();
+    if (mn) {
+      const q = supabase.from("franchise_external_orders").select("id").eq("member_number", mn).limit(1);
+      const { data } = editingId ? await q.neq("id", editingId) : await q;
+      if ((data ?? []).length > 0) {
+        setMemberNumberError("此編號已使用");
+        toast.error("此編號已使用");
+        return;
+      }
     }
     const payload = {
       project_name: form.project_name?.trim() || "森山第一期",
@@ -1996,6 +2119,24 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
               <SelectItem value="ALL">全年</SelectItem>
               {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
                 <SelectItem key={m} value={String(m)}>{m} 月</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={salesFilter} onValueChange={setSalesFilter}>
+            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">全部開發業務</SelectItem>
+              {salesOptions.map((s) => (
+                <SelectItem key={s} value={s}>{s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={progressFilter} onValueChange={setProgressFilter}>
+            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">全部</SelectItem>
+              {CONTRACT_PROGRESS_OPTIONS.map((p) => (
+                <SelectItem key={p} value={p}>{p}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -2156,7 +2297,14 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
             <div className="grid grid-cols-3 gap-2">
               <div className="space-y-1">
                 <Label>會員編號</Label>
-                <Input value={form.member_number ?? ""} onChange={(e) => onChange("member_number", e.target.value)} />
+                <Input
+                  value={form.member_number ?? ""}
+                  onChange={(e) => { onChange("member_number", e.target.value); setMemberNumberError(""); }}
+                  onBlur={(e) => void checkExtMemberNumberDup(e.target.value)}
+                />
+                {memberNumberError && (
+                  <p className="text-xs text-destructive">{memberNumberError}</p>
+                )}
               </div>
               <div className="space-y-1">
                 <Label>會員姓名 *</Label>
