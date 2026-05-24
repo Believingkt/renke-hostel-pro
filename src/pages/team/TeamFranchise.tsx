@@ -3138,12 +3138,24 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
               <Label className="text-xs">專案名稱</Label>
               <FilterProjectSelect value={filterProject} onChange={setFilterProject} />
             </div>
+            <div className="space-y-1">
+              <Label className="text-xs">來源</Label>
+              <Select value={filterSource} onValueChange={(v) => setFilterSource(v as typeof filterSource)}>
+                <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">全部</SelectItem>
+                  <SelectItem value="internal">內部銷售</SelectItem>
+                  <SelectItem value="external">外部銷售</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="border rounded-md">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>會員編號</TableHead>
                   <TableHead>會員姓名</TableHead>
                   <TableHead className="text-right">購買單位數</TableHead>
                   <TableHead className="text-right">每單位金額</TableHead>
@@ -3154,13 +3166,13 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
               <TableBody>
                 {!matchedDist ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                       請選擇對應的年份、月份、專案
                     </TableCell>
                   </TableRow>
                 ) : memberRows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                       此專案尚無會員資料
                     </TableCell>
                   </TableRow>
@@ -3171,6 +3183,7 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => setMemberDetail(r)}
                     >
+                      <TableCell>{r.member_number ?? "—"}</TableCell>
                       <TableCell>{r.customer_name}</TableCell>
                       <TableCell className="text-right tabular-nums">{r.unit_count}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtMoney(r.unit_price)}</TableCell>
@@ -3191,12 +3204,18 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
               {memberDetail && (
                 <div className="mt-4 space-y-4 text-sm">
                   <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-                    <Field label="會員編號" value={memberDetail.order.member_number} />
+                    <Field label="會員編號" value={memberDetail.member_number} />
                     <Field label="會員姓名" value={memberDetail.customer_name} />
-                    <Field label="聯絡電話" value={memberDetail.order.customer_phone} />
-                    <Field label="專案" value={memberDetail.order.project_name} />
-                    <Field label="簽約日期" value={memberDetail.order.signed_at} />
-                    <Field label="開發業務" value={memberDetail.order.sales_name} />
+                    <Field label="聯絡電話" value={memberDetail.customer_phone} />
+                    <Field
+                      label={memberDetail.source === "internal" ? "專案名稱" : "專案"}
+                      value={memberDetail.project_name}
+                    />
+                    <Field label="簽約日期" value={memberDetail.signed_at} />
+                    <Field
+                      label={memberDetail.source === "internal" ? "銷售人" : "開發業務"}
+                      value={memberDetail.sales_or_sold_by_name}
+                    />
                   </div>
                   <div className="border-t pt-3 grid grid-cols-2 gap-x-6 gap-y-2">
                     <Field label="購買單位數" value={String(memberDetail.unit_count)} />
@@ -3204,10 +3223,10 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
                     <Field label="分潤金額" value={fmtMoney(memberDetail.bonus)} />
                     <Field label="預計匯款日" value={memberDetail.payment_date} />
                   </div>
-                  {memberDetail.order.notes && (
+                  {memberDetail.notes && (
                     <div className="border-t pt-3">
                       <div className="text-xs text-muted-foreground mb-1">備註</div>
-                      <div className="whitespace-pre-wrap break-all">{memberDetail.order.notes}</div>
+                      <div className="whitespace-pre-wrap break-all">{memberDetail.notes}</div>
                     </div>
                   )}
                 </div>
