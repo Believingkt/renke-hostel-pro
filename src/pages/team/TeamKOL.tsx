@@ -478,7 +478,13 @@ function InvitationsTab({
       .select("*", { count: "exact" })
       .eq("is_error", false);
 
-    if (filterAcc !== "all") q = q.eq("accommodation_id", filterAcc);
+    if (filterAcc !== "all") {
+      if (filterAcc.startsWith("acc:")) {
+        q = q.eq("accommodation_id", filterAcc.slice(4));
+      } else if (filterAcc.startsWith("venue:")) {
+        q = q.eq("venue_name", filterAcc.slice(6));
+      }
+    }
     if (filterRarity !== "all") q = q.eq("rarity", filterRarity);
     if (filterTags.length > 0) q = q.overlaps("kol_tags", filterTags);
     const s = search.trim();
