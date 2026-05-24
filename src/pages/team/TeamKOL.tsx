@@ -39,7 +39,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { LayoutGrid, List, Plus, AlertTriangle, Check, X } from "lucide-react";
+import { Plus, AlertTriangle, Check, X } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 // ====== 型別 & 常數 ======
@@ -317,7 +317,7 @@ function InvitationsTab({
   const [filterAcc, setFilterAcc] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterTags, setFilterTags] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<"card" | "table">("card");
+  // 列表為唯一檢視模式（原卡片切換已移除）
   const [showInvalid, setShowInvalid] = useState(false);
 
   // 稀有度版本 & 標籤字典
@@ -881,24 +881,6 @@ function InvitationsTab({
         )}
 
         <div className="ml-auto flex items-center gap-2">
-          <div className="flex rounded-md border">
-            <Button
-              size="sm"
-              variant={viewMode === "card" ? "secondary" : "ghost"}
-              onClick={() => setViewMode("card")}
-              className="rounded-r-none"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant={viewMode === "table" ? "secondary" : "ghost"}
-              onClick={() => setViewMode("table")}
-              className="rounded-l-none"
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
           <Button onClick={openCreate}>
             <Plus className="mr-1 h-4 w-4" />
             新增邀約
@@ -913,74 +895,6 @@ function InvitationsTab({
             尚無資料
           </CardContent>
         </Card>
-      ) : viewMode === "card" ? (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((r) => (
-            <Card
-              key={r.id}
-              className="cursor-pointer transition hover:border-primary/40"
-              onClick={() => openEdit(r)}
-            >
-              <CardContent className="space-y-2 p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <div className="font-semibold">{r.name ?? "未命名"}</div>
-                    <div className="text-xs text-muted-foreground">
-                      @{r.ig_handle ?? "-"}
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    {r.rarity && (
-                      <Badge
-                        variant="outline"
-                        className={RARITY_CLASS[r.rarity as Rarity]}
-                      >
-                        {r.rarity}
-                      </Badge>
-                    )}
-                    {r.is_error && (
-                      <Badge variant="outline" className="bg-red-100 text-red-700 border-red-300">
-                        填錯
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                <div className="space-y-1 text-xs text-muted-foreground">
-                  <div>館別：{r._accommodation_name}</div>
-                  {r.check_in_date && <div>入住：{r.check_in_date}</div>}
-                  <div>邀約人：{r._scout_name}</div>
-                </div>
-                <div className="flex items-center justify-between pt-1">
-                  <Badge
-                    variant="outline"
-                    className={
-                      BOOKING_STATUS_CLASS[r.booking_status as BookingStatus] ??
-                      ""
-                    }
-                  >
-                    {BOOKING_STATUS_LABEL[r.booking_status as BookingStatus] ??
-                      r.booking_status ??
-                      "-"}
-                  </Badge>
-                  {canReportError(r) && !r.is_error && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setErrorTarget(r);
-                        setErrorReason("");
-                      }}
-                    >
-                      <AlertTriangle className="mr-1 h-3.5 w-3.5" />
-                      回報填錯
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
       ) : (
         <Card>
           <Table>
@@ -998,7 +912,11 @@ function InvitationsTab({
             </TableHeader>
             <TableBody>
               {filtered.map((r) => (
-                <TableRow key={r.id}>
+                <TableRow
+                  key={r.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => openEdit(r)}
+                >
                   <TableCell>
                     {r.name ?? "-"}
                     {r.is_error && (
@@ -1040,7 +958,7 @@ function InvitationsTab({
                         "-"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <Button
                       size="sm"
                       variant="ghost"
