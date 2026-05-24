@@ -31,6 +31,16 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, Trash2, Pencil, RefreshCw } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+
+function DetailRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="flex justify-between items-start gap-4">
+      <span className="text-muted-foreground shrink-0">{label}</span>
+      <span className={mono ? "font-mono text-right break-all" : "text-right"}>{value}</span>
+    </div>
+  );
+}
 
 interface MetaAd {
   id: string;
