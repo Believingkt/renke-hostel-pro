@@ -1597,8 +1597,6 @@ function StatsTab() {
 }
 
 function MonthlyChart({ data }: { data: { month: string; amount: number }[] }) {
-  const { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } =
-    require("recharts");
   return (
     <div className="w-full h-[280px]">
       <ResponsiveContainer width="100%" height="100%">
