@@ -113,6 +113,11 @@ export default function TeamMembers() {
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
 
+  // 新增無帳號成員
+  const [noAccountOpen, setNoAccountOpen] = useState(false);
+  const [noAccountName, setNoAccountName] = useState("");
+  const [creatingNoAccount, setCreatingNoAccount] = useState(false);
+
   const fetchMembers = useCallback(async () => {
     setLoading(true);
 
