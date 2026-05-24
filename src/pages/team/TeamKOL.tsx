@@ -2146,7 +2146,8 @@ function ProspectsTab({
                     {t}
                   </label>
                 );
-              })}
+              });
+              })()}
             </div>
             {filterTags.length > 0 && (
               <div className="border-t mt-2 pt-2">
