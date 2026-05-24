@@ -734,14 +734,21 @@ function OrdersTab({
         </div>
         <Button
           onClick={() => {
-            setForm((prev) => ({
-              ...prev,
-              member_number: nextMemberNumber(orders.map((o) => o.member_number), "S"),
-            }));
+            const planName = form.plan_name?.trim() || "";
+            const order = planName ? projectOrderMap[planName] : 0;
+            const auto = order
+              ? nextMemberNumberForProject(
+                  orders.filter((o) => (o.plan_name ?? "") === planName).map((o) => o.member_number),
+                  "S",
+                  order,
+                )
+              : "";
+            setForm((prev) => ({ ...prev, member_number: auto }));
             setMemberNumberError("");
             setSheetOpen(true);
           }}
         >
+
           <Plus className="h-4 w-4 mr-1" /> 新增
         </Button>
       </CardHeader>
