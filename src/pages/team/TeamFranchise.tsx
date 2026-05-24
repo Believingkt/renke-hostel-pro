@@ -517,16 +517,46 @@ function OrdersTab({
     return { commission_rate, leader_rate, company_rate, directLeader };
   };
 
+  const checkMemberNumberDup = async (val: string) => {
+    const v = val.trim();
+    if (!v) { setMemberNumberError(""); return; }
+    const { data } = await supabase
+      .from("franchise_orders")
+      .select("id")
+      .eq("member_number", v)
+      .limit(1);
+    if ((data ?? []).length > 0) setMemberNumberError("此編號已使用");
+    else setMemberNumberError("");
+  };
+
   const handleSave = async () => {
     if (!form.customer_name.trim() || !form.plan_name.trim() || !form.sold_by || form.unit_price <= 0) {
       toast.error("請填寫客戶姓名、專案名稱、單位金額與銷售人");
       return;
+    }
+    if (memberNumberError) {
+      toast.error(memberNumberError);
+      return;
+    }
+    // Final dup re-check at submit
+    if (form.member_number.trim()) {
+      const { data } = await supabase
+        .from("franchise_orders")
+        .select("id")
+        .eq("member_number", form.member_number.trim())
+        .limit(1);
+      if ((data ?? []).length > 0) {
+        setMemberNumberError("此編號已使用");
+        toast.error("此編號已使用");
+        return;
+      }
     }
     const planPrice = form.unit_price * form.unit_qty;
     setSaving(true);
     const { commission_rate, leader_rate, company_rate, directLeader } =
       computeRates(form.sold_by);
     const payload = {
+      member_number: form.member_number.trim() || null,
       customer_name: form.customer_name.trim(),
       customer_phone: form.customer_phone.trim() || null,
       plan_name: form.plan_name.trim(),
@@ -555,6 +585,7 @@ function OrdersTab({
     toast.success("已新增訂單");
     setSheetOpen(false);
     setForm({
+      member_number: "",
       customer_name: "",
       customer_phone: "",
       plan_name: "",
@@ -566,6 +597,7 @@ function OrdersTab({
       invoice_number: "",
       notes: "",
     });
+    setMemberNumberError("");
     void loadAll();
   };
 
