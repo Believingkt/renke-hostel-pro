@@ -2251,7 +2251,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
                 <TableHead>會員編號</TableHead>
                 <TableHead>會員姓名</TableHead>
                 <TableHead>開發業務</TableHead>
-                <TableHead className="text-right">購買單位數</TableHead>
+                <TableHead>專案名稱</TableHead>
                 <TableHead className="text-right">金額</TableHead>
                 <TableHead>簽約日期</TableHead>
                 <TableHead>合約進度</TableHead>
@@ -2274,7 +2274,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
                     <TableCell>{r.member_number ?? "—"}</TableCell>
                     <TableCell>{r.customer_name}</TableCell>
                     <TableCell>{r.sales_name ?? "—"}</TableCell>
-                    <TableCell className="text-right tabular-nums">{r.unit_count ?? 0}</TableCell>
+                    <TableCell>{r.project_name ?? "—"}</TableCell>
                     <TableCell className="text-right tabular-nums">{fmtMoney(r.total_amount ?? (r.unit_count ?? 0) * r.plan_price)}</TableCell>
                     <TableCell>{r.signed_at ?? "—"}</TableCell>
                     <TableCell>
