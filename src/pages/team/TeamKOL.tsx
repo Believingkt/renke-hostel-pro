@@ -2208,7 +2208,7 @@ function ProspectsTab({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((r) => {
+              {paged.map((r) => {
                 const tags = r.tags ?? [];
                 const displayName = r.name ?? "-";
                 const nameNode = (
