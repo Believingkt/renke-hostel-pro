@@ -591,6 +591,53 @@ export default function TeamOrders() {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="settings" className="space-y-4">
+          <OptionsCard
+            title="來源管道"
+            items={trafficSources}
+            isAdmin={isAdmin}
+            newValue={newTraffic}
+            setNewValue={setNewTraffic}
+            onAdd={() => handleAddOption("traffic_sources")}
+            onToggle={(id, next) => handleToggleActive("traffic_sources", id, next)}
+            editingId={editingTrafficId}
+            editingName={editingTrafficName}
+            onStartEdit={(id, name) => {
+              setEditingTrafficId(id);
+              setEditingTrafficName(name);
+            }}
+            onCancelEdit={() => {
+              setEditingTrafficId(null);
+              setEditingTrafficName("");
+            }}
+            onChangeEditName={setEditingTrafficName}
+            onSaveEdit={(id) => handleRenameOption("traffic_sources", id, editingTrafficName)}
+          />
+          <OptionsCard
+            title="訂房方式"
+            items={bookingMethods}
+            isAdmin={isAdmin}
+            newValue={newBooking}
+            setNewValue={setNewBooking}
+            onAdd={() => handleAddOption("booking_methods")}
+            onToggle={(id, next) => handleToggleActive("booking_methods", id, next)}
+            editingId={editingBookingId}
+            editingName={editingBookingName}
+            onStartEdit={(id, name) => {
+              setEditingBookingId(id);
+              setEditingBookingName(name);
+            }}
+            onCancelEdit={() => {
+              setEditingBookingId(null);
+              setEditingBookingName("");
+            }}
+            onChangeEditName={setEditingBookingName}
+            onSaveEdit={(id) => handleRenameOption("booking_methods", id, editingBookingName)}
+          />
+        </TabsContent>
+      </Tabs>
 
       <Drawer open={editOpen} onOpenChange={setEditOpen}>
         <DrawerContent className="max-h-[92vh]">
