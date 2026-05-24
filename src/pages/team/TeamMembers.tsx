@@ -565,17 +565,25 @@ export default function TeamMembers() {
             <CardTitle className="text-base">
               現有成員 ({filterRole === "all" ? members.length : `${filteredMembers.length} / ${members.length}`})
             </CardTitle>
-            <Select value={filterRole} onValueChange={(v) => setFilterRole(v as "all" | TeamRole)}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="篩選角色" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全部</SelectItem>
-                {ALL_INVITABLE_ROLES.map((r) => (
-                  <SelectItem key={r} value={r}>{ROLE_LABEL[r]}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              {canEditAll && (
+                <Button variant="outline" size="sm" onClick={() => setNoAccountOpen(true)}>
+                  <UserPlus className="mr-1" />
+                  新增無帳號成員
+                </Button>
+              )}
+              <Select value={filterRole} onValueChange={(v) => setFilterRole(v as "all" | TeamRole)}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="篩選角色" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部</SelectItem>
+                  {ALL_INVITABLE_ROLES.map((r) => (
+                    <SelectItem key={r} value={r}>{ROLE_LABEL[r]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
