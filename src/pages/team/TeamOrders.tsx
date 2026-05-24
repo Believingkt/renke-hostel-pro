@@ -441,7 +441,14 @@ export default function TeamOrders() {
         <h1 className="text-2xl font-semibold">訂單補充資料</h1>
       </div>
 
-      <Card>
+      <Tabs value={tab} onValueChange={setTab} className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="orders">訂單列表</TabsTrigger>
+          <TabsTrigger value="settings">設定</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="orders" className="space-y-4">
+          <Card>
         <CardContent className="p-4 space-y-4">
           <div className="flex flex-wrap gap-2">
             <Select value={accFilter} onValueChange={setAccFilter}>
