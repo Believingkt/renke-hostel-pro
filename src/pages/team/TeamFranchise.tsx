@@ -692,7 +692,7 @@ function OrdersTab({
             setSheetOpen(true);
           }}
         >
-          <Plus className="h-4 w-4 mr-1" /> 新增訂單
+          <Plus className="h-4 w-4 mr-1" /> 新增
         </Button>
       </CardHeader>
       <CardContent>
@@ -2237,13 +2237,13 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>會員編號</TableHead>
-                <TableHead>會員姓名</TableHead>
-                <TableHead>開發業務</TableHead>
-                <TableHead>專案名稱</TableHead>
-                <TableHead className="text-right">金額</TableHead>
-                <TableHead>簽約日期</TableHead>
-                <TableHead>合約進度</TableHead>
+                <TableHead className="whitespace-nowrap">會員編號</TableHead>
+                <TableHead className="whitespace-nowrap">會員姓名</TableHead>
+                <TableHead className="whitespace-nowrap">開發業務</TableHead>
+                <TableHead className="whitespace-nowrap">專案名稱</TableHead>
+                <TableHead className="whitespace-nowrap text-right">金額</TableHead>
+                <TableHead className="whitespace-nowrap">簽約日期</TableHead>
+                <TableHead className="whitespace-nowrap">合約進度</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -2260,13 +2260,13 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
                     className="cursor-pointer hover:bg-muted/50"
                     onClick={() => { setDetail(r); setEditing(false); }}
                   >
-                    <TableCell>{r.member_number ?? "—"}</TableCell>
-                    <TableCell>{r.customer_name}</TableCell>
-                    <TableCell>{r.sales_name ?? "—"}</TableCell>
-                    <TableCell>{r.project_name ?? "—"}</TableCell>
-                    <TableCell className="text-right tabular-nums">{fmtMoney(r.total_amount ?? (r.unit_count ?? 0) * r.plan_price)}</TableCell>
-                    <TableCell>{r.signed_at ?? "—"}</TableCell>
-                    <TableCell>
+                    <TableCell className="whitespace-nowrap">{r.member_number ?? "—"}</TableCell>
+                    <TableCell className="whitespace-nowrap">{r.customer_name}</TableCell>
+                    <TableCell className="whitespace-nowrap">{r.sales_name ?? "—"}</TableCell>
+                    <TableCell className="whitespace-nowrap">{r.project_name ?? "—"}</TableCell>
+                    <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(r.total_amount ?? (r.unit_count ?? 0) * r.plan_price)}</TableCell>
+                    <TableCell className="whitespace-nowrap">{r.signed_at ?? "—"}</TableCell>
+                    <TableCell className="whitespace-nowrap">
                       <Badge variant={r.contract_progress === "已完成" ? "success" : r.contract_progress === "取消" ? "destructive" : "secondary"}>
                         {r.contract_progress ?? "—"}
                       </Badge>
