@@ -119,7 +119,7 @@ export default function TeamMembers() {
     // 1. 取得所有 team profiles
     const { data: profiles, error: pErr } = await supabase
       .from("team_member_profiles")
-      .select("user_id, display_name, is_active")
+      .select("id, user_id, display_name, is_active")
       .order("display_name", { ascending: true });
 
     if (pErr) {
@@ -157,11 +157,12 @@ export default function TeamMembers() {
     }
 
     let rows: MemberRow[] = (profiles ?? []).map((p) => ({
-      user_id: p.user_id,
+      id: p.id,
+      user_id: p.user_id ?? null,
       display_name: p.display_name,
-      email: emailMap.get(p.user_id) ?? "",
+      email: p.user_id ? (emailMap.get(p.user_id) ?? "") : "",
       is_active: p.is_active ?? true,
-      roles: Array.from(rolesMap.get(p.user_id) ?? []),
+      roles: p.user_id ? Array.from(rolesMap.get(p.user_id) ?? []) : [],
     }));
 
     // scout_manager 僅看到有 scout 或 kol 角色的成員
