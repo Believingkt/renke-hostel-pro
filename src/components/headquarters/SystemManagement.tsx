@@ -125,9 +125,15 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
     const currentYear = new Date().getFullYear();
     return [currentYear, currentYear + 1];
   });
-  const [syncedHolidays, setSyncedHolidays] = useState<{ date: string; name: string; type: string }[]>([]);
+  const [syncedHolidays, setSyncedHolidays] = useState<{ date: string; name: string; type: string; is_custom: boolean }[]>([]);
   const [previewYear, setPreviewYear] = useState<number>(new Date().getFullYear());
   const [loadingHolidays, setLoadingHolidays] = useState(false);
+  const [newCustomHoliday, setNewCustomHoliday] = useState<{ date: string; name: string; type: string }>({
+    date: "",
+    name: "",
+    type: "holiday",
+  });
+  const [addingCustom, setAddingCustom] = useState(false);
 
   const handleTabChange = (value: string) => {
     setSearchParams({ tab: "system", section: value });
@@ -213,7 +219,7 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
       // Load holidays from the first accommodation (all should have the same data)
       const { data, error } = await supabase
         .from("public_holidays")
-        .select("holiday_date, holiday_name, holiday_type")
+        .select("holiday_date, holiday_name, holiday_type, is_custom")
         .eq("accommodation_id", accommodations[0].id)
         .gte("holiday_date", `${previewYear}-01-01`)
         .lte("holiday_date", `${previewYear}-12-31`)
@@ -229,10 +235,67 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
           date: h.holiday_date,
           name: h.holiday_name,
           type: h.holiday_type,
+          is_custom: (h as { is_custom?: boolean }).is_custom ?? false,
         }))
       );
     } finally {
       setLoadingHolidays(false);
+    }
+  };
+
+  const addCustomHoliday = async () => {
+    if (!newCustomHoliday.date || !newCustomHoliday.name.trim()) {
+      toast.error("請填寫日期與名稱");
+      return;
+    }
+    if (accommodations.length === 0) {
+      toast.error("尚未載入民宿資料");
+      return;
+    }
+    setAddingCustom(true);
+    try {
+      const rows = accommodations.map(a => ({
+        accommodation_id: a.id,
+        holiday_date: newCustomHoliday.date,
+        holiday_name: newCustomHoliday.name.trim(),
+        holiday_type: newCustomHoliday.type,
+        is_custom: true,
+      }));
+      const { error } = await supabase
+        .from("public_holidays")
+        .upsert(rows, { onConflict: "accommodation_id,holiday_date" });
+      if (error) throw error;
+      await logAction("create", "system", "holidays", "custom", newCustomHoliday.name.trim(), {
+        date: newCustomHoliday.date,
+        type: newCustomHoliday.type,
+        accommodations: accommodations.length,
+      });
+      toast.success(`已新增自訂假日（套用至 ${accommodations.length} 間民宿）`);
+      setNewCustomHoliday({ date: "", name: "", type: "holiday" });
+      await loadSyncedHolidays();
+    } catch (e) {
+      console.error(e);
+      toast.error(e instanceof Error ? e.message : "新增失敗");
+    } finally {
+      setAddingCustom(false);
+    }
+  };
+
+  const deleteHolidayByDate = async (date: string, name: string) => {
+    if (!confirm(`確定刪除 ${date} ${name}？將同步從所有民宿移除。`)) return;
+    try {
+      const { error } = await supabase
+        .from("public_holidays")
+        .delete()
+        .eq("holiday_date", date)
+        .in("accommodation_id", accommodations.map(a => a.id));
+      if (error) throw error;
+      await logAction("delete", "system", "holidays", "custom", name, { date });
+      toast.success("已刪除");
+      await loadSyncedHolidays();
+    } catch (e) {
+      console.error(e);
+      toast.error("刪除失敗");
     }
   };
 
