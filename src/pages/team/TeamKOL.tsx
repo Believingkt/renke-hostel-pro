@@ -1559,8 +1559,11 @@ function InvitationsTab({
               <Input
                 type="date"
                 value={form.invited_at}
-                readOnly
-                className="bg-muted"
+                onChange={(e) =>
+                  isManager && setForm({ ...form, invited_at: e.target.value })
+                }
+                readOnly={!isManager}
+                className={!isManager ? "bg-muted" : ""}
               />
             </Field>
           </div>
