@@ -475,16 +475,8 @@ const BookingVilla = () => {
             0,
             Math.round((earliestDate.getTime() - today.getTime()) / 86400000),
           );
-          const price = availMinPrice ?? (
-            (secondaryData?.roomTypes?.length || 0) > 0
-              ? (() => {
-                  const ps = secondaryData!.roomTypes
-                    .map((r: any) => r.base_price)
-                    .filter((p: number) => typeof p === "number" && p > 0);
-                  return ps.length ? Math.min(...ps) : null;
-                })()
-              : null
-          );
+          // 只用空房日曆算出的最低實際售價（含庫存覆寫 / 專案價 / 平假日邏輯），不再 fallback base_price
+          const price = availMinPrice;
           const isHot = upcoming.length <= 7;
           const weekdayLabel = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"][earliestDate.getDay()];
           return (
