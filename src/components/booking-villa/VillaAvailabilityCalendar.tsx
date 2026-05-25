@@ -21,6 +21,11 @@ const HAKUNA_ACCOMMODATION_ID = "6b6ac0dc-602b-4dec-9167-7791ac412ba3";
 const SENSAN_ACCOMMODATION_ID = "5f764d55-ae11-4631-80fe-2e611853deae";
 
 import { detectSensanTierByDate, getSensanRangeForTier } from "@/lib/sensan-pricing";
+import {
+  detectTierByDate,
+  getPackagePriceForTier,
+  isPackageExcludedOnDate,
+} from "@/hooks/use-accommodation-packages";
 
 interface Props {
   accommodationId: string;
