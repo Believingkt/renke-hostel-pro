@@ -71,16 +71,35 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
         representation: "date",
       });
 
-      const { data: inventoryRows } = await supabase
-        .from("room_inventory_pricing")
-        .select("date, is_available, room_type_id, price")
-        .in(
-          "room_type_id",
-          roomTypes.map((r) => r.id),
-        )
-        .gte("date", todayStr)
-        .lte("date", endStr)
-        .range(0, 49999);
+      type InventoryRow = {
+        date: string;
+        is_available: boolean | null;
+        room_type_id: string;
+        price: number | null;
+      };
+
+      const inventoryRows: InventoryRow[] = [];
+      const PAGE_SIZE = 1000;
+      let from = 0;
+
+      while (!cancelled) {
+        const { data: page } = await supabase
+          .from("room_inventory_pricing")
+          .select("date, is_available, room_type_id, price")
+          .in(
+            "room_type_id",
+            roomTypes.map((r) => r.id),
+          )
+          .gte("date", todayStr)
+          .lte("date", endStr)
+          .order("date", { ascending: true })
+          .range(from, from + PAGE_SIZE - 1);
+
+        if (!page || page.length === 0) break;
+        inventoryRows.push(...page);
+        if (page.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
+      }
 
       if (!inventoryRows || inventoryRows.length === 0) {
         if (!cancelled) setHasInventory(false);
