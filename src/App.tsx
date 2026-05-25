@@ -368,6 +368,12 @@ function App() {
                         <Suspense fallback={<TableSkeleton rows={8} columns={8} />}><OwnerSettlement /></Suspense>
                       </RequireModule>
                     } />
+                    <Route path="admin/addon-center" element={
+                      <RequireModule module="addon_center">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={6} />}><AddonCenter /></Suspense>
+                      </RequireModule>
+                    } />
+
                     <Route path="admin/email-test" element={
                       <RequireModule module="accounts">
                         <Suspense fallback={<DashboardSkeleton />}><EmailTest /></Suspense>
