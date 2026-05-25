@@ -21,6 +21,11 @@ const HAKUNA_ACCOMMODATION_ID = "6b6ac0dc-602b-4dec-9167-7791ac412ba3";
 const SENSAN_ACCOMMODATION_ID = "5f764d55-ae11-4631-80fe-2e611853deae";
 
 import { detectSensanTierByDate, getSensanRangeForTier } from "@/lib/sensan-pricing";
+import {
+  detectTierByDate,
+  getPackagePriceForTier,
+  isPackageExcludedOnDate,
+} from "@/hooks/use-accommodation-packages";
 
 interface Props {
   accommodationId: string;
@@ -185,21 +190,55 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
         if (sortedAvail.length > 0) earliestDate = sortedAvail[0];
 
         if (isSensan && earliestDate) {
-          // 森山：用包區方案表，抓該日時段（平日/週五日/週六）最低方案價
+          // 森山：用包區方案表（硬編碼），抓該日時段最低方案價
           const [y, m, d] = earliestDate.split("-").map(Number);
           const tier = detectSensanTierByDate(new Date(y, m - 1, d));
           const range = getSensanRangeForTier(tier);
           minPrice = range.min.sale;
-        } else {
-          for (const row of inventoryRows) {
-            if (!available.has(row.date)) continue;
-            if (!priceableRoomIds.has(row.room_type_id)) continue;
-            const rt = roomTypes.find((r: any) => r.id === row.room_type_id);
-            if (!rt) continue;
-            if (!isRoomAvailable(rt, row.date)) continue;
-            const p = (row as any).price;
-            if (typeof p === "number" && p > 0) {
-              if (minPrice == null || p < minPrice) minPrice = p;
+        } else if (earliestDate) {
+          // 其他住宿：從 accommodation_packages 抓該日時段最低方案售價
+          const { data: pkgs } = await supabase
+            .from("accommodation_packages")
+            .select("*")
+            .eq("accommodation_id", accommodationId)
+            .eq("enabled", true);
+          const [y, m, d] = earliestDate.split("-").map(Number);
+          const earliestDateObj = new Date(y, m - 1, d);
+          const tier = detectTierByDate(earliestDateObj);
+          if (pkgs && pkgs.length > 0) {
+            for (const p of pkgs as any[]) {
+              const applicable: string[] = Array.isArray(p.applicable_tiers) ? p.applicable_tiers : [];
+              if (!applicable.includes(tier)) continue;
+              const excluded = Array.isArray(p.excluded_date_ranges) ? p.excluded_date_ranges : [];
+              if (isPackageExcludedOnDate({ excluded_date_ranges: excluded }, earliestDateObj)) continue;
+              const { sale } = getPackagePriceForTier(
+                {
+                  tier_prices:
+                    p.tier_prices && typeof p.tier_prices === "object" && !Array.isArray(p.tier_prices)
+                      ? p.tier_prices
+                      : {},
+                  original_price: p.original_price,
+                  sale_price: p.sale_price,
+                },
+                tier as any,
+              );
+              if (typeof sale === "number" && sale > 0) {
+                if (minPrice == null || sale < minPrice) minPrice = sale;
+              }
+            }
+          }
+          // fallback：若無方案，退回庫存最低售價
+          if (minPrice == null) {
+            for (const row of inventoryRows) {
+              if (!available.has(row.date)) continue;
+              if (!priceableRoomIds.has(row.room_type_id)) continue;
+              const rt = roomTypes.find((r: any) => r.id === row.room_type_id);
+              if (!rt) continue;
+              if (!isRoomAvailable(rt, row.date)) continue;
+              const pr = (row as any).price;
+              if (typeof pr === "number" && pr > 0) {
+                if (minPrice == null || pr < minPrice) minPrice = pr;
+              }
             }
           }
         }
