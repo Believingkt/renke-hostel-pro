@@ -104,7 +104,7 @@ export default function OwnerSettlement() {
       const monthStart = format(startOfMonth(month), "yyyy-MM-dd");
       const monthEnd = format(endOfMonth(month), "yyyy-MM-dd");
 
-      const [ordersRes, roomTypesRes, configRes, accRes, templatesRes] = await Promise.all([
+      const [ordersRes, roomTypesRes, configRes, accRes, templatesRes, addonRes, splitRuleRes] = await Promise.all([
         supabase
           .from("orders")
           .select(
@@ -128,7 +128,24 @@ export default function OwnerSettlement() {
           .from("pricing_templates")
           .select("id, template_name, project_name")
           .eq("accommodation_id", currentAccommodationId),
+        supabase
+          .from("addon_sales")
+          .select("total_amount")
+          .eq("accommodation_id", currentAccommodationId)
+          .gte("sale_date", monthStart)
+          .lte("sale_date", monthEnd),
+        supabase
+          .from("split_rules")
+          .select("addon_fee_percentage")
+          .eq("accommodation_id", currentAccommodationId)
+          .eq("is_active", true)
+          .lte("effective_from", monthEnd)
+          .or(`effective_to.is.null,effective_to.gte.${monthStart}`)
+          .order("effective_from", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
       ]);
+
 
       if (cancelled) return;
 
