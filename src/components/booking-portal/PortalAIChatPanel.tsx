@@ -388,7 +388,7 @@ const PortalAIChatPanel = () => {
                     const inIso = format(checkIn, "yyyy-MM-dd");
                     const outIso = format(checkOut, "yyyy-MM-dd");
                     sendMessage(
-                      `幫我查 ${inIso} 入住、${outIso} 退房（共 ${nights} 晚），${defaultGuests} 人 ${defaultRooms} 間房，宜蘭，列出可預訂房型`
+                      `幫我查 ${inIso} 入住、${outIso} 退房（共 ${nights} 晚），${defaultGuests} 人，宜蘭，列出可預訂房型`
                     );
                   }}
                   disabled={isLoading}
