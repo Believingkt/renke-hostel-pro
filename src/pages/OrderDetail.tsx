@@ -555,7 +555,21 @@ const OrderDetailPage = () => {
         : normalizedRooms.reduce((sum, r) => sum + r.room_price, 0);
       setEditForm(f => ({ ...f, total_price: roomsTotal }));
     } else {
-      setEditOrderRooms([]);
+      // 保留單 / 舊單沒有 order_rooms：若有 room_type_id，從訂單合成一筆，存檔時會寫回 order_rooms，與一般新建訂單一致
+      if (order.room_type_id) {
+        const syntheticPrice = Number(order.total_price || 0);
+        setEditOrderRooms([{
+          id: `synthetic-${order.id}`,
+          room_type_id: order.room_type_id,
+          quantity: 1,
+          room_price: syntheticPrice,
+          unit_price: syntheticPrice,
+          template_name: null,
+          room_unit_id: null,
+        }]);
+      } else {
+        setEditOrderRooms([]);
+      }
     }
     // Store deposit ratio based on original final price
     const savedRoomsTotalForRatio = orderRooms.reduce((sum, r) => sum + r.room_price, 0);
