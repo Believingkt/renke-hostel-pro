@@ -744,6 +744,69 @@ export type Database = {
           },
         ]
       }
+      addon_sales: {
+        Row: {
+          accommodation_id: string
+          category: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          item_name: string
+          notes: string | null
+          quantity: number
+          related_order_id: string | null
+          sale_date: string
+          total_amount: number
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_name: string
+          notes?: string | null
+          quantity?: number
+          related_order_id?: string | null
+          sale_date: string
+          total_amount?: number
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_name?: string
+          notes?: string | null
+          quantity?: number
+          related_order_id?: string | null
+          sale_date?: string
+          total_amount?: number
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "addon_sales_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "addon_sales_related_order_id_fkey"
+            columns: ["related_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       addon_settings: {
         Row: {
           accommodation_id: string
@@ -5728,6 +5791,7 @@ export type Database = {
       split_rules: {
         Row: {
           accommodation_id: string
+          addon_fee_percentage: number
           created_at: string
           description: string | null
           effective_from: string
@@ -5739,6 +5803,7 @@ export type Database = {
         }
         Insert: {
           accommodation_id: string
+          addon_fee_percentage?: number
           created_at?: string
           description?: string | null
           effective_from?: string
@@ -5750,6 +5815,7 @@ export type Database = {
         }
         Update: {
           accommodation_id?: string
+          addon_fee_percentage?: number
           created_at?: string
           description?: string | null
           effective_from?: string

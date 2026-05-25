@@ -98,6 +98,7 @@ const DataBackup = lazy(() => import("./pages/DataBackup"));
 const EmailTest = lazy(() => import("./pages/EmailTest"));
 const Settlement = lazy(() => import("./pages/Settlement"));
 const OwnerSettlement = lazy(() => import("./pages/OwnerSettlement"));
+const AddonCenter = lazy(() => import("./pages/AddonCenter"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Reception = lazy(() => import("./pages/Reception"));
 const ChannelManager = lazy(() => import("./pages/ChannelManager"));
@@ -367,6 +368,12 @@ function App() {
                         <Suspense fallback={<TableSkeleton rows={8} columns={8} />}><OwnerSettlement /></Suspense>
                       </RequireModule>
                     } />
+                    <Route path="admin/addon-center" element={
+                      <RequireModule module="addon_center">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={6} />}><AddonCenter /></Suspense>
+                      </RequireModule>
+                    } />
+
                     <Route path="admin/email-test" element={
                       <RequireModule module="accounts">
                         <Suspense fallback={<DashboardSkeleton />}><EmailTest /></Suspense>

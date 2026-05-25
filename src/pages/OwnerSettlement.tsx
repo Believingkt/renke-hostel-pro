@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { MonthPicker } from "@/components/ui/month-picker";
-import { Banknote, TrendingUp, Percent, Megaphone, Wallet, CalendarClock, ArrowRight, Info, Globe, CreditCard, Headphones, Sparkles, Megaphone as MegaphoneIcon, ShieldCheck, Calendar as CalendarIcon, Bot, ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
+import { Banknote, TrendingUp, Percent, Megaphone, Wallet, CalendarClock, ArrowRight, Info, Globe, CreditCard, Headphones, Sparkles, Megaphone as MegaphoneIcon, ShieldCheck, Calendar as CalendarIcon, Bot, ChevronDown, ChevronRight, ExternalLink, ShoppingBag } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format, startOfMonth, endOfMonth, addDays, differenceInDays, parseISO, addMonths } from "date-fns";
 import { zhTW } from "date-fns/locale";
@@ -81,6 +81,9 @@ export default function OwnerSettlement() {
   const month = useMemo(() => startOfMonth(parseISO(monthStr + "-01")), [monthStr]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [roomTypes, setRoomTypes] = useState<RoomTypePricing[]>([]);
+  const [addonTotal, setAddonTotal] = useState(0);
+  const [addonCount, setAddonCount] = useState(0);
+  const [addonFeePct, setAddonFeePct] = useState(0);
   const [config, setConfig] = useState<SettlementConfig>({
     commission_rate: 15,
     marketing_fee_base: 48000,
@@ -91,6 +94,7 @@ export default function OwnerSettlement() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [mealTemplateMap, setMealTemplateMap] = useState<Record<string, string>>({});
 
+
   useEffect(() => {
     if (!currentAccommodationId) return;
     let cancelled = false;
@@ -100,7 +104,7 @@ export default function OwnerSettlement() {
       const monthStart = format(startOfMonth(month), "yyyy-MM-dd");
       const monthEnd = format(endOfMonth(month), "yyyy-MM-dd");
 
-      const [ordersRes, roomTypesRes, configRes, accRes, templatesRes] = await Promise.all([
+      const [ordersRes, roomTypesRes, configRes, accRes, templatesRes, addonRes, splitRuleRes] = await Promise.all([
         supabase
           .from("orders")
           .select(
@@ -124,7 +128,24 @@ export default function OwnerSettlement() {
           .from("pricing_templates")
           .select("id, template_name, project_name")
           .eq("accommodation_id", currentAccommodationId),
+        supabase
+          .from("addon_sales")
+          .select("total_amount")
+          .eq("accommodation_id", currentAccommodationId)
+          .gte("sale_date", monthStart)
+          .lte("sale_date", monthEnd),
+        supabase
+          .from("split_rules")
+          .select("addon_fee_percentage")
+          .eq("accommodation_id", currentAccommodationId)
+          .eq("is_active", true)
+          .lte("effective_from", monthEnd)
+          .or(`effective_to.is.null,effective_to.gte.${monthStart}`)
+          .order("effective_from", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
       ]);
+
 
       if (cancelled) return;
 
@@ -146,7 +167,12 @@ export default function OwnerSettlement() {
         tmap[t.id] = t.template_name || t.project_name || t.id;
       });
       setMealTemplateMap(tmap);
+      const addonRows = (addonRes.data || []) as Array<{ total_amount: number }>;
+      setAddonTotal(addonRows.reduce((s, r) => s + (Number(r.total_amount) || 0), 0));
+      setAddonCount(addonRows.length);
+      setAddonFeePct(Number((splitRuleRes.data as any)?.addon_fee_percentage) || 0);
       setLoading(false);
+
     })();
     return () => {
       cancelled = true;
@@ -210,9 +236,12 @@ export default function OwnerSettlement() {
       Math.max(0, propertyCount - 1) * config.marketing_fee_per_extra_property;
     // 原價：基本服務 + 每棟星鏈包專案 98,800
     const marketingFeeOriginal = config.marketing_fee_base + 98800 * Math.max(1, propertyCount);
-    const ownerNet = totalRevenue - totalCommission - marketingFee;
-    return { totalRevenue, totalFood, totalCommissionable, totalCommission, marketingFee, marketingFeeOriginal, ownerNet };
-  }, [rows, config, propertyCount]);
+    const addonCommission = addonTotal * (addonFeePct / 100);
+    const addonNet = addonTotal - addonCommission;
+    const ownerNet = totalRevenue - totalCommission - marketingFee + addonNet;
+    return { totalRevenue, totalFood, totalCommissionable, totalCommission, marketingFee, marketingFeeOriginal, ownerNet, addonTotal, addonCommission, addonNet };
+  }, [rows, config, propertyCount, addonTotal, addonFeePct]);
+
 
   const monthLabel = format(month, "yyyy 年 M 月", { locale: zhTW });
   const monthShort = format(month, "M 月", { locale: zhTW });
@@ -336,7 +365,18 @@ export default function OwnerSettlement() {
             tone="income"
           />
 
+          {totals.addonTotal > 0 && (
+            <BreakdownRow
+              icon={ShoppingBag}
+              label="額外加購營收"
+              sublabel={`本月 ${addonCount} 筆非訂房收入（商品/餐飲/體驗等）`}
+              value={totals.addonTotal}
+              tone="income"
+            />
+          )}
+
           <div className="h-px bg-border my-2" />
+
 
           {/* 服務費用區 */}
           <div className="text-xs text-muted-foreground font-medium px-3 pt-2 pb-1">
@@ -370,12 +410,22 @@ export default function OwnerSettlement() {
             originalValue={-totals.marketingFeeOriginal}
             tone="fee"
           />
+          {totals.addonCommission > 0 && (
+            <BreakdownRow
+              icon={Percent}
+              label={`加購手續費 ${addonFeePct}%`}
+              sublabel="僅針對額外加購營收收取"
+              value={-totals.addonCommission}
+              tone="fee"
+            />
+          )}
+
 
           <BreakdownRow
             icon={Wallet}
             label="平台費用合計"
-            sublabel={`服務費 + 行銷推廣費　占入住營收 ${totals.totalRevenue > 0 ? Math.round(((totals.totalCommission + totals.marketingFee) / totals.totalRevenue) * 100) : 0}%`}
-            value={-(totals.totalCommission + totals.marketingFee)}
+            sublabel={`服務費 + 行銷推廣費${totals.addonCommission > 0 ? " + 加購手續費" : ""}`}
+            value={-(totals.totalCommission + totals.marketingFee + totals.addonCommission)}
             tone="subtotal"
           />
 

@@ -22,6 +22,7 @@ export const STAFF_MODULES: ModuleDefinition[] = [
   { key: "discount_codes", label: "網紅導購" },
   { key: "settlement", label: "請款管理" },
   { key: "owner_settlement", label: "業主月結" },
+  { key: "addon_center", label: "加購中心" },
   { key: "channel_manager", label: "通路管理" },
   { key: "accounts", label: "帳號管理" },
 ];
@@ -35,6 +36,7 @@ export const DEFAULT_STAFF_PERMISSIONS: Record<string, ModulePermissionLevel> = 
   discount_codes: "readonly",
   settlement: "readonly",
   owner_settlement: "hidden",
+  addon_center: "editable",
   website_content: "hidden",
   pricing: "hidden",
   channel_manager: "hidden",
