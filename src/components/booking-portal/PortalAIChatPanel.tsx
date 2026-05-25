@@ -517,7 +517,7 @@ const PortalAIChatPanel = () => {
         <div className="border-t border-[hsl(25,30%,90%)]/60 bg-white/80 backdrop-blur px-3 py-2.5 flex gap-2 items-center">
           <Input
             placeholder="或輸入文字..."
-            className="flex-1 !min-h-[40px] !h-10 text-sm border-border rounded-full px-4"
+            className="flex-1 !min-h-[40px] !h-10 text-sm text-foreground border-border rounded-full px-4"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
