@@ -410,6 +410,16 @@ export default function OwnerSettlement() {
             originalValue={-totals.marketingFeeOriginal}
             tone="fee"
           />
+          {totals.addonCommission > 0 && (
+            <BreakdownRow
+              icon={Percent}
+              label={`加購手續費 ${addonFeePct}%`}
+              sublabel="僅針對額外加購營收收取"
+              value={-totals.addonCommission}
+              tone="fee"
+            />
+          )}
+
 
           <BreakdownRow
             icon={Wallet}
