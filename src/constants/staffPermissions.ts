@@ -36,6 +36,7 @@ export const DEFAULT_STAFF_PERMISSIONS: Record<string, ModulePermissionLevel> = 
   discount_codes: "readonly",
   settlement: "readonly",
   owner_settlement: "hidden",
+  addon_center: "editable",
   website_content: "hidden",
   pricing: "hidden",
   channel_manager: "hidden",
