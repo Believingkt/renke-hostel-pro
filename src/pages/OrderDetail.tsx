@@ -472,7 +472,14 @@ const OrderDetailPage = () => {
       payment_status: order.payment_status || "unpaid",
       deposit_payment_method: order.deposit_payment_method || "none",
       balance_payment_method: order.balance_payment_method || "none",
-      meal_plan: order.meal_plan || "none",
+      meal_plan: (() => {
+        const raw = order.meal_plan;
+        if (!raw) return "none";
+        // Legacy: meal_plan stored as template UUID — normalize to template_name
+        const byId = roomTemplates.find(t => t.id === raw) || allRoomTemplates.find(t => t.id === raw);
+        if (byId) return byId.template_name;
+        return raw;
+      })(),
       notes: (order.notes || "")
         .replace(/【(?:加購備註|額外現場加購備註)[^】]*】\n?[\s\S]*?\n?【(?:加購備註|額外現場加購備註)END】\n?/g, "")
         .replace(/^【(?:加購備註|額外現場加購備註)[^】]*】.*$\n?/gm, "")
