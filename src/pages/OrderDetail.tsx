@@ -472,7 +472,14 @@ const OrderDetailPage = () => {
       payment_status: order.payment_status || "unpaid",
       deposit_payment_method: order.deposit_payment_method || "none",
       balance_payment_method: order.balance_payment_method || "none",
-      meal_plan: order.meal_plan || "none",
+      meal_plan: (() => {
+        const raw = order.meal_plan;
+        if (!raw) return "none";
+        // Legacy: meal_plan stored as template UUID — normalize to template_name
+        const byId = roomTemplates.find(t => t.id === raw) || allRoomTemplates.find(t => t.id === raw);
+        if (byId) return byId.template_name;
+        return raw;
+      })(),
       notes: (order.notes || "")
         .replace(/【(?:加購備註|額外現場加購備註)[^】]*】\n?[\s\S]*?\n?【(?:加購備註|額外現場加購備註)END】\n?/g, "")
         .replace(/^【(?:加購備註|額外現場加購備註)[^】]*】.*$\n?/gm, "")
@@ -548,7 +555,21 @@ const OrderDetailPage = () => {
         : normalizedRooms.reduce((sum, r) => sum + r.room_price, 0);
       setEditForm(f => ({ ...f, total_price: roomsTotal }));
     } else {
-      setEditOrderRooms([]);
+      // 保留單 / 舊單沒有 order_rooms：若有 room_type_id，從訂單合成一筆，存檔時會寫回 order_rooms，與一般新建訂單一致
+      if (order.room_type_id) {
+        const syntheticPrice = Number(order.total_price || 0);
+        setEditOrderRooms([{
+          id: `synthetic-${order.id}`,
+          room_type_id: order.room_type_id,
+          quantity: 1,
+          room_price: syntheticPrice,
+          unit_price: syntheticPrice,
+          template_name: null,
+          room_unit_id: null,
+        }]);
+      } else {
+        setEditOrderRooms([]);
+      }
     }
     // Store deposit ratio based on original final price
     const savedRoomsTotalForRatio = orderRooms.reduce((sum, r) => sum + r.room_price, 0);
@@ -1411,9 +1432,12 @@ const OrderDetailPage = () => {
 
   const getTemplateDisplayName = (planId: string | null) => {
     if (!planId) return "-";
-    const template = roomTemplates.find(t => t.id === planId) || allRoomTemplates.find(t => t.id === planId);
-    if (template) return template.template_name;
-    // Fallback to meal plan display
+    // Prefer match by template_name (CreateOrderDialog / hold-edit store the name)
+    const byName = roomTemplates.find(t => t.template_name === planId) || allRoomTemplates.find(t => t.template_name === planId);
+    if (byName) return byName.template_name;
+    // Legacy: meal_plan was stored as template id (UUID)
+    const byId = roomTemplates.find(t => t.id === planId) || allRoomTemplates.find(t => t.id === planId);
+    if (byId) return byId.template_name;
     return getMealPlanDisplayName(planId);
   };
 
@@ -2291,7 +2315,7 @@ const OrderDetailPage = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {roomTemplates.map(t => (
-                          <SelectItem key={t.id} value={t.id}>{t.template_name}</SelectItem>
+                          <SelectItem key={t.id} value={t.template_name}>{t.template_name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
