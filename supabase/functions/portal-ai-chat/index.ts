@@ -643,8 +643,9 @@ serve(async (req) => {
     const ctxRooms = Number.isFinite(context?.room_count) ? Math.max(1, Math.min(20, Number(context.room_count))) : null;
 
     const userContextBlock = (ctxCheckIn || ctxGuests)
-      ? `\n## 🎯 用戶當前選擇（最高優先，呼叫 get_available_rooms 必須使用這些值，除非用戶明確要求改變）：\n- 入住日期：${ctxCheckIn || '未設定'}\n- 退房日期：${ctxCheckOut || '未設定'}\n- 入住人數：${ctxGuests ?? '未設定'}（呼叫 get_available_rooms 時必須以此值傳入 guest_count，過濾不足容納的房型）\n- 房間數：${ctxRooms ?? '未設定'}\n`
+      ? `\n## 🎯 用戶當前選擇（最高優先，呼叫 get_available_rooms 必須使用這些值，除非用戶明確要求改變）：\n- 入住日期：${ctxCheckIn || '未設定'}\n- 退房日期：${ctxCheckOut || '未設定'}\n- 入住人數：${ctxGuests ?? '未設定'}（呼叫 get_available_rooms 時必須以此值傳入 guest_count，過濾不足容納的房型）\n（注意：預設找房不需要包含房間數，除非用戶明確指定）\n`
       : '';
+
 
     // Load DB-driven prompt config (Phase 2/3)
     // Priority: explicit version > mode=draft > A/B test > latest published
