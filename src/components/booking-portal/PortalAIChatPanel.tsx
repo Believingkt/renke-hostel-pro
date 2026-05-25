@@ -377,34 +377,6 @@ const PortalAIChatPanel = () => {
                       </Button>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between rounded-lg bg-[hsl(25,60%,97%)] px-3 py-2">
-                    <span className="flex items-center gap-2 text-sm text-foreground">
-                      <BedDouble className="h-4 w-4 text-muted-foreground" />房間數
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="h-7 w-7 rounded-full text-foreground"
-                        onClick={(e) => { e.stopPropagation(); setDefaultRooms(Math.max(1, defaultRooms - 1)); }}
-                        disabled={defaultRooms <= 1}
-                      >
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <span className="w-8 text-center text-sm font-semibold tabular-nums text-foreground">{defaultRooms}</span>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="h-7 w-7 rounded-full text-foreground"
-                        onClick={(e) => { e.stopPropagation(); setDefaultRooms(Math.min(20, defaultRooms + 1)); }}
-                        disabled={defaultRooms >= 20}
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
                 </div>
 
                 <Button
