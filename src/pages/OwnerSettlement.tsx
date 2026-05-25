@@ -365,7 +365,18 @@ export default function OwnerSettlement() {
             tone="income"
           />
 
+          {totals.addonTotal > 0 && (
+            <BreakdownRow
+              icon={ShoppingBag}
+              label="額外加購營收"
+              sublabel={`本月 ${addonCount} 筆非訂房收入（商品/餐飲/體驗等）`}
+              value={totals.addonTotal}
+              tone="income"
+            />
+          )}
+
           <div className="h-px bg-border my-2" />
+
 
           {/* 服務費用區 */}
           <div className="text-xs text-muted-foreground font-medium px-3 pt-2 pb-1">
