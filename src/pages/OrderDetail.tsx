@@ -2294,7 +2294,7 @@ const OrderDetailPage = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {roomTemplates.map(t => (
-                          <SelectItem key={t.id} value={t.id}>{t.template_name}</SelectItem>
+                          <SelectItem key={t.id} value={t.template_name}>{t.template_name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
