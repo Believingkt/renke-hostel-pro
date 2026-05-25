@@ -171,13 +171,17 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
       if (!cancelled) {
         setAvailableDates(available);
         setHasInventory(true);
-        // 計算最低價（僅看可訂日期的 price）
+        // 計算最低價：只看「該日 & 該房型實際有庫存可訂」的 inventory row
         let minPrice: number | null = null;
         let earliestDate: string | null = null;
         const sortedAvail = Array.from(available).sort();
         if (sortedAvail.length > 0) earliestDate = sortedAvail[0];
         for (const row of inventoryRows) {
           if (!available.has(row.date)) continue;
+          // 必須該 (room_type, date) 真的有庫存（排除被擋掉或庫存=0 的房型）
+          const rt = roomTypes.find((r: any) => r.id === row.room_type_id);
+          if (!rt) continue;
+          if (!isRoomAvailable(rt, row.date)) continue;
           const p = (row as any).price;
           if (typeof p === "number" && p > 0) {
             if (minPrice == null || p < minPrice) minPrice = p;
