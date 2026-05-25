@@ -81,6 +81,9 @@ export default function OwnerSettlement() {
   const month = useMemo(() => startOfMonth(parseISO(monthStr + "-01")), [monthStr]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [roomTypes, setRoomTypes] = useState<RoomTypePricing[]>([]);
+  const [addonTotal, setAddonTotal] = useState(0);
+  const [addonCount, setAddonCount] = useState(0);
+  const [addonFeePct, setAddonFeePct] = useState(0);
   const [config, setConfig] = useState<SettlementConfig>({
     commission_rate: 15,
     marketing_fee_base: 48000,
@@ -90,6 +93,7 @@ export default function OwnerSettlement() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [mealTemplateMap, setMealTemplateMap] = useState<Record<string, string>>({});
+
 
   useEffect(() => {
     if (!currentAccommodationId) return;
