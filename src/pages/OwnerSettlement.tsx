@@ -424,8 +424,8 @@ export default function OwnerSettlement() {
           <BreakdownRow
             icon={Wallet}
             label="平台費用合計"
-            sublabel={`服務費 + 行銷推廣費　占入住營收 ${totals.totalRevenue > 0 ? Math.round(((totals.totalCommission + totals.marketingFee) / totals.totalRevenue) * 100) : 0}%`}
-            value={-(totals.totalCommission + totals.marketingFee)}
+            sublabel={`服務費 + 行銷推廣費${totals.addonCommission > 0 ? " + 加購手續費" : ""}`}
+            value={-(totals.totalCommission + totals.marketingFee + totals.addonCommission)}
             tone="subtotal"
           />
 
