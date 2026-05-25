@@ -20,6 +20,8 @@ import { cn } from "@/lib/utils";
 const HAKUNA_ACCOMMODATION_ID = "6b6ac0dc-602b-4dec-9167-7791ac412ba3";
 const SENSAN_ACCOMMODATION_ID = "5f764d55-ae11-4631-80fe-2e611853deae";
 
+import { detectSensanTierByDate, getSensanRangeForTier } from "@/lib/sensan-pricing";
+
 interface Props {
   accommodationId: string;
   selectedDate?: Date | null;
@@ -181,15 +183,24 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
         let earliestDate: string | null = null;
         const sortedAvail = Array.from(available).sort();
         if (sortedAvail.length > 0) earliestDate = sortedAvail[0];
-        for (const row of inventoryRows) {
-          if (!available.has(row.date)) continue;
-          if (!priceableRoomIds.has(row.room_type_id)) continue;
-          const rt = roomTypes.find((r: any) => r.id === row.room_type_id);
-          if (!rt) continue;
-          if (!isRoomAvailable(rt, row.date)) continue;
-          const p = (row as any).price;
-          if (typeof p === "number" && p > 0) {
-            if (minPrice == null || p < minPrice) minPrice = p;
+
+        if (isSensan && earliestDate) {
+          // 森山：用包區方案表，抓該日時段（平日/週五日/週六）最低方案價
+          const [y, m, d] = earliestDate.split("-").map(Number);
+          const tier = detectSensanTierByDate(new Date(y, m - 1, d));
+          const range = getSensanRangeForTier(tier);
+          minPrice = range.min.sale;
+        } else {
+          for (const row of inventoryRows) {
+            if (!available.has(row.date)) continue;
+            if (!priceableRoomIds.has(row.room_type_id)) continue;
+            const rt = roomTypes.find((r: any) => r.id === row.room_type_id);
+            if (!rt) continue;
+            if (!isRoomAvailable(rt, row.date)) continue;
+            const p = (row as any).price;
+            if (typeof p === "number" && p > 0) {
+              if (minPrice == null || p < minPrice) minPrice = p;
+            }
           }
         }
         onAvailabilityComputed?.({ dates: available, minPrice, earliestDate });
