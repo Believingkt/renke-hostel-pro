@@ -79,7 +79,8 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
           roomTypes.map((r) => r.id),
         )
         .gte("date", todayStr)
-        .lte("date", endStr);
+        .lte("date", endStr)
+        .range(0, 49999);
 
       if (!inventoryRows || inventoryRows.length === 0) {
         if (!cancelled) setHasInventory(false);
