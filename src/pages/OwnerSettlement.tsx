@@ -167,7 +167,12 @@ export default function OwnerSettlement() {
         tmap[t.id] = t.template_name || t.project_name || t.id;
       });
       setMealTemplateMap(tmap);
+      const addonRows = (addonRes.data || []) as Array<{ total_amount: number }>;
+      setAddonTotal(addonRows.reduce((s, r) => s + (Number(r.total_amount) || 0), 0));
+      setAddonCount(addonRows.length);
+      setAddonFeePct(Number((splitRuleRes.data as any)?.addon_fee_percentage) || 0);
       setLoading(false);
+
     })();
     return () => {
       cancelled = true;
