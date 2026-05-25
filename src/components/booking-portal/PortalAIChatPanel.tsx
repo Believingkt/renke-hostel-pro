@@ -106,8 +106,8 @@ const PortalAIChatPanel = () => {
             check_in_date: format(checkIn, "yyyy-MM-dd"),
             check_out_date: format(checkOut, "yyyy-MM-dd"),
             guest_count: defaultGuests,
-            room_count: defaultRooms,
           },
+
         }),
       });
 
