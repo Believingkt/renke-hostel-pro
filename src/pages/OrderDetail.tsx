@@ -1411,9 +1411,12 @@ const OrderDetailPage = () => {
 
   const getTemplateDisplayName = (planId: string | null) => {
     if (!planId) return "-";
-    const template = roomTemplates.find(t => t.id === planId) || allRoomTemplates.find(t => t.id === planId);
-    if (template) return template.template_name;
-    // Fallback to meal plan display
+    // Prefer match by template_name (CreateOrderDialog / hold-edit store the name)
+    const byName = roomTemplates.find(t => t.template_name === planId) || allRoomTemplates.find(t => t.template_name === planId);
+    if (byName) return byName.template_name;
+    // Legacy: meal_plan was stored as template id (UUID)
+    const byId = roomTemplates.find(t => t.id === planId) || allRoomTemplates.find(t => t.id === planId);
+    if (byId) return byId.template_name;
     return getMealPlanDisplayName(planId);
   };
 
