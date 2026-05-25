@@ -209,6 +209,19 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
 
       if (error) throw error;
 
+      // 同步寫入 order_rooms，讓後續編輯走「多房型」分支，與一般新建訂單邏輯一致
+      if (orderData?.id) {
+        const { error: roomsError } = await supabase.from("order_rooms").insert([{
+          order_id: orderData.id,
+          room_type_id: form.room_type_id,
+          quantity: 1,
+          room_price: 0,
+          template_name: null,
+          room_unit_id: null,
+        }]);
+        if (roomsError) console.error("[CreateHoldOrderDialog] order_rooms insert failed:", roomsError);
+      }
+
       await logAction({
         actionType: "create",
         actionCategory: "order",
