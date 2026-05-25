@@ -198,7 +198,7 @@ export default function AddonCenter() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       <AdminPageHeader
-        title="加購中心"
+        title="非訂房加購"
         description="記錄非訂房收入（如商品、餐飲、體驗等銷售）"
         icon={ShoppingBag}
         action={
