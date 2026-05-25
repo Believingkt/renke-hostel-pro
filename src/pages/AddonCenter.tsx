@@ -326,7 +326,7 @@ export default function AddonCenter() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{editingId ? "編輯加購紀錄" : "新增加購紀錄"}</DialogTitle>
-            <DialogDescription>非訂房收入，將計入業主月結的額外加購營收</DialogDescription>
+            <DialogDescription>非訂房收入，將計入業主月結的商品收入</DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">

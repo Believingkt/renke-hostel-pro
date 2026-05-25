@@ -405,7 +405,7 @@ export default function OwnerSettlement() {
             <BreakdownRow
               icon={Percent}
               label={`加購手續費 ${addonFeePct}%`}
-              sublabel="僅針對額外加購營收收取"
+              sublabel="僅針對商品收入收取"
               value={-totals.addonCommission}
               tone="fee"
             />
@@ -425,7 +425,7 @@ export default function OwnerSettlement() {
           {totals.addonTotal > 0 && (
             <BreakdownRow
               icon={ShoppingBag}
-              label="額外加購營收"
+              label="商品收入"
               sublabel={`本月 ${addonCount} 筆非訂房收入（商品/餐飲/體驗等）`}
               value={totals.addonTotal}
               tone="income"
