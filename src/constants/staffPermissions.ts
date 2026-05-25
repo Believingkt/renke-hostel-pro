@@ -22,7 +22,7 @@ export const STAFF_MODULES: ModuleDefinition[] = [
   { key: "discount_codes", label: "網紅導購" },
   { key: "settlement", label: "請款管理" },
   { key: "owner_settlement", label: "業主月結" },
-  { key: "addon_center", label: "非訂房加購" },
+  { key: "addon_center", label: "購物商品" },
   { key: "channel_manager", label: "通路管理" },
   { key: "accounts", label: "帳號管理" },
 ];
