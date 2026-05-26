@@ -86,7 +86,9 @@ interface InventoryWarning {
   needed?: number;
   blocked?: boolean;
   blockedBy?: string;
+  closed?: boolean; // 該日庫存被管理員關閉 (is_available=false)
 }
+
 
 interface CreateOrderDialogProps {
   open: boolean;
@@ -567,6 +569,18 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
     const roomTypeIds = Array.from(requiredByRoomType.keys());
 
+    // 同步抓取「庫存是否被管理員關閉」(is_available=false)
+    const { data: baseRows, error: baseErr } = await supabase
+      .from("room_inventory_pricing")
+      .select("room_type_id, date, is_available")
+      .in("room_type_id", roomTypeIds)
+      .in("date", dates);
+    if (baseErr) throw baseErr;
+    const closedMap = new Map<string, boolean>();
+    (baseRows || []).forEach((r: any) => {
+      if (r.is_available === false) closedMap.set(`${r.room_type_id}:${r.date}`, true);
+    });
+
     // Use RPC that includes exclusive-package mutual exclusion logic
     const results = await Promise.all(
       roomTypeIds.map(async (roomTypeId) => {
@@ -588,6 +602,18 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       rows.forEach((row: any) => {
         const dateStr = typeof row.date_value === "string" ? row.date_value : format(new Date(row.date_value), "yyyy-MM-dd");
         const available = row.available_rooms ?? 0;
+        if (closedMap.get(`${roomTypeId}:${dateStr}`)) {
+          warnings.push({
+            date: dateStr,
+            roomTypeId,
+            roomName,
+            available: 0,
+            needed,
+            blocked: true,
+            closed: true,
+          });
+          return;
+        }
         if (row.is_blocked) {
           warnings.push({
             date: dateStr,
@@ -606,6 +632,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
     return warnings;
   }, [buildStayDates, currentAccommodationId, form.check_in_date, form.check_out_date, roomSelections, roomTypes]);
+
 
   const getAutomaticRoomUnitAssignments = useCallback(async (selections: RoomSelection[]) => {
     const assignments = new Map<string, string>();
@@ -2040,13 +2067,17 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         <Alert variant="destructive" className="border-amber-500 bg-amber-50 dark:bg-amber-950/20">
           <AlertTriangle className="h-4 w-4 text-amber-600" />
           <AlertDescription className="text-amber-800 dark:text-amber-200">
-            <div className="font-medium mb-1">庫存不足警告</div>
+            <div className="font-medium mb-1">庫存警告</div>
             <ul className="text-sm space-y-1">
               {inventoryWarnings.map((warning, index) => (
                 <li key={index}>
-                  {warning.blocked ? (
+                  {warning.closed ? (
                     <span>
-                      {format(parseISO(warning.date), "MM/dd")}{warning.roomName ? ` ${warning.roomName}` : ""}：已關閉或無庫存
+                      {format(parseISO(warning.date), "MM/dd")}{warning.roomName ? ` ${warning.roomName}` : ""}：當天已被鎖房（庫存未開放）
+                    </span>
+                  ) : warning.blocked ? (
+                    <span>
+                      {format(parseISO(warning.date), "MM/dd")}{warning.roomName ? ` ${warning.roomName}` : ""}：已被{warning.blockedBy ? `「${warning.blockedBy}」` : "其他訂單"}佔用
                     </span>
                   ) : (
                     <span>
@@ -2060,6 +2091,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               無法建立超過庫存的訂單
             </div>
           </AlertDescription>
+
         </Alert>
       )}
 
