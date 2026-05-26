@@ -380,6 +380,17 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         const nextUnused = fitRoomTypes.find(r => !usedIds.has(r.id));
         if (nextUnused) chosen = nextUnused;
       }
+      // 加包棟時：自動跳過已被選用的包棟房型，避免每次都預設成第一棟造成重複
+      if (preferExclusive) {
+        const exclusiveTypes = roomTypes.filter(r => r.is_exclusive_package);
+        const usedExcIds = new Set(
+          prev
+            .filter(s => roomTypes.find(r => r.id === s.room_type_id)?.is_exclusive_package)
+            .map(s => s.room_type_id)
+        );
+        const nextUnusedExc = exclusiveTypes.find(r => !usedExcIds.has(r.id));
+        if (nextUnusedExc) chosen = nextUnusedExc;
+      }
       if (!chosen) return prev;
       const templates = getTemplatesForRoomType(chosen.id);
       return [...prev, {
@@ -430,6 +441,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   // Calculate room prices for all selections
   const roomSelectionsKey = roomSelections.map(s => `${s.room_type_id}-${s.template_id}-${s.quantity}`).join(',');
   useEffect(() => {
+    let cancelled = false;
     const calcPrices = async () => {
       if (roomSelections.length === 0 || !form.check_in_date || !form.check_out_date || !currentAccommodationId) {
         setRoomPrice(0);
@@ -446,33 +458,53 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         dates.push(format(d, "yyyy-MM-dd"));
       }
 
-      let totalPrice = 0;
-      const updatedSelections: RoomSelection[] = [];
+      // Snapshot 當下要算的 selections（id + 規格），算完後依 id merge 回去，
+      // 避免 await 期間使用者切換房型／加棟被本 effect 用 stale state 覆寫造成「跳針」。
+      const snapshot = roomSelections.map(s => ({
+        id: s.id,
+        room_type_id: s.room_type_id,
+        template_id: s.template_id,
+        quantity: s.quantity,
+      }));
 
-      for (const sel of roomSelections) {
+      const priceById = new Map<string, number>();
+      let totalPrice = 0;
+      for (const sel of snapshot) {
         const template = pricingTemplates.find(t => t.id === sel.template_id);
-        // 統一使用解析器：優先用「該專案在該日的覆寫價」，再 fallback 到 template / base row
-        // 三段式：平日(週一至週四) / 旺日(週五、週日) / 假日(週六及國定假日)
         const priceMap = await resolveTemplatePricesForDates({
           roomTypeId: sel.room_type_id,
           template: template ?? null,
           dates,
           publicHolidays,
         });
+        if (cancelled) return;
         let perRoom = 0;
         for (const dateStr of dates) {
           perRoom += priceMap[dateStr] ?? 0;
         }
         const selPrice = perRoom * sel.quantity;
+        priceById.set(sel.id, selPrice);
         totalPrice += selPrice;
-        updatedSelections.push({ ...sel, roomPrice: selPrice });
       }
 
-      setRoomSelections(updatedSelections);
+      if (cancelled) return;
+      setRoomSelections(prev => prev.map(s => {
+        const snap = snapshot.find(x => x.id === s.id);
+        // 只有規格仍與快照一致時才寫回價格；使用者已換房型/方案/間數則略過，等下一輪重算
+        if (!snap) return s;
+        if (
+          snap.room_type_id !== s.room_type_id ||
+          snap.template_id !== s.template_id ||
+          snap.quantity !== s.quantity
+        ) return s;
+        const p = priceById.get(s.id);
+        return p === undefined || p === s.roomPrice ? s : { ...s, roomPrice: p };
+      }));
       setRoomPrice(totalPrice);
     };
 
     calcPrices();
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.check_in_date, form.check_out_date, roomSelectionsKey, currentAccommodationId, pricingTemplates, publicHolidays]);
 
