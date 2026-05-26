@@ -86,7 +86,9 @@ interface InventoryWarning {
   needed?: number;
   blocked?: boolean;
   blockedBy?: string;
+  closed?: boolean; // 該日庫存被管理員關閉 (is_available=false)
 }
+
 
 interface CreateOrderDialogProps {
   open: boolean;
