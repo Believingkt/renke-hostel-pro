@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -76,7 +77,11 @@ export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Pr
           refundAmount: amt,
         },
       });
-      if (error) throw error;
+      if (error) {
+        const parsed = await parseFunctionInvokeError(error);
+        toast({ title: "取消失敗", description: parsed.backendError || parsed.message || "請稍後再試", variant: "destructive" });
+        return;
+      }
       if (!data?.success) {
         toast({ title: "取消失敗", description: data?.message || "請稍後再試", variant: "destructive" });
         return;
@@ -86,7 +91,8 @@ export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Pr
       onCancelled();
     } catch (e: any) {
       console.error("cancel-order-with-refund error", e);
-      toast({ title: "取消失敗", description: e?.message || "請稍後再試", variant: "destructive" });
+      const parsed = await parseFunctionInvokeError(e);
+      toast({ title: "取消失敗", description: parsed.backendError || parsed.message || "請稍後再試", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
