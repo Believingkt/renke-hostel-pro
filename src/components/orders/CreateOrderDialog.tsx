@@ -2067,13 +2067,17 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         <Alert variant="destructive" className="border-amber-500 bg-amber-50 dark:bg-amber-950/20">
           <AlertTriangle className="h-4 w-4 text-amber-600" />
           <AlertDescription className="text-amber-800 dark:text-amber-200">
-            <div className="font-medium mb-1">庫存不足警告</div>
+            <div className="font-medium mb-1">庫存警告</div>
             <ul className="text-sm space-y-1">
               {inventoryWarnings.map((warning, index) => (
                 <li key={index}>
-                  {warning.blocked ? (
+                  {warning.closed ? (
                     <span>
-                      {format(parseISO(warning.date), "MM/dd")}{warning.roomName ? ` ${warning.roomName}` : ""}：已關閉或無庫存
+                      {format(parseISO(warning.date), "MM/dd")}{warning.roomName ? ` ${warning.roomName}` : ""}：當天已被鎖房（庫存未開放）
+                    </span>
+                  ) : warning.blocked ? (
+                    <span>
+                      {format(parseISO(warning.date), "MM/dd")}{warning.roomName ? ` ${warning.roomName}` : ""}：已被{warning.blockedBy ? `「${warning.blockedBy}」` : "其他訂單"}佔用
                     </span>
                   ) : (
                     <span>
@@ -2087,6 +2091,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
               無法建立超過庫存的訂單
             </div>
           </AlertDescription>
+
         </Alert>
       )}
 
