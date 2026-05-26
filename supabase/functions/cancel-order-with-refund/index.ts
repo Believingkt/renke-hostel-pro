@@ -71,8 +71,8 @@ serve(async (req) => {
     }
     if (order.order_status === "cancelled") {
       return new Response(
-        JSON.stringify({ success: false, message: "訂單已是取消狀態" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        JSON.stringify({ success: true, message: "訂單已是取消狀態" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 

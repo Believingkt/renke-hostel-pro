@@ -3,12 +3,12 @@
 //
 // Allowed:
 //   - *.lakeze.com (production custom domains, hq, booking)
-//   - *.lovable.app (preview + published Lovable URL)
+//   - *.lovable.app / *.lovableproject.com (preview + published Lovable URL)
 //   - http://localhost:* (local dev)
 // Anything else falls back to 'null' which browsers treat as a hard CORS reject.
 
-const ALLOWED_HOST_SUFFIXES = [".lakeze.com", ".lovable.app"];
-const ALLOWED_EXACT_HOSTS = new Set(["lakeze.com", "lovable.app"]);
+const ALLOWED_HOST_SUFFIXES = [".lakeze.com", ".lovable.app", ".lovableproject.com"];
+const ALLOWED_EXACT_HOSTS = new Set(["lakeze.com", "lovable.app", "lovableproject.com"]);
 
 function isAllowedOrigin(origin: string | null): boolean {
   if (!origin) return false;
