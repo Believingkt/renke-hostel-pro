@@ -380,6 +380,17 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         const nextUnused = fitRoomTypes.find(r => !usedIds.has(r.id));
         if (nextUnused) chosen = nextUnused;
       }
+      // 加包棟時：自動跳過已被選用的包棟房型，避免每次都預設成第一棟造成重複
+      if (preferExclusive) {
+        const exclusiveTypes = roomTypes.filter(r => r.is_exclusive_package);
+        const usedExcIds = new Set(
+          prev
+            .filter(s => roomTypes.find(r => r.id === s.room_type_id)?.is_exclusive_package)
+            .map(s => s.room_type_id)
+        );
+        const nextUnusedExc = exclusiveTypes.find(r => !usedExcIds.has(r.id));
+        if (nextUnusedExc) chosen = nextUnusedExc;
+      }
       if (!chosen) return prev;
       const templates = getTemplatesForRoomType(chosen.id);
       return [...prev, {
