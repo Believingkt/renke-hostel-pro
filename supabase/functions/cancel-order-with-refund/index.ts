@@ -84,7 +84,8 @@ serve(async (req) => {
     const allowed = (roles || []).some(
       (r: any) =>
         r.role === "super_admin" ||
-        (r.role === "hotel_admin" && r.accommodation_id === order.accommodation_id),
+        ((r.role === "hotel_admin" || r.role === "staff") &&
+          r.accommodation_id === order.accommodation_id),
     );
     if (!allowed) {
       return new Response(
