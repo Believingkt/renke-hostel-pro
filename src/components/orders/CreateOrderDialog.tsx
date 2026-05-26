@@ -569,6 +569,18 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
     const roomTypeIds = Array.from(requiredByRoomType.keys());
 
+    // 同步抓取「庫存是否被管理員關閉」(is_available=false)
+    const { data: baseRows, error: baseErr } = await supabase
+      .from("room_inventory_pricing")
+      .select("room_type_id, date, is_available")
+      .in("room_type_id", roomTypeIds)
+      .in("date", dates);
+    if (baseErr) throw baseErr;
+    const closedMap = new Map<string, boolean>();
+    (baseRows || []).forEach((r: any) => {
+      if (r.is_available === false) closedMap.set(`${r.room_type_id}:${r.date}`, true);
+    });
+
     // Use RPC that includes exclusive-package mutual exclusion logic
     const results = await Promise.all(
       roomTypeIds.map(async (roomTypeId) => {
@@ -590,6 +602,18 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       rows.forEach((row: any) => {
         const dateStr = typeof row.date_value === "string" ? row.date_value : format(new Date(row.date_value), "yyyy-MM-dd");
         const available = row.available_rooms ?? 0;
+        if (closedMap.get(`${roomTypeId}:${dateStr}`)) {
+          warnings.push({
+            date: dateStr,
+            roomTypeId,
+            roomName,
+            available: 0,
+            needed,
+            blocked: true,
+            closed: true,
+          });
+          return;
+        }
         if (row.is_blocked) {
           warnings.push({
             date: dateStr,
@@ -608,6 +632,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
     return warnings;
   }, [buildStayDates, currentAccommodationId, form.check_in_date, form.check_out_date, roomSelections, roomTypes]);
+
 
   const getAutomaticRoomUnitAssignments = useCallback(async (selections: RoomSelection[]) => {
     const assignments = new Map<string, string>();
