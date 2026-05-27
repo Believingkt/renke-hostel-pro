@@ -3292,7 +3292,11 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
             </TableHeader>
             <TableBody>
               {rows.map((r) => (
-                <TableRow key={r.id}>
+                <TableRow
+                  key={r.id}
+                  className="cursor-pointer"
+                  onClick={() => openEdit(r, "view")}
+                >
                   <TableCell>{r.name}</TableCell>
                   <TableCell>{r.type || "-"}</TableCell>
                   <TableCell>
@@ -3306,13 +3310,28 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     {isManager && (
                       <>
-                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(r)}>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEdit(r, "edit");
+                          }}
+                        >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => toggleActive(r)}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleActive(r);
+                          }}
+                        >
                           {r.is_active ? "停用" : "啟用"}
                         </Button>
                       </>
