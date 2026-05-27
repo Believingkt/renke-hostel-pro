@@ -3049,6 +3049,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
 
   // Drawer state
   const [editOpen, setEditOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"view" | "edit">("edit");
   const [editVenue, setEditVenue] = useState<VenueRow | null>(null);
   const [editName, setEditName] = useState("");
   const [editType, setEditType] = useState("民宿");
@@ -3056,6 +3057,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
   const [settings, setSettings] = useState<VenueSettingsRow>(EMPTY_SETTINGS(""));
   const [originalVenueName, setOriginalVenueName] = useState("");
   const [loadingSettings, setLoadingSettings] = useState(false);
+  const readOnly = viewMode === "view";
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -3106,7 +3108,8 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
     load();
   };
 
-  const openEdit = async (r: VenueRow) => {
+  const openEdit = async (r: VenueRow, mode: "view" | "edit" = "edit") => {
+    setViewMode(mode);
     setEditVenue(r);
     setEditName(r.name);
     setEditType(r.type || "其他");
@@ -3228,13 +3231,14 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
       value={val ?? ""}
       onChange={(e) => set(e.target.value === "" ? null : Number(e.target.value))}
       className="h-9"
+      disabled={readOnly}
     />
   );
   const textInput = (val: string | null, set: (v: string) => void) => (
-    <Input value={val ?? ""} onChange={(e) => set(e.target.value)} className="h-9" />
+    <Input value={val ?? ""} onChange={(e) => set(e.target.value)} className="h-9" disabled={readOnly} />
   );
   const dateInput = (val: string | null, set: (v: string) => void) => (
-    <Input type="date" value={val ?? ""} onChange={(e) => set(e.target.value)} className="h-9" />
+    <Input type="date" value={val ?? ""} onChange={(e) => set(e.target.value)} className="h-9" disabled={readOnly} />
   );
 
   return (
@@ -3288,7 +3292,11 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
             </TableHeader>
             <TableBody>
               {rows.map((r) => (
-                <TableRow key={r.id}>
+                <TableRow
+                  key={r.id}
+                  className="cursor-pointer"
+                  onClick={() => openEdit(r, "view")}
+                >
                   <TableCell>{r.name}</TableCell>
                   <TableCell>{r.type || "-"}</TableCell>
                   <TableCell>
@@ -3302,13 +3310,28 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     {isManager && (
                       <>
-                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(r)}>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEdit(r, "edit");
+                          }}
+                        >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => toggleActive(r)}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleActive(r);
+                          }}
+                        >
                           {r.is_active ? "停用" : "啟用"}
                         </Button>
                       </>
@@ -3323,7 +3346,17 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
         <Sheet open={editOpen} onOpenChange={setEditOpen}>
           <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
             <SheetHeader>
-              <SheetTitle>編輯場域 — {originalVenueName}</SheetTitle>
+              <div className="flex items-center justify-between gap-2 pr-8">
+                <SheetTitle>
+                  {readOnly ? "場域明細" : "編輯場域"} — {originalVenueName}
+                </SheetTitle>
+                {readOnly && isManager && (
+                  <Button size="sm" onClick={() => setViewMode("edit")}>
+                    <Pencil className="mr-1 h-4 w-4" />
+                    編輯
+                  </Button>
+                )}
+              </div>
             </SheetHeader>
 
             <div className="space-y-6 py-4">
@@ -3331,10 +3364,14 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
               <section className="space-y-3">
                 <h4 className="font-semibold text-sm">基本資訊</h4>
                 <Field label="場域名稱">
-                  <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+                  <Input
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    disabled={readOnly}
+                  />
                 </Field>
                 <Field label="類型">
-                  <Select value={editType} onValueChange={setEditType}>
+                  <Select value={editType} onValueChange={setEditType} disabled={readOnly}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -3352,6 +3389,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                     id="venue-active"
                     checked={editActive}
                     onCheckedChange={(v) => setEditActive(v === true)}
+                    disabled={readOnly}
                   />
                   <Label htmlFor="venue-active" className="cursor-pointer">啟用此場域</Label>
                 </div>
@@ -3371,9 +3409,11 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                         onCheckedChange={(v) =>
                           setSettings((p) => ({ ...p, is_starlink: v === true }))
                         }
+                        disabled={readOnly}
                       />
                       <Label htmlFor="venue-starlink" className="cursor-pointer">星鏈場域</Label>
                     </div>
+
 
                     <div className="grid grid-cols-2 gap-3">
                       <Field label="個人目標">
@@ -3423,6 +3463,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                             <Checkbox
                               checked={(settings.allowed_weekdays ?? []).includes(idx)}
                               onCheckedChange={() => toggleWeekday("allowed_weekdays", idx)}
+                              disabled={readOnly}
                             />
                             {w}
                           </label>
@@ -3455,6 +3496,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                             <Checkbox
                               checked={(settings.special_weekdays ?? []).includes(idx)}
                               onCheckedChange={() => toggleWeekday("special_weekdays", idx)}
+                              disabled={readOnly}
                             />
                             {w}
                           </label>
@@ -3478,12 +3520,20 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
             </div>
 
             <SheetFooter>
-              <Button variant="outline" onClick={() => setEditOpen(false)} disabled={saving}>
-                取消
-              </Button>
-              <Button onClick={saveEdit} disabled={saving || loadingSettings}>
-                {saving ? "儲存中…" : "儲存"}
-              </Button>
+              {readOnly ? (
+                <Button variant="outline" onClick={() => setEditOpen(false)}>
+                  關閉
+                </Button>
+              ) : (
+                <>
+                  <Button variant="outline" onClick={() => setEditOpen(false)} disabled={saving}>
+                    取消
+                  </Button>
+                  <Button onClick={saveEdit} disabled={saving || loadingSettings}>
+                    {saving ? "儲存中…" : "儲存"}
+                  </Button>
+                </>
+              )}
             </SheetFooter>
           </SheetContent>
         </Sheet>
