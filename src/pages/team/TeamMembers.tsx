@@ -753,6 +753,21 @@ export default function TeamMembers() {
                       </label>
                     )}
                   </div>
+                  {editRoles.includes("venue_manager" as TeamRole) && (
+                    <div className="space-y-2 pt-2">
+                      <Label>負責場域</Label>
+                      <Select value={editVenue} onValueChange={setEditVenue}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="選擇負責場域" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {venues.map((v) => (
+                            <SelectItem key={v.id} value={v.name}>{v.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <p className="text-xs text-muted-foreground border rounded-md px-3 py-2 bg-muted/30">
