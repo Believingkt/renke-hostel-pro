@@ -214,7 +214,7 @@ export default function TeamMembers() {
     (async () => {
       const [kolRes, accRes] = await Promise.all([
         supabase.from("kol_venues").select("id, name").eq("is_active", true),
-        supabase.from("accommodation_info").select("id, name"),
+        supabase.from("accommodation_info").select("id, name").eq("is_active", true),
       ]);
       const names = new Set<string>();
       const merged: VenueOption[] = [];
