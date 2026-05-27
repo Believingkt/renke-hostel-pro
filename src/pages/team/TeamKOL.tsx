@@ -3496,6 +3496,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                             <Checkbox
                               checked={(settings.special_weekdays ?? []).includes(idx)}
                               onCheckedChange={() => toggleWeekday("special_weekdays", idx)}
+                              disabled={readOnly}
                             />
                             {w}
                           </label>
