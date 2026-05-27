@@ -2431,6 +2431,8 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
     const pRows: PersonalRow[] = [];
     for (const [key, actual] of personalMap.entries()) {
       const [scout_id, venue_name] = key.split("|");
+      // 僅顯示具備 scout 角色的成員，過濾掉歷史/其他角色資料
+      if (!scoutMap.has(scout_id)) continue;
       pRows.push({
         scout_id,
         scout_name: scoutMap.get(scout_id) ?? scout_id.slice(0, 8),
