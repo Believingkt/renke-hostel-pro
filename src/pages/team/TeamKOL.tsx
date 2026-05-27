@@ -3643,6 +3643,8 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                             <div className="col-span-2">
                               <Item label="訂單編號規則" value={showText(settings.order_number_rule)} />
                             </div>
+                            <Item label="聯絡 Email" value={showText(settings.contact_email)} />
+                            <Item label="有外部訂房平台" value={showBool(settings.has_external_platform, "是", "否")} />
                           </div>
                         )}
                       </section>
