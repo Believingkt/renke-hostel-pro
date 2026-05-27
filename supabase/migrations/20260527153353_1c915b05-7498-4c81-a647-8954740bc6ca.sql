@@ -1,0 +1,1 @@
+ALTER TABLE public.team_member_profiles ADD COLUMN is_scout_team_member boolean NOT NULL DEFAULT false;
