@@ -58,6 +58,7 @@ interface Accommodation {
   name: string;
   booking_type: string;
   short_url_alias: string | null;
+  is_active?: boolean;
 }
 
 interface KolVenue {
@@ -304,14 +305,16 @@ function InvitationsTab({
 
   // 館別合併選項（PMS + kol_venues，依名稱排序）
   const accommodationOptions = useMemo<VenueOption[]>(() => {
-    const pms: VenueOption[] = accommodations.map((a) => ({
-      value: `acc:${a.id}`,
-      label: a.name,
-      source: "pms",
-      badge: "民宿",
-      accommodation_id: a.id,
-      venue_name: null,
-    }));
+    const pms: VenueOption[] = accommodations
+      .filter((a) => a.is_active !== false)
+      .map((a) => ({
+        value: `acc:${a.id}`,
+        label: a.name,
+        source: "pms",
+        badge: "民宿",
+        accommodation_id: a.id,
+        venue_name: null,
+      }));
     const v: VenueOption[] = venues
       .filter((x) => x.is_active)
       .map((x) => ({
@@ -360,7 +363,7 @@ function InvitationsTab({
   useEffect(() => {
     (async () => {
       const [accRes, venueRes, scoutRes, scoutMgrRes, rarRes, tagRes] = await Promise.all([
-        supabase.from("accommodation_info").select("id, name, booking_type, short_url_alias").order("name"),
+        supabase.from("accommodation_info").select("id, name, booking_type, short_url_alias, is_active").order("name"),
         supabase
           .from("kol_venues" as any)
           .select("id, name, type, is_active")
@@ -2372,13 +2375,13 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
   const [addStarlink, setAddStarlink] = useState(false);
 
   // 館別下拉選項（PMS + kol_venues），與正式邀約 Tab 相同
-  const [accList, setAccList] = useState<{ id: string; name: string }[]>([]);
+  const [accList, setAccList] = useState<{ id: string; name: string; is_active?: boolean }[]>([]);
   const [venueList, setVenueList] = useState<{ name: string; type: string | null; is_active: boolean }[]>([]);
 
   useEffect(() => {
     (async () => {
       const [accRes, venueRes] = await Promise.all([
-        supabase.from("accommodation_info").select("id, name").order("name"),
+        supabase.from("accommodation_info").select("id, name, is_active").order("name"),
         supabase.from("kol_venues" as any).select("name, type, is_active"),
       ]);
       if (accRes.data) setAccList(accRes.data as any);
@@ -2387,7 +2390,9 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
   }, []);
 
   const venueOptions = useMemo(() => {
-    const pms = accList.map((a) => ({ name: a.name, badge: "民宿" }));
+    const pms = accList
+      .filter((a) => a.is_active !== false)
+      .map((a) => ({ name: a.name, badge: "民宿" }));
     const vs = (venueList || []).filter((v) => v.is_active).map((v) => ({ name: v.name, badge: v.type || "其他" }));
     const merged = [...pms, ...vs];
     // 排除當月已存在目標的場域
