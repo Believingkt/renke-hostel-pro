@@ -568,7 +568,7 @@ export default function TeamOrders() {
 
           <div className="flex items-center justify-between pt-2">
             <div className="text-sm text-muted-foreground">
-              第 {page} 頁，共 {filtered.length} 筆
+              共 {filtered.length} 筆，第 {page} / {totalPages} 頁
             </div>
             <div className="flex gap-2">
               <Button
