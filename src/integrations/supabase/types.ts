@@ -5706,33 +5706,42 @@ export type Database = {
       }
       scout_team_targets: {
         Row: {
-          accommodation_id: string
+          accommodation_id: string | null
           created_at: string | null
           created_by: string | null
           id: string
+          is_starlink: boolean | null
           month: number
+          personal_min: number | null
           target_count: number
           updated_at: string | null
+          venue_name: string | null
           year: number
         }
         Insert: {
-          accommodation_id: string
+          accommodation_id?: string | null
           created_at?: string | null
           created_by?: string | null
           id?: string
+          is_starlink?: boolean | null
           month: number
+          personal_min?: number | null
           target_count?: number
           updated_at?: string | null
+          venue_name?: string | null
           year: number
         }
         Update: {
-          accommodation_id?: string
+          accommodation_id?: string | null
           created_at?: string | null
           created_by?: string | null
           id?: string
+          is_starlink?: boolean | null
           month?: number
+          personal_min?: number | null
           target_count?: number
           updated_at?: string | null
+          venue_name?: string | null
           year?: number
         }
         Relationships: [
