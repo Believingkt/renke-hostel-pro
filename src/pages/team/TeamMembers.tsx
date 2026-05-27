@@ -678,7 +678,7 @@ export default function TeamMembers() {
                         </div>
                         {m.email && <p className="text-xs text-muted-foreground mt-0.5">{m.email}</p>}
                       </div>
-                      <div className="flex flex-wrap gap-1">
+                      <div className="flex flex-wrap items-center gap-1">
                         {!m.user_id ? null : displayRoles(m).length === 0 ? (
                           <span className="text-xs text-muted-foreground">無角色</span>
                         ) : (
@@ -687,6 +687,9 @@ export default function TeamMembers() {
                               {ROLE_LABEL[r]}
                             </Badge>
                           ))
+                        )}
+                        {displayRoles(m).includes("venue_manager" as TeamRole) && m.managed_venue && (
+                          <span className="text-xs text-muted-foreground ml-1">{m.managed_venue}</span>
                         )}
                       </div>
                     </div>
