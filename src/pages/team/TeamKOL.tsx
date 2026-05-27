@@ -97,6 +97,7 @@ interface KolRow {
   cid_code: string | null;
   short_url: string | null;
   cid_configured: boolean | null;
+  cid_notified: boolean | null;
   lihi_url: string | null;
   invited_at: string | null;
   check_in_date: string | null;
@@ -772,6 +773,36 @@ function InvitationsTab({
     setSheetOpen(false);
     setProspectLink(null);
     fetchRows();
+
+    // 觸發折扣碼通知 (cid_code + order_number 有值 + 尚未通知)
+    const savedId = editingId || newId;
+    if (savedId) {
+      try {
+        const { data: latest } = await supabase
+          .from("kol_profiles")
+          .select("cid_code, order_number, cid_notified")
+          .eq("id", savedId)
+          .maybeSingle();
+        if (latest?.cid_code && latest?.order_number && !latest?.cid_notified) {
+          const { data: { session } } = await supabase.auth.getSession();
+          const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-kol-cid-notify`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session?.access_token}`,
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            },
+            body: JSON.stringify({ kol_profile_id: savedId }),
+          });
+          if (!res.ok) {
+            toast.warning("折扣碼通知發送失敗，請至明細手動重發");
+          }
+        }
+      } catch (e) {
+        console.error("[send-kol-cid-notify] error:", e);
+        toast.warning("折扣碼通知發送失敗，請至明細手動重發");
+      }
+    }
   };
 
   const handleReportError = async () => {
@@ -1276,6 +1307,39 @@ function InvitationsTab({
                         >
                           {r.cid_configured ? "取消確認" : "確認已設定"}
                         </Button>
+                        {!r.cid_notified && r.cid_code && r.order_number && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={async () => {
+                              try {
+                                const { data: { session } } = await supabase.auth.getSession();
+                                const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-kol-cid-notify`, {
+                                  method: "POST",
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                    Authorization: `Bearer ${session?.access_token}`,
+                                    apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                                  },
+                                  body: JSON.stringify({ kol_profile_id: r.id }),
+                                });
+                                if (!res.ok) {
+                                  toast.error("發送失敗，請稍後再試");
+                                  return;
+                                }
+                                toast.success("通知已發送");
+                                setViewingRow((prev) => (prev ? { ...prev, cid_notified: true } : prev));
+                                setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, cid_notified: true } : x)));
+                                fetchRows();
+                              } catch (e) {
+                                console.error("[send-kol-cid-notify] error:", e);
+                                toast.error("發送失敗，請稍後再試");
+                              }
+                            }}
+                          >
+                            重新發送通知
+                          </Button>
+                        )}
                       </div>
                     </Row>
                   )}
