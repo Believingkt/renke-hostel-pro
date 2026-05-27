@@ -155,6 +155,7 @@ interface FormState {
   inventory_count: string;
   kol_tags: string[];
   kpi_qualified: boolean;
+  kol_direct_ticket_link: string;
 }
 
 const EMPTY_FORM: FormState = {
