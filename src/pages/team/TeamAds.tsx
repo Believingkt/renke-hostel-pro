@@ -384,6 +384,15 @@ function WeeklyTab() {
     });
   }, [rows, search, fromDate, toDate]);
 
+  const PAGE_SIZE = 50;
+  const [page, setPage] = useState(1);
+  useEffect(() => { setPage(1); }, [search, fromDate, toDate]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageRows = useMemo(
+    () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [filtered, page]
+  );
+
   return (
     <Card>
       <CardHeader className="space-y-3">
