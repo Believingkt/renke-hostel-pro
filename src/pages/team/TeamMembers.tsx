@@ -277,14 +277,16 @@ export default function TeamMembers() {
       if (targetUserId) {
         // 既有用戶：直接套用 profile + roles
         const wantsVenueManager = inviteRoles.includes("venue_manager" as TeamRole);
-        const profilePayload: Record<string, unknown> = {
-          user_id: targetUserId,
-          display_name: inviteName.trim(),
-          managed_venue: wantsVenueManager ? (inviteVenue || null) : null,
-        };
         const { error: profileErr } = await supabase
           .from("team_member_profiles")
-          .upsert(profilePayload, { onConflict: "user_id" });
+          .upsert(
+            {
+              user_id: targetUserId,
+              display_name: inviteName.trim(),
+              managed_venue: wantsVenueManager ? (inviteVenue || null) : null,
+            },
+            { onConflict: "user_id" },
+          );
         if (profileErr) throw profileErr;
 
         const { data: existingRoles } = await supabase
