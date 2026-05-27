@@ -107,11 +107,13 @@ export default function TeamMembers() {
   const [pending, setPending] = useState<PendingInviteRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterRole, setFilterRole] = useState<"all" | TeamRole>("all");
+  const [venues, setVenues] = useState<VenueOption[]>([]);
 
   // 邀請表單
   const [inviteName, setInviteName] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRoles, setInviteRoles] = useState<TeamRole[]>([]);
+  const [inviteVenue, setInviteVenue] = useState<string>("");
   const [inviting, setInviting] = useState(false);
 
   // 編輯側邊面板
@@ -119,6 +121,7 @@ export default function TeamMembers() {
   const [editName, setEditName] = useState("");
   const [editRoles, setEditRoles] = useState<TeamRole[]>([]);
   const [editActive, setEditActive] = useState(true);
+  const [editVenue, setEditVenue] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
 
