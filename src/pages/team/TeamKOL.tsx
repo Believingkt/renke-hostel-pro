@@ -829,6 +829,21 @@ function InvitationsTab({
           </SelectContent>
         </Select>
 
+        <Select value={filterScout} onValueChange={setFilterScout}>
+          <SelectTrigger className="w-36">
+            <SelectValue placeholder="邀約人" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">全部邀約人</SelectItem>
+            {scouts.map((s) => (
+              <SelectItem key={s.user_id} value={s.user_id}>
+                {s.display_name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm" className="h-10 font-normal" type="button">
