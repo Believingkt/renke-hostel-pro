@@ -1307,6 +1307,39 @@ function InvitationsTab({
                         >
                           {r.cid_configured ? "取消確認" : "確認已設定"}
                         </Button>
+                        {!r.cid_notified && r.cid_code && r.order_number && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={async () => {
+                              try {
+                                const { data: { session } } = await supabase.auth.getSession();
+                                const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-kol-cid-notify`, {
+                                  method: "POST",
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                    Authorization: `Bearer ${session?.access_token}`,
+                                    apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                                  },
+                                  body: JSON.stringify({ kol_profile_id: r.id }),
+                                });
+                                if (!res.ok) {
+                                  toast.error("發送失敗，請稍後再試");
+                                  return;
+                                }
+                                toast.success("通知已發送");
+                                setViewingRow((prev) => (prev ? { ...prev, cid_notified: true } : prev));
+                                setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, cid_notified: true } : x)));
+                                fetchRows();
+                              } catch (e) {
+                                console.error("[send-kol-cid-notify] error:", e);
+                                toast.error("發送失敗，請稍後再試");
+                              }
+                            }}
+                          >
+                            重新發送通知
+                          </Button>
+                        )}
                       </div>
                     </Row>
                   )}
