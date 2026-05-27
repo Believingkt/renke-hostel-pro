@@ -3104,6 +3104,9 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
   const [filterName, setFilterName] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
+  useEffect(() => { setPage(1); }, [filterName, filterType, filterStatus]);
 
   // Drawer state
   const [editOpen, setEditOpen] = useState(false);
