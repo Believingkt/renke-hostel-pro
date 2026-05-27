@@ -351,6 +351,7 @@ export default function TeamMembers() {
     setEditName(m.display_name);
     setEditRoles(m.roles);
     setEditActive(m.is_active);
+    setEditVenue(m.managed_venue ?? "");
   };
 
   const isNorris = editTarget?.user_id === NORRIS_USER_ID;
