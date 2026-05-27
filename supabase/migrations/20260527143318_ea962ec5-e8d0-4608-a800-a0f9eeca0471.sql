@@ -1,0 +1,1 @@
+ALTER TABLE public.kol_profiles ADD COLUMN kol_direct_ticket_link text;

@@ -2796,6 +2796,7 @@ export type Database = {
           inventory_status: string | null
           invited_at: string | null
           is_error: boolean | null
+          kol_direct_ticket_link: string | null
           kol_tags: string[] | null
           kpi_eligible: boolean | null
           kpi_month: string | null
@@ -2840,6 +2841,7 @@ export type Database = {
           inventory_status?: string | null
           invited_at?: string | null
           is_error?: boolean | null
+          kol_direct_ticket_link?: string | null
           kol_tags?: string[] | null
           kpi_eligible?: boolean | null
           kpi_month?: string | null
@@ -2884,6 +2886,7 @@ export type Database = {
           inventory_status?: string | null
           invited_at?: string | null
           is_error?: boolean | null
+          kol_direct_ticket_link?: string | null
           kol_tags?: string[] | null
           kpi_eligible?: boolean | null
           kpi_month?: string | null
