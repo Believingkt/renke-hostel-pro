@@ -3520,12 +3520,20 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
             </div>
 
             <SheetFooter>
-              <Button variant="outline" onClick={() => setEditOpen(false)} disabled={saving}>
-                取消
-              </Button>
-              <Button onClick={saveEdit} disabled={saving || loadingSettings}>
-                {saving ? "儲存中…" : "儲存"}
-              </Button>
+              {readOnly ? (
+                <Button variant="outline" onClick={() => setEditOpen(false)}>
+                  關閉
+                </Button>
+              ) : (
+                <>
+                  <Button variant="outline" onClick={() => setEditOpen(false)} disabled={saving}>
+                    取消
+                  </Button>
+                  <Button onClick={saveEdit} disabled={saving || loadingSettings}>
+                    {saving ? "儲存中…" : "儲存"}
+                  </Button>
+                </>
+              )}
             </SheetFooter>
           </SheetContent>
         </Sheet>
