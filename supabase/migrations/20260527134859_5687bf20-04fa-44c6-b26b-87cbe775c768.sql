@@ -1,0 +1,1 @@
+ALTER TABLE public.kol_profiles ADD COLUMN cid_notified boolean DEFAULT false;

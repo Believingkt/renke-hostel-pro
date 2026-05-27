@@ -2780,6 +2780,7 @@ export type Database = {
           check_out_date: string | null
           cid_code: string | null
           cid_configured: boolean
+          cid_notified: boolean | null
           contract_file_url: string | null
           contract_progress: string | null
           corrected_at: string | null
@@ -2823,6 +2824,7 @@ export type Database = {
           check_out_date?: string | null
           cid_code?: string | null
           cid_configured?: boolean
+          cid_notified?: boolean | null
           contract_file_url?: string | null
           contract_progress?: string | null
           corrected_at?: string | null
@@ -2866,6 +2868,7 @@ export type Database = {
           check_out_date?: string | null
           cid_code?: string | null
           cid_configured?: boolean
+          cid_notified?: boolean | null
           contract_file_url?: string | null
           contract_progress?: string | null
           corrected_at?: string | null
