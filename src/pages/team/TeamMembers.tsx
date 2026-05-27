@@ -369,11 +369,13 @@ export default function TeamMembers() {
     if (!editName.trim()) return toast.error("顯示名稱不可空白");
     setSaving(true);
     try {
+      const wantsVenueManager = editRoles.includes("venue_manager" as TeamRole);
       const { error: pErr } = await supabase
         .from("team_member_profiles")
         .update({
           display_name: editName.trim(),
           is_active: editActive,
+          managed_venue: wantsVenueManager ? (editVenue || null) : null,
         })
         .eq("id", editTarget.id);
       if (pErr) throw pErr;
