@@ -2322,15 +2322,11 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
 
   const venueOptions = useMemo(() => {
     const pms = accList.map((a) => ({ name: a.name, badge: "民宿" }));
-    const vs = (venueList || [])
-      .filter((v) => v.is_active)
-      .map((v) => ({ name: v.name, badge: v.type || "其他" }));
+    const vs = (venueList || []).filter((v) => v.is_active).map((v) => ({ name: v.name, badge: v.type || "其他" }));
     const merged = [...pms, ...vs];
     // 排除當月已存在目標的場域
     const used = new Set(teamRows.map((r) => r.venue_name));
-    return merged
-      .filter((o) => !used.has(o.name))
-      .sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
+    return merged.filter((o) => !used.has(o.name)).sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
   }, [accList, venueList, teamRows]);
 
   useEffect(() => {
@@ -2752,7 +2748,13 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
               </Select>
             </Field>
             <Field label="團隊目標數">
-              <Input type="number" min={0} placeholder="0" value={addTarget} onChange={(e) => setAddTarget(e.target.value)} />
+              <Input
+                type="number"
+                min={0}
+                placeholder="0"
+                value={addTarget}
+                onChange={(e) => setAddTarget(e.target.value)}
+              />
             </Field>
             <Field label="個人最低目標（留空=不限定）">
               <Input
@@ -3302,7 +3304,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
         <div>
           <h3 className="font-semibold">合作場域管理</h3>
           <p className="text-xs text-muted-foreground">
-            管理非 PMS 民宿的合作場域（餐廳、農場等），將同步顯示於館別下拉
+            管理非 PMS 民宿的合作場域（餐廳、農場等），將同步顯示於館別下拉選單
           </p>
         </div>
 
@@ -3318,7 +3320,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
               <SelectValue placeholder="類型" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">全部類型</SelectItem>
+              <SelectItem value="all">類型</SelectItem>
               {VENUE_TYPES.map((t) => (
                 <SelectItem key={t} value={t}>
                   {t}
@@ -3331,7 +3333,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
               <SelectValue placeholder="狀態" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">全部</SelectItem>
+              <SelectItem value="all">狀態</SelectItem>
               <SelectItem value="active">啟用</SelectItem>
               <SelectItem value="inactive">停用</SelectItem>
             </SelectContent>
@@ -3353,65 +3355,64 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
             return true;
           });
           if (loading) return null;
-          if (filtered.length === 0)
-            return <p className="text-sm text-muted-foreground py-4 text-center">尚無資料</p>;
+          if (filtered.length === 0) return <p className="text-sm text-muted-foreground py-4 text-center">尚無資料</p>;
           return (
-        <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>場域名稱</TableHead>
-                <TableHead>類型</TableHead>
-                <TableHead>狀態</TableHead>
-                <TableHead className="text-right">操作</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((r) => (
-                <TableRow key={r.id} className="cursor-pointer" onClick={() => openEdit(r, "view")}>
-                  <TableCell>{r.name}</TableCell>
-                  <TableCell>{r.type || "-"}</TableCell>
-                  <TableCell>
-                    {r.is_active ? (
-                      <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
-                        啟用
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-200">
-                        停用
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                    {isManager && (
-                      <>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openEdit(r, "edit");
-                          }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleActive(r);
-                          }}
-                        >
-                          {r.is_active ? "停用" : "啟用"}
-                        </Button>
-                      </>
-                    )}
-                  </TableCell>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>場域名稱</TableHead>
+                  <TableHead>類型</TableHead>
+                  <TableHead>狀態</TableHead>
+                  <TableHead className="text-right">操作</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((r) => (
+                  <TableRow key={r.id} className="cursor-pointer" onClick={() => openEdit(r, "view")}>
+                    <TableCell>{r.name}</TableCell>
+                    <TableCell>{r.type || "-"}</TableCell>
+                    <TableCell>
+                      {r.is_active ? (
+                        <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
+                          啟用
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-200">
+                          停用
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                      {isManager && (
+                        <>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEdit(r, "edit");
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleActive(r);
+                            }}
+                          >
+                            {r.is_active ? "停用" : "啟用"}
+                          </Button>
+                        </>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           );
         })()}
 
@@ -3423,11 +3424,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
             <div className="space-y-3 py-2">
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">場域名稱</label>
-                <Input
-                  placeholder="場域名稱"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                />
+                <Input placeholder="場域名稱" value={newName} onChange={(e) => setNewName(e.target.value)} />
               </div>
               <div className="space-y-1">
                 <label className="text-sm text-muted-foreground">類型</label>
@@ -3456,7 +3453,6 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
 
         <Sheet open={editOpen} onOpenChange={setEditOpen}>
           <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
