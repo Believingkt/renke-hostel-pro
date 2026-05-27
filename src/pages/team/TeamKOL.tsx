@@ -2301,9 +2301,37 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
 
   const [addOpen, setAddOpen] = useState(false);
   const [addVenue, setAddVenue] = useState("");
-  const [addTarget, setAddTarget] = useState("");
+  const [addTarget, setAddTarget] = useState("0");
   const [addPersonal, setAddPersonal] = useState("");
   const [addStarlink, setAddStarlink] = useState(false);
+
+  // 館別下拉選項（PMS + kol_venues），與正式邀約 Tab 相同
+  const [accList, setAccList] = useState<{ id: string; name: string }[]>([]);
+  const [venueList, setVenueList] = useState<{ name: string; type: string | null; is_active: boolean }[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const [accRes, venueRes] = await Promise.all([
+        supabase.from("accommodation_info").select("id, name").order("name"),
+        supabase.from("kol_venues" as any).select("name, type, is_active"),
+      ]);
+      if (accRes.data) setAccList(accRes.data as any);
+      if (venueRes.data) setVenueList(venueRes.data as any);
+    })();
+  }, []);
+
+  const venueOptions = useMemo(() => {
+    const pms = accList.map((a) => ({ name: a.name, badge: "民宿" }));
+    const vs = (venueList || [])
+      .filter((v) => v.is_active)
+      .map((v) => ({ name: v.name, badge: v.type || "其他" }));
+    const merged = [...pms, ...vs];
+    // 排除當月已存在目標的場域
+    const used = new Set(teamRows.map((r) => r.venue_name));
+    return merged
+      .filter((o) => !used.has(o.name))
+      .sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
+  }, [accList, venueList, teamRows]);
 
   useEffect(() => {
     (async () => {
