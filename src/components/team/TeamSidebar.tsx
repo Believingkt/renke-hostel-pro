@@ -28,7 +28,12 @@ export function TeamSidebar() {
   const { roles, displayName } = useTeam();
 
   const isAdmin = roles.includes("super_admin") || roles.includes("admin");
+  const isVenueManagerOnly =
+    !isAdmin &&
+    roles.includes("venue_manager") &&
+    roles.every((r) => r === "venue_manager");
   const visibleItems = TEAM_MENU.filter((item) => {
+    if (isVenueManagerOnly) return item.url === "/team/kol/venue-confirm";
     if (!item.allowedRoles) return true;
     if (isAdmin) return true;
     return item.allowedRoles.some((r) => roles.includes(r));

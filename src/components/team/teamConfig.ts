@@ -8,6 +8,7 @@ import {
   Link as LinkIcon,
   Bell,
   Users,
+  Tag,
   type LucideIcon,
 } from "lucide-react";
 
@@ -90,11 +91,18 @@ export const TEAM_MENU: TeamMenuItem[] = [
     icon: Users,
     allowedRoles: ["super_admin", "admin"],
   },
+  {
+    title: "折扣碼設定",
+    url: "/team/kol/venue-confirm",
+    icon: Tag,
+    allowedRoles: ["super_admin", "admin", "venue_manager"],
+  },
 ];
 
 export const PAGE_TITLES: Record<string, string> = {
   "/team": "個人業績總覽",
   "/team/members": "成員管理",
+  "/team/kol/venue-confirm": "折扣碼設定管理",
   "/team/kol": "KOL 星探管理",
   "/team/orders": "訂單補充資料",
   "/team/commission": "獎金管理",
