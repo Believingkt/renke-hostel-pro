@@ -97,6 +97,7 @@ interface KolRow {
   cid_code: string | null;
   short_url: string | null;
   cid_configured: boolean | null;
+  cid_notified: boolean | null;
   lihi_url: string | null;
   invited_at: string | null;
   check_in_date: string | null;
