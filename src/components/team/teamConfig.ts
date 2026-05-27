@@ -8,6 +8,7 @@ import {
   Link as LinkIcon,
   Bell,
   Users,
+  Tag,
   type LucideIcon,
 } from "lucide-react";
 
