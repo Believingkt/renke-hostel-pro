@@ -3141,6 +3141,8 @@ interface VenueSettingsRow {
   is_active: boolean;
   is_starlink: boolean;
   personal_target: number | null;
+  contact_email: string | null;
+  has_external_platform: boolean;
 }
 
 const VENUE_TYPES = ["民宿", "餐廳", "農場", "其他"] as const;
@@ -3163,6 +3165,8 @@ const EMPTY_SETTINGS = (venue_name: string): VenueSettingsRow => ({
   is_active: true,
   is_starlink: false,
   personal_target: null,
+  contact_email: null,
+  has_external_platform: false,
 });
 
 function VenuesCard({ isManager }: { isManager: boolean }) {
