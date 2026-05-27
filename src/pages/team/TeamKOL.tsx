@@ -1243,6 +1243,42 @@ function InvitationsTab({
                     )}
                   </Row>
                   <Row label="折扣碼 / CID">{r.cid_code ?? r.short_url ?? "-"}</Row>
+                  {(r.cid_code || r.short_url) && (
+                    <Row label="折扣碼設定狀態">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {r.cid_configured ? (
+                          <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
+                            已設定
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-200">
+                            待設定
+                          </Badge>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={async () => {
+                            const next = !r.cid_configured;
+                            const { error } = await supabase
+                              .from("kol_profiles")
+                              .update({ cid_configured: next })
+                              .eq("id", r.id);
+                            if (error) {
+                              toast.error(error.message);
+                              return;
+                            }
+                            setViewingRow((prev) => (prev ? { ...prev, cid_configured: next } : prev));
+                            setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, cid_configured: next } : x)));
+                            toast.success(next ? "已標記為已設定" : "已取消確認");
+                            fetchRows();
+                          }}
+                        >
+                          {r.cid_configured ? "取消確認" : "確認已設定"}
+                        </Button>
+                      </div>
+                    </Row>
+                  )}
                   <Row label="合約進度">{r.contract_progress ?? "-"}</Row>
                   <Row label="合約檔案">
                     {r.contract_file_url ? (
