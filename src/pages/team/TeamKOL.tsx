@@ -2301,9 +2301,37 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
 
   const [addOpen, setAddOpen] = useState(false);
   const [addVenue, setAddVenue] = useState("");
-  const [addTarget, setAddTarget] = useState("");
+  const [addTarget, setAddTarget] = useState("0");
   const [addPersonal, setAddPersonal] = useState("");
   const [addStarlink, setAddStarlink] = useState(false);
+
+  // 館別下拉選項（PMS + kol_venues），與正式邀約 Tab 相同
+  const [accList, setAccList] = useState<{ id: string; name: string }[]>([]);
+  const [venueList, setVenueList] = useState<{ name: string; type: string | null; is_active: boolean }[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const [accRes, venueRes] = await Promise.all([
+        supabase.from("accommodation_info").select("id, name").order("name"),
+        supabase.from("kol_venues" as any).select("name, type, is_active"),
+      ]);
+      if (accRes.data) setAccList(accRes.data as any);
+      if (venueRes.data) setVenueList(venueRes.data as any);
+    })();
+  }, []);
+
+  const venueOptions = useMemo(() => {
+    const pms = accList.map((a) => ({ name: a.name, badge: "民宿" }));
+    const vs = (venueList || [])
+      .filter((v) => v.is_active)
+      .map((v) => ({ name: v.name, badge: v.type || "其他" }));
+    const merged = [...pms, ...vs];
+    // 排除當月已存在目標的場域
+    const used = new Set(teamRows.map((r) => r.venue_name));
+    return merged
+      .filter((o) => !used.has(o.name))
+      .sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
+  }, [accList, venueList, teamRows]);
 
   useEffect(() => {
     (async () => {
@@ -2490,7 +2518,7 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
     toast.success("已新增目標");
     setAddOpen(false);
     setAddVenue("");
-    setAddTarget("");
+    setAddTarget("0");
     setAddPersonal("");
     setAddStarlink(false);
     fetchAll();
@@ -2701,10 +2729,28 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
           </DialogHeader>
           <div className="space-y-3">
             <Field label="場域名稱">
-              <Input value={addVenue} onChange={(e) => setAddVenue(e.target.value)} placeholder="例如 天送幸福和苑" />
+              <Select value={addVenue} onValueChange={setAddVenue}>
+                <SelectTrigger>
+                  <SelectValue placeholder="選擇館別" />
+                </SelectTrigger>
+                <SelectContent>
+                  {venueOptions.length === 0 ? (
+                    <div className="px-2 py-1.5 text-sm text-muted-foreground">無可選場域</div>
+                  ) : (
+                    venueOptions.map((opt) => (
+                      <SelectItem key={opt.name} value={opt.name}>
+                        <span className="inline-flex items-center gap-2">
+                          <span>{opt.name}</span>
+                          <span className="text-[10px] text-muted-foreground">{opt.badge}</span>
+                        </span>
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
             </Field>
             <Field label="團隊目標數">
-              <Input type="number" min={0} value={addTarget} onChange={(e) => setAddTarget(e.target.value)} />
+              <Input type="number" min={0} placeholder="0" value={addTarget} onChange={(e) => setAddTarget(e.target.value)} />
             </Field>
             <Field label="個人最低目標（留空=不限定）">
               <Input
