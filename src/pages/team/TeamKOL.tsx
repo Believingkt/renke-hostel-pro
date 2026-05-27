@@ -737,6 +737,7 @@ function InvitationsTab({
       order_number: toNullable(form.order_number),
       inventory_count: form.booking_status === "booked" ? 1 : 0,
       kol_tags: tags.length > 0 ? tags : null,
+      kol_direct_ticket_link: toNullable(form.kol_direct_ticket_link),
       kpi_eligible: kpiEligible,
       kpi_month: kpiMonth,
     };
