@@ -85,6 +85,7 @@ const TeamPlaceholder = lazy(() => import("./pages/team/TeamPlaceholder"));
 const TeamOrders = lazy(() => import("./pages/team/TeamOrders"));
 const TeamMembers = lazy(() => import("./pages/team/TeamMembers"));
 const TeamKOL = lazy(() => import("./pages/team/TeamKOL"));
+const TeamKolVenueConfirm = lazy(() => import("./pages/team/TeamKolVenueConfirm"));
 const TeamCommission = lazy(() => import("./pages/team/TeamCommission"));
 const TeamNotification = lazy(() => import("./pages/team/TeamNotification"));
 const TeamAds = lazy(() => import("./pages/team/TeamAds"));
