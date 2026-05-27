@@ -980,10 +980,8 @@ function InvitationsTab({
                     (r.contract_progress ?? "").toLowerCase().includes("uploaded");
                   const codeOrCidValue = r.cid_code ?? r.short_url ?? null;
                   const codeOrCid = codeOrCidValue ?? "-";
-                  const codeOrCidClass = codeOrCidValue
-                    ? r.cid_configured
-                      ? "text-green-600 font-medium"
-                      : "text-orange-500 font-medium"
+                  const codeOrCidClass = codeOrCidValue && r.cid_configured
+                    ? "text-green-600 font-medium"
                     : "";
                   return (
                     <TableRow key={r.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setViewingRow(r)}>
