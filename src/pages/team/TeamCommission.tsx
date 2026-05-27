@@ -95,17 +95,12 @@ export default function TeamCommission() {
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold">獎金管理</h2>
-      <Tabs defaultValue="scout">
+      <Tabs defaultValue={isAdmin ? "payout" : "payouts"}>
         <TabsList>
-          <TabsTrigger value="scout">星探獎金設定</TabsTrigger>
           {isAdmin && <TabsTrigger value="payout">結算規則</TabsTrigger>}
           {isAdmin && <TabsTrigger value="multiplier">獎金加倍活動</TabsTrigger>}
           <TabsTrigger value="payouts">發放管理</TabsTrigger>
         </TabsList>
-        <TabsContent value="scout" className="space-y-6">
-          <SalarySettingsBlock />
-          <TierSettingsBlock />
-        </TabsContent>
         {isAdmin && (
           <TabsContent value="payout">
             <PayoutRulesBlock />
