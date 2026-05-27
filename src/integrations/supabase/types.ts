@@ -5541,6 +5541,7 @@ export type Database = {
         Row: {
           base_salary: number | null
           base_salary_rule: Json | null
+          bonus_breakdown: Json
           calculated_at: string | null
           data_source: string | null
           id: string
@@ -5566,6 +5567,7 @@ export type Database = {
         Insert: {
           base_salary?: number | null
           base_salary_rule?: Json | null
+          bonus_breakdown?: Json
           calculated_at?: string | null
           data_source?: string | null
           id?: string
@@ -5591,6 +5593,7 @@ export type Database = {
         Update: {
           base_salary?: number | null
           base_salary_rule?: Json | null
+          bonus_breakdown?: Json
           calculated_at?: string | null
           data_source?: string | null
           id?: string

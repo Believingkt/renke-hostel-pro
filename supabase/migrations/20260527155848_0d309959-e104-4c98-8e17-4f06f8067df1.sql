@@ -1,0 +1,1 @@
+ALTER TABLE public.scout_monthly_payouts ADD COLUMN IF NOT EXISTS bonus_breakdown jsonb NOT NULL DEFAULT '{}'::jsonb;
