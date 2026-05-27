@@ -30,6 +30,7 @@ const ALL_INVITABLE_ROLES: TeamRole[] = [
   "kol",
   "owner",
   "finance",
+  "venue_manager",
 ];
 
 // scout_manager 僅能指派的角色
@@ -48,6 +49,7 @@ const ROLE_LABEL = {
   kol: "KOL",
   owner: "屋主",
   finance: "財務",
+  venue_manager: "場域負責人",
 } as Record<TeamRole, string>;
 
 const ROLE_BADGE_CLASS = {
@@ -63,6 +65,7 @@ const ROLE_BADGE_CLASS = {
   kol: "bg-pink-100 text-pink-700 border-pink-200",
   owner: "bg-stone-200 text-stone-700 border-stone-300",
   finance: "bg-red-100 text-red-700 border-red-200",
+  venue_manager: "bg-teal-100 text-teal-700 border-teal-200",
 };
 
 interface MemberRow {
