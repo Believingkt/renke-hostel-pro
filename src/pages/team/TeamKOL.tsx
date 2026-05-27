@@ -305,14 +305,16 @@ function InvitationsTab({
 
   // 館別合併選項（PMS + kol_venues，依名稱排序）
   const accommodationOptions = useMemo<VenueOption[]>(() => {
-    const pms: VenueOption[] = accommodations.map((a) => ({
-      value: `acc:${a.id}`,
-      label: a.name,
-      source: "pms",
-      badge: "民宿",
-      accommodation_id: a.id,
-      venue_name: null,
-    }));
+    const pms: VenueOption[] = accommodations
+      .filter((a) => a.is_active !== false)
+      .map((a) => ({
+        value: `acc:${a.id}`,
+        label: a.name,
+        source: "pms",
+        badge: "民宿",
+        accommodation_id: a.id,
+        venue_name: null,
+      }));
     const v: VenueOption[] = venues
       .filter((x) => x.is_active)
       .map((x) => ({
