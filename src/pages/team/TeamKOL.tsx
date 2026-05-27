@@ -3097,6 +3097,11 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
   const [newName, setNewName] = useState("");
   const [newType, setNewType] = useState<string>("民宿");
   const [saving, setSaving] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  // 篩選器
+  const [filterName, setFilterName] = useState("");
+  const [filterType, setFilterType] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
 
   // Drawer state
   const [editOpen, setEditOpen] = useState(false);
