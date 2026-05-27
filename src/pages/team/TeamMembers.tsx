@@ -137,7 +137,7 @@ export default function TeamMembers() {
     // 1. 取得所有 team profiles
     const { data: profiles, error: pErr } = await supabase
       .from("team_member_profiles")
-      .select("id, user_id, display_name, is_active, managed_venue")
+      .select("id, user_id, display_name, is_active, managed_venue, is_scout_team_member")
       .order("display_name", { ascending: true });
 
     if (pErr) {
