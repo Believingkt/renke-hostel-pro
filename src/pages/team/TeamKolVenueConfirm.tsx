@@ -32,7 +32,7 @@ import { useTeam } from "@/components/team/TeamContext";
 
 interface Row {
   id: string;
-  kol_name: string | null;
+  name: string | null;
   venue_name: string | null;
   cid_code: string | null;
   order_number: string | null;
