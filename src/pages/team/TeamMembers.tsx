@@ -76,6 +76,7 @@ interface MemberRow {
   is_active: boolean;
   roles: TeamRole[];
   managed_venue: string | null;
+  is_scout_team_member: boolean;
 }
 
 interface PendingInviteRow {
@@ -114,6 +115,7 @@ export default function TeamMembers() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRoles, setInviteRoles] = useState<TeamRole[]>([]);
   const [inviteVenue, setInviteVenue] = useState<string>("");
+  const [inviteScoutTeam, setInviteScoutTeam] = useState(false);
   const [inviting, setInviting] = useState(false);
 
   // 編輯側邊面板
@@ -122,6 +124,7 @@ export default function TeamMembers() {
   const [editRoles, setEditRoles] = useState<TeamRole[]>([]);
   const [editActive, setEditActive] = useState(true);
   const [editVenue, setEditVenue] = useState<string>("");
+  const [editScoutTeam, setEditScoutTeam] = useState(false);
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
 
@@ -136,7 +139,7 @@ export default function TeamMembers() {
     // 1. 取得所有 team profiles
     const { data: profiles, error: pErr } = await supabase
       .from("team_member_profiles")
-      .select("id, user_id, display_name, is_active, managed_venue")
+      .select("id, user_id, display_name, is_active, managed_venue, is_scout_team_member")
       .order("display_name", { ascending: true });
 
     if (pErr) {
@@ -181,6 +184,7 @@ export default function TeamMembers() {
       is_active: p.is_active ?? true,
       roles: p.user_id ? Array.from(rolesMap.get(p.user_id) ?? []) : [],
       managed_venue: (p as { managed_venue?: string | null }).managed_venue ?? null,
+      is_scout_team_member: (p as { is_scout_team_member?: boolean | null }).is_scout_team_member ?? false,
     }));
 
     // scout_manager 僅看到有 scout 或 kol 角色的成員
@@ -286,6 +290,7 @@ export default function TeamMembers() {
       if (targetUserId) {
         // 既有用戶：直接套用 profile + roles
         const wantsVenueManager = inviteRoles.includes("venue_manager" as TeamRole);
+        const isScoutLike = inviteRoles.includes("scout") || inviteRoles.includes("scout_manager");
         const { error: profileErr } = await supabase
           .from("team_member_profiles")
           .upsert(
@@ -293,6 +298,7 @@ export default function TeamMembers() {
               user_id: targetUserId,
               display_name: inviteName.trim(),
               managed_venue: wantsVenueManager ? (inviteVenue || null) : null,
+              is_scout_team_member: isScoutLike ? inviteScoutTeam : false,
             },
             { onConflict: "user_id" },
           );
@@ -335,6 +341,7 @@ export default function TeamMembers() {
       setInviteEmail("");
       setInviteRoles([]);
       setInviteVenue("");
+      setInviteScoutTeam(false);
       fetchMembers();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "邀請失敗");
@@ -361,6 +368,7 @@ export default function TeamMembers() {
     setEditRoles(m.roles);
     setEditActive(m.is_active);
     setEditVenue(m.managed_venue ?? "");
+    setEditScoutTeam(m.is_scout_team_member);
   };
 
   const isNorris = editTarget?.user_id === NORRIS_USER_ID;
@@ -379,12 +387,14 @@ export default function TeamMembers() {
     setSaving(true);
     try {
       const wantsVenueManager = editRoles.includes("venue_manager" as TeamRole);
+      const isScoutLike = editRoles.includes("scout") || editRoles.includes("scout_manager");
       const { error: pErr } = await supabase
         .from("team_member_profiles")
         .update({
           display_name: editName.trim(),
           is_active: editActive,
           managed_venue: wantsVenueManager ? (editVenue || null) : null,
+          is_scout_team_member: isScoutLike ? editScoutTeam : false,
         })
         .eq("id", editTarget.id);
       if (pErr) throw pErr;
@@ -569,6 +579,15 @@ export default function TeamMembers() {
                 </Select>
               </div>
             )}
+            {(inviteRoles.includes("scout") || inviteRoles.includes("scout_manager")) && (
+              <div className="flex items-start justify-between gap-3 border rounded-md px-3 py-2 mt-2">
+                <div className="space-y-0.5">
+                  <Label htmlFor="invite-scout-team" className="cursor-pointer">參與星探團隊機制</Label>
+                  <p className="text-xs text-muted-foreground">開啟後此成員將納入團隊達標獎金計算</p>
+                </div>
+                <Switch id="invite-scout-team" checked={inviteScoutTeam} onCheckedChange={setInviteScoutTeam} />
+              </div>
+              )}
             {!isAdmin && <p className="text-xs text-muted-foreground">您僅能指派 星探 / KOL 角色</p>}
             <p className="text-xs text-muted-foreground">對方若尚未註冊，預設角色將暫存，首次登入時自動套用。</p>
           </div>
@@ -700,6 +719,9 @@ export default function TeamMembers() {
                         {displayRoles(m).includes("venue_manager" as TeamRole) && m.managed_venue && (
                           <span className="text-xs text-muted-foreground ml-1">{m.managed_venue}</span>
                         )}
+                        {(displayRoles(m).includes("scout") || displayRoles(m).includes("scout_manager")) && m.is_scout_team_member && (
+                          <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">團隊</Badge>
+                        )}
                       </div>
                     </div>
                   </Wrapper>
@@ -778,6 +800,15 @@ export default function TeamMembers() {
                           ))}
                         </SelectContent>
                       </Select>
+                    </div>
+                  )}
+                  {(editRoles.includes("scout") || editRoles.includes("scout_manager")) && (
+                    <div className="flex items-start justify-between gap-3 border rounded-md px-3 py-2 mt-2">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="edit-scout-team" className="cursor-pointer">參與星探團隊機制</Label>
+                        <p className="text-xs text-muted-foreground">開啟後此成員將納入團隊達標獎金計算</p>
+                      </div>
+                      <Switch id="edit-scout-team" checked={editScoutTeam} onCheckedChange={setEditScoutTeam} />
                     </div>
                   )}
                 </div>
