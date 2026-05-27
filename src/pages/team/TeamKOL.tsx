@@ -1348,6 +1348,20 @@ function InvitationsTab({
                       </div>
                     </Row>
                   )}
+                  <Row label="KOL購票連結">
+                    {r.kol_direct_ticket_link ? (
+                      <a
+                        href={r.kol_direct_ticket_link}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary hover:underline inline-flex items-center gap-1 break-all"
+                      >
+                        {r.kol_direct_ticket_link} <ExternalLink className="h-3 w-3 shrink-0" />
+                      </a>
+                    ) : (
+                      "—"
+                    )}
+                  </Row>
                   <Row label="合約進度">{r.contract_progress ?? "-"}</Row>
                   <Row label="合約檔案">
                     {r.contract_file_url ? (
