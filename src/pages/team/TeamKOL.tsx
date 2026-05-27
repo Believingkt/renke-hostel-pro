@@ -507,11 +507,13 @@ function InvitationsTab({
     }
   }, [form.check_in_date]); // eslint-disable-line
 
-  // 入住日期 + 館別 → 自動查詢庫存
+  // 入住日期 + 館別 → 呼叫 check_kol_inventory RPC
   useEffect(() => {
-    const accId = form.accommodation_id;
     const date = form.check_in_date;
-    if (!accId || !date) {
+    const venueName = form.accommodation_id
+      ? (accommodations.find((a) => a.id === form.accommodation_id)?.name ?? null)
+      : (form.venue_name || null);
+    if (!date || !venueName) {
       if (form.inventory_status !== "") {
         setForm((f) => ({ ...f, inventory_status: "" }));
       }
@@ -519,28 +521,21 @@ function InvitationsTab({
     }
     let cancelled = false;
     (async () => {
-      const { data: rts } = await supabase.from("room_types").select("id").eq("accommodation_id", accId);
-      const ids = (rts ?? []).map((r: any) => r.id);
-      if (ids.length === 0) {
-        if (!cancelled) setForm((f) => ({ ...f, inventory_status: "查無房型" }));
+      const { data, error } = await supabase.rpc("check_kol_inventory" as any, {
+        p_venue_name: venueName,
+        p_check_in_date: date,
+      });
+      if (cancelled) return;
+      if (error) {
+        setForm((f) => ({ ...f, inventory_status: "⚠️ 缺設定" }));
         return;
       }
-      const { data: inv } = await supabase
-        .from("room_inventory_pricing")
-        .select("available_rooms, is_available")
-        .in("room_type_id", ids)
-        .eq("date", date);
-      const total = (inv ?? []).reduce(
-        (sum: number, r: any) => sum + (r.is_available === false ? 0 : (r.available_rooms ?? 0)),
-        0,
-      );
-      const status = total > 0 ? `有 ${total} 間` : "額滿";
-      if (!cancelled) setForm((f) => ({ ...f, inventory_status: status }));
+      setForm((f) => ({ ...f, inventory_status: (data as string) || "⚠️ 缺設定" }));
     })();
     return () => {
       cancelled = true;
     };
-  }, [form.accommodation_id, form.check_in_date]); // eslint-disable-line
+  }, [form.accommodation_id, form.venue_name, form.check_in_date, accommodations]); // eslint-disable-line
 
   // 訂單編號 → 自動切換訂房狀態
   // 只在狀態為 invited / booked 時才自動切換，其餘狀態（含「訂房編號有誤」、「訂房確認中」、
