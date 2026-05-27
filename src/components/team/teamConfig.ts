@@ -23,7 +23,8 @@ export type TeamRole =
   | "starlink"
   | "kol"
   | "owner"
-  | "finance";
+  | "finance"
+  | "venue_manager";
 
 export const TEAM_ROLES: TeamRole[] = [
   "super_admin",
@@ -38,6 +39,7 @@ export const TEAM_ROLES: TeamRole[] = [
   "kol",
   "owner",
   "finance",
+  "venue_manager",
 ];
 
 export interface TeamMenuItem {
