@@ -3161,6 +3161,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
     toast.success("已新增場域");
     setNewName("");
     setNewType("民宿");
+    setAddOpen(false);
     load();
   };
 
