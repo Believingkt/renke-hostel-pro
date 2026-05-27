@@ -76,6 +76,7 @@ interface MemberRow {
   is_active: boolean;
   roles: TeamRole[];
   managed_venue: string | null;
+  is_scout_team_member: boolean;
 }
 
 interface PendingInviteRow {
