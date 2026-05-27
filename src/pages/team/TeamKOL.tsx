@@ -329,6 +329,9 @@ function InvitationsTab({
   const [filterAcc, setFilterAcc] = useState<string>("all");
   const [filterRarity, setFilterRarity] = useState<string>("all");
   const [filterTags, setFilterTags] = useState<string[]>([]);
+  const [filterScout, setFilterScout] = useState<string>("all");
+  const [filterYear, setFilterYear] = useState<string>("all");
+  const [filterMonth, setFilterMonth] = useState<string>("all");
   const PAGE_SIZE = 50;
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -450,6 +453,29 @@ function InvitationsTab({
     }
     if (filterRarity !== "all") q = q.eq("rarity", filterRarity);
     if (filterTags.length > 0) q = q.overlaps("kol_tags", filterTags);
+    if (filterScout !== "all") q = q.eq("scout_id", filterScout);
+    if (filterYear !== "all") {
+      const y = parseInt(filterYear, 10);
+      if (filterMonth !== "all") {
+        const m = parseInt(filterMonth, 10);
+        const start = `${y}-${String(m).padStart(2, "0")}-01`;
+        const endY = m === 12 ? y + 1 : y;
+        const endM = m === 12 ? 1 : m + 1;
+        const end = `${endY}-${String(endM).padStart(2, "0")}-01`;
+        q = q.gte("check_in_date", start).lt("check_in_date", end);
+      } else {
+        q = q.gte("check_in_date", `${y}-01-01`).lt("check_in_date", `${y + 1}-01-01`);
+      }
+    } else if (filterMonth !== "all") {
+      // 只選月份不選年份：以當前年為基準
+      const y = new Date().getFullYear();
+      const m = parseInt(filterMonth, 10);
+      const start = `${y}-${String(m).padStart(2, "0")}-01`;
+      const endY = m === 12 ? y + 1 : y;
+      const endM = m === 12 ? 1 : m + 1;
+      const end = `${endY}-${String(endM).padStart(2, "0")}-01`;
+      q = q.gte("check_in_date", start).lt("check_in_date", end);
+    }
     const s = search.trim();
     if (s) {
       const esc = s.replace(/[%,()]/g, " ");
@@ -482,7 +508,7 @@ function InvitationsTab({
     setRows(enriched);
     setTotalCount(count ?? 0);
     setLoading(false);
-  }, [accommodations, page, search, filterAcc, filterRarity, filterTags]);
+  }, [accommodations, page, search, filterAcc, filterRarity, filterTags, filterScout, filterYear, filterMonth]);
 
   useEffect(() => {
     if (accommodations.length > 0) fetchRows();
@@ -491,7 +517,7 @@ function InvitationsTab({
   // 篩選條件變更時，重置到第一頁
   useEffect(() => {
     setPage(1);
-  }, [search, filterAcc, filterRarity, filterTags]);
+  }, [search, filterAcc, filterRarity, filterTags, filterScout, filterYear, filterMonth]);
 
   // 伺服器端已套用篩選，直接使用 rows
   const filtered = rows;
@@ -803,6 +829,21 @@ function InvitationsTab({
           </SelectContent>
         </Select>
 
+        <Select value={filterScout} onValueChange={setFilterScout}>
+          <SelectTrigger className="w-36">
+            <SelectValue placeholder="邀約人" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">全部邀約人</SelectItem>
+            {scouts.map((s) => (
+              <SelectItem key={s.user_id} value={s.user_id}>
+                {s.display_name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm" className="h-10 font-normal" type="button">
@@ -867,6 +908,31 @@ function InvitationsTab({
             </Button>
           )}
         </div>
+
+        <Select value={filterYear} onValueChange={setFilterYear}>
+          <SelectTrigger className="w-24">
+            <SelectValue placeholder="年份" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">全部年份</SelectItem>
+            {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map((y) => (
+              <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={filterMonth} onValueChange={setFilterMonth}>
+          <SelectTrigger className="w-24">
+            <SelectValue placeholder="月份" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">全部月份</SelectItem>
+            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+              <SelectItem key={m} value={String(m)}>{m} 月</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
 
         <div className="ml-auto flex items-center gap-2">
           <Button onClick={openCreate}>
