@@ -2938,6 +2938,8 @@ function SettingsTab({ isManager }: { isManager: boolean }) {
     <div className="space-y-4">
       <RaritySettingsTab isManager={isManager} />
       <VenuesCard isManager={isManager} />
+      <TierSettingsBlock isManager={isManager} />
+      <SalarySettingsBlock isManager={isManager} />
     </div>
   );
 }
