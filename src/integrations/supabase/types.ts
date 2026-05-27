@@ -6472,6 +6472,10 @@ export type Database = {
           has_booking: boolean
         }[]
       }
+      check_kol_inventory: {
+        Args: { p_check_in_date: string; p_venue_name: string }
+        Returns: string
+      }
       check_rls_enabled: {
         Args: never
         Returns: {
