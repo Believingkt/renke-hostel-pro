@@ -75,6 +75,7 @@ interface MemberRow {
   email: string;
   is_active: boolean;
   roles: TeamRole[];
+  managed_venue: string | null;
 }
 
 interface PendingInviteRow {
@@ -83,6 +84,11 @@ interface PendingInviteRow {
   display_name: string | null;
   role: TeamRole;
   created_at: string;
+}
+
+interface VenueOption {
+  id: string;
+  name: string;
 }
 
 export default function TeamMembers() {
