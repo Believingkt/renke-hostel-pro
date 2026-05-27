@@ -1657,6 +1657,14 @@ function InvitationsTab({
               </Field>
             )}
 
+            <Field label="KOL購票連結">
+              <Input
+                value={form.kol_direct_ticket_link}
+                onChange={(e) => setForm({ ...form, kol_direct_ticket_link: e.target.value })}
+                placeholder="https://..."
+              />
+            </Field>
+
             {showShortUrl && (
               <Field label="短網址後綴">
                 <Input value={form.short_url} onChange={(e) => setForm({ ...form, short_url: e.target.value })} />
