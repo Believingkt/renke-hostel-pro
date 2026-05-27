@@ -3050,6 +3050,105 @@ export type Database = {
         }
         Relationships: []
       }
+      kol_venue_link_rules: {
+        Row: {
+          cid_rule: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          rule_code: string
+          venue_name: string
+          website_type: string | null
+        }
+        Insert: {
+          cid_rule?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          rule_code: string
+          venue_name: string
+          website_type?: string | null
+        }
+        Update: {
+          cid_rule?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          rule_code?: string
+          venue_name?: string
+          website_type?: string | null
+        }
+        Relationships: []
+      }
+      kol_venue_settings: {
+        Row: {
+          allowed_weekdays: number[]
+          calc_type: string
+          collab_end: string | null
+          collab_start: string | null
+          created_at: string | null
+          daily_limit: number
+          group_name: string
+          id: string
+          is_active: boolean | null
+          is_starlink: boolean | null
+          link_rule: string | null
+          monthly_limit: number | null
+          order_number_rule: string | null
+          personal_target: number | null
+          special_end: string | null
+          special_limit: number | null
+          special_start: string | null
+          special_weekdays: number[] | null
+          updated_at: string | null
+          venue_name: string
+        }
+        Insert: {
+          allowed_weekdays?: number[]
+          calc_type: string
+          collab_end?: string | null
+          collab_start?: string | null
+          created_at?: string | null
+          daily_limit?: number
+          group_name: string
+          id?: string
+          is_active?: boolean | null
+          is_starlink?: boolean | null
+          link_rule?: string | null
+          monthly_limit?: number | null
+          order_number_rule?: string | null
+          personal_target?: number | null
+          special_end?: string | null
+          special_limit?: number | null
+          special_start?: string | null
+          special_weekdays?: number[] | null
+          updated_at?: string | null
+          venue_name: string
+        }
+        Update: {
+          allowed_weekdays?: number[]
+          calc_type?: string
+          collab_end?: string | null
+          collab_start?: string | null
+          created_at?: string | null
+          daily_limit?: number
+          group_name?: string
+          id?: string
+          is_active?: boolean | null
+          is_starlink?: boolean | null
+          link_rule?: string | null
+          monthly_limit?: number | null
+          order_number_rule?: string | null
+          personal_target?: number | null
+          special_end?: string | null
+          special_limit?: number | null
+          special_start?: string | null
+          special_weekdays?: number[] | null
+          updated_at?: string | null
+          venue_name?: string
+        }
+        Relationships: []
+      }
       kol_venues: {
         Row: {
           created_at: string | null
