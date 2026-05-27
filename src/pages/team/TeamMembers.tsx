@@ -182,6 +182,7 @@ export default function TeamMembers() {
       is_active: p.is_active ?? true,
       roles: p.user_id ? Array.from(rolesMap.get(p.user_id) ?? []) : [],
       managed_venue: (p as { managed_venue?: string | null }).managed_venue ?? null,
+      is_scout_team_member: (p as { is_scout_team_member?: boolean | null }).is_scout_team_member ?? false,
     }));
 
     // scout_manager 僅看到有 scout 或 kol 角色的成員
