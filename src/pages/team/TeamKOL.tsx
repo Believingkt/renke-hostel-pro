@@ -1012,7 +1012,7 @@ function InvitationsTab({
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>{codeOrCid}</TableCell>
+                      <TableCell className={codeOrCidClass}>{codeOrCid}</TableCell>
                       <TableCell>
                         {r.rarity && (
                           <Badge variant="outline" className={RARITY_CLASS[r.rarity as Rarity] ?? ""}>
