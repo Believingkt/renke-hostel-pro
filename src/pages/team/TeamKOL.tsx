@@ -3784,6 +3784,35 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                             setSettings((p) => ({ ...p, order_number_rule: v })),
                           )}
                         </Field>
+                        <Field label="聯絡 Email">
+                          <Input
+                            type="email"
+                            placeholder="負責人 Email"
+                            value={settings.contact_email ?? ""}
+                            onChange={(e) =>
+                              setSettings((p) => ({ ...p, contact_email: e.target.value }))
+                            }
+                            disabled={readOnly}
+                          />
+                        </Field>
+                        <div className="flex items-start justify-between gap-3 rounded-md border p-3">
+                          <div className="space-y-0.5">
+                            <Label htmlFor="venue-external-platform" className="cursor-pointer">
+                              有外部訂房平台
+                            </Label>
+                            <p className="text-xs text-muted-foreground">
+                              開啟後建立邀約時將額外通知此 Email
+                            </p>
+                          </div>
+                          <Switch
+                            id="venue-external-platform"
+                            checked={settings.has_external_platform}
+                            onCheckedChange={(v) =>
+                              setSettings((p) => ({ ...p, has_external_platform: v === true }))
+                            }
+                            disabled={readOnly}
+                          />
+                        </div>
                       </>
                     )}
                   </section>
