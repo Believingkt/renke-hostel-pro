@@ -909,6 +909,31 @@ function InvitationsTab({
           )}
         </div>
 
+        <Select value={filterYear} onValueChange={setFilterYear}>
+          <SelectTrigger className="w-24">
+            <SelectValue placeholder="年份" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">全部年份</SelectItem>
+            {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map((y) => (
+              <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={filterMonth} onValueChange={setFilterMonth}>
+          <SelectTrigger className="w-24">
+            <SelectValue placeholder="月份" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">全部月份</SelectItem>
+            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+              <SelectItem key={m} value={String(m)}>{m} 月</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+
         <div className="ml-auto flex items-center gap-2">
           <Button onClick={openCreate}>
             <Plus className="mr-1 h-4 w-4" />
