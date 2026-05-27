@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -3140,6 +3141,8 @@ interface VenueSettingsRow {
   is_active: boolean;
   is_starlink: boolean;
   personal_target: number | null;
+  contact_email: string | null;
+  has_external_platform: boolean;
 }
 
 const VENUE_TYPES = ["民宿", "餐廳", "農場", "其他"] as const;
@@ -3162,6 +3165,8 @@ const EMPTY_SETTINGS = (venue_name: string): VenueSettingsRow => ({
   is_active: true,
   is_starlink: false,
   personal_target: null,
+  contact_email: null,
+  has_external_platform: false,
 });
 
 function VenuesCard({ isManager }: { isManager: boolean }) {
@@ -3315,6 +3320,8 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
       is_active: settings.is_active,
       is_starlink: settings.is_starlink,
       personal_target: settings.personal_target,
+      contact_email: settings.contact_email?.trim() || null,
+      has_external_platform: settings.has_external_platform,
     };
     const { data: existing } = await supabase
       .from("kol_venue_settings" as any)
@@ -3636,6 +3643,8 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                             <div className="col-span-2">
                               <Item label="訂單編號規則" value={showText(settings.order_number_rule)} />
                             </div>
+                            <Item label="聯絡 Email" value={showText(settings.contact_email)} />
+                            <Item label="有外部訂房平台" value={showBool(settings.has_external_platform, "是", "否")} />
                           </div>
                         )}
                       </section>
@@ -3775,6 +3784,35 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                             setSettings((p) => ({ ...p, order_number_rule: v })),
                           )}
                         </Field>
+                        <Field label="聯絡 Email">
+                          <Input
+                            type="email"
+                            placeholder="負責人 Email"
+                            value={settings.contact_email ?? ""}
+                            onChange={(e) =>
+                              setSettings((p) => ({ ...p, contact_email: e.target.value }))
+                            }
+                            disabled={readOnly}
+                          />
+                        </Field>
+                        <div className="flex items-start justify-between gap-3 rounded-md border p-3">
+                          <div className="space-y-0.5">
+                            <Label htmlFor="venue-external-platform" className="cursor-pointer">
+                              有外部訂房平台
+                            </Label>
+                            <p className="text-xs text-muted-foreground">
+                              開啟後建立邀約時將額外通知此 Email
+                            </p>
+                          </div>
+                          <Switch
+                            id="venue-external-platform"
+                            checked={settings.has_external_platform}
+                            onCheckedChange={(v) =>
+                              setSettings((p) => ({ ...p, has_external_platform: v === true }))
+                            }
+                            disabled={readOnly}
+                          />
+                        </div>
                       </>
                     )}
                   </section>
