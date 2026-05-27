@@ -6258,6 +6258,7 @@ export type Database = {
           display_name: string
           id: string
           is_active: boolean | null
+          managed_venue: string | null
           scout_tier: string | null
           updated_at: string | null
           user_id: string | null
@@ -6268,6 +6269,7 @@ export type Database = {
           display_name: string
           id?: string
           is_active?: boolean | null
+          managed_venue?: string | null
           scout_tier?: string | null
           updated_at?: string | null
           user_id?: string | null
@@ -6278,6 +6280,7 @@ export type Database = {
           display_name?: string
           id?: string
           is_active?: boolean | null
+          managed_venue?: string | null
           scout_tier?: string | null
           updated_at?: string | null
           user_id?: string | null
