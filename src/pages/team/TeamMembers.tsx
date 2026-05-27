@@ -799,6 +799,15 @@ export default function TeamMembers() {
                       </Select>
                     </div>
                   )}
+                  {(editRoles.includes("scout") || editRoles.includes("scout_manager")) && (
+                    <div className="flex items-start justify-between gap-3 border rounded-md px-3 py-2 mt-2">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="edit-scout-team" className="cursor-pointer">參與星探團隊機制</Label>
+                        <p className="text-xs text-muted-foreground">開啟後此成員將納入團隊達標獎金計算</p>
+                      </div>
+                      <Switch id="edit-scout-team" checked={editScoutTeam} onCheckedChange={setEditScoutTeam} />
+                    </div>
+                  )}
                 </div>
               ) : (
                 <p className="text-xs text-muted-foreground border rounded-md px-3 py-2 bg-muted/30">
