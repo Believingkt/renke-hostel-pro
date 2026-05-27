@@ -2997,7 +2997,48 @@ interface VenueRow {
   is_active: boolean;
 }
 
+interface VenueSettingsRow {
+  id?: string;
+  venue_name: string;
+  group_name: string | null;
+  calc_type: string | null;
+  daily_limit: number | null;
+  collab_start: string | null;
+  collab_end: string | null;
+  allowed_weekdays: number[] | null;
+  special_start: string | null;
+  special_end: string | null;
+  special_limit: number | null;
+  special_weekdays: number[] | null;
+  monthly_limit: number | null;
+  link_rule: string | null;
+  order_number_rule: string | null;
+  is_active: boolean;
+  is_starlink: boolean;
+  personal_target: number | null;
+}
+
 const VENUE_TYPES = ["民宿", "餐廳", "農場", "其他"] as const;
+
+const EMPTY_SETTINGS = (venue_name: string): VenueSettingsRow => ({
+  venue_name,
+  group_name: null,
+  calc_type: null,
+  daily_limit: null,
+  collab_start: null,
+  collab_end: null,
+  allowed_weekdays: null,
+  special_start: null,
+  special_end: null,
+  special_limit: null,
+  special_weekdays: null,
+  monthly_limit: null,
+  link_rule: null,
+  order_number_rule: null,
+  is_active: true,
+  is_starlink: false,
+  personal_target: null,
+});
 
 function VenuesCard({ isManager }: { isManager: boolean }) {
   const [rows, setRows] = useState<VenueRow[]>([]);
@@ -3005,9 +3046,16 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
   const [newName, setNewName] = useState("");
   const [newType, setNewType] = useState<string>("民宿");
   const [saving, setSaving] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Drawer state
+  const [editOpen, setEditOpen] = useState(false);
+  const [editVenue, setEditVenue] = useState<VenueRow | null>(null);
   const [editName, setEditName] = useState("");
   const [editType, setEditType] = useState("民宿");
+  const [editActive, setEditActive] = useState(true);
+  const [settings, setSettings] = useState<VenueSettingsRow>(EMPTY_SETTINGS(""));
+  const [originalVenueName, setOriginalVenueName] = useState("");
+  const [loadingSettings, setLoadingSettings] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -3032,40 +3080,133 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
     }
     setSaving(true);
     const { error } = await supabase.from("kol_venues" as any).insert({ name: n, type: newType, is_active: true });
-    setSaving(false);
     if (error) {
+      setSaving(false);
       toast.error(error.message);
       return;
     }
+    // 同步建立 kol_venue_settings 預設記錄（若不存在）
+    const { data: existing } = await supabase
+      .from("kol_venue_settings" as any)
+      .select("id")
+      .eq("venue_name", n)
+      .maybeSingle();
+    if (!existing) {
+      const { error: sErr } = await supabase
+        .from("kol_venue_settings" as any)
+        .insert({ venue_name: n, is_active: true, is_starlink: false });
+      if (sErr) {
+        toast.error(`場域已建立，但邀約規則建立失敗：${sErr.message}`);
+      }
+    }
+    setSaving(false);
     toast.success("已新增場域");
     setNewName("");
     setNewType("民宿");
     load();
   };
 
-  const startEdit = (r: VenueRow) => {
-    setEditingId(r.id);
+  const openEdit = async (r: VenueRow) => {
+    setEditVenue(r);
     setEditName(r.name);
     setEditType(r.type || "其他");
+    setEditActive(r.is_active);
+    setOriginalVenueName(r.name);
+    setSettings(EMPTY_SETTINGS(r.name));
+    setEditOpen(true);
+    setLoadingSettings(true);
+    const { data, error } = await supabase
+      .from("kol_venue_settings" as any)
+      .select("*")
+      .eq("venue_name", r.name)
+      .maybeSingle();
+    if (error && error.code !== "PGRST116") toast.error(error.message);
+    if (data) setSettings(data as unknown as VenueSettingsRow);
+    setLoadingSettings(false);
+  };
+
+  const toggleWeekday = (field: "allowed_weekdays" | "special_weekdays", day: number) => {
+    setSettings((prev) => {
+      const cur = prev[field] ?? [];
+      const next = cur.includes(day) ? cur.filter((d) => d !== day) : [...cur, day].sort((a, b) => a - b);
+      return { ...prev, [field]: next };
+    });
   };
 
   const saveEdit = async () => {
-    if (!editingId) return;
+    if (!editVenue) return;
     const n = editName.trim();
     if (!n) {
       toast.error("請輸入場域名稱");
       return;
     }
-    const { error } = await supabase
+    setSaving(true);
+    // 1. 更新 kol_venues
+    const { error: vErr } = await supabase
       .from("kol_venues" as any)
-      .update({ name: n, type: editType })
-      .eq("id", editingId);
-    if (error) {
-      toast.error(error.message);
+      .update({ name: n, type: editType, is_active: editActive })
+      .eq("id", editVenue.id);
+    if (vErr) {
+      setSaving(false);
+      toast.error(`更新場域失敗：${vErr.message}`);
       return;
     }
+    // 2. 若名稱已變更，同步更新 kol_venue_settings.venue_name
+    if (originalVenueName && originalVenueName !== n) {
+      await supabase
+        .from("kol_venue_settings" as any)
+        .update({ venue_name: n })
+        .eq("venue_name", originalVenueName);
+    }
+    // 3. upsert kol_venue_settings
+    const payload: Partial<VenueSettingsRow> = {
+      venue_name: n,
+      group_name: settings.group_name || null,
+      calc_type: settings.calc_type || null,
+      daily_limit: settings.daily_limit,
+      collab_start: settings.collab_start || null,
+      collab_end: settings.collab_end || null,
+      allowed_weekdays: settings.allowed_weekdays,
+      special_start: settings.special_start || null,
+      special_end: settings.special_end || null,
+      special_limit: settings.special_limit,
+      special_weekdays: settings.special_weekdays,
+      monthly_limit: settings.monthly_limit,
+      link_rule: settings.link_rule || null,
+      order_number_rule: settings.order_number_rule || null,
+      is_active: settings.is_active,
+      is_starlink: settings.is_starlink,
+      personal_target: settings.personal_target,
+    };
+    const { data: existing } = await supabase
+      .from("kol_venue_settings" as any)
+      .select("id")
+      .eq("venue_name", n)
+      .maybeSingle();
+    if (existing) {
+      const { error: sErr } = await supabase
+        .from("kol_venue_settings" as any)
+        .update(payload)
+        .eq("venue_name", n);
+      if (sErr) {
+        setSaving(false);
+        toast.error(`更新邀約規則失敗：${sErr.message}`);
+        return;
+      }
+    } else {
+      const { error: sErr } = await supabase
+        .from("kol_venue_settings" as any)
+        .insert(payload);
+      if (sErr) {
+        setSaving(false);
+        toast.error(`建立邀約規則失敗：${sErr.message}`);
+        return;
+      }
+    }
+    setSaving(false);
     toast.success("已更新");
-    setEditingId(null);
+    setEditOpen(false);
+    setEditVenue(null);
     load();
   };
 
@@ -3080,6 +3221,21 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
     }
     load();
   };
+
+  const numInput = (val: number | null, set: (v: number | null) => void) => (
+    <Input
+      type="number"
+      value={val ?? ""}
+      onChange={(e) => set(e.target.value === "" ? null : Number(e.target.value))}
+      className="h-9"
+    />
+  );
+  const textInput = (val: string | null, set: (v: string) => void) => (
+    <Input value={val ?? ""} onChange={(e) => set(e.target.value)} className="h-9" />
+  );
+  const dateInput = (val: string | null, set: (v: string) => void) => (
+    <Input type="date" value={val ?? ""} onChange={(e) => set(e.target.value)} className="h-9" />
+  );
 
   return (
     <Card>
@@ -3133,31 +3289,8 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
             <TableBody>
               {rows.map((r) => (
                 <TableRow key={r.id}>
-                  <TableCell>
-                    {editingId === r.id ? (
-                      <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-8" />
-                    ) : (
-                      r.name
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {editingId === r.id ? (
-                      <Select value={editType} onValueChange={setEditType}>
-                        <SelectTrigger className="h-8 w-28">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {VENUE_TYPES.map((t) => (
-                            <SelectItem key={t} value={t}>
-                              {t}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      r.type || "-"
-                    )}
-                  </TableCell>
+                  <TableCell>{r.name}</TableCell>
+                  <TableCell>{r.type || "-"}</TableCell>
                   <TableCell>
                     {r.is_active ? (
                       <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
@@ -3170,32 +3303,190 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    {isManager &&
-                      (editingId === r.id ? (
-                        <>
-                          <Button size="sm" variant="ghost" onClick={saveEdit}>
-                            儲存
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
-                            取消
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => startEdit(r)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => toggleActive(r)}>
-                            {r.is_active ? "停用" : "啟用"}
-                          </Button>
-                        </>
-                      ))}
+                    {isManager && (
+                      <>
+                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(r)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => toggleActive(r)}>
+                          {r.is_active ? "停用" : "啟用"}
+                        </Button>
+                      </>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         )}
+
+        <Sheet open={editOpen} onOpenChange={setEditOpen}>
+          <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>編輯場域 — {originalVenueName}</SheetTitle>
+            </SheetHeader>
+
+            <div className="space-y-6 py-4">
+              {/* 區塊一：基本資訊 */}
+              <section className="space-y-3">
+                <h4 className="font-semibold text-sm">基本資訊</h4>
+                <Field label="場域名稱">
+                  <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+                </Field>
+                <Field label="類型">
+                  <Select value={editType} onValueChange={setEditType}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {VENUE_TYPES.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {t}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="venue-active"
+                    checked={editActive}
+                    onCheckedChange={(v) => setEditActive(v === true)}
+                  />
+                  <Label htmlFor="venue-active" className="cursor-pointer">啟用此場域</Label>
+                </div>
+              </section>
+
+              {/* 區塊二：邀約規則 */}
+              <section className="space-y-3">
+                <h4 className="font-semibold text-sm">邀約規則設定</h4>
+                {loadingSettings ? (
+                  <p className="text-xs text-muted-foreground">載入中…</p>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="venue-starlink"
+                        checked={settings.is_starlink}
+                        onCheckedChange={(v) =>
+                          setSettings((p) => ({ ...p, is_starlink: v === true }))
+                        }
+                      />
+                      <Label htmlFor="venue-starlink" className="cursor-pointer">星鏈場域</Label>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <Field label="個人目標">
+                        {numInput(settings.personal_target, (v) =>
+                          setSettings((p) => ({ ...p, personal_target: v }))
+                        )}
+                      </Field>
+                      <Field label="群組名稱">
+                        {textInput(settings.group_name, (v) =>
+                          setSettings((p) => ({ ...p, group_name: v }))
+                        )}
+                      </Field>
+                      <Field label="計算方式">
+                        {textInput(settings.calc_type, (v) =>
+                          setSettings((p) => ({ ...p, calc_type: v }))
+                        )}
+                      </Field>
+                      <Field label="每日上限">
+                        {numInput(settings.daily_limit, (v) =>
+                          setSettings((p) => ({ ...p, daily_limit: v }))
+                        )}
+                      </Field>
+                      <Field label="每月上限">
+                        {numInput(settings.monthly_limit, (v) =>
+                          setSettings((p) => ({ ...p, monthly_limit: v }))
+                        )}
+                      </Field>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <Field label="合作開始日">
+                        {dateInput(settings.collab_start, (v) =>
+                          setSettings((p) => ({ ...p, collab_start: v }))
+                        )}
+                      </Field>
+                      <Field label="合作結束日">
+                        {dateInput(settings.collab_end, (v) =>
+                          setSettings((p) => ({ ...p, collab_end: v }))
+                        )}
+                      </Field>
+                    </div>
+
+                    <Field label="可邀星期">
+                      <div className="flex flex-wrap gap-3">
+                        {WEEKDAYS.map((w, idx) => (
+                          <label key={`aw-${idx}`} className="flex items-center gap-1 text-sm cursor-pointer">
+                            <Checkbox
+                              checked={(settings.allowed_weekdays ?? []).includes(idx)}
+                              onCheckedChange={() => toggleWeekday("allowed_weekdays", idx)}
+                            />
+                            {w}
+                          </label>
+                        ))}
+                      </div>
+                    </Field>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <Field label="特殊期間開始">
+                        {dateInput(settings.special_start, (v) =>
+                          setSettings((p) => ({ ...p, special_start: v }))
+                        )}
+                      </Field>
+                      <Field label="特殊期間結束">
+                        {dateInput(settings.special_end, (v) =>
+                          setSettings((p) => ({ ...p, special_end: v }))
+                        )}
+                      </Field>
+                      <Field label="特殊期間上限">
+                        {numInput(settings.special_limit, (v) =>
+                          setSettings((p) => ({ ...p, special_limit: v }))
+                        )}
+                      </Field>
+                    </div>
+
+                    <Field label="特殊期間可邀星期">
+                      <div className="flex flex-wrap gap-3">
+                        {WEEKDAYS.map((w, idx) => (
+                          <label key={`sw-${idx}`} className="flex items-center gap-1 text-sm cursor-pointer">
+                            <Checkbox
+                              checked={(settings.special_weekdays ?? []).includes(idx)}
+                              onCheckedChange={() => toggleWeekday("special_weekdays", idx)}
+                            />
+                            {w}
+                          </label>
+                        ))}
+                      </div>
+                    </Field>
+
+                    <Field label="連結規則">
+                      {textInput(settings.link_rule, (v) =>
+                        setSettings((p) => ({ ...p, link_rule: v }))
+                      )}
+                    </Field>
+                    <Field label="訂單編號規則">
+                      {textInput(settings.order_number_rule, (v) =>
+                        setSettings((p) => ({ ...p, order_number_rule: v }))
+                      )}
+                    </Field>
+                  </>
+                )}
+              </section>
+            </div>
+
+            <SheetFooter>
+              <Button variant="outline" onClick={() => setEditOpen(false)} disabled={saving}>
+                取消
+              </Button>
+              <Button onClick={saveEdit} disabled={saving || loadingSettings}>
+                {saving ? "儲存中…" : "儲存"}
+              </Button>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
       </CardContent>
     </Card>
   );
