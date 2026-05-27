@@ -3320,6 +3320,8 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
       is_active: settings.is_active,
       is_starlink: settings.is_starlink,
       personal_target: settings.personal_target,
+      contact_email: settings.contact_email?.trim() || null,
+      has_external_platform: settings.has_external_platform,
     };
     const { data: existing } = await supabase
       .from("kol_venue_settings" as any)
