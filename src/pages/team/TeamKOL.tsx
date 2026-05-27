@@ -98,6 +98,7 @@ interface KolRow {
   short_url: string | null;
   cid_configured: boolean | null;
   cid_notified: boolean | null;
+  kol_direct_ticket_link: string | null;
   lihi_url: string | null;
   invited_at: string | null;
   check_in_date: string | null;
@@ -154,6 +155,7 @@ interface FormState {
   inventory_count: string;
   kol_tags: string[];
   kpi_qualified: boolean;
+  kol_direct_ticket_link: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -183,6 +185,7 @@ const EMPTY_FORM: FormState = {
   inventory_count: "",
   kol_tags: [],
   kpi_qualified: false,
+  kol_direct_ticket_link: "",
 };
 
 interface RaritySetting {
@@ -677,6 +680,7 @@ function InvitationsTab({
       inventory_count: row.inventory_count != null ? String(row.inventory_count) : "",
       kol_tags: row.kol_tags ?? [],
       kpi_qualified: !!row.kpi_qualified,
+      kol_direct_ticket_link: row.kol_direct_ticket_link ?? "",
     });
     setDupWarning(null);
     setSheetOpen(true);
@@ -733,6 +737,7 @@ function InvitationsTab({
       order_number: toNullable(form.order_number),
       inventory_count: form.booking_status === "booked" ? 1 : 0,
       kol_tags: tags.length > 0 ? tags : null,
+      kol_direct_ticket_link: toNullable(form.kol_direct_ticket_link),
       kpi_eligible: kpiEligible,
       kpi_month: kpiMonth,
     };
@@ -1343,6 +1348,20 @@ function InvitationsTab({
                       </div>
                     </Row>
                   )}
+                  <Row label="KOL購票連結">
+                    {r.kol_direct_ticket_link ? (
+                      <a
+                        href={r.kol_direct_ticket_link}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary hover:underline inline-flex items-center gap-1 break-all"
+                      >
+                        {r.kol_direct_ticket_link} <ExternalLink className="h-3 w-3 shrink-0" />
+                      </a>
+                    ) : (
+                      "—"
+                    )}
+                  </Row>
                   <Row label="合約進度">{r.contract_progress ?? "-"}</Row>
                   <Row label="合約檔案">
                     {r.contract_file_url ? (
@@ -1637,6 +1656,14 @@ function InvitationsTab({
                 <Input value={form.cid_code} onChange={(e) => setForm({ ...form, cid_code: e.target.value })} />
               </Field>
             )}
+
+            <Field label="KOL購票連結">
+              <Input
+                value={form.kol_direct_ticket_link}
+                onChange={(e) => setForm({ ...form, kol_direct_ticket_link: e.target.value })}
+                placeholder="https://..."
+              />
+            </Field>
 
             {showShortUrl && (
               <Field label="短網址後綴">
