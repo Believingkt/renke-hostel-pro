@@ -3086,9 +3086,11 @@ export type Database = {
           calc_type: string
           collab_end: string | null
           collab_start: string | null
+          contact_email: string | null
           created_at: string | null
           daily_limit: number
           group_name: string
+          has_external_platform: boolean
           id: string
           is_active: boolean | null
           is_starlink: boolean | null
@@ -3108,9 +3110,11 @@ export type Database = {
           calc_type: string
           collab_end?: string | null
           collab_start?: string | null
+          contact_email?: string | null
           created_at?: string | null
           daily_limit?: number
           group_name: string
+          has_external_platform?: boolean
           id?: string
           is_active?: boolean | null
           is_starlink?: boolean | null
@@ -3130,9 +3134,11 @@ export type Database = {
           calc_type?: string
           collab_end?: string | null
           collab_start?: string | null
+          contact_email?: string | null
           created_at?: string | null
           daily_limit?: number
           group_name?: string
+          has_external_platform?: boolean
           id?: string
           is_active?: boolean | null
           is_starlink?: boolean | null
