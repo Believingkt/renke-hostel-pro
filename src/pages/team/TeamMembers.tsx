@@ -325,6 +325,7 @@ export default function TeamMembers() {
       setInviteName("");
       setInviteEmail("");
       setInviteRoles([]);
+      setInviteVenue("");
       fetchMembers();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "邀請失敗");
