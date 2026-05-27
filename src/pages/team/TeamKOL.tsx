@@ -3108,7 +3108,8 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
     load();
   };
 
-  const openEdit = async (r: VenueRow) => {
+  const openEdit = async (r: VenueRow, mode: "view" | "edit" = "edit") => {
+    setViewMode(mode);
     setEditVenue(r);
     setEditName(r.name);
     setEditType(r.type || "其他");
