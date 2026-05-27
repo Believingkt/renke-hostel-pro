@@ -3306,37 +3306,57 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
           </p>
         </div>
 
-        {isManager && (
-          <div className="flex flex-wrap items-center gap-2">
-            <Input
-              placeholder="場域名稱"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              className="w-48"
-            />
-            <Select value={newType} onValueChange={setNewType}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {VENUE_TYPES.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {t}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button onClick={handleAdd} disabled={saving}>
+        <div className="flex flex-wrap items-center gap-2">
+          <Input
+            placeholder="搜尋場域名稱"
+            value={filterName}
+            onChange={(e) => setFilterName(e.target.value)}
+            className="w-48"
+          />
+          <Select value={filterType} onValueChange={setFilterType}>
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder="類型" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部類型</SelectItem>
+              {VENUE_TYPES.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {t}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder="狀態" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部</SelectItem>
+              <SelectItem value="active">啟用</SelectItem>
+              <SelectItem value="inactive">停用</SelectItem>
+            </SelectContent>
+          </Select>
+          {isManager && (
+            <Button className="ml-auto" onClick={() => setAddOpen(true)}>
               <Plus className="mr-1 h-4 w-4" />
               新增
             </Button>
-          </div>
-        )}
+          )}
+        </div>
 
-        {loading ? null : rows.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4 text-center">尚無資料</p>
-        ) : (
-          <Table>
+        {(() => {
+          const filtered = rows.filter((r) => {
+            if (filterName.trim() && !r.name.toLowerCase().includes(filterName.trim().toLowerCase())) return false;
+            if (filterType !== "all" && (r.type || "") !== filterType) return false;
+            if (filterStatus === "active" && !r.is_active) return false;
+            if (filterStatus === "inactive" && r.is_active) return false;
+            return true;
+          });
+          if (loading) return null;
+          if (filtered.length === 0)
+            return <p className="text-sm text-muted-foreground py-4 text-center">尚無資料</p>;
+          return (
+        <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>場域名稱</TableHead>
@@ -3346,7 +3366,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((r) => (
+              {filtered.map((r) => (
                 <TableRow key={r.id} className="cursor-pointer" onClick={() => openEdit(r, "view")}>
                   <TableCell>{r.name}</TableCell>
                   <TableCell>{r.type || "-"}</TableCell>
