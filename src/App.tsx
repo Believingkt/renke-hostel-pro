@@ -458,6 +458,9 @@ function App() {
                         <Route path="kol" element={
                           <Suspense fallback={null}><TeamKOL /></Suspense>
                         } />
+                        <Route path="kol/venue-confirm" element={
+                          <Suspense fallback={null}><TeamKolVenueConfirm /></Suspense>
+                        } />
                         <Route path="orders" element={
                           <Suspense fallback={null}><TeamOrders /></Suspense>
                         } />
