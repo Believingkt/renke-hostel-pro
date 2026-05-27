@@ -673,9 +673,12 @@ function InvitationsTab({
     const kpiMonth = form.check_in_date ? form.check_in_date.slice(0, 7) + "-01" : null;
     const tags = form.kol_tags;
 
+    const resolvedVenueName = form.accommodation_id
+      ? (accommodations.find((a) => a.id === form.accommodation_id)?.name ?? null)
+      : (form.venue_name || null);
     const payload: Record<string, any> = {
       accommodation_id: form.accommodation_id || null,
-      venue_name: form.accommodation_id ? null : form.venue_name || null,
+      venue_name: resolvedVenueName,
       name: form.name.trim(),
       ig_handle: form.ig_handle.trim(),
       rarity: form.rarity || null,
