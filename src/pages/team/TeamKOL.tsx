@@ -2784,9 +2784,9 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
         <CardContent className="p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-semibold">目前生效版本</h3>
+              <h3 className="font-semibold">稀有度邀約獎金</h3>
               <p className="text-xs text-muted-foreground">
-                {current ? `生效日期：${current.effective_from}` : "尚無任何版本"}
+                目前生效版本{current ? `・生效日期：${current.effective_from}` : "：尚無任何版本"}
               </p>
             </div>
             <Button onClick={openCreate}>
@@ -2936,10 +2936,10 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
 function SettingsTab({ isManager }: { isManager: boolean }) {
   return (
     <div className="space-y-4">
-      <RaritySettingsTab isManager={isManager} />
-      <VenuesCard isManager={isManager} />
-      <TierSettingsBlock isManager={isManager} />
       <SalarySettingsBlock isManager={isManager} />
+      <VenuesCard isManager={isManager} />
+      <RaritySettingsTab isManager={isManager} />
+      <TierSettingsBlock isManager={isManager} />
     </div>
   );
 }
