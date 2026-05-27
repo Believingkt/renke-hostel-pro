@@ -3412,7 +3412,51 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
               ))}
             </TableBody>
           </Table>
-        )}
+          );
+        })()}
+
+        <Dialog open={addOpen} onOpenChange={setAddOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>新增場域</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <div className="space-y-1">
+                <label className="text-sm text-muted-foreground">場域名稱</label>
+                <Input
+                  placeholder="場域名稱"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm text-muted-foreground">類型</label>
+                <Select value={newType} onValueChange={setNewType}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {VENUE_TYPES.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAddOpen(false)} disabled={saving}>
+                取消
+              </Button>
+              <Button onClick={handleAdd} disabled={saving}>
+                <Plus className="mr-1 h-4 w-4" />
+                新增
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
 
         <Sheet open={editOpen} onOpenChange={setEditOpen}>
           <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
