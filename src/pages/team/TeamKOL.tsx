@@ -96,6 +96,7 @@ interface KolRow {
   scout_id: string | null;
   cid_code: string | null;
   short_url: string | null;
+  cid_configured: boolean | null;
   lihi_url: string | null;
   invited_at: string | null;
   check_in_date: string | null;
@@ -977,7 +978,13 @@ function InvitationsTab({
                   const contractDone =
                     (r.contract_progress ?? "").includes("已上傳") ||
                     (r.contract_progress ?? "").toLowerCase().includes("uploaded");
-                  const codeOrCid = r.cid_code ?? r.short_url ?? "-";
+                  const codeOrCidValue = r.cid_code ?? r.short_url ?? null;
+                  const codeOrCid = codeOrCidValue ?? "-";
+                  const codeOrCidClass = codeOrCidValue
+                    ? r.cid_configured
+                      ? "text-green-600 font-medium"
+                      : "text-orange-500 font-medium"
+                    : "";
                   return (
                     <TableRow key={r.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setViewingRow(r)}>
                       <TableCell className="max-w-[180px]">
@@ -1005,7 +1012,7 @@ function InvitationsTab({
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>{codeOrCid}</TableCell>
+                      <TableCell className={codeOrCidClass}>{codeOrCid}</TableCell>
                       <TableCell>
                         {r.rarity && (
                           <Badge variant="outline" className={RARITY_CLASS[r.rarity as Rarity] ?? ""}>
