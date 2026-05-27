@@ -209,6 +209,18 @@ export default function TeamMembers() {
     if (canAccess) fetchMembers();
   }, [canAccess, fetchMembers]);
 
+  useEffect(() => {
+    if (!canAccess) return;
+    (async () => {
+      const { data } = await supabase
+        .from("kol_venues")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("name", { ascending: true });
+      setVenues((data ?? []) as VenueOption[]);
+    })();
+  }, [canAccess]);
+
   // 主管角色 → 自動包含的子角色（勾選主管時，子角色強制取消並 disabled）
   const MANAGER_CHILD_MAP: Partial<Record<TeamRole, TeamRole>> = {
     scout_manager: "scout",
