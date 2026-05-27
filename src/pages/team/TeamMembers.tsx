@@ -579,6 +579,15 @@ export default function TeamMembers() {
                 </Select>
               </div>
             )}
+            {(inviteRoles.includes("scout") || inviteRoles.includes("scout_manager")) && (
+              <div className="flex items-start justify-between gap-3 border rounded-md px-3 py-2 mt-2">
+                <div className="space-y-0.5">
+                  <Label htmlFor="invite-scout-team" className="cursor-pointer">參與星探團隊機制</Label>
+                  <p className="text-xs text-muted-foreground">開啟後此成員將納入團隊達標獎金計算</p>
+                </div>
+                <Switch id="invite-scout-team" checked={inviteScoutTeam} onCheckedChange={setInviteScoutTeam} />
+              </div>
+            )
             {!isAdmin && <p className="text-xs text-muted-foreground">您僅能指派 星探 / KOL 角色</p>}
             <p className="text-xs text-muted-foreground">對方若尚未註冊，預設角色將暫存，首次登入時自動套用。</p>
           </div>
