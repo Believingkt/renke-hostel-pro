@@ -3049,6 +3049,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
 
   // Drawer state
   const [editOpen, setEditOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"view" | "edit">("edit");
   const [editVenue, setEditVenue] = useState<VenueRow | null>(null);
   const [editName, setEditName] = useState("");
   const [editType, setEditType] = useState("民宿");
@@ -3056,6 +3057,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
   const [settings, setSettings] = useState<VenueSettingsRow>(EMPTY_SETTINGS(""));
   const [originalVenueName, setOriginalVenueName] = useState("");
   const [loadingSettings, setLoadingSettings] = useState(false);
+  const readOnly = viewMode === "view";
 
   const load = useCallback(async () => {
     setLoading(true);
