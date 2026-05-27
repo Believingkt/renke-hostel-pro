@@ -3231,13 +3231,14 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
       value={val ?? ""}
       onChange={(e) => set(e.target.value === "" ? null : Number(e.target.value))}
       className="h-9"
+      disabled={readOnly}
     />
   );
   const textInput = (val: string | null, set: (v: string) => void) => (
-    <Input value={val ?? ""} onChange={(e) => set(e.target.value)} className="h-9" />
+    <Input value={val ?? ""} onChange={(e) => set(e.target.value)} className="h-9" disabled={readOnly} />
   );
   const dateInput = (val: string | null, set: (v: string) => void) => (
-    <Input type="date" value={val ?? ""} onChange={(e) => set(e.target.value)} className="h-9" />
+    <Input type="date" value={val ?? ""} onChange={(e) => set(e.target.value)} className="h-9" disabled={readOnly} />
   );
 
   return (
