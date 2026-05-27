@@ -2518,7 +2518,7 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
     toast.success("已新增目標");
     setAddOpen(false);
     setAddVenue("");
-    setAddTarget("");
+    setAddTarget("0");
     setAddPersonal("");
     setAddStarlink(false);
     fetchAll();
