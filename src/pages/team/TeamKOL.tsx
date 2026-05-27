@@ -1235,34 +1235,6 @@ function InvitationsTab({
           </SheetHeader>
 
           <div className="mt-4 space-y-4">
-            <Field label="館別 *">
-              <Select
-                value={form.accommodation_select}
-                onValueChange={(v) => {
-                  const opt = accommodationOptions.find((o) => o.value === v);
-                  setForm({
-                    ...form,
-                    accommodation_select: v,
-                    accommodation_id: opt?.accommodation_id ?? "",
-                    venue_name: opt?.venue_name ?? "",
-                  });
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="選擇館別" />
-                </SelectTrigger>
-                <SelectContent>
-                  {accommodationOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      <span className="inline-flex items-center gap-2">
-                        <span>{opt.label}</span>
-                        <span className="text-[10px] text-muted-foreground">{opt.badge}</span>
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
 
             <div className="grid grid-cols-2 gap-3">
               <Field label="KOL 名稱 *">
@@ -1422,6 +1394,35 @@ function InvitationsTab({
                   className="bg-muted"
                 />
               )}
+            </Field>
+
+            <Field label="館別 *">
+              <Select
+                value={form.accommodation_select}
+                onValueChange={(v) => {
+                  const opt = accommodationOptions.find((o) => o.value === v);
+                  setForm({
+                    ...form,
+                    accommodation_select: v,
+                    accommodation_id: opt?.accommodation_id ?? "",
+                    venue_name: opt?.venue_name ?? "",
+                  });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="選擇館別" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accommodationOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      <span className="inline-flex items-center gap-2">
+                        <span>{opt.label}</span>
+                        <span className="text-[10px] text-muted-foreground">{opt.badge}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
 
             <Field label="入住日期">
