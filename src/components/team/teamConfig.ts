@@ -91,6 +91,12 @@ export const TEAM_MENU: TeamMenuItem[] = [
     icon: Users,
     allowedRoles: ["super_admin", "admin"],
   },
+  {
+    title: "折扣碼設定",
+    url: "/team/kol/venue-confirm",
+    icon: Tag,
+    allowedRoles: ["super_admin", "admin", "venue_manager"],
+  },
 ];
 
 export const PAGE_TITLES: Record<string, string> = {
