@@ -329,6 +329,9 @@ function InvitationsTab({
   const [filterAcc, setFilterAcc] = useState<string>("all");
   const [filterRarity, setFilterRarity] = useState<string>("all");
   const [filterTags, setFilterTags] = useState<string[]>([]);
+  const [filterScout, setFilterScout] = useState<string>("all");
+  const [filterYear, setFilterYear] = useState<string>("all");
+  const [filterMonth, setFilterMonth] = useState<string>("all");
   const PAGE_SIZE = 50;
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -450,6 +453,29 @@ function InvitationsTab({
     }
     if (filterRarity !== "all") q = q.eq("rarity", filterRarity);
     if (filterTags.length > 0) q = q.overlaps("kol_tags", filterTags);
+    if (filterScout !== "all") q = q.eq("scout_id", filterScout);
+    if (filterYear !== "all") {
+      const y = parseInt(filterYear, 10);
+      if (filterMonth !== "all") {
+        const m = parseInt(filterMonth, 10);
+        const start = `${y}-${String(m).padStart(2, "0")}-01`;
+        const endY = m === 12 ? y + 1 : y;
+        const endM = m === 12 ? 1 : m + 1;
+        const end = `${endY}-${String(endM).padStart(2, "0")}-01`;
+        q = q.gte("check_in_date", start).lt("check_in_date", end);
+      } else {
+        q = q.gte("check_in_date", `${y}-01-01`).lt("check_in_date", `${y + 1}-01-01`);
+      }
+    } else if (filterMonth !== "all") {
+      // 只選月份不選年份：以當前年為基準
+      const y = new Date().getFullYear();
+      const m = parseInt(filterMonth, 10);
+      const start = `${y}-${String(m).padStart(2, "0")}-01`;
+      const endY = m === 12 ? y + 1 : y;
+      const endM = m === 12 ? 1 : m + 1;
+      const end = `${endY}-${String(endM).padStart(2, "0")}-01`;
+      q = q.gte("check_in_date", start).lt("check_in_date", end);
+    }
     const s = search.trim();
     if (s) {
       const esc = s.replace(/[%,()]/g, " ");
@@ -482,7 +508,7 @@ function InvitationsTab({
     setRows(enriched);
     setTotalCount(count ?? 0);
     setLoading(false);
-  }, [accommodations, page, search, filterAcc, filterRarity, filterTags]);
+  }, [accommodations, page, search, filterAcc, filterRarity, filterTags, filterScout, filterYear, filterMonth]);
 
   useEffect(() => {
     if (accommodations.length > 0) fetchRows();
@@ -491,7 +517,7 @@ function InvitationsTab({
   // 篩選條件變更時，重置到第一頁
   useEffect(() => {
     setPage(1);
-  }, [search, filterAcc, filterRarity, filterTags]);
+  }, [search, filterAcc, filterRarity, filterTags, filterScout, filterYear, filterMonth]);
 
   // 伺服器端已套用篩選，直接使用 rows
   const filtered = rows;
