@@ -545,6 +545,21 @@ export default function TeamMembers() {
               })}
 
             </div>
+            {inviteRoles.includes("venue_manager" as TeamRole) && (
+              <div className="space-y-2 pt-2">
+                <Label>負責場域</Label>
+                <Select value={inviteVenue} onValueChange={setInviteVenue}>
+                  <SelectTrigger className="w-full sm:w-[260px]">
+                    <SelectValue placeholder="選擇負責場域" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {venues.map((v) => (
+                      <SelectItem key={v.id} value={v.name}>{v.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             {!isAdmin && <p className="text-xs text-muted-foreground">您僅能指派 星探 / KOL 角色</p>}
             <p className="text-xs text-muted-foreground">對方若尚未註冊，預設角色將暫存，首次登入時自動套用。</p>
           </div>
