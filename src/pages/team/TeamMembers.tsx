@@ -719,6 +719,9 @@ export default function TeamMembers() {
                         {displayRoles(m).includes("venue_manager" as TeamRole) && m.managed_venue && (
                           <span className="text-xs text-muted-foreground ml-1">{m.managed_venue}</span>
                         )}
+                        {(displayRoles(m).includes("scout") || displayRoles(m).includes("scout_manager")) && m.is_scout_team_member && (
+                          <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">團隊</Badge>
+                        )}
                       </div>
                     </div>
                   </Wrapper>
