@@ -58,6 +58,7 @@ interface Accommodation {
   name: string;
   booking_type: string;
   short_url_alias: string | null;
+  is_active?: boolean;
 }
 
 interface KolVenue {
