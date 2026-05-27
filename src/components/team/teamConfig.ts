@@ -102,6 +102,7 @@ export const TEAM_MENU: TeamMenuItem[] = [
 export const PAGE_TITLES: Record<string, string> = {
   "/team": "個人業績總覽",
   "/team/members": "成員管理",
+  "/team/kol/venue-confirm": "折扣碼設定管理",
   "/team/kol": "KOL 星探管理",
   "/team/orders": "訂單補充資料",
   "/team/commission": "獎金管理",
