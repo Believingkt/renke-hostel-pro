@@ -458,7 +458,7 @@ function WeeklyTab() {
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((r) => (
+              pageRows.map((r) => (
                 <TableRow
                   key={r.id}
                   className="cursor-pointer hover:bg-muted/50"
@@ -484,6 +484,19 @@ function WeeklyTab() {
             )}
           </TableBody>
         </Table>
+        <div className="flex items-center justify-between pt-3">
+          <div className="text-sm text-muted-foreground">
+            共 {filtered.length} 筆，第 {page} / {totalPages} 頁
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+              上一頁
+            </Button>
+            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+              下一頁
+            </Button>
+          </div>
+        </div>
       </CardContent>
 
       <Sheet open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
