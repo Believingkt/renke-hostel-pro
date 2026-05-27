@@ -3346,7 +3346,17 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
         <Sheet open={editOpen} onOpenChange={setEditOpen}>
           <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
             <SheetHeader>
-              <SheetTitle>編輯場域 — {originalVenueName}</SheetTitle>
+              <div className="flex items-center justify-between gap-2 pr-8">
+                <SheetTitle>
+                  {readOnly ? "場域明細" : "編輯場域"} — {originalVenueName}
+                </SheetTitle>
+                {readOnly && isManager && (
+                  <Button size="sm" onClick={() => setViewMode("edit")}>
+                    <Pencil className="mr-1 h-4 w-4" />
+                    編輯
+                  </Button>
+                )}
+              </div>
             </SheetHeader>
 
             <div className="space-y-6 py-4">
@@ -3354,10 +3364,14 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
               <section className="space-y-3">
                 <h4 className="font-semibold text-sm">基本資訊</h4>
                 <Field label="場域名稱">
-                  <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+                  <Input
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    disabled={readOnly}
+                  />
                 </Field>
                 <Field label="類型">
-                  <Select value={editType} onValueChange={setEditType}>
+                  <Select value={editType} onValueChange={setEditType} disabled={readOnly}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -3375,6 +3389,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                     id="venue-active"
                     checked={editActive}
                     onCheckedChange={(v) => setEditActive(v === true)}
+                    disabled={readOnly}
                   />
                   <Label htmlFor="venue-active" className="cursor-pointer">啟用此場域</Label>
                 </div>
@@ -3394,9 +3409,11 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                         onCheckedChange={(v) =>
                           setSettings((p) => ({ ...p, is_starlink: v === true }))
                         }
+                        disabled={readOnly}
                       />
                       <Label htmlFor="venue-starlink" className="cursor-pointer">星鏈場域</Label>
                     </div>
+
 
                     <div className="grid grid-cols-2 gap-3">
                       <Field label="個人目標">
