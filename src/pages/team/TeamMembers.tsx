@@ -75,6 +75,7 @@ interface MemberRow {
   email: string;
   is_active: boolean;
   roles: TeamRole[];
+  managed_venue: string | null;
 }
 
 interface PendingInviteRow {
@@ -83,6 +84,11 @@ interface PendingInviteRow {
   display_name: string | null;
   role: TeamRole;
   created_at: string;
+}
+
+interface VenueOption {
+  id: string;
+  name: string;
 }
 
 export default function TeamMembers() {
@@ -101,11 +107,13 @@ export default function TeamMembers() {
   const [pending, setPending] = useState<PendingInviteRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterRole, setFilterRole] = useState<"all" | TeamRole>("all");
+  const [venues, setVenues] = useState<VenueOption[]>([]);
 
   // 邀請表單
   const [inviteName, setInviteName] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRoles, setInviteRoles] = useState<TeamRole[]>([]);
+  const [inviteVenue, setInviteVenue] = useState<string>("");
   const [inviting, setInviting] = useState(false);
 
   // 編輯側邊面板
@@ -113,6 +121,7 @@ export default function TeamMembers() {
   const [editName, setEditName] = useState("");
   const [editRoles, setEditRoles] = useState<TeamRole[]>([]);
   const [editActive, setEditActive] = useState(true);
+  const [editVenue, setEditVenue] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
 
@@ -127,7 +136,7 @@ export default function TeamMembers() {
     // 1. 取得所有 team profiles
     const { data: profiles, error: pErr } = await supabase
       .from("team_member_profiles")
-      .select("id, user_id, display_name, is_active")
+      .select("id, user_id, display_name, is_active, managed_venue")
       .order("display_name", { ascending: true });
 
     if (pErr) {
@@ -171,6 +180,7 @@ export default function TeamMembers() {
       email: p.user_id ? (emailMap.get(p.user_id) ?? "") : "",
       is_active: p.is_active ?? true,
       roles: p.user_id ? Array.from(rolesMap.get(p.user_id) ?? []) : [],
+      managed_venue: (p as { managed_venue?: string | null }).managed_venue ?? null,
     }));
 
     // scout_manager 僅看到有 scout 或 kol 角色的成員
@@ -198,6 +208,18 @@ export default function TeamMembers() {
   useEffect(() => {
     if (canAccess) fetchMembers();
   }, [canAccess, fetchMembers]);
+
+  useEffect(() => {
+    if (!canAccess) return;
+    (async () => {
+      const { data } = await supabase
+        .from("kol_venues")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("name", { ascending: true });
+      setVenues((data ?? []) as VenueOption[]);
+    })();
+  }, [canAccess]);
 
   // 主管角色 → 自動包含的子角色（勾選主管時，子角色強制取消並 disabled）
   const MANAGER_CHILD_MAP: Partial<Record<TeamRole, TeamRole>> = {
@@ -254,9 +276,17 @@ export default function TeamMembers() {
 
       if (targetUserId) {
         // 既有用戶：直接套用 profile + roles
+        const wantsVenueManager = inviteRoles.includes("venue_manager" as TeamRole);
         const { error: profileErr } = await supabase
           .from("team_member_profiles")
-          .upsert({ user_id: targetUserId, display_name: inviteName.trim() }, { onConflict: "user_id" });
+          .upsert(
+            {
+              user_id: targetUserId,
+              display_name: inviteName.trim(),
+              managed_venue: wantsVenueManager ? (inviteVenue || null) : null,
+            },
+            { onConflict: "user_id" },
+          );
         if (profileErr) throw profileErr;
 
         const { data: existingRoles } = await supabase
@@ -295,6 +325,7 @@ export default function TeamMembers() {
       setInviteName("");
       setInviteEmail("");
       setInviteRoles([]);
+      setInviteVenue("");
       fetchMembers();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "邀請失敗");
@@ -320,6 +351,7 @@ export default function TeamMembers() {
     setEditName(m.display_name);
     setEditRoles(m.roles);
     setEditActive(m.is_active);
+    setEditVenue(m.managed_venue ?? "");
   };
 
   const isNorris = editTarget?.user_id === NORRIS_USER_ID;
@@ -337,11 +369,13 @@ export default function TeamMembers() {
     if (!editName.trim()) return toast.error("顯示名稱不可空白");
     setSaving(true);
     try {
+      const wantsVenueManager = editRoles.includes("venue_manager" as TeamRole);
       const { error: pErr } = await supabase
         .from("team_member_profiles")
         .update({
           display_name: editName.trim(),
           is_active: editActive,
+          managed_venue: wantsVenueManager ? (editVenue || null) : null,
         })
         .eq("id", editTarget.id);
       if (pErr) throw pErr;
@@ -511,6 +545,21 @@ export default function TeamMembers() {
               })}
 
             </div>
+            {inviteRoles.includes("venue_manager" as TeamRole) && (
+              <div className="space-y-2 pt-2">
+                <Label>負責場域</Label>
+                <Select value={inviteVenue} onValueChange={setInviteVenue}>
+                  <SelectTrigger className="w-full sm:w-[260px]">
+                    <SelectValue placeholder="選擇負責場域" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {venues.map((v) => (
+                      <SelectItem key={v.id} value={v.name}>{v.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             {!isAdmin && <p className="text-xs text-muted-foreground">您僅能指派 星探 / KOL 角色</p>}
             <p className="text-xs text-muted-foreground">對方若尚未註冊，預設角色將暫存，首次登入時自動套用。</p>
           </div>
@@ -629,7 +678,7 @@ export default function TeamMembers() {
                         </div>
                         {m.email && <p className="text-xs text-muted-foreground mt-0.5">{m.email}</p>}
                       </div>
-                      <div className="flex flex-wrap gap-1">
+                      <div className="flex flex-wrap items-center gap-1">
                         {!m.user_id ? null : displayRoles(m).length === 0 ? (
                           <span className="text-xs text-muted-foreground">無角色</span>
                         ) : (
@@ -638,6 +687,9 @@ export default function TeamMembers() {
                               {ROLE_LABEL[r]}
                             </Badge>
                           ))
+                        )}
+                        {displayRoles(m).includes("venue_manager" as TeamRole) && m.managed_venue && (
+                          <span className="text-xs text-muted-foreground ml-1">{m.managed_venue}</span>
                         )}
                       </div>
                     </div>
@@ -704,6 +756,21 @@ export default function TeamMembers() {
                       </label>
                     )}
                   </div>
+                  {editRoles.includes("venue_manager" as TeamRole) && (
+                    <div className="space-y-2 pt-2">
+                      <Label>負責場域</Label>
+                      <Select value={editVenue} onValueChange={setEditVenue}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="選擇負責場域" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {venues.map((v) => (
+                            <SelectItem key={v.id} value={v.name}>{v.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <p className="text-xs text-muted-foreground border rounded-md px-3 py-2 bg-muted/30">
