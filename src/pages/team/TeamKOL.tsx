@@ -3360,163 +3360,80 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
             </SheetHeader>
 
             <div className="space-y-6 py-4">
+              {readOnly ? (
+                (() => {
+                  const dash = "—";
+                  const showText = (v: any) =>
+                    v === null || v === undefined || v === "" ? dash : String(v);
+                  const showBool = (v: boolean, on = "啟用", off = "停用") =>
+                    v ? `✓ ${on}` : `✗ ${off}`;
+                  const showDays = (arr: number[] | null | undefined) =>
+                    arr && arr.length > 0
+                      ? arr.slice().sort((a, b) => a - b).map((i) => WEEKDAYS[i]).join("、")
+                      : dash;
+                  const Item = ({ label, value }: { label: string; value: React.ReactNode }) => (
+                    <div className="space-y-1">
+                      <div className="text-xs text-muted-foreground">{label}</div>
+                      <div className="text-sm">{value}</div>
+                    </div>
+                  );
+                  return (
+                    <>
+                      <section className="space-y-3">
+                        <h4 className="font-semibold text-sm">基本資訊</h4>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                          <Item label="場域名稱" value={showText(editName)} />
+                          <Item label="類型" value={showText(editType)} />
+                          <Item label="狀態" value={showBool(editActive)} />
+                        </div>
+                      </section>
+                      <section className="space-y-3">
+                        <h4 className="font-semibold text-sm">邀約規則設定</h4>
+                        {loadingSettings ? (
+                          <p className="text-xs text-muted-foreground">載入中…</p>
+                        ) : (
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                            <Item label="星鏈場域" value={showBool(settings.is_starlink, "是", "否")} />
+                            <Item label="個人目標" value={showText(settings.personal_target)} />
+                            <Item label="群組名稱" value={showText(settings.group_name)} />
+                            <Item label="計算方式" value={showText(settings.calc_type)} />
+                            <Item label="每日上限" value={showText(settings.daily_limit)} />
+                            <Item label="每月上限" value={showText(settings.monthly_limit)} />
+                            <Item label="合作開始日" value={showText(settings.collab_start)} />
+                            <Item label="合作結束日" value={showText(settings.collab_end)} />
+                            <div className="col-span-2">
+                              <Item label="可邀星期" value={showDays(settings.allowed_weekdays)} />
+                            </div>
+                            <Item label="特殊期間開始" value={showText(settings.special_start)} />
+                            <Item label="特殊期間結束" value={showText(settings.special_end)} />
+                            <Item label="特殊期間上限" value={showText(settings.special_limit)} />
+                            <div className="col-span-2">
+                              <Item label="特殊期間可邀星期" value={showDays(settings.special_weekdays)} />
+                            </div>
+                            <div className="col-span-2">
+                              <Item label="連結規則" value={showText(settings.link_rule)} />
+                            </div>
+                            <div className="col-span-2">
+                              <Item label="訂單編號規則" value={showText(settings.order_number_rule)} />
+                            </div>
+                          </div>
+                        )}
+                      </section>
+                    </>
+                  );
+                })()
+              ) : (
+              <>
               {/* 區塊一：基本資訊 */}
               <section className="space-y-3">
                 <h4 className="font-semibold text-sm">基本資訊</h4>
                 <Field label="場域名稱">
-                  <Input
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    disabled={readOnly}
-                  />
-                </Field>
-                <Field label="類型">
-                  <Select value={editType} onValueChange={setEditType} disabled={readOnly}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {VENUE_TYPES.map((t) => (
-                        <SelectItem key={t} value={t}>
-                          {t}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="venue-active"
-                    checked={editActive}
-                    onCheckedChange={(v) => setEditActive(v === true)}
-                    disabled={readOnly}
-                  />
-                  <Label htmlFor="venue-active" className="cursor-pointer">啟用此場域</Label>
-                </div>
-              </section>
-
-              {/* 區塊二：邀約規則 */}
-              <section className="space-y-3">
-                <h4 className="font-semibold text-sm">邀約規則設定</h4>
-                {loadingSettings ? (
-                  <p className="text-xs text-muted-foreground">載入中…</p>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="venue-starlink"
-                        checked={settings.is_starlink}
-                        onCheckedChange={(v) =>
-                          setSettings((p) => ({ ...p, is_starlink: v === true }))
-                        }
-                        disabled={readOnly}
-                      />
-                      <Label htmlFor="venue-starlink" className="cursor-pointer">星鏈場域</Label>
-                    </div>
-
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <Field label="個人目標">
-                        {numInput(settings.personal_target, (v) =>
-                          setSettings((p) => ({ ...p, personal_target: v }))
-                        )}
-                      </Field>
-                      <Field label="群組名稱">
-                        {textInput(settings.group_name, (v) =>
-                          setSettings((p) => ({ ...p, group_name: v }))
-                        )}
-                      </Field>
-                      <Field label="計算方式">
-                        {textInput(settings.calc_type, (v) =>
-                          setSettings((p) => ({ ...p, calc_type: v }))
-                        )}
-                      </Field>
-                      <Field label="每日上限">
-                        {numInput(settings.daily_limit, (v) =>
-                          setSettings((p) => ({ ...p, daily_limit: v }))
-                        )}
-                      </Field>
-                      <Field label="每月上限">
-                        {numInput(settings.monthly_limit, (v) =>
-                          setSettings((p) => ({ ...p, monthly_limit: v }))
-                        )}
-                      </Field>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <Field label="合作開始日">
-                        {dateInput(settings.collab_start, (v) =>
-                          setSettings((p) => ({ ...p, collab_start: v }))
-                        )}
-                      </Field>
-                      <Field label="合作結束日">
-                        {dateInput(settings.collab_end, (v) =>
-                          setSettings((p) => ({ ...p, collab_end: v }))
-                        )}
-                      </Field>
-                    </div>
-
-                    <Field label="可邀星期">
-                      <div className="flex flex-wrap gap-3">
-                        {WEEKDAYS.map((w, idx) => (
-                          <label key={`aw-${idx}`} className="flex items-center gap-1 text-sm cursor-pointer">
-                            <Checkbox
-                              checked={(settings.allowed_weekdays ?? []).includes(idx)}
-                              onCheckedChange={() => toggleWeekday("allowed_weekdays", idx)}
-                              disabled={readOnly}
-                            />
-                            {w}
-                          </label>
-                        ))}
-                      </div>
-                    </Field>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <Field label="特殊期間開始">
-                        {dateInput(settings.special_start, (v) =>
-                          setSettings((p) => ({ ...p, special_start: v }))
-                        )}
-                      </Field>
-                      <Field label="特殊期間結束">
-                        {dateInput(settings.special_end, (v) =>
-                          setSettings((p) => ({ ...p, special_end: v }))
-                        )}
-                      </Field>
-                      <Field label="特殊期間上限">
-                        {numInput(settings.special_limit, (v) =>
-                          setSettings((p) => ({ ...p, special_limit: v }))
-                        )}
-                      </Field>
-                    </div>
-
-                    <Field label="特殊期間可邀星期">
-                      <div className="flex flex-wrap gap-3">
-                        {WEEKDAYS.map((w, idx) => (
-                          <label key={`sw-${idx}`} className="flex items-center gap-1 text-sm cursor-pointer">
-                            <Checkbox
-                              checked={(settings.special_weekdays ?? []).includes(idx)}
-                              onCheckedChange={() => toggleWeekday("special_weekdays", idx)}
-                              disabled={readOnly}
-                            />
-                            {w}
-                          </label>
-                        ))}
-                      </div>
-                    </Field>
-
-                    <Field label="連結規則">
-                      {textInput(settings.link_rule, (v) =>
-                        setSettings((p) => ({ ...p, link_rule: v }))
-                      )}
-                    </Field>
-                    <Field label="訂單編號規則">
-                      {textInput(settings.order_number_rule, (v) =>
-                        setSettings((p) => ({ ...p, order_number_rule: v }))
-                      )}
-                    </Field>
+...
                   </>
                 )}
               </section>
+              </>
+              )}
             </div>
 
             <SheetFooter>
