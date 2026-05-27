@@ -680,6 +680,7 @@ function InvitationsTab({
       inventory_count: row.inventory_count != null ? String(row.inventory_count) : "",
       kol_tags: row.kol_tags ?? [],
       kpi_qualified: !!row.kpi_qualified,
+      kol_direct_ticket_link: row.kol_direct_ticket_link ?? "",
     });
     setDupWarning(null);
     setSheetOpen(true);
