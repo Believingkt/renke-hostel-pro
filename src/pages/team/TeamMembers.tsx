@@ -387,12 +387,14 @@ export default function TeamMembers() {
     setSaving(true);
     try {
       const wantsVenueManager = editRoles.includes("venue_manager" as TeamRole);
+      const isScoutLike = editRoles.includes("scout") || editRoles.includes("scout_manager");
       const { error: pErr } = await supabase
         .from("team_member_profiles")
         .update({
           display_name: editName.trim(),
           is_active: editActive,
           managed_venue: wantsVenueManager ? (editVenue || null) : null,
+          is_scout_team_member: isScoutLike ? editScoutTeam : false,
         })
         .eq("id", editTarget.id);
       if (pErr) throw pErr;
