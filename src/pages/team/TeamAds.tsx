@@ -244,7 +244,7 @@ function AdsListTab() {
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((r) => (
+              pageRows.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell className="font-mono text-xs">{r.ad_id}</TableCell>
                   <TableCell>{r.ad_name ?? "—"}</TableCell>
@@ -268,6 +268,19 @@ function AdsListTab() {
             )}
           </TableBody>
         </Table>
+        <div className="flex items-center justify-between pt-3">
+          <div className="text-sm text-muted-foreground">
+            共 {filtered.length} 筆，第 {page} / {totalPages} 頁
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+              上一頁
+            </Button>
+            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+              下一頁
+            </Button>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
