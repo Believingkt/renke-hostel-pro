@@ -1,0 +1,1 @@
+ALTER TABLE public.kol_profiles ADD COLUMN cid_configured boolean NOT NULL DEFAULT false;
