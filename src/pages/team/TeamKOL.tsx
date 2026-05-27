@@ -363,7 +363,7 @@ function InvitationsTab({
   useEffect(() => {
     (async () => {
       const [accRes, venueRes, scoutRes, scoutMgrRes, rarRes, tagRes] = await Promise.all([
-        supabase.from("accommodation_info").select("id, name, booking_type, short_url_alias").order("name"),
+        supabase.from("accommodation_info").select("id, name, booking_type, short_url_alias, is_active").order("name"),
         supabase
           .from("kol_venues" as any)
           .select("id, name, type, is_active")
