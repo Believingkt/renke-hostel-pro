@@ -2251,20 +2251,19 @@ function ProspectsTab({
 // ============================================================
 
 interface TeamTargetRow {
-  id?: string;
-  accommodation_id: string;
-  accommodation_name: string;
+  id: string;
+  venue_name: string;
   target_count: number;
+  personal_min: number | null;
+  is_starlink: boolean;
   actual_count: number;
 }
 
-interface PersonalTargetRow {
-  id?: string;
+interface PersonalRow {
   scout_id: string;
   scout_name: string;
-  accommodation_id: string;
-  accommodation_name: string;
-  target_count: number;
+  venue_name: string;
+  personal_min: number | null;
   actual_count: number;
 }
 
@@ -2276,12 +2275,12 @@ function achievementColor(actual: number, target: number): string {
   return "bg-red-100 text-red-700 border-red-200";
 }
 
-function achievementIcon(actual: number, target: number): string {
+function achievementLabel(actual: number, target: number): string {
   if (target <= 0) return "—";
   const rate = actual / target;
-  if (rate >= 1) return "✅";
-  if (rate >= 0.8) return "⚠️";
-  return "❌";
+  if (rate >= 1) return "✅ 達標";
+  if (rate >= 0.8) return "⚠️ 接近";
+  return "❌ 未達標";
 }
 
 function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentUserId: string }) {
@@ -2289,40 +2288,34 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
 
-  const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [scouts, setScouts] = useState<Scout[]>([]);
-
   const [teamRows, setTeamRows] = useState<TeamTargetRow[]>([]);
-  const [personalRows, setPersonalRows] = useState<PersonalTargetRow[]>([]);
+  const [personalRows, setPersonalRows] = useState<PersonalRow[]>([]);
+  const [fallbackLabel, setFallbackLabel] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
-  const [editTarget, setEditTarget] = useState<
-    { kind: "team"; row: TeamTargetRow } | { kind: "personal"; row: PersonalTargetRow } | null
-  >(null);
-  const [editValue, setEditValue] = useState("");
-  const [savingTarget, setSavingTarget] = useState(false);
+  const [editRow, setEditRow] = useState<TeamTargetRow | null>(null);
+  const [editTarget, setEditTarget] = useState("");
+  const [editPersonal, setEditPersonal] = useState("");
+  const [editStarlink, setEditStarlink] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const [addKind, setAddKind] = useState<"team" | "personal" | null>(null);
-  const [addAcc, setAddAcc] = useState("");
-  const [addScout, setAddScout] = useState("");
-  const [addCount, setAddCount] = useState("");
+  const [addOpen, setAddOpen] = useState(false);
+  const [addVenue, setAddVenue] = useState("");
+  const [addTarget, setAddTarget] = useState("");
+  const [addPersonal, setAddPersonal] = useState("");
+  const [addStarlink, setAddStarlink] = useState(false);
 
   useEffect(() => {
     (async () => {
-      const [accRes, scoutRes] = await Promise.all([
-        supabase.from("accommodation_info").select("id, name, booking_type, short_url_alias").order("name"),
-        supabase.rpc("get_team_role_members", { p_role: "scout" }),
-      ]);
-      if (accRes.data) setAccommodations(accRes.data as Accommodation[]);
+      const scoutRes = await supabase.rpc("get_team_role_members", { p_role: "scout" });
       if (scoutRes.data) {
         const seen = new Set<string>();
         const list: Scout[] = [];
         for (const r of scoutRes.data as any[]) {
-          const uid = r.user_id;
-          const dn = r.display_name ?? uid;
-          if (!seen.has(uid)) {
-            seen.add(uid);
-            list.push({ user_id: uid, display_name: dn });
+          if (!seen.has(r.user_id)) {
+            seen.add(r.user_id);
+            list.push({ user_id: r.user_id, display_name: r.display_name ?? r.user_id });
           }
         }
         list.sort((a, b) => a.display_name.localeCompare(b.display_name));
@@ -2334,119 +2327,181 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
   const kpiMonthStr = `${year}-${String(month).padStart(2, "0")}-01`;
 
   const fetchAll = useCallback(async () => {
-    if (accommodations.length === 0) return;
     setLoading(true);
-    const accMap = new Map(accommodations.map((a) => [a.id, a.name]));
-    const scoutMap = new Map(scouts.map((s) => [s.user_id, s.display_name]));
+    setFallbackLabel("");
 
-    const [teamRes, personalRes, kolRes] = await Promise.all([
-      supabase.from("scout_team_targets").select("*").eq("year", year).eq("month", month),
-      supabase.from("scout_monthly_targets").select("*").eq("year", year).eq("month", month),
-      supabase
-        .from("kol_profiles")
-        .select("accommodation_id, scout_id")
-        .eq("is_error", false)
-        .eq("kpi_month", kpiMonthStr),
-    ]);
+    // 1. 當月團隊目標
+    let { data: settings } = await supabase
+      .from("scout_team_targets" as any)
+      .select("*")
+      .eq("year", year)
+      .eq("month", month);
 
-    const teamActual = new Map<string, number>();
-    const personalActual = new Map<string, number>();
-    (kolRes.data ?? []).forEach((k: any) => {
-      if (k.accommodation_id) {
-        teamActual.set(k.accommodation_id, (teamActual.get(k.accommodation_id) ?? 0) + 1);
-        if (k.scout_id) {
-          const key = `${k.scout_id}|${k.accommodation_id}`;
-          personalActual.set(key, (personalActual.get(key) ?? 0) + 1);
-        }
+    // 2. 若無資料，回退到最近一個月
+    if (!settings || settings.length === 0) {
+      const cutoff = year * 100 + month;
+      const { data: all } = await supabase
+        .from("scout_team_targets" as any)
+        .select("*");
+      const earlier = ((all as any[]) ?? []).filter((r) => r.year * 100 + r.month < cutoff);
+      if (earlier.length > 0) {
+        earlier.sort((a, b) => (b.year * 100 + b.month) - (a.year * 100 + a.month));
+        const latest = earlier[0];
+        settings = earlier.filter((r) => r.year === latest.year && r.month === latest.month);
+        setFallbackLabel(`沿用 ${latest.year}/${latest.month} 設定`);
+      } else {
+        settings = [];
       }
+    }
+
+    // 3. 當月實際邀約（依 venue_name + kpi_month）
+    const venueNames = (settings as any[]).map((s) => s.venue_name).filter(Boolean);
+    let kolData: any[] = [];
+    if (venueNames.length > 0) {
+      const { data } = await supabase
+        .from("kol_profiles")
+        .select("scout_id, venue_name")
+        .eq("is_error", false)
+        .eq("kpi_month", kpiMonthStr)
+        .in("venue_name", venueNames);
+      kolData = data ?? [];
+    }
+
+    // 全部 kol_profiles 當月（給個人表用，含未在設定中的場域亦可顯示）
+    const { data: allKol } = await supabase
+      .from("kol_profiles")
+      .select("scout_id, venue_name")
+      .eq("is_error", false)
+      .eq("kpi_month", kpiMonthStr);
+
+    // 團隊實際統計
+    const teamActual = new Map<string, number>();
+    kolData.forEach((k) => {
+      if (k.venue_name) teamActual.set(k.venue_name, (teamActual.get(k.venue_name) ?? 0) + 1);
     });
 
-    setTeamRows(
-      ((teamRes.data as any[]) ?? []).map((t) => ({
-        id: t.id,
-        accommodation_id: t.accommodation_id,
-        accommodation_name: accMap.get(t.accommodation_id) ?? "-",
-        target_count: t.target_count,
-        actual_count: teamActual.get(t.accommodation_id) ?? 0,
-      })),
+    const tRows: TeamTargetRow[] = (settings as any[]).map((s) => ({
+      id: s.id,
+      venue_name: s.venue_name ?? "-",
+      target_count: s.target_count ?? 0,
+      personal_min: s.personal_min,
+      is_starlink: !!s.is_starlink,
+      actual_count: teamActual.get(s.venue_name) ?? 0,
+    }));
+    tRows.sort((a, b) => a.venue_name.localeCompare(b.venue_name));
+    setTeamRows(tRows);
+
+    // 個人實際統計
+    const personalMap = new Map<string, number>();
+    (allKol ?? []).forEach((k: any) => {
+      if (k.scout_id && k.venue_name) {
+        const key = `${k.scout_id}|${k.venue_name}`;
+        personalMap.set(key, (personalMap.get(key) ?? 0) + 1);
+      }
+    });
+    const personalMinMap = new Map<string, number | null>(
+      (settings as any[]).map((s) => [s.venue_name, s.personal_min]),
     );
-    setPersonalRows(
-      ((personalRes.data as any[]) ?? []).map((t) => ({
-        id: t.id,
-        scout_id: t.scout_id,
-        scout_name: scoutMap.get(t.scout_id) ?? "-",
-        accommodation_id: t.accommodation_id,
-        accommodation_name: accMap.get(t.accommodation_id) ?? "-",
-        target_count: t.target_count,
-        actual_count: personalActual.get(`${t.scout_id}|${t.accommodation_id}`) ?? 0,
-      })),
+    const scoutMap = new Map(scouts.map((s) => [s.user_id, s.display_name]));
+    const pRows: PersonalRow[] = [];
+    for (const [key, actual] of personalMap.entries()) {
+      const [scout_id, venue_name] = key.split("|");
+      pRows.push({
+        scout_id,
+        scout_name: scoutMap.get(scout_id) ?? scout_id.slice(0, 8),
+        venue_name,
+        personal_min: personalMinMap.has(venue_name) ? (personalMinMap.get(venue_name) ?? null) : null,
+        actual_count: actual,
+      });
+    }
+    pRows.sort(
+      (a, b) => a.scout_name.localeCompare(b.scout_name) || a.venue_name.localeCompare(b.venue_name),
     );
+    setPersonalRows(pRows);
     setLoading(false);
-  }, [year, month, accommodations, scouts, kpiMonthStr]);
+  }, [year, month, kpiMonthStr, scouts]);
 
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
 
+  const openEdit = (row: TeamTargetRow) => {
+    setEditRow(row);
+    setEditTarget(String(row.target_count));
+    setEditPersonal(row.personal_min == null ? "" : String(row.personal_min));
+    setEditStarlink(row.is_starlink);
+  };
+
   const handleSaveEdit = async () => {
-    if (!editTarget) return;
-    const n = parseInt(editValue, 10);
-    if (Number.isNaN(n) || n < 0) {
-      toast.error("請輸入有效的目標數");
+    if (!editRow) return;
+    const t = parseInt(editTarget, 10);
+    if (Number.isNaN(t) || t < 0) {
+      toast.error("請輸入有效的團隊目標數");
       return;
     }
-    setSavingTarget(true);
-    const table = editTarget.kind === "team" ? "scout_team_targets" : "scout_monthly_targets";
-    const { error } = await supabase.from(table).update({ target_count: n }).eq("id", editTarget.row.id!);
-    setSavingTarget(false);
+    const pm = editPersonal.trim() === "" ? null : parseInt(editPersonal, 10);
+    if (pm !== null && (Number.isNaN(pm) || pm < 0)) {
+      toast.error("請輸入有效的個人最低目標");
+      return;
+    }
+    setSaving(true);
+    const { error } = await (supabase.from("scout_team_targets" as any) as any)
+      .update({ target_count: t, personal_min: pm, is_starlink: editStarlink })
+      .eq("id", editRow.id);
+    setSaving(false);
     if (error) {
       toast.error(error.message);
       return;
     }
     toast.success("已更新目標");
-    setEditTarget(null);
+    setEditRow(null);
     fetchAll();
   };
 
-  const openAdd = (kind: "team" | "personal") => {
-    setAddKind(kind);
-    setAddAcc("");
-    setAddScout("");
-    setAddCount("");
-  };
-
   const handleAdd = async () => {
-    if (!addKind) return;
-    if (!addAcc) {
-      toast.error("請選擇館別");
+    const name = addVenue.trim();
+    if (!name) {
+      toast.error("請輸入場域名稱");
       return;
     }
-    if (addKind === "personal" && !addScout) {
-      toast.error("請選擇星探");
+    const t = parseInt(addTarget, 10);
+    if (Number.isNaN(t) || t < 0) {
+      toast.error("請輸入有效的團隊目標數");
       return;
     }
-    const n = parseInt(addCount, 10);
-    if (Number.isNaN(n) || n < 0) {
-      toast.error("請輸入有效目標數");
+    const pm = addPersonal.trim() === "" ? null : parseInt(addPersonal, 10);
+    if (pm !== null && (Number.isNaN(pm) || pm < 0)) {
+      toast.error("請輸入有效的個人最低目標");
       return;
     }
-    const payload: Record<string, any> = {
+    setSaving(true);
+    // 嘗試解析 accommodation_id
+    const { data: acc } = await supabase
+      .from("accommodation_info")
+      .select("id")
+      .eq("name", name)
+      .maybeSingle();
+    const { error } = await (supabase.from("scout_team_targets" as any) as any).insert({
       year,
       month,
-      accommodation_id: addAcc,
-      target_count: n,
+      venue_name: name,
+      target_count: t,
+      personal_min: pm,
+      is_starlink: addStarlink,
+      accommodation_id: acc?.id ?? null,
       created_by: currentUserId,
-    };
-    if (addKind === "personal") payload.scout_id = addScout;
-
-    const table = addKind === "team" ? "scout_team_targets" : "scout_monthly_targets";
-    const { error } = await (supabase.from(table) as any).insert(payload);
+    });
+    setSaving(false);
     if (error) {
       toast.error(error.message);
       return;
     }
     toast.success("已新增目標");
-    setAddKind(null);
+    setAddOpen(false);
+    setAddVenue("");
+    setAddTarget("");
+    setAddPersonal("");
+    setAddStarlink(false);
     fetchAll();
   };
 
@@ -2457,36 +2512,34 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
       <div className="flex items-center gap-2">
         <Label>年月:</Label>
         <Select value={String(year)} onValueChange={(v) => setYear(parseInt(v, 10))}>
-          <SelectTrigger className="w-28">
-            <SelectValue />
-          </SelectTrigger>
+          <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
           <SelectContent>
             {years.map((y) => (
-              <SelectItem key={y} value={String(y)}>
-                {y} 年
-              </SelectItem>
+              <SelectItem key={y} value={String(y)}>{y} 年</SelectItem>
             ))}
           </SelectContent>
         </Select>
         <Select value={String(month)} onValueChange={(v) => setMonth(parseInt(v, 10))}>
-          <SelectTrigger className="w-24">
-            <SelectValue />
-          </SelectTrigger>
+          <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
           <SelectContent>
             {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-              <SelectItem key={m} value={String(m)}>
-                {m} 月
-              </SelectItem>
+              <SelectItem key={m} value={String(m)}>{m} 月</SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
+      {/* 團隊邀約目標 */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">團體目標</h2>
+          <div className="flex items-baseline gap-2">
+            <h2 className="text-lg font-semibold">團隊邀約目標</h2>
+            {fallbackLabel && (
+              <span className="text-xs text-muted-foreground">{fallbackLabel}</span>
+            )}
+          </div>
           {isManager && (
-            <Button size="sm" variant="outline" onClick={() => openAdd("team")}>
+            <Button size="sm" variant="outline" onClick={() => setAddOpen(true)}>
               <Plus className="mr-1 h-4 w-4" />
               新增目標
             </Button>
@@ -2496,10 +2549,12 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>館別</TableHead>
-                <TableHead className="text-right">目標邀約數</TableHead>
+                <TableHead>場域</TableHead>
+                <TableHead className="text-center">星鏈</TableHead>
+                <TableHead className="text-right">團隊目標</TableHead>
                 <TableHead className="text-right">實際邀約數</TableHead>
                 <TableHead className="text-right">達標率</TableHead>
+                <TableHead>個人最低目標</TableHead>
                 <TableHead className="text-right">狀態</TableHead>
                 {isManager && <TableHead className="text-right">操作</TableHead>}
               </TableRow>
@@ -2507,8 +2562,8 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
             <TableBody>
               {loading ? null : teamRows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={isManager ? 6 : 5} className="text-center text-sm text-muted-foreground">
-                    本月尚未設定團體目標
+                  <TableCell colSpan={isManager ? 8 : 7} className="text-center text-sm text-muted-foreground">
+                    尚無目標資料
                   </TableCell>
                 </TableRow>
               ) : (
@@ -2516,26 +2571,23 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
                   const rate = r.target_count > 0 ? Math.round((r.actual_count / r.target_count) * 100) : 0;
                   return (
                     <TableRow key={r.id}>
-                      <TableCell>{r.accommodation_name}</TableCell>
+                      <TableCell>{r.venue_name}</TableCell>
+                      <TableCell className="text-center">{r.is_starlink ? "✅" : "❌"}</TableCell>
                       <TableCell className="text-right tabular-nums">{r.target_count}</TableCell>
                       <TableCell className="text-right tabular-nums">{r.actual_count}</TableCell>
                       <TableCell className="text-right tabular-nums">{rate}%</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {r.personal_min == null ? "不限定" : `每人至少 ${r.personal_min} 位`}
+                      </TableCell>
                       <TableCell className="text-right">
                         <Badge variant="outline" className={achievementColor(r.actual_count, r.target_count)}>
-                          {achievementIcon(r.actual_count, r.target_count)}
+                          {achievementLabel(r.actual_count, r.target_count)}
                         </Badge>
                       </TableCell>
                       {isManager && (
                         <TableCell className="text-right">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                              setEditTarget({ kind: "team", row: r });
-                              setEditValue(String(r.target_count));
-                            }}
-                          >
-                            編輯
+                          <Button size="sm" variant="ghost" onClick={() => openEdit(r)}>
+                            <Pencil className="h-4 w-4" />
                           </Button>
                         </TableCell>
                       )}
@@ -2548,141 +2600,132 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
         </Card>
       </div>
 
+      {/* 個人邀約達標率 */}
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">個人目標</h2>
-          {isManager && (
-            <Button size="sm" variant="outline" onClick={() => openAdd("personal")}>
-              <Plus className="mr-1 h-4 w-4" />
-              新增目標
-            </Button>
-          )}
-        </div>
+        <h2 className="text-lg font-semibold">個人邀約達標率</h2>
         <Card>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>星探</TableHead>
-                <TableHead>館別</TableHead>
-                <TableHead className="text-right">目標數</TableHead>
+                <TableHead>場域</TableHead>
+                <TableHead className="text-right">個人目標</TableHead>
                 <TableHead className="text-right">實際邀約數</TableHead>
                 <TableHead className="text-right">達標狀態</TableHead>
-                {isManager && <TableHead className="text-right">操作</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? null : personalRows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={isManager ? 6 : 5} className="text-center text-sm text-muted-foreground">
-                    本月尚未設定個人目標
+                  <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
+                    本月尚無個人邀約紀錄
                   </TableCell>
                 </TableRow>
               ) : (
-                personalRows.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell>{r.scout_name}</TableCell>
-                    <TableCell>{r.accommodation_name}</TableCell>
-                    <TableCell className="text-right tabular-nums">{r.target_count}</TableCell>
-                    <TableCell className="text-right tabular-nums">{r.actual_count}</TableCell>
-                    <TableCell className="text-right">
-                      <Badge variant="outline" className={achievementColor(r.actual_count, r.target_count)}>
-                        {achievementIcon(r.actual_count, r.target_count)}{" "}
-                        {r.target_count > 0 ? `${Math.round((r.actual_count / r.target_count) * 100)}%` : ""}
+                personalRows.map((r, i) => {
+                  let badge: JSX.Element;
+                  if (r.personal_min == null) {
+                    badge = <span className="text-muted-foreground">—</span>;
+                  } else if (r.actual_count >= r.personal_min) {
+                    badge = (
+                      <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
+                        ✅ 達標
                       </Badge>
-                    </TableCell>
-                    {isManager && (
-                      <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setEditTarget({ kind: "personal", row: r });
-                            setEditValue(String(r.target_count));
-                          }}
-                        >
-                          編輯
-                        </Button>
+                    );
+                  } else {
+                    badge = (
+                      <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200">
+                        ❌ 未達標
+                      </Badge>
+                    );
+                  }
+                  return (
+                    <TableRow key={`${r.scout_id}-${r.venue_name}-${i}`}>
+                      <TableCell>{r.scout_name}</TableCell>
+                      <TableCell>{r.venue_name}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {r.personal_min == null ? "不限定" : r.personal_min}
                       </TableCell>
-                    )}
-                  </TableRow>
-                ))
+                      <TableCell className="text-right tabular-nums">{r.actual_count}</TableCell>
+                      <TableCell className="text-right">{badge}</TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
         </Card>
       </div>
 
-      <Dialog open={!!editTarget} onOpenChange={(o) => !o && setEditTarget(null)}>
+      {/* 編輯 Dialog */}
+      <Dialog open={!!editRow} onOpenChange={(o) => !o && setEditRow(null)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>編輯目標數</DialogTitle>
+            <DialogTitle>編輯目標 — {editRow?.venue_name}</DialogTitle>
           </DialogHeader>
-          {editTarget && (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                {editTarget.kind === "team"
-                  ? `館別:${editTarget.row.accommodation_name}`
-                  : `${(editTarget.row as PersonalTargetRow).scout_name} × ${editTarget.row.accommodation_name}`}
-              </p>
-              <Input type="number" min={0} value={editValue} onChange={(e) => setEditValue(e.target.value)} />
+          <div className="space-y-3">
+            <Field label="團隊目標數">
+              <Input type="number" min={0} value={editTarget} onChange={(e) => setEditTarget(e.target.value)} />
+            </Field>
+            <Field label="個人最低目標（留空=不限定）">
+              <Input
+                type="number"
+                min={0}
+                value={editPersonal}
+                onChange={(e) => setEditPersonal(e.target.value)}
+                placeholder="不限定"
+              />
+            </Field>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="edit-starlink"
+                checked={editStarlink}
+                onCheckedChange={(c) => setEditStarlink(!!c)}
+              />
+              <Label htmlFor="edit-starlink" className="cursor-pointer">是否為星鏈場域</Label>
             </div>
-          )}
+          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditTarget(null)} disabled={savingTarget}>
-              取消
-            </Button>
-            <Button onClick={handleSaveEdit} disabled={savingTarget}>
-              {savingTarget ? "儲存中..." : "儲存"}
-            </Button>
+            <Button variant="outline" onClick={() => setEditRow(null)} disabled={saving}>取消</Button>
+            <Button onClick={handleSaveEdit} disabled={saving}>{saving ? "儲存中..." : "儲存"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!addKind} onOpenChange={(o) => !o && setAddKind(null)}>
+      {/* 新增 Dialog */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>新增{addKind === "team" ? "團體" : "個人"}目標</DialogTitle>
+            <DialogTitle>新增邀約目標（{year} 年 {month} 月）</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <Field label="館別">
-              <Select value={addAcc} onValueChange={setAddAcc}>
-                <SelectTrigger>
-                  <SelectValue placeholder="選擇館別" />
-                </SelectTrigger>
-                <SelectContent>
-                  {accommodations.map((a) => (
-                    <SelectItem key={a.id} value={a.id}>
-                      {a.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <Field label="場域名稱">
+              <Input value={addVenue} onChange={(e) => setAddVenue(e.target.value)} placeholder="例如 天送幸福和苑" />
             </Field>
-            {addKind === "personal" && (
-              <Field label="星探">
-                <Select value={addScout} onValueChange={setAddScout}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="選擇星探" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {scouts.map((s) => (
-                      <SelectItem key={s.user_id} value={s.user_id}>
-                        {s.display_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-            )}
-            <Field label={`目標邀約數(${year} 年 ${month} 月)`}>
-              <Input type="number" min={0} value={addCount} onChange={(e) => setAddCount(e.target.value)} />
+            <Field label="團隊目標數">
+              <Input type="number" min={0} value={addTarget} onChange={(e) => setAddTarget(e.target.value)} />
             </Field>
+            <Field label="個人最低目標（留空=不限定）">
+              <Input
+                type="number"
+                min={0}
+                value={addPersonal}
+                onChange={(e) => setAddPersonal(e.target.value)}
+                placeholder="不限定"
+              />
+            </Field>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="add-starlink"
+                checked={addStarlink}
+                onCheckedChange={(c) => setAddStarlink(!!c)}
+              />
+              <Label htmlFor="add-starlink" className="cursor-pointer">是否為星鏈場域</Label>
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAddKind(null)}>
-              取消
-            </Button>
-            <Button onClick={handleAdd}>新增</Button>
+            <Button variant="outline" onClick={() => setAddOpen(false)} disabled={saving}>取消</Button>
+            <Button onClick={handleAdd} disabled={saving}>{saving ? "新增中..." : "新增"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
