@@ -772,6 +772,36 @@ function InvitationsTab({
     setSheetOpen(false);
     setProspectLink(null);
     fetchRows();
+
+    // 觸發折扣碼通知 (cid_code + order_number 有值 + 尚未通知)
+    const savedId = editingId || newId;
+    if (savedId) {
+      try {
+        const { data: latest } = await supabase
+          .from("kol_profiles")
+          .select("cid_code, order_number, cid_notified")
+          .eq("id", savedId)
+          .maybeSingle();
+        if (latest?.cid_code && latest?.order_number && !latest?.cid_notified) {
+          const { data: { session } } = await supabase.auth.getSession();
+          const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-kol-cid-notify`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session?.access_token}`,
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            },
+            body: JSON.stringify({ kol_profile_id: savedId }),
+          });
+          if (!res.ok) {
+            toast.warning("折扣碼通知發送失敗，請至明細手動重發");
+          }
+        }
+      } catch (e) {
+        console.error("[send-kol-cid-notify] error:", e);
+        toast.warning("折扣碼通知發送失敗，請至明細手動重發");
+      }
+    }
   };
 
   const handleReportError = async () => {
