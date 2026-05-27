@@ -3106,7 +3106,9 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
-  useEffect(() => { setPage(1); }, [filterName, filterType, filterStatus]);
+  useEffect(() => {
+    setPage(1);
+  }, [filterName, filterType, filterStatus]);
 
   // Drawer state
   const [editOpen, setEditOpen] = useState(false);
@@ -3423,7 +3425,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
               </Table>
               <div className="flex items-center justify-between mt-4">
                 <p className="text-sm text-muted-foreground">
-                  共 {totalCount} 筆,第 {currentPage} / {totalPages} 頁
+                  共 {totalCount} 筆，第 {currentPage} / {totalPages} 頁
                 </p>
                 {totalPages > 1 && (
                   <div className="flex gap-2">
