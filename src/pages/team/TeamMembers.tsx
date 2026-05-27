@@ -212,12 +212,21 @@ export default function TeamMembers() {
   useEffect(() => {
     if (!canAccess) return;
     (async () => {
-      const { data } = await supabase
-        .from("kol_venues")
-        .select("id, name")
-        .eq("is_active", true)
-        .order("name", { ascending: true });
-      setVenues((data ?? []) as VenueOption[]);
+      const [kolRes, accRes] = await Promise.all([
+        supabase.from("kol_venues").select("id, name").eq("is_active", true),
+        supabase.from("accommodation_info").select("id, name"),
+      ]);
+      const names = new Set<string>();
+      const merged: VenueOption[] = [];
+      for (const row of [...(kolRes.data ?? []), ...(accRes.data ?? [])]) {
+        const name = (row as { name?: string | null }).name;
+        const id = (row as { id?: string }).id;
+        if (!name || names.has(name)) continue;
+        names.add(name);
+        merged.push({ id: id ?? name, name } as VenueOption);
+      }
+      merged.sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
+      setVenues(merged);
     })();
   }, [canAccess]);
 
