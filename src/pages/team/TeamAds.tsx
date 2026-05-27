@@ -182,6 +182,15 @@ function AdsListTab() {
     });
   }, [rows, search, status]);
 
+  const PAGE_SIZE = 50;
+  const [page, setPage] = useState(1);
+  useEffect(() => { setPage(1); }, [search, status]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageRows = useMemo(
+    () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [filtered, page]
+  );
+
   return (
     <Card>
       <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -235,7 +244,7 @@ function AdsListTab() {
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((r) => (
+              pageRows.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell className="font-mono text-xs">{r.ad_id}</TableCell>
                   <TableCell>{r.ad_name ?? "—"}</TableCell>
@@ -259,6 +268,19 @@ function AdsListTab() {
             )}
           </TableBody>
         </Table>
+        <div className="flex items-center justify-between pt-3">
+          <div className="text-sm text-muted-foreground">
+            共 {filtered.length} 筆，第 {page} / {totalPages} 頁
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+              上一頁
+            </Button>
+            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+              下一頁
+            </Button>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
@@ -362,6 +384,15 @@ function WeeklyTab() {
     });
   }, [rows, search, fromDate, toDate]);
 
+  const PAGE_SIZE = 50;
+  const [page, setPage] = useState(1);
+  useEffect(() => { setPage(1); }, [search, fromDate, toDate]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageRows = useMemo(
+    () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [filtered, page]
+  );
+
   return (
     <Card>
       <CardHeader className="space-y-3">
@@ -427,7 +458,7 @@ function WeeklyTab() {
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((r) => (
+              pageRows.map((r) => (
                 <TableRow
                   key={r.id}
                   className="cursor-pointer hover:bg-muted/50"
@@ -453,6 +484,19 @@ function WeeklyTab() {
             )}
           </TableBody>
         </Table>
+        <div className="flex items-center justify-between pt-3">
+          <div className="text-sm text-muted-foreground">
+            共 {filtered.length} 筆，第 {page} / {totalPages} 頁
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+              上一頁
+            </Button>
+            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+              下一頁
+            </Button>
+          </div>
+        </div>
       </CardContent>
 
       <Sheet open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
