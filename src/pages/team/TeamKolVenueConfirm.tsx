@@ -58,7 +58,7 @@ export default function TeamKolVenueConfirm() {
     const { data, error } = await supabase
       .from("kol_profiles")
       .select(
-        "id, kol_name, venue_name, cid_code, order_number, check_in_date, kol_direct_ticket_link, cid_configured",
+        "id, name, venue_name, cid_code, order_number, check_in_date, kol_direct_ticket_link, cid_configured",
       )
       .not("cid_code", "is", null)
       .not("order_number", "is", null)
@@ -145,7 +145,7 @@ export default function TeamKolVenueConfirm() {
           ) : (
             data.map((r) => (
               <TableRow key={r.id}>
-                <TableCell className="whitespace-nowrap">{r.kol_name || "—"}</TableCell>
+                <TableCell className="whitespace-nowrap">{r.name || "—"}</TableCell>
                 <TableCell className="whitespace-nowrap">{r.venue_name || "—"}</TableCell>
                 <TableCell className="whitespace-nowrap font-mono">{r.cid_code}</TableCell>
                 <TableCell className="whitespace-nowrap font-mono">{r.order_number}</TableCell>
