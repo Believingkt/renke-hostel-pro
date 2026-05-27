@@ -182,6 +182,15 @@ function AdsListTab() {
     });
   }, [rows, search, status]);
 
+  const PAGE_SIZE = 50;
+  const [page, setPage] = useState(1);
+  useEffect(() => { setPage(1); }, [search, status]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageRows = useMemo(
+    () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [filtered, page]
+  );
+
   return (
     <Card>
       <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
