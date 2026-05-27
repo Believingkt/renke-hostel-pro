@@ -3359,63 +3359,94 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
           });
           if (loading) return null;
           if (filtered.length === 0) return <p className="text-sm text-muted-foreground py-4 text-center">尚無資料</p>;
+          const totalCount = filtered.length;
+          const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+          const currentPage = Math.min(page, totalPages);
+          const paged = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
           return (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>場域名稱</TableHead>
-                  <TableHead>類型</TableHead>
-                  <TableHead>狀態</TableHead>
-                  <TableHead className="text-right">操作</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((r) => (
-                  <TableRow key={r.id} className="cursor-pointer" onClick={() => openEdit(r, "view")}>
-                    <TableCell>{r.name}</TableCell>
-                    <TableCell>{r.type || "-"}</TableCell>
-                    <TableCell>
-                      {r.is_active ? (
-                        <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
-                          啟用
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-200">
-                          停用
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                      {isManager && (
-                        <>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openEdit(r, "edit");
-                            }}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleActive(r);
-                            }}
-                          >
-                            {r.is_active ? "停用" : "啟用"}
-                          </Button>
-                        </>
-                      )}
-                    </TableCell>
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>場域名稱</TableHead>
+                    <TableHead>類型</TableHead>
+                    <TableHead>狀態</TableHead>
+                    <TableHead className="text-right">操作</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {paged.map((r) => (
+                    <TableRow key={r.id} className="cursor-pointer" onClick={() => openEdit(r, "view")}>
+                      <TableCell>{r.name}</TableCell>
+                      <TableCell>{r.type || "-"}</TableCell>
+                      <TableCell>
+                        {r.is_active ? (
+                          <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
+                            啟用
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-200">
+                            停用
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        {isManager && (
+                          <>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEdit(r, "edit");
+                              }}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleActive(r);
+                              }}
+                            >
+                              {r.is_active ? "停用" : "啟用"}
+                            </Button>
+                          </>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <div className="flex items-center justify-between mt-4">
+                <p className="text-sm text-muted-foreground">
+                  共 {totalCount} 筆,第 {currentPage} / {totalPages} 頁
+                </p>
+                {totalPages > 1 && (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={currentPage <= 1}
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    >
+                      上一頁
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={currentPage >= totalPages}
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    >
+                      下一頁
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </>
           );
         })()}
 
