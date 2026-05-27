@@ -115,6 +115,7 @@ export default function TeamMembers() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRoles, setInviteRoles] = useState<TeamRole[]>([]);
   const [inviteVenue, setInviteVenue] = useState<string>("");
+  const [inviteScoutTeam, setInviteScoutTeam] = useState(false);
   const [inviting, setInviting] = useState(false);
 
   // 編輯側邊面板
@@ -123,6 +124,7 @@ export default function TeamMembers() {
   const [editRoles, setEditRoles] = useState<TeamRole[]>([]);
   const [editActive, setEditActive] = useState(true);
   const [editVenue, setEditVenue] = useState<string>("");
+  const [editScoutTeam, setEditScoutTeam] = useState(false);
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
 
