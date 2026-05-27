@@ -185,6 +185,7 @@ const EMPTY_FORM: FormState = {
   inventory_count: "",
   kol_tags: [],
   kpi_qualified: false,
+  kol_direct_ticket_link: "",
 };
 
 interface RaritySetting {
