@@ -368,6 +368,7 @@ export default function TeamMembers() {
     setEditRoles(m.roles);
     setEditActive(m.is_active);
     setEditVenue(m.managed_venue ?? "");
+    setEditScoutTeam(m.is_scout_team_member);
   };
 
   const isNorris = editTarget?.user_id === NORRIS_USER_ID;
