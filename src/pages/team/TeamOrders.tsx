@@ -75,6 +75,7 @@ interface MetaRow {
   closer_commission_rate: number | null;
   exclusion_note?: string | null;
   franchise_project?: string | null;
+  member_number?: string | null;
 }
 
 const PAGE_SIZE = 50;
@@ -134,6 +135,8 @@ export default function TeamOrders() {
       scout_commission_rate: 0.05,
       closer_commission_rate: 0,
       exclusion_note: null,
+      franchise_project: null,
+      member_number: null,
     };
   }
 
@@ -327,7 +330,7 @@ export default function TeamOrders() {
               `order_id, closer_id, video_creator_id, scout_id, traffic_source,
                booking_method, ad_id, is_excluded, closer_assisted,
                scout_commission_rate, closer_commission_rate, exclusion_note,
-               franchise_project`
+               franchise_project, member_number`
             )
             .in("order_id", batchIds);
           if (metaErr) throw metaErr;
@@ -399,6 +402,8 @@ export default function TeamOrders() {
       scout_commission_rate: o.meta?.scout_commission_rate ?? 0.05,
       closer_commission_rate: o.meta?.closer_commission_rate ?? 0,
       exclusion_note: o.meta?.exclusion_note ?? null,
+      franchise_project: o.meta?.franchise_project ?? null,
+      member_number: o.meta?.member_number ?? null,
     });
     setEditOpen(true);
   }
@@ -429,6 +434,8 @@ export default function TeamOrders() {
         scout_commission_rate: form.scout_commission_rate,
         closer_commission_rate: form.closer_commission_rate,
         exclusion_note: form.exclusion_note,
+        franchise_project: form.franchise_project,
+        member_number: form.member_number,
       };
 
       const exists = !!editOrder.meta;
@@ -753,28 +760,6 @@ export default function TeamOrders() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm">星探</Label>
-                  <Select
-                    value={form.scout_id ?? NONE}
-                    onValueChange={(v) =>
-                      setForm((f) => ({ ...f, scout_id: v === NONE ? null : v }))
-                    }
-                  >
-                    <SelectTrigger className="text-base">
-                      <SelectValue placeholder="選擇星探" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NONE}>未指定</SelectItem>
-                      {scouts.map((m) => (
-                        <SelectItem key={m.user_id} value={m.user_id}>
-                          {m.display_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
 
                   <Label className="text-sm">廣告編號</Label>
                   <Input className="text-base"
@@ -784,23 +769,50 @@ export default function TeamOrders() {
                     }
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm">加盟專案</Label>
+                  <Select
+                    value={form.franchise_project ?? NONE}
+                    onValueChange={(v) =>
+                      setForm((f) => ({
+                        ...f,
+                        franchise_project: v === NONE ? null : v,
+                      }))
+                    }
+                  >
+                    <SelectTrigger className="text-base">
+                      <SelectValue placeholder="選擇加盟專案" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE}>未指定</SelectItem>
+                      {franchiseProjects.map((p) => (
+                        <SelectItem key={p.id} value={p.name}>
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm">會員編號</Label>
+                  <Input
+                    className="text-base"
+                    value={form.member_number ?? ""}
+                    placeholder="輸入會員編號"
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        member_number: e.target.value || null,
+                      }))
+                    }
+                  />
+                </div>
               </div>
 
-              <div className="space-y-2 rounded-md border p-3">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="closer_assisted"
-                    checked={!!form.closer_assisted}
-                    onCheckedChange={(v) => toggleCloserAssisted(!!v)}
-                  />
-                  <Label htmlFor="closer_assisted" className="cursor-pointer text-sm">
-                    成交組協助
-                  </Label>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  勾選後星探分潤將從 5% 調整為 2%，成交組追加 3%
-                </p>
-              </div>
+
+
 
 
               <div className="flex items-center gap-2">
