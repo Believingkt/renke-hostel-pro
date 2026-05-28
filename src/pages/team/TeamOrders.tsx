@@ -147,7 +147,19 @@ export default function TeamOrders() {
 
   useEffect(() => {
     setPage(1);
-  }, [accFilter, year, month]);
+  }, [accFilter, year, month, franchiseFilter]);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("franchise_projects")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("name", { ascending: true });
+      setFranchiseProjects((data ?? []) as { id: string; name: string }[]);
+    })();
+  }, []);
+
 
   // Load admin role + options for settings tab
   useEffect(() => {
