@@ -73,6 +73,7 @@ interface MetaRow {
   scout_commission_rate: number | null;
   closer_commission_rate: number | null;
   exclusion_note?: string | null;
+  franchise_project?: string | null;
 }
 
 const PAGE_SIZE = 50;
@@ -94,6 +95,8 @@ export default function TeamOrders() {
   const [accFilter, setAccFilter] = useState<string>("ALL");
   const [year, setYear] = useState<string>("ALL");
   const [month, setMonth] = useState<string>("ALL");
+  const [franchiseFilter, setFranchiseFilter] = useState<string>("ALL");
+  const [franchiseProjects, setFranchiseProjects] = useState<{ id: string; name: string }[]>([]);
   const [page, setPage] = useState(1);
 
   const [editOpen, setEditOpen] = useState(false);
@@ -144,7 +147,19 @@ export default function TeamOrders() {
 
   useEffect(() => {
     setPage(1);
-  }, [accFilter, year, month]);
+  }, [accFilter, year, month, franchiseFilter]);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("franchise_projects")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("name", { ascending: true });
+      setFranchiseProjects((data ?? []) as { id: string; name: string }[]);
+    })();
+  }, []);
+
 
   // Load admin role + options for settings tab
   useEffect(() => {
@@ -310,7 +325,8 @@ export default function TeamOrders() {
             .select(
               `order_id, closer_id, video_creator_id, scout_id, traffic_source,
                booking_method, ad_id, is_excluded, closer_assisted,
-               scout_commission_rate, closer_commission_rate, exclusion_note`
+               scout_commission_rate, closer_commission_rate, exclusion_note,
+               franchise_project`
             )
             .in("order_id", batchIds);
           if (metaErr) throw metaErr;
@@ -360,9 +376,10 @@ export default function TeamOrders() {
       const d = new Date(o.check_in_date);
       if (year !== "ALL" && String(d.getFullYear()) !== year) return false;
       if (month !== "ALL" && String(d.getMonth() + 1) !== month) return false;
+      if (franchiseFilter !== "ALL" && (o.meta?.franchise_project ?? "") !== franchiseFilter) return false;
       return true;
     });
-  }, [orders, accFilter, year, month]);
+  }, [orders, accFilter, year, month, franchiseFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -438,7 +455,7 @@ export default function TeamOrders() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">訂單補充資料</h1>
+        <h1 className="text-2xl font-semibold">成交大師</h1>
       </div>
 
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
@@ -488,6 +505,20 @@ export default function TeamOrders() {
                 {Array.from({ length: 12 }, (_, i) => String(i + 1)).map((m) => (
                   <SelectItem key={m} value={m}>
                     {m} 月
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={franchiseFilter} onValueChange={setFranchiseFilter}>
+              <SelectTrigger className="w-44">
+                <SelectValue placeholder="加盟專案" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">全部加盟專案</SelectItem>
+                {franchiseProjects.map((p) => (
+                  <SelectItem key={p.id} value={p.name}>
+                    {p.name}
                   </SelectItem>
                 ))}
               </SelectContent>
