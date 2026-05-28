@@ -54,7 +54,7 @@ export interface TeamMenuItem {
 export const TEAM_MENU: TeamMenuItem[] = [
   { title: "首頁", url: "/team", icon: LayoutDashboard },
   { title: "KOL 星探", url: "/team/kol", icon: Star },
-  { title: "訂單資訊", url: "/team/orders", icon: ClipboardList },
+  { title: "成交大師", url: "/team/orders", icon: ClipboardList },
   {
     title: "廣告追蹤",
     url: "/team/ads",
