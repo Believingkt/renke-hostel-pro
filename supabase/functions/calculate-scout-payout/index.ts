@@ -127,10 +127,10 @@ serve(async (req) => {
       .eq("year", year)
       .eq("month", month);
     if (targetsErr) throw targetsErr;
-    const personalMinByVenue = new Map<string, number>();
-    for (const t of targets ?? []) {
-      if (t.venue_name) personalMinByVenue.set(t.venue_name, Number(t.personal_min || 0));
-    }
+    const totalPersonalMin = (targets ?? []).reduce(
+      (s, t) => s + Number(t.personal_min || 0),
+      0,
+    );
 
     const { data: accs, error: accsErr } = await supabase
       .from("accommodation_info")
