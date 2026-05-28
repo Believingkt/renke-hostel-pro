@@ -1,28 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 const RARITIES = ["N", "R", "SR", "SSR", "UR", "ck"] as const;
 const DETAIL_RARITIES = ["N", "R", "SR", "SSR", "UR"] as const;
@@ -161,9 +143,7 @@ export function KolStatsTab() {
   }, [currentYear]);
 
   const periodOptions = useMemo(() => {
-    const arr: { value: string; label: string }[] = [
-      { value: "all", label: "全年" },
-    ];
+    const arr: { value: string; label: string }[] = [{ value: "all", label: "全年" }];
     for (let m = 1; m <= 12; m++) {
       arr.push({ value: `${m}-10`, label: `${m}月10日` });
       arr.push({ value: `${m}-25`, label: `${m}月25日` });
@@ -184,38 +164,34 @@ export function KolStatsTab() {
         const showSalary = periodIsDayTen(period);
         const isAll = period === "all" || yearAll;
 
-        const [scoutsRes, rarityRes, tierRes, salaryRes, accsRes, targetsRes] =
-          await Promise.all([
-            supabase
-              .from("team_member_profiles")
-              .select("user_id, display_name")
-              .eq("is_scout_team_member", true),
-            supabase
-              .from("kol_rarity_settings")
-              .select("rarity, bonus_amount, effective_from")
-              .lte("effective_from", asOfDate)
-              .order("effective_from", { ascending: false }),
-            supabase
-              .from("scout_tier_settings")
-              .select("min_count, max_count, commission_rate, effective_from")
-              .lte("effective_from", asOfDate)
-              .order("effective_from", { ascending: false }),
-            supabase
-              .from("scout_salary_settings")
-              .select("base_salary, team_bonus, team_threshold_pct, effective_from")
-              .lte("effective_from", asOfDate)
-              .order("effective_from", { ascending: false })
-              .limit(1)
-              .maybeSingle(),
-            supabase.from("accommodation_info").select("name"),
-            month
-              ? supabase
-                  .from("scout_team_targets")
-                  .select("year, month, personal_min")
-                  .eq("year", effYear)
-                  .eq("month", month)
-              : Promise.resolve({ data: [] as TargetRow[], error: null }),
-          ]);
+        const [scoutsRes, rarityRes, tierRes, salaryRes, accsRes, targetsRes] = await Promise.all([
+          supabase.from("team_member_profiles").select("user_id, display_name").eq("is_scout_team_member", true),
+          supabase
+            .from("kol_rarity_settings")
+            .select("rarity, bonus_amount, effective_from")
+            .lte("effective_from", asOfDate)
+            .order("effective_from", { ascending: false }),
+          supabase
+            .from("scout_tier_settings")
+            .select("min_count, max_count, commission_rate, effective_from")
+            .lte("effective_from", asOfDate)
+            .order("effective_from", { ascending: false }),
+          supabase
+            .from("scout_salary_settings")
+            .select("base_salary, team_bonus, team_threshold_pct, effective_from")
+            .lte("effective_from", asOfDate)
+            .order("effective_from", { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+          supabase.from("accommodation_info").select("name"),
+          month
+            ? supabase
+                .from("scout_team_targets")
+                .select("year, month, personal_min")
+                .eq("year", effYear)
+                .eq("month", month)
+            : Promise.resolve({ data: [] as TargetRow[], error: null }),
+        ]);
 
         if (scoutsRes.error) throw scoutsRes.error;
         if (rarityRes.error) throw rarityRes.error;
@@ -253,9 +229,7 @@ export function KolStatsTab() {
         const teamBonusAmount = Number(salary?.team_bonus ?? 0);
         const teamThresholdPct = Number(salary?.team_threshold_pct ?? 0);
 
-        const pmsVenues = new Set(
-          ((accsRes.data ?? []) as { name: string }[]).map((a) => a.name),
-        );
+        const pmsVenues = new Set(((accsRes.data ?? []) as { name: string }[]).map((a) => a.name));
 
         const totalPersonalMin = ((targetsRes.data ?? []) as TargetRow[]).reduce(
           (s, t) => s + Number(t.personal_min || 0),
@@ -312,7 +286,11 @@ export function KolStatsTab() {
 
         const orderMap = new Map<
           string,
-          { count: number; total: number; orders: Array<{ order_number: string; final_price: number; created_at: string | null }> }
+          {
+            count: number;
+            total: number;
+            orders: Array<{ order_number: string; final_price: number; created_at: string | null }>;
+          }
         >();
         if (allCidCodes.size > 0) {
           const { data: orders, error: ordErr } = await supabase
@@ -329,8 +307,7 @@ export function KolStatsTab() {
               created_at: string | null;
             };
             if (!row.discount_code) continue;
-            const entry =
-              orderMap.get(row.discount_code) ?? { count: 0, total: 0, orders: [] };
+            const entry = orderMap.get(row.discount_code) ?? { count: 0, total: 0, orders: [] };
             entry.count += 1;
             entry.total += Number(row.final_price || 0);
             entry.orders.push({
@@ -343,24 +320,15 @@ export function KolStatsTab() {
         }
 
         const monthStart = month ? `${effYear}-${pad(month)}-01` : null;
-        const monthEnd = month
-          ? month === 12
-            ? `${effYear + 1}-01-01`
-            : `${effYear}-${pad(month + 1)}-01`
-          : null;
+        const monthEnd = month ? (month === 12 ? `${effYear + 1}-01-01` : `${effYear}-${pad(month + 1)}-01`) : null;
 
         const results: ScoutStats[] = scouts.map((s) => {
           const rows = kolRows.filter((r) => r.scout_id === s.user_id);
           const cumulative = rows.filter(
-            (r) =>
-              r.booking_status === "成功訂房" &&
-              !r.is_error &&
-              inYearScope(r.check_in_date),
+            (r) => r.booking_status === "成功訂房" && !r.is_error && inYearScope(r.check_in_date),
           ).length;
 
-          const periodQualified = rows.filter(
-            (r) => r.kpi_qualified === true && inPeriod(r.check_in_date),
-          );
+          const periodQualified = rows.filter((r) => r.kpi_qualified === true && inPeriod(r.check_in_date));
           const qualifiedCount = periodQualified.length;
           const rarityCounts: Record<Rarity, number> = {
             N: 0,
@@ -388,9 +356,7 @@ export function KolStatsTab() {
               });
             }
           }
-          qualifiedKols.sort((a, b) =>
-            (a.check_in_date ?? "").localeCompare(b.check_in_date ?? ""),
-          );
+          qualifiedKols.sort((a, b) => (a.check_in_date ?? "").localeCompare(b.check_in_date ?? ""));
 
           const cidCodes = cidByScout.get(s.user_id) ?? [];
           let pmsOrderCount = 0;
@@ -430,8 +396,7 @@ export function KolStatsTab() {
                 r.kpi_month >= monthStart &&
                 r.kpi_month < monthEnd,
             ).length;
-            individualAchieved =
-              totalPersonalMin > 0 && monthCount >= totalPersonalMin;
+            individualAchieved = totalPersonalMin > 0 && monthCount >= totalPersonalMin;
           }
           const baseSalaryPayout = showSalary && individualAchieved ? baseSalary : 0;
 
@@ -526,7 +491,7 @@ export function KolStatsTab() {
             <TableHeader>
               <TableRow>
                 <TableHead className="whitespace-nowrap">星探</TableHead>
-                <TableHead className="text-right whitespace-nowrap">累積邀約</TableHead>
+                <TableHead className="text-right whitespace-nowrap">整年累積邀約</TableHead>
                 <TableHead className="text-right whitespace-nowrap">本期符合資格</TableHead>
                 <TableHead className="text-right whitespace-nowrap">稀有度獎金</TableHead>
                 <TableHead className="text-right whitespace-nowrap">KOL分潤訂單</TableHead>
@@ -557,42 +522,26 @@ export function KolStatsTab() {
                     className="cursor-pointer hover:bg-muted/50"
                     onClick={() => setSelectedScout(s)}
                   >
-                    <TableCell className="whitespace-nowrap font-medium">
-                      {s.display_name}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {s.cumulative_count}
-                    </TableCell>
+                    <TableCell className="whitespace-nowrap font-medium">{s.display_name}</TableCell>
+                    <TableCell className="text-right tabular-nums">{s.cumulative_count}</TableCell>
                     <TableCell
                       className={`text-right tabular-nums font-semibold ${
-                        s.qualified_count > 0
-                          ? "text-orange-500"
-                          : "text-muted-foreground"
+                        s.qualified_count > 0 ? "text-orange-500" : "text-muted-foreground"
                       }`}
                     >
                       {s.qualified_count}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {s.rarity_bonus.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {s.pms_order_count}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {(s.commission_rate * 100).toFixed(1)}%
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {s.kol_commission.toLocaleString()}
-                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{s.rarity_bonus.toLocaleString()}</TableCell>
+                    <TableCell className="text-right tabular-nums">{s.pms_order_count}</TableCell>
+                    <TableCell className="text-right tabular-nums">{(s.commission_rate * 100).toFixed(1)}%</TableCell>
+                    <TableCell className="text-right tabular-nums">{s.kol_commission.toLocaleString()}</TableCell>
                     <TableCell className="text-right tabular-nums">
                       {showSalary ? s.base_salary.toLocaleString() : "—"}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {showSalary ? s.team_bonus.toLocaleString() : "—"}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums font-semibold">
-                      {s.total.toLocaleString()}
-                    </TableCell>
+                    <TableCell className="text-right tabular-nums font-semibold">{s.total.toLocaleString()}</TableCell>
                   </TableRow>
                 ))
               )}
@@ -601,10 +550,7 @@ export function KolStatsTab() {
         </div>
       </CardContent>
 
-      <Sheet
-        open={!!selectedScout}
-        onOpenChange={(open) => !open && setSelectedScout(null)}
-      >
+      <Sheet open={!!selectedScout} onOpenChange={(open) => !open && setSelectedScout(null)}>
         <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
           {selectedScout && (
             <>
@@ -616,9 +562,7 @@ export function KolStatsTab() {
 
               <div className="mt-6 space-y-6">
                 <section>
-                  <h3 className="text-sm font-semibold mb-2">
-                    本期符合資格 KOL 清單
-                  </h3>
+                  <h3 className="text-sm font-semibold mb-2">本期符合資格 KOL 清單</h3>
                   <div className="overflow-x-auto border rounded-md">
                     <Table>
                       <TableHeader>
@@ -632,10 +576,7 @@ export function KolStatsTab() {
                       <TableBody>
                         {selectedScout.qualifiedKols.length === 0 ? (
                           <TableRow>
-                            <TableCell
-                              colSpan={4}
-                              className="text-center text-muted-foreground py-4"
-                            >
+                            <TableCell colSpan={4} className="text-center text-muted-foreground py-4">
                               無資料
                             </TableCell>
                           </TableRow>
@@ -644,16 +585,12 @@ export function KolStatsTab() {
                             <TableRow key={i}>
                               <TableCell className="whitespace-nowrap">{k.name}</TableCell>
                               <TableCell>
-                                {DETAIL_RARITIES.includes(k.rarity as typeof DETAIL_RARITIES[number])
+                                {DETAIL_RARITIES.includes(k.rarity as (typeof DETAIL_RARITIES)[number])
                                   ? k.rarity
                                   : "—"}
                               </TableCell>
-                              <TableCell className="whitespace-nowrap">
-                                {k.check_in_date ?? "—"}
-                              </TableCell>
-                              <TableCell className="text-right tabular-nums">
-                                {k.bonus.toLocaleString()}
-                              </TableCell>
+                              <TableCell className="whitespace-nowrap">{k.check_in_date ?? "—"}</TableCell>
+                              <TableCell className="text-right tabular-nums">{k.bonus.toLocaleString()}</TableCell>
                             </TableRow>
                           ))
                         )}
@@ -663,9 +600,7 @@ export function KolStatsTab() {
                   <div className="mt-2 text-right text-sm">
                     小計：
                     <span className="font-semibold tabular-nums ml-1">
-                      {selectedScout.qualifiedKols
-                        .reduce((s, k) => s + k.bonus, 0)
-                        .toLocaleString()}
+                      {selectedScout.qualifiedKols.reduce((s, k) => s + k.bonus, 0).toLocaleString()}
                     </span>
                   </div>
                 </section>
@@ -686,22 +621,15 @@ export function KolStatsTab() {
                       <TableBody>
                         {selectedScout.orderItems.length === 0 ? (
                           <TableRow>
-                            <TableCell
-                              colSpan={5}
-                              className="text-center text-muted-foreground py-4"
-                            >
+                            <TableCell colSpan={5} className="text-center text-muted-foreground py-4">
                               無資料
                             </TableCell>
                           </TableRow>
                         ) : (
                           selectedScout.orderItems.map((o, i) => (
                             <TableRow key={i}>
-                              <TableCell className="whitespace-nowrap">
-                                {o.venue_name || "—"}
-                              </TableCell>
-                              <TableCell className="whitespace-nowrap">
-                                {o.order_number || "—"}
-                              </TableCell>
+                              <TableCell className="whitespace-nowrap">{o.venue_name || "—"}</TableCell>
+                              <TableCell className="whitespace-nowrap">{o.order_number || "—"}</TableCell>
                               <TableCell className="whitespace-nowrap tabular-nums">
                                 {o.created_at
                                   ? new Date(o.created_at).toLocaleString("zh-TW", {
@@ -716,9 +644,7 @@ export function KolStatsTab() {
                               <TableCell className="text-right tabular-nums">
                                 {o.final_price.toLocaleString()}
                               </TableCell>
-                              <TableCell className="text-right tabular-nums">
-                                {o.commission.toLocaleString()}
-                              </TableCell>
+                              <TableCell className="text-right tabular-nums">{o.commission.toLocaleString()}</TableCell>
                             </TableRow>
                           ))
                         )}
@@ -728,9 +654,7 @@ export function KolStatsTab() {
                   <div className="mt-2 text-right text-sm">
                     小計：
                     <span className="font-semibold tabular-nums ml-1">
-                      {selectedScout.orderItems
-                        .reduce((s, o) => s + o.commission, 0)
-                        .toLocaleString()}
+                      {selectedScout.orderItems.reduce((s, o) => s + o.commission, 0).toLocaleString()}
                     </span>
                   </div>
                 </section>
