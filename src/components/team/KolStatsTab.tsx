@@ -283,18 +283,15 @@ export function KolStatsTab() {
           return d >= yearStart && d <= yearEnd;
         };
 
-        // 期別內 PMS 內部訂單對應 cid
+        // PMS 內部 cid 蒐集（不限期別；訂單歸屬期別改由 orders.order_date 判斷）
         const cidByScout = new Map<string, string[]>();
         const allCidCodes = new Set<string>();
         for (const r of kolRows) {
           if (!r.scout_id) continue;
-          if (r.booking_status !== "成功訂房") continue;
-          if (r.is_error) continue;
           if (!r.cid_code) continue;
           if (!pmsVenues.has(r.venue_name ?? "")) continue;
-          if (!inPeriod(r.check_in_date)) continue;
           const arr = cidByScout.get(r.scout_id) ?? [];
-          arr.push(r.cid_code);
+          if (!arr.includes(r.cid_code)) arr.push(r.cid_code);
           cidByScout.set(r.scout_id, arr);
           allCidCodes.add(r.cid_code);
         }
@@ -308,11 +305,16 @@ export function KolStatsTab() {
           }
         >();
         if (allCidCodes.size > 0) {
-          const { data: orders, error: ordErr } = await supabase
+          let q = supabase
             .from("orders")
-            .select("order_number, discount_code, final_price, created_at")
+            .select("order_number, discount_code, final_price, created_at, order_date")
             .in("discount_code", Array.from(allCidCodes))
             .neq("order_status", "cancelled");
+          // 依 order_date 篩選期別（全年不限）
+          if (range) {
+            q = q.gte("order_date", range.start).lte("order_date", range.end);
+          }
+          const { data: orders, error: ordErr } = await q;
           if (ordErr) throw ordErr;
           for (const o of orders ?? []) {
             const row = o as {
