@@ -165,6 +165,7 @@ export default function ScoutDiscountCodesTab() {
   const openCreate = () => {
     setEditing(null);
     setFCode("");
+    setFAcc(NONE);
     setFScout(NONE);
     setFType("scout_self");
     setFCloser(NONE);
@@ -176,6 +177,7 @@ export default function ScoutDiscountCodesTab() {
   const openEdit = (row: ScoutCode) => {
     setEditing(row);
     setFCode(row.discount_code ?? "");
+    setFAcc(row.accommodation_id ?? NONE);
     setFScout(row.scout_id ?? NONE);
     setFType((row.commission_type as CommissionType) ?? "scout_self");
     setFCloser(row.closer_id ?? NONE);
@@ -212,6 +214,7 @@ export default function ScoutDiscountCodesTab() {
     setSaving(true);
     const payload = {
       discount_code: fCode.trim(),
+      accommodation_id: fAcc === NONE ? null : fAcc,
       scout_id: fScout,
       closer_id: fType === "partner" ? fCloser : null,
       commission_type: fType,
