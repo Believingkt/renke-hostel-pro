@@ -21,25 +21,22 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { KolStatsTab } from "@/components/team/KolStatsTab";
 
 // ====== 型別 & 常數 ======
-type BookingStatus = "invited" | "booked" | "checked_in" | "cancelled" | "rejected" | "on_hold";
-
-const BOOKING_STATUS_LABEL: Record<BookingStatus, string> = {
-  invited: "邀約中",
-  booked: "成功訂房",
-  checked_in: "已入住",
-  cancelled: "已取消",
-  rejected: "已拒絕",
-  on_hold: "暫緩",
+// 正式邀約 Tab：booking_status 僅保留以下三種顯示，其他值（含 null / 舊資料）一律顯示「—」
+const BOOKING_STATUS_DISPLAY: Record<string, string> = {
+  成功訂房: "bg-green-100 text-green-700 border-green-200",
+  訂房確認中: "bg-amber-100 text-amber-700 border-amber-200",
+  已取消: "bg-red-100 text-red-700 border-red-200",
 };
 
-const BOOKING_STATUS_CLASS: Record<BookingStatus, string> = {
-  invited: "bg-blue-100 text-blue-700 border-blue-200",
-  booked: "bg-green-100 text-green-700 border-green-200",
-  checked_in: "bg-gray-200 text-gray-700 border-gray-300",
-  cancelled: "bg-red-100 text-red-700 border-red-200",
-  rejected: "bg-red-200 text-red-900 border-red-300",
-  on_hold: "bg-orange-100 text-orange-700 border-orange-200",
-};
+function renderBookingStatusBadge(value: string | null | undefined) {
+  const cls = value ? BOOKING_STATUS_DISPLAY[value] : undefined;
+  if (!cls) return <span className="text-muted-foreground">—</span>;
+  return (
+    <Badge variant="outline" className={cls}>
+      {value}
+    </Badge>
+  );
+}
 
 const RARITY_OPTIONS = ["N", "R", "SR", "SSR", "UR", "ck"] as const;
 type Rarity = (typeof RARITY_OPTIONS)[number];
@@ -142,7 +139,7 @@ interface FormState {
   check_out_date: string;
   day_of_week: string;
   inventory_status: string;
-  booking_status: BookingStatus;
+  booking_status: string | null;
   cid_code: string;
   short_url: string;
   contract_progress: string;
@@ -172,7 +169,7 @@ const EMPTY_FORM: FormState = {
   check_out_date: "",
   day_of_week: "",
   inventory_status: "",
-  booking_status: "invited",
+  booking_status: null,
   cid_code: "",
   short_url: "",
   contract_progress: "",
@@ -229,13 +226,6 @@ function computeContractProgress(
   return { label: "—", done: false, empty: true };
 }
 
-// 將舊資料中的中文標籤反查回 enum key，相容歷史資料
-function normalizeBookingStatus(v: string | null | undefined): BookingStatus {
-  if (!v) return "invited";
-  if ((BOOKING_STATUS_LABEL as Record<string, string>)[v]) return v as BookingStatus;
-  const hit = (Object.entries(BOOKING_STATUS_LABEL) as [BookingStatus, string][]).find(([, label]) => label === v);
-  return hit ? hit[0] : "invited";
-}
 
 function calcDayOfWeek(dateStr: string): string {
   if (!dateStr) return "";
@@ -656,15 +646,15 @@ function InvitationsTab({
   }, [form.accommodation_id, form.venue_name, form.check_in_date, accommodations]); // eslint-disable-line
 
   // 訂單編號 → 自動切換訂房狀態
-  // 只在狀態為 invited / booked 時才自動切換，其餘狀態（含「訂房編號有誤」、「訂房確認中」、
-  // cancelled / rejected / on_hold / checked_in 等）一律保留不動。
+  // 填入訂單編號 → 「訂房確認中」；清空 → null。
+  // 已有「成功訂房」或「已取消」等其他值時保留不動。
   useEffect(() => {
-    const current = form.booking_status as string;
-    if (current !== "invited" && current !== "booked") return;
+    const current = form.booking_status;
     const hasOrder = !!form.order_number.trim();
-    const next: BookingStatus = hasOrder ? "booked" : "invited";
-    if (current !== next) {
-      setForm((f) => ({ ...f, booking_status: next }));
+    if (hasOrder && current == null) {
+      setForm((f) => ({ ...f, booking_status: "訂房確認中" }));
+    } else if (!hasOrder && current === "訂房確認中") {
+      setForm((f) => ({ ...f, booking_status: null }));
     }
   }, [form.order_number]); // eslint-disable-line
 
@@ -686,7 +676,7 @@ function InvitationsTab({
       if (data && data.length > 0) {
         const d: any = data[0];
         const sn = d.team_member_profiles?.display_name ?? d.scout_id ?? "未知";
-        const stLabel = BOOKING_STATUS_LABEL[d.booking_status as BookingStatus] ?? d.booking_status ?? "-";
+        const stLabel = d.booking_status ?? "-";
         setDupWarning(`此 KOL 已有邀約紀錄：${sn} 於 ${d.invited_at ?? "-"}，狀態：${stLabel}`);
       } else {
         setDupWarning(null);
@@ -749,7 +739,7 @@ function InvitationsTab({
       check_out_date: row.check_out_date ?? "",
       day_of_week: row.day_of_week ?? "",
       inventory_status: row.inventory_status ?? "",
-      booking_status: normalizeBookingStatus(row.booking_status),
+      booking_status: row.booking_status ?? null,
       cid_code: row.cid_code ?? "",
       short_url: row.short_url ?? "",
       contract_progress: row.contract_progress ?? "",
@@ -818,7 +808,7 @@ function InvitationsTab({
       publish_url: toNullable(form.publish_url),
       publish_date: form.publish_date || null,
       order_number: toNullable(form.order_number),
-      inventory_count: form.booking_status === "booked" ? 1 : 0,
+      inventory_count: form.booking_status === "成功訂房" ? 1 : 0,
       kol_tags: tags.length > 0 ? tags : null,
       kol_direct_ticket_link: toNullable(form.kol_direct_ticket_link),
       kpi_eligible: kpiEligible,
@@ -1139,31 +1129,7 @@ function InvitationsTab({
                       <TableCell>{r.check_in_date ?? "-"}</TableCell>
                       <TableCell>{r.day_of_week ?? "-"}</TableCell>
                       <TableCell>{r._scout_name}</TableCell>
-                      <TableCell>
-                        {(() => {
-                          const label =
-                            BOOKING_STATUS_LABEL[r.booking_status as BookingStatus] ?? r.booking_status ?? "-";
-                          const labelColorMap: Record<string, string> = {
-                            邀約中: "bg-blue-100 text-blue-700 border-blue-200",
-                            已入住: "bg-purple-100 text-purple-700 border-purple-200",
-                            已取消: "bg-red-100 text-red-700 border-red-200",
-                            已拒絕: "bg-rose-200 text-rose-900 border-rose-300",
-                            暫緩: "bg-orange-100 text-orange-700 border-orange-200",
-                            訂房確認中: "bg-amber-100 text-amber-700 border-amber-200",
-                            訂房編號有誤: "bg-red-600 text-white border-red-700",
-                          };
-                          let cls =
-                            labelColorMap[label] ?? BOOKING_STATUS_CLASS[r.booking_status as BookingStatus] ?? "";
-                          if (label === "成功訂房" || label === "-") {
-                            cls = "bg-white text-foreground border-border";
-                          }
-                          return (
-                            <Badge variant="outline" className={cls}>
-                              {label}
-                            </Badge>
-                          );
-                        })()}
-                      </TableCell>
+                      <TableCell>{renderBookingStatusBadge(r.booking_status)}</TableCell>
                       <TableCell>
                         {contractStatus && !contractStatus.empty ? (
                           <Badge
@@ -1520,11 +1486,7 @@ function InvitationsTab({
                   </Row>
                   <Row label="發布日期">{r.publish_date ?? "-"}</Row>
                   <Row label="訂單編號">{r.order_number ?? "-"}</Row>
-                  <Row label="狀態">
-                    <Badge variant="outline" className={BOOKING_STATUS_CLASS[r.booking_status as BookingStatus] ?? ""}>
-                      {BOOKING_STATUS_LABEL[r.booking_status as BookingStatus] ?? r.booking_status ?? "-"}
-                    </Badge>
-                  </Row>
+                  <Row label="狀態">{renderBookingStatusBadge(r.booking_status)}</Row>
                   <Row label="填寫日期">{r.invited_at ?? "-"}</Row>
                 </div>
               );
@@ -1752,7 +1714,7 @@ function InvitationsTab({
               </Field>
               <Field label="訂房狀態（自動）">
                 <Input
-                  value={BOOKING_STATUS_LABEL[form.booking_status] ?? form.booking_status}
+                  value={form.booking_status ?? "—"}
                   readOnly
                   className="bg-muted"
                 />
