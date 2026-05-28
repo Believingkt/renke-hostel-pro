@@ -1717,12 +1717,26 @@ function InvitationsTab({
             )}
 
             <Field label="KOL購票連結">
-              <Input
-                value={form.kol_direct_ticket_link}
-                onChange={(e) => setForm({ ...form, kol_direct_ticket_link: e.target.value })}
-                placeholder="https://..."
-              />
+              {canEditTicketLink ? (
+                <Input
+                  value={form.kol_direct_ticket_link}
+                  onChange={(e) => setForm({ ...form, kol_direct_ticket_link: e.target.value })}
+                  placeholder="https://..."
+                />
+              ) : form.kol_direct_ticket_link ? (
+                <a
+                  href={form.kol_direct_ticket_link}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 break-all text-sm text-primary underline underline-offset-2"
+                >
+                  {form.kol_direct_ticket_link} <ExternalLink className="h-3 w-3 shrink-0" />
+                </a>
+              ) : (
+                <span className="text-sm text-muted-foreground">—</span>
+              )}
             </Field>
+
 
             {showShortUrl && (
               <Field label="短網址後綴">
