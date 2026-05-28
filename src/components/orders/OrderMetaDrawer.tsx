@@ -40,6 +40,11 @@ interface OptionRow {
   sort_order: number | null;
 }
 
+interface FranchiseProject {
+  id: string;
+  name: string;
+}
+
 interface Props {
   orderId: string | null;
   open: boolean;
@@ -56,12 +61,15 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
 
   const [trafficSources, setTrafficSources] = useState<OptionRow[]>([]);
   const [bookingMethods, setBookingMethods] = useState<OptionRow[]>([]);
+  const [franchiseProjects, setFranchiseProjects] = useState<FranchiseProject[]>([]);
 
   const [closerId, setCloserId] = useState<string>(NONE);
   const [videoCreatorId, setVideoCreatorId] = useState<string>(NONE);
   const [trafficSource, setTrafficSource] = useState<string>(NONE);
   const [bookingMethod, setBookingMethod] = useState<string>(NONE);
   const [adId, setAdId] = useState("");
+  const [franchiseProject, setFranchiseProject] = useState<string>(NONE);
+  const [memberNumber, setMemberNumber] = useState("");
   const [isExcluded, setIsExcluded] = useState(false);
   const [exclusionNote, setExclusionNote] = useState("");
   const [saving, setSaving] = useState(false);
@@ -80,6 +88,8 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setTrafficSource(NONE);
       setBookingMethod(NONE);
       setAdId("");
+      setFranchiseProject(NONE);
+      setMemberNumber("");
       setIsExcluded(false);
       setExclusionNote("");
       setNewTrafficSource("");
@@ -87,9 +97,9 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
     }
   }, [open, orderId]);
 
-  // Load team options + common ads + current user + dynamic options
+  // Load team options + common ads + current user + dynamic options + existing meta
   useEffect(() => {
-    if (!open) return;
+    if (!open || !orderId) return;
     let cancelled = false;
 
     (async () => {
@@ -100,6 +110,8 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         { data: ads },
         { data: tsRows },
         { data: bmRows },
+        { data: fpRows },
+        { data: existingMeta },
       ] = await Promise.all([
         supabase.auth.getSession(),
         supabase
@@ -126,6 +138,16 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           .select("id, name, sort_order")
           .eq("is_active", true)
           .order("sort_order", { ascending: true }),
+        supabase
+          .from("franchise_projects")
+          .select("id, name")
+          .eq("is_active", true)
+          .order("name", { ascending: true }),
+        supabase
+          .from("order_meta")
+          .select("*")
+          .eq("order_id", orderId)
+          .maybeSingle(),
       ]);
 
       const closerIds = (closerRoles ?? []).map((r) => r.user_id);
@@ -158,9 +180,21 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setCommonAds(ads ?? []);
       setTrafficSources((tsRows ?? []) as OptionRow[]);
       setBookingMethods((bmRows ?? []) as OptionRow[]);
+      setFranchiseProjects((fpRows ?? []) as FranchiseProject[]);
 
-      // 預設成交人為目前登入者(若身分為 closer)
-      if (uid && closerIds.includes(uid)) {
+      if (existingMeta) {
+        const m = existingMeta as Record<string, unknown>;
+        setCloserId((m.closer_id as string) ?? NONE);
+        setVideoCreatorId((m.video_creator_id as string) ?? NONE);
+        setTrafficSource((m.traffic_source as string) ?? NONE);
+        setBookingMethod((m.booking_method as string) ?? NONE);
+        setAdId((m.ad_id as string) ?? "");
+        setFranchiseProject((m.franchise_project as string) ?? NONE);
+        setMemberNumber((m.member_number as string) ?? "");
+        setIsExcluded(Boolean(m.is_excluded));
+        setExclusionNote((m.exclusion_note as string) ?? "");
+      } else if (uid && closerIds.includes(uid)) {
+        // 預設成交人為目前登入者(若身分為 closer)
         setCloserId(uid);
       }
     })();
@@ -168,7 +202,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [open]);
+  }, [open, orderId]);
 
   const handleAddTrafficSource = async () => {
     const name = newTrafficSource.trim();
@@ -274,6 +308,8 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         traffic_source: trafficSource !== NONE ? trafficSource : null,
         booking_method: bookingMethod !== NONE ? bookingMethod : null,
         ad_id: adId.trim() || null,
+        franchise_project: franchiseProject !== NONE ? franchiseProject : null,
+        member_number: memberNumber.trim() || null,
         is_excluded: isExcluded,
         exclusion_note: isExcluded ? exclusionNote.trim() || null : null,
         import_source: "manual",
@@ -281,7 +317,9 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         filled_at: new Date().toISOString(),
       };
 
-      const { error } = await supabase.from("order_meta").insert(payload);
+      const { error } = await supabase
+        .from("order_meta")
+        .upsert(payload, { onConflict: "order_id" });
       if (error) throw error;
 
       toast.success("行銷資訊已儲存");
@@ -462,6 +500,34 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* 加盟專案 */}
+          <div className="space-y-2">
+            <Label>加盟專案</Label>
+            <Select value={franchiseProject} onValueChange={setFranchiseProject}>
+              <SelectTrigger>
+                <SelectValue placeholder="請選擇加盟專案" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>未指定</SelectItem>
+                {franchiseProjects.map((p) => (
+                  <SelectItem key={p.id} value={p.name}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* 會員編號 */}
+          <div className="space-y-2">
+            <Label>會員編號</Label>
+            <Input
+              value={memberNumber}
+              onChange={(e) => setMemberNumber(e.target.value)}
+              placeholder="輸入會員編號"
+            />
           </div>
 
           {/* 不分潤 */}
