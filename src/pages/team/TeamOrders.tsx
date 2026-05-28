@@ -135,6 +135,8 @@ export default function TeamOrders() {
       scout_commission_rate: 0.05,
       closer_commission_rate: 0,
       exclusion_note: null,
+      franchise_project: null,
+      member_number: null,
     };
   }
 
