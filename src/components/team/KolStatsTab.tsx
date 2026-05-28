@@ -172,8 +172,11 @@ export function KolStatsTab() {
         const showSalary = periodIsDayTen(period);
         const isAll = period === "all" || yearAll;
 
-        const [scoutsRes, rarityRes, tierRes, salaryRes, accsRes, targetsRes] = await Promise.all([
-          supabase.from("team_member_profiles").select("user_id, display_name").eq("is_scout_team_member", true),
+        const [rolesRes, profilesRes, rarityRes, tierRes, salaryRes, accsRes, targetsRes] = await Promise.all([
+          supabase.from("user_roles").select("user_id, role").in("role", ["scout", "scout_manager"]),
+          supabase
+            .from("team_member_profiles")
+            .select("user_id, display_name, is_scout_team_member"),
           supabase
             .from("kol_rarity_settings")
             .select("rarity, bonus_amount, effective_from")
@@ -181,7 +184,7 @@ export function KolStatsTab() {
             .order("effective_from", { ascending: false }),
           supabase
             .from("scout_tier_settings")
-            .select("min_count, max_count, commission_rate, effective_from")
+            .select("tier_name, min_count, max_count, commission_rate, effective_from")
             .lte("effective_from", asOfDate)
             .order("effective_from", { ascending: false }),
           supabase
@@ -195,20 +198,25 @@ export function KolStatsTab() {
           month
             ? supabase
                 .from("scout_team_targets")
-                .select("year, month, personal_min")
+                .select("year, month, personal_min, venue_name")
                 .eq("year", effYear)
                 .eq("month", month)
             : Promise.resolve({ data: [] as TargetRow[], error: null }),
         ]);
 
-        if (scoutsRes.error) throw scoutsRes.error;
+        if (rolesRes.error) throw rolesRes.error;
+        if (profilesRes.error) throw profilesRes.error;
         if (rarityRes.error) throw rarityRes.error;
         if (tierRes.error) throw tierRes.error;
         if (salaryRes.error) throw salaryRes.error;
         if (accsRes.error) throw accsRes.error;
         if (targetsRes.error) throw targetsRes.error;
 
-        const scouts: ScoutProfile[] = (scoutsRes.data ?? []) as ScoutProfile[];
+        const scoutRoleIds = new Set<string>(
+          ((rolesRes.data ?? []) as { user_id: string }[]).map((r) => r.user_id).filter(Boolean),
+        );
+        const allProfiles = (profilesRes.data ?? []) as ScoutProfile[];
+        const scouts: ScoutProfile[] = allProfiles.filter((p) => scoutRoleIds.has(p.user_id));
         const scoutIds = scouts.map((s) => s.user_id);
 
         const rarityMap = new Map<string, number>();
@@ -223,14 +231,13 @@ export function KolStatsTab() {
           if (!tierMap.has(tierKey(t))) tierMap.set(tierKey(t), t);
         }
         const tiers = [...tierMap.values()].sort((a, b) => a.min_count - b.min_count);
-        const commissionRateFor = (count: number): number => {
+        const tierFor = (count: number): TierRow | null => {
           for (const t of tiers) {
-            if (count >= t.min_count && (t.max_count == null || count <= t.max_count)) {
-              return Number(t.commission_rate || 0);
-            }
+            if (count >= t.min_count && (t.max_count == null || count <= t.max_count)) return t;
           }
-          return 0;
+          return null;
         };
+        const commissionRateFor = (count: number): number => Number(tierFor(count)?.commission_rate ?? 0);
 
         const salary = salaryRes.data as SalaryRow | null;
         const baseSalary = Number(salary?.base_salary ?? 0);
@@ -239,10 +246,12 @@ export function KolStatsTab() {
 
         const pmsVenues = new Set(((accsRes.data ?? []) as { name: string }[]).map((a) => a.name));
 
-        const totalPersonalMin = ((targetsRes.data ?? []) as TargetRow[]).reduce(
-          (s, t) => s + Number(t.personal_min || 0),
-          0,
-        );
+        const targetRows = (targetsRes.data ?? []) as TargetRow[];
+        const targetsList = targetRows.map((t) => ({
+          venue_name: t.venue_name ?? "—",
+          personal_min: Number(t.personal_min || 0),
+        }));
+        const totalPersonalMin = targetsList.reduce((s, t) => s + t.personal_min, 0);
 
         if (scoutIds.length === 0) {
           if (!cancelled) {
