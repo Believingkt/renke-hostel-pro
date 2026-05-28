@@ -226,13 +226,6 @@ function computeContractProgress(
   return { label: "—", done: false, empty: true };
 }
 
-// 將舊資料中的中文標籤反查回 enum key，相容歷史資料
-function normalizeBookingStatus(v: string | null | undefined): BookingStatus {
-  if (!v) return "invited";
-  if ((BOOKING_STATUS_LABEL as Record<string, string>)[v]) return v as BookingStatus;
-  const hit = (Object.entries(BOOKING_STATUS_LABEL) as [BookingStatus, string][]).find(([, label]) => label === v);
-  return hit ? hit[0] : "invited";
-}
 
 function calcDayOfWeek(dateStr: string): string {
   if (!dateStr) return "";
