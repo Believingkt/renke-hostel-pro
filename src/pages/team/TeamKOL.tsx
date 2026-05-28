@@ -231,6 +231,30 @@ export default function TeamKOL() {
 
   const [tab, setTab] = useState("invitations");
   const [prefill, setPrefill] = useState<InvitationPrefill | null>(null);
+  const [canSeeStats, setCanSeeStats] = useState<boolean>(
+    roles.includes("super_admin") ||
+      roles.includes("scout") ||
+      roles.includes("scout_manager"),
+  );
+
+  useEffect(() => {
+    // hotel_admin 不在 TEAM_ROLES 過濾後的 roles 內，需獨立查詢
+    let cancelled = false;
+    if (canSeeStats) return;
+    (async () => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .in("role", ["hotel_admin", "super_admin", "scout", "scout_manager"])
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled && data) setCanSeeStats(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, canSeeStats]);
 
   const handleConvertFromProspect = (p: InvitationPrefill) => {
     setPrefill(p);
