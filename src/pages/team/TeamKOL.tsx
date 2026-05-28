@@ -139,7 +139,7 @@ interface FormState {
   check_out_date: string;
   day_of_week: string;
   inventory_status: string;
-  booking_status: BookingStatus;
+  booking_status: string | null;
   cid_code: string;
   short_url: string;
   contract_progress: string;
