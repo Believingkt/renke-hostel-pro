@@ -75,6 +75,7 @@ interface TargetRow {
 interface ScoutProfile {
   user_id: string;
   display_name: string | null;
+  is_scout_team_member: boolean;
 }
 interface KolProfileRow {
   scout_id: string | null;
@@ -93,6 +94,8 @@ interface KolProfileRow {
 interface ScoutStats {
   scout_id: string;
   display_name: string;
+  tier_name: string;
+  is_scout_team_member: boolean;
   cumulative_count: number;
   qualified_count: number;
   rarityCounts: Record<Rarity, number>;
@@ -102,9 +105,12 @@ interface ScoutStats {
   commission_rate: number;
   kol_commission: number;
   individual_achieved: boolean;
+  monthly_success_count: number;
   base_salary: number;
   team_bonus: number;
   total: number;
+  targets: Array<{ venue_name: string; personal_min: number }>;
+  total_personal_min: number;
   qualifiedKols: Array<{
     name: string;
     rarity: string;
