@@ -2524,6 +2524,8 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
   const [scouts, setScouts] = useState<Scout[]>([]);
   const [teamRows, setTeamRows] = useState<TeamTargetRow[]>([]);
   const [personalRows, setPersonalRows] = useState<PersonalRow[]>([]);
+  const [personalScoutFilter, setPersonalScoutFilter] = useState<string>("all");
+  const [personalVenueFilter, setPersonalVenueFilter] = useState<string>("all");
   const [fallbackLabel, setFallbackLabel] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
@@ -2861,7 +2863,33 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
 
       {/* 個人邀約達標率 */}
       <div className="space-y-2">
-        <h2 className="text-lg font-semibold">個人邀約達標率</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold">個人邀約達標率</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={personalScoutFilter} onValueChange={setPersonalScoutFilter}>
+              <SelectTrigger className="h-9 w-36">
+                <SelectValue placeholder="星探" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部星探</SelectItem>
+                {Array.from(new Set(personalRows.map((r) => r.scout_name))).map((n) => (
+                  <SelectItem key={n} value={n}>{n}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={personalVenueFilter} onValueChange={setPersonalVenueFilter}>
+              <SelectTrigger className="h-9 w-40">
+                <SelectValue placeholder="場域" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部場域</SelectItem>
+                {Array.from(new Set(personalRows.map((r) => r.venue_name))).map((v) => (
+                  <SelectItem key={v} value={v}>{v}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
         <Card>
           <Table>
             <TableHeader>
@@ -2874,14 +2902,23 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading ? null : personalRows.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
-                    本月尚無個人邀約紀錄
-                  </TableCell>
-                </TableRow>
-              ) : (
-                personalRows.map((r, i) => {
+              {(() => {
+                const filtered = personalRows.filter(
+                  (r) =>
+                    (personalScoutFilter === "all" || r.scout_name === personalScoutFilter) &&
+                    (personalVenueFilter === "all" || r.venue_name === personalVenueFilter),
+                );
+                if (loading) return null;
+                if (filtered.length === 0) {
+                  return (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
+                        本月尚無個人邀約紀錄
+                      </TableCell>
+                    </TableRow>
+                  );
+                }
+                return filtered.map((r, i) => {
                   let badge: JSX.Element;
                   if (r.personal_min == null) {
                     badge = <span className="text-muted-foreground">—</span>;
@@ -2909,8 +2946,8 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
                       <TableCell className="text-right">{badge}</TableCell>
                     </TableRow>
                   );
-                })
-              )}
+                });
+              })()}
             </TableBody>
           </Table>
         </Card>
