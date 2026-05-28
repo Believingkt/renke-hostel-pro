@@ -146,30 +146,36 @@ export type Database = {
       accommodation_commission_settings: {
         Row: {
           accommodation_id: string
+          closer_rate: number | null
           created_at: string | null
           created_by: string | null
           effective_from: string
           id: string
           rate: number
           role: string
+          video_rate: number | null
         }
         Insert: {
           accommodation_id: string
+          closer_rate?: number | null
           created_at?: string | null
           created_by?: string | null
           effective_from: string
           id?: string
           rate: number
           role: string
+          video_rate?: number | null
         }
         Update: {
           accommodation_id?: string
+          closer_rate?: number | null
           created_at?: string | null
           created_by?: string | null
           effective_from?: string
           id?: string
           rate?: number
           role?: string
+          video_rate?: number | null
         }
         Relationships: [
           {
@@ -5539,6 +5545,60 @@ export type Database = {
             columns: ["room_type_id"]
             isOneToOne: false
             referencedRelation: "room_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scout_discount_codes: {
+        Row: {
+          closer_id: string | null
+          closer_rate: number | null
+          commission_type: string
+          created_at: string | null
+          discount_code: string
+          id: string
+          is_active: boolean | null
+          scout_id: string | null
+          scout_rate: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          closer_id?: string | null
+          closer_rate?: number | null
+          commission_type?: string
+          created_at?: string | null
+          discount_code: string
+          id?: string
+          is_active?: boolean | null
+          scout_id?: string | null
+          scout_rate?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          closer_id?: string | null
+          closer_rate?: number | null
+          commission_type?: string
+          created_at?: string | null
+          discount_code?: string
+          id?: string
+          is_active?: boolean | null
+          scout_id?: string | null
+          scout_rate?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scout_discount_codes_closer_id_fkey"
+            columns: ["closer_id"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scout_discount_codes_scout_id_fkey"
+            columns: ["scout_id"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
             referencedColumns: ["id"]
           },
         ]
