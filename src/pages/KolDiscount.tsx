@@ -333,7 +333,7 @@ const KolDiscount = () => {
         valid_from: validFrom.toISOString(),
         valid_until: validUntil?.toISOString() || null,
         min_order_amount: minOrderAmount ? parseInt(minOrderAmount) : 0,
-        applicable_room_types: selectedRoomTypes,
+        applicable_room_types: applicableRoomTypes,
         applicable_date_from: applicableDateFrom?.toISOString().split('T')[0] || null,
         applicable_date_to: applicableDateTo?.toISOString().split('T')[0] || null,
         commission_rate: commissionRate ? parseFloat(commissionRate) : 0,
@@ -539,9 +539,9 @@ const KolDiscount = () => {
           valid_from: validFrom.toISOString(),
           valid_until: editingCode.valid_until ? new Date(editingCode.valid_until + "T23:59:59").toISOString() : null,
           min_order_amount: minOrderAmount ? parseInt(minOrderAmount) : 0,
-          applicable_room_types: editingCode.applicable_room_types || [],
-          applicable_date_from: editingCode.applicable_date_from || null,
-          applicable_date_to: editingCode.applicable_date_to || null,
+          applicable_room_types: selectedRoomTypes,
+          applicable_date_from: applicableDateFrom ? applicableDateFrom.toISOString().split('T')[0] : null,
+          applicable_date_to: applicableDateTo ? applicableDateTo.toISOString().split('T')[0] : null,
           commission_rate: commissionRate ? parseFloat(commissionRate) : 0,
         })
         .eq("id", editingCode.id);
