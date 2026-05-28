@@ -434,7 +434,6 @@ export default function ScoutDiscountCodesTab() {
             <AlertDialogAction onClick={doDelete}>刪除</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-      </Dialog>
       </AlertDialog>
     </div>
   );
