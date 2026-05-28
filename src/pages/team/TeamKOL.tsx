@@ -209,6 +209,26 @@ function toNullable(v: string): string | null {
   return t.length === 0 ? null : t;
 }
 
+// 依 publish_url / publish_date / contract_file_url 自動計算合約進度狀態
+function computeContractProgress(
+  publishUrl: string | null | undefined,
+  publishDate: string | null | undefined,
+  contractUrl: string | null | undefined,
+): { label: string; done: boolean; empty: boolean } | null {
+  const hasPub = !!(publishUrl && String(publishUrl).trim());
+  const hasDate = !!(publishDate && String(publishDate).trim());
+  const hasContract = !!(contractUrl && String(contractUrl).trim());
+  if (!hasPub && !hasDate && !hasContract) return { label: "—", done: false, empty: true };
+  if (hasPub && hasDate && hasContract) return { label: "已上傳", done: true, empty: false };
+  if (hasPub && !hasDate && !hasContract) return { label: "補發布日期＋合約連結", done: false, empty: false };
+  if (hasPub && hasDate && !hasContract) return { label: "補合約連結", done: false, empty: false };
+  if (hasPub && !hasDate && hasContract) return { label: "補發布日期", done: false, empty: false };
+  if (!hasPub && hasDate && hasContract) return { label: "補發布連結", done: false, empty: false };
+  if (!hasPub && !hasDate && hasContract) return { label: "補發布連結＋發布日期", done: false, empty: false };
+  if (!hasPub && hasDate && !hasContract) return { label: "補發布連結＋合約連結", done: false, empty: false };
+  return { label: "—", done: false, empty: true };
+}
+
 // 將舊資料中的中文標籤反查回 enum key，相容歷史資料
 function normalizeBookingStatus(v: string | null | undefined): BookingStatus {
   if (!v) return "invited";
@@ -1070,9 +1090,7 @@ function InvitationsTab({
               <TableBody>
                 {filtered.map((r) => {
                   const igUrl = r.ig_handle || null;
-                  const contractDone =
-                    (r.contract_progress ?? "").includes("已上傳") ||
-                    (r.contract_progress ?? "").toLowerCase().includes("uploaded");
+                  const contractStatus = computeContractProgress(r.publish_url, r.publish_date, r.contract_file_url);
                   const codeOrCidValue = r.cid_code ?? r.short_url ?? null;
                   const codeOrCid = codeOrCidValue ?? "-";
                   const codeOrCidClass = codeOrCidValue && r.cid_configured
@@ -1143,19 +1161,19 @@ function InvitationsTab({
                         })()}
                       </TableCell>
                       <TableCell>
-                        {r.contract_progress ? (
+                        {contractStatus && !contractStatus.empty ? (
                           <Badge
                             variant="outline"
                             className={
-                              contractDone
+                              contractStatus.done
                                 ? "bg-green-100 text-green-700 border-green-200"
-                                : "bg-gray-100 text-gray-700 border-gray-200"
+                                : "bg-orange-100 text-orange-700 border-orange-200"
                             }
                           >
-                            {r.contract_progress}
+                            {contractStatus.label}
                           </Badge>
                         ) : (
-                          <span className="text-muted-foreground">-</span>
+                          <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
                       <TableCell>
@@ -1421,7 +1439,24 @@ function InvitationsTab({
                       "—"
                     )}
                   </Row>
-                  <Row label="合約進度">{r.contract_progress ?? "-"}</Row>
+                  <Row label="合約進度">
+                    {(() => {
+                      const s = computeContractProgress(r.publish_url, r.publish_date, r.contract_file_url);
+                      if (!s || s.empty) return <span className="text-muted-foreground">—</span>;
+                      return (
+                        <Badge
+                          variant="outline"
+                          className={
+                            s.done
+                              ? "bg-green-100 text-green-700 border-green-200"
+                              : "bg-orange-100 text-orange-700 border-orange-200"
+                          }
+                        >
+                          {s.label}
+                        </Badge>
+                      );
+                    })()}
+                  </Row>
                   <Row label="合約檔案">
                     {r.contract_file_url ? (
                       <a
@@ -1751,10 +1786,22 @@ function InvitationsTab({
             )}
 
             <Field label="合約進度">
-              <Input
-                value={form.contract_progress}
-                onChange={(e) => setForm({ ...form, contract_progress: e.target.value })}
-              />
+              {(() => {
+                const s = computeContractProgress(form.publish_url, form.publish_date, form.contract_file_url);
+                if (!s || s.empty) return <span className="text-muted-foreground text-sm">—</span>;
+                return (
+                  <Badge
+                    variant="outline"
+                    className={
+                      s.done
+                        ? "bg-green-100 text-green-700 border-green-200"
+                        : "bg-orange-100 text-orange-700 border-orange-200"
+                    }
+                  >
+                    {s.label}
+                  </Badge>
+                );
+              })()}
             </Field>
 
             <Field label="合約檔案連結">
