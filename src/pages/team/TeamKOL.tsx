@@ -209,6 +209,26 @@ function toNullable(v: string): string | null {
   return t.length === 0 ? null : t;
 }
 
+// 依 publish_url / publish_date / contract_file_url 自動計算合約進度狀態
+function computeContractProgress(
+  publishUrl: string | null | undefined,
+  publishDate: string | null | undefined,
+  contractUrl: string | null | undefined,
+): { label: string; done: boolean; empty: boolean } | null {
+  const hasPub = !!(publishUrl && String(publishUrl).trim());
+  const hasDate = !!(publishDate && String(publishDate).trim());
+  const hasContract = !!(contractUrl && String(contractUrl).trim());
+  if (!hasPub && !hasDate && !hasContract) return { label: "—", done: false, empty: true };
+  if (hasPub && hasDate && hasContract) return { label: "已上傳", done: true, empty: false };
+  if (hasPub && !hasDate && !hasContract) return { label: "補發布日期＋合約連結", done: false, empty: false };
+  if (hasPub && hasDate && !hasContract) return { label: "補合約連結", done: false, empty: false };
+  if (hasPub && !hasDate && hasContract) return { label: "補發布日期", done: false, empty: false };
+  if (!hasPub && hasDate && hasContract) return { label: "補發布連結", done: false, empty: false };
+  if (!hasPub && !hasDate && hasContract) return { label: "補發布連結＋發布日期", done: false, empty: false };
+  if (!hasPub && hasDate && !hasContract) return { label: "補發布連結＋合約連結", done: false, empty: false };
+  return { label: "—", done: false, empty: true };
+}
+
 // 將舊資料中的中文標籤反查回 enum key，相容歷史資料
 function normalizeBookingStatus(v: string | null | undefined): BookingStatus {
   if (!v) return "invited";
