@@ -2524,6 +2524,8 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
   const [scouts, setScouts] = useState<Scout[]>([]);
   const [teamRows, setTeamRows] = useState<TeamTargetRow[]>([]);
   const [personalRows, setPersonalRows] = useState<PersonalRow[]>([]);
+  const [personalScoutFilter, setPersonalScoutFilter] = useState<string>("all");
+  const [personalVenueFilter, setPersonalVenueFilter] = useState<string>("all");
   const [fallbackLabel, setFallbackLabel] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
