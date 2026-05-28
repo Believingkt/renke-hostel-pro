@@ -223,75 +223,101 @@ function PayoutRulesBlock() {
 
   const currentPayoutDays = CYCLE_PAYOUT_DAYS[draft.cycle_type] ?? [];
 
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>結算規則</CardTitle>
-        <Button size="sm" onClick={openNew}>
-          <Plus className="h-4 w-4 mr-1" /> 新增規則
-        </Button>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground mb-3">
-          每新增一筆規則版本，新獎金計算將從該版本的生效日期開始套用。若新增錯誤，可刪除最新版本。
-        </p>
-        {loading ? null : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>獎金類型</TableHead>
-                <TableHead>結算週期</TableHead>
-                <TableHead>發放日</TableHead>
-                <TableHead>說明</TableHead>
-                <TableHead>生效日期</TableHead>
-                <TableHead></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((r) => {
-                const isLatest = latestIdByType.get(r.commission_type) === r.id;
-                const onlyOne = (countByType.get(r.commission_type) ?? 0) <= 1;
-                return (
-                  <TableRow key={r.id}>
-                    <TableCell>{COMMISSION_TYPE_LABEL[r.commission_type] ?? r.commission_type}</TableCell>
-                    <TableCell>{CYCLE_LABEL[r.cycle_type ?? ""] ?? r.cycle_type}</TableCell>
-                    <TableCell>{(r.payout_days ?? []).join(", ") || "-"}</TableCell>
-                    <TableCell>{r.cutoff_description ?? "-"}</TableCell>
-                    <TableCell>{r.effective_from}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-2">
-                        <Button size="sm" variant="outline" onClick={() => openEdit(r)}>
-                          以此為範本新增版本
+  const currentRows = rows.filter((r) => latestIdByType.get(r.commission_type) === r.id);
+  const historyRows = rows.filter((r) => latestIdByType.get(r.commission_type) !== r.id);
+
+  const renderRow = (r: PayoutRuleRow, opts: { showDelete: boolean }) => {
+    const onlyOne = (countByType.get(r.commission_type) ?? 0) <= 1;
+    return (
+      <TableRow key={r.id}>
+        <TableCell>{COMMISSION_TYPE_LABEL[r.commission_type] ?? r.commission_type}</TableCell>
+        <TableCell>{CYCLE_LABEL[r.cycle_type ?? ""] ?? r.cycle_type}</TableCell>
+        <TableCell>{(r.payout_days ?? []).join(", ") || "-"}</TableCell>
+        <TableCell>{r.cutoff_description ?? "-"}</TableCell>
+        <TableCell>{r.effective_from}</TableCell>
+        <TableCell>
+          <div className="flex items-center justify-end gap-2">
+            <Button size="sm" variant="outline" onClick={() => openEdit(r)}>
+              以此為範本新增版本
+            </Button>
+            {opts.showDelete && (
+              onlyOne ? (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>
+                        <Button size="sm" variant="ghost" disabled>
+                          <Trash2 className="h-4 w-4" />
                         </Button>
-                        {isLatest && (
-                          onlyOne ? (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span>
-                                    <Button size="sm" variant="ghost" disabled>
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent>至少保留一筆版本</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          ) : (
-                            <Button size="sm" variant="ghost" onClick={() => setDeletingId(r.id)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>至少保留一筆版本</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ) : (
+                <Button size="sm" variant="ghost" onClick={() => setDeletingId(r.id)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )
+            )}
+          </div>
+        </TableCell>
+      </TableRow>
+    );
+  };
+
+  const tableHeader = (
+    <TableHeader>
+      <TableRow>
+        <TableHead>獎金類型</TableHead>
+        <TableHead>結算週期</TableHead>
+        <TableHead>發放日</TableHead>
+        <TableHead>說明</TableHead>
+        <TableHead>生效日期</TableHead>
+        <TableHead></TableHead>
+      </TableRow>
+    </TableHeader>
+  );
+
+  return (
+    <>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>結算規則</CardTitle>
+          <Button size="sm" onClick={openNew}>
+            <Plus className="h-4 w-4 mr-1" /> 新增規則
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground mb-3">
+            每新增一筆規則版本，新獎金計算將從該版本的生效日期開始套用。若新增錯誤，可刪除最新版本。
+          </p>
+          {loading ? null : (
+            <Table>
+              {tableHeader}
+              <TableBody>{currentRows.map((r) => renderRow(r, { showDelete: true }))}</TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {!loading && historyRows.length > 0 && (
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle>歷史版本</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-3">
+              已被新版本取代的舊規則，僅供查閱與作為新版本範本。
+            </p>
+            <Table>
+              {tableHeader}
+              <TableBody>{historyRows.map((r) => renderRow(r, { showDelete: false }))}</TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
 
       <AlertDialog open={!!deletingId} onOpenChange={(o) => !o && setDeletingId(null)}>
         <AlertDialogContent>
@@ -356,7 +382,7 @@ function PayoutRulesBlock() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Card>
+    </>
   );
 }
 
