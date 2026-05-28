@@ -2126,26 +2126,12 @@ const KolDiscount = () => {
                     <div key={room.id} className="flex items-center space-x-2">
                       <Checkbox
                         id={`edit-room-${room.id}`}
-                        checked={
-                          editingCode?.applicable_room_types
-                            ? (editingCode.applicable_room_types as string[]).includes(room.id)
-                            : false
-                        }
+                        checked={selectedRoomTypes.includes(room.id)}
                         onCheckedChange={(checked) => {
-                          if (!editingCode) return;
-                          const currentTypes = (editingCode.applicable_room_types as string[]) || [];
                           if (checked) {
-                            setEditingCode({
-                              ...editingCode,
-                              applicable_room_types: [...currentTypes, room.id],
-                            });
+                            setSelectedRoomTypes([...selectedRoomTypes, room.id]);
                           } else {
-                            setEditingCode({
-                              ...editingCode,
-                              applicable_room_types: currentTypes.filter(
-                                (id) => id !== room.id
-                              ),
-                            });
+                            setSelectedRoomTypes(selectedRoomTypes.filter((id) => id !== room.id));
                           }
                         }}
                       />
