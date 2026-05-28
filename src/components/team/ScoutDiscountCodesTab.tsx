@@ -365,6 +365,24 @@ export default function ScoutDiscountCodesTab() {
             </div>
 
             <div className="space-y-1">
+              <Label>民宿</Label>
+              <Select value={fAcc} onValueChange={setFAcc}>
+                <SelectTrigger>
+                  <SelectValue placeholder="選擇民宿" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>未指定</SelectItem>
+                  {accommodations.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+
+            <div className="space-y-1">
               <Label>星探</Label>
               <Select value={fScout} onValueChange={setFScout}>
                 <SelectTrigger>
