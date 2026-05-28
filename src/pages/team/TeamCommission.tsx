@@ -551,17 +551,35 @@ interface PayoutRow {
   team_bonus: number;
   kol_commission: number;
   total_payout: number;
+  bonus_breakdown: {
+    base_salary?: number;
+    rarity_bonus?: number;
+    kol_commission?: number;
+    team_bonus?: number;
+  } | null;
   individual_achieved: boolean | null;
   team_achieved: boolean | null;
   payout_status: string | null;
   payout_date: string | null;
+  calculated_at: string | null;
   scout_name?: string;
 }
 
-interface ScoutOption {
-  user_id: string;
-  display_name: string;
-}
+const formatTW = (iso: string | null | undefined) => {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleString("zh-TW", {
+      timeZone: "Asia/Taipei",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
+};
 
 function PayoutsBlock({ scoutManagerOnly = false }: { scoutManagerOnly?: boolean }) {
   const now = new Date();
@@ -569,27 +587,8 @@ function PayoutsBlock({ scoutManagerOnly = false }: { scoutManagerOnly?: boolean
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [status, setStatus] = useState<string>("all");
   const [rows, setRows] = useState<PayoutRow[]>([]);
-  const [scouts, setScouts] = useState<ScoutOption[]>([]);
   const [loading, setLoading] = useState(true);
-
-
-  const fetchScouts = useCallback(async () => {
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("user_id")
-      .in("role", ["scout", "scout_manager"])
-      .is("accommodation_id", null);
-    const ids = Array.from(new Set((roles ?? []).map((r) => r.user_id)));
-    if (ids.length === 0) {
-      setScouts([]);
-      return;
-    }
-    const { data: profiles } = await supabase
-      .from("team_member_profiles")
-      .select("user_id, display_name")
-      .in("user_id", ids);
-    setScouts((profiles as ScoutOption[]) ?? []);
-  }, []);
+  const [recalculating, setRecalculating] = useState(false);
 
   const fetchRows = useCallback(async () => {
     setLoading(true);
@@ -605,7 +604,7 @@ function PayoutsBlock({ scoutManagerOnly = false }: { scoutManagerOnly?: boolean
       setLoading(false);
       return;
     }
-    const list = (data as PayoutRow[]) ?? [];
+    const list = (data as unknown as PayoutRow[]) ?? [];
     const scoutIds = Array.from(new Set(list.map((r) => r.scout_id)));
     let nameMap: Record<string, string> = {};
     if (scoutIds.length > 0) {
@@ -620,12 +619,25 @@ function PayoutsBlock({ scoutManagerOnly = false }: { scoutManagerOnly?: boolean
   }, [year, month, status]);
 
   useEffect(() => {
-    fetchScouts();
-  }, [fetchScouts]);
-
-  useEffect(() => {
     fetchRows();
   }, [fetchRows]);
+
+  const handleRecalculate = async () => {
+    setRecalculating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("calculate-scout-payout", {
+        body: { year, month },
+      });
+      if (error) throw error;
+      if (data?.success === false) throw new Error(data?.error ?? "計算失敗");
+      toast.success(`計算完成（${data?.scouts_calculated ?? 0} 位星探）`);
+      await fetchRows();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setRecalculating(false);
+    }
+  };
 
   const markPaid = async (id: string) => {
     const { error } = await supabase
@@ -649,9 +661,11 @@ function PayoutsBlock({ scoutManagerOnly = false }: { scoutManagerOnly?: boolean
         <CardTitle>發放管理</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        <p className="text-xs text-muted-foreground">
+          為了增加頁面讀取速度，固定每天晚上 23:59 自動更新數據，若有即時需求可手動「立即更新」。
+        </p>
         <div className="flex flex-wrap gap-2 items-end">
           <div>
-
             <Label className="text-xs">年份</Label>
             <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
               <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
@@ -684,13 +698,10 @@ function PayoutsBlock({ scoutManagerOnly = false }: { scoutManagerOnly?: boolean
               </SelectContent>
             </Select>
           </div>
+          <Button size="sm" onClick={handleRecalculate} disabled={recalculating}>
+            {recalculating ? "計算中…" : "立即更新"}
+          </Button>
         </div>
-
-        <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
-          獎金自動計算功能開發中，目前顯示已手動建立的歷史記錄。
-        </div>
-
-
 
         {loading ? null : rows.length === 0 ? (
           <p className="text-sm text-muted-foreground">本月份無記錄</p>
@@ -700,48 +711,60 @@ function PayoutsBlock({ scoutManagerOnly = false }: { scoutManagerOnly?: boolean
               <TableRow>
                 <TableHead>星探</TableHead>
                 <TableHead>底薪</TableHead>
-                <TableHead>團隊獎金</TableHead>
+                <TableHead>稀有度獎金</TableHead>
                 <TableHead>KOL分潤</TableHead>
+                <TableHead>團隊獎金</TableHead>
                 <TableHead>合計</TableHead>
                 <TableHead>個人</TableHead>
                 <TableHead>團隊</TableHead>
                 <TableHead>狀態</TableHead>
+                <TableHead>計算時間</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell>{r.scout_name}</TableCell>
-                  <TableCell>{formatMoney(r.base_salary)}</TableCell>
-                  <TableCell>{formatMoney(r.team_bonus)}</TableCell>
-                  <TableCell>{formatMoney(r.kol_commission)}</TableCell>
-                  <TableCell className="font-medium">{formatMoney(r.total_payout)}</TableCell>
-                  <TableCell>{r.individual_achieved ? "✅" : "—"}</TableCell>
-                  <TableCell>{r.team_achieved ? "✅" : "—"}</TableCell>
-                  <TableCell>
-                    {r.payout_status === "paid" ? (
-                      <Badge variant="outline">已發放</Badge>
-                    ) : (
-                      <Badge className="bg-amber-100 text-amber-700 border-amber-200">待發放</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {r.payout_status === "paid" ? (
-                      <span className="text-xs text-muted-foreground">{r.payout_date ?? ""}</span>
-                    ) : (
-                      <Button size="sm" variant="outline" onClick={() => markPaid(r.id)}>
-                        標記已發
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {rows.map((r) => {
+                const bb = r.bonus_breakdown ?? {};
+                const baseSalary = bb.base_salary ?? r.base_salary;
+                const rarityBonus = bb.rarity_bonus ?? 0;
+                const kolCommission = bb.kol_commission ?? r.kol_commission;
+                const teamBonus = bb.team_bonus ?? r.team_bonus;
+                return (
+                  <TableRow key={r.id}>
+                    <TableCell>{r.scout_name}</TableCell>
+                    <TableCell>{formatMoney(baseSalary)}</TableCell>
+                    <TableCell>{formatMoney(rarityBonus)}</TableCell>
+                    <TableCell>{formatMoney(kolCommission)}</TableCell>
+                    <TableCell>{formatMoney(teamBonus)}</TableCell>
+                    <TableCell className="font-medium">{formatMoney(r.total_payout)}</TableCell>
+                    <TableCell>{r.individual_achieved ? "✓" : "✗"}</TableCell>
+                    <TableCell>{r.team_achieved ? "✓" : "✗"}</TableCell>
+                    <TableCell>
+                      {r.payout_status === "paid" ? (
+                        <Badge variant="outline">已發放</Badge>
+                      ) : (
+                        <Badge className="bg-amber-100 text-amber-700 border-amber-200">待發放</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                      {formatTW(r.calculated_at)}
+                    </TableCell>
+                    <TableCell>
+                      {r.payout_status === "paid" ? (
+                        <span className="text-xs text-muted-foreground">{r.payout_date ?? ""}</span>
+                      ) : (
+                        <Button size="sm" variant="outline" onClick={() => markPaid(r.id)}>
+                          標記已發放
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         )}
       </CardContent>
     </Card>
-
   );
 }
