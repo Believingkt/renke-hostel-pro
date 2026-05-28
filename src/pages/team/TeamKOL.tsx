@@ -21,25 +21,22 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { KolStatsTab } from "@/components/team/KolStatsTab";
 
 // ====== 型別 & 常數 ======
-type BookingStatus = "invited" | "booked" | "checked_in" | "cancelled" | "rejected" | "on_hold";
-
-const BOOKING_STATUS_LABEL: Record<BookingStatus, string> = {
-  invited: "邀約中",
-  booked: "成功訂房",
-  checked_in: "已入住",
-  cancelled: "已取消",
-  rejected: "已拒絕",
-  on_hold: "暫緩",
+// 正式邀約 Tab：booking_status 僅保留以下三種顯示，其他值（含 null / 舊資料）一律顯示「—」
+const BOOKING_STATUS_DISPLAY: Record<string, string> = {
+  成功訂房: "bg-green-100 text-green-700 border-green-200",
+  訂房確認中: "bg-amber-100 text-amber-700 border-amber-200",
+  已取消: "bg-red-100 text-red-700 border-red-200",
 };
 
-const BOOKING_STATUS_CLASS: Record<BookingStatus, string> = {
-  invited: "bg-blue-100 text-blue-700 border-blue-200",
-  booked: "bg-green-100 text-green-700 border-green-200",
-  checked_in: "bg-gray-200 text-gray-700 border-gray-300",
-  cancelled: "bg-red-100 text-red-700 border-red-200",
-  rejected: "bg-red-200 text-red-900 border-red-300",
-  on_hold: "bg-orange-100 text-orange-700 border-orange-200",
-};
+function renderBookingStatusBadge(value: string | null | undefined) {
+  const cls = value ? BOOKING_STATUS_DISPLAY[value] : undefined;
+  if (!cls) return <span className="text-muted-foreground">—</span>;
+  return (
+    <Badge variant="outline" className={cls}>
+      {value}
+    </Badge>
+  );
+}
 
 const RARITY_OPTIONS = ["N", "R", "SR", "SSR", "UR", "ck"] as const;
 type Rarity = (typeof RARITY_OPTIONS)[number];
