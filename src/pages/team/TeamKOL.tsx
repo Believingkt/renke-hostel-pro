@@ -1090,9 +1090,7 @@ function InvitationsTab({
               <TableBody>
                 {filtered.map((r) => {
                   const igUrl = r.ig_handle || null;
-                  const contractDone =
-                    (r.contract_progress ?? "").includes("已上傳") ||
-                    (r.contract_progress ?? "").toLowerCase().includes("uploaded");
+                  const contractStatus = computeContractProgress(r.publish_url, r.publish_date, r.contract_file_url);
                   const codeOrCidValue = r.cid_code ?? r.short_url ?? null;
                   const codeOrCid = codeOrCidValue ?? "-";
                   const codeOrCidClass = codeOrCidValue && r.cid_configured
