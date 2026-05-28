@@ -1714,7 +1714,7 @@ function InvitationsTab({
               </Field>
               <Field label="訂房狀態（自動）">
                 <Input
-                  value={BOOKING_STATUS_LABEL[form.booking_status] ?? form.booking_status}
+                  value={form.booking_status ?? "—"}
                   readOnly
                   className="bg-muted"
                 />
