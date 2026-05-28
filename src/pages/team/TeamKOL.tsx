@@ -646,15 +646,15 @@ function InvitationsTab({
   }, [form.accommodation_id, form.venue_name, form.check_in_date, accommodations]); // eslint-disable-line
 
   // 訂單編號 → 自動切換訂房狀態
-  // 只在狀態為 invited / booked 時才自動切換，其餘狀態（含「訂房編號有誤」、「訂房確認中」、
-  // cancelled / rejected / on_hold / checked_in 等）一律保留不動。
+  // 填入訂單編號 → 「訂房確認中」；清空 → null。
+  // 已有「成功訂房」或「已取消」等其他值時保留不動。
   useEffect(() => {
-    const current = form.booking_status as string;
-    if (current !== "invited" && current !== "booked") return;
+    const current = form.booking_status;
     const hasOrder = !!form.order_number.trim();
-    const next: BookingStatus = hasOrder ? "booked" : "invited";
-    if (current !== next) {
-      setForm((f) => ({ ...f, booking_status: next }));
+    if (hasOrder && current == null) {
+      setForm((f) => ({ ...f, booking_status: "訂房確認中" }));
+    } else if (!hasOrder && current === "訂房確認中") {
+      setForm((f) => ({ ...f, booking_status: null }));
     }
   }, [form.order_number]); // eslint-disable-line
 
