@@ -236,6 +236,10 @@ export default function TeamKOL() {
       roles.includes("scout") ||
       roles.includes("scout_manager"),
   );
+  // hotel_admin / super_admin / venue_manager 才可編輯 KOL購票連結
+  const [canEditTicketLink, setCanEditTicketLink] = useState<boolean>(
+    roles.includes("super_admin") || roles.includes("venue_manager"),
+  );
 
   useEffect(() => {
     // hotel_admin 不在 TEAM_ROLES 過濾後的 roles 內，需獨立查詢
@@ -255,6 +259,24 @@ export default function TeamKOL() {
       cancelled = true;
     };
   }, [userId, canSeeStats]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (canEditTicketLink) return;
+    (async () => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .in("role", ["hotel_admin", "super_admin", "venue_manager"])
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled && data) setCanEditTicketLink(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, canEditTicketLink]);
 
   const handleConvertFromProspect = (p: InvitationPrefill) => {
     setPrefill(p);
@@ -282,10 +304,12 @@ export default function TeamKOL() {
           <InvitationsTab
             currentUserId={userId}
             isManager={isManager}
+            canEditTicketLink={canEditTicketLink}
             prefill={prefill}
             onPrefillConsumed={() => setPrefill(null)}
           />
         </TabsContent>
+
 
         <TabsContent value="prospects" className="mt-4">
           <ProspectsTab currentUserId={userId} isManager={isManager} onConvert={handleConvertFromProspect} />
