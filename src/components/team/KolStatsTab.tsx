@@ -54,6 +54,7 @@ interface RarityRow {
   effective_from: string;
 }
 interface TierRow {
+  tier_name: string;
   min_count: number;
   max_count: number | null;
   commission_rate: number;
@@ -69,6 +70,7 @@ interface TargetRow {
   year: number;
   month: number;
   personal_min: number;
+  venue_name: string | null;
 }
 interface ScoutProfile {
   user_id: string;
