@@ -678,6 +678,7 @@ export function KolStatsTab() {
                         <TableRow>
                           <TableHead>館別</TableHead>
                           <TableHead>訂單編號</TableHead>
+                          <TableHead className="whitespace-nowrap">訂購時間</TableHead>
                           <TableHead className="text-right">訂單金額</TableHead>
                           <TableHead className="text-right">分潤金額</TableHead>
                         </TableRow>
@@ -686,7 +687,7 @@ export function KolStatsTab() {
                         {selectedScout.orderItems.length === 0 ? (
                           <TableRow>
                             <TableCell
-                              colSpan={4}
+                              colSpan={5}
                               className="text-center text-muted-foreground py-4"
                             >
                               無資料
@@ -700,6 +701,17 @@ export function KolStatsTab() {
                               </TableCell>
                               <TableCell className="whitespace-nowrap">
                                 {o.order_number || "—"}
+                              </TableCell>
+                              <TableCell className="whitespace-nowrap tabular-nums">
+                                {o.created_at
+                                  ? new Date(o.created_at).toLocaleString("zh-TW", {
+                                      year: "numeric",
+                                      month: "2-digit",
+                                      day: "2-digit",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })
+                                  : "—"}
                               </TableCell>
                               <TableCell className="text-right tabular-nums">
                                 {o.final_price.toLocaleString()}
