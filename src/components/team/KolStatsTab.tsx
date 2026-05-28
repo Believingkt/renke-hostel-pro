@@ -339,11 +339,11 @@ export function KolStatsTab() {
           }
         }
 
-        const monthStart = month ? `${year}-${pad(month)}-01` : null;
+        const monthStart = month ? `${effYear}-${pad(month)}-01` : null;
         const monthEnd = month
           ? month === 12
-            ? `${year + 1}-01-01`
-            : `${year}-${pad(month + 1)}-01`
+            ? `${effYear + 1}-01-01`
+            : `${effYear}-${pad(month + 1)}-01`
           : null;
 
         const results: ScoutStats[] = scouts.map((s) => {
