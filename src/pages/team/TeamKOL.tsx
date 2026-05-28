@@ -444,6 +444,10 @@ function InvitationsTab({
   const [errorReason, setErrorReason] = useState("");
   const [reportingError, setReportingError] = useState(false);
 
+  // 取消邀約 Dialog
+  const [cancelTarget, setCancelTarget] = useState<KolRow | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+
   // 載入下拉資料
   useEffect(() => {
     (async () => {
