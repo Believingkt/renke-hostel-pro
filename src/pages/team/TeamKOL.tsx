@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { Plus, AlertTriangle, Check, X, Pencil, ExternalLink, Trash2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { KolStatsTab } from "@/components/team/KolStatsTab";
 
 // ====== 型別 & 常數 ======
 type BookingStatus = "invited" | "booked" | "checked_in" | "cancelled" | "rejected" | "on_hold";
