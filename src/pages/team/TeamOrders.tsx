@@ -73,6 +73,7 @@ interface MetaRow {
   scout_commission_rate: number | null;
   closer_commission_rate: number | null;
   exclusion_note?: string | null;
+  franchise_project?: string | null;
 }
 
 const PAGE_SIZE = 50;
