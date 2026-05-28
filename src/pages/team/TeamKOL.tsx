@@ -1486,11 +1486,7 @@ function InvitationsTab({
                   </Row>
                   <Row label="發布日期">{r.publish_date ?? "-"}</Row>
                   <Row label="訂單編號">{r.order_number ?? "-"}</Row>
-                  <Row label="狀態">
-                    <Badge variant="outline" className={BOOKING_STATUS_CLASS[r.booking_status as BookingStatus] ?? ""}>
-                      {BOOKING_STATUS_LABEL[r.booking_status as BookingStatus] ?? r.booking_status ?? "-"}
-                    </Badge>
-                  </Row>
+                  <Row label="狀態">{renderBookingStatusBadge(r.booking_status)}</Row>
                   <Row label="填寫日期">{r.invited_at ?? "-"}</Row>
                 </div>
               );
