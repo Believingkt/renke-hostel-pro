@@ -349,14 +349,17 @@ interface InvitationPrefill {
 function InvitationsTab({
   currentUserId,
   isManager,
+  canEditTicketLink,
   prefill,
   onPrefillConsumed,
 }: {
   currentUserId: string;
   isManager: boolean;
+  canEditTicketLink: boolean;
   prefill?: InvitationPrefill | null;
   onPrefillConsumed?: () => void;
 }) {
+
   const [prospectLink, setProspectLink] = useState<string | null>(null);
   const [rows, setRows] = useState<KolRow[]>([]);
   const [loading, setLoading] = useState(true);
