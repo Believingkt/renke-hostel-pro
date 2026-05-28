@@ -132,6 +132,7 @@ interface ScoutStats {
     order_number: string;
     final_price: number;
     commission: number;
+    created_at: string | null;
   }>;
 }
 
