@@ -1799,11 +1799,10 @@ function InvitationsTab({
               <Input
                 type="date"
                 value={form.invited_at}
-                onChange={(e) => isManager && setForm({ ...form, invited_at: e.target.value })}
-                readOnly={!isManager}
-                className={!isManager ? "bg-muted" : ""}
+                onChange={(e) => setForm({ ...form, invited_at: e.target.value })}
               />
             </Field>
+
 
             <Field label="累積資格">
               {isManager ? (
