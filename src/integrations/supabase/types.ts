@@ -148,33 +148,24 @@ export type Database = {
           accommodation_id: string
           closer_rate: number | null
           created_at: string | null
-          created_by: string | null
           effective_from: string
           id: string
-          rate: number
-          role: string
           video_rate: number | null
         }
         Insert: {
           accommodation_id: string
           closer_rate?: number | null
           created_at?: string | null
-          created_by?: string | null
           effective_from: string
           id?: string
-          rate: number
-          role: string
           video_rate?: number | null
         }
         Update: {
           accommodation_id?: string
           closer_rate?: number | null
           created_at?: string | null
-          created_by?: string | null
           effective_from?: string
           id?: string
-          rate?: number
-          role?: string
           video_rate?: number | null
         }
         Relationships: [
@@ -184,13 +175,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "accommodation_info"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "accommodation_commission_settings_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "team_member_profiles"
-            referencedColumns: ["user_id"]
           },
         ]
       }
