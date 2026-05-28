@@ -3599,11 +3599,13 @@ export type Database = {
           exclusion_note: string | null
           filled_at: string | null
           filled_by: string | null
+          franchise_project: string | null
           id: string
           import_source: string | null
           influencer_cid: string | null
           is_excluded: boolean | null
           kol_commission_only: boolean | null
+          member_number: string | null
           order_id: string
           scout_commission_rate: number | null
           scout_id: string | null
@@ -3621,11 +3623,13 @@ export type Database = {
           exclusion_note?: string | null
           filled_at?: string | null
           filled_by?: string | null
+          franchise_project?: string | null
           id?: string
           import_source?: string | null
           influencer_cid?: string | null
           is_excluded?: boolean | null
           kol_commission_only?: boolean | null
+          member_number?: string | null
           order_id: string
           scout_commission_rate?: number | null
           scout_id?: string | null
@@ -3643,11 +3647,13 @@ export type Database = {
           exclusion_note?: string | null
           filled_at?: string | null
           filled_by?: string | null
+          franchise_project?: string | null
           id?: string
           import_source?: string | null
           influencer_cid?: string | null
           is_excluded?: boolean | null
           kol_commission_only?: boolean | null
+          member_number?: string | null
           order_id?: string
           scout_commission_rate?: number | null
           scout_id?: string | null
