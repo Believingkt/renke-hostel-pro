@@ -95,6 +95,8 @@ export default function TeamOrders() {
   const [accFilter, setAccFilter] = useState<string>("ALL");
   const [year, setYear] = useState<string>("ALL");
   const [month, setMonth] = useState<string>("ALL");
+  const [franchiseFilter, setFranchiseFilter] = useState<string>("ALL");
+  const [franchiseProjects, setFranchiseProjects] = useState<{ id: string; name: string }[]>([]);
   const [page, setPage] = useState(1);
 
   const [editOpen, setEditOpen] = useState(false);
