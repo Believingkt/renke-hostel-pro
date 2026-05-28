@@ -5535,6 +5535,7 @@ export type Database = {
       }
       scout_discount_codes: {
         Row: {
+          accommodation_id: string | null
           closer_id: string | null
           closer_rate: number | null
           commission_type: string
@@ -5547,6 +5548,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          accommodation_id?: string | null
           closer_id?: string | null
           closer_rate?: number | null
           commission_type?: string
@@ -5559,6 +5561,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          accommodation_id?: string | null
           closer_id?: string | null
           closer_rate?: number | null
           commission_type?: string
@@ -5571,6 +5574,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "scout_discount_codes_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "scout_discount_codes_closer_id_fkey"
             columns: ["closer_id"]
