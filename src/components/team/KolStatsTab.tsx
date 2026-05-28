@@ -312,12 +312,12 @@ export function KolStatsTab() {
 
         const orderMap = new Map<
           string,
-          { count: number; total: number; orders: Array<{ order_number: string; final_price: number }> }
+          { count: number; total: number; orders: Array<{ order_number: string; final_price: number; created_at: string | null }> }
         >();
         if (allCidCodes.size > 0) {
           const { data: orders, error: ordErr } = await supabase
             .from("orders")
-            .select("order_number, discount_code, final_price")
+            .select("order_number, discount_code, final_price, created_at")
             .in("discount_code", Array.from(allCidCodes))
             .neq("order_status", "cancelled");
           if (ordErr) throw ordErr;
@@ -326,6 +326,7 @@ export function KolStatsTab() {
               discount_code: string | null;
               final_price: number | null;
               order_number: string | null;
+              created_at: string | null;
             };
             if (!row.discount_code) continue;
             const entry =
@@ -335,6 +336,7 @@ export function KolStatsTab() {
             entry.orders.push({
               order_number: row.order_number ?? "",
               final_price: Number(row.final_price || 0),
+              created_at: row.created_at,
             });
             orderMap.set(row.discount_code, entry);
           }
