@@ -639,6 +639,12 @@ export default function TeamOrders() {
           <ScoutDiscountCodesTab />
         </TabsContent>
 
+        <TabsContent value="stats" className="space-y-4">
+          <TeamCommissionStatsTab />
+        </TabsContent>
+
+
+
         <TabsContent value="settings" className="space-y-4">
           <OptionsCard
             title="來源管道"
