@@ -455,7 +455,7 @@ export default function TeamOrders() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">訂單補充資料</h1>
+        <h1 className="text-2xl font-semibold">成交大師</h1>
       </div>
 
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
