@@ -345,6 +345,9 @@ export function KolStatsTab() {
             (r) => r.booking_status === "成功訂房" && !r.is_error && inYearScope(r.check_in_date),
           ).length;
 
+          const tier = tierFor(cumulative);
+          const tierName = tier?.tier_name ?? "—";
+
           const periodQualified = rows.filter((r) => r.kpi_qualified === true && inPeriod(r.check_in_date));
           const qualifiedCount = periodQualified.length;
           const rarityCounts: Record<Rarity, number> = {
@@ -380,7 +383,6 @@ export function KolStatsTab() {
           let pmsOrderTotal = 0;
           const commissionRate = commissionRateFor(cumulative);
           const orderItems: ScoutStats["orderItems"] = [];
-          // 用 cid 對應 venue
           const venueByCid = new Map<string, string>();
           for (const r of rows) {
             if (r.cid_code && r.venue_name) venueByCid.set(r.cid_code, r.venue_name);
@@ -403,9 +405,10 @@ export function KolStatsTab() {
           }
           const kolCommission = Math.round(pmsOrderTotal * commissionRate);
 
+          let monthlySuccess = 0;
           let individualAchieved = false;
-          if (showSalary && month && monthStart && monthEnd) {
-            const monthCount = rows.filter(
+          if (month && monthStart && monthEnd) {
+            monthlySuccess = rows.filter(
               (r) =>
                 r.booking_status === "成功訂房" &&
                 !r.is_error &&
@@ -413,13 +416,15 @@ export function KolStatsTab() {
                 r.kpi_month >= monthStart &&
                 r.kpi_month < monthEnd,
             ).length;
-            individualAchieved = totalPersonalMin > 0 && monthCount >= totalPersonalMin;
+            individualAchieved = totalPersonalMin > 0 && monthlySuccess >= totalPersonalMin;
           }
-          const baseSalaryPayout = showSalary && individualAchieved ? baseSalary : 0;
+          const baseSalaryPayout = showSalary && s.is_scout_team_member && individualAchieved ? baseSalary : 0;
 
           return {
             scout_id: s.user_id,
             display_name: s.display_name ?? "未命名",
+            tier_name: tierName,
+            is_scout_team_member: !!s.is_scout_team_member,
             cumulative_count: cumulative,
             qualified_count: qualifiedCount,
             rarityCounts,
@@ -429,24 +434,38 @@ export function KolStatsTab() {
             commission_rate: commissionRate,
             kol_commission: kolCommission,
             individual_achieved: individualAchieved,
+            monthly_success_count: monthlySuccess,
             base_salary: baseSalaryPayout,
             team_bonus: 0,
             total: 0,
+            targets: targetsList,
+            total_personal_min: totalPersonalMin,
             qualifiedKols,
             orderItems,
           };
         });
 
+        // 過濾：當期沒有任何 kol_profile 記錄的星探不顯示
+        const periodFiltered = results.filter((r) => {
+          const rows = kolRows.filter((k) => k.scout_id === r.scout_id);
+          if (!range) return rows.length > 0;
+          return rows.some((k) => inPeriod(k.check_in_date));
+        });
+
         let teamBonusPayout = 0;
-        if (showSalary && results.length > 0) {
-          const achieved = results.filter((r) => r.individual_achieved).length;
-          const rate = (achieved / results.length) * 100;
-          if (rate >= teamThresholdPct) teamBonusPayout = teamBonusAmount;
+        if (showSalary) {
+          const teamMembers = periodFiltered.filter((r) => r.is_scout_team_member);
+          if (teamMembers.length > 0) {
+            const achieved = teamMembers.filter((r) => r.individual_achieved).length;
+            const rate = (achieved / teamMembers.length) * 100;
+            if (rate >= teamThresholdPct) teamBonusPayout = teamBonusAmount;
+          }
         }
-        for (const r of results) {
-          r.team_bonus = showSalary ? teamBonusPayout : 0;
+        for (const r of periodFiltered) {
+          r.team_bonus = showSalary && r.is_scout_team_member ? teamBonusPayout : 0;
           r.total = r.rarity_bonus + r.kol_commission + r.base_salary + r.team_bonus;
         }
+
 
         if (!cancelled) {
           setStats(results.sort((a, b) => b.cumulative_count - a.cumulative_count));
