@@ -211,7 +211,7 @@ export function KolStatsTab() {
               ? supabase
                   .from("scout_team_targets")
                   .select("year, month, personal_min")
-                  .eq("year", year)
+                  .eq("year", effYear)
                   .eq("month", month)
               : Promise.resolve({ data: [] as TargetRow[], error: null }),
           ]);
