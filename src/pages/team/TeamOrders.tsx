@@ -379,7 +379,7 @@ export default function TeamOrders() {
       if (franchiseFilter !== "ALL" && (o.meta?.franchise_project ?? "") !== franchiseFilter) return false;
       return true;
     });
-  }, [orders, accFilter, year, month]);
+  }, [orders, accFilter, year, month, franchiseFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
