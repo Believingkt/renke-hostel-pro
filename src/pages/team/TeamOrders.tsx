@@ -33,6 +33,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Pencil, Check, X } from "lucide-react";
+import ScoutDiscountCodesTab from "@/components/team/ScoutDiscountCodesTab";
 
 interface Member {
   user_id: string;
@@ -461,6 +462,7 @@ export default function TeamOrders() {
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="orders">訂單列表</TabsTrigger>
+          <TabsTrigger value="scout-codes">星探專屬折扣碼</TabsTrigger>
           <TabsTrigger value="settings">設定</TabsTrigger>
         </TabsList>
 
@@ -622,6 +624,10 @@ export default function TeamOrders() {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="scout-codes" className="space-y-4">
+          <ScoutDiscountCodesTab />
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-4">
