@@ -1939,6 +1939,46 @@ function InvitationsTab({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 取消邀約 Dialog */}
+      <Dialog open={!!cancelTarget} onOpenChange={(o) => !o && !cancelling && setCancelTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>確認取消邀約</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            確定要取消 {cancelTarget?.name} 的邀約嗎?此操作將把訂房狀態改為已取消。
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelTarget(null)} disabled={cancelling}>
+              返回
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={cancelling}
+              onClick={async () => {
+                if (!cancelTarget) return;
+                setCancelling(true);
+                const { error } = await supabase
+                  .from("kol_profiles")
+                  .update({ booking_status: "已取消" })
+                  .eq("id", cancelTarget.id);
+                setCancelling(false);
+                if (error) {
+                  toast.error("取消失敗:" + error.message);
+                  return;
+                }
+                toast.success("邀約已取消");
+                setCancelTarget(null);
+                setViewingRow(null);
+                fetchRows();
+              }}
+            >
+              {cancelling ? "處理中..." : "確認取消"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
