@@ -50,6 +50,12 @@ interface ScoutCode {
   scout_rate: number | null;
   closer_rate: number | null;
   is_active: boolean | null;
+  accommodation_id: string | null;
+}
+
+interface AccommodationOpt {
+  id: string;
+  name: string;
 }
 
 interface MemberOpt {
@@ -72,6 +78,7 @@ export default function ScoutDiscountCodesTab() {
   const [rows, setRows] = useState<ScoutCode[]>([]);
   const [scouts, setScouts] = useState<MemberOpt[]>([]);
   const [closers, setClosers] = useState<MemberOpt[]>([]);
+  const [accommodations, setAccommodations] = useState<AccommodationOpt[]>([]);
   const [pmsCodes, setPmsCodes] = useState<Map<string, PmsCode>>(new Map());
   const [loading, setLoading] = useState(true);
 
@@ -82,6 +89,7 @@ export default function ScoutDiscountCodesTab() {
 
   // form
   const [fCode, setFCode] = useState("");
+  const [fAcc, setFAcc] = useState<string>(NONE);
   const [fScout, setFScout] = useState<string>(NONE);
   const [fType, setFType] = useState<CommissionType>("scout_self");
   const [fCloser, setFCloser] = useState<string>(NONE);
@@ -96,10 +104,14 @@ export default function ScoutDiscountCodesTab() {
     () => new Map(closers.map((c) => [c.id, c.display_name])),
     [closers]
   );
+  const accMap = useMemo(
+    () => new Map(accommodations.map((a) => [a.id, a.name])),
+    [accommodations]
+  );
 
   const loadAll = async () => {
     setLoading(true);
-    const [{ data: codeRows }, { data: scoutRoles }, { data: closerRoles }, { data: pms }] =
+    const [{ data: codeRows }, { data: scoutRoles }, { data: closerRoles }, { data: pms }, { data: accs }] =
       await Promise.all([
         supabase
           .from("scout_discount_codes")
@@ -111,7 +123,14 @@ export default function ScoutDiscountCodesTab() {
           .in("role", ["scout", "scout_manager"] as any),
         supabase.from("user_roles").select("user_id").eq("role", "closer" as any),
         supabase.from("discount_codes").select("code, is_active"),
+        supabase
+          .from("accommodation_info")
+          .select("id, name")
+          .eq("is_active", true)
+          .order("name"),
       ]);
+
+    setAccommodations((accs ?? []) as AccommodationOpt[]);
 
     const scoutIds = Array.from(new Set((scoutRoles ?? []).map((r: any) => r.user_id)));
     const closerIds = Array.from(new Set((closerRoles ?? []).map((r: any) => r.user_id)));
@@ -146,6 +165,7 @@ export default function ScoutDiscountCodesTab() {
   const openCreate = () => {
     setEditing(null);
     setFCode("");
+    setFAcc(NONE);
     setFScout(NONE);
     setFType("scout_self");
     setFCloser(NONE);
@@ -157,6 +177,7 @@ export default function ScoutDiscountCodesTab() {
   const openEdit = (row: ScoutCode) => {
     setEditing(row);
     setFCode(row.discount_code ?? "");
+    setFAcc(row.accommodation_id ?? NONE);
     setFScout(row.scout_id ?? NONE);
     setFType((row.commission_type as CommissionType) ?? "scout_self");
     setFCloser(row.closer_id ?? NONE);
@@ -193,6 +214,7 @@ export default function ScoutDiscountCodesTab() {
     setSaving(true);
     const payload = {
       discount_code: fCode.trim(),
+      accommodation_id: fAcc === NONE ? null : fAcc,
       scout_id: fScout,
       closer_id: fType === "partner" ? fCloser : null,
       commission_type: fType,
@@ -262,6 +284,7 @@ export default function ScoutDiscountCodesTab() {
               <TableHeader>
                 <TableRow>
                   <TableHead>折扣碼</TableHead>
+                  <TableHead>民宿</TableHead>
                   <TableHead>星探</TableHead>
                   <TableHead>成交模式</TableHead>
                   <TableHead className="text-right">星探分潤%</TableHead>
@@ -274,13 +297,13 @@ export default function ScoutDiscountCodesTab() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-6">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-6">
                       載入中…
                     </TableCell>
                   </TableRow>
                 ) : rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-6">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-6">
                       尚無資料
                     </TableCell>
                   </TableRow>
@@ -288,6 +311,9 @@ export default function ScoutDiscountCodesTab() {
                   rows.map((r) => (
                     <TableRow key={r.id}>
                       <TableCell className="font-mono whitespace-nowrap">{r.discount_code}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {r.accommodation_id ? accMap.get(r.accommodation_id) ?? "—" : "—"}
+                      </TableCell>
                       <TableCell className="whitespace-nowrap">
                         {r.scout_id ? scoutMap.get(r.scout_id) ?? "—" : "—"}
                       </TableCell>
@@ -337,6 +363,24 @@ export default function ScoutDiscountCodesTab() {
                 placeholder="輸入折扣碼"
               />
             </div>
+
+            <div className="space-y-1">
+              <Label>民宿</Label>
+              <Select value={fAcc} onValueChange={setFAcc}>
+                <SelectTrigger>
+                  <SelectValue placeholder="選擇民宿" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>未指定</SelectItem>
+                  {accommodations.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
 
             <div className="space-y-1">
               <Label>星探</Label>
