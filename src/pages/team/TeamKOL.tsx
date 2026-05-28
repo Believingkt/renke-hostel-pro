@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { Plus, AlertTriangle, Check, X, Pencil, ExternalLink, Trash2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { KolStatsTab } from "@/components/team/KolStatsTab";
 
 // ====== 型別 & 常數 ======
 type BookingStatus = "invited" | "booked" | "checked_in" | "cancelled" | "rejected" | "on_hold";
@@ -230,6 +231,30 @@ export default function TeamKOL() {
 
   const [tab, setTab] = useState("invitations");
   const [prefill, setPrefill] = useState<InvitationPrefill | null>(null);
+  const [canSeeStats, setCanSeeStats] = useState<boolean>(
+    roles.includes("super_admin") ||
+      roles.includes("scout") ||
+      roles.includes("scout_manager"),
+  );
+
+  useEffect(() => {
+    // hotel_admin 不在 TEAM_ROLES 過濾後的 roles 內，需獨立查詢
+    let cancelled = false;
+    if (canSeeStats) return;
+    (async () => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .in("role", ["hotel_admin", "super_admin", "scout", "scout_manager"])
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled && data) setCanSeeStats(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, canSeeStats]);
 
   const handleConvertFromProspect = (p: InvitationPrefill) => {
     setPrefill(p);
@@ -248,6 +273,7 @@ export default function TeamKOL() {
           <TabsTrigger value="invitations">正式邀約</TabsTrigger>
           <TabsTrigger value="prospects">潛在名單</TabsTrigger>
           <TabsTrigger value="targets">邀約目標</TabsTrigger>
+          {canSeeStats && <TabsTrigger value="stats">業績統計</TabsTrigger>}
           <TabsTrigger value="venues">場域管理</TabsTrigger>
           <TabsTrigger value="settings">設定</TabsTrigger>
         </TabsList>
@@ -268,6 +294,12 @@ export default function TeamKOL() {
         <TabsContent value="targets" className="mt-4">
           <TargetsTab isManager={isManager} currentUserId={userId} />
         </TabsContent>
+
+        {canSeeStats && (
+          <TabsContent value="stats" className="mt-4">
+            <KolStatsTab />
+          </TabsContent>
+        )}
 
         <TabsContent value="venues" className="mt-4">
           <VenuesCard isManager={isManager} />
