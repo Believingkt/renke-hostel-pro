@@ -494,7 +494,7 @@ export function KolStatsTab() {
               <SelectContent>
                 {yearOptions.map((y) => (
                   <SelectItem key={y} value={String(y)}>
-                    {y} 年
+                    {y === 0 ? "全部" : `${y} 年`}
                   </SelectItem>
                 ))}
               </SelectContent>
