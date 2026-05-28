@@ -236,6 +236,10 @@ export default function TeamKOL() {
       roles.includes("scout") ||
       roles.includes("scout_manager"),
   );
+  // hotel_admin / super_admin / venue_manager 才可編輯 KOL購票連結
+  const [canEditTicketLink, setCanEditTicketLink] = useState<boolean>(
+    roles.includes("super_admin") || roles.includes("venue_manager"),
+  );
 
   useEffect(() => {
     // hotel_admin 不在 TEAM_ROLES 過濾後的 roles 內，需獨立查詢
@@ -255,6 +259,24 @@ export default function TeamKOL() {
       cancelled = true;
     };
   }, [userId, canSeeStats]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (canEditTicketLink) return;
+    (async () => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .in("role", ["hotel_admin", "super_admin", "venue_manager"])
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled && data) setCanEditTicketLink(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, canEditTicketLink]);
 
   const handleConvertFromProspect = (p: InvitationPrefill) => {
     setPrefill(p);
@@ -282,10 +304,12 @@ export default function TeamKOL() {
           <InvitationsTab
             currentUserId={userId}
             isManager={isManager}
+            canEditTicketLink={canEditTicketLink}
             prefill={prefill}
             onPrefillConsumed={() => setPrefill(null)}
           />
         </TabsContent>
+
 
         <TabsContent value="prospects" className="mt-4">
           <ProspectsTab currentUserId={userId} isManager={isManager} onConvert={handleConvertFromProspect} />
@@ -325,14 +349,17 @@ interface InvitationPrefill {
 function InvitationsTab({
   currentUserId,
   isManager,
+  canEditTicketLink,
   prefill,
   onPrefillConsumed,
 }: {
   currentUserId: string;
   isManager: boolean;
+  canEditTicketLink: boolean;
   prefill?: InvitationPrefill | null;
   onPrefillConsumed?: () => void;
 }) {
+
   const [prospectLink, setProspectLink] = useState<string | null>(null);
   const [rows, setRows] = useState<KolRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1690,12 +1717,26 @@ function InvitationsTab({
             )}
 
             <Field label="KOL購票連結">
-              <Input
-                value={form.kol_direct_ticket_link}
-                onChange={(e) => setForm({ ...form, kol_direct_ticket_link: e.target.value })}
-                placeholder="https://..."
-              />
+              {canEditTicketLink ? (
+                <Input
+                  value={form.kol_direct_ticket_link}
+                  onChange={(e) => setForm({ ...form, kol_direct_ticket_link: e.target.value })}
+                  placeholder="https://..."
+                />
+              ) : form.kol_direct_ticket_link ? (
+                <a
+                  href={form.kol_direct_ticket_link}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 break-all text-sm text-primary underline underline-offset-2"
+                >
+                  {form.kol_direct_ticket_link} <ExternalLink className="h-3 w-3 shrink-0" />
+                </a>
+              ) : (
+                <span className="text-sm text-muted-foreground">—</span>
+              )}
             </Field>
+
 
             {showShortUrl && (
               <Field label="短網址後綴">
@@ -1758,11 +1799,10 @@ function InvitationsTab({
               <Input
                 type="date"
                 value={form.invited_at}
-                onChange={(e) => isManager && setForm({ ...form, invited_at: e.target.value })}
-                readOnly={!isManager}
-                className={!isManager ? "bg-muted" : ""}
+                onChange={(e) => setForm({ ...form, invited_at: e.target.value })}
               />
             </Field>
+
 
             <Field label="累積資格">
               {isManager ? (
