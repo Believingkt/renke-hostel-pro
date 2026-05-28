@@ -311,7 +311,7 @@ export default function TeamOrders() {
             `id, order_number, guest_name, check_in_date, check_out_date,
              final_price, discount_code, order_source, ota_channel, accommodation_id, created_at`
           )
-
+          .neq("guest_name", "保留單")
           .order("created_at", { ascending: false })
           .limit(2000),
         supabase.from("accommodation_info").select("id, name"),
@@ -541,6 +541,7 @@ export default function TeamOrders() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="whitespace-nowrap">訂單編號</TableHead>
+                  <TableHead className="whitespace-nowrap">訂購時間</TableHead>
                   <TableHead className="whitespace-nowrap">館別</TableHead>
                   <TableHead className="whitespace-nowrap">房客姓名</TableHead>
                   <TableHead className="whitespace-nowrap">入住日</TableHead>
@@ -557,13 +558,13 @@ export default function TeamOrders() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                       載入中...
                     </TableCell>
                   </TableRow>
                 ) : pageItems.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                       無資料
                     </TableCell>
                   </TableRow>
@@ -575,6 +576,18 @@ export default function TeamOrders() {
                       onClick={() => openEdit(o)}
                     >
                       <TableCell className="font-mono text-xs">{o.order_number}</TableCell>
+                      <TableCell className="whitespace-nowrap tabular-nums text-xs">
+                        {o.created_at
+                          ? new Date(o.created_at).toLocaleString("sv-SE", {
+                              timeZone: "Asia/Taipei",
+                              year: "numeric",
+                              month: "2-digit",
+                              day: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }).replace(" ", " ").slice(0, 16)
+                          : "-"}
+                      </TableCell>
                       <TableCell className="whitespace-nowrap">{o.accommodation_name}</TableCell>
                       <TableCell className="whitespace-nowrap">{o.guest_name}</TableCell>
                       <TableCell className="whitespace-nowrap">{o.check_in_date}</TableCell>
