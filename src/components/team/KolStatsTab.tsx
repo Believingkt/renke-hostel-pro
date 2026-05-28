@@ -174,9 +174,7 @@ export function KolStatsTab() {
 
         const [rolesRes, profilesRes, rarityRes, tierRes, salaryRes, accsRes, targetsRes] = await Promise.all([
           supabase.from("user_roles").select("user_id, role").in("role", ["scout", "scout_manager"]),
-          supabase
-            .from("team_member_profiles")
-            .select("user_id, display_name, is_scout_team_member"),
+          supabase.from("team_member_profiles").select("user_id, display_name, is_scout_team_member"),
           supabase
             .from("kol_rarity_settings")
             .select("rarity, bonus_amount, effective_from")
@@ -466,7 +464,6 @@ export function KolStatsTab() {
           r.total = r.rarity_bonus + r.kol_commission + r.base_salary + r.team_bonus;
         }
 
-
         if (!cancelled) {
           setStats(periodFiltered.sort((a, b) => b.cumulative_count - a.cumulative_count));
           setLoading(false);
@@ -701,7 +698,7 @@ export function KolStatsTab() {
                   <h3 className="text-sm font-semibold mb-2">底薪達標明細</h3>
                   {!showSalary ? (
                     <div className="text-sm text-muted-foreground border rounded-md p-3">
-                      底薪於每月10日隨上期結算發放
+                      底薪於每月10日隨上期結算發放（請改選N月10日，才會顯示明細資訊）
                     </div>
                   ) : (
                     <div className="border rounded-md p-3 space-y-3 text-sm">
