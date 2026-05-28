@@ -526,6 +526,7 @@ export function KolStatsTab() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="whitespace-nowrap">等級名稱</TableHead>
                 <TableHead className="whitespace-nowrap">星探</TableHead>
                 <TableHead className="text-right whitespace-nowrap">整年累積邀約</TableHead>
                 <TableHead className="text-right whitespace-nowrap">本期符合資格</TableHead>
@@ -541,13 +542,13 @@ export function KolStatsTab() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
                     載入中…
                   </TableCell>
                 </TableRow>
               ) : stats.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
                     尚無資料
                   </TableCell>
                 </TableRow>
@@ -558,6 +559,7 @@ export function KolStatsTab() {
                     className="cursor-pointer hover:bg-muted/50"
                     onClick={() => setSelectedScout(s)}
                   >
+                    <TableCell className="whitespace-nowrap text-muted-foreground">{s.tier_name}</TableCell>
                     <TableCell className="whitespace-nowrap font-medium">{s.display_name}</TableCell>
                     <TableCell className="text-right tabular-nums">{s.cumulative_count}</TableCell>
                     <TableCell
@@ -572,10 +574,10 @@ export function KolStatsTab() {
                     <TableCell className="text-right tabular-nums">{(s.commission_rate * 100).toFixed(1)}%</TableCell>
                     <TableCell className="text-right tabular-nums">{s.kol_commission.toLocaleString()}</TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {showSalary ? s.base_salary.toLocaleString() : "—"}
+                      {showSalary && s.is_scout_team_member ? s.base_salary.toLocaleString() : "—"}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {showSalary ? s.team_bonus.toLocaleString() : "—"}
+                      {showSalary && s.is_scout_team_member ? s.team_bonus.toLocaleString() : "—"}
                     </TableCell>
                     <TableCell className="text-right tabular-nums font-semibold">{s.total.toLocaleString()}</TableCell>
                   </TableRow>
