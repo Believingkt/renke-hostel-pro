@@ -138,15 +138,23 @@ interface ScoutStats {
 export function KolStatsTab() {
   const today = new Date();
   const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth() + 1;
+  const defaultPeriod =
+    today.getDate() <= 5
+      ? `${currentMonth}-10`
+      : today.getDate() <= 20
+        ? `${currentMonth}-25`
+        : `${currentMonth === 12 ? 1 : currentMonth + 1}-10`;
 
+  // 0 = 全部年份
   const [year, setYear] = useState<number>(currentYear);
-  const [period, setPeriod] = useState<string>("all");
+  const [period, setPeriod] = useState<string>(defaultPeriod);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<ScoutStats[]>([]);
   const [selectedScout, setSelectedScout] = useState<ScoutStats | null>(null);
 
   const yearOptions = useMemo(() => {
-    const arr: number[] = [];
+    const arr: number[] = [0];
     for (let y = currentYear - 2; y <= currentYear + 1; y++) arr.push(y);
     return arr;
   }, [currentYear]);
