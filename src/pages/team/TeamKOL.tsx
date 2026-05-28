@@ -1439,7 +1439,24 @@ function InvitationsTab({
                       "—"
                     )}
                   </Row>
-                  <Row label="合約進度">{r.contract_progress ?? "-"}</Row>
+                  <Row label="合約進度">
+                    {(() => {
+                      const s = computeContractProgress(r.publish_url, r.publish_date, r.contract_file_url);
+                      if (!s || s.empty) return <span className="text-muted-foreground">—</span>;
+                      return (
+                        <Badge
+                          variant="outline"
+                          className={
+                            s.done
+                              ? "bg-green-100 text-green-700 border-green-200"
+                              : "bg-orange-100 text-orange-700 border-orange-200"
+                          }
+                        >
+                          {s.label}
+                        </Badge>
+                      );
+                    })()}
+                  </Row>
                   <Row label="合約檔案">
                     {r.contract_file_url ? (
                       <a
