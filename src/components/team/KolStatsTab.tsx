@@ -696,6 +696,60 @@ export function KolStatsTab() {
                     </span>
                   </div>
                 </section>
+
+                <section>
+                  <h3 className="text-sm font-semibold mb-2">底薪達標明細</h3>
+                  {!showSalary ? (
+                    <div className="text-sm text-muted-foreground border rounded-md p-3">
+                      底薪於每月10日隨上期結算發放
+                    </div>
+                  ) : (
+                    <div className="border rounded-md p-3 space-y-3 text-sm">
+                      <div>
+                        <div className="font-medium mb-1">各場域個人目標</div>
+                        {selectedScout.targets.length === 0 ? (
+                          <div className="text-muted-foreground">本月未設定目標</div>
+                        ) : (
+                          <ul className="space-y-1">
+                            {selectedScout.targets.map((t, i) => (
+                              <li key={i} className="flex justify-between">
+                                <span>{t.venue_name}</span>
+                                <span className="tabular-nums">{t.personal_min} 件</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                      <div className="flex justify-between border-t pt-2">
+                        <span>合計需達件數</span>
+                        <span className="tabular-nums font-semibold">{selectedScout.total_personal_min} 件</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>當月實際達成件數</span>
+                        <span className="tabular-nums font-semibold">{selectedScout.monthly_success_count} 件</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>達標狀態</span>
+                        <span
+                          className={`font-semibold ${
+                            selectedScout.individual_achieved ? "text-green-600" : "text-orange-500"
+                          }`}
+                        >
+                          {selectedScout.individual_achieved ? "✓ 已達標" : "✗ 未達標"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between border-t pt-2">
+                        <span>底薪金額</span>
+                        <span className="tabular-nums font-semibold">
+                          NT$ {(selectedScout.is_scout_team_member ? selectedScout.base_salary : 0).toLocaleString()}
+                        </span>
+                      </div>
+                      {!selectedScout.is_scout_team_member && (
+                        <div className="text-xs text-muted-foreground">（非星探團隊成員，不發放底薪）</div>
+                      )}
+                    </div>
+                  )}
+                </section>
               </div>
             </>
           )}
