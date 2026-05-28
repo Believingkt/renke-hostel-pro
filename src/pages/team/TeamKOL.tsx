@@ -1272,6 +1272,16 @@ function InvitationsTab({
           <SheetHeader>
             <div className="flex items-center gap-2 pr-12">
               <SheetTitle className="flex-1">邀約明細</SheetTitle>
+              {viewingRow && viewingRow.booking_status !== "已取消" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
+                  onClick={() => setCancelTarget(viewingRow)}
+                >
+                  取消邀約
+                </Button>
+              )}
               {viewingRow && canReportError(viewingRow) && !viewingRow.is_error && (
                 <Button
                   size="sm"
