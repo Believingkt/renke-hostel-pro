@@ -50,6 +50,12 @@ interface ScoutCode {
   scout_rate: number | null;
   closer_rate: number | null;
   is_active: boolean | null;
+  accommodation_id: string | null;
+}
+
+interface AccommodationOpt {
+  id: string;
+  name: string;
 }
 
 interface MemberOpt {
@@ -72,6 +78,7 @@ export default function ScoutDiscountCodesTab() {
   const [rows, setRows] = useState<ScoutCode[]>([]);
   const [scouts, setScouts] = useState<MemberOpt[]>([]);
   const [closers, setClosers] = useState<MemberOpt[]>([]);
+  const [accommodations, setAccommodations] = useState<AccommodationOpt[]>([]);
   const [pmsCodes, setPmsCodes] = useState<Map<string, PmsCode>>(new Map());
   const [loading, setLoading] = useState(true);
 
@@ -82,6 +89,7 @@ export default function ScoutDiscountCodesTab() {
 
   // form
   const [fCode, setFCode] = useState("");
+  const [fAcc, setFAcc] = useState<string>(NONE);
   const [fScout, setFScout] = useState<string>(NONE);
   const [fType, setFType] = useState<CommissionType>("scout_self");
   const [fCloser, setFCloser] = useState<string>(NONE);
@@ -96,10 +104,14 @@ export default function ScoutDiscountCodesTab() {
     () => new Map(closers.map((c) => [c.id, c.display_name])),
     [closers]
   );
+  const accMap = useMemo(
+    () => new Map(accommodations.map((a) => [a.id, a.name])),
+    [accommodations]
+  );
 
   const loadAll = async () => {
     setLoading(true);
-    const [{ data: codeRows }, { data: scoutRoles }, { data: closerRoles }, { data: pms }] =
+    const [{ data: codeRows }, { data: scoutRoles }, { data: closerRoles }, { data: pms }, { data: accs }] =
       await Promise.all([
         supabase
           .from("scout_discount_codes")
@@ -111,7 +123,14 @@ export default function ScoutDiscountCodesTab() {
           .in("role", ["scout", "scout_manager"] as any),
         supabase.from("user_roles").select("user_id").eq("role", "closer" as any),
         supabase.from("discount_codes").select("code, is_active"),
+        supabase
+          .from("accommodation_info")
+          .select("id, name")
+          .eq("is_active", true)
+          .order("name"),
       ]);
+
+    setAccommodations((accs ?? []) as AccommodationOpt[]);
 
     const scoutIds = Array.from(new Set((scoutRoles ?? []).map((r: any) => r.user_id)));
     const closerIds = Array.from(new Set((closerRoles ?? []).map((r: any) => r.user_id)));
