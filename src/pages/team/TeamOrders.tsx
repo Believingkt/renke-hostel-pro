@@ -34,6 +34,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Pencil, Check, X } from "lucide-react";
 import ScoutDiscountCodesTab from "@/components/team/ScoutDiscountCodesTab";
+import TeamCommissionStatsTab from "@/components/team/TeamCommissionStatsTab";
 
 interface Member {
   user_id: string;
