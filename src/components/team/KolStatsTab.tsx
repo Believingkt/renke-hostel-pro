@@ -285,8 +285,8 @@ export function KolStatsTab() {
         };
 
         // 年份範圍（period != all 時用來限制累積邀約）
-        const yearStart = `${year}-01-01`;
-        const yearEnd = `${year}-12-31`;
+        const yearStart = `${effYear}-01-01`;
+        const yearEnd = `${effYear}-12-31`;
         const inYearScope = (d: string | null): boolean => {
           if (isAll) return true;
           if (!d) return false;
