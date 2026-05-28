@@ -175,11 +175,13 @@ export function KolStatsTab() {
     (async () => {
       setLoading(true);
       try {
-        const asOfDate = `${year}-12-31`;
-        const range = periodRange(year, period);
+        const yearAll = year === 0;
+        const effYear = yearAll ? currentYear : year;
+        const asOfDate = `${effYear}-12-31`;
+        const range = periodRange(effYear, period);
         const month = periodMonth(period);
         const showSalary = periodIsDayTen(period);
-        const isAll = period === "all";
+        const isAll = period === "all" || yearAll;
 
         const [scoutsRes, rarityRes, tierRes, salaryRes, accsRes, targetsRes] =
           await Promise.all([
