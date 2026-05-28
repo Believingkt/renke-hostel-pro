@@ -54,6 +54,7 @@ interface RarityRow {
   effective_from: string;
 }
 interface TierRow {
+  tier_name: string;
   min_count: number;
   max_count: number | null;
   commission_rate: number;
@@ -69,10 +70,12 @@ interface TargetRow {
   year: number;
   month: number;
   personal_min: number;
+  venue_name: string | null;
 }
 interface ScoutProfile {
   user_id: string;
   display_name: string | null;
+  is_scout_team_member: boolean;
 }
 interface KolProfileRow {
   scout_id: string | null;
@@ -91,6 +94,8 @@ interface KolProfileRow {
 interface ScoutStats {
   scout_id: string;
   display_name: string;
+  tier_name: string;
+  is_scout_team_member: boolean;
   cumulative_count: number;
   qualified_count: number;
   rarityCounts: Record<Rarity, number>;
@@ -100,9 +105,12 @@ interface ScoutStats {
   commission_rate: number;
   kol_commission: number;
   individual_achieved: boolean;
+  monthly_success_count: number;
   base_salary: number;
   team_bonus: number;
   total: number;
+  targets: Array<{ venue_name: string; personal_min: number }>;
+  total_personal_min: number;
   qualifiedKols: Array<{
     name: string;
     rarity: string;
@@ -164,8 +172,11 @@ export function KolStatsTab() {
         const showSalary = periodIsDayTen(period);
         const isAll = period === "all" || yearAll;
 
-        const [scoutsRes, rarityRes, tierRes, salaryRes, accsRes, targetsRes] = await Promise.all([
-          supabase.from("team_member_profiles").select("user_id, display_name").eq("is_scout_team_member", true),
+        const [rolesRes, profilesRes, rarityRes, tierRes, salaryRes, accsRes, targetsRes] = await Promise.all([
+          supabase.from("user_roles").select("user_id, role").in("role", ["scout", "scout_manager"]),
+          supabase
+            .from("team_member_profiles")
+            .select("user_id, display_name, is_scout_team_member"),
           supabase
             .from("kol_rarity_settings")
             .select("rarity, bonus_amount, effective_from")
@@ -173,7 +184,7 @@ export function KolStatsTab() {
             .order("effective_from", { ascending: false }),
           supabase
             .from("scout_tier_settings")
-            .select("min_count, max_count, commission_rate, effective_from")
+            .select("tier_name, min_count, max_count, commission_rate, effective_from")
             .lte("effective_from", asOfDate)
             .order("effective_from", { ascending: false }),
           supabase
@@ -187,20 +198,25 @@ export function KolStatsTab() {
           month
             ? supabase
                 .from("scout_team_targets")
-                .select("year, month, personal_min")
+                .select("year, month, personal_min, venue_name")
                 .eq("year", effYear)
                 .eq("month", month)
             : Promise.resolve({ data: [] as TargetRow[], error: null }),
         ]);
 
-        if (scoutsRes.error) throw scoutsRes.error;
+        if (rolesRes.error) throw rolesRes.error;
+        if (profilesRes.error) throw profilesRes.error;
         if (rarityRes.error) throw rarityRes.error;
         if (tierRes.error) throw tierRes.error;
         if (salaryRes.error) throw salaryRes.error;
         if (accsRes.error) throw accsRes.error;
         if (targetsRes.error) throw targetsRes.error;
 
-        const scouts: ScoutProfile[] = (scoutsRes.data ?? []) as ScoutProfile[];
+        const scoutRoleIds = new Set<string>(
+          ((rolesRes.data ?? []) as { user_id: string }[]).map((r) => r.user_id).filter(Boolean),
+        );
+        const allProfiles = (profilesRes.data ?? []) as ScoutProfile[];
+        const scouts: ScoutProfile[] = allProfiles.filter((p) => scoutRoleIds.has(p.user_id));
         const scoutIds = scouts.map((s) => s.user_id);
 
         const rarityMap = new Map<string, number>();
@@ -215,14 +231,13 @@ export function KolStatsTab() {
           if (!tierMap.has(tierKey(t))) tierMap.set(tierKey(t), t);
         }
         const tiers = [...tierMap.values()].sort((a, b) => a.min_count - b.min_count);
-        const commissionRateFor = (count: number): number => {
+        const tierFor = (count: number): TierRow | null => {
           for (const t of tiers) {
-            if (count >= t.min_count && (t.max_count == null || count <= t.max_count)) {
-              return Number(t.commission_rate || 0);
-            }
+            if (count >= t.min_count && (t.max_count == null || count <= t.max_count)) return t;
           }
-          return 0;
+          return null;
         };
+        const commissionRateFor = (count: number): number => Number(tierFor(count)?.commission_rate ?? 0);
 
         const salary = salaryRes.data as SalaryRow | null;
         const baseSalary = Number(salary?.base_salary ?? 0);
@@ -231,10 +246,12 @@ export function KolStatsTab() {
 
         const pmsVenues = new Set(((accsRes.data ?? []) as { name: string }[]).map((a) => a.name));
 
-        const totalPersonalMin = ((targetsRes.data ?? []) as TargetRow[]).reduce(
-          (s, t) => s + Number(t.personal_min || 0),
-          0,
-        );
+        const targetRows = (targetsRes.data ?? []) as TargetRow[];
+        const targetsList = targetRows.map((t) => ({
+          venue_name: t.venue_name ?? "—",
+          personal_min: Number(t.personal_min || 0),
+        }));
+        const totalPersonalMin = targetsList.reduce((s, t) => s + t.personal_min, 0);
 
         if (scoutIds.length === 0) {
           if (!cancelled) {
@@ -328,6 +345,9 @@ export function KolStatsTab() {
             (r) => r.booking_status === "成功訂房" && !r.is_error && inYearScope(r.check_in_date),
           ).length;
 
+          const tier = tierFor(cumulative);
+          const tierName = tier?.tier_name ?? "—";
+
           const periodQualified = rows.filter((r) => r.kpi_qualified === true && inPeriod(r.check_in_date));
           const qualifiedCount = periodQualified.length;
           const rarityCounts: Record<Rarity, number> = {
@@ -363,7 +383,6 @@ export function KolStatsTab() {
           let pmsOrderTotal = 0;
           const commissionRate = commissionRateFor(cumulative);
           const orderItems: ScoutStats["orderItems"] = [];
-          // 用 cid 對應 venue
           const venueByCid = new Map<string, string>();
           for (const r of rows) {
             if (r.cid_code && r.venue_name) venueByCid.set(r.cid_code, r.venue_name);
@@ -386,9 +405,10 @@ export function KolStatsTab() {
           }
           const kolCommission = Math.round(pmsOrderTotal * commissionRate);
 
+          let monthlySuccess = 0;
           let individualAchieved = false;
-          if (showSalary && month && monthStart && monthEnd) {
-            const monthCount = rows.filter(
+          if (month && monthStart && monthEnd) {
+            monthlySuccess = rows.filter(
               (r) =>
                 r.booking_status === "成功訂房" &&
                 !r.is_error &&
@@ -396,13 +416,15 @@ export function KolStatsTab() {
                 r.kpi_month >= monthStart &&
                 r.kpi_month < monthEnd,
             ).length;
-            individualAchieved = totalPersonalMin > 0 && monthCount >= totalPersonalMin;
+            individualAchieved = totalPersonalMin > 0 && monthlySuccess >= totalPersonalMin;
           }
-          const baseSalaryPayout = showSalary && individualAchieved ? baseSalary : 0;
+          const baseSalaryPayout = showSalary && s.is_scout_team_member && individualAchieved ? baseSalary : 0;
 
           return {
             scout_id: s.user_id,
             display_name: s.display_name ?? "未命名",
+            tier_name: tierName,
+            is_scout_team_member: !!s.is_scout_team_member,
             cumulative_count: cumulative,
             qualified_count: qualifiedCount,
             rarityCounts,
@@ -412,27 +434,41 @@ export function KolStatsTab() {
             commission_rate: commissionRate,
             kol_commission: kolCommission,
             individual_achieved: individualAchieved,
+            monthly_success_count: monthlySuccess,
             base_salary: baseSalaryPayout,
             team_bonus: 0,
             total: 0,
+            targets: targetsList,
+            total_personal_min: totalPersonalMin,
             qualifiedKols,
             orderItems,
           };
         });
 
+        // 過濾：當期沒有任何 kol_profile 記錄的星探不顯示
+        const periodFiltered = results.filter((r) => {
+          const rows = kolRows.filter((k) => k.scout_id === r.scout_id);
+          if (!range) return rows.length > 0;
+          return rows.some((k) => inPeriod(k.check_in_date));
+        });
+
         let teamBonusPayout = 0;
-        if (showSalary && results.length > 0) {
-          const achieved = results.filter((r) => r.individual_achieved).length;
-          const rate = (achieved / results.length) * 100;
-          if (rate >= teamThresholdPct) teamBonusPayout = teamBonusAmount;
+        if (showSalary) {
+          const teamMembers = periodFiltered.filter((r) => r.is_scout_team_member);
+          if (teamMembers.length > 0) {
+            const achieved = teamMembers.filter((r) => r.individual_achieved).length;
+            const rate = (achieved / teamMembers.length) * 100;
+            if (rate >= teamThresholdPct) teamBonusPayout = teamBonusAmount;
+          }
         }
-        for (const r of results) {
-          r.team_bonus = showSalary ? teamBonusPayout : 0;
+        for (const r of periodFiltered) {
+          r.team_bonus = showSalary && r.is_scout_team_member ? teamBonusPayout : 0;
           r.total = r.rarity_bonus + r.kol_commission + r.base_salary + r.team_bonus;
         }
 
+
         if (!cancelled) {
-          setStats(results.sort((a, b) => b.cumulative_count - a.cumulative_count));
+          setStats(periodFiltered.sort((a, b) => b.cumulative_count - a.cumulative_count));
           setLoading(false);
         }
       } catch (e) {
@@ -490,6 +526,7 @@ export function KolStatsTab() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="whitespace-nowrap">等級名稱</TableHead>
                 <TableHead className="whitespace-nowrap">星探</TableHead>
                 <TableHead className="text-right whitespace-nowrap">整年累積邀約</TableHead>
                 <TableHead className="text-right whitespace-nowrap">本期符合資格</TableHead>
@@ -505,13 +542,13 @@ export function KolStatsTab() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
                     載入中…
                   </TableCell>
                 </TableRow>
               ) : stats.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
                     尚無資料
                   </TableCell>
                 </TableRow>
@@ -522,6 +559,7 @@ export function KolStatsTab() {
                     className="cursor-pointer hover:bg-muted/50"
                     onClick={() => setSelectedScout(s)}
                   >
+                    <TableCell className="whitespace-nowrap text-muted-foreground">{s.tier_name}</TableCell>
                     <TableCell className="whitespace-nowrap font-medium">{s.display_name}</TableCell>
                     <TableCell className="text-right tabular-nums">{s.cumulative_count}</TableCell>
                     <TableCell
@@ -536,10 +574,10 @@ export function KolStatsTab() {
                     <TableCell className="text-right tabular-nums">{(s.commission_rate * 100).toFixed(1)}%</TableCell>
                     <TableCell className="text-right tabular-nums">{s.kol_commission.toLocaleString()}</TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {showSalary ? s.base_salary.toLocaleString() : "—"}
+                      {showSalary && s.is_scout_team_member ? s.base_salary.toLocaleString() : "—"}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {showSalary ? s.team_bonus.toLocaleString() : "—"}
+                      {showSalary && s.is_scout_team_member ? s.team_bonus.toLocaleString() : "—"}
                     </TableCell>
                     <TableCell className="text-right tabular-nums font-semibold">{s.total.toLocaleString()}</TableCell>
                   </TableRow>
@@ -657,6 +695,60 @@ export function KolStatsTab() {
                       {selectedScout.orderItems.reduce((s, o) => s + o.commission, 0).toLocaleString()}
                     </span>
                   </div>
+                </section>
+
+                <section>
+                  <h3 className="text-sm font-semibold mb-2">底薪達標明細</h3>
+                  {!showSalary ? (
+                    <div className="text-sm text-muted-foreground border rounded-md p-3">
+                      底薪於每月10日隨上期結算發放
+                    </div>
+                  ) : (
+                    <div className="border rounded-md p-3 space-y-3 text-sm">
+                      <div>
+                        <div className="font-medium mb-1">各場域個人目標</div>
+                        {selectedScout.targets.length === 0 ? (
+                          <div className="text-muted-foreground">本月未設定目標</div>
+                        ) : (
+                          <ul className="space-y-1">
+                            {selectedScout.targets.map((t, i) => (
+                              <li key={i} className="flex justify-between">
+                                <span>{t.venue_name}</span>
+                                <span className="tabular-nums">{t.personal_min} 件</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                      <div className="flex justify-between border-t pt-2">
+                        <span>合計需達件數</span>
+                        <span className="tabular-nums font-semibold">{selectedScout.total_personal_min} 件</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>當月實際達成件數</span>
+                        <span className="tabular-nums font-semibold">{selectedScout.monthly_success_count} 件</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>達標狀態</span>
+                        <span
+                          className={`font-semibold ${
+                            selectedScout.individual_achieved ? "text-green-600" : "text-orange-500"
+                          }`}
+                        >
+                          {selectedScout.individual_achieved ? "✓ 已達標" : "✗ 未達標"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between border-t pt-2">
+                        <span>底薪金額</span>
+                        <span className="tabular-nums font-semibold">
+                          NT$ {(selectedScout.is_scout_team_member ? selectedScout.base_salary : 0).toLocaleString()}
+                        </span>
+                      </div>
+                      {!selectedScout.is_scout_team_member && (
+                        <div className="text-xs text-muted-foreground">（非星探團隊成員，不發放底薪）</div>
+                      )}
+                    </div>
+                  )}
                 </section>
               </div>
             </>
