@@ -413,6 +413,7 @@ export function KolStatsTab() {
                   order_number: o.order_number,
                   final_price: o.final_price,
                   commission: Math.round(o.final_price * commissionRate),
+                  created_at: o.created_at,
                 });
               }
             }
