@@ -75,6 +75,7 @@ interface MetaRow {
   closer_commission_rate: number | null;
   exclusion_note?: string | null;
   franchise_project?: string | null;
+  member_number?: string | null;
 }
 
 const PAGE_SIZE = 50;
