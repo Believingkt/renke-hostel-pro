@@ -376,6 +376,7 @@ export default function TeamOrders() {
       const d = new Date(o.check_in_date);
       if (year !== "ALL" && String(d.getFullYear()) !== year) return false;
       if (month !== "ALL" && String(d.getMonth() + 1) !== month) return false;
+      if (franchiseFilter !== "ALL" && (o.meta?.franchise_project ?? "") !== franchiseFilter) return false;
       return true;
     });
   }, [orders, accFilter, year, month]);
