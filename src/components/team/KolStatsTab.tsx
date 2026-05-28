@@ -17,19 +17,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 
 const RARITIES = ["N", "R", "SR", "SSR", "UR", "ck"] as const;
+const DETAIL_RARITIES = ["N", "R", "SR", "SSR", "UR"] as const;
 type Rarity = (typeof RARITIES)[number];
 
 function pad(n: number) {
   return String(n).padStart(2, "0");
 }
 
-/** 期別 → 日期區間（依 check_in_date） */
+/** 期別 → 日期區間（依 check_in_date）。null = 不限日期 */
 function periodRange(year: number, period: string): { start: string; end: string } | null {
-  if (period === "year") {
-    return { start: `${year}-01-01`, end: `${year}-12-31` };
-  }
+  if (period === "all") return null;
   const m = Number(period.split("-")[0]);
   const d = Number(period.split("-")[1]);
   if (!Number.isInteger(m) || !Number.isInteger(d)) return null;
@@ -42,19 +47,23 @@ function periodRange(year: number, period: string): { start: string; end: string
     }
     return { start: `${py}-${pad(pm)}-21`, end: `${year}-${pad(m)}-05` };
   }
-  // 25
   return { start: `${year}-${pad(m)}-06`, end: `${year}-${pad(m)}-20` };
 }
 
-/** 「X月10日」這類期別取出對應的「當月」（用於底薪計算） */
 function periodMonth(period: string): number | null {
-  if (period === "year") return null;
+  if (period === "all") return null;
   const m = Number(period.split("-")[0]);
   return Number.isInteger(m) ? m : null;
 }
 
 function periodIsDayTen(period: string) {
-  return period !== "year" && period.endsWith("-10");
+  return period !== "all" && period.endsWith("-10");
+}
+
+function periodLabel(period: string): string {
+  if (period === "all") return "全年";
+  const [m, d] = period.split("-");
+  return `${m}月${d}日`;
 }
 
 interface RarityRow {
@@ -85,12 +94,14 @@ interface ScoutProfile {
 }
 interface KolProfileRow {
   scout_id: string | null;
+  name: string | null;
   rarity: string | null;
   kpi_qualified: boolean | null;
   booking_status: string | null;
   check_in_date: string | null;
   kpi_month: string | null;
   cid_code: string | null;
+  order_number: string | null;
   is_error: boolean | null;
   venue_name: string | null;
 }
@@ -110,23 +121,29 @@ interface ScoutStats {
   base_salary: number;
   team_bonus: number;
   total: number;
+  qualifiedKols: Array<{
+    name: string;
+    rarity: string;
+    check_in_date: string | null;
+    bonus: number;
+  }>;
+  orderItems: Array<{
+    venue_name: string;
+    order_number: string;
+    final_price: number;
+    commission: number;
+  }>;
 }
 
 export function KolStatsTab() {
   const today = new Date();
   const currentYear = today.getFullYear();
-  const currentMonth = today.getMonth() + 1;
-  const defaultPeriod =
-    today.getDate() <= 5
-      ? `${currentMonth}-10`
-      : today.getDate() <= 20
-        ? `${currentMonth}-25`
-        : `${currentMonth}-10`;
 
   const [year, setYear] = useState<number>(currentYear);
-  const [period, setPeriod] = useState<string>(defaultPeriod);
+  const [period, setPeriod] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<ScoutStats[]>([]);
+  const [selectedScout, setSelectedScout] = useState<ScoutStats | null>(null);
 
   const yearOptions = useMemo(() => {
     const arr: number[] = [];
@@ -136,7 +153,7 @@ export function KolStatsTab() {
 
   const periodOptions = useMemo(() => {
     const arr: { value: string; label: string }[] = [
-      { value: "year", label: "全年" },
+      { value: "all", label: "全年" },
     ];
     for (let m = 1; m <= 12; m++) {
       arr.push({ value: `${m}-10`, label: `${m}月10日` });
@@ -154,6 +171,7 @@ export function KolStatsTab() {
         const range = periodRange(year, period);
         const month = periodMonth(period);
         const showSalary = periodIsDayTen(period);
+        const isAll = period === "all";
 
         const [scoutsRes, rarityRes, tierRes, salaryRes, accsRes, targetsRes] =
           await Promise.all([
@@ -198,7 +216,6 @@ export function KolStatsTab() {
         const scouts: ScoutProfile[] = (scoutsRes.data ?? []) as ScoutProfile[];
         const scoutIds = scouts.map((s) => s.user_id);
 
-        // 取最新版本（依 rarity 第一筆 / 依 tier 區間 第一筆）
         const rarityMap = new Map<string, number>();
         for (const r of (rarityRes.data ?? []) as RarityRow[]) {
           if (!rarityMap.has(r.rarity)) {
@@ -242,21 +259,31 @@ export function KolStatsTab() {
           return;
         }
 
-        // 一次撈所有相關 kol_profiles
         const { data: kolData, error: kolErr } = await supabase
           .from("kol_profiles")
           .select(
-            "scout_id, rarity, kpi_qualified, booking_status, check_in_date, kpi_month, cid_code, is_error, venue_name",
+            "scout_id, name, rarity, kpi_qualified, booking_status, check_in_date, kpi_month, cid_code, order_number, is_error, venue_name",
           )
           .in("scout_id", scoutIds);
         if (kolErr) throw kolErr;
         const kolRows = (kolData ?? []) as KolProfileRow[];
 
-        // 期別內所有「PMS 內部 + 有 cid_code + 成功訂房 + 非錯誤」筆，給 orders 查詢
         const inPeriod = (d: string | null): boolean => {
-          if (!d || !range) return false;
+          if (!range) return true; // 全年 → 不限
+          if (!d) return false;
           return d >= range.start && d <= range.end;
         };
+
+        // 年份範圍（period != all 時用來限制累積邀約）
+        const yearStart = `${year}-01-01`;
+        const yearEnd = `${year}-12-31`;
+        const inYearScope = (d: string | null): boolean => {
+          if (isAll) return true;
+          if (!d) return false;
+          return d >= yearStart && d <= yearEnd;
+        };
+
+        // 期別內 PMS 內部訂單對應 cid
         const cidByScout = new Map<string, string[]>();
         const allCidCodes = new Set<string>();
         for (const r of kolRows) {
@@ -272,25 +299,36 @@ export function KolStatsTab() {
           allCidCodes.add(r.cid_code);
         }
 
-        const orderMap = new Map<string, { count: number; total: number }>();
+        const orderMap = new Map<
+          string,
+          { count: number; total: number; orders: Array<{ order_number: string; final_price: number }> }
+        >();
         if (allCidCodes.size > 0) {
           const { data: orders, error: ordErr } = await supabase
             .from("orders")
-            .select("discount_code, final_price")
+            .select("order_number, discount_code, final_price")
             .in("discount_code", Array.from(allCidCodes))
             .neq("order_status", "cancelled");
           if (ordErr) throw ordErr;
           for (const o of orders ?? []) {
-            const code = (o as { discount_code: string | null }).discount_code;
-            if (!code) continue;
-            const entry = orderMap.get(code) ?? { count: 0, total: 0 };
+            const row = o as {
+              discount_code: string | null;
+              final_price: number | null;
+              order_number: string | null;
+            };
+            if (!row.discount_code) continue;
+            const entry =
+              orderMap.get(row.discount_code) ?? { count: 0, total: 0, orders: [] };
             entry.count += 1;
-            entry.total += Number((o as { final_price: number | null }).final_price || 0);
-            orderMap.set(code, entry);
+            entry.total += Number(row.final_price || 0);
+            entry.orders.push({
+              order_number: row.order_number ?? "",
+              final_price: Number(row.final_price || 0),
+            });
+            orderMap.set(row.discount_code, entry);
           }
         }
 
-        // 計算每位星探
         const monthStart = month ? `${year}-${pad(month)}-01` : null;
         const monthEnd = month
           ? month === 12
@@ -301,7 +339,10 @@ export function KolStatsTab() {
         const results: ScoutStats[] = scouts.map((s) => {
           const rows = kolRows.filter((r) => r.scout_id === s.user_id);
           const cumulative = rows.filter(
-            (r) => r.booking_status === "成功訂房" && !r.is_error,
+            (r) =>
+              r.booking_status === "成功訂房" &&
+              !r.is_error &&
+              inYearScope(r.check_in_date),
           ).length;
 
           const periodQualified = rows.filter(
@@ -317,28 +358,54 @@ export function KolStatsTab() {
             ck: 0,
           };
           let rarityBonus = 0;
+          const qualifiedKols: ScoutStats["qualifiedKols"] = [];
           for (const r of periodQualified) {
             const rar = (r.rarity ?? "") as Rarity;
+            const bonus = rarityMap.get(rar) ?? 0;
             if (RARITIES.includes(rar)) {
               rarityCounts[rar] += 1;
-              rarityBonus += rarityMap.get(rar) ?? 0;
+              rarityBonus += bonus;
+            }
+            if (rar !== "ck") {
+              qualifiedKols.push({
+                name: r.name ?? "(未命名)",
+                rarity: rar,
+                check_in_date: r.check_in_date,
+                bonus,
+              });
             }
           }
+          qualifiedKols.sort((a, b) =>
+            (a.check_in_date ?? "").localeCompare(b.check_in_date ?? ""),
+          );
 
           const cidCodes = cidByScout.get(s.user_id) ?? [];
           let pmsOrderCount = 0;
           let pmsOrderTotal = 0;
+          const commissionRate = commissionRateFor(cumulative);
+          const orderItems: ScoutStats["orderItems"] = [];
+          // 用 cid 對應 venue
+          const venueByCid = new Map<string, string>();
+          for (const r of rows) {
+            if (r.cid_code && r.venue_name) venueByCid.set(r.cid_code, r.venue_name);
+          }
           for (const code of cidCodes) {
             const ord = orderMap.get(code);
             if (ord) {
               pmsOrderCount += ord.count;
               pmsOrderTotal += ord.total;
+              for (const o of ord.orders) {
+                orderItems.push({
+                  venue_name: venueByCid.get(code) ?? "",
+                  order_number: o.order_number,
+                  final_price: o.final_price,
+                  commission: Math.round(o.final_price * commissionRate),
+                });
+              }
             }
           }
-          const commissionRate = commissionRateFor(cumulative);
           const kolCommission = Math.round(pmsOrderTotal * commissionRate);
 
-          // 底薪：依當月 kpi_month 範圍累積成功邀約數 vs 所有場域 personal_min 加總
           let individualAchieved = false;
           if (showSalary && month && monthStart && monthEnd) {
             const monthCount = rows.filter(
@@ -369,10 +436,11 @@ export function KolStatsTab() {
             base_salary: baseSalaryPayout,
             team_bonus: 0,
             total: 0,
+            qualifiedKols,
+            orderItems,
           };
         });
 
-        // 團隊達標：當月個人達標比例
         let teamBonusPayout = 0;
         if (showSalary && results.length > 0) {
           const achieved = results.filter((r) => r.individual_achieved).length;
@@ -385,9 +453,7 @@ export function KolStatsTab() {
         }
 
         if (!cancelled) {
-          setStats(
-            results.sort((a, b) => b.cumulative_count - a.cumulative_count),
-          );
+          setStats(results.sort((a, b) => b.cumulative_count - a.cumulative_count));
           setLoading(false);
         }
       } catch (e) {
@@ -447,12 +513,7 @@ export function KolStatsTab() {
               <TableRow>
                 <TableHead className="whitespace-nowrap">星探</TableHead>
                 <TableHead className="text-right whitespace-nowrap">累積邀約</TableHead>
-                <TableHead className="text-right whitespace-nowrap">符合資格</TableHead>
-                {RARITIES.map((r) => (
-                  <TableHead key={r} className="text-right whitespace-nowrap">
-                    {r}
-                  </TableHead>
-                ))}
+                <TableHead className="text-right whitespace-nowrap">本期符合資格</TableHead>
                 <TableHead className="text-right whitespace-nowrap">稀有度獎金</TableHead>
                 <TableHead className="text-right whitespace-nowrap">KOL分潤訂單</TableHead>
                 <TableHead className="text-right whitespace-nowrap">分潤%</TableHead>
@@ -465,33 +526,38 @@ export function KolStatsTab() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={14} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                     載入中…
                   </TableCell>
                 </TableRow>
               ) : stats.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={14} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                     尚無資料
                   </TableCell>
                 </TableRow>
               ) : (
                 stats.map((s) => (
-                  <TableRow key={s.scout_id}>
+                  <TableRow
+                    key={s.scout_id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => setSelectedScout(s)}
+                  >
                     <TableCell className="whitespace-nowrap font-medium">
                       {s.display_name}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {s.cumulative_count}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">
+                    <TableCell
+                      className={`text-right tabular-nums font-semibold ${
+                        s.qualified_count > 0
+                          ? "text-orange-500"
+                          : "text-muted-foreground"
+                      }`}
+                    >
                       {s.qualified_count}
                     </TableCell>
-                    {RARITIES.map((r) => (
-                      <TableCell key={r} className="text-right tabular-nums">
-                        {s.rarityCounts[r]}
-                      </TableCell>
-                    ))}
                     <TableCell className="text-right tabular-nums">
                       {s.rarity_bonus.toLocaleString()}
                     </TableCell>
@@ -520,6 +586,133 @@ export function KolStatsTab() {
           </Table>
         </div>
       </CardContent>
+
+      <Sheet
+        open={!!selectedScout}
+        onOpenChange={(open) => !open && setSelectedScout(null)}
+      >
+        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+          {selectedScout && (
+            <>
+              <SheetHeader>
+                <SheetTitle>
+                  {selectedScout.display_name} — {periodLabel(period)}業績明細
+                </SheetTitle>
+              </SheetHeader>
+
+              <div className="mt-6 space-y-6">
+                <section>
+                  <h3 className="text-sm font-semibold mb-2">
+                    本期符合資格 KOL 清單
+                  </h3>
+                  <div className="overflow-x-auto border rounded-md">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>KOL名稱</TableHead>
+                          <TableHead>稀有度</TableHead>
+                          <TableHead>入住日期</TableHead>
+                          <TableHead className="text-right">單筆獎金</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {selectedScout.qualifiedKols.length === 0 ? (
+                          <TableRow>
+                            <TableCell
+                              colSpan={4}
+                              className="text-center text-muted-foreground py-4"
+                            >
+                              無資料
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          selectedScout.qualifiedKols.map((k, i) => (
+                            <TableRow key={i}>
+                              <TableCell className="whitespace-nowrap">{k.name}</TableCell>
+                              <TableCell>
+                                {DETAIL_RARITIES.includes(k.rarity as typeof DETAIL_RARITIES[number])
+                                  ? k.rarity
+                                  : "—"}
+                              </TableCell>
+                              <TableCell className="whitespace-nowrap">
+                                {k.check_in_date ?? "—"}
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums">
+                                {k.bonus.toLocaleString()}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  <div className="mt-2 text-right text-sm">
+                    小計：
+                    <span className="font-semibold tabular-nums ml-1">
+                      {selectedScout.qualifiedKols
+                        .reduce((s, k) => s + k.bonus, 0)
+                        .toLocaleString()}
+                    </span>
+                  </div>
+                </section>
+
+                <section>
+                  <h3 className="text-sm font-semibold mb-2">KOL分潤訂單清單</h3>
+                  <div className="overflow-x-auto border rounded-md">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>館別</TableHead>
+                          <TableHead>訂單編號</TableHead>
+                          <TableHead className="text-right">訂單金額</TableHead>
+                          <TableHead className="text-right">分潤金額</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {selectedScout.orderItems.length === 0 ? (
+                          <TableRow>
+                            <TableCell
+                              colSpan={4}
+                              className="text-center text-muted-foreground py-4"
+                            >
+                              無資料
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          selectedScout.orderItems.map((o, i) => (
+                            <TableRow key={i}>
+                              <TableCell className="whitespace-nowrap">
+                                {o.venue_name || "—"}
+                              </TableCell>
+                              <TableCell className="whitespace-nowrap">
+                                {o.order_number || "—"}
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums">
+                                {o.final_price.toLocaleString()}
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums">
+                                {o.commission.toLocaleString()}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  <div className="mt-2 text-right text-sm">
+                    小計：
+                    <span className="font-semibold tabular-nums ml-1">
+                      {selectedScout.orderItems
+                        .reduce((s, o) => s + o.commission, 0)
+                        .toLocaleString()}
+                    </span>
+                  </div>
+                </section>
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </Card>
   );
 }
