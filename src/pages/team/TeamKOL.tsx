@@ -1786,10 +1786,22 @@ function InvitationsTab({
             )}
 
             <Field label="合約進度">
-              <Input
-                value={form.contract_progress}
-                onChange={(e) => setForm({ ...form, contract_progress: e.target.value })}
-              />
+              {(() => {
+                const s = computeContractProgress(form.publish_url, form.publish_date, form.contract_file_url);
+                if (!s || s.empty) return <span className="text-muted-foreground text-sm">—</span>;
+                return (
+                  <Badge
+                    variant="outline"
+                    className={
+                      s.done
+                        ? "bg-green-100 text-green-700 border-green-200"
+                        : "bg-orange-100 text-orange-700 border-orange-200"
+                    }
+                  >
+                    {s.label}
+                  </Badge>
+                );
+              })()}
             </Field>
 
             <Field label="合約檔案連結">
