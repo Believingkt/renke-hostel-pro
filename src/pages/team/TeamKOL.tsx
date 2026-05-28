@@ -273,6 +273,7 @@ export default function TeamKOL() {
           <TabsTrigger value="invitations">正式邀約</TabsTrigger>
           <TabsTrigger value="prospects">潛在名單</TabsTrigger>
           <TabsTrigger value="targets">邀約目標</TabsTrigger>
+          {canSeeStats && <TabsTrigger value="stats">業績統計</TabsTrigger>}
           <TabsTrigger value="venues">場域管理</TabsTrigger>
           <TabsTrigger value="settings">設定</TabsTrigger>
         </TabsList>
@@ -293,6 +294,12 @@ export default function TeamKOL() {
         <TabsContent value="targets" className="mt-4">
           <TargetsTab isManager={isManager} currentUserId={userId} />
         </TabsContent>
+
+        {canSeeStats && (
+          <TabsContent value="stats" className="mt-4">
+            <KolStatsTab />
+          </TabsContent>
+        )}
 
         <TabsContent value="venues" className="mt-4">
           <VenuesCard isManager={isManager} />
