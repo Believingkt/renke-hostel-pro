@@ -509,6 +509,20 @@ export default function TeamOrders() {
                 ))}
               </SelectContent>
             </Select>
+
+            <Select value={franchiseFilter} onValueChange={setFranchiseFilter}>
+              <SelectTrigger className="w-44">
+                <SelectValue placeholder="加盟專案" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">全部加盟專案</SelectItem>
+                {franchiseProjects.map((p) => (
+                  <SelectItem key={p.id} value={p.name}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="overflow-x-auto">
