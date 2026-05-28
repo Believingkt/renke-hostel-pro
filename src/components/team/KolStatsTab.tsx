@@ -486,6 +486,7 @@ export function KolStatsTab() {
   const showSalary = periodIsDayTen(period);
 
   return (
+    <>
     <Card>
       <CardContent className="p-4 space-y-4">
         <div className="flex flex-wrap items-end gap-3">
