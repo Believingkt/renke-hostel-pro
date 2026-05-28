@@ -169,7 +169,7 @@ const EMPTY_FORM: FormState = {
   check_out_date: "",
   day_of_week: "",
   inventory_status: "",
-  booking_status: "invited",
+  booking_status: null,
   cid_code: "",
   short_url: "",
   contract_progress: "",
