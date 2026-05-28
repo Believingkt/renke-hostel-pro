@@ -2946,8 +2946,8 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
                       <TableCell className="text-right">{badge}</TableCell>
                     </TableRow>
                   );
-                })
-              )}
+                });
+              })()}
             </TableBody>
           </Table>
         </Card>
