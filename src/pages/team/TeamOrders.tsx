@@ -325,7 +325,8 @@ export default function TeamOrders() {
             .select(
               `order_id, closer_id, video_creator_id, scout_id, traffic_source,
                booking_method, ad_id, is_excluded, closer_assisted,
-               scout_commission_rate, closer_commission_rate, exclusion_note`
+               scout_commission_rate, closer_commission_rate, exclusion_note,
+               franchise_project`
             )
             .in("order_id", batchIds);
           if (metaErr) throw metaErr;
