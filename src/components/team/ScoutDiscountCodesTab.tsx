@@ -284,6 +284,7 @@ export default function ScoutDiscountCodesTab() {
               <TableHeader>
                 <TableRow>
                   <TableHead>折扣碼</TableHead>
+                  <TableHead>民宿</TableHead>
                   <TableHead>星探</TableHead>
                   <TableHead>成交模式</TableHead>
                   <TableHead className="text-right">星探分潤%</TableHead>
@@ -296,13 +297,13 @@ export default function ScoutDiscountCodesTab() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-6">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-6">
                       載入中…
                     </TableCell>
                   </TableRow>
                 ) : rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-6">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-6">
                       尚無資料
                     </TableCell>
                   </TableRow>
@@ -310,6 +311,9 @@ export default function ScoutDiscountCodesTab() {
                   rows.map((r) => (
                     <TableRow key={r.id}>
                       <TableCell className="font-mono whitespace-nowrap">{r.discount_code}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {r.accommodation_id ? accMap.get(r.accommodation_id) ?? "—" : "—"}
+                      </TableCell>
                       <TableCell className="whitespace-nowrap">
                         {r.scout_id ? scoutMap.get(r.scout_id) ?? "—" : "—"}
                       </TableCell>
