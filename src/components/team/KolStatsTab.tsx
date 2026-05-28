@@ -138,15 +138,23 @@ interface ScoutStats {
 export function KolStatsTab() {
   const today = new Date();
   const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth() + 1;
+  const defaultPeriod =
+    today.getDate() <= 5
+      ? `${currentMonth}-10`
+      : today.getDate() <= 20
+        ? `${currentMonth}-25`
+        : `${currentMonth === 12 ? 1 : currentMonth + 1}-10`;
 
+  // 0 = 全部年份
   const [year, setYear] = useState<number>(currentYear);
-  const [period, setPeriod] = useState<string>("all");
+  const [period, setPeriod] = useState<string>(defaultPeriod);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<ScoutStats[]>([]);
   const [selectedScout, setSelectedScout] = useState<ScoutStats | null>(null);
 
   const yearOptions = useMemo(() => {
-    const arr: number[] = [];
+    const arr: number[] = [0];
     for (let y = currentYear - 2; y <= currentYear + 1; y++) arr.push(y);
     return arr;
   }, [currentYear]);
@@ -167,11 +175,13 @@ export function KolStatsTab() {
     (async () => {
       setLoading(true);
       try {
-        const asOfDate = `${year}-12-31`;
-        const range = periodRange(year, period);
+        const yearAll = year === 0;
+        const effYear = yearAll ? currentYear : year;
+        const asOfDate = `${effYear}-12-31`;
+        const range = periodRange(effYear, period);
         const month = periodMonth(period);
         const showSalary = periodIsDayTen(period);
-        const isAll = period === "all";
+        const isAll = period === "all" || yearAll;
 
         const [scoutsRes, rarityRes, tierRes, salaryRes, accsRes, targetsRes] =
           await Promise.all([
@@ -201,7 +211,7 @@ export function KolStatsTab() {
               ? supabase
                   .from("scout_team_targets")
                   .select("year, month, personal_min")
-                  .eq("year", year)
+                  .eq("year", effYear)
                   .eq("month", month)
               : Promise.resolve({ data: [] as TargetRow[], error: null }),
           ]);
@@ -275,8 +285,8 @@ export function KolStatsTab() {
         };
 
         // 年份範圍（period != all 時用來限制累積邀約）
-        const yearStart = `${year}-01-01`;
-        const yearEnd = `${year}-12-31`;
+        const yearStart = `${effYear}-01-01`;
+        const yearEnd = `${effYear}-12-31`;
         const inYearScope = (d: string | null): boolean => {
           if (isAll) return true;
           if (!d) return false;
@@ -329,11 +339,11 @@ export function KolStatsTab() {
           }
         }
 
-        const monthStart = month ? `${year}-${pad(month)}-01` : null;
+        const monthStart = month ? `${effYear}-${pad(month)}-01` : null;
         const monthEnd = month
           ? month === 12
-            ? `${year + 1}-01-01`
-            : `${year}-${pad(month + 1)}-01`
+            ? `${effYear + 1}-01-01`
+            : `${effYear}-${pad(month + 1)}-01`
           : null;
 
         const results: ScoutStats[] = scouts.map((s) => {
@@ -484,7 +494,7 @@ export function KolStatsTab() {
               <SelectContent>
                 {yearOptions.map((y) => (
                   <SelectItem key={y} value={String(y)}>
-                    {y} 年
+                    {y === 0 ? "全部" : `${y} 年`}
                   </SelectItem>
                 ))}
               </SelectContent>
