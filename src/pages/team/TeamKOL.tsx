@@ -1161,19 +1161,19 @@ function InvitationsTab({
                         })()}
                       </TableCell>
                       <TableCell>
-                        {r.contract_progress ? (
+                        {contractStatus && !contractStatus.empty ? (
                           <Badge
                             variant="outline"
                             className={
-                              contractDone
+                              contractStatus.done
                                 ? "bg-green-100 text-green-700 border-green-200"
-                                : "bg-gray-100 text-gray-700 border-gray-200"
+                                : "bg-orange-100 text-orange-700 border-orange-200"
                             }
                           >
-                            {r.contract_progress}
+                            {contractStatus.label}
                           </Badge>
                         ) : (
-                          <span className="text-muted-foreground">-</span>
+                          <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
                       <TableCell>
