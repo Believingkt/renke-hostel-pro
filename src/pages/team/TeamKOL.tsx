@@ -676,7 +676,7 @@ function InvitationsTab({
       if (data && data.length > 0) {
         const d: any = data[0];
         const sn = d.team_member_profiles?.display_name ?? d.scout_id ?? "未知";
-        const stLabel = BOOKING_STATUS_LABEL[d.booking_status as BookingStatus] ?? d.booking_status ?? "-";
+        const stLabel = d.booking_status ?? "-";
         setDupWarning(`此 KOL 已有邀約紀錄：${sn} 於 ${d.invited_at ?? "-"}，狀態：${stLabel}`);
       } else {
         setDupWarning(null);
