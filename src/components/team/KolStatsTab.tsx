@@ -468,7 +468,7 @@ export function KolStatsTab() {
 
 
         if (!cancelled) {
-          setStats(results.sort((a, b) => b.cumulative_count - a.cumulative_count));
+          setStats(periodFiltered.sort((a, b) => b.cumulative_count - a.cumulative_count));
           setLoading(false);
         }
       } catch (e) {
