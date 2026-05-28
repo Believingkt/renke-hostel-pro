@@ -132,6 +132,7 @@ interface ScoutStats {
     order_number: string;
     final_price: number;
     commission: number;
+    created_at: string | null;
   }>;
 }
 
@@ -311,12 +312,12 @@ export function KolStatsTab() {
 
         const orderMap = new Map<
           string,
-          { count: number; total: number; orders: Array<{ order_number: string; final_price: number }> }
+          { count: number; total: number; orders: Array<{ order_number: string; final_price: number; created_at: string | null }> }
         >();
         if (allCidCodes.size > 0) {
           const { data: orders, error: ordErr } = await supabase
             .from("orders")
-            .select("order_number, discount_code, final_price")
+            .select("order_number, discount_code, final_price, created_at")
             .in("discount_code", Array.from(allCidCodes))
             .neq("order_status", "cancelled");
           if (ordErr) throw ordErr;
@@ -325,6 +326,7 @@ export function KolStatsTab() {
               discount_code: string | null;
               final_price: number | null;
               order_number: string | null;
+              created_at: string | null;
             };
             if (!row.discount_code) continue;
             const entry =
@@ -334,6 +336,7 @@ export function KolStatsTab() {
             entry.orders.push({
               order_number: row.order_number ?? "",
               final_price: Number(row.final_price || 0),
+              created_at: row.created_at,
             });
             orderMap.set(row.discount_code, entry);
           }
@@ -410,6 +413,7 @@ export function KolStatsTab() {
                   order_number: o.order_number,
                   final_price: o.final_price,
                   commission: Math.round(o.final_price * commissionRate),
+                  created_at: o.created_at,
                 });
               }
             }
@@ -674,6 +678,7 @@ export function KolStatsTab() {
                         <TableRow>
                           <TableHead>館別</TableHead>
                           <TableHead>訂單編號</TableHead>
+                          <TableHead className="whitespace-nowrap">訂購時間</TableHead>
                           <TableHead className="text-right">訂單金額</TableHead>
                           <TableHead className="text-right">分潤金額</TableHead>
                         </TableRow>
@@ -682,7 +687,7 @@ export function KolStatsTab() {
                         {selectedScout.orderItems.length === 0 ? (
                           <TableRow>
                             <TableCell
-                              colSpan={4}
+                              colSpan={5}
                               className="text-center text-muted-foreground py-4"
                             >
                               無資料
@@ -696,6 +701,17 @@ export function KolStatsTab() {
                               </TableCell>
                               <TableCell className="whitespace-nowrap">
                                 {o.order_number || "—"}
+                              </TableCell>
+                              <TableCell className="whitespace-nowrap tabular-nums">
+                                {o.created_at
+                                  ? new Date(o.created_at).toLocaleString("zh-TW", {
+                                      year: "numeric",
+                                      month: "2-digit",
+                                      day: "2-digit",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })
+                                  : "—"}
                               </TableCell>
                               <TableCell className="text-right tabular-nums">
                                 {o.final_price.toLocaleString()}
