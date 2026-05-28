@@ -444,6 +444,10 @@ function InvitationsTab({
   const [errorReason, setErrorReason] = useState("");
   const [reportingError, setReportingError] = useState(false);
 
+  // 取消邀約 Dialog
+  const [cancelTarget, setCancelTarget] = useState<KolRow | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+
   // 載入下拉資料
   useEffect(() => {
     (async () => {
@@ -1268,6 +1272,16 @@ function InvitationsTab({
           <SheetHeader>
             <div className="flex items-center gap-2 pr-12">
               <SheetTitle className="flex-1">邀約明細</SheetTitle>
+              {viewingRow && viewingRow.booking_status !== "已取消" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
+                  onClick={() => setCancelTarget(viewingRow)}
+                >
+                  取消邀約
+                </Button>
+              )}
               {viewingRow && canReportError(viewingRow) && !viewingRow.is_error && (
                 <Button
                   size="sm"
@@ -1921,6 +1935,46 @@ function InvitationsTab({
             </Button>
             <Button variant="destructive" onClick={handleReportError} disabled={reportingError}>
               {reportingError ? "送出中..." : "確認回報"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 取消邀約 Dialog */}
+      <Dialog open={!!cancelTarget} onOpenChange={(o) => !o && !cancelling && setCancelTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>確認取消邀約</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            確定要取消 {cancelTarget?.name} 的邀約嗎?此操作將把訂房狀態改為已取消。
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelTarget(null)} disabled={cancelling}>
+              返回
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={cancelling}
+              onClick={async () => {
+                if (!cancelTarget) return;
+                setCancelling(true);
+                const { error } = await supabase
+                  .from("kol_profiles")
+                  .update({ booking_status: "已取消" })
+                  .eq("id", cancelTarget.id);
+                setCancelling(false);
+                if (error) {
+                  toast.error("取消失敗:" + error.message);
+                  return;
+                }
+                toast.success("邀約已取消");
+                setCancelTarget(null);
+                setViewingRow(null);
+                fetchRows();
+              }}
+            >
+              {cancelling ? "處理中..." : "確認取消"}
             </Button>
           </DialogFooter>
         </DialogContent>
