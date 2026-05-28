@@ -156,9 +156,7 @@ serve(async (req) => {
     const calcs: ScoutCalc[] = [];
 
     for (const scout of scouts) {
-      const personalMin = scout.managed_venue
-        ? personalMinByVenue.get(scout.managed_venue) ?? 0
-        : 0;
+      const personalMin = totalPersonalMin;
 
       const { data: invites, error: invErr } = await supabase
         .from("kol_profiles")
