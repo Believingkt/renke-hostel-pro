@@ -382,7 +382,7 @@ function PayoutRulesBlock() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Card>
+    </>
   );
 }
 
