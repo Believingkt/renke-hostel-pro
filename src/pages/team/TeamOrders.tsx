@@ -434,6 +434,8 @@ export default function TeamOrders() {
         scout_commission_rate: form.scout_commission_rate,
         closer_commission_rate: form.closer_commission_rate,
         exclusion_note: form.exclusion_note,
+        franchise_project: form.franchise_project,
+        member_number: form.member_number,
       };
 
       const exists = !!editOrder.meta;
