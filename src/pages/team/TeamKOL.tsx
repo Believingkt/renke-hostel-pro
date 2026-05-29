@@ -752,6 +752,7 @@ function InvitationsTab({
       inventory_status: row.inventory_status ?? "",
       booking_status: row.booking_status ?? null,
       cid_code: row.cid_code ?? "",
+      companion_cid: row.companion_cid ?? "",
       short_url: row.short_url ?? "",
       contract_progress: row.contract_progress ?? "",
       contract_file_url: row.contract_file_url ?? "",
