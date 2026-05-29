@@ -1091,6 +1091,7 @@ function InvitationsTab({
                   <TableHead>KOL 名稱</TableHead>
                   <TableHead>折扣碼 / CID</TableHead>
                   <TableHead>稀有度</TableHead>
+                  <TableHead>符合資格</TableHead>
                   <TableHead>館別</TableHead>
                   <TableHead>入住日期</TableHead>
                   <TableHead>星期</TableHead>
@@ -1144,6 +1145,15 @@ function InvitationsTab({
                           <Badge variant="outline" className={RARITY_CLASS[r.rarity as Rarity] ?? ""}>
                             {r.rarity}
                           </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {r.kpi_qualified ? (
+                          <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
+                            <Check className="h-3 w-3" />
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
                       <TableCell>{r._accommodation_name}</TableCell>
