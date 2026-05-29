@@ -251,7 +251,7 @@ export default function TeamKOL() {
   const [prefill, setPrefill] = useState<InvitationPrefill | null>(null);
   const [canSeeStats, setCanSeeStats] = useState<boolean>(
     roles.includes("super_admin") ||
-      roles.includes("scout") ||
+      roles.includes("admin") ||
       roles.includes("scout_manager"),
   );
   // hotel_admin / super_admin / venue_manager 才可編輯 KOL購票連結
