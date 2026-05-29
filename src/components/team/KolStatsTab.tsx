@@ -386,8 +386,12 @@ export function KolStatsTab() {
           const commissionRate = commissionRateFor(cumulative);
           const orderItems: ScoutStats["orderItems"] = [];
           const venueByCid = new Map<string, string>();
+          const kolNameByCid = new Map<string, string>();
           for (const r of rows) {
-            if (r.cid_code && r.venue_name) venueByCid.set(r.cid_code, r.venue_name);
+            if (r.cid_code) {
+              if (r.venue_name) venueByCid.set(r.cid_code, r.venue_name);
+              if (r.name) kolNameByCid.set(r.cid_code, r.name);
+            }
           }
           for (const code of cidCodes) {
             const ord = orderMap.get(code);
@@ -401,6 +405,8 @@ export function KolStatsTab() {
                   final_price: o.final_price,
                   commission: Math.round(o.final_price * commissionRate),
                   created_at: o.created_at,
+                  discount_code: code,
+                  kol_name: kolNameByCid.get(code) ?? "",
                 });
               }
             }
