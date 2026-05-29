@@ -70,9 +70,37 @@ export default function TeamCommissionStatsTab() {
   const [scoutCodes, setScoutCodes] = useState<ScoutCode[]>([]);
   const [accNameMap, setAccNameMap] = useState<Map<string, string>>(new Map());
 
-  // 上個月區間
+  // 上個月區間（或全年 / 全部）
   const period = useMemo(() => {
+    const allYears = year === "all";
+    const allMonths = month === "all";
+
+    // 全部年份
+    if (allYears) {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      return {
+        startIso: null as string | null,
+        nextIso: null as string | null,
+        startDate: todayStr, // 用於 commission_settings 取最新有效設定
+        label: "全部年份",
+      };
+    }
+
     const y = Number(year);
+
+    // 指定年份 + 全年
+    if (allMonths) {
+      const startIso = new Date(y, 0, 1).toISOString();
+      const nextIso = new Date(y + 1, 0, 1).toISOString();
+      return {
+        startIso,
+        nextIso,
+        startDate: `${y}-01-01`,
+        label: `${y} 全年`,
+      };
+    }
+
+    // 指定年月 → 上個月區間
     const m = Number(month);
     const prevM = m === 1 ? 12 : m - 1;
     const prevY = m === 1 ? y - 1 : y;
@@ -90,16 +118,17 @@ export default function TeamCommissionStatsTab() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period.startIso]);
+  }, [period.startIso, period.nextIso, period.label]);
 
   async function load() {
     setLoading(true);
     try {
-      const { data: ordersData, error: oe } = await supabase
+      let q = supabase
         .from("orders")
-        .select("id, accommodation_id, final_price, order_status, discount_code")
-        .gte("order_date", period.startIso)
-        .lt("order_date", period.nextIso);
+        .select("id, accommodation_id, final_price, order_status, discount_code");
+      if (period.startIso) q = q.gte("order_date", period.startIso);
+      if (period.nextIso) q = q.lt("order_date", period.nextIso);
+      const { data: ordersData, error: oe } = await q;
       if (oe) throw oe;
       const ords = (ordersData ?? []) as OrderLite[];
       setOrders(ords);
@@ -351,6 +380,7 @@ export default function TeamCommissionStatsTab() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">全部年份</SelectItem>
                 {years.map((y) => (
                   <SelectItem key={y} value={y}>
                     {y} 年
@@ -363,6 +393,7 @@ export default function TeamCommissionStatsTab() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">全年</SelectItem>
                 {Array.from({ length: 12 }, (_, i) => String(i + 1)).map(
                   (m) => (
                     <SelectItem key={m} value={m}>
