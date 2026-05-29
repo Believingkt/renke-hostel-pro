@@ -123,6 +123,8 @@ interface ScoutStats {
     final_price: number;
     commission: number;
     created_at: string | null;
+    discount_code: string;
+    kol_name: string;
   }>;
 }
 
@@ -384,8 +386,12 @@ export function KolStatsTab() {
           const commissionRate = commissionRateFor(cumulative);
           const orderItems: ScoutStats["orderItems"] = [];
           const venueByCid = new Map<string, string>();
+          const kolNameByCid = new Map<string, string>();
           for (const r of rows) {
-            if (r.cid_code && r.venue_name) venueByCid.set(r.cid_code, r.venue_name);
+            if (r.cid_code) {
+              if (r.venue_name) venueByCid.set(r.cid_code, r.venue_name);
+              if (r.name) kolNameByCid.set(r.cid_code, r.name);
+            }
           }
           for (const code of cidCodes) {
             const ord = orderMap.get(code);
@@ -399,6 +405,8 @@ export function KolStatsTab() {
                   final_price: o.final_price,
                   commission: Math.round(o.final_price * commissionRate),
                   created_at: o.created_at,
+                  discount_code: code,
+                  kol_name: kolNameByCid.get(code) ?? "",
                 });
               }
             }
@@ -650,6 +658,8 @@ export function KolStatsTab() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>館別</TableHead>
+                          <TableHead>折扣代碼</TableHead>
+                          <TableHead>KOL名稱</TableHead>
                           <TableHead>訂單編號</TableHead>
                           <TableHead className="whitespace-nowrap">訂購時間</TableHead>
                           <TableHead className="text-right">訂單金額</TableHead>
@@ -659,7 +669,7 @@ export function KolStatsTab() {
                       <TableBody>
                         {selectedScout.orderItems.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={5} className="text-center text-muted-foreground py-4">
+                            <TableCell colSpan={7} className="text-center text-muted-foreground py-4">
                               無資料
                             </TableCell>
                           </TableRow>
@@ -667,6 +677,8 @@ export function KolStatsTab() {
                           selectedScout.orderItems.map((o, i) => (
                             <TableRow key={i}>
                               <TableCell className="whitespace-nowrap">{o.venue_name || "—"}</TableCell>
+                              <TableCell className="whitespace-nowrap font-mono text-xs">{o.discount_code || "—"}</TableCell>
+                              <TableCell className="whitespace-nowrap">{o.kol_name || "—"}</TableCell>
                               <TableCell className="whitespace-nowrap">{o.order_number || "—"}</TableCell>
                               <TableCell className="whitespace-nowrap tabular-nums">
                                 {o.created_at
