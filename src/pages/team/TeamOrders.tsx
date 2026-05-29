@@ -473,6 +473,7 @@ export default function TeamOrders() {
           <TabsTrigger value="orders">訂單列表</TabsTrigger>
           <TabsTrigger value="scout-codes">星探專屬折扣碼</TabsTrigger>
           <TabsTrigger value="stats">成交統計</TabsTrigger>
+          {isAdmin && <TabsTrigger value="commission-rates">分潤比例</TabsTrigger>}
           <TabsTrigger value="settings">設定</TabsTrigger>
         </TabsList>
 
