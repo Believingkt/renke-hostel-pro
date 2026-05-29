@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import { Pencil, Check, X } from "lucide-react";
 import ScoutDiscountCodesTab from "@/components/team/ScoutDiscountCodesTab";
 import TeamCommissionStatsTab from "@/components/team/TeamCommissionStatsTab";
+import CommissionRatesTab from "@/components/team/CommissionRatesTab";
 
 interface Member {
   user_id: string;
@@ -472,6 +473,7 @@ export default function TeamOrders() {
           <TabsTrigger value="orders">訂單列表</TabsTrigger>
           <TabsTrigger value="scout-codes">星探專屬折扣碼</TabsTrigger>
           <TabsTrigger value="stats">成交統計</TabsTrigger>
+          {isAdmin && <TabsTrigger value="commission-rates">分潤比例</TabsTrigger>}
           <TabsTrigger value="settings">設定</TabsTrigger>
         </TabsList>
 
@@ -655,6 +657,14 @@ export default function TeamOrders() {
         <TabsContent value="stats" className="space-y-4">
           <TeamCommissionStatsTab />
         </TabsContent>
+
+        {isAdmin && (
+          <TabsContent value="commission-rates" className="space-y-4">
+            <CommissionRatesTab />
+          </TabsContent>
+        )}
+
+
 
 
 
