@@ -211,11 +211,11 @@ function computeContractProgress(
   publishUrl: string | null | undefined,
   publishDate: string | null | undefined,
   contractUrl: string | null | undefined,
-): { label: string; done: boolean; empty: boolean } | null {
-  // 特例：contract_file_url 為非 URL 的文字（如「業主拍攝」、「不適用」），直接當作合約進度顯示
+): { label: string; done: boolean; empty: boolean; plain?: boolean } | null {
+  // 特例：contract_file_url 為非 URL 的文字（如「業主拍攝」、「不適用」），直接當作合約進度顯示（純文字、無 badge）
   const contractTrimmed = contractUrl ? String(contractUrl).trim() : "";
   if (contractTrimmed && !contractTrimmed.toLowerCase().startsWith("http")) {
-    return { label: contractTrimmed, done: true, empty: false };
+    return { label: contractTrimmed, done: false, empty: false, plain: true };
   }
   const hasPub = !!(publishUrl && String(publishUrl).trim());
   const hasDate = !!(publishDate && String(publishDate).trim());
@@ -1153,16 +1153,20 @@ function InvitationsTab({
                       <TableCell>{renderBookingStatusBadge(r.booking_status)}</TableCell>
                       <TableCell>
                         {contractStatus && !contractStatus.empty ? (
-                          <Badge
-                            variant="outline"
-                            className={
-                              contractStatus.done
-                                ? "bg-green-100 text-green-700 border-green-200"
-                                : "bg-orange-100 text-orange-700 border-orange-200"
-                            }
-                          >
-                            {contractStatus.label}
-                          </Badge>
+                          contractStatus.plain ? (
+                            <span>{contractStatus.label}</span>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className={
+                                contractStatus.done
+                                  ? "bg-green-100 text-green-700 border-green-200"
+                                  : "bg-orange-100 text-orange-700 border-orange-200"
+                              }
+                            >
+                              {contractStatus.label}
+                            </Badge>
+                          )
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
@@ -1444,6 +1448,7 @@ function InvitationsTab({
                     {(() => {
                       const s = computeContractProgress(r.publish_url, r.publish_date, r.contract_file_url);
                       if (!s || s.empty) return <span className="text-muted-foreground">—</span>;
+                      if (s.plain) return <span>{s.label}</span>;
                       return (
                         <Badge
                           variant="outline"
@@ -1786,6 +1791,7 @@ function InvitationsTab({
               {(() => {
                 const s = computeContractProgress(form.publish_url, form.publish_date, form.contract_file_url);
                 if (!s || s.empty) return <span className="text-muted-foreground text-sm">—</span>;
+                if (s.plain) return <span className="text-sm">{s.label}</span>;
                 return (
                   <Badge
                     variant="outline"
