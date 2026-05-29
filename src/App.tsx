@@ -62,6 +62,8 @@ const OwlTingCmDocs = lazy(() => import("./pages/OwlTingCmDocs"));
 const ApiDocsHub = lazy(() => import("./pages/ApiDocsHub"));
 const ChangePassword = lazy(() => import("./pages/ChangePassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const DataDeletion = lazy(() => import("./pages/DataDeletion"));
 
 // 後台管理頁面 - lazy load
 const Dashboard = lazy(() => import("./pages/Dashboard"));
