@@ -8,7 +8,7 @@ import { useAccommodation } from "@/contexts/AccommodationContext";
 
 type Log = {
   id: string; session_id: string; prompt_version: number | null;
-  messages: any[]; source: string | null; user_rating: number | null;
+  messages: any[]; source: string | null; user_rating: string | null;
   admin_note: string | null; created_at: string;
 };
 
