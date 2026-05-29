@@ -342,7 +342,7 @@ export function KolStatsTab() {
         const results: ScoutStats[] = scouts.map((s) => {
           const rows = kolRows.filter((r) => r.scout_id === s.user_id);
           const cumulative = rows.filter(
-            (r) => r.kpi_qualified === true && !r.is_error && inYearScope(r.check_in_date),
+            (r) => r.kpi_qualified === true && !r.is_error,
           ).length;
 
           const tier = tierFor(cumulative);
