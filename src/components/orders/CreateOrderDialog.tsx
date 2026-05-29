@@ -1189,6 +1189,36 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         });
       }
 
+      // 寄送訂房確認 email（非阻塞，失敗不影響訂單建立）
+      const recipientEmail = form.guest_email.trim();
+      if (recipientEmail && orderData?.id) {
+        try {
+          const { data: accInfo } = await supabase
+            .from("accommodation_info")
+            .select("name")
+            .eq("id", currentAccommodationId)
+            .maybeSingle();
+          const roomTypeName = roomTypes.find(r => r.id === primaryRoom.room_type_id)?.name || "";
+          await supabase.functions.invoke("send-resend-email", {
+            body: {
+              templateType: "booking_confirmation",
+              recipientEmail,
+              templateData: {
+                guestName: form.guest_name.trim(),
+                accommodationName: (accInfo as any)?.name || "",
+                checkIn: form.check_in_date,
+                checkOut: form.check_out_date,
+                roomType: roomTypeName,
+                orderNumber,
+                totalPrice: totals.final,
+              },
+            },
+          });
+        } catch (mailErr) {
+          console.warn("[create-order] booking confirmation email failed:", mailErr);
+        }
+      }
+
       toast({
         title: "新增成功",
         description: `訂單 ${orderNumber} 已建立`,
