@@ -218,9 +218,8 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Phase 2 — HTML body parser (skeleton, confidence: low)
-  // Always stage extracted fields for trusted emails so admins can review.
-  // Does NOT auto-create bookings — review_status defaults to 'pending_review'.
+  // Trigger-only parser (2026-05-29 policy: OwlTing email 不含 PII，僅當 trigger)
+  // 只記 obe_number / message_type / accommodation_name；訂單細節由後續 OBE API client 拉取。
   if (trusted && inserted?.id && (text || html)) {
     try {
       const fields = parseOwlNestForwardEmail({
@@ -232,30 +231,19 @@ Deno.serve(async (req) => {
         .from("owlting_email_parsed_staging")
         .insert({
           raw_email_id: inserted.id,
-          parser_version: "html-v1",
-          confidence: fields.confidence,
+          parser_version: "trigger-only-v1",
+          confidence: "low", // CHECK constraint 仍限 low/medium/high；trigger 模式統一記 low
           review_status: "pending_review",
           message_type: fields.message_type,
           obe_number: fields.obe_number,
-          channel_source: fields.channel_source,
           accommodation_name: fields.accommodation_name,
-          room_type_name: fields.room_type_name,
-          check_in_date: fields.check_in_date,
-          check_out_date: fields.check_out_date,
-          guest_count: fields.guest_count,
-          total_amount: fields.total_amount,
-          currency: fields.currency,
-          guest_name: fields.guest_name,
-          guest_phone: fields.guest_phone,
-          guest_email: fields.guest_email,
-          pii_masked: fields.pii_masked,
-          addons: fields.addons,
+          pii_masked: false,
           extracted_fields: fields.raw_matches,
           parse_warnings: fields.warnings.length ? fields.warnings : null,
         });
       if (stageErr) console.error("[owlting-email-ingest] staging insert error:", stageErr);
     } catch (e) {
-      console.error("[owlting-email-ingest] phase2 parser threw:", e);
+      console.error("[owlting-email-ingest] trigger parser threw:", e);
     }
   }
 
