@@ -398,7 +398,7 @@ export function KolStatsTab() {
             }
           }
           for (const code of cidCodes) {
-            const ord = orderMap.get(code);
+            const ord = orderMap.get(code.toUpperCase());
             if (ord) {
               pmsOrderCount += ord.count;
               pmsOrderTotal += ord.total;
