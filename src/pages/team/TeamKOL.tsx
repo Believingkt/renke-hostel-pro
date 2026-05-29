@@ -593,7 +593,7 @@ function InvitationsTab({
     setRows(enriched);
     setTotalCount(count ?? 0);
     setLoading(false);
-  }, [accommodations, page, search, filterAcc, filterRarity, filterTags, filterScout, filterYear, filterMonth]);
+  }, [accommodations, page, search, filterAcc, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified]);
 
   useEffect(() => {
     if (accommodations.length > 0) fetchRows();
@@ -602,7 +602,7 @@ function InvitationsTab({
   // 篩選條件變更時，重置到第一頁
   useEffect(() => {
     setPage(1);
-  }, [search, filterAcc, filterRarity, filterTags, filterScout, filterYear, filterMonth]);
+  }, [search, filterAcc, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified]);
 
   // 伺服器端已套用篩選，直接使用 rows
   const filtered = rows;
