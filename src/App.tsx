@@ -116,6 +116,17 @@ const AiTrainingConversations = lazy(() => import("./pages/ai-training/AiTrainin
 const AiTrainingPlayground = lazy(() => import("./pages/ai-training/AiTrainingPlayground"));
 const AiTrainingVersions = lazy(() => import("./pages/ai-training/AiTrainingVersions"));
 
+// 民宿後台 AI 管家訓練中心
+const AdminAiTrainingLayout = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingLayout"));
+const AdminAiTrainingDashboard = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingDashboard"));
+const AdminAiTrainingPrompt = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingPrompt"));
+const AdminAiTrainingKnowledge = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingKnowledge"));
+const AdminAiTrainingExamples = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingExamples"));
+const AdminAiTrainingConversations = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingConversations"));
+const AdminAiTrainingPlayground = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingPlayground"));
+const AdminAiTrainingApiKeys = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingApiKeys"));
+const AdminAiTrainingApiDocs = lazy(() => import("./pages/admin/ai-training/AdminAiTrainingApiDocs"));
+
 
 function App() {
   return (
