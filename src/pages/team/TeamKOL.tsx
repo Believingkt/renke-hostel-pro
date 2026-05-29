@@ -252,6 +252,7 @@ export default function TeamKOL() {
   const [canSeeStats, setCanSeeStats] = useState<boolean>(
     roles.includes("super_admin") ||
       roles.includes("admin") ||
+      roles.includes("scout") ||
       roles.includes("scout_manager"),
   );
   // hotel_admin / super_admin / venue_manager 才可編輯 KOL購票連結
@@ -268,7 +269,7 @@ export default function TeamKOL() {
         .from("user_roles")
         .select("role")
         .eq("user_id", userId)
-        .in("role", ["hotel_admin", "super_admin", "admin", "scout_manager"])
+        .in("role", ["hotel_admin", "super_admin", "admin", "scout", "scout_manager"])
         .limit(1)
         .maybeSingle();
       if (!cancelled && data) setCanSeeStats(true);
