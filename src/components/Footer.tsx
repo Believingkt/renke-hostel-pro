@@ -239,7 +239,12 @@ const Footer = ({ accommodationName, address, phone, email, lineId, facebookUrl,
 
           <Separator className="my-6 md:my-8 bg-white/20" />
           
-          <div className="flex flex-col items-center justify-center gap-2 text-white/50 text-xs md:text-sm">
+          <div className="flex flex-col items-center justify-center gap-3 text-white/50 text-xs md:text-sm">
+            <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4">
+              <a href="/privacy" className="hover:text-white transition-colors">隱私政策</a>
+              <span className="opacity-40">·</span>
+              <a href="/data-deletion" className="hover:text-white transition-colors">用戶資料刪除</a>
+            </div>
             <div className="flex flex-wrap items-center justify-center gap-1.5 md:gap-2">
               <span>PRESENTED BY</span>
               <a href="https://lakeze.co/" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity inline-flex items-center">
