@@ -307,10 +307,13 @@ export function KolStatsTab() {
           }
         >();
         if (allCidCodes.size > 0) {
+          // orders.discount_code 都是大寫，kol_profiles.cid_code 多為小寫，
+          // 查詢前統一轉大寫；orderMap 也以大寫為 key，查找時亦轉大寫。
+          const upperCidCodes = Array.from(allCidCodes).map((c) => c.toUpperCase());
           let q = supabase
             .from("orders")
             .select("order_number, discount_code, final_price, created_at, order_date")
-            .in("discount_code", Array.from(allCidCodes))
+            .in("discount_code", upperCidCodes)
             .neq("order_status", "cancelled");
           // 依 order_date 篩選期別（全年不限）
           if (range) {
@@ -326,7 +329,8 @@ export function KolStatsTab() {
               created_at: string | null;
             };
             if (!row.discount_code) continue;
-            const entry = orderMap.get(row.discount_code) ?? { count: 0, total: 0, orders: [] };
+            const key = row.discount_code.toUpperCase();
+            const entry = orderMap.get(key) ?? { count: 0, total: 0, orders: [] };
             entry.count += 1;
             entry.total += Number(row.final_price || 0);
             entry.orders.push({
@@ -334,7 +338,7 @@ export function KolStatsTab() {
               final_price: Number(row.final_price || 0),
               created_at: row.created_at,
             });
-            orderMap.set(row.discount_code, entry);
+            orderMap.set(key, entry);
           }
         }
 
