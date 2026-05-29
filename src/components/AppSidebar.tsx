@@ -116,6 +116,7 @@ const menuItems = [
   { title: "業主月結", url: "/admin/owner-settlement", icon: FileText, moduleKey: "owner_settlement" },
   { title: "購物商品", url: "/admin/addon-center", icon: Package, moduleKey: "addon_center" },
   { title: "通路管理", url: "/admin/channel-manager", icon: Plug, moduleKey: "channel_manager" },
+  { title: "AI 管家", url: "/admin/ai-training", icon: Sparkles, moduleKey: "ai_training" },
   // { title: "流量分析", url: "/admin/analytics", icon: TrendingUp },
   { title: "帳號管理", url: "/admin/accounts", icon: KeyRound, moduleKey: "accounts" },
 ];
