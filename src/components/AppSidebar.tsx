@@ -163,7 +163,7 @@ export function AppSidebar() {
               <img
                 src={owlnestLogo}
                 alt="OwlNest"
-                className="h-5 object-contain opacity-70 hover:opacity-100 transition-opacity"
+                className="h-8 object-contain opacity-80 hover:opacity-100 transition-opacity"
                 title="技術合作 OwlNest"
               />
             </div>
