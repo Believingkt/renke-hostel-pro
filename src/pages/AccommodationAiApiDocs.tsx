@@ -24,12 +24,7 @@ export default function AccommodationAiApiDocs() {
       />
       <div className="min-h-screen bg-background">
         <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-          <div className="container mx-auto px-4 py-4 flex items-center gap-4">
-            <Link to="/api-docs">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <ArrowLeft className="h-4 w-4" /> 返回 API 中心
-              </Button>
-            </Link>
+          <div className="container mx-auto px-4 py-4">
             <div>
               <h1 className="text-xl font-bold">民宿 AI 管家 API 文件</h1>
               <p className="text-sm text-muted-foreground">Accommodation AI Chat API</p>
