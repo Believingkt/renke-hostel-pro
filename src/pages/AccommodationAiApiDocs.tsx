@@ -40,7 +40,7 @@ export default function AccommodationAiApiDocs() {
         <main className="container mx-auto px-4 py-8 max-w-4xl space-y-8">
           <div>
             <p className="text-sm text-muted-foreground">
-              供台灣旅圖等外部平台串接本民宿 AI 管家。所有對話會以串流（SSE）方式回傳，介面相容 OpenAI Chat Completion 格式。
+              提供台灣旅圖串接 AI 管家。所有對話會以串流（SSE）方式回傳，介面相容 OpenAI Chat Completion 格式。
               請向所欲串接的民宿索取專屬 API 金鑰。
             </p>
           </div>
