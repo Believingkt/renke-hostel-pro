@@ -164,7 +164,11 @@ export default function TeamCommissionStatsTab() {
         .select(
           "id, discount_code, scout_id, closer_id, scout_rate, closer_rate, accommodation_id",
         );
-      const codes = (scData ?? []) as ScoutCode[];
+      // orders.discount_code 都是大寫，將星探折扣碼統一轉為大寫後再進行比對
+      const codes = ((scData ?? []) as ScoutCode[]).map((c) => ({
+        ...c,
+        discount_code: (c.discount_code || "").toUpperCase(),
+      }));
       setScoutCodes(codes);
 
       // 名稱對照
