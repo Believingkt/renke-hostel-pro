@@ -77,7 +77,6 @@ const fmtPct = (n: number | null | undefined) =>
 export default function ScoutDiscountCodesTab() {
   const [rows, setRows] = useState<ScoutCode[]>([]);
   const [scouts, setScouts] = useState<MemberOpt[]>([]);
-  const [closers, setClosers] = useState<MemberOpt[]>([]);
   const [accommodations, setAccommodations] = useState<AccommodationOpt[]>([]);
   const [pmsCodes, setPmsCodes] = useState<Map<string, PmsCode>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -92,17 +91,11 @@ export default function ScoutDiscountCodesTab() {
   const [fAcc, setFAcc] = useState<string>(NONE);
   const [fScout, setFScout] = useState<string>(NONE);
   const [fType, setFType] = useState<CommissionType>("scout_self");
-  const [fCloser, setFCloser] = useState<string>(NONE);
   const [fScoutRate, setFScoutRate] = useState<string>("5");
-  const [fCloserRate, setFCloserRate] = useState<string>("0");
 
   const scoutMap = useMemo(
     () => new Map(scouts.map((s) => [s.id, s.display_name])),
     [scouts]
-  );
-  const closerMap = useMemo(
-    () => new Map(closers.map((c) => [c.id, c.display_name])),
-    [closers]
   );
   const accMap = useMemo(
     () => new Map(accommodations.map((a) => [a.id, a.name])),
