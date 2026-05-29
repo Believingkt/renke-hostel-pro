@@ -297,10 +297,6 @@ export default function ScoutDiscountCodesTab() {
                         {r.commission_type === "partner" ? "夥伴成交" : "星探自成"}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{fmtPct(r.scout_rate)}</TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {r.closer_id ? closerMap.get(r.closer_id) ?? "—" : "—"}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">{fmtPct(r.closer_rate)}</TableCell>
                       <TableCell className="whitespace-nowrap">{renderPmsBadge(r.discount_code)}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
