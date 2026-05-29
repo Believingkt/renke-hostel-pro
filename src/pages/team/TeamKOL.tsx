@@ -1869,7 +1869,15 @@ function InvitationsTab({
                 <label className="flex items-center gap-2 text-sm">
                   <Checkbox
                     checked={form.kpi_qualified}
-                    onCheckedChange={(v) => setForm({ ...form, kpi_qualified: !!v })}
+                    onCheckedChange={(v) => {
+                      if (!!v && form.rarity === "ck") {
+                        toast.error("無法勾選符合資格", {
+                          description: "稀有度為「ck（揪客）」時不可勾選符合資格，請先調整稀有度為其他選項。",
+                        });
+                        return;
+                      }
+                      setForm({ ...form, kpi_qualified: !!v });
+                    }}
                   />
                   符合資格
                 </label>
