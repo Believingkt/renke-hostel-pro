@@ -410,6 +410,7 @@ function InvitationsTab({
   const [filterScout, setFilterScout] = useState<string>("all");
   const [filterYear, setFilterYear] = useState<string>("all");
   const [filterMonth, setFilterMonth] = useState<string>("all");
+  const [filterQualified, setFilterQualified] = useState<string>("all");
   const PAGE_SIZE = 50;
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
