@@ -96,6 +96,48 @@ export type Database = {
           },
         ]
       }
+      accommodation_ai_api_keys: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          rate_limit_per_min: number
+          revoked_at: string | null
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name: string
+          rate_limit_per_min?: number
+          revoked_at?: string | null
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          rate_limit_per_min?: number
+          revoked_at?: string | null
+        }
+        Relationships: []
+      }
       accommodation_api_keys: {
         Row: {
           accommodation_id: string
@@ -853,6 +895,7 @@ export type Database = {
       }
       ai_ab_tests: {
         Row: {
+          accommodation_id: string | null
           created_at: string
           created_by: string | null
           ended_at: string | null
@@ -865,6 +908,7 @@ export type Database = {
           version_b: number
         }
         Insert: {
+          accommodation_id?: string | null
           created_at?: string
           created_by?: string | null
           ended_at?: string | null
@@ -877,6 +921,7 @@ export type Database = {
           version_b: number
         }
         Update: {
+          accommodation_id?: string | null
           created_at?: string
           created_by?: string | null
           ended_at?: string | null
@@ -892,34 +937,40 @@ export type Database = {
       }
       ai_conversation_logs: {
         Row: {
+          accommodation_id: string | null
           admin_note: string | null
           created_at: string
           id: string
           messages: Json
           prompt_version: number | null
           session_id: string
+          source: string | null
           user_rating:
             | Database["public"]["Enums"]["ai_conversation_rating"]
             | null
         }
         Insert: {
+          accommodation_id?: string | null
           admin_note?: string | null
           created_at?: string
           id?: string
           messages?: Json
           prompt_version?: number | null
           session_id: string
+          source?: string | null
           user_rating?:
             | Database["public"]["Enums"]["ai_conversation_rating"]
             | null
         }
         Update: {
+          accommodation_id?: string | null
           admin_note?: string | null
           created_at?: string
           id?: string
           messages?: Json
           prompt_version?: number | null
           session_id?: string
+          source?: string | null
           user_rating?:
             | Database["public"]["Enums"]["ai_conversation_rating"]
             | null
@@ -928,6 +979,7 @@ export type Database = {
       }
       ai_examples: {
         Row: {
+          accommodation_id: string | null
           created_at: string
           explanation: string | null
           id: string
@@ -937,6 +989,7 @@ export type Database = {
           user_message: string
         }
         Insert: {
+          accommodation_id?: string | null
           created_at?: string
           explanation?: string | null
           id?: string
@@ -946,6 +999,7 @@ export type Database = {
           user_message: string
         }
         Update: {
+          accommodation_id?: string | null
           created_at?: string
           explanation?: string | null
           id?: string
@@ -958,6 +1012,7 @@ export type Database = {
       }
       ai_knowledge: {
         Row: {
+          accommodation_id: string | null
           category: Database["public"]["Enums"]["ai_knowledge_category"]
           content: string
           created_at: string
@@ -969,6 +1024,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          accommodation_id?: string | null
           category?: Database["public"]["Enums"]["ai_knowledge_category"]
           content?: string
           created_at?: string
@@ -980,6 +1036,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          accommodation_id?: string | null
           category?: Database["public"]["Enums"]["ai_knowledge_category"]
           content?: string
           created_at?: string
@@ -994,6 +1051,7 @@ export type Database = {
       }
       ai_prompts: {
         Row: {
+          accommodation_id: string | null
           created_at: string
           created_by: string | null
           forbidden_topics: string | null
@@ -1008,6 +1066,7 @@ export type Database = {
           version: number
         }
         Insert: {
+          accommodation_id?: string | null
           created_at?: string
           created_by?: string | null
           forbidden_topics?: string | null
@@ -1022,6 +1081,7 @@ export type Database = {
           version: number
         }
         Update: {
+          accommodation_id?: string | null
           created_at?: string
           created_by?: string | null
           forbidden_topics?: string | null
@@ -6875,6 +6935,14 @@ export type Database = {
           coupon_value: number
           is_valid: boolean
           message: string
+        }[]
+      }
+      verify_accommodation_ai_api_key: {
+        Args: { p_key_hash: string }
+        Returns: {
+          accommodation_id: string
+          key_id: string
+          rate_limit_per_min: number
         }[]
       }
       verify_accommodation_api_key: {
