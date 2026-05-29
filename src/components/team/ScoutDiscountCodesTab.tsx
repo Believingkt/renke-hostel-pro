@@ -77,7 +77,6 @@ const fmtPct = (n: number | null | undefined) =>
 export default function ScoutDiscountCodesTab() {
   const [rows, setRows] = useState<ScoutCode[]>([]);
   const [scouts, setScouts] = useState<MemberOpt[]>([]);
-  const [closers, setClosers] = useState<MemberOpt[]>([]);
   const [accommodations, setAccommodations] = useState<AccommodationOpt[]>([]);
   const [pmsCodes, setPmsCodes] = useState<Map<string, PmsCode>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -92,17 +91,11 @@ export default function ScoutDiscountCodesTab() {
   const [fAcc, setFAcc] = useState<string>(NONE);
   const [fScout, setFScout] = useState<string>(NONE);
   const [fType, setFType] = useState<CommissionType>("scout_self");
-  const [fCloser, setFCloser] = useState<string>(NONE);
   const [fScoutRate, setFScoutRate] = useState<string>("5");
-  const [fCloserRate, setFCloserRate] = useState<string>("0");
 
   const scoutMap = useMemo(
     () => new Map(scouts.map((s) => [s.id, s.display_name])),
     [scouts]
-  );
-  const closerMap = useMemo(
-    () => new Map(closers.map((c) => [c.id, c.display_name])),
-    [closers]
   );
   const accMap = useMemo(
     () => new Map(accommodations.map((a) => [a.id, a.name])),
@@ -111,7 +104,7 @@ export default function ScoutDiscountCodesTab() {
 
   const loadAll = async () => {
     setLoading(true);
-    const [{ data: codeRows }, { data: scoutRoles }, { data: closerRoles }, { data: pms }, { data: accs }] =
+    const [{ data: codeRows }, { data: scoutRoles }, { data: pms }, { data: accs }] =
       await Promise.all([
         supabase
           .from("scout_discount_codes")
@@ -121,7 +114,6 @@ export default function ScoutDiscountCodesTab() {
           .from("user_roles")
           .select("user_id")
           .in("role", ["scout", "scout_manager"] as any),
-        supabase.from("user_roles").select("user_id").eq("role", "closer" as any),
         supabase.from("discount_codes").select("code, is_active"),
         supabase
           .from("accommodation_info")
@@ -133,20 +125,17 @@ export default function ScoutDiscountCodesTab() {
     setAccommodations((accs ?? []) as AccommodationOpt[]);
 
     const scoutIds = Array.from(new Set((scoutRoles ?? []).map((r: any) => r.user_id)));
-    const closerIds = Array.from(new Set((closerRoles ?? []).map((r: any) => r.user_id)));
-    const allIds = Array.from(new Set([...scoutIds, ...closerIds]));
 
     let memberRows: MemberOpt[] = [];
-    if (allIds.length) {
+    if (scoutIds.length) {
       const { data: tm } = await supabase
         .from("team_member_profiles")
         .select("id, user_id, display_name")
-        .in("user_id", allIds);
+        .in("user_id", scoutIds);
       memberRows = (tm ?? []) as MemberOpt[];
     }
 
     setScouts(memberRows.filter((m) => scoutIds.includes(m.user_id)));
-    setClosers(memberRows.filter((m) => closerIds.includes(m.user_id)));
 
     const pmsMap = new Map<string, PmsCode>();
     (pms ?? []).forEach((p: any) => {
@@ -168,9 +157,7 @@ export default function ScoutDiscountCodesTab() {
     setFAcc(NONE);
     setFScout(NONE);
     setFType("scout_self");
-    setFCloser(NONE);
     setFScoutRate("5");
-    setFCloserRate("0");
     setDialogOpen(true);
   };
 
@@ -180,9 +167,7 @@ export default function ScoutDiscountCodesTab() {
     setFAcc(row.accommodation_id ?? NONE);
     setFScout(row.scout_id ?? NONE);
     setFType((row.commission_type as CommissionType) ?? "scout_self");
-    setFCloser(row.closer_id ?? NONE);
     setFScoutRate(String(((row.scout_rate ?? 0) * 100).toFixed(2)).replace(/\.?0+$/, "") || "0");
-    setFCloserRate(String(((row.closer_rate ?? 0) * 100).toFixed(2)).replace(/\.?0+$/, "") || "0");
     setDialogOpen(true);
   };
 
@@ -190,11 +175,8 @@ export default function ScoutDiscountCodesTab() {
     setFType(v);
     if (v === "scout_self") {
       setFScoutRate("5");
-      setFCloserRate("0");
-      setFCloser(NONE);
     } else {
       setFScoutRate("2");
-      setFCloserRate("3");
     }
   };
 
@@ -207,19 +189,15 @@ export default function ScoutDiscountCodesTab() {
       toast.error("請選擇星探");
       return;
     }
-    if (fType === "partner" && fCloser === NONE) {
-      toast.error("夥伴成交需要選擇成交組");
-      return;
-    }
     setSaving(true);
     const payload = {
       discount_code: fCode.trim(),
       accommodation_id: fAcc === NONE ? null : fAcc,
       scout_id: fScout,
-      closer_id: fType === "partner" ? fCloser : null,
+      closer_id: null,
       commission_type: fType,
       scout_rate: Number(fScoutRate || 0) / 100,
-      closer_rate: fType === "partner" ? Number(fCloserRate || 0) / 100 : 0,
+      closer_rate: 0,
       is_active: true,
     };
     const q = editing
@@ -288,8 +266,6 @@ export default function ScoutDiscountCodesTab() {
                   <TableHead>星探</TableHead>
                   <TableHead>成交模式</TableHead>
                   <TableHead className="text-right">星探分潤%</TableHead>
-                  <TableHead>成交組</TableHead>
-                  <TableHead className="text-right">成交組分潤%</TableHead>
                   <TableHead>PMS匹配</TableHead>
                   <TableHead className="w-28">操作</TableHead>
                 </TableRow>
@@ -297,13 +273,13 @@ export default function ScoutDiscountCodesTab() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center text-muted-foreground py-6">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-6">
                       載入中…
                     </TableCell>
                   </TableRow>
                 ) : rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center text-muted-foreground py-6">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-6">
                       尚無資料
                     </TableCell>
                   </TableRow>
@@ -321,10 +297,6 @@ export default function ScoutDiscountCodesTab() {
                         {r.commission_type === "partner" ? "夥伴成交" : "星探自成"}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{fmtPct(r.scout_rate)}</TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {r.closer_id ? closerMap.get(r.closer_id) ?? "—" : "—"}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">{fmtPct(r.closer_rate)}</TableCell>
                       <TableCell className="whitespace-nowrap">{renderPmsBadge(r.discount_code)}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
@@ -412,46 +384,14 @@ export default function ScoutDiscountCodesTab() {
               </Select>
             </div>
 
-            {fType === "partner" && (
-              <div className="space-y-1">
-                <Label>成交組</Label>
-                <Select value={fCloser} onValueChange={setFCloser}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="選擇成交組" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NONE}>未指定</SelectItem>
-                    {closers.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.display_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label>星探分潤 %</Label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  value={fScoutRate}
-                  onChange={(e) => setFScoutRate(e.target.value)}
-                />
-              </div>
-              {fType === "partner" && (
-                <div className="space-y-1">
-                  <Label>成交組分潤 %</Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    value={fCloserRate}
-                    onChange={(e) => setFCloserRate(e.target.value)}
-                  />
-                </div>
-              )}
+            <div className="space-y-1">
+              <Label>星探分潤 %</Label>
+              <Input
+                type="number"
+                step="0.1"
+                value={fScoutRate}
+                onChange={(e) => setFScoutRate(e.target.value)}
+              />
             </div>
           </div>
           <DialogFooter>
