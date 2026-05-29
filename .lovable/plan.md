@@ -1,78 +1,142 @@
 ## 目標
 
-把 CreateOrderDialog 內 hardcoded 的「6 間房 / 雙人 3 / 四人 3」改成讀 DB；任意房型結構都能正確顯示與限制；營運分析的「總可售房數」改為動態。
+1. 民宿後台 `/admin/ai-training/*` 新增「AI 訓練中心」模組（複製 HQ 八分頁，per-accommodation 範圍）。
+2. 對外開放一支 `accommodation-ai-chat` API + API Key 驗證，供台灣旅圖嵌入該民宿的 AI 管家。
+3. 產出 `/admin/ai-training/api-docs` 文件頁，供前端工程師串接。
 
-## 設計原則（避免動到既有民宿）
+---
 
-新增的 DB 欄位**不 backfill** Sensan/Hakuna/Olivia。讀取邏輯改為：
+## 一、資料庫變更
 
-```
-exclusive_total  = acc.exclusive_total_rooms ?? (isHakuna ? 7 : isOlivia ? 9 : 6)
-exclusive_break  = acc.exclusive_room_breakdown ?? 既有 hardcoded 對照
-daily_capacity   = acc.daily_capacity ?? 6
-```
+### 1.1 既有表加 `accommodation_id`（per-accommodation 範圍）
 
-→ 三家舊民宿欄位留空 = 100% 走 fallback，**行為跟現在一字不差**。
+- `ai_prompts` + `accommodation_id uuid NOT NULL`（既有列回填到「總部全局」假民宿 ID 或保留 null = 全局 fallback；建議 NOT NULL + 一筆「全局範本」由 HQ 維護，可被民宿覆寫）
+- `ai_knowledge` + `accommodation_id uuid NOT NULL`
+- `ai_examples` + `accommodation_id uuid NOT NULL`
+- `ai_conversation_logs` + `accommodation_id uuid`（外部 chat 寫入時帶入）
+- `ai_ab_tests` + `accommodation_id uuid NOT NULL`
+- 全部加 `idx_xxx_accommodation_id`
+- RLS：管理員/該民宿 staff 只能讀寫 `accommodation_id = 當前民宿` 的列；HQ super_admin 全可讀寫
+- GRANT：`authenticated` SELECT/INSERT/UPDATE/DELETE；`service_role` ALL；無 `anon`
 
-## 改動範圍
+### 1.2 新表 `accommodation_ai_api_keys`
 
-### 1. DB（migration）
-- `accommodation_info` 新增 3 欄（全 nullable）：
-  - `exclusive_total_rooms int` — 包棟總房數
-  - `exclusive_room_breakdown jsonb` — 例 `[{ "room_type_id": "...", "name": "雙人房", "count": 3 }]`
-  - `daily_capacity int` — 每日總可售房數（分析用）
-
-### 2. UI：新增「房型與包棟設定」卡片區塊
-位置：HQ 該民宿 → 訂房設定頁（既有「訂房設定」分頁下方），不是新增民宿對話框。
-（新增民宿時房型還沒建，無法選；建好房型再來這裡設定。）
-
-**A. 卡片清單佈局：**
-```
-┌─ 房型與包棟設定 ──────────────────────────┐
-│  每日總可售房數  [  6  ]  房                │
-│  ─────────────────────────────────────── │
-│  包棟設定                                  │
-│  ┌──────────────────────────────────┐    │
-│  │ ☑ 雙人房（room_type）            │    │
-│  │   包含 [ 3 ] 間  · 容納 2 人     │    │
-│  ├──────────────────────────────────┤    │
-│  │ ☑ 四人房                          │    │
-│  │   包含 [ 3 ] 間  · 容納 4 人     │    │
-│  ├──────────────────────────────────┤    │
-│  │ ☐ 六人房                          │    │
-│  │   （未納入包棟）                   │    │
-│  └──────────────────────────────────┘    │
-│  包棟總計：6 間 / 18 人  [自動加總]        │
-│  [儲存]                                    │
-└────────────────────────────────────────────┘
+```text
+id uuid pk
+accommodation_id uuid not null
+name text                    -- 標籤（如「台灣旅圖串接」）
+key_hash text not null       -- SHA-256
+key_prefix text not null     -- 顯示前 8 碼
+is_active boolean default true
+rate_limit_per_min int default 30
+created_at, last_used_at, revoked_at
 ```
 
-新增/刪除 `room_types` 自動出現在清單，沒勾的不算包棟。
+RLS：僅該民宿 admin 可管理；service_role 用 hash 比對驗證。
 
-### 3. CreateOrderDialog（核心邏輯）
-- 移除 hardcoded `MAX_DOUBLE_ROOMS / MAX_QUAD_ROOMS / MAX_TOTAL_ROOMS`
-- 改讀 `accommodation.exclusive_room_breakdown` 動態渲染欄位
-- 提示文字改成：「包棟已鎖定 6 間房（雙人房 0 間、四人房 0 間、六人房 0 間）」← 自動依設定組字串
-- 沒設定 → fallback 到原本 3 家的 hardcoded 常數
+---
 
-### 4. 營運分析（Analytics）
-- `Total Available Nights = daily_capacity × days`
-- 沒設定 → 維持 6
+## 二、後端 Edge Function
 
-## 不動的部分
+### 2.1 新增 `accommodation-ai-chat`（對外 API）
 
-- room_types 結構不動（沿用 `is_exclusive_package` / `is_bound_to_exclusive` / `capacity` / `room_count`）
-- Sensan/Hakuna 庫存判斷規則完全不動（已上鎖）
-- 散客訂單流程不動
+- Public（`verify_jwt = false`），不帶 user JWT
+- 驗證 `x-api-key` header → SHA-256 → 查 `accommodation_ai_api_keys` → 取得 `accommodation_id`
+- IP + key 雙重 rate limit
+- 系統提示詞：讀該民宿的 `ai_prompts (status=published)`，無則 fallback HQ 全局範本
+- 注入該民宿的 `ai_knowledge` + `ai_examples`
+- 工具集沿用 `ai-booking-chat`（房型/方案/訂單建立等）
+- SSE streaming，寫 `ai_conversation_logs` 帶 `accommodation_id` + `source='external-tlt'`
 
-## 風險
+### 2.2 修改 `ai-booking-chat`（民宿前台）
 
-| 風險 | 緩解 |
-|---|---|
-| 既有三家被影響 | 不寫入 DB，永遠走 fallback |
-| 包棟總人數計算錯 | 用設定的 `count × room_type.capacity` 加總 |
-| 用戶誤刪房型導致設定殘留 | 載入時過濾無效 room_type_id |
+- 改為從 DB 讀 `ai_prompts` / `ai_knowledge` / `ai_examples`（依當前 `accommodationId`），保留現有工具
+- 維持向下相容：DB 無資料時用既有硬編碼 fallback
 
-## 工作量
+### 2.3 修改 `portal-ai-chat`（HQ Playground / 多民宿入口）
 
-約 1 個工作週期：1 migration + 1 新 UI 元件 + CreateOrderDialog 改造 + Analytics 1 行公式。
+- 接受 `accommodation_id` 參數時，套用該民宿訓練資料；否則用 HQ 全局 / 所有民宿
+
+---
+
+## 三、前端：民宿後台 AI 訓練中心
+
+### 3.1 路由（`src/App.tsx`）
+
+```text
+/:alias/admin/ai-training              (layout)
+  ├ index            → AdminAiTrainingDashboard
+  ├ prompt           → AdminAiTrainingPrompt
+  ├ knowledge        → AdminAiTrainingKnowledge
+  ├ examples         → AdminAiTrainingExamples
+  ├ conversations    → AdminAiTrainingConversations
+  ├ playground       → AdminAiTrainingPlayground
+  ├ versions         → AdminAiTrainingVersions
+  ├ api-keys         → AdminAiTrainingApiKeys   ← 新增
+  └ api-docs         → AdminAiTrainingApiDocs   ← 新增
+```
+
+### 3.2 程式碼策略
+
+- 在 `src/pages/admin/ai-training/` 建立 8+2 個頁面
+- **複製** HQ 對應頁面為起點（不抽共用元件以免破壞 HQ 既有功能），加上：
+  - 所有 supabase 查詢 `.eq('accommodation_id', currentAccommodationId)`
+  - 寫入時 `accommodation_id: currentAccommodationId`
+- Layout 結構沿用 HQ 的左側導航 + 頂部狀態列
+
+### 3.3 側邊欄（`AppSidebar.tsx`）
+
+新增條目於「網紅導購」上方：
+
+```text
+{ title: "AI 管家", url: "/admin/ai-training", icon: Sparkles, moduleKey: "ai_training",
+  subItems: [提示詞, 知識庫, 對話範例, 對話紀錄, 測試對話, 版本管理, API 金鑰, API 文件] }
+```
+
+`moduleKey: "ai_training"` 加入 `src/constants/staffPermissions.ts`。
+
+### 3.4 API 金鑰管理頁
+
+- 列表：name / key_prefix / last_used_at / rate_limit / 啟用狀態
+- 動作：新增（顯示完整 key 一次，之後只看前綴）、停用、刪除
+- 寫入：edge function `create-accommodation-ai-api-key`（hash 後存）
+
+### 3.5 API 文件頁
+
+模仿 `KolApiDocs.tsx` 結構（SEOHead + sticky header + 4xl container + Card 章節 + Code 元件）。章節：
+
+1. 概述 + RESTful/Lock/Zap 三格特色
+2. 認證（`x-api-key` header）
+3. 端點：`POST /functions/v1/accommodation-ai-chat`
+4. 請求/回應範例（SSE streaming，含 cURL + JS fetch）
+5. 錯誤碼（401 invalid key / 429 rate limit / 402 credits）
+6. 訓練資料維護指引（指向後台對應頁）
+
+---
+
+## 四、實作順序
+
+1. **DB migration**：5 表加欄位、新表 + RLS + GRANT
+2. **Edge functions**：`accommodation-ai-chat` 新增、`ai-booking-chat` 改 DB 讀取、`create-accommodation-ai-api-key`
+3. **後台頁面**：8 個訓練分頁複製改 per-accommodation
+4. **API 金鑰頁** + **API 文件頁**
+5. **側邊欄/路由/權限**整合
+6. QA：在森山測試完整流程（建 key → 提示詞 → 知識庫 → Playground 對話 → 外部 cURL 打通）
+
+---
+
+## 五、技術細節
+
+- 模型：沿用既有 Anthropic Claude（`ai-booking-chat` 現況）
+- Streaming：SSE，sample code 仿 `lovable-ai-gateway` 章節
+- 既有 `ai_prompts` 等表的歷史資料：migration 將所有現有列填入「HQ 全局範本」假 ID（或新建 `accommodation_id IS NULL` 表示全局，搜尋時 `OR` 該民宿 ID），實作前我會先確認資料量再決定。
+- 不更動 HQ AI 訓練中心既有頁面（避免破壞 super_admin 工作流）
+
+---
+
+## 六、Open Questions（需您確認）
+
+1. **訓練資料層級**：HQ 維護「全局範本」+ 民宿可覆寫，還是民宿完全獨立？（推薦前者）
+2. **API 金鑰權限**：API key 只允許 chat，還是也讓台灣旅圖 read 知識庫（如顯示常見問題）？
+3. **計費**：每民宿 chat 是否要計 quota？目前不做、之後再說？
+4. **`/ai-booking` 前台**：要不要也加「Powered by 台灣旅圖」之類的品牌切換能力？（看起來不在這次範圍）
