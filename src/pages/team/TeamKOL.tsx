@@ -3546,10 +3546,12 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
                 目前生效版本{current ? `・生效日期：${current.effective_from}` : "：尚無任何版本"}
               </p>
             </div>
-            <Button onClick={openCreate}>
-              <Plus className="mr-1 h-4 w-4" />
-              新增版本
-            </Button>
+            {isManager && (
+              <Button onClick={openCreate}>
+                <Plus className="mr-1 h-4 w-4" />
+                新增版本
+              </Button>
+            )}
           </div>
           {current && (
             <Table>
