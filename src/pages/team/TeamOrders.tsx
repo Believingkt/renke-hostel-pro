@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import { Pencil, Check, X } from "lucide-react";
 import ScoutDiscountCodesTab from "@/components/team/ScoutDiscountCodesTab";
 import TeamCommissionStatsTab from "@/components/team/TeamCommissionStatsTab";
+import CommissionRatesTab from "@/components/team/CommissionRatesTab";
 
 interface Member {
   user_id: string;
