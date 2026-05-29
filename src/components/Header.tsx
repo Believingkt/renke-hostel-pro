@@ -19,6 +19,7 @@ import AccommodationLogo from "@/components/AccommodationLogo";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { useAccommodationLogo } from "@/hooks/use-accommodation-logo";
 import lokezeLogo from "@/assets/lokeze-logo.png";
+import owlnestLogo from "@/assets/owlnest-logo.png";
 
 export function Header() {
   const navigate = useNavigate();
@@ -127,9 +128,13 @@ export function Header() {
       <div className="flex h-16 md:h-16 items-center justify-between px-4 md:px-6 gap-2">
         <div className="flex items-center gap-3">
           <SidebarTrigger className="h-10 w-10" />
-          {/* Sidebar 收起時顯示 Lakeze logo（與電腦版一致） */}
+          {/* Sidebar 收起時顯示 Lakeze + OwlNest 聯名 logo */}
           {(!open || isMobile) && (
-            <img src={lokezeLogo} alt="Lokeze" className="h-7 md:h-8 object-contain" />
+            <div className="flex items-center gap-2">
+              <img src={lokezeLogo} alt="Lokeze" className="h-7 md:h-8 object-contain" />
+              <div className="h-5 md:h-6 w-px bg-border" />
+              <img src={owlnestLogo} alt="OwlNest" className="h-7 md:h-8 object-contain opacity-80" />
+            </div>
           )}
         </div>
         
