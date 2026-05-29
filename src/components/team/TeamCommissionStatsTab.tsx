@@ -123,11 +123,12 @@ export default function TeamCommissionStatsTab() {
   async function load() {
     setLoading(true);
     try {
-      const { data: ordersData, error: oe } = await supabase
+      let q = supabase
         .from("orders")
-        .select("id, accommodation_id, final_price, order_status, discount_code")
-        .gte("order_date", period.startIso)
-        .lt("order_date", period.nextIso);
+        .select("id, accommodation_id, final_price, order_status, discount_code");
+      if (period.startIso) q = q.gte("order_date", period.startIso);
+      if (period.nextIso) q = q.lt("order_date", period.nextIso);
+      const { data: ordersData, error: oe } = await q;
       if (oe) throw oe;
       const ords = (ordersData ?? []) as OrderLite[];
       setOrders(ords);
