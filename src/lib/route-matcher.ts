@@ -91,6 +91,8 @@ export const RESERVED_FIRST_SEGMENTS = new Set<string>([
   "team",
   "team-auth",
   "__cb",
+  "privacy",
+  "data-deletion",
 ]);
 
 // ============= 匹配工具 =============
