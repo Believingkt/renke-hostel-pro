@@ -342,7 +342,7 @@ export function KolStatsTab() {
         const results: ScoutStats[] = scouts.map((s) => {
           const rows = kolRows.filter((r) => r.scout_id === s.user_id);
           const cumulative = rows.filter(
-            (r) => r.booking_status === "成功訂房" && !r.is_error && inYearScope(r.check_in_date),
+            (r) => r.kpi_qualified === true && !r.is_error && inYearScope(r.check_in_date),
           ).length;
 
           const tier = tierFor(cumulative);
@@ -757,7 +757,7 @@ export function KolStatsTab() {
       </Sheet>
     </Card>
     <div className="mt-3 px-1 text-xs text-muted-foreground space-y-1">
-      <div>「累積邀約」的計算方式 = 成功訂房</div>
+      <div>「累積邀約」的計算方式 = 累積資格打勾（符合資格）</div>
       <div>「符合資格」的計算方式 = 星探主管，審核並打勾</div>
       <div>「KOL分潤訂單」的計算方式 = 匹配 admin/orders 訂單列表的折扣代碼</div>
     </div>
