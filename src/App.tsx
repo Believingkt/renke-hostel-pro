@@ -411,6 +411,20 @@ function App() {
                         <Suspense fallback={<DashboardSkeleton />}><OwlTingEmailIngest /></Suspense>
                       </RequireModule>
                     } />
+                    <Route path="admin/ai-training" element={
+                      <RequireModule module="ai_training">
+                        <Suspense fallback={<DashboardSkeleton />}><AdminAiTrainingLayout /></Suspense>
+                      </RequireModule>
+                    }>
+                      <Route index element={<Suspense fallback={null}><AdminAiTrainingDashboard /></Suspense>} />
+                      <Route path="prompt" element={<Suspense fallback={null}><AdminAiTrainingPrompt /></Suspense>} />
+                      <Route path="knowledge" element={<Suspense fallback={null}><AdminAiTrainingKnowledge /></Suspense>} />
+                      <Route path="examples" element={<Suspense fallback={null}><AdminAiTrainingExamples /></Suspense>} />
+                      <Route path="conversations" element={<Suspense fallback={null}><AdminAiTrainingConversations /></Suspense>} />
+                      <Route path="playground" element={<Suspense fallback={null}><AdminAiTrainingPlayground /></Suspense>} />
+                      <Route path="api-keys" element={<Suspense fallback={null}><AdminAiTrainingApiKeys /></Suspense>} />
+                      <Route path="api-docs" element={<Suspense fallback={null}><AdminAiTrainingApiDocs /></Suspense>} />
+                    </Route>
 
                     {/* 其他頁面 */}
                     <Route path="og-preview" element={
