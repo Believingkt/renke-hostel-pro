@@ -32,10 +32,10 @@ function parseSubject(subject: string | null): ParsedSubject {
   };
   if (!subject) return out;
 
-  // Detect message type by keywords
-  if (/取消/.test(subject)) out.message_type = "cancelled";
-  else if (/修改|變更|更改/.test(subject)) out.message_type = "modified";
-  else if (/新訂單|新訂房|新的訂單/.test(subject)) out.message_type = "new_order";
+  // Detect message type by keywords (order matters: "取消" trumps everything, then 修改/變更, then 成立/新訂單)
+  if (/取消|cancel/i.test(subject)) out.message_type = "cancelled";
+  else if (/修改|變更|更改|modif/i.test(subject)) out.message_type = "modified";
+  else if (/訂單成立|成立通知|新訂單|新訂房|新的訂單|new\s*(order|booking)/i.test(subject)) out.message_type = "new_order";
 
   // Extract OBE number (typical format: OBE followed by digits/letters)
   const obeMatch = subject.match(/\b(OBE[\w-]+)\b/i);
