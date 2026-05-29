@@ -1,13 +1,11 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { format } from "date-fns";
-import { CalendarIcon, Pencil } from "lucide-react";
+import { ChevronDown, ChevronRight, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Table,
   TableHeader,
@@ -24,7 +22,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 
 interface Accommodation {
   id: string;
@@ -47,11 +44,15 @@ interface RowView extends Accommodation {
 export default function CommissionRatesTab() {
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<RowView[]>([]);
+  const [historyByAcc, setHistoryByAcc] = useState<Map<string, CommissionRow[]>>(new Map());
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [editOpen, setEditOpen] = useState(false);
   const [editing, setEditing] = useState<RowView | null>(null);
   const [closerRate, setCloserRate] = useState<string>("");
   const [videoRate, setVideoRate] = useState<string>("");
-  const [effectiveFrom, setEffectiveFrom] = useState<Date>(new Date());
+  const [effectiveFrom, setEffectiveFrom] = useState<string>(
+    format(new Date(), "yyyy-MM-dd"),
+  );
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -73,8 +74,12 @@ export default function CommissionRatesTab() {
       ]);
 
       const latest = new Map<string, CommissionRow>();
+      const history = new Map<string, CommissionRow[]>();
       (settings ?? []).forEach((s: any) => {
         if (!latest.has(s.accommodation_id)) latest.set(s.accommodation_id, s);
+        const arr = history.get(s.accommodation_id) ?? [];
+        arr.push(s);
+        history.set(s.accommodation_id, arr);
       });
 
       const merged: RowView[] = (accs ?? []).map((a: any) => {
@@ -88,6 +93,7 @@ export default function CommissionRatesTab() {
         };
       });
       setRows(merged);
+      setHistoryByAcc(history);
     } catch (e: any) {
       toast.error("讀取分潤比例失敗：" + (e.message || ""));
     } finally {
@@ -95,11 +101,20 @@ export default function CommissionRatesTab() {
     }
   }
 
+  function toggleExpand(id: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
   function openEdit(row: RowView) {
     setEditing(row);
     setCloserRate(row.closer_rate != null ? String(row.closer_rate) : "");
     setVideoRate(row.video_rate != null ? String(row.video_rate) : "");
-    setEffectiveFrom(new Date());
+    setEffectiveFrom(format(new Date(), "yyyy-MM-dd"));
     setEditOpen(true);
   }
 
@@ -115,6 +130,10 @@ export default function CommissionRatesTab() {
       toast.error("影音組分潤% 必須在 0-100");
       return;
     }
+    if (!effectiveFrom || !/^\d{4}-\d{2}-\d{2}$/.test(effectiveFrom)) {
+      toast.error("請輸入有效的生效日期");
+      return;
+    }
     setSaving(true);
     try {
       const { error } = await supabase
@@ -123,7 +142,7 @@ export default function CommissionRatesTab() {
           accommodation_id: editing.id,
           closer_rate: cr,
           video_rate: vr,
-          effective_from: format(effectiveFrom, "yyyy-MM-dd"),
+          effective_from: effectiveFrom,
         });
       if (error) throw error;
       toast.success("已儲存");
@@ -143,6 +162,7 @@ export default function CommissionRatesTab() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-10"></TableHead>
               <TableHead>民宿名稱</TableHead>
               <TableHead className="w-32">成交組分潤%</TableHead>
               <TableHead className="w-32">影音組分潤%</TableHead>
@@ -153,35 +173,94 @@ export default function CommissionRatesTab() {
           <TableBody>
             {loading && rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
                   載入中...
                 </TableCell>
               </TableRow>
             ) : rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
                   尚無資料
                 </TableCell>
               </TableRow>
             ) : (
-              rows.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell>{r.name}</TableCell>
-                  <TableCell>{r.closer_rate != null ? `${r.closer_rate}%` : "—"}</TableCell>
-                  <TableCell>{r.video_rate != null ? `${r.video_rate}%` : "—"}</TableCell>
-                  <TableCell>{r.effective_from ?? "—"}</TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => openEdit(r)}
-                      aria-label="編輯"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
+              rows.map((r) => {
+                const isOpen = expanded.has(r.id);
+                const history = historyByAcc.get(r.id) ?? [];
+                return (
+                  <Fragment key={r.id}>
+                    <TableRow key={r.id}>
+                      <TableCell>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          onClick={() => toggleExpand(r.id)}
+                          aria-label="展開歷史紀錄"
+                        >
+                          {isOpen ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </TableCell>
+                      <TableCell>{r.name}</TableCell>
+                      <TableCell>{r.closer_rate != null ? `${r.closer_rate}%` : "—"}</TableCell>
+                      <TableCell>{r.video_rate != null ? `${r.video_rate}%` : "—"}</TableCell>
+                      <TableCell>{r.effective_from ?? "—"}</TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => openEdit(r)}
+                          aria-label="編輯"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                    {isOpen && (
+                      <TableRow key={`${r.id}-history`} className="bg-muted/30 hover:bg-muted/30">
+                        <TableCell></TableCell>
+                        <TableCell colSpan={5} className="p-0">
+                          <div className="px-4 py-3">
+                            <div className="text-xs text-muted-foreground mb-2">歷史紀錄</div>
+                            {history.length === 0 ? (
+                              <div className="text-sm text-muted-foreground py-2">
+                                尚無歷史紀錄
+                              </div>
+                            ) : (
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="w-40">成交組分潤%</TableHead>
+                                    <TableHead className="w-40">影音組分潤%</TableHead>
+                                    <TableHead>生效日期</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {history.map((h, idx) => (
+                                    <TableRow key={`${r.id}-h-${idx}`}>
+                                      <TableCell>
+                                        {h.closer_rate != null ? `${h.closer_rate}%` : "—"}
+                                      </TableCell>
+                                      <TableCell>
+                                        {h.video_rate != null ? `${h.video_rate}%` : "—"}
+                                      </TableCell>
+                                      <TableCell>{h.effective_from}</TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </Fragment>
+                );
+              })
             )}
           </TableBody>
         </Table>
@@ -217,29 +296,11 @@ export default function CommissionRatesTab() {
             </div>
             <div className="space-y-2">
               <Label>生效日期</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !effectiveFrom && "text-muted-foreground",
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {effectiveFrom ? format(effectiveFrom, "yyyy-MM-dd") : "選擇日期"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={effectiveFrom}
-                    onSelect={(d) => d && setEffectiveFrom(d)}
-                    initialFocus
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                </PopoverContent>
-              </Popover>
+              <Input
+                type="date"
+                value={effectiveFrom}
+                onChange={(e) => setEffectiveFrom(e.target.value)}
+              />
             </div>
           </div>
           <DialogFooter>
