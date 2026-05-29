@@ -410,6 +410,7 @@ function InvitationsTab({
   const [filterScout, setFilterScout] = useState<string>("all");
   const [filterYear, setFilterYear] = useState<string>("all");
   const [filterMonth, setFilterMonth] = useState<string>("all");
+  const [filterQualified, setFilterQualified] = useState<string>("all");
   const PAGE_SIZE = 50;
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -536,6 +537,8 @@ function InvitationsTab({
     if (filterRarity !== "all") q = q.eq("rarity", filterRarity);
     if (filterTags.length > 0) q = q.overlaps("kol_tags", filterTags);
     if (filterScout !== "all") q = q.eq("scout_id", filterScout);
+    if (filterQualified === "yes") q = q.eq("kpi_qualified", true);
+    else if (filterQualified === "no") q = q.or("kpi_qualified.is.null,kpi_qualified.eq.false");
     if (filterYear !== "all") {
       const y = parseInt(filterYear, 10);
       if (filterMonth !== "all") {
@@ -590,7 +593,7 @@ function InvitationsTab({
     setRows(enriched);
     setTotalCount(count ?? 0);
     setLoading(false);
-  }, [accommodations, page, search, filterAcc, filterRarity, filterTags, filterScout, filterYear, filterMonth]);
+  }, [accommodations, page, search, filterAcc, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified]);
 
   useEffect(() => {
     if (accommodations.length > 0) fetchRows();
@@ -599,7 +602,7 @@ function InvitationsTab({
   // 篩選條件變更時，重置到第一頁
   useEffect(() => {
     setPage(1);
-  }, [search, filterAcc, filterRarity, filterTags, filterScout, filterYear, filterMonth]);
+  }, [search, filterAcc, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified]);
 
   // 伺服器端已套用篩選，直接使用 rows
   const filtered = rows;
@@ -1046,6 +1049,19 @@ function InvitationsTab({
             ))}
           </SelectContent>
         </Select>
+
+        <Select value={filterQualified} onValueChange={setFilterQualified}>
+          <SelectTrigger className="w-32">
+            <SelectValue placeholder="資格" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">全部資格</SelectItem>
+            <SelectItem value="yes">符合資格</SelectItem>
+            <SelectItem value="no">未符合資格</SelectItem>
+          </SelectContent>
+        </Select>
+
+
 
 
         <div className="ml-auto flex items-center gap-2">
