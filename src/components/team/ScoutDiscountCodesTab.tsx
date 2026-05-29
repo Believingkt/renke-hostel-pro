@@ -104,7 +104,7 @@ export default function ScoutDiscountCodesTab() {
 
   const loadAll = async () => {
     setLoading(true);
-    const [{ data: codeRows }, { data: scoutRoles }, { data: closerRoles }, { data: pms }, { data: accs }] =
+    const [{ data: codeRows }, { data: scoutRoles }, { data: pms }, { data: accs }] =
       await Promise.all([
         supabase
           .from("scout_discount_codes")
@@ -114,7 +114,6 @@ export default function ScoutDiscountCodesTab() {
           .from("user_roles")
           .select("user_id")
           .in("role", ["scout", "scout_manager"] as any),
-        supabase.from("user_roles").select("user_id").eq("role", "closer" as any),
         supabase.from("discount_codes").select("code, is_active"),
         supabase
           .from("accommodation_info")
@@ -126,20 +125,17 @@ export default function ScoutDiscountCodesTab() {
     setAccommodations((accs ?? []) as AccommodationOpt[]);
 
     const scoutIds = Array.from(new Set((scoutRoles ?? []).map((r: any) => r.user_id)));
-    const closerIds = Array.from(new Set((closerRoles ?? []).map((r: any) => r.user_id)));
-    const allIds = Array.from(new Set([...scoutIds, ...closerIds]));
 
     let memberRows: MemberOpt[] = [];
-    if (allIds.length) {
+    if (scoutIds.length) {
       const { data: tm } = await supabase
         .from("team_member_profiles")
         .select("id, user_id, display_name")
-        .in("user_id", allIds);
+        .in("user_id", scoutIds);
       memberRows = (tm ?? []) as MemberOpt[];
     }
 
     setScouts(memberRows.filter((m) => scoutIds.includes(m.user_id)));
-    setClosers(memberRows.filter((m) => closerIds.includes(m.user_id)));
 
     const pmsMap = new Map<string, PmsCode>();
     (pms ?? []).forEach((p: any) => {
@@ -161,9 +157,7 @@ export default function ScoutDiscountCodesTab() {
     setFAcc(NONE);
     setFScout(NONE);
     setFType("scout_self");
-    setFCloser(NONE);
     setFScoutRate("5");
-    setFCloserRate("0");
     setDialogOpen(true);
   };
 
@@ -173,9 +167,7 @@ export default function ScoutDiscountCodesTab() {
     setFAcc(row.accommodation_id ?? NONE);
     setFScout(row.scout_id ?? NONE);
     setFType((row.commission_type as CommissionType) ?? "scout_self");
-    setFCloser(row.closer_id ?? NONE);
     setFScoutRate(String(((row.scout_rate ?? 0) * 100).toFixed(2)).replace(/\.?0+$/, "") || "0");
-    setFCloserRate(String(((row.closer_rate ?? 0) * 100).toFixed(2)).replace(/\.?0+$/, "") || "0");
     setDialogOpen(true);
   };
 
@@ -183,11 +175,8 @@ export default function ScoutDiscountCodesTab() {
     setFType(v);
     if (v === "scout_self") {
       setFScoutRate("5");
-      setFCloserRate("0");
-      setFCloser(NONE);
     } else {
       setFScoutRate("2");
-      setFCloserRate("3");
     }
   };
 
@@ -200,19 +189,15 @@ export default function ScoutDiscountCodesTab() {
       toast.error("請選擇星探");
       return;
     }
-    if (fType === "partner" && fCloser === NONE) {
-      toast.error("夥伴成交需要選擇成交組");
-      return;
-    }
     setSaving(true);
     const payload = {
       discount_code: fCode.trim(),
       accommodation_id: fAcc === NONE ? null : fAcc,
       scout_id: fScout,
-      closer_id: fType === "partner" ? fCloser : null,
+      closer_id: null,
       commission_type: fType,
       scout_rate: Number(fScoutRate || 0) / 100,
-      closer_rate: fType === "partner" ? Number(fCloserRate || 0) / 100 : 0,
+      closer_rate: 0,
       is_active: true,
     };
     const q = editing
