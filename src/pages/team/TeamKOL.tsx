@@ -1153,16 +1153,20 @@ function InvitationsTab({
                       <TableCell>{renderBookingStatusBadge(r.booking_status)}</TableCell>
                       <TableCell>
                         {contractStatus && !contractStatus.empty ? (
-                          <Badge
-                            variant="outline"
-                            className={
-                              contractStatus.done
-                                ? "bg-green-100 text-green-700 border-green-200"
-                                : "bg-orange-100 text-orange-700 border-orange-200"
-                            }
-                          >
-                            {contractStatus.label}
-                          </Badge>
+                          contractStatus.plain ? (
+                            <span>{contractStatus.label}</span>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className={
+                                contractStatus.done
+                                  ? "bg-green-100 text-green-700 border-green-200"
+                                  : "bg-orange-100 text-orange-700 border-orange-200"
+                              }
+                            >
+                              {contractStatus.label}
+                            </Badge>
+                          )
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
