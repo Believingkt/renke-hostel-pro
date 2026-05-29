@@ -66,7 +66,7 @@ serve(async (req) => {
     }
 
     const admin = createClient(supabaseUrl, serviceKey);
-    const { data: hasAccess } = await admin.rpc("user_has_access_to_accommodation", {
+    const { data: hasAccess } = await userClient.rpc("user_has_access_to_accommodation", {
       _user_id: userId, _accommodation_id: accommodation_id,
     });
     if (!hasAccess) {
