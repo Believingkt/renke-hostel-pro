@@ -2140,6 +2140,89 @@ function CompanionSearch({
   );
 }
 
+// 同住夥伴顯示：正向（companion_cid → name）+ 反向（其他人 companion_cid = 本筆 cid_code）
+function CompanionDisplay({
+  companionCid,
+  selfCid,
+  selfId,
+  onJumpTo,
+}: {
+  companionCid: string | null;
+  selfCid: string | null;
+  selfId: string;
+  onJumpTo: (id: string) => void;
+}) {
+  const [forward, setForward] = useState<{ id: string; name: string | null } | null>(null);
+  const [reverse, setReverse] = useState<Array<{ id: string; name: string | null }>>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (companionCid) {
+        const { data } = await supabase
+          .from("kol_profiles")
+          .select("id, name")
+          .eq("cid_code", companionCid)
+          .neq("id", selfId)
+          .limit(1)
+          .maybeSingle();
+        if (!cancelled) setForward((data as any) ?? null);
+      } else {
+        setForward(null);
+      }
+      if (selfCid) {
+        const { data } = await supabase
+          .from("kol_profiles")
+          .select("id, name")
+          .eq("companion_cid", selfCid)
+          .neq("id", selfId);
+        if (!cancelled) setReverse(((data as any) ?? []));
+      } else {
+        setReverse([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [companionCid, selfCid, selfId]);
+
+  if (!companionCid && reverse.length === 0) return <>-</>;
+
+  return (
+    <div className="space-y-1">
+      {companionCid && (
+        <div>
+          {forward ? (
+            <button
+              type="button"
+              onClick={() => onJumpTo(forward.id)}
+              className="text-primary hover:underline"
+            >
+              {forward.name ?? companionCid}
+            </button>
+          ) : (
+            <span className="text-muted-foreground">{companionCid}（查無對應 KOL）</span>
+          )}
+        </div>
+      )}
+      {reverse.map((r) => (
+        <div key={r.id} className="text-xs text-muted-foreground">
+          同住夥伴：
+          <button
+            type="button"
+            onClick={() => onJumpTo(r.id)}
+            className="text-primary hover:underline"
+          >
+            {r.name ?? "-"}
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+
+
 
 // ============================================================
 // ====== Tab 二:潛在名單 ======
