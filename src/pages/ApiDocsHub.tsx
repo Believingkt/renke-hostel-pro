@@ -27,6 +27,13 @@ const apiDocs = [
     path: "/accommodation-api-docs",
   },
   {
+    title: "民宿 AI 管家 API",
+    subtitle: "Accommodation AI Chat API",
+    description: "提供台灣旅圖等外部平台串接各民宿專屬 AI 管家，OpenAI 相容的 SSE 串流介面。",
+    icon: Sparkles,
+    path: "/api-docs/accommodation-ai",
+  },
+  {
     title: "OwlTing Channel Manager",
     subtitle: "OwlTing CM SOAP API",
     description: "提供奧丁丁 Channel Manager 串接的 OTA SOAP 規範 — 房型、庫存、售價、訂單通知。",
