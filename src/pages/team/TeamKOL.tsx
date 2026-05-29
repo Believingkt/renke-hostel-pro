@@ -252,6 +252,7 @@ export default function TeamKOL() {
   const [canSeeStats, setCanSeeStats] = useState<boolean>(
     roles.includes("super_admin") ||
       roles.includes("admin") ||
+      roles.includes("scout") ||
       roles.includes("scout_manager"),
   );
   // hotel_admin / super_admin / venue_manager 才可編輯 KOL購票連結
