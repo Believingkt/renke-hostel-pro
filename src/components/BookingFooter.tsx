@@ -20,12 +20,18 @@ const BookingFooter = () => {
           <div className="flex items-center gap-2 md:-ml-3">
             <img src={lokezeLogo} alt="Lakeze 人客多" className="h-16 sm:h-24 object-contain" />
           </div>
-          <div className="flex gap-4 sm:gap-6 text-sm text-muted-foreground">
+          <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 sm:gap-x-6 text-sm text-muted-foreground">
             <button onClick={() => navigate("/member/auth")} className="hover:text-foreground transition-colors">
               會員中心
             </button>
             <button className="hover:text-foreground transition-colors">關於我們</button>
             <button className="hover:text-foreground transition-colors">聯繫客服</button>
+            <button onClick={() => navigate("/privacy")} className="hover:text-foreground transition-colors">
+              隱私政策
+            </button>
+            <button onClick={() => navigate("/data-deletion")} className="hover:text-foreground transition-colors">
+              資料刪除
+            </button>
           </div>
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} 人客多. All rights reserved.
