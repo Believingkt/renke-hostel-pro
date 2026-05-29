@@ -57,6 +57,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import lokezeLogo from "@/assets/lokeze-logo.png";
+import owlnestLogo from "@/assets/owlnest-logo.png";
 
 const menuItems = [
   { title: "營運分析", url: "/admin", icon: BarChart3, moduleKey: "analytics" },
@@ -156,8 +157,15 @@ export function AppSidebar() {
           className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity duration-200"
         >
           {open && (
-            <div className="animate-in fade-in-0 slide-in-from-left-5 duration-300">
+            <div className="flex items-center gap-3 animate-in fade-in-0 slide-in-from-left-5 duration-300">
               <img src={lokezeLogo} alt="Lokeze" className="h-8 object-contain" />
+              <div className="h-6 w-px bg-border" />
+              <img
+                src={owlnestLogo}
+                alt="OwlNest"
+                className="h-5 object-contain opacity-70 hover:opacity-100 transition-opacity"
+                title="技術合作 OwlNest"
+              />
             </div>
           )}
         </PreloadLink>
