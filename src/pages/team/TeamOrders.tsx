@@ -111,6 +111,7 @@ export default function TeamOrders() {
   // Tab + Settings
   const [tab, setTab] = useState<string>("orders");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isScout, setIsScout] = useState(false);
   const [trafficSources, setTrafficSources] = useState<
     { id: string; name: string; is_active: boolean; sort_order: number | null }[]
   >([]);
