@@ -128,13 +128,41 @@ serve(async (req) => {
       three_domain_secure: true, // Enable 3D Secure
     };
 
-    // Add result_url for 3D Secure redirect
-    if (frontendRedirectUrl || backendNotifyUrl) {
-      tappayBody.result_url = {
-        frontend_redirect_url: frontendRedirectUrl || '',
-        backend_notify_url: backendNotifyUrl || '',
-      };
+    // Add result_url for 3D Secure redirect.
+    // TapPay requires BOTH frontend_redirect_url AND backend_notify_url to be non-empty
+    // when three_domain_secure=true, otherwise it returns 629 "Missing arguments".
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+    const defaultBackendNotifyUrl = supabaseUrl
+      ? `${supabaseUrl}/functions/v1/tappay-notify`
+      : '';
+    const resolvedFrontend =
+      (typeof frontendRedirectUrl === 'string' && frontendRedirectUrl.trim())
+        ? frontendRedirectUrl.trim()
+        : '';
+    const resolvedBackend =
+      (typeof backendNotifyUrl === 'string' && backendNotifyUrl.trim())
+        ? backendNotifyUrl.trim()
+        : defaultBackendNotifyUrl;
+
+    if (!resolvedFrontend || !resolvedBackend) {
+      console.error('Missing 3DS URLs', {
+        hasFrontend: !!resolvedFrontend,
+        hasBackend: !!resolvedBackend,
+      });
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: '系統設定錯誤,請聯繫客服',
+          technicalMessage: 'Missing 3DS redirect URLs',
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
     }
+
+    tappayBody.result_url = {
+      frontend_redirect_url: resolvedFrontend,
+      backend_notify_url: resolvedBackend,
+    };
 
     const envRaw = Deno.env.get('TAPPAY_ENV');
     const env = envRaw === 'sandbox' ? 'sandbox' : 'production';
