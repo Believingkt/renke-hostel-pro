@@ -24,6 +24,7 @@ export const STAFF_MODULES: ModuleDefinition[] = [
   { key: "owner_settlement", label: "業主月結" },
   { key: "addon_center", label: "購物商品" },
   { key: "channel_manager", label: "通路管理" },
+  { key: "ai_training", label: "AI 管家" },
   { key: "accounts", label: "帳號管理" },
 ];
 
@@ -40,6 +41,7 @@ export const DEFAULT_STAFF_PERMISSIONS: Record<string, ModulePermissionLevel> = 
   website_content: "hidden",
   pricing: "hidden",
   channel_manager: "hidden",
+  ai_training: "hidden",
   accounts: "hidden",
 };
 
