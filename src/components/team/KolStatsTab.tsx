@@ -123,6 +123,8 @@ interface ScoutStats {
     final_price: number;
     commission: number;
     created_at: string | null;
+    discount_code: string;
+    kol_name: string;
   }>;
 }
 
