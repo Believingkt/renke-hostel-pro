@@ -24,7 +24,7 @@ export default function AdminAiTrainingConversations() {
     const { data } = await supabase.from("ai_conversation_logs").select("*")
       .eq("accommodation_id", currentAccommodationId)
       .order("created_at", { ascending: false }).limit(100);
-    setRows((data as Log[]) || []);
+    setRows(((data as unknown) as Log[]) || []);
     setLoading(false);
   }, [currentAccommodationId]);
   useEffect(() => { void load(); }, [load]);
