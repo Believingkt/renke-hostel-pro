@@ -1376,6 +1376,17 @@ function InvitationsTab({
                     )}
                   </Row>
                   <Row label="折扣碼 / CID">{r.cid_code ?? r.short_url ?? "-"}</Row>
+                  <Row label="同住夥伴">
+                    <CompanionDisplay
+                      companionCid={r.companion_cid ?? null}
+                      selfCid={r.cid_code ?? null}
+                      selfId={r.id}
+                      onJumpTo={(id) => {
+                        const target = rows.find((x) => x.id === id);
+                        if (target) setViewingRow(target);
+                      }}
+                    />
+                  </Row>
                   {(r.cid_code || r.short_url) && (
                     <Row label="折扣碼設定狀態">
                       <div className="flex items-center gap-2 flex-wrap">
