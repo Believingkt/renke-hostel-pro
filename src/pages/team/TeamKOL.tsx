@@ -251,7 +251,7 @@ export default function TeamKOL() {
   const [prefill, setPrefill] = useState<InvitationPrefill | null>(null);
   const [canSeeStats, setCanSeeStats] = useState<boolean>(
     roles.includes("super_admin") ||
-      roles.includes("scout") ||
+      roles.includes("admin") ||
       roles.includes("scout_manager"),
   );
   // hotel_admin / super_admin / venue_manager 才可編輯 KOL購票連結
@@ -268,7 +268,7 @@ export default function TeamKOL() {
         .from("user_roles")
         .select("role")
         .eq("user_id", userId)
-        .in("role", ["hotel_admin", "super_admin", "scout", "scout_manager"])
+        .in("role", ["hotel_admin", "super_admin", "admin", "scout_manager"])
         .limit(1)
         .maybeSingle();
       if (!cancelled && data) setCanSeeStats(true);
@@ -3546,10 +3546,12 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
                 目前生效版本{current ? `・生效日期：${current.effective_from}` : "：尚無任何版本"}
               </p>
             </div>
-            <Button onClick={openCreate}>
-              <Plus className="mr-1 h-4 w-4" />
-              新增版本
-            </Button>
+            {isManager && (
+              <Button onClick={openCreate}>
+                <Plus className="mr-1 h-4 w-4" />
+                新增版本
+              </Button>
+            )}
           </div>
           {current && (
             <Table>
