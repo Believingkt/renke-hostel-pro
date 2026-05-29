@@ -658,6 +658,14 @@ export default function TeamOrders() {
           <TeamCommissionStatsTab />
         </TabsContent>
 
+        {isAdmin && (
+          <TabsContent value="commission-rates" className="space-y-4">
+            <CommissionRatesTab />
+          </TabsContent>
+        )}
+
+
+
 
 
         <TabsContent value="settings" className="space-y-4">
