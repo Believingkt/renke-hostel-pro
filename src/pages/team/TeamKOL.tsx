@@ -811,6 +811,7 @@ function InvitationsTab({
       inventory_status: toNullable(form.inventory_status),
       booking_status: form.booking_status,
       cid_code: toNullable(form.cid_code),
+      companion_cid: toNullable(form.companion_cid),
       short_url: toNullable(form.short_url),
       contract_progress: toNullable(form.contract_progress),
       contract_file_url: toNullable(form.contract_file_url),
