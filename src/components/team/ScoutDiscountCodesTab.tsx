@@ -384,46 +384,14 @@ export default function ScoutDiscountCodesTab() {
               </Select>
             </div>
 
-            {fType === "partner" && (
-              <div className="space-y-1">
-                <Label>成交組</Label>
-                <Select value={fCloser} onValueChange={setFCloser}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="選擇成交組" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NONE}>未指定</SelectItem>
-                    {closers.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.display_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label>星探分潤 %</Label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  value={fScoutRate}
-                  onChange={(e) => setFScoutRate(e.target.value)}
-                />
-              </div>
-              {fType === "partner" && (
-                <div className="space-y-1">
-                  <Label>成交組分潤 %</Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    value={fCloserRate}
-                    onChange={(e) => setFCloserRate(e.target.value)}
-                  />
-                </div>
-              )}
+            <div className="space-y-1">
+              <Label>星探分潤 %</Label>
+              <Input
+                type="number"
+                step="0.1"
+                value={fScoutRate}
+                onChange={(e) => setFScoutRate(e.target.value)}
+              />
             </div>
           </div>
           <DialogFooter>
