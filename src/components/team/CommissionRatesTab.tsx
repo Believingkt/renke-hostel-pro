@@ -188,7 +188,7 @@ export default function CommissionRatesTab() {
                 const isOpen = expanded.has(r.id);
                 const history = historyByAcc.get(r.id) ?? [];
                 return (
-                  <>
+                  <Fragment key={r.id}>
                     <TableRow key={r.id}>
                       <TableCell>
                         <Button
