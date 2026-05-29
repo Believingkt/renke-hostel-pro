@@ -1871,10 +1871,8 @@ function InvitationsTab({
                     checked={form.kpi_qualified}
                     onCheckedChange={(v) => {
                       if (!!v && form.rarity === "ck") {
-                        toast({
-                          title: "無法勾選符合資格",
+                        toast.error("無法勾選符合資格", {
                           description: "稀有度為「ck（揪客）」時不可勾選符合資格，請先調整稀有度為其他選項。",
-                          variant: "destructive",
                         });
                         return;
                       }
