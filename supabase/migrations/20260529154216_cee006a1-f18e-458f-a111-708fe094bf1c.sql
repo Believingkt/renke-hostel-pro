@@ -1,0 +1,1 @@
+ALTER TABLE public.kol_profiles ADD COLUMN IF NOT EXISTS companion_cid TEXT;
