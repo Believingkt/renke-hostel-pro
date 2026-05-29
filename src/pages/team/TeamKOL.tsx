@@ -93,6 +93,7 @@ interface KolRow {
   rarity: string | null;
   scout_id: string | null;
   cid_code: string | null;
+  companion_cid: string | null;
   short_url: string | null;
   cid_configured: boolean | null;
   cid_notified: boolean | null;
@@ -141,6 +142,7 @@ interface FormState {
   inventory_status: string;
   booking_status: string | null;
   cid_code: string;
+  companion_cid: string;
   short_url: string;
   contract_progress: string;
   contract_file_url: string;
@@ -171,6 +173,7 @@ const EMPTY_FORM: FormState = {
   inventory_status: "",
   booking_status: null,
   cid_code: "",
+  companion_cid: "",
   short_url: "",
   contract_progress: "",
   contract_file_url: "",
@@ -749,6 +752,7 @@ function InvitationsTab({
       inventory_status: row.inventory_status ?? "",
       booking_status: row.booking_status ?? null,
       cid_code: row.cid_code ?? "",
+      companion_cid: row.companion_cid ?? "",
       short_url: row.short_url ?? "",
       contract_progress: row.contract_progress ?? "",
       contract_file_url: row.contract_file_url ?? "",
@@ -807,6 +811,7 @@ function InvitationsTab({
       inventory_status: toNullable(form.inventory_status),
       booking_status: form.booking_status,
       cid_code: toNullable(form.cid_code),
+      companion_cid: toNullable(form.companion_cid),
       short_url: toNullable(form.short_url),
       contract_progress: toNullable(form.contract_progress),
       contract_file_url: toNullable(form.contract_file_url),
@@ -1371,6 +1376,17 @@ function InvitationsTab({
                     )}
                   </Row>
                   <Row label="折扣碼 / CID">{r.cid_code ?? r.short_url ?? "-"}</Row>
+                  <Row label="同住夥伴">
+                    <CompanionDisplay
+                      companionCid={r.companion_cid ?? null}
+                      selfCid={r.cid_code ?? null}
+                      selfId={r.id}
+                      onJumpTo={(id) => {
+                        const target = rows.find((x) => x.id === id);
+                        if (target) setViewingRow(target);
+                      }}
+                    />
+                  </Row>
                   {(r.cid_code || r.short_url) && (
                     <Row label="折扣碼設定狀態">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -1763,6 +1779,14 @@ function InvitationsTab({
               </Field>
             )}
 
+            <Field label="同住夥伴">
+              <CompanionSearch
+                value={form.companion_cid}
+                onChange={(cid) => setForm({ ...form, companion_cid: cid })}
+              />
+            </Field>
+
+
             <Field label="KOL購票連結">
               {canEditTicketLink ? (
                 <Input
@@ -1998,6 +2022,218 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </div>
   );
 }
+
+// 同住夥伴搜尋元件：以 name 即時搜尋 kol_profiles，選定後寫入該筆 cid_code
+function CompanionSearch({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (cid: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<Array<{ id: string; name: string | null; venue_name: string | null; cid_code: string | null }>>([]);
+  const [open, setOpen] = useState(false);
+  const [selectedName, setSelectedName] = useState<string>("");
+  const [searching, setSearching] = useState(false);
+
+  // 已有 value 時反查名稱顯示
+  useEffect(() => {
+    let cancelled = false;
+    if (!value) {
+      setSelectedName("");
+      return;
+    }
+    (async () => {
+      const { data } = await supabase
+        .from("kol_profiles")
+        .select("name")
+        .eq("cid_code", value)
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled) setSelectedName((data?.name as string) ?? value);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [value]);
+
+  // 即時搜尋
+  useEffect(() => {
+    if (!query.trim() || value) {
+      setResults([]);
+      return;
+    }
+    let cancelled = false;
+    setSearching(true);
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from("kol_profiles")
+        .select("id, name, venue_name, cid_code")
+        .ilike("name", `%${query.trim()}%`)
+        .not("cid_code", "is", null)
+        .limit(20);
+      if (!cancelled) {
+        setResults((data as any) ?? []);
+        setSearching(false);
+      }
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [query, value]);
+
+  if (value) {
+    return (
+      <div className="flex items-center gap-2">
+        <Badge variant="outline" className="text-sm">
+          {selectedName || value}
+        </Badge>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          onClick={() => {
+            onChange("");
+            setQuery("");
+            setResults([]);
+          }}
+        >
+          <X className="h-3 w-3" />
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <Input
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 200)}
+        placeholder="輸入 KOL 名稱搜尋…"
+      />
+      {open && query.trim() && (
+        <div className="absolute z-50 mt-1 max-h-64 w-full overflow-auto rounded-md border bg-popover shadow-md">
+          {searching && <div className="px-3 py-2 text-xs text-muted-foreground">搜尋中…</div>}
+          {!searching && results.length === 0 && (
+            <div className="px-3 py-2 text-xs text-muted-foreground">無符合的 KOL（需有 CID）</div>
+          )}
+          {results.map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              className="block w-full px-3 py-2 text-left text-sm hover:bg-accent"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                if (!r.cid_code) {
+                  toast.error("該筆無 CID，無法作為同住夥伴");
+                  return;
+                }
+                onChange(r.cid_code);
+                setQuery("");
+                setResults([]);
+                setOpen(false);
+              }}
+            >
+              <span className="font-medium">{r.name ?? "-"}</span>
+              <span className="text-muted-foreground"> | {r.venue_name ?? "-"} | {r.cid_code ?? "-"}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 同住夥伴顯示：正向（companion_cid → name）+ 反向（其他人 companion_cid = 本筆 cid_code）
+function CompanionDisplay({
+  companionCid,
+  selfCid,
+  selfId,
+  onJumpTo,
+}: {
+  companionCid: string | null;
+  selfCid: string | null;
+  selfId: string;
+  onJumpTo: (id: string) => void;
+}) {
+  const [forward, setForward] = useState<{ id: string; name: string | null } | null>(null);
+  const [reverse, setReverse] = useState<Array<{ id: string; name: string | null }>>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (companionCid) {
+        const { data } = await supabase
+          .from("kol_profiles")
+          .select("id, name")
+          .eq("cid_code", companionCid)
+          .neq("id", selfId)
+          .limit(1)
+          .maybeSingle();
+        if (!cancelled) setForward((data as any) ?? null);
+      } else {
+        setForward(null);
+      }
+      if (selfCid) {
+        const { data } = await supabase
+          .from("kol_profiles")
+          .select("id, name")
+          .eq("companion_cid", selfCid)
+          .neq("id", selfId);
+        if (!cancelled) setReverse(((data as any) ?? []));
+      } else {
+        setReverse([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [companionCid, selfCid, selfId]);
+
+  if (!companionCid && reverse.length === 0) return <>-</>;
+
+  return (
+    <div className="space-y-1">
+      {companionCid && (
+        <div>
+          {forward ? (
+            <button
+              type="button"
+              onClick={() => onJumpTo(forward.id)}
+              className="text-primary hover:underline"
+            >
+              {forward.name ?? companionCid}
+            </button>
+          ) : (
+            <span className="text-muted-foreground">{companionCid}（查無對應 KOL）</span>
+          )}
+        </div>
+      )}
+      {reverse.map((r) => (
+        <div key={r.id} className="text-xs text-muted-foreground">
+          同住夥伴：
+          <button
+            type="button"
+            onClick={() => onJumpTo(r.id)}
+            className="text-primary hover:underline"
+          >
+            {r.name ?? "-"}
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+
+
 
 // ============================================================
 // ====== Tab 二:潛在名單 ======
