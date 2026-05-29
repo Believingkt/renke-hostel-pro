@@ -273,13 +273,13 @@ export default function ScoutDiscountCodesTab() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center text-muted-foreground py-6">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-6">
                       載入中…
                     </TableCell>
                   </TableRow>
                 ) : rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center text-muted-foreground py-6">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-6">
                       尚無資料
                     </TableCell>
                   </TableRow>
