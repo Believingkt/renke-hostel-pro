@@ -1050,6 +1050,19 @@ function InvitationsTab({
           </SelectContent>
         </Select>
 
+        <Select value={filterQualified} onValueChange={setFilterQualified}>
+          <SelectTrigger className="w-32">
+            <SelectValue placeholder="資格" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">全部資格</SelectItem>
+            <SelectItem value="yes">符合資格</SelectItem>
+            <SelectItem value="no">未符合資格</SelectItem>
+          </SelectContent>
+        </Select>
+
+
+
 
         <div className="ml-auto flex items-center gap-2">
           <Button onClick={openCreate}>
