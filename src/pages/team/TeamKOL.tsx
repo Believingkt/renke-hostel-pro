@@ -537,6 +537,8 @@ function InvitationsTab({
     if (filterRarity !== "all") q = q.eq("rarity", filterRarity);
     if (filterTags.length > 0) q = q.overlaps("kol_tags", filterTags);
     if (filterScout !== "all") q = q.eq("scout_id", filterScout);
+    if (filterQualified === "yes") q = q.eq("kpi_qualified", true);
+    else if (filterQualified === "no") q = q.or("kpi_qualified.is.null,kpi_qualified.eq.false");
     if (filterYear !== "all") {
       const y = parseInt(filterYear, 10);
       if (filterMonth !== "all") {
