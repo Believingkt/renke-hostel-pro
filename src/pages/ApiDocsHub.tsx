@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Code, Coins, Building2, TrendingUp, Plug } from "lucide-react";
+import { ArrowLeft, ArrowRight, Code, Coins, Building2, TrendingUp, Plug, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import { SEOHead } from "@/components/SEOHead";
 
@@ -25,6 +25,13 @@ const apiDocs = [
     description: "各民宿可透過 API Key 查詢與新增房型（含設施與圖片）。",
     icon: Building2,
     path: "/accommodation-api-docs",
+  },
+  {
+    title: "民宿 AI 管家 API",
+    subtitle: "Accommodation AI Chat API",
+    description: "提供台灣旅圖等外部平台串接各民宿專屬 AI 管家，OpenAI 相容的 SSE 串流介面。",
+    icon: Sparkles,
+    path: "/api-docs/accommodation-ai",
   },
   {
     title: "OwlTing Channel Manager",
