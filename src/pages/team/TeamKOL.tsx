@@ -142,6 +142,7 @@ interface FormState {
   inventory_status: string;
   booking_status: string | null;
   cid_code: string;
+  companion_cid: string;
   short_url: string;
   contract_progress: string;
   contract_file_url: string;
