@@ -173,6 +173,7 @@ const EMPTY_FORM: FormState = {
   inventory_status: "",
   booking_status: null,
   cid_code: "",
+  companion_cid: "",
   short_url: "",
   contract_progress: "",
   contract_file_url: "",
