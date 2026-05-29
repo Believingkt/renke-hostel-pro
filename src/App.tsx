@@ -255,6 +255,13 @@ function App() {
                     <Route path="payment-result" element={
                       <Suspense fallback={<FrontendSkeleton />}><PaymentResult /></Suspense>
                     } />
+                    <Route path="privacy" element={
+                      <Suspense fallback={<FrontendSkeleton />}><Privacy /></Suspense>
+                    } />
+                    <Route path="data-deletion" element={
+                      <Suspense fallback={<FrontendSkeleton />}><DataDeletion /></Suspense>
+                    } />
+
 
                     {/* Auth 頁面 */}
                     <Route path="auth" element={<Auth />} />
