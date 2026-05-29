@@ -4292,6 +4292,104 @@ export type Database = {
           },
         ]
       }
+      owlting_email_parsed_staging: {
+        Row: {
+          accommodation_name: string | null
+          addons: Json | null
+          channel_source: string | null
+          check_in_date: string | null
+          check_out_date: string | null
+          confidence: string
+          created_at: string
+          currency: string | null
+          extracted_fields: Json
+          guest_count: number | null
+          guest_email: string | null
+          guest_name: string | null
+          guest_phone: string | null
+          id: string
+          message_type: string | null
+          obe_number: string | null
+          parse_warnings: Json | null
+          parser_version: string
+          pii_masked: boolean
+          raw_email_id: string
+          review_notes: string | null
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          room_type_name: string | null
+          total_amount: number | null
+          updated_at: string
+        }
+        Insert: {
+          accommodation_name?: string | null
+          addons?: Json | null
+          channel_source?: string | null
+          check_in_date?: string | null
+          check_out_date?: string | null
+          confidence?: string
+          created_at?: string
+          currency?: string | null
+          extracted_fields?: Json
+          guest_count?: number | null
+          guest_email?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
+          id?: string
+          message_type?: string | null
+          obe_number?: string | null
+          parse_warnings?: Json | null
+          parser_version?: string
+          pii_masked?: boolean
+          raw_email_id: string
+          review_notes?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          room_type_name?: string | null
+          total_amount?: number | null
+          updated_at?: string
+        }
+        Update: {
+          accommodation_name?: string | null
+          addons?: Json | null
+          channel_source?: string | null
+          check_in_date?: string | null
+          check_out_date?: string | null
+          confidence?: string
+          created_at?: string
+          currency?: string | null
+          extracted_fields?: Json
+          guest_count?: number | null
+          guest_email?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
+          id?: string
+          message_type?: string | null
+          obe_number?: string | null
+          parse_warnings?: Json | null
+          parser_version?: string
+          pii_masked?: boolean
+          raw_email_id?: string
+          review_notes?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          room_type_name?: string | null
+          total_amount?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owlting_email_parsed_staging_raw_email_id_fkey"
+            columns: ["raw_email_id"]
+            isOneToOne: false
+            referencedRelation: "owlting_email_orders_raw"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       owlting_email_property_alias: {
         Row: {
           accommodation_id: string | null
