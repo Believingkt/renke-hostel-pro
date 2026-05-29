@@ -47,6 +47,8 @@ export const BOOKING_ALLOWED_PREFIXES = [
   "/linepay",
   "/public-payment",
   "/ai-booking",
+  "/privacy",
+  "/data-deletion",
 ] as const;
 
 /**
