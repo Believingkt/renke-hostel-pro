@@ -178,10 +178,16 @@ export default function TeamOrders() {
           .from("user_roles")
           .select("role")
           .eq("user_id", uid);
-        const admin = (roles ?? []).some(
-          (r: any) => r.role === "hotel_admin" || r.role === "super_admin",
+        const roleList = (roles ?? []).map((r: any) => r.role);
+        const admin = roleList.some(
+          (r: string) => r === "hotel_admin" || r === "super_admin",
+        );
+        const scout = roleList.some(
+          (r: string) => r === "scout" || r === "scout_manager",
         );
         setIsAdmin(admin);
+        setIsScout(scout && !admin);
+        if (scout && !admin) setTab("scout-codes");
       }
       loadOptions();
     })();
