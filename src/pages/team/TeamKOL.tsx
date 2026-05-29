@@ -1147,6 +1147,15 @@ function InvitationsTab({
                           </Badge>
                         )}
                       </TableCell>
+                      <TableCell>
+                        {r.kpi_qualified ? (
+                          <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
+                            <Check className="h-3 w-3" />
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
                       <TableCell>{r._accommodation_name}</TableCell>
                       <TableCell>{r.check_in_date ?? "-"}</TableCell>
                       <TableCell>{r.day_of_week ?? "-"}</TableCell>
