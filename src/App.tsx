@@ -62,6 +62,8 @@ const OwlTingCmDocs = lazy(() => import("./pages/OwlTingCmDocs"));
 const ApiDocsHub = lazy(() => import("./pages/ApiDocsHub"));
 const ChangePassword = lazy(() => import("./pages/ChangePassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const DataDeletion = lazy(() => import("./pages/DataDeletion"));
 
 // 後台管理頁面 - lazy load
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -253,6 +255,13 @@ function App() {
                     <Route path="payment-result" element={
                       <Suspense fallback={<FrontendSkeleton />}><PaymentResult /></Suspense>
                     } />
+                    <Route path="privacy" element={
+                      <Suspense fallback={<FrontendSkeleton />}><Privacy /></Suspense>
+                    } />
+                    <Route path="data-deletion" element={
+                      <Suspense fallback={<FrontendSkeleton />}><DataDeletion /></Suspense>
+                    } />
+
 
                     {/* Auth 頁面 */}
                     <Route path="auth" element={<Auth />} />

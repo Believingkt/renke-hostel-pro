@@ -47,6 +47,8 @@ export const BOOKING_ALLOWED_PREFIXES = [
   "/linepay",
   "/public-payment",
   "/ai-booking",
+  "/privacy",
+  "/data-deletion",
 ] as const;
 
 /**
@@ -89,6 +91,8 @@ export const RESERVED_FIRST_SEGMENTS = new Set<string>([
   "team",
   "team-auth",
   "__cb",
+  "privacy",
+  "data-deletion",
 ]);
 
 // ============= 匹配工具 =============
