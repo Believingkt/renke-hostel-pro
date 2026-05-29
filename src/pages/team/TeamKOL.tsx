@@ -212,9 +212,14 @@ function computeContractProgress(
   publishDate: string | null | undefined,
   contractUrl: string | null | undefined,
 ): { label: string; done: boolean; empty: boolean } | null {
+  // 特例：contract_file_url 為非 URL 的文字（如「業主拍攝」、「不適用」），直接當作合約進度顯示
+  const contractTrimmed = contractUrl ? String(contractUrl).trim() : "";
+  if (contractTrimmed && !contractTrimmed.toLowerCase().startsWith("http")) {
+    return { label: contractTrimmed, done: true, empty: false };
+  }
   const hasPub = !!(publishUrl && String(publishUrl).trim());
   const hasDate = !!(publishDate && String(publishDate).trim());
-  const hasContract = !!(contractUrl && String(contractUrl).trim());
+  const hasContract = !!contractTrimmed;
   if (!hasPub && !hasDate && !hasContract) return { label: "—", done: false, empty: true };
   if (hasPub && hasDate && hasContract) return { label: "已上傳", done: true, empty: false };
   if (hasPub && !hasDate && !hasContract) return { label: "補發布日期＋合約連結", done: false, empty: false };
