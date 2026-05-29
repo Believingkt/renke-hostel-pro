@@ -93,6 +93,7 @@ interface KolRow {
   rarity: string | null;
   scout_id: string | null;
   cid_code: string | null;
+  companion_cid: string | null;
   short_url: string | null;
   cid_configured: boolean | null;
   cid_notified: boolean | null;
