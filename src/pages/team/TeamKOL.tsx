@@ -2004,6 +2004,135 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+// 同住夥伴搜尋元件：以 name 即時搜尋 kol_profiles，選定後寫入該筆 cid_code
+function CompanionSearch({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (cid: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<Array<{ id: string; name: string | null; venue_name: string | null; cid_code: string | null }>>([]);
+  const [open, setOpen] = useState(false);
+  const [selectedName, setSelectedName] = useState<string>("");
+  const [searching, setSearching] = useState(false);
+
+  // 已有 value 時反查名稱顯示
+  useEffect(() => {
+    let cancelled = false;
+    if (!value) {
+      setSelectedName("");
+      return;
+    }
+    (async () => {
+      const { data } = await supabase
+        .from("kol_profiles")
+        .select("name")
+        .eq("cid_code", value)
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled) setSelectedName((data?.name as string) ?? value);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [value]);
+
+  // 即時搜尋
+  useEffect(() => {
+    if (!query.trim() || value) {
+      setResults([]);
+      return;
+    }
+    let cancelled = false;
+    setSearching(true);
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from("kol_profiles")
+        .select("id, name, venue_name, cid_code")
+        .ilike("name", `%${query.trim()}%`)
+        .not("cid_code", "is", null)
+        .limit(20);
+      if (!cancelled) {
+        setResults((data as any) ?? []);
+        setSearching(false);
+      }
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [query, value]);
+
+  if (value) {
+    return (
+      <div className="flex items-center gap-2">
+        <Badge variant="outline" className="text-sm">
+          {selectedName || value}
+        </Badge>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          onClick={() => {
+            onChange("");
+            setQuery("");
+            setResults([]);
+          }}
+        >
+          <X className="h-3 w-3" />
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <Input
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 200)}
+        placeholder="輸入 KOL 名稱搜尋…"
+      />
+      {open && query.trim() && (
+        <div className="absolute z-50 mt-1 max-h-64 w-full overflow-auto rounded-md border bg-popover shadow-md">
+          {searching && <div className="px-3 py-2 text-xs text-muted-foreground">搜尋中…</div>}
+          {!searching && results.length === 0 && (
+            <div className="px-3 py-2 text-xs text-muted-foreground">無符合的 KOL（需有 CID）</div>
+          )}
+          {results.map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              className="block w-full px-3 py-2 text-left text-sm hover:bg-accent"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                if (!r.cid_code) {
+                  toast.error("該筆無 CID，無法作為同住夥伴");
+                  return;
+                }
+                onChange(r.cid_code);
+                setQuery("");
+                setResults([]);
+                setOpen(false);
+              }}
+            >
+              <span className="font-medium">{r.name ?? "-"}</span>
+              <span className="text-muted-foreground"> | {r.venue_name ?? "-"} | {r.cid_code ?? "-"}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 // ============================================================
 // ====== Tab 二:潛在名單 ======
 // ============================================================
