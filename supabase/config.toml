@@ -140,3 +140,9 @@ verify_jwt = false
 
 [functions.get-public-order]
 verify_jwt = false
+
+[functions.accommodation-ai-chat]
+verify_jwt = false
+
+[functions.create-accommodation-ai-api-key]
+verify_jwt = true
