@@ -258,7 +258,7 @@ export default function CommissionRatesTab() {
                         </TableCell>
                       </TableRow>
                     )}
-                  </>
+                  </Fragment>
                 );
               })
             )}
