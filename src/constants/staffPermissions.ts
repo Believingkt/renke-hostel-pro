@@ -41,6 +41,7 @@ export const DEFAULT_STAFF_PERMISSIONS: Record<string, ModulePermissionLevel> = 
   website_content: "hidden",
   pricing: "hidden",
   channel_manager: "hidden",
+  ai_training: "hidden",
   accounts: "hidden",
 };
 
