@@ -380,6 +380,7 @@ export default function TeamCommissionStatsTab() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">全部年份</SelectItem>
                 {years.map((y) => (
                   <SelectItem key={y} value={y}>
                     {y} 年
@@ -392,6 +393,7 @@ export default function TeamCommissionStatsTab() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">全年</SelectItem>
                 {Array.from({ length: 12 }, (_, i) => String(i + 1)).map(
                   (m) => (
                     <SelectItem key={m} value={m}>
