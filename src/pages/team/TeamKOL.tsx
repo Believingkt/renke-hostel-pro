@@ -1791,6 +1791,7 @@ function InvitationsTab({
               {(() => {
                 const s = computeContractProgress(form.publish_url, form.publish_date, form.contract_file_url);
                 if (!s || s.empty) return <span className="text-muted-foreground text-sm">—</span>;
+                if (s.plain) return <span className="text-sm">{s.label}</span>;
                 return (
                   <Badge
                     variant="outline"
