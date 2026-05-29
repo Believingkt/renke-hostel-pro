@@ -2,6 +2,7 @@
 // Receives multipart/form-data POST, persists raw payload, lightly parses subject.
 // IMPORTANT: Always return 200 so SendGrid does not retry indefinitely.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
+import { parseOwlNestForwardEmail } from "../_shared/owltingHtmlParser.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -215,6 +216,47 @@ Deno.serve(async (req) => {
       failure_stage: status === "ignored" ? "envelope_check" : "subject_parse",
       raw_payload: rawPayload,
     });
+  }
+
+  // Phase 2 — HTML body parser (skeleton, confidence: low)
+  // Always stage extracted fields for trusted emails so admins can review.
+  // Does NOT auto-create bookings — review_status defaults to 'pending_review'.
+  if (trusted && inserted?.id && (text || html)) {
+    try {
+      const fields = parseOwlNestForwardEmail({
+        subject,
+        text_body: text,
+        html_body: html,
+      });
+      const { error: stageErr } = await supabase
+        .from("owlting_email_parsed_staging")
+        .insert({
+          raw_email_id: inserted.id,
+          parser_version: "html-v1",
+          confidence: fields.confidence,
+          review_status: "pending_review",
+          message_type: fields.message_type,
+          obe_number: fields.obe_number,
+          channel_source: fields.channel_source,
+          accommodation_name: fields.accommodation_name,
+          room_type_name: fields.room_type_name,
+          check_in_date: fields.check_in_date,
+          check_out_date: fields.check_out_date,
+          guest_count: fields.guest_count,
+          total_amount: fields.total_amount,
+          currency: fields.currency,
+          guest_name: fields.guest_name,
+          guest_phone: fields.guest_phone,
+          guest_email: fields.guest_email,
+          pii_masked: fields.pii_masked,
+          addons: fields.addons,
+          extracted_fields: fields.raw_matches,
+          parse_warnings: fields.warnings.length ? fields.warnings : null,
+        });
+      if (stageErr) console.error("[owlting-email-ingest] staging insert error:", stageErr);
+    } catch (e) {
+      console.error("[owlting-email-ingest] phase2 parser threw:", e);
+    }
   }
 
   return new Response(JSON.stringify({ ok: true, id: inserted?.id ?? null }), {
