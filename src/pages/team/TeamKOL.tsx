@@ -1768,6 +1768,14 @@ function InvitationsTab({
               </Field>
             )}
 
+            <Field label="同住夥伴">
+              <CompanionSearch
+                value={form.companion_cid}
+                onChange={(cid) => setForm({ ...form, companion_cid: cid })}
+              />
+            </Field>
+
+
             <Field label="KOL購票連結">
               {canEditTicketLink ? (
                 <Input
