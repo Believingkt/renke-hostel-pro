@@ -277,9 +277,14 @@ export default function TeamKolVenueConfirm() {
       <Card>
         <CardHeader>
           <CardTitle>折扣碼設定管理</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            請確認以下 KOL 折扣碼已在各平台設定完成
-          </p>
+          <div className="text-sm text-muted-foreground space-y-2">
+            <p>
+              請確認以下 KOL 折扣碼 / CID 已經在自家訂房網站後台（奧丁丁、旅圖⋯等等）設定完成，才按下方按鈕「確認已設定」。
+            </p>
+            <p>
+              若有另外獨立 KOL 的獨立售票網址，可按下「填寫 KOL 購票連結」按鈕，新增該網址。
+            </p>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:flex-wrap">
