@@ -573,9 +573,12 @@ export default function TeamCommissionStatsTab() {
           </div>
         </CardContent>
       </Card>
+      </>
+      )}
 
       {/* 星探折扣碼業績 */}
       <Card>
+
         <CardContent className="p-4 space-y-3">
           <h2 className="text-lg font-semibold">星探折扣碼業績</h2>
           <div className="overflow-x-auto">
