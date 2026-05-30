@@ -271,6 +271,7 @@ export default function ScoutDiscountCodesTab() {
                   <TableHead>星探</TableHead>
                   <TableHead>成交模式</TableHead>
                   <TableHead className="text-right">星探分潤%</TableHead>
+                  <TableHead className="text-right">成交組分潤%</TableHead>
                   <TableHead>PMS匹配</TableHead>
                   <TableHead className="w-28">操作</TableHead>
                 </TableRow>
