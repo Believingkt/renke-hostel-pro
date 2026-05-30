@@ -219,6 +219,28 @@ export default function TeamKolVenueConfirm() {
                   {r.check_in_date || "—"}
                 </TableCell>
                 <TableCell>
+                  {r.cid_configured ? (
+                    <Badge className="bg-green-100 text-green-700 border-green-200">已設定</Badge>
+                  ) : (
+                    <Badge variant="secondary">待設定</Badge>
+                  )}
+                </TableCell>
+                <TableCell className="text-right">
+                  {mode === "pending" ? (
+                    <Button size="sm" onClick={() => confirmConfigured(r.id, true)}>
+                      確認已設定
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => confirmConfigured(r.id, false)}
+                    >
+                      取消確認
+                    </Button>
+                  )}
+                </TableCell>
+                <TableCell>
                   {r.kol_direct_ticket_link ? (
                     <a
                       href={r.kol_direct_ticket_link}
@@ -241,28 +263,7 @@ export default function TeamKolVenueConfirm() {
                     </div>
                   )}
                 </TableCell>
-                <TableCell>
-                  {r.cid_configured ? (
-                    <Badge className="bg-green-100 text-green-700 border-green-200">已設定</Badge>
-                  ) : (
-                    <Badge variant="secondary">待設定</Badge>
-                  )}
-                </TableCell>
-                <TableCell className="text-right">
-                  {mode === "pending" ? (
-                    <Button size="sm" onClick={() => confirmConfigured(r.id, true)}>
-                      確認已設定
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => confirmConfigured(r.id, false)}
-                    >
-                      取消確認
-                    </Button>
-                  )}
-                </TableCell>
+
               </TableRow>
             ))
           )}
