@@ -178,8 +178,10 @@ export default function ScoutDiscountCodesTab() {
     setFType(v);
     if (v === "scout_self") {
       setFScoutRate("5");
+      setFCloserRate("0");
     } else {
       setFScoutRate("2");
+      setFCloserRate("3");
     }
   };
 
