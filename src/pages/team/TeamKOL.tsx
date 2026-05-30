@@ -381,6 +381,7 @@ function InvitationsTab({
 
   const [prospectLink, setProspectLink] = useState<string | null>(null);
   const [rows, setRows] = useState<KolRow[]>([]);
+  const [pmsCodesSet, setPmsCodesSet] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
@@ -600,6 +601,14 @@ function InvitationsTab({
       _scout_name: r.scout_id ? (scoutMap.get(r.scout_id) ?? "-") : "-",
     })) as KolRow[];
     setRows(enriched);
+    // 取得 PMS 已建立的折扣碼集合
+    const { data: pmsCodes } = await supabase.from("discount_codes").select("code");
+    const codesSet = new Set<string>(
+      (pmsCodes ?? [])
+        .map((c: any) => (c.code ?? "").trim().toUpperCase())
+        .filter((c: string) => c.length > 0)
+    );
+    setPmsCodesSet(codesSet);
     setTotalCount(count ?? 0);
     setLoading(false);
   }, [accommodations, page, search, filterAcc, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified]);
@@ -1115,7 +1124,10 @@ function InvitationsTab({
                   const contractStatus = computeContractProgress(r.publish_url, r.publish_date, r.contract_file_url);
                   const codeOrCidValue = r.cid_code ?? r.short_url ?? null;
                   const codeOrCid = codeOrCidValue ?? "-";
-                  const codeOrCidClass = codeOrCidValue && r.cid_configured
+                  const isPmsCreated = codeOrCidValue
+                    ? pmsCodesSet.has(codeOrCidValue.trim().toUpperCase())
+                    : false;
+                  const codeOrCidClass = codeOrCidValue && (r.cid_configured || isPmsCreated)
                     ? "text-green-600 font-medium"
                     : "";
                   return (
@@ -1376,7 +1388,13 @@ function InvitationsTab({
                       </Badge>
                     )}
                   </Row>
-                  <Row label="折扣碼 / CID">{r.cid_code ?? r.short_url ?? "-"}</Row>
+                  <Row label="折扣碼 / CID">{(() => {
+                    const v = r.cid_code ?? r.short_url ?? null;
+                    if (!v) return "-";
+                    const isPmsCreated = pmsCodesSet.has(v.trim().toUpperCase());
+                    const cls = (r.cid_configured || isPmsCreated) ? "text-green-600 font-medium" : "";
+                    return <span className={cls}>{v}</span>;
+                  })()}</Row>
                   <Row label="同住夥伴">
                     <CompanionDisplay
                       companionCid={r.companion_cid ?? null}
