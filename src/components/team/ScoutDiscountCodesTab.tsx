@@ -92,6 +92,7 @@ export default function ScoutDiscountCodesTab() {
   const [fScout, setFScout] = useState<string>(NONE);
   const [fType, setFType] = useState<CommissionType>("scout_self");
   const [fScoutRate, setFScoutRate] = useState<string>("5");
+  const [fCloserRate, setFCloserRate] = useState<string>("0");
 
   const scoutMap = useMemo(
     () => new Map(scouts.map((s) => [s.id, s.display_name])),
