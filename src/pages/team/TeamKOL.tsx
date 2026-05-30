@@ -601,6 +601,14 @@ function InvitationsTab({
       _scout_name: r.scout_id ? (scoutMap.get(r.scout_id) ?? "-") : "-",
     })) as KolRow[];
     setRows(enriched);
+    // 取得 PMS 已建立的折扣碼集合
+    const { data: pmsCodes } = await supabase.from("discount_codes").select("code");
+    const codesSet = new Set<string>(
+      (pmsCodes ?? [])
+        .map((c: any) => (c.code ?? "").trim().toUpperCase())
+        .filter((c: string) => c.length > 0)
+    );
+    setPmsCodesSet(codesSet);
     setTotalCount(count ?? 0);
     setLoading(false);
   }, [accommodations, page, search, filterAcc, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified]);
