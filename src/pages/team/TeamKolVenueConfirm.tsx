@@ -195,9 +195,10 @@ export default function TeamKolVenueConfirm() {
             <TableHead>折扣碼 / CID</TableHead>
             <TableHead>訂單編號</TableHead>
             <TableHead>入住日期</TableHead>
-            <TableHead>KOL購票連結</TableHead>
             <TableHead>設定狀態</TableHead>
             <TableHead className="text-right">操作</TableHead>
+            <TableHead>KOL購票連結</TableHead>
+
           </TableRow>
         </TableHeader>
         <TableBody>
