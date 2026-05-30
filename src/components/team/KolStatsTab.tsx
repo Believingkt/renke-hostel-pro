@@ -347,9 +347,7 @@ export function KolStatsTab() {
 
         const results: ScoutStats[] = scouts.map((s) => {
           const rows = kolRows.filter((r) => r.scout_id === s.user_id);
-          const cumulative = rows.filter(
-            (r) => r.kpi_qualified === true && !r.is_error,
-          ).length;
+          const cumulative = rows.filter((r) => r.kpi_qualified === true && !r.is_error).length;
 
           const tier = tierFor(cumulative);
           const tierName = tier?.tier_name ?? "—";
@@ -499,284 +497,290 @@ export function KolStatsTab() {
 
   return (
     <>
-    <Card>
-      <CardContent className="p-4 space-y-4">
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="space-y-1">
-            <Label className="text-xs">年份</Label>
-            <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-              <SelectTrigger className="w-[120px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {yearOptions.map((y) => (
-                  <SelectItem key={y} value={String(y)}>
-                    {y === 0 ? "全部" : `${y} 年`}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      <Card>
+        <CardContent className="p-4 space-y-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">年份</Label>
+              <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {yearOptions.map((y) => (
+                    <SelectItem key={y} value={String(y)}>
+                      {y === 0 ? "全部" : `${y} 年`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">發放期別</Label>
+              <Select value={period} onValueChange={setPeriod}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {periodOptions.map((p) => (
+                    <SelectItem key={p.value} value={p.value}>
+                      {p.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="space-y-1">
-            <Label className="text-xs">發放期別</Label>
-            <Select value={period} onValueChange={setPeriod}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {periodOptions.map((p) => (
-                  <SelectItem key={p.value} value={p.value}>
-                    {p.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
 
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="whitespace-nowrap">等級名稱</TableHead>
-                <TableHead className="whitespace-nowrap">星探</TableHead>
-                <TableHead className="text-right whitespace-nowrap">整年累積邀約</TableHead>
-                <TableHead className="text-right whitespace-nowrap">本期符合資格</TableHead>
-                <TableHead className="text-right whitespace-nowrap">稀有度獎金</TableHead>
-                <TableHead className="text-right whitespace-nowrap">KOL分潤訂單</TableHead>
-                <TableHead className="text-right whitespace-nowrap">分潤%</TableHead>
-                <TableHead className="text-right whitespace-nowrap">KOL分潤金額</TableHead>
-                <TableHead className="text-right whitespace-nowrap">底薪</TableHead>
-                <TableHead className="text-right whitespace-nowrap">團隊獎金</TableHead>
-                <TableHead className="text-right whitespace-nowrap">合計</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
-                    載入中…
-                  </TableCell>
+                  <TableHead className="whitespace-nowrap">等級名稱</TableHead>
+                  <TableHead className="whitespace-nowrap">星探</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">整年累積邀約</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">本期符合資格</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">稀有度獎金</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">KOL分潤訂單</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">分潤%</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">KOL分潤金額</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">底薪</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">團隊獎金</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">合計</TableHead>
                 </TableRow>
-              ) : stats.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
-                    尚無資料
-                  </TableCell>
-                </TableRow>
-              ) : (
-                stats.map((s) => (
-                  <TableRow
-                    key={s.scout_id}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => setSelectedScout(s)}
-                  >
-                    <TableCell className="whitespace-nowrap text-muted-foreground">{s.tier_name}</TableCell>
-                    <TableCell className="whitespace-nowrap font-medium">{s.display_name}</TableCell>
-                    <TableCell className="text-right tabular-nums">{s.cumulative_count}</TableCell>
-                    <TableCell
-                      className={`text-right tabular-nums font-semibold ${
-                        s.qualified_count > 0 ? "text-orange-500" : "text-muted-foreground"
-                      }`}
-                    >
-                      {s.qualified_count}
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
+                      載入中…
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">{s.rarity_bonus.toLocaleString()}</TableCell>
-                    <TableCell className="text-right tabular-nums">{s.pms_order_count}</TableCell>
-                    <TableCell className="text-right tabular-nums">{(s.commission_rate * 100).toFixed(1)}%</TableCell>
-                    <TableCell className="text-right tabular-nums">{s.kol_commission.toLocaleString()}</TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {showSalary && s.is_scout_team_member ? s.base_salary.toLocaleString() : "—"}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {showSalary && s.is_scout_team_member ? s.team_bonus.toLocaleString() : "—"}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums font-semibold">{s.total.toLocaleString()}</TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
+                ) : stats.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
+                      尚無資料
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  stats.map((s) => (
+                    <TableRow
+                      key={s.scout_id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => setSelectedScout(s)}
+                    >
+                      <TableCell className="whitespace-nowrap text-muted-foreground">{s.tier_name}</TableCell>
+                      <TableCell className="whitespace-nowrap font-medium">{s.display_name}</TableCell>
+                      <TableCell className="text-right tabular-nums">{s.cumulative_count}</TableCell>
+                      <TableCell
+                        className={`text-right tabular-nums font-semibold ${
+                          s.qualified_count > 0 ? "text-orange-500" : "text-muted-foreground"
+                        }`}
+                      >
+                        {s.qualified_count}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">{s.rarity_bonus.toLocaleString()}</TableCell>
+                      <TableCell className="text-right tabular-nums">{s.pms_order_count}</TableCell>
+                      <TableCell className="text-right tabular-nums">{(s.commission_rate * 100).toFixed(1)}%</TableCell>
+                      <TableCell className="text-right tabular-nums">{s.kol_commission.toLocaleString()}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {showSalary && s.is_scout_team_member ? s.base_salary.toLocaleString() : "—"}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {showSalary && s.is_scout_team_member ? s.team_bonus.toLocaleString() : "—"}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums font-semibold">
+                        {s.total.toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
 
-      <Sheet open={!!selectedScout} onOpenChange={(open) => !open && setSelectedScout(null)}>
-        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
-          {selectedScout && (
-            <>
-              <SheetHeader>
-                <SheetTitle>
-                  {selectedScout.display_name} — {periodLabel(period)}業績明細
-                </SheetTitle>
-              </SheetHeader>
+        <Sheet open={!!selectedScout} onOpenChange={(open) => !open && setSelectedScout(null)}>
+          <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+            {selectedScout && (
+              <>
+                <SheetHeader>
+                  <SheetTitle>
+                    {selectedScout.display_name} — {periodLabel(period)}業績明細
+                  </SheetTitle>
+                </SheetHeader>
 
-              <div className="mt-6 space-y-6">
-                <section>
-                  <h3 className="text-sm font-semibold mb-2">本期符合資格 KOL 清單</h3>
-                  <div className="overflow-x-auto border rounded-md">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>KOL名稱</TableHead>
-                          <TableHead>稀有度</TableHead>
-                          <TableHead>入住日期</TableHead>
-                          <TableHead className="text-right">單筆獎金</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {selectedScout.qualifiedKols.length === 0 ? (
+                <div className="mt-6 space-y-6">
+                  <section>
+                    <h3 className="text-sm font-semibold mb-2">本期符合資格 KOL 清單</h3>
+                    <div className="overflow-x-auto border rounded-md">
+                      <Table>
+                        <TableHeader>
                           <TableRow>
-                            <TableCell colSpan={4} className="text-center text-muted-foreground py-4">
-                              無資料
-                            </TableCell>
+                            <TableHead>KOL名稱</TableHead>
+                            <TableHead>稀有度</TableHead>
+                            <TableHead>入住日期</TableHead>
+                            <TableHead className="text-right">單筆獎金</TableHead>
                           </TableRow>
-                        ) : (
-                          selectedScout.qualifiedKols.map((k, i) => (
-                            <TableRow key={i}>
-                              <TableCell className="whitespace-nowrap">{k.name}</TableCell>
-                              <TableCell>
-                                {DETAIL_RARITIES.includes(k.rarity as (typeof DETAIL_RARITIES)[number])
-                                  ? k.rarity
-                                  : "—"}
+                        </TableHeader>
+                        <TableBody>
+                          {selectedScout.qualifiedKols.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={4} className="text-center text-muted-foreground py-4">
+                                無資料
                               </TableCell>
-                              <TableCell className="whitespace-nowrap">{k.check_in_date ?? "—"}</TableCell>
-                              <TableCell className="text-right tabular-nums">{k.bonus.toLocaleString()}</TableCell>
                             </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                  <div className="mt-2 text-right text-sm">
-                    小計：
-                    <span className="font-semibold tabular-nums ml-1">
-                      {selectedScout.qualifiedKols.reduce((s, k) => s + k.bonus, 0).toLocaleString()}
-                    </span>
-                  </div>
-                </section>
+                          ) : (
+                            selectedScout.qualifiedKols.map((k, i) => (
+                              <TableRow key={i}>
+                                <TableCell className="whitespace-nowrap">{k.name}</TableCell>
+                                <TableCell>
+                                  {DETAIL_RARITIES.includes(k.rarity as (typeof DETAIL_RARITIES)[number])
+                                    ? k.rarity
+                                    : "—"}
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap">{k.check_in_date ?? "—"}</TableCell>
+                                <TableCell className="text-right tabular-nums">{k.bonus.toLocaleString()}</TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    <div className="mt-2 text-right text-sm">
+                      小計：
+                      <span className="font-semibold tabular-nums ml-1">
+                        {selectedScout.qualifiedKols.reduce((s, k) => s + k.bonus, 0).toLocaleString()}
+                      </span>
+                    </div>
+                  </section>
 
-                <section>
-                  <h3 className="text-sm font-semibold mb-2">KOL分潤訂單清單</h3>
-                  <div className="overflow-x-auto border rounded-md">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>館別</TableHead>
-                          <TableHead>折扣代碼</TableHead>
-                          <TableHead>KOL名稱</TableHead>
-                          <TableHead>訂單編號</TableHead>
-                          <TableHead className="whitespace-nowrap">訂購時間</TableHead>
-                          <TableHead className="text-right">訂單金額</TableHead>
-                          <TableHead className="text-right">分潤金額</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {selectedScout.orderItems.length === 0 ? (
+                  <section>
+                    <h3 className="text-sm font-semibold mb-2">KOL分潤訂單清單</h3>
+                    <div className="overflow-x-auto border rounded-md">
+                      <Table>
+                        <TableHeader>
                           <TableRow>
-                            <TableCell colSpan={7} className="text-center text-muted-foreground py-4">
-                              無資料
-                            </TableCell>
+                            <TableHead>館別</TableHead>
+                            <TableHead>折扣代碼</TableHead>
+                            <TableHead>KOL名稱</TableHead>
+                            <TableHead>訂單編號</TableHead>
+                            <TableHead className="whitespace-nowrap">訂購時間</TableHead>
+                            <TableHead className="text-right">訂單金額</TableHead>
+                            <TableHead className="text-right">分潤金額</TableHead>
                           </TableRow>
-                        ) : (
-                          selectedScout.orderItems.map((o, i) => (
-                            <TableRow key={i}>
-                              <TableCell className="whitespace-nowrap">{o.venue_name || "—"}</TableCell>
-                              <TableCell className="whitespace-nowrap font-mono text-xs">{o.discount_code || "—"}</TableCell>
-                              <TableCell className="whitespace-nowrap">{o.kol_name || "—"}</TableCell>
-                              <TableCell className="whitespace-nowrap">{o.order_number || "—"}</TableCell>
-                              <TableCell className="whitespace-nowrap tabular-nums">
-                                {o.created_at
-                                  ? new Date(o.created_at).toLocaleString("zh-TW", {
-                                      year: "numeric",
-                                      month: "2-digit",
-                                      day: "2-digit",
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    })
-                                  : "—"}
+                        </TableHeader>
+                        <TableBody>
+                          {selectedScout.orderItems.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={7} className="text-center text-muted-foreground py-4">
+                                無資料
                               </TableCell>
-                              <TableCell className="text-right tabular-nums">
-                                {o.final_price.toLocaleString()}
-                              </TableCell>
-                              <TableCell className="text-right tabular-nums">{o.commission.toLocaleString()}</TableCell>
                             </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                  <div className="mt-2 text-right text-sm">
-                    小計：
-                    <span className="font-semibold tabular-nums ml-1">
-                      {selectedScout.orderItems.reduce((s, o) => s + o.commission, 0).toLocaleString()}
-                    </span>
-                  </div>
-                </section>
+                          ) : (
+                            selectedScout.orderItems.map((o, i) => (
+                              <TableRow key={i}>
+                                <TableCell className="whitespace-nowrap">{o.venue_name || "—"}</TableCell>
+                                <TableCell className="whitespace-nowrap font-mono text-xs">
+                                  {o.discount_code || "—"}
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap">{o.kol_name || "—"}</TableCell>
+                                <TableCell className="whitespace-nowrap">{o.order_number || "—"}</TableCell>
+                                <TableCell className="whitespace-nowrap tabular-nums">
+                                  {o.created_at
+                                    ? new Date(o.created_at).toLocaleString("zh-TW", {
+                                        year: "numeric",
+                                        month: "2-digit",
+                                        day: "2-digit",
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      })
+                                    : "—"}
+                                </TableCell>
+                                <TableCell className="text-right tabular-nums">
+                                  {o.final_price.toLocaleString()}
+                                </TableCell>
+                                <TableCell className="text-right tabular-nums">
+                                  {o.commission.toLocaleString()}
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    <div className="mt-2 text-right text-sm">
+                      小計：
+                      <span className="font-semibold tabular-nums ml-1">
+                        {selectedScout.orderItems.reduce((s, o) => s + o.commission, 0).toLocaleString()}
+                      </span>
+                    </div>
+                  </section>
 
-                <section>
-                  <h3 className="text-sm font-semibold mb-2">底薪達標明細</h3>
-                  {!showSalary ? (
-                    <div className="text-sm text-muted-foreground border rounded-md p-3">
-                      底薪於每月10日隨上期結算發放（請改選N月10日，才會顯示明細資訊）
-                    </div>
-                  ) : (
-                    <div className="border rounded-md p-3 space-y-3 text-sm">
-                      <div>
-                        <div className="font-medium mb-1">各場域個人目標</div>
-                        {selectedScout.targets.length === 0 ? (
-                          <div className="text-muted-foreground">本月未設定目標</div>
-                        ) : (
-                          <ul className="space-y-1">
-                            {selectedScout.targets.map((t, i) => (
-                              <li key={i} className="flex justify-between">
-                                <span>{t.venue_name}</span>
-                                <span className="tabular-nums">{t.personal_min} 件</span>
-                              </li>
-                            ))}
-                          </ul>
+                  <section>
+                    <h3 className="text-sm font-semibold mb-2">底薪達標明細</h3>
+                    {!showSalary ? (
+                      <div className="text-sm text-muted-foreground border rounded-md p-3">
+                        底薪於每月10日隨上期結算發放（請改選N月10日，才會顯示明細資訊）
+                      </div>
+                    ) : (
+                      <div className="border rounded-md p-3 space-y-3 text-sm">
+                        <div>
+                          <div className="font-medium mb-1">各場域個人目標</div>
+                          {selectedScout.targets.length === 0 ? (
+                            <div className="text-muted-foreground">本月未設定目標</div>
+                          ) : (
+                            <ul className="space-y-1">
+                              {selectedScout.targets.map((t, i) => (
+                                <li key={i} className="flex justify-between">
+                                  <span>{t.venue_name}</span>
+                                  <span className="tabular-nums">{t.personal_min} 件</span>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                        <div className="flex justify-between border-t pt-2">
+                          <span>合計需達件數</span>
+                          <span className="tabular-nums font-semibold">{selectedScout.total_personal_min} 件</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>當月實際達成件數</span>
+                          <span className="tabular-nums font-semibold">{selectedScout.monthly_success_count} 件</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>達標狀態</span>
+                          <span
+                            className={`font-semibold ${
+                              selectedScout.individual_achieved ? "text-green-600" : "text-orange-500"
+                            }`}
+                          >
+                            {selectedScout.individual_achieved ? "✓ 已達標" : "✗ 未達標"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between border-t pt-2">
+                          <span>底薪金額</span>
+                          <span className="tabular-nums font-semibold">
+                            NT$ {(selectedScout.is_scout_team_member ? selectedScout.base_salary : 0).toLocaleString()}
+                          </span>
+                        </div>
+                        {!selectedScout.is_scout_team_member && (
+                          <div className="text-xs text-muted-foreground">（非星探團隊成員，不發放底薪）</div>
                         )}
                       </div>
-                      <div className="flex justify-between border-t pt-2">
-                        <span>合計需達件數</span>
-                        <span className="tabular-nums font-semibold">{selectedScout.total_personal_min} 件</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>當月實際達成件數</span>
-                        <span className="tabular-nums font-semibold">{selectedScout.monthly_success_count} 件</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>達標狀態</span>
-                        <span
-                          className={`font-semibold ${
-                            selectedScout.individual_achieved ? "text-green-600" : "text-orange-500"
-                          }`}
-                        >
-                          {selectedScout.individual_achieved ? "✓ 已達標" : "✗ 未達標"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between border-t pt-2">
-                        <span>底薪金額</span>
-                        <span className="tabular-nums font-semibold">
-                          NT$ {(selectedScout.is_scout_team_member ? selectedScout.base_salary : 0).toLocaleString()}
-                        </span>
-                      </div>
-                      {!selectedScout.is_scout_team_member && (
-                        <div className="text-xs text-muted-foreground">（非星探團隊成員，不發放底薪）</div>
-                      )}
-                    </div>
-                  )}
-                </section>
-              </div>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
-    </Card>
-    <div className="mt-3 px-1 text-xs text-muted-foreground space-y-1">
-      <div>「累積邀約」的計算方式 = 累積資格打勾（符合資格）</div>
-      <div>「符合資格」的計算方式 = 星探主管，審核並打勾</div>
-      <div>「KOL分潤訂單」的計算方式 = 匹配 admin/orders 訂單列表的折扣代碼</div>
-    </div>
+                    )}
+                  </section>
+                </div>
+              </>
+            )}
+          </SheetContent>
+        </Sheet>
+      </Card>
+      <div className="mt-3 px-1 text-xs text-muted-foreground space-y-1">
+        <div>「累積邀約」的計算方式 = 累積資格打勾（符合資格）</div>
+        <div>「符合資格」的計算方式 = 星探主管，審核並打勾</div>
+        <div>「KOL分潤訂單」的計算方式 = 匹配 PMS民宿管理 訂單列表的折扣代碼（不包含場域管理的民宿）</div>
+      </div>
     </>
   );
 }
