@@ -55,7 +55,16 @@ function lastDayOfMonth(y: number, m: number) {
   return new Date(y, m, 0).getDate();
 }
 
+import { useTeam } from "@/components/team/TeamContext";
+
 export default function TeamCommissionStatsTab() {
+  const { roles } = useTeam();
+  const isPrivileged = roles.some((r) =>
+    ["admin", "super_admin", "hotel_admin"].includes(r as string)
+  );
+  const isScoutOnly =
+    !isPrivileged &&
+    roles.some((r) => r === "scout" || r === "scout_manager");
   const now = new Date();
   const [year, setYear] = useState<string>(String(now.getFullYear()));
   const [month, setMonth] = useState<string>(String(now.getMonth() + 1));
