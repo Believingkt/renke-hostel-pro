@@ -400,6 +400,18 @@ export default function ScoutDiscountCodesTab() {
                 onChange={(e) => setFScoutRate(e.target.value)}
               />
             </div>
+
+            {fType === "partner" && (
+              <div className="space-y-1">
+                <Label>成交組分潤 %</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={fCloserRate}
+                  onChange={(e) => setFCloserRate(e.target.value)}
+                />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
