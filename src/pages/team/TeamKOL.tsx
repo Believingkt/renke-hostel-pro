@@ -1388,7 +1388,13 @@ function InvitationsTab({
                       </Badge>
                     )}
                   </Row>
-                  <Row label="折扣碼 / CID">{r.cid_code ?? r.short_url ?? "-"}</Row>
+                  <Row label="折扣碼 / CID">{(() => {
+                    const v = r.cid_code ?? r.short_url ?? null;
+                    if (!v) return "-";
+                    const isPmsCreated = pmsCodesSet.has(v.trim().toUpperCase());
+                    const cls = (r.cid_configured || isPmsCreated) ? "text-green-600 font-medium" : "";
+                    return <span className={cls}>{v}</span>;
+                  })()}</Row>
                   <Row label="同住夥伴">
                     <CompanionDisplay
                       companionCid={r.companion_cid ?? null}
