@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTeam } from "@/components/team/TeamContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
