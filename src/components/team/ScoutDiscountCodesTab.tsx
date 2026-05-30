@@ -159,6 +159,7 @@ export default function ScoutDiscountCodesTab() {
     setFScout(NONE);
     setFType("scout_self");
     setFScoutRate("5");
+    setFCloserRate("0");
     setDialogOpen(true);
   };
 
