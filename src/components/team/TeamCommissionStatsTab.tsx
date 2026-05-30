@@ -55,7 +55,16 @@ function lastDayOfMonth(y: number, m: number) {
   return new Date(y, m, 0).getDate();
 }
 
+import { useTeam } from "@/components/team/TeamContext";
+
 export default function TeamCommissionStatsTab() {
+  const { roles } = useTeam();
+  const isPrivileged = roles.some((r) =>
+    ["admin", "super_admin", "hotel_admin"].includes(r as string)
+  );
+  const isScoutOnly =
+    !isPrivileged &&
+    roles.some((r) => r === "scout" || r === "scout_manager");
   const now = new Date();
   const [year, setYear] = useState<string>(String(now.getFullYear()));
   const [month, setMonth] = useState<string>(String(now.getMonth() + 1));
@@ -423,6 +432,9 @@ export default function TeamCommissionStatsTab() {
       </Card>
 
       {/* 成交組業績 */}
+      {!isScoutOnly && (
+      <>
+
       <Card>
         <CardContent className="p-4 space-y-3">
           <h2 className="text-lg font-semibold">成交組業績</h2>
@@ -561,9 +573,12 @@ export default function TeamCommissionStatsTab() {
           </div>
         </CardContent>
       </Card>
+      </>
+      )}
 
       {/* 星探折扣碼業績 */}
       <Card>
+
         <CardContent className="p-4 space-y-3">
           <h2 className="text-lg font-semibold">星探折扣碼業績</h2>
           <div className="overflow-x-auto">
