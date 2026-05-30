@@ -170,6 +170,7 @@ export default function ScoutDiscountCodesTab() {
     setFScout(row.scout_id ?? NONE);
     setFType((row.commission_type as CommissionType) ?? "scout_self");
     setFScoutRate(String(((row.scout_rate ?? 0) * 100).toFixed(2)).replace(/\.?0+$/, "") || "0");
+    setFCloserRate(String(((row.closer_rate ?? 0) * 100).toFixed(2)).replace(/\.?0+$/, "") || "0");
     setDialogOpen(true);
   };
 
