@@ -202,7 +202,7 @@ export default function ScoutDiscountCodesTab() {
       closer_id: null,
       commission_type: fType,
       scout_rate: Number(fScoutRate || 0) / 100,
-      closer_rate: 0,
+      closer_rate: fType === "partner" ? Number(fCloserRate || 0) / 100 : 0,
       is_active: true,
     };
     const q = editing
