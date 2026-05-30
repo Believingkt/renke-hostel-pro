@@ -279,13 +279,13 @@ export default function ScoutDiscountCodesTab() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-6">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-6">
                       載入中…
                     </TableCell>
                   </TableRow>
                 ) : rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-6">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-6">
                       尚無資料
                     </TableCell>
                   </TableRow>
@@ -303,6 +303,7 @@ export default function ScoutDiscountCodesTab() {
                         {r.commission_type === "partner" ? "夥伴成交" : "星探自成"}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{fmtPct(r.scout_rate)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtPct(r.closer_rate)}</TableCell>
                       <TableCell className="whitespace-nowrap">{renderPmsBadge(r.discount_code)}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
