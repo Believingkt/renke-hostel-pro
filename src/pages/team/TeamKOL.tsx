@@ -1411,7 +1411,7 @@ function InvitationsTab({
                   {(r.cid_code || r.short_url) && (
                     <Row label="折扣碼設定狀態">
                       <div className="flex items-center gap-2 flex-wrap">
-                        {r.cid_configured ? (
+                        {(r.cid_configured || (r.cid_code && pmsCodesSet.has(r.cid_code.trim().toUpperCase()))) ? (
                           <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
                             已設定
                           </Badge>
