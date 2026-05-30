@@ -381,6 +381,7 @@ function InvitationsTab({
 
   const [prospectLink, setProspectLink] = useState<string | null>(null);
   const [rows, setRows] = useState<KolRow[]>([]);
+  const [pmsCodesSet, setPmsCodesSet] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
