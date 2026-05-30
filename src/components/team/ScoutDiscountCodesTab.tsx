@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTeam } from "@/components/team/TeamContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -75,6 +76,8 @@ const fmtPct = (n: number | null | undefined) =>
   n == null ? "-" : `${(Number(n) * 100).toFixed(1)}%`;
 
 export default function ScoutDiscountCodesTab() {
+  const { roles } = useTeam();
+  const canManage = ["scout_manager", "closer", "hotel_admin", "admin", "super_admin"].some((r) => roles.includes(r as any));
   const [rows, setRows] = useState<ScoutCode[]>([]);
   const [scouts, setScouts] = useState<MemberOpt[]>([]);
   const [accommodations, setAccommodations] = useState<AccommodationOpt[]>([]);
@@ -257,9 +260,11 @@ export default function ScoutDiscountCodesTab() {
             <div className="text-sm text-muted-foreground">
               共 {rows.length} 筆
             </div>
-            <Button onClick={openCreate} size="sm">
-              <Plus className="h-4 w-4 mr-1" /> 新增折扣碼
-            </Button>
+            {canManage && (
+              <Button onClick={openCreate} size="sm">
+                <Plus className="h-4 w-4 mr-1" /> 新增折扣碼
+              </Button>
+            )}
           </div>
 
           <div className="overflow-x-auto">
@@ -306,18 +311,20 @@ export default function ScoutDiscountCodesTab() {
                       <TableCell className="text-right tabular-nums">{fmtPct(r.closer_rate)}</TableCell>
                       <TableCell className="whitespace-nowrap">{renderPmsBadge(r.discount_code)}</TableCell>
                       <TableCell>
-                        <div className="flex gap-1">
-                          <Button size="icon" variant="ghost" onClick={() => openEdit(r)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => setDeleteId(r.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        {canManage && (
+                          <div className="flex gap-1">
+                            <Button size="icon" variant="ghost" onClick={() => openEdit(r)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => setDeleteId(r.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))
