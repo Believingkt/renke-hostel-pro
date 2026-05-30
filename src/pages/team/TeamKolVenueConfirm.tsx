@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ExternalLink, ChevronDown, Search } from "lucide-react";
+import { ExternalLink, ChevronDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -190,7 +190,7 @@ export default function TeamKolVenueConfirm() {
       <Table className="fixed-table">
         <TableHeader>
           <TableRow>
-            <TableHead>KOL名稱</TableHead>
+            <TableHead className="w-[120px]">KOL名稱</TableHead>
             <TableHead>館別</TableHead>
             <TableHead>折扣碼 / CID</TableHead>
             <TableHead>訂單編號</TableHead>
@@ -288,13 +288,11 @@ export default function TeamKolVenueConfirm() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:flex-wrap">
-            <div className="relative flex-1 min-w-[220px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <div className="flex-1 min-w-[220px]">
               <Input
                 placeholder="搜尋 KOL 名稱 / CID / 訂單編號"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
               />
             </div>
             <Select value={venueFilter} onValueChange={setVenueFilter}>
