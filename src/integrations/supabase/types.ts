@@ -6483,7 +6483,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           is_scout_team_member: boolean
-          managed_venue: string | null
+          managed_venue: string[] | null
           scout_tier: string | null
           updated_at: string | null
           user_id: string | null
@@ -6495,7 +6495,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_scout_team_member?: boolean
-          managed_venue?: string | null
+          managed_venue?: string[] | null
           scout_tier?: string | null
           updated_at?: string | null
           user_id?: string | null
@@ -6507,7 +6507,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_scout_team_member?: boolean
-          managed_venue?: string | null
+          managed_venue?: string[] | null
           scout_tier?: string | null
           updated_at?: string | null
           user_id?: string | null
