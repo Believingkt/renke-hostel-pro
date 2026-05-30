@@ -1373,28 +1373,6 @@ function InvitationsTab({
                       "-"
                     )}
                   </Row>
-                  <Row label="館別">{r._accommodation_name ?? "-"}</Row>
-                  <Row label="入住日期">{r.check_in_date ?? "-"}</Row>
-                  <Row label="星期">{r.day_of_week ?? "-"}</Row>
-                  <Row label="邀約人">{r._scout_name ?? "-"}</Row>
-                  <Row label="累積資格">
-                    {r.kpi_qualified ? (
-                      <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
-                        符合資格
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-200">
-                        未確認
-                      </Badge>
-                    )}
-                  </Row>
-                  <Row label="折扣碼 / CID">{(() => {
-                    const v = r.cid_code ?? r.short_url ?? null;
-                    if (!v) return "-";
-                    const isPmsCreated = pmsCodesSet.has(v.trim().toUpperCase());
-                    const cls = (r.cid_configured || isPmsCreated) ? "text-green-600 font-medium" : "";
-                    return <span className={cls}>{v}</span>;
-                  })()}</Row>
                   <Row label="同住夥伴">
                     <CompanionDisplay
                       companionCid={r.companion_cid ?? null}
@@ -1406,6 +1384,30 @@ function InvitationsTab({
                       }}
                     />
                   </Row>
+                  <Row label="累積資格">
+                    {r.kpi_qualified ? (
+                      <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
+                        符合資格
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-200">
+                        未確認
+                      </Badge>
+                    )}
+                  </Row>
+                  <Row label="館別">{r._accommodation_name ?? "-"}</Row>
+                  <Row label="入住日期">{r.check_in_date ?? "-"}</Row>
+                  <Row label="星期">{r.day_of_week ?? "-"}</Row>
+                  <Row label="邀約人">{r._scout_name ?? "-"}</Row>
+                  <Row label="狀態">{renderBookingStatusBadge(r.booking_status)}</Row>
+                  <Row label="訂單編號">{r.order_number ?? "-"}</Row>
+                  <Row label="折扣碼 / CID">{(() => {
+                    const v = r.cid_code ?? r.short_url ?? null;
+                    if (!v) return "-";
+                    const isPmsCreated = pmsCodesSet.has(v.trim().toUpperCase());
+                    const cls = (r.cid_configured || isPmsCreated) ? "text-green-600 font-medium" : "";
+                    return <span className={cls}>{v}</span>;
+                  })()}</Row>
                   {(r.cid_code || r.short_url) && (
                     <Row label="折扣碼設定狀態">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -1417,6 +1419,39 @@ function InvitationsTab({
                           <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-200">
                             待設定
                           </Badge>
+                        )}
+                        {!r.cid_notified && r.cid_code && r.order_number && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={async () => {
+                              try {
+                                const { data: { session } } = await supabase.auth.getSession();
+                                const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-kol-cid-notify`, {
+                                  method: "POST",
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                    Authorization: `Bearer ${session?.access_token}`,
+                                    apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                                  },
+                                  body: JSON.stringify({ kol_profile_id: r.id }),
+                                });
+                                if (!res.ok) {
+                                  toast.error("發送失敗，請稍後再試");
+                                  return;
+                                }
+                                toast.success("通知已發送");
+                                setViewingRow((prev) => (prev ? { ...prev, cid_notified: true } : prev));
+                                setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, cid_notified: true } : x)));
+                                fetchRows();
+                              } catch (e) {
+                                console.error("[send-kol-cid-notify] error:", e);
+                                toast.error("發送失敗，請稍後再試");
+                              }
+                            }}
+                          >
+                            重新發送通知
+                          </Button>
                         )}
                       </div>
                     </Row>
@@ -1486,6 +1521,7 @@ function InvitationsTab({
                       ))}
                     </div>
                   </Row>
+                  <Row label="發布日期">{r.publish_date ?? "-"}</Row>
                   <Row label="發布連結">
                     {r.publish_url ? (
                       <a
@@ -1501,9 +1537,6 @@ function InvitationsTab({
                       "-"
                     )}
                   </Row>
-                  <Row label="發布日期">{r.publish_date ?? "-"}</Row>
-                  <Row label="訂單編號">{r.order_number ?? "-"}</Row>
-                  <Row label="狀態">{renderBookingStatusBadge(r.booking_status)}</Row>
                   <Row label="填寫日期">{r.invited_at ?? "-"}</Row>
                 </div>
               );
