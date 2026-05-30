@@ -92,6 +92,7 @@ export default function ScoutDiscountCodesTab() {
   const [fScout, setFScout] = useState<string>(NONE);
   const [fType, setFType] = useState<CommissionType>("scout_self");
   const [fScoutRate, setFScoutRate] = useState<string>("5");
+  const [fCloserRate, setFCloserRate] = useState<string>("0");
 
   const scoutMap = useMemo(
     () => new Map(scouts.map((s) => [s.id, s.display_name])),
@@ -158,6 +159,7 @@ export default function ScoutDiscountCodesTab() {
     setFScout(NONE);
     setFType("scout_self");
     setFScoutRate("5");
+    setFCloserRate("0");
     setDialogOpen(true);
   };
 
@@ -168,6 +170,7 @@ export default function ScoutDiscountCodesTab() {
     setFScout(row.scout_id ?? NONE);
     setFType((row.commission_type as CommissionType) ?? "scout_self");
     setFScoutRate(String(((row.scout_rate ?? 0) * 100).toFixed(2)).replace(/\.?0+$/, "") || "0");
+    setFCloserRate(String(((row.closer_rate ?? 0) * 100).toFixed(2)).replace(/\.?0+$/, "") || "0");
     setDialogOpen(true);
   };
 
@@ -175,8 +178,10 @@ export default function ScoutDiscountCodesTab() {
     setFType(v);
     if (v === "scout_self") {
       setFScoutRate("5");
+      setFCloserRate("0");
     } else {
       setFScoutRate("2");
+      setFCloserRate("3");
     }
   };
 
@@ -197,7 +202,7 @@ export default function ScoutDiscountCodesTab() {
       closer_id: null,
       commission_type: fType,
       scout_rate: Number(fScoutRate || 0) / 100,
-      closer_rate: 0,
+      closer_rate: fType === "partner" ? Number(fCloserRate || 0) / 100 : 0,
       is_active: true,
     };
     const q = editing
@@ -266,6 +271,7 @@ export default function ScoutDiscountCodesTab() {
                   <TableHead>星探</TableHead>
                   <TableHead>成交模式</TableHead>
                   <TableHead className="text-right">星探分潤%</TableHead>
+                  <TableHead className="text-right">成交組分潤%</TableHead>
                   <TableHead>PMS匹配</TableHead>
                   <TableHead className="w-28">操作</TableHead>
                 </TableRow>
@@ -273,13 +279,13 @@ export default function ScoutDiscountCodesTab() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-6">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-6">
                       載入中…
                     </TableCell>
                   </TableRow>
                 ) : rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-6">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-6">
                       尚無資料
                     </TableCell>
                   </TableRow>
@@ -297,6 +303,7 @@ export default function ScoutDiscountCodesTab() {
                         {r.commission_type === "partner" ? "夥伴成交" : "星探自成"}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{fmtPct(r.scout_rate)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtPct(r.closer_rate)}</TableCell>
                       <TableCell className="whitespace-nowrap">{renderPmsBadge(r.discount_code)}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
@@ -393,6 +400,18 @@ export default function ScoutDiscountCodesTab() {
                 onChange={(e) => setFScoutRate(e.target.value)}
               />
             </div>
+
+            {fType === "partner" && (
+              <div className="space-y-1">
+                <Label>成交組分潤 %</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={fCloserRate}
+                  onChange={(e) => setFCloserRate(e.target.value)}
+                />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
