@@ -57,27 +57,43 @@ export default function TeamKolVenueConfirm() {
 
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<Row[]>([]);
+  const [pmsCodes, setPmsCodes] = useState<Set<string>>(new Set());
   const [linkDialog, setLinkDialog] = useState<{ id: string; value: string } | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // 篩選 state
+  const [search, setSearch] = useState("");
+  const [venueFilter, setVenueFilter] = useState("all");
+  const [yearFilter, setYearFilter] = useState("all");
+  const [monthFilter, setMonthFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "created" | "missing">("all");
+
   const fetchRows = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("kol_profiles")
-      .select(
-        "id, name, venue_name, cid_code, order_number, check_in_date, kol_direct_ticket_link, cid_configured",
-      )
-      .not("cid_code", "is", null)
-      .not("order_number", "is", null)
-      .neq("cid_code", "")
-      .neq("order_number", "")
-      .order("check_in_date", { ascending: false });
+    const [{ data, error }, { data: pms }] = await Promise.all([
+      supabase
+        .from("kol_profiles")
+        .select(
+          "id, name, venue_name, cid_code, order_number, check_in_date, kol_direct_ticket_link, cid_configured",
+        )
+        .not("cid_code", "is", null)
+        .not("order_number", "is", null)
+        .neq("cid_code", "")
+        .neq("order_number", "")
+        .order("check_in_date", { ascending: false }),
+      supabase.from("discount_codes").select("code"),
+    ]);
     if (error) {
       console.error(error);
       toast.error("載入失敗");
     } else {
       setRows((data ?? []) as Row[]);
     }
+    const set = new Set<string>();
+    (pms ?? []).forEach((p: any) => {
+      if (p.code) set.add(String(p.code).trim().toUpperCase());
+    });
+    setPmsCodes(set);
     setLoading(false);
   };
 
@@ -85,8 +101,50 @@ export default function TeamKolVenueConfirm() {
     if (allowed) fetchRows();
   }, [allowed]);
 
-  const pending = useMemo(() => rows.filter((r) => !r.cid_configured), [rows]);
-  const done = useMemo(() => rows.filter((r) => r.cid_configured), [rows]);
+  const isPmsCreated = (cid: string | null) =>
+    !!cid && pmsCodes.has(cid.trim().toUpperCase());
+
+  const venueOptions = useMemo(
+    () =>
+      Array.from(new Set(rows.map((r) => r.venue_name).filter(Boolean))) as string[],
+    [rows],
+  );
+  const yearOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          rows
+            .map((r) => (r.check_in_date ? r.check_in_date.slice(0, 4) : null))
+            .filter(Boolean) as string[],
+        ),
+      ).sort((a, b) => b.localeCompare(a)),
+    [rows],
+  );
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (q) {
+        const hay = `${r.name ?? ""} ${r.cid_code ?? ""} ${r.order_number ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (venueFilter !== "all" && r.venue_name !== venueFilter) return false;
+      if (yearFilter !== "all" && r.check_in_date?.slice(0, 4) !== yearFilter) return false;
+      if (monthFilter !== "all") {
+        const m = r.check_in_date?.slice(5, 7);
+        if (m !== monthFilter) return false;
+      }
+      if (statusFilter !== "all") {
+        const created = isPmsCreated(r.cid_code);
+        if (statusFilter === "created" && !created) return false;
+        if (statusFilter === "missing" && created) return false;
+      }
+      return true;
+    });
+  }, [rows, search, venueFilter, yearFilter, monthFilter, statusFilter, pmsCodes]);
+
+  const pending = useMemo(() => filtered.filter((r) => !r.cid_configured), [filtered]);
+  const done = useMemo(() => filtered.filter((r) => r.cid_configured), [filtered]);
 
   if (!allowed) return <Navigate to="/team" replace />;
 
