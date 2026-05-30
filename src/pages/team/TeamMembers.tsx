@@ -75,7 +75,7 @@ interface MemberRow {
   email: string;
   is_active: boolean;
   roles: TeamRole[];
-  managed_venue: string | null;
+  managed_venue: string[] | null;
   is_scout_team_member: boolean;
 }
 
@@ -183,7 +183,7 @@ export default function TeamMembers() {
       email: p.user_id ? (emailMap.get(p.user_id) ?? "") : "",
       is_active: p.is_active ?? true,
       roles: p.user_id ? Array.from(rolesMap.get(p.user_id) ?? []) : [],
-      managed_venue: (p as { managed_venue?: string | null }).managed_venue ?? null,
+      managed_venue: (p as { managed_venue?: string[] | null }).managed_venue ?? null,
       is_scout_team_member: (p as { is_scout_team_member?: boolean | null }).is_scout_team_member ?? false,
     }));
 
@@ -297,9 +297,9 @@ export default function TeamMembers() {
             {
               user_id: targetUserId,
               display_name: inviteName.trim(),
-              managed_venue: wantsVenueManager ? (inviteVenue || null) : null,
+              managed_venue: wantsVenueManager && inviteVenue ? [inviteVenue] : null,
               is_scout_team_member: isScoutLike ? inviteScoutTeam : false,
-            },
+            } as never,
             { onConflict: "user_id" },
           );
         if (profileErr) throw profileErr;
@@ -367,7 +367,7 @@ export default function TeamMembers() {
     setEditName(m.display_name);
     setEditRoles(m.roles);
     setEditActive(m.is_active);
-    setEditVenue(m.managed_venue ?? "");
+    setEditVenue(m.managed_venue?.[0] ?? "");
     setEditScoutTeam(m.is_scout_team_member);
   };
 
@@ -393,7 +393,7 @@ export default function TeamMembers() {
         .update({
           display_name: editName.trim(),
           is_active: editActive,
-          managed_venue: wantsVenueManager ? (editVenue || null) : null,
+          managed_venue: wantsVenueManager && editVenue ? [editVenue] : null,
           is_scout_team_member: isScoutLike ? editScoutTeam : false,
         })
         .eq("id", editTarget.id);
@@ -716,8 +716,8 @@ export default function TeamMembers() {
                             </Badge>
                           ))
                         )}
-                        {displayRoles(m).includes("venue_manager" as TeamRole) && m.managed_venue && (
-                          <span className="text-xs text-muted-foreground ml-1">{m.managed_venue}</span>
+                        {displayRoles(m).includes("venue_manager" as TeamRole) && m.managed_venue && m.managed_venue.length > 0 && (
+                          <span className="text-xs text-muted-foreground ml-1">{m.managed_venue.join(", ")}</span>
                         )}
                         {(displayRoles(m).includes("scout") || displayRoles(m).includes("scout_manager")) && m.is_scout_team_member && (
                           <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">團隊</Badge>
