@@ -2,12 +2,19 @@ import { useEffect, useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ExternalLink, ChevronDown } from "lucide-react";
+import { ExternalLink, ChevronDown, Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -50,27 +57,43 @@ export default function TeamKolVenueConfirm() {
 
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<Row[]>([]);
+  const [pmsCodes, setPmsCodes] = useState<Set<string>>(new Set());
   const [linkDialog, setLinkDialog] = useState<{ id: string; value: string } | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // 篩選 state
+  const [search, setSearch] = useState("");
+  const [venueFilter, setVenueFilter] = useState("all");
+  const [yearFilter, setYearFilter] = useState("all");
+  const [monthFilter, setMonthFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "created" | "missing">("all");
+
   const fetchRows = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("kol_profiles")
-      .select(
-        "id, name, venue_name, cid_code, order_number, check_in_date, kol_direct_ticket_link, cid_configured",
-      )
-      .not("cid_code", "is", null)
-      .not("order_number", "is", null)
-      .neq("cid_code", "")
-      .neq("order_number", "")
-      .order("check_in_date", { ascending: false });
+    const [{ data, error }, { data: pms }] = await Promise.all([
+      supabase
+        .from("kol_profiles")
+        .select(
+          "id, name, venue_name, cid_code, order_number, check_in_date, kol_direct_ticket_link, cid_configured",
+        )
+        .not("cid_code", "is", null)
+        .not("order_number", "is", null)
+        .neq("cid_code", "")
+        .neq("order_number", "")
+        .order("check_in_date", { ascending: false }),
+      supabase.from("discount_codes").select("code"),
+    ]);
     if (error) {
       console.error(error);
       toast.error("載入失敗");
     } else {
       setRows((data ?? []) as Row[]);
     }
+    const set = new Set<string>();
+    (pms ?? []).forEach((p: any) => {
+      if (p.code) set.add(String(p.code).trim().toUpperCase());
+    });
+    setPmsCodes(set);
     setLoading(false);
   };
 
@@ -78,8 +101,50 @@ export default function TeamKolVenueConfirm() {
     if (allowed) fetchRows();
   }, [allowed]);
 
-  const pending = useMemo(() => rows.filter((r) => !r.cid_configured), [rows]);
-  const done = useMemo(() => rows.filter((r) => r.cid_configured), [rows]);
+  const isPmsCreated = (cid: string | null) =>
+    !!cid && pmsCodes.has(cid.trim().toUpperCase());
+
+  const venueOptions = useMemo(
+    () =>
+      Array.from(new Set(rows.map((r) => r.venue_name).filter(Boolean))) as string[],
+    [rows],
+  );
+  const yearOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          rows
+            .map((r) => (r.check_in_date ? r.check_in_date.slice(0, 4) : null))
+            .filter(Boolean) as string[],
+        ),
+      ).sort((a, b) => b.localeCompare(a)),
+    [rows],
+  );
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (q) {
+        const hay = `${r.name ?? ""} ${r.cid_code ?? ""} ${r.order_number ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (venueFilter !== "all" && r.venue_name !== venueFilter) return false;
+      if (yearFilter !== "all" && r.check_in_date?.slice(0, 4) !== yearFilter) return false;
+      if (monthFilter !== "all") {
+        const m = r.check_in_date?.slice(5, 7);
+        if (m !== monthFilter) return false;
+      }
+      if (statusFilter !== "all") {
+        const created = isPmsCreated(r.cid_code);
+        if (statusFilter === "created" && !created) return false;
+        if (statusFilter === "missing" && created) return false;
+      }
+      return true;
+    });
+  }, [rows, search, venueFilter, yearFilter, monthFilter, statusFilter, pmsCodes]);
+
+  const pending = useMemo(() => filtered.filter((r) => !r.cid_configured), [filtered]);
+  const done = useMemo(() => filtered.filter((r) => r.cid_configured), [filtered]);
 
   if (!allowed) return <Navigate to="/team" replace />;
 
@@ -214,13 +279,60 @@ export default function TeamKolVenueConfirm() {
             請確認以下 KOL 折扣碼已在各平台設定完成
           </p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:flex-wrap">
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                placeholder="搜尋 KOL 名稱 / CID / 訂單編號"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Select value={venueFilter} onValueChange={setVenueFilter}>
+              <SelectTrigger className="md:w-[150px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部館別</SelectItem>
+                {venueOptions.map((v) => (
+                  <SelectItem key={v} value={v}>{v}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={yearFilter} onValueChange={setYearFilter}>
+              <SelectTrigger className="md:w-[130px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部年份</SelectItem>
+                {yearOptions.map((y) => (
+                  <SelectItem key={y} value={y}>{y}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={monthFilter} onValueChange={setMonthFilter}>
+              <SelectTrigger className="md:w-[130px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部月份</SelectItem>
+                {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0")).map((m) => (
+                  <SelectItem key={m} value={m}>{Number(m)} 月</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+              <SelectTrigger className="md:w-[140px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部狀態</SelectItem>
+                <SelectItem value="created">已建立</SelectItem>
+                <SelectItem value="missing">未建立</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           {loading ? (
             <p className="text-sm text-muted-foreground py-6 text-center">載入中...</p>
           ) : (
             renderTable(pending, "pending")
           )}
         </CardContent>
+
       </Card>
 
       <Card>
