@@ -1124,7 +1124,10 @@ function InvitationsTab({
                   const contractStatus = computeContractProgress(r.publish_url, r.publish_date, r.contract_file_url);
                   const codeOrCidValue = r.cid_code ?? r.short_url ?? null;
                   const codeOrCid = codeOrCidValue ?? "-";
-                  const codeOrCidClass = codeOrCidValue && r.cid_configured
+                  const isPmsCreated = codeOrCidValue
+                    ? pmsCodesSet.has(codeOrCidValue.trim().toUpperCase())
+                    : false;
+                  const codeOrCidClass = codeOrCidValue && (r.cid_configured || isPmsCreated)
                     ? "text-green-600 font-medium"
                     : "";
                   return (
