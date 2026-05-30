@@ -432,6 +432,9 @@ export default function TeamCommissionStatsTab() {
       </Card>
 
       {/* 成交組業績 */}
+      {!isScoutOnly && (
+      <>
+
       <Card>
         <CardContent className="p-4 space-y-3">
           <h2 className="text-lg font-semibold">成交組業績</h2>
