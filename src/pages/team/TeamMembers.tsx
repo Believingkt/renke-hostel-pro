@@ -123,7 +123,7 @@ export default function TeamMembers() {
   const [editName, setEditName] = useState("");
   const [editRoles, setEditRoles] = useState<TeamRole[]>([]);
   const [editActive, setEditActive] = useState(true);
-  const [editVenue, setEditVenue] = useState<string>("");
+  const [editVenues, setEditVenues] = useState<string[]>([]);
   const [editScoutTeam, setEditScoutTeam] = useState(false);
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
@@ -367,7 +367,7 @@ export default function TeamMembers() {
     setEditName(m.display_name);
     setEditRoles(m.roles);
     setEditActive(m.is_active);
-    setEditVenue(m.managed_venue?.[0] ?? "");
+    setEditVenues(m.managed_venue ?? []);
     setEditScoutTeam(m.is_scout_team_member);
   };
 
@@ -393,7 +393,7 @@ export default function TeamMembers() {
         .update({
           display_name: editName.trim(),
           is_active: editActive,
-          managed_venue: wantsVenueManager && editVenue ? [editVenue] : null,
+          managed_venue: wantsVenueManager && editVenues.length > 0 ? editVenues : null,
           is_scout_team_member: isScoutLike ? editScoutTeam : false,
         })
         .eq("id", editTarget.id);
@@ -789,17 +789,33 @@ export default function TeamMembers() {
                   </div>
                   {editRoles.includes("venue_manager" as TeamRole) && (
                     <div className="space-y-2 pt-2">
-                      <Label>負責場域</Label>
-                      <Select value={editVenue} onValueChange={setEditVenue}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="選擇負責場域" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {venues.map((v) => (
-                            <SelectItem key={v.id} value={v.name}>{v.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Label>負責場域（可多選）</Label>
+                      <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto border rounded-md p-2">
+                        {venues.map((v) => {
+                          const checked = editVenues.includes(v.name);
+                          return (
+                            <label
+                              key={v.id}
+                              className="flex items-center gap-2 border rounded-md px-2 py-1.5 cursor-pointer hover:bg-muted/50"
+                            >
+                              <Checkbox
+                                checked={checked}
+                                onCheckedChange={() =>
+                                  setEditVenues((prev) =>
+                                    prev.includes(v.name)
+                                      ? prev.filter((n) => n !== v.name)
+                                      : [...prev, v.name],
+                                  )
+                                }
+                              />
+                              <span className="text-sm">{v.name}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                      {editVenues.length === 0 && (
+                        <p className="text-xs text-muted-foreground">尚未選擇，儲存後將清空負責場域</p>
+                      )}
                     </div>
                   )}
                   {(editRoles.includes("scout") || editRoles.includes("scout_manager")) && (
