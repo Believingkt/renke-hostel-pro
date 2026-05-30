@@ -260,9 +260,11 @@ export default function ScoutDiscountCodesTab() {
             <div className="text-sm text-muted-foreground">
               共 {rows.length} 筆
             </div>
-            <Button onClick={openCreate} size="sm">
-              <Plus className="h-4 w-4 mr-1" /> 新增折扣碼
-            </Button>
+            {canManage && (
+              <Button onClick={openCreate} size="sm">
+                <Plus className="h-4 w-4 mr-1" /> 新增折扣碼
+              </Button>
+            )}
           </div>
 
           <div className="overflow-x-auto">
