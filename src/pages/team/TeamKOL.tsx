@@ -4456,6 +4456,7 @@ function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
   const [rows, setRows] = useState<PmsAccomRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
+  const [viewOpen, setViewOpen] = useState(false);
   const [editName, setEditName] = useState("");
   const [settings, setSettings] = useState<VenueSettingsRow>(EMPTY_SETTINGS(""));
   const [loadingSettings, setLoadingSettings] = useState(false);
@@ -4489,11 +4490,9 @@ function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
     load();
   }, [load]);
 
-  const openEdit = async (name: string) => {
-    setEditName(name);
-    setSettings(EMPTY_SETTINGS(name));
-    setEditOpen(true);
+  const loadSettings = async (name: string) => {
     setLoadingSettings(true);
+    setSettings(EMPTY_SETTINGS(name));
     const { data, error } = await supabase
       .from("kol_venue_settings" as any)
       .select("*")
@@ -4502,6 +4501,23 @@ function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
     if (error && error.code !== "PGRST116") toast.error(error.message);
     if (data) setSettings(data as unknown as VenueSettingsRow);
     setLoadingSettings(false);
+  };
+
+  const openEdit = async (name: string) => {
+    setEditName(name);
+    setEditOpen(true);
+    await loadSettings(name);
+  };
+
+  const openView = async (name: string) => {
+    setEditName(name);
+    setViewOpen(true);
+    await loadSettings(name);
+  };
+
+  const switchToEdit = () => {
+    setViewOpen(false);
+    setEditOpen(true);
   };
 
   const toggleWeekday = (field: "allowed_weekdays" | "special_weekdays", day: number) => {
