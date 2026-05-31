@@ -4658,6 +4658,95 @@ function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
           </Table>
         )}
 
+        <Sheet open={viewOpen} onOpenChange={setViewOpen}>
+          <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+            <SheetHeader>
+              <div className="flex items-center justify-between gap-2 pr-8">
+                <SheetTitle>場域明細 — {editName}</SheetTitle>
+                {isManager && (
+                  <Button size="sm" onClick={switchToEdit}>
+                    <Pencil className="mr-1 h-4 w-4" />
+                    編輯
+                  </Button>
+                )}
+              </div>
+            </SheetHeader>
+
+            <div className="space-y-6 py-4">
+              {(() => {
+                const dash = "—";
+                const showText = (v: any) => (v === null || v === undefined || v === "" ? dash : String(v));
+                const showBool = (v: boolean, on = "啟用", off = "停用") => (v ? `✓ ${on}` : `✗ ${off}`);
+                const showDays = (arr: number[] | null | undefined) =>
+                  arr && arr.length > 0
+                    ? arr
+                        .slice()
+                        .sort((a, b) => a - b)
+                        .map((i) => WEEKDAYS[i])
+                        .join("、")
+                    : dash;
+                const Item = ({ label, value }: { label: string; value: React.ReactNode }) => (
+                  <div className="space-y-1">
+                    <div className="text-xs text-muted-foreground">{label}</div>
+                    <div className="text-sm">{value}</div>
+                  </div>
+                );
+                return (
+                  <>
+                    <section className="space-y-3">
+                      <h4 className="font-semibold text-sm">基本資訊</h4>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                        <Item label="民宿名稱" value={showText(editName)} />
+                        <Item label="設定狀態" value={showBool(settings.is_active)} />
+                      </div>
+                    </section>
+                    <section className="space-y-3">
+                      <h4 className="font-semibold text-sm">邀約規則設定</h4>
+                      {loadingSettings ? (
+                        <p className="text-xs text-muted-foreground">載入中…</p>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                          <Item label="星鏈場域" value={showBool(settings.is_starlink, "是", "否")} />
+                          <Item label="個人目標" value={showText(settings.personal_target)} />
+                          <Item label="群組名稱" value={showText(settings.group_name)} />
+                          <Item label="計算方式" value={showText(settings.calc_type)} />
+                          <Item label="每日上限" value={showText(settings.daily_limit)} />
+                          <Item label="每月上限" value={showText(settings.monthly_limit)} />
+                          <Item label="合作開始日" value={showText(settings.collab_start)} />
+                          <Item label="合作結束日" value={showText(settings.collab_end)} />
+                          <div className="col-span-2">
+                            <Item label="可邀星期" value={showDays(settings.allowed_weekdays)} />
+                          </div>
+                          <Item label="特殊期間開始" value={showText(settings.special_start)} />
+                          <Item label="特殊期間結束" value={showText(settings.special_end)} />
+                          <Item label="特殊期間上限" value={showText(settings.special_limit)} />
+                          <div className="col-span-2">
+                            <Item label="特殊期間可邀星期" value={showDays(settings.special_weekdays)} />
+                          </div>
+                          <div className="col-span-2">
+                            <Item label="連結規則" value={showText(settings.link_rule)} />
+                          </div>
+                          <div className="col-span-2">
+                            <Item label="訂單編號規則" value={showText(settings.order_number_rule)} />
+                          </div>
+                          <Item label="聯絡 Email" value={showText(settings.contact_email)} />
+                          <Item label="有外部訂房平台" value={showBool(settings.has_external_platform, "是", "否")} />
+                        </div>
+                      )}
+                    </section>
+                  </>
+                );
+              })()}
+            </div>
+
+            <SheetFooter>
+              <Button variant="outline" onClick={() => setViewOpen(false)}>
+                關閉
+              </Button>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
+
         <Dialog open={editOpen} onOpenChange={setEditOpen}>
           <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
