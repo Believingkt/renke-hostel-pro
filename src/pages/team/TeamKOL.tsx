@@ -345,7 +345,10 @@ export default function TeamKOL() {
         )}
 
         <TabsContent value="venues" className="mt-4">
-          <VenuesCard isManager={isManager} />
+          <div className="space-y-4">
+            <VenuesCard isManager={isManager} />
+            <PmsVenueSettingsCard isManager={isManager} />
+          </div>
         </TabsContent>
 
         <TabsContent value="settings" className="mt-4">
