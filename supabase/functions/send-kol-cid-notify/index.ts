@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
     const venueType = accInfo?.name ? "PMS內部" : "非PMS";
     const createdAt = formatTaiwanTime(new Date());
 
-    const subject = `【KOL折扣碼_協助設定通知】${profile.venue_name} - ${profile.kol_name} - ${profile.cid_code}`;
+    const subject = `【KOL折扣碼_協助設定通知】${profile.venue_name} - ${profile.name} - ${profile.cid_code}`;
     const text = [
       "請夥伴協助新增折扣碼🙏🙏",
       `館別：${profile.venue_name ?? "-"}`,
