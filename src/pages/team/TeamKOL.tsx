@@ -4788,6 +4788,9 @@ function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
       </CardContent>
     </Card>
   );
+}
+
+
 
 // ============================================================
 // ====== Tab 設定：KOL 分潤等級 ======
