@@ -4444,6 +4444,352 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
 }
 
 // ============================================================
+// ====== PMS 民宿設定（kol_venue_settings by accommodation_info） ======
+// ============================================================
+interface PmsAccomRow {
+  id: string;
+  name: string;
+  hasSettings: boolean;
+}
+
+function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
+  const [rows, setRows] = useState<PmsAccomRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [settings, setSettings] = useState<VenueSettingsRow>(EMPTY_SETTINGS(""));
+  const [loadingSettings, setLoadingSettings] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [{ data: accoms, error: aErr }, { data: settingsRows, error: sErr }] = await Promise.all([
+      supabase
+        .from("accommodation_info")
+        .select("id, name")
+        .eq("is_active", true)
+        .neq("name", "奧丁丁測試")
+        .order("name"),
+      supabase.from("kol_venue_settings" as any).select("venue_name"),
+    ]);
+    if (aErr) toast.error(aErr.message);
+    if (sErr) toast.error(sErr.message);
+    const settingsSet = new Set(((settingsRows ?? []) as any[]).map((r) => r.venue_name));
+    setRows(
+      ((accoms ?? []) as any[]).map((a) => ({
+        id: a.id,
+        name: a.name,
+        hasSettings: settingsSet.has(a.name),
+      })),
+    );
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const openEdit = async (name: string) => {
+    setEditName(name);
+    setSettings(EMPTY_SETTINGS(name));
+    setEditOpen(true);
+    setLoadingSettings(true);
+    const { data, error } = await supabase
+      .from("kol_venue_settings" as any)
+      .select("*")
+      .eq("venue_name", name)
+      .maybeSingle();
+    if (error && error.code !== "PGRST116") toast.error(error.message);
+    if (data) setSettings(data as unknown as VenueSettingsRow);
+    setLoadingSettings(false);
+  };
+
+  const toggleWeekday = (field: "allowed_weekdays" | "special_weekdays", day: number) => {
+    setSettings((prev) => {
+      const cur = prev[field] ?? [];
+      const next = cur.includes(day) ? cur.filter((d) => d !== day) : [...cur, day].sort((a, b) => a - b);
+      return { ...prev, [field]: next };
+    });
+  };
+
+  const saveEdit = async () => {
+    const n = editName.trim();
+    if (!n) return;
+    setSaving(true);
+    const payload: Partial<VenueSettingsRow> = {
+      venue_name: n,
+      group_name: settings.group_name || null,
+      calc_type: settings.calc_type || null,
+      daily_limit: settings.daily_limit,
+      collab_start: settings.collab_start || null,
+      collab_end: settings.collab_end || null,
+      allowed_weekdays: settings.allowed_weekdays,
+      special_start: settings.special_start || null,
+      special_end: settings.special_end || null,
+      special_limit: settings.special_limit,
+      special_weekdays: settings.special_weekdays,
+      monthly_limit: settings.monthly_limit,
+      link_rule: settings.link_rule || null,
+      order_number_rule: settings.order_number_rule || null,
+      is_active: settings.is_active,
+      is_starlink: settings.is_starlink,
+      personal_target: settings.personal_target,
+      contact_email: settings.contact_email?.trim() || null,
+      has_external_platform: settings.has_external_platform,
+    };
+    const { data: existing } = await supabase
+      .from("kol_venue_settings" as any)
+      .select("id")
+      .eq("venue_name", n)
+      .maybeSingle();
+    if (existing) {
+      const { error } = await supabase
+        .from("kol_venue_settings" as any)
+        .update(payload)
+        .eq("venue_name", n);
+      if (error) {
+        setSaving(false);
+        toast.error(`更新失敗：${error.message}`);
+        return;
+      }
+    } else {
+      const { error } = await supabase.from("kol_venue_settings" as any).insert(payload);
+      if (error) {
+        setSaving(false);
+        toast.error(`建立失敗：${error.message}`);
+        return;
+      }
+    }
+    setSaving(false);
+    toast.success("已儲存");
+    setEditOpen(false);
+    load();
+  };
+
+  const numInput = (val: number | null, set: (v: number | null) => void) => (
+    <Input
+      type="number"
+      value={val ?? ""}
+      onChange={(e) => set(e.target.value === "" ? null : Number(e.target.value))}
+      className="h-9"
+    />
+  );
+  const textInput = (val: string | null, set: (v: string) => void) => (
+    <Input value={val ?? ""} onChange={(e) => set(e.target.value)} className="h-9" />
+  );
+  const dateInput = (val: string | null, set: (v: string) => void) => (
+    <Input type="date" value={val ?? ""} onChange={(e) => set(e.target.value)} className="h-9" />
+  );
+
+  return (
+    <Card>
+      <CardContent className="p-4 space-y-3">
+        <div>
+          <h3 className="font-semibold">PMS 民宿設定</h3>
+          <p className="text-xs text-muted-foreground">
+            管理 PMS 民宿的 KOL 庫存設定（入住配額、允許星期等）
+          </p>
+        </div>
+
+        {loading ? null : rows.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">尚無資料</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>民宿名稱</TableHead>
+                <TableHead>設定狀態</TableHead>
+                <TableHead className="text-right">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell>{r.name}</TableCell>
+                  <TableCell>
+                    {r.hasSettings ? (
+                      <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
+                        已設定
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-200">
+                        未設定
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {isManager && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8"
+                        onClick={() => openEdit(r.name)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+
+        <Dialog open={editOpen} onOpenChange={setEditOpen}>
+          <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>編輯 PMS 民宿設定 — {editName}</DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2">
+              {loadingSettings ? (
+                <p className="text-xs text-muted-foreground">載入中…</p>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="pms-starlink"
+                      checked={settings.is_starlink}
+                      onCheckedChange={(v) => setSettings((p) => ({ ...p, is_starlink: v === true }))}
+                    />
+                    <Label htmlFor="pms-starlink" className="cursor-pointer">
+                      星鏈場域
+                    </Label>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="個人目標">
+                      {numInput(settings.personal_target, (v) =>
+                        setSettings((p) => ({ ...p, personal_target: v })),
+                      )}
+                    </Field>
+                    <Field label="群組名稱">
+                      {textInput(settings.group_name, (v) => setSettings((p) => ({ ...p, group_name: v })))}
+                    </Field>
+                    <Field label="計算方式">
+                      {textInput(settings.calc_type, (v) => setSettings((p) => ({ ...p, calc_type: v })))}
+                    </Field>
+                    <Field label="每日上限">
+                      {numInput(settings.daily_limit, (v) => setSettings((p) => ({ ...p, daily_limit: v })))}
+                    </Field>
+                    <Field label="每月上限">
+                      {numInput(settings.monthly_limit, (v) => setSettings((p) => ({ ...p, monthly_limit: v })))}
+                    </Field>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="合作開始日">
+                      {dateInput(settings.collab_start, (v) => setSettings((p) => ({ ...p, collab_start: v })))}
+                    </Field>
+                    <Field label="合作結束日">
+                      {dateInput(settings.collab_end, (v) => setSettings((p) => ({ ...p, collab_end: v })))}
+                    </Field>
+                  </div>
+
+                  <Field label="可邀星期">
+                    <div className="flex flex-wrap gap-3">
+                      {WEEKDAYS.map((w, idx) => (
+                        <label key={`pms-aw-${idx}`} className="flex items-center gap-1 text-sm cursor-pointer">
+                          <Checkbox
+                            checked={(settings.allowed_weekdays ?? []).includes(idx)}
+                            onCheckedChange={() => toggleWeekday("allowed_weekdays", idx)}
+                          />
+                          {w}
+                        </label>
+                      ))}
+                    </div>
+                  </Field>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="特殊期間開始">
+                      {dateInput(settings.special_start, (v) => setSettings((p) => ({ ...p, special_start: v })))}
+                    </Field>
+                    <Field label="特殊期間結束">
+                      {dateInput(settings.special_end, (v) => setSettings((p) => ({ ...p, special_end: v })))}
+                    </Field>
+                    <Field label="特殊期間上限">
+                      {numInput(settings.special_limit, (v) => setSettings((p) => ({ ...p, special_limit: v })))}
+                    </Field>
+                  </div>
+
+                  <Field label="特殊期間可邀星期">
+                    <div className="flex flex-wrap gap-3">
+                      {WEEKDAYS.map((w, idx) => (
+                        <label key={`pms-sw-${idx}`} className="flex items-center gap-1 text-sm cursor-pointer">
+                          <Checkbox
+                            checked={(settings.special_weekdays ?? []).includes(idx)}
+                            onCheckedChange={() => toggleWeekday("special_weekdays", idx)}
+                          />
+                          {w}
+                        </label>
+                      ))}
+                    </div>
+                  </Field>
+
+                  <Field label="連結規則">
+                    {textInput(settings.link_rule, (v) => setSettings((p) => ({ ...p, link_rule: v })))}
+                  </Field>
+                  <Field label="訂單編號規則">
+                    {textInput(settings.order_number_rule, (v) =>
+                      setSettings((p) => ({ ...p, order_number_rule: v })),
+                    )}
+                  </Field>
+                  <Field label="聯絡 Email">
+                    <Input
+                      type="email"
+                      placeholder="負責人 Email"
+                      value={settings.contact_email ?? ""}
+                      onChange={(e) => setSettings((p) => ({ ...p, contact_email: e.target.value }))}
+                    />
+                  </Field>
+
+                  <div className="flex items-start justify-between gap-3 rounded-md border p-3">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="pms-external-platform" className="cursor-pointer">
+                        有外部訂房平台
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        開啟後建立邀約時將額外通知此 Email
+                      </p>
+                    </div>
+                    <Switch
+                      id="pms-external-platform"
+                      checked={settings.has_external_platform}
+                      onCheckedChange={(v) =>
+                        setSettings((p) => ({ ...p, has_external_platform: v === true }))
+                      }
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="pms-active"
+                      checked={settings.is_active}
+                      onCheckedChange={(v) => setSettings((p) => ({ ...p, is_active: v === true }))}
+                    />
+                    <Label htmlFor="pms-active" className="cursor-pointer">
+                      啟用此設定
+                    </Label>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditOpen(false)} disabled={saving}>
+                取消
+              </Button>
+              <Button onClick={saveEdit} disabled={saving || loadingSettings}>
+                {saving ? "儲存中…" : "儲存"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>
+  );
+
+// ============================================================
 // ====== Tab 設定：KOL 分潤等級 ======
 // ============================================================
 interface TierRow {
