@@ -1290,7 +1290,7 @@ function InvitationsTab({
 
       {/* 詳情 Drawer */}
       <Sheet open={!!viewingRow} onOpenChange={(o) => !o && setViewingRow(null)}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+        <SheetContent className="w-full overflow-y-auto sm:max-w-lg overflow-x-hidden">
           <SheetHeader>
             <div className="flex items-center gap-2 pr-12">
               <SheetTitle className="flex-1">邀約明細</SheetTitle>
@@ -1962,7 +1962,7 @@ function InvitationsTab({
 
       {/* 填錯 Dialog */}
       <Dialog open={!!errorTarget} onOpenChange={(o) => !o && setErrorTarget(null)}>
-        <DialogContent>
+        <DialogContent className="overflow-x-hidden">
           <DialogHeader>
             <DialogTitle>回報填錯</DialogTitle>
           </DialogHeader>
@@ -1986,7 +1986,7 @@ function InvitationsTab({
 
       {/* 取消邀約 Dialog */}
       <Dialog open={!!cancelTarget} onOpenChange={(o) => !o && !cancelling && setCancelTarget(null)}>
-        <DialogContent>
+        <DialogContent className="overflow-x-hidden">
           <DialogHeader>
             <DialogTitle>確認取消邀約</DialogTitle>
           </DialogHeader>
@@ -2703,7 +2703,7 @@ function ProspectsTab({
       )}
 
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+        <SheetContent className="w-full overflow-y-auto sm:max-w-lg overflow-x-hidden">
           <SheetHeader>
             <SheetTitle>{editingId ? "編輯潛在名單" : "新增潛在名單"}</SheetTitle>
           </SheetHeader>
@@ -2732,7 +2732,7 @@ function ProspectsTab({
                 </SelectContent>
               </Select>
             </Field>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="聯繫日期">
                 <Input
                   type="date"
@@ -3352,7 +3352,7 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
 
       {/* 編輯 Dialog */}
       <Dialog open={!!editRow} onOpenChange={(o) => !o && setEditRow(null)}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="sm:max-w-sm overflow-x-hidden">
           <DialogHeader>
             <DialogTitle>編輯目標 — {editRow?.venue_name}</DialogTitle>
           </DialogHeader>
@@ -3389,7 +3389,7 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
 
       {/* 新增 Dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md overflow-x-hidden">
           <DialogHeader>
             <DialogTitle>
               新增邀約目標（{year} 年 {month} 月）
@@ -3634,7 +3634,7 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl overflow-x-hidden">
           <DialogHeader>
             <DialogTitle>新增稀有度版本</DialogTitle>
           </DialogHeader>
@@ -4131,7 +4131,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
         })()}
 
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
-          <DialogContent>
+          <DialogContent className="overflow-x-hidden">
             <DialogHeader>
               <DialogTitle>新增場域</DialogTitle>
             </DialogHeader>
@@ -4169,7 +4169,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
         </Dialog>
 
         <Sheet open={editOpen} onOpenChange={setEditOpen}>
-          <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+          <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto overflow-x-hidden">
             <SheetHeader>
               <div className="flex items-center justify-between gap-2 pr-8">
                 <SheetTitle>
@@ -4208,7 +4208,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                     <>
                       <section className="space-y-3">
                         <h4 className="font-semibold text-sm">基本資訊</h4>
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
                           <Item label="場域名稱" value={showText(editName)} />
                           <Item label="類型" value={showText(editType)} />
                           <Item label="狀態" value={showBool(editActive)} />
@@ -4219,7 +4219,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                         {loadingSettings ? (
                           <p className="text-xs text-muted-foreground">載入中…</p>
                         ) : (
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
                             <Item label="星鏈場域" value={showBool(settings.is_starlink, "是", "否")} />
                             <Item label="個人目標" value={showText(settings.personal_target)} />
                             <Item label="群組名稱" value={showText(settings.group_name)} />
@@ -4305,7 +4305,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                           </Label>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <Field label="個人目標">
                             {numInput(settings.personal_target, (v) =>
                               setSettings((p) => ({ ...p, personal_target: v })),
@@ -4325,7 +4325,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                           </Field>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <Field label="合作開始日">
                             {dateInput(settings.collab_start, (v) => setSettings((p) => ({ ...p, collab_start: v })))}
                           </Field>
@@ -4349,7 +4349,7 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
                           </div>
                         </Field>
 
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <Field label="特殊期間開始">
                             {dateInput(settings.special_start, (v) => setSettings((p) => ({ ...p, special_start: v })))}
                           </Field>
@@ -4659,7 +4659,7 @@ function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
         )}
 
         <Sheet open={viewOpen} onOpenChange={setViewOpen}>
-          <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+          <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto overflow-x-hidden">
             <SheetHeader>
               <div className="flex items-center justify-between gap-2 pr-8">
                 <SheetTitle>場域明細 — {editName}</SheetTitle>
@@ -4695,7 +4695,7 @@ function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
                   <>
                     <section className="space-y-3">
                       <h4 className="font-semibold text-sm">基本資訊</h4>
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
                         <Item label="民宿名稱" value={showText(editName)} />
                         <Item label="設定狀態" value={showBool(settings.is_active)} />
                       </div>
@@ -4705,7 +4705,7 @@ function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
                       {loadingSettings ? (
                         <p className="text-xs text-muted-foreground">載入中…</p>
                       ) : (
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
                           <Item label="星鏈場域" value={showBool(settings.is_starlink, "是", "否")} />
                           <Item label="個人目標" value={showText(settings.personal_target)} />
                           <Item label="群組名稱" value={showText(settings.group_name)} />
@@ -4748,7 +4748,7 @@ function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
         </Sheet>
 
         <Dialog open={editOpen} onOpenChange={setEditOpen}>
-          <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
             <DialogHeader>
               <DialogTitle>編輯 PMS 民宿設定 — {editName}</DialogTitle>
             </DialogHeader>
@@ -4769,7 +4769,7 @@ function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
                     </Label>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Field label="個人目標">
                       {numInput(settings.personal_target, (v) =>
                         setSettings((p) => ({ ...p, personal_target: v })),
@@ -4789,7 +4789,7 @@ function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
                     </Field>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Field label="合作開始日">
                       {dateInput(settings.collab_start, (v) => setSettings((p) => ({ ...p, collab_start: v })))}
                     </Field>
@@ -4812,7 +4812,7 @@ function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
                     </div>
                   </Field>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Field label="特殊期間開始">
                       {dateInput(settings.special_start, (v) => setSettings((p) => ({ ...p, special_start: v })))}
                     </Field>
@@ -5043,7 +5043,7 @@ function TierSettingsBlock({ isManager }: { isManager: boolean }) {
       </CardContent>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
             <DialogTitle>新增 KOL 分潤等級版本</DialogTitle>
           </DialogHeader>
@@ -5266,7 +5266,7 @@ function SalarySettingsBlock({ isManager }: { isManager: boolean }) {
       </CardContent>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="overflow-x-hidden">
           <DialogHeader>
             <DialogTitle>編輯底薪與團隊獎金</DialogTitle>
           </DialogHeader>
