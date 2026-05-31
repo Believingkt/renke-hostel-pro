@@ -190,7 +190,7 @@ export default function TeamKolVenueConfirm() {
       <Table className="fixed-table">
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[120px]">KOL名稱</TableHead>
+            <TableHead className="w-[180px]">KOL名稱</TableHead>
             <TableHead>館別</TableHead>
             <TableHead>折扣碼 / CID</TableHead>
             <TableHead>訂單編號</TableHead>
@@ -211,7 +211,7 @@ export default function TeamKolVenueConfirm() {
           ) : (
             data.map((r) => (
               <TableRow key={r.id}>
-                <TableCell className="whitespace-nowrap">{r.name || "—"}</TableCell>
+                <TableCell className="w-[180px] max-w-[180px] truncate" title={r.name || ""}>{r.name || "—"}</TableCell>
                 <TableCell className="whitespace-nowrap">{r.venue_name || "—"}</TableCell>
                 <TableCell className="whitespace-nowrap font-mono">{r.cid_code}</TableCell>
                 <TableCell className="whitespace-nowrap font-mono">{r.order_number}</TableCell>
