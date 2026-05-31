@@ -1063,10 +1063,10 @@ function InvitationsTab({
         </div>
 
         {/* Row 4: 入住日期篩選（年份 + 月份） */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm text-muted-foreground whitespace-nowrap">入住日期篩選：</span>
+        <div className="flex items-center gap-2 flex-nowrap">
+          <span className="text-sm text-muted-foreground whitespace-nowrap">入住日期：</span>
           <Select value={filterYear} onValueChange={setFilterYear}>
-            <SelectTrigger className="w-24">
+            <SelectTrigger className="flex-1 min-w-0">
               <SelectValue placeholder="年份" />
             </SelectTrigger>
             <SelectContent>
@@ -1078,7 +1078,7 @@ function InvitationsTab({
           </Select>
 
           <Select value={filterMonth} onValueChange={setFilterMonth}>
-            <SelectTrigger className="w-28">
+            <SelectTrigger className="flex-1 min-w-0">
               <SelectValue placeholder="月份" />
             </SelectTrigger>
             <SelectContent>
