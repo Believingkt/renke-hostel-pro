@@ -722,7 +722,7 @@ export default function TeamOrders() {
       </Tabs>
 
       <Drawer open={editOpen} onOpenChange={setEditOpen}>
-        <DrawerContent className="max-h-[92vh]">
+        <DrawerContent className="max-h-[92vh] overflow-x-hidden">
           <DrawerHeader>
             <DrawerTitle>補充行銷資訊</DrawerTitle>
           </DrawerHeader>

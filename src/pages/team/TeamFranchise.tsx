@@ -851,7 +851,7 @@ function OrdersTab({
       </CardContent>
 
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto overflow-x-hidden">
           <SheetHeader>
             <SheetTitle>新增特許加盟訂單</SheetTitle>
           </SheetHeader>
@@ -1010,7 +1010,7 @@ function OrdersTab({
       </Sheet>
 
       <Sheet open={!!detailOrder} onOpenChange={(o) => { if (!o) { setDetailOrder(null); setDetailEditing(false); } }}>
-        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto overflow-x-hidden">
           <SheetHeader>
             <div className="flex items-center justify-between pr-8">
               <SheetTitle>訂單明細</SheetTitle>
@@ -1501,12 +1501,12 @@ function SettingsTab({ canManage, canManageProjects }: { canManage: boolean; can
 
 
       <Dialog open={internalDialogOpen} onOpenChange={setInternalDialogOpen}>
-        <DialogContent>
+        <DialogContent className="overflow-x-hidden">
           <DialogHeader>
             <DialogTitle>新增內部分潤版本</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>個人基本比例 (%)</Label>
                 <Input type="number" step="0.1" value={internalForm.base_rate}
@@ -1548,7 +1548,7 @@ function SettingsTab({ canManage, canManageProjects }: { canManage: boolean; can
       </Dialog>
 
       <Dialog open={externalDialogOpen} onOpenChange={setExternalDialogOpen}>
-        <DialogContent>
+        <DialogContent className="overflow-x-hidden">
           <DialogHeader>
             <DialogTitle>新增外部分潤版本</DialogTitle>
           </DialogHeader>
@@ -1558,7 +1558,7 @@ function SettingsTab({ canManage, canManageProjects }: { canManage: boolean; can
               <Input value={externalForm.project_name}
                 onChange={(e) => setExternalForm({ ...externalForm, project_name: e.target.value })} />
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>開發業務比例 (%)</Label>
                 <Input type="number" step="0.1" value={externalForm.sales_rate}
@@ -1881,7 +1881,7 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
       </CardContent>
 
       <Sheet open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto overflow-x-hidden">
           <SheetHeader>
             <SheetTitle>編輯小隊設定</SheetTitle>
           </SheetHeader>
@@ -1936,7 +1936,7 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
 
       {/* 新增無帳號成員 Dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent>
+        <DialogContent className="overflow-x-hidden">
           <DialogHeader>
             <DialogTitle>新增無帳號成員</DialogTitle>
           </DialogHeader>
@@ -1972,7 +1972,7 @@ function TeamSettingsCard({ canManage }: { canManage: boolean }) {
 
       {/* 綁定帳號 Dialog */}
       <Dialog open={!!bindingFor} onOpenChange={(o) => !o && setBindingFor(null)}>
-        <DialogContent>
+        <DialogContent className="overflow-x-hidden">
           <DialogHeader>
             <DialogTitle>綁定帳號：{bindingFor?.display_name}</DialogTitle>
           </DialogHeader>
@@ -2393,7 +2393,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
 
       {/* Detail Drawer */}
       <Sheet open={!!detail} onOpenChange={(o) => { if (!o) { setDetail(null); setEditing(false); } }}>
-        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto overflow-x-hidden">
           <SheetHeader>
             <div className="flex items-center justify-between pr-8">
               <SheetTitle>外部銷售明細</SheetTitle>
@@ -2462,12 +2462,12 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
 
       {/* Create/Edit Sheet */}
       <Sheet open={sheetOpen} onOpenChange={(o) => { setSheetOpen(o); if (!o) setEditingId(null); }}>
-        <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-xl overflow-y-auto overflow-x-hidden">
           <SheetHeader>
             <SheetTitle>{editingId ? "編輯外部銷售訂單" : "新增外部銷售訂單"}</SheetTitle>
           </SheetHeader>
           <div className="space-y-3 mt-4">
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>專案名稱</Label>
                 <ProjectSelect value={form.project_name ?? ""} onChange={(v) => onChange("project_name", v)} />
@@ -2526,7 +2526,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
                 <Input readOnly className="bg-muted" value={fmtMoney((Number(form.unit_count) || 0) * (Number(form.plan_price) || 0))} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>匯款日期</Label>
                 <Input type="date" value={form.payment_at ?? ""} onChange={(e) => onChange("payment_at", e.target.value || null)} />
@@ -2541,7 +2541,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>統編</Label>
                 <Input value={form.tax_id ?? ""} onChange={(e) => onChange("tax_id", e.target.value)} />
@@ -2571,7 +2571,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
               <Label>銷售獎金（開發業務）{currentRates ? `（${pct(currentRates.sales_rate)}）` : ""}</Label>
               <Input type="number" value={form.sales_bonus ?? ""} onChange={(e) => onChange("sales_bonus", e.target.value === "" ? null : Number(e.target.value))} />
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>協同業務1 姓名</Label>
                 <Input value={form.co_sales_name ?? ""} onChange={(e) => onChange("co_sales_name", e.target.value)} />
@@ -2583,7 +2583,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
                 </div>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>協同業務2 姓名</Label>
                 <Input value={form.co_sales_name2 ?? ""} onChange={(e) => onChange("co_sales_name2", e.target.value)} />
@@ -3394,13 +3394,13 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
           </div>
 
           <Sheet open={!!memberDetail} onOpenChange={(o) => { if (!o) setMemberDetail(null); }}>
-            <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
+            <SheetContent className="w-full sm:max-w-xl overflow-y-auto overflow-x-hidden">
               <SheetHeader>
                 <SheetTitle>會員分潤明細</SheetTitle>
               </SheetHeader>
               {memberDetail && (
                 <div className="mt-4 space-y-4 text-sm">
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
                     <Field label="會員編號" value={memberDetail.member_number} />
                     <Field label="會員姓名" value={memberDetail.customer_name} />
                     <Field label="聯絡電話" value={memberDetail.customer_phone} />
@@ -3414,7 +3414,7 @@ function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
                       value={memberDetail.sales_or_sold_by_name}
                     />
                   </div>
-                  <div className="border-t pt-3 grid grid-cols-2 gap-x-6 gap-y-2">
+                  <div className="border-t pt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
                     <Field label="購買單位數" value={String(memberDetail.unit_count)} />
                     <Field label="每單位金額" value={fmtMoney(memberDetail.unit_price)} />
                     <Field label="分潤金額" value={fmtMoney(memberDetail.bonus)} />
@@ -3807,7 +3807,7 @@ function VoucherProgressTab() {
         </div>
 
         <Sheet open={!!detail} onOpenChange={(o) => { if (!o) { setDetail(null); setEditing(false); } }}>
-          <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+          <SheetContent className="w-full sm:max-w-2xl overflow-y-auto overflow-x-hidden">
             <SheetHeader>
               <div className="flex items-center justify-between pr-8">
                 <SheetTitle>{editing ? "編輯住宿券進度" : "住宿券進度明細"}</SheetTitle>

@@ -336,7 +336,7 @@ function PayoutRulesBlock() {
 
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent className="max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-h-[80vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
             <DialogTitle>新增結算規則版本（以此為範本）</DialogTitle>
             <DialogDescription>儲存後會新增一筆生效日期版本</DialogDescription>
@@ -524,7 +524,7 @@ function MultiplierBlock() {
       </CardContent>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="overflow-x-hidden">
           <DialogHeader><DialogTitle>新增加倍活動</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div>
@@ -542,7 +542,7 @@ function MultiplierBlock() {
               <Label>倍率（最小 1.0）</Label>
               <Input type="number" step="0.1" min="1" value={draft.multiplier} onChange={(e) => setDraft({ ...draft, multiplier: e.target.value })} />
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
                 <Label>開始日</Label>
                 <Input type="date" value={draft.start_date} onChange={(e) => setDraft({ ...draft, start_date: e.target.value })} />

@@ -357,7 +357,7 @@ export default function TeamKolVenueConfirm() {
       </Card>
 
       <Dialog open={!!linkDialog} onOpenChange={(o) => !o && setLinkDialog(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md overflow-x-hidden">
           <DialogHeader>
             <DialogTitle>填寫 KOL 購票連結</DialogTitle>
           </DialogHeader>
