@@ -712,7 +712,7 @@ function InvitationsTab({
       ...EMPTY_FORM,
       invited_at: todayStr(),
       // scout 角色：自動帶入登入者
-      scout_id: !isManager ? currentUserId : "",
+      scout_id: currentUserId,
     });
     setDupWarning(null);
     setProspectLink(null);
@@ -727,7 +727,7 @@ function InvitationsTab({
       ...EMPTY_FORM,
       name: prefill.name,
       ig_handle: prefill.ig_handle,
-      scout_id: prefill.scout_id || (!isManager ? currentUserId : ""),
+      scout_id: prefill.scout_id || currentUserId,
       invited_at: todayStr(),
     });
     setProspectLink(prefill.prospect_id);
@@ -1369,6 +1369,19 @@ function InvitationsTab({
                       <Badge variant="outline" className={RARITY_CLASS[r.rarity as Rarity] ?? ""}>
                         {r.rarity}
                       </Badge>
+                    ) : (
+                      "-"
+                    )}
+                  </Row>
+                  <Row label="標籤">
+                    {r.kol_tags && r.kol_tags.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {r.kol_tags.map((t) => (
+                          <Badge key={t} variant="outline" className="text-xs">
+                            {t}
+                          </Badge>
+                        ))}
+                      </div>
                     ) : (
                       "-"
                     )}
