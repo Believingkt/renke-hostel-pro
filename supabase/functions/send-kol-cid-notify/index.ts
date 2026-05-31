@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
       "請夥伴協助新增折扣碼🙏🙏",
       `館別：${profile.venue_name ?? "-"}`,
       `類型：${venueType}`,
-      `KOL名稱：${profile.kol_name ?? "-"}`,
+      `KOL名稱：${profile.name ?? "-"}`,
       `折扣碼 / CID：${profile.cid_code ?? "-"}`,
       `入住日期：${profile.check_in_date ?? "-"}`,
       `星探：${profile.scout_name ?? "-"}`,
