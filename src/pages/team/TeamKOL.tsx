@@ -4620,7 +4620,11 @@ function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
             </TableHeader>
             <TableBody>
               {rows.map((r) => (
-                <TableRow key={r.id}>
+                <TableRow
+                  key={r.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => openView(r.name)}
+                >
                   <TableCell>{r.name}</TableCell>
                   <TableCell>
                     {r.hasSettings ? (
@@ -4639,7 +4643,10 @@ function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
                         size="icon"
                         variant="ghost"
                         className="h-8 w-8"
-                        onClick={() => openEdit(r.name)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEdit(r.name);
+                        }}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
