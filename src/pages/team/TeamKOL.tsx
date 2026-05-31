@@ -1552,7 +1552,7 @@ function InvitationsTab({
           </SheetHeader>
 
           <div className="mt-4 space-y-4">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="KOL 名稱 *">
                 <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
               </Field>
@@ -1567,7 +1567,7 @@ function InvitationsTab({
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="稀有度">
                 <Select value={form.rarity || "ck"} onValueChange={(v) => setForm({ ...form, rarity: v })}>
                   <SelectTrigger>
@@ -1749,7 +1749,7 @@ function InvitationsTab({
               />
             </Field>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="星期幾（自動）">
                 <Input value={form.day_of_week} readOnly className="bg-muted" />
               </Field>
@@ -1758,7 +1758,7 @@ function InvitationsTab({
               </Field>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="訂單編號">
                 <Input value={form.order_number} onChange={(e) => setForm({ ...form, order_number: e.target.value })} />
               </Field>
@@ -1864,7 +1864,7 @@ function InvitationsTab({
               </div>
             </Field>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="發布連結">
                 <Input value={form.publish_url} onChange={(e) => setForm({ ...form, publish_url: e.target.value })} />
               </Field>
