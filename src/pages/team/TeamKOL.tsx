@@ -1909,10 +1909,19 @@ function InvitationsTab({
             </Field>
           </div>
 
-          <SheetFooter className="mt-6 sm:justify-between">
-            {editingId && isManager ? (
+          <SheetFooter className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-between sm:gap-2">
+            <div className="flex gap-2 order-2 sm:order-1">
+              <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => setSheetOpen(false)} disabled={saving}>
+                取消
+              </Button>
+              <Button className="flex-1 sm:flex-none" onClick={handleSave} disabled={saving}>
+                {saving ? "儲存中..." : "儲存"}
+              </Button>
+            </div>
+            {editingId && isManager && (
               <Button
                 variant="destructive"
+                className="order-1 sm:order-2 w-full sm:w-auto"
                 disabled={saving}
                 onClick={async () => {
                   if (!editingId) return;
@@ -1930,17 +1939,7 @@ function InvitationsTab({
                 <Trash2 className="h-4 w-4 mr-1" />
                 刪除
               </Button>
-            ) : (
-              <div />
             )}
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setSheetOpen(false)} disabled={saving}>
-                取消
-              </Button>
-              <Button onClick={handleSave} disabled={saving}>
-                {saving ? "儲存中..." : "儲存"}
-              </Button>
-            </div>
           </SheetFooter>
         </SheetContent>
       </Sheet>
