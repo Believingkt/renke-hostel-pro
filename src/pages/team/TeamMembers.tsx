@@ -735,7 +735,7 @@ export default function TeamMembers() {
       {/* 編輯側邊面板（僅 admin） */}
       {canEditAll && (
         <Sheet open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>
-          <SheetContent side="right" className="w-full sm:max-w-md flex flex-col overflow-y-auto">
+          <SheetContent side="right" className="w-full sm:max-w-md flex flex-col overflow-y-auto overflow-x-hidden">
             <SheetHeader>
               <SheetTitle>編輯成員</SheetTitle>
               <SheetDescription>修改顯示名稱、角色與啟用狀態</SheetDescription>
@@ -757,7 +757,7 @@ export default function TeamMembers() {
               {editTarget?.user_id ? (
                 <div className="space-y-2">
                   <Label>角色</Label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {ALL_INVITABLE_ROLES.map((role) => {
                       const parent = CHILD_OF[role];
                       const lockedByManager = !!(parent && editRoles.includes(parent));
@@ -790,7 +790,7 @@ export default function TeamMembers() {
                   {editRoles.includes("venue_manager" as TeamRole) && (
                     <div className="space-y-2 pt-2">
                       <Label>負責場域（可多選）</Label>
-                      <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto border rounded-md p-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto border rounded-md p-2">
                         {venues.map((v) => {
                           const checked = editVenues.includes(v.name);
                           return (
@@ -864,7 +864,7 @@ export default function TeamMembers() {
       {/* 新增無帳號成員 Dialog（僅 admin） */}
       {canEditAll && (
         <Dialog open={noAccountOpen} onOpenChange={setNoAccountOpen}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-md overflow-x-hidden">
             <DialogHeader>
               <DialogTitle>新增無帳號成員</DialogTitle>
               <DialogDescription>

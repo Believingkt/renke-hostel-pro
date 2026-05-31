@@ -592,7 +592,7 @@ function OrdersTab({
       </CardContent>
 
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto overflow-x-hidden">
           <SheetHeader>
             <SheetTitle>新增星鏈訂單</SheetTitle>
           </SheetHeader>
@@ -604,7 +604,7 @@ function OrdersTab({
                 onChange={(e) => setForm({ ...form, client_name: e.target.value })}
               />
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>統編</Label>
                 <Input
@@ -655,7 +655,7 @@ function OrdersTab({
                 </p>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>成交時等級</Label>
                 <Select
@@ -762,7 +762,7 @@ function OrdersTab({
       </Sheet>
 
       <Sheet open={editOpen} onOpenChange={setEditOpen}>
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto overflow-x-hidden">
           <SheetHeader>
             <SheetTitle>編輯星鏈訂單</SheetTitle>
           </SheetHeader>
@@ -774,7 +774,7 @@ function OrdersTab({
                 onChange={(e) => setEditForm({ ...editForm, client_name: e.target.value })}
               />
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>統編</Label>
                 <Input
@@ -820,7 +820,7 @@ function OrdersTab({
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>成交時等級</Label>
                 <Select
@@ -934,7 +934,7 @@ function OrdersTab({
       </Sheet>
 
       <Drawer open={detailOpen} onOpenChange={setDetailOpen}>
-        <DrawerContent className="max-h-[90vh]">
+        <DrawerContent className="max-h-[90vh] overflow-x-hidden">
           <DrawerHeader className="flex flex-row items-center justify-between">
             <DrawerTitle>訂單明細</DrawerTitle>
             {detailOrder && (
@@ -1103,13 +1103,13 @@ function TiersTab({ canManage }: { canManage: boolean }) {
       </CardContent>
 
       <Sheet open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto overflow-x-hidden">
           <SheetHeader>
             <SheetTitle>編輯等級</SheetTitle>
           </SheetHeader>
           {editing && (
             <div className="space-y-3 mt-4">
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <Label>等級代碼</Label>
                   <Input
@@ -1125,7 +1125,7 @@ function TiersTab({ canManage }: { canManage: boolean }) {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <Label>最少間數</Label>
                   <Input
@@ -1292,7 +1292,7 @@ function PlansTab({ canManage }: { canManage: boolean }) {
       </CardContent>
 
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto overflow-x-hidden">
           <SheetHeader>
             <SheetTitle>{editing ? "編輯方案" : "新增方案"}</SheetTitle>
           </SheetHeader>

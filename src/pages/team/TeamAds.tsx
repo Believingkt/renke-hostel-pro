@@ -500,7 +500,7 @@ function WeeklyTab() {
       </CardContent>
 
       <Sheet open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto overflow-x-hidden">
           <SheetHeader>
             <SheetTitle>週報明細</SheetTitle>
           </SheetHeader>
@@ -825,7 +825,7 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
           if (!o) setEditingAdId(null);
         }}
       >
-        <DialogContent>
+        <DialogContent className="overflow-x-hidden">
           <DialogHeader>
             <DialogTitle>{editingAdId ? "編輯常用廣告編號" : "新增常用廣告編號"}</DialogTitle>
           </DialogHeader>
@@ -862,7 +862,7 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
           if (!o) setEditingRuleId(null);
         }}
       >
-        <DialogContent>
+        <DialogContent className="overflow-x-hidden">
           <DialogHeader>
             <DialogTitle>{editingRuleId ? "編輯對照規則" : "新增對照規則"}</DialogTitle>
           </DialogHeader>
