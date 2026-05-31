@@ -1546,7 +1546,7 @@ function InvitationsTab({
 
       {/* 新增/編輯 Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
+        <SheetContent className="w-full overflow-y-auto overflow-x-hidden sm:max-w-xl">
           <SheetHeader>
             <SheetTitle>{editingId ? "編輯邀約" : "新增邀約"}</SheetTitle>
           </SheetHeader>
