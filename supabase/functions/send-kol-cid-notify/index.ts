@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
 
     const { data: profile, error: profileErr } = await supabase
       .from("kol_profiles")
-      .select("id, kol_name, venue_name, cid_code, order_number, check_in_date, cid_notified, cid_configured, scout_name")
+      .select("id, name, venue_name, cid_code, order_number, check_in_date, cid_notified, cid_configured, scout_name")
       .eq("id", kol_profile_id)
       .maybeSingle();
 
@@ -80,12 +80,12 @@ Deno.serve(async (req) => {
     const venueType = accInfo?.name ? "PMS內部" : "非PMS";
     const createdAt = formatTaiwanTime(new Date());
 
-    const subject = `【KOL折扣碼_協助設定通知】${profile.venue_name} - ${profile.kol_name} - ${profile.cid_code}`;
+    const subject = `【KOL折扣碼_協助設定通知】${profile.venue_name} - ${profile.name} - ${profile.cid_code}`;
     const text = [
       "請夥伴協助新增折扣碼🙏🙏",
       `館別：${profile.venue_name ?? "-"}`,
       `類型：${venueType}`,
-      `KOL名稱：${profile.kol_name ?? "-"}`,
+      `KOL名稱：${profile.name ?? "-"}`,
       `折扣碼 / CID：${profile.cid_code ?? "-"}`,
       `入住日期：${profile.check_in_date ?? "-"}`,
       `星探：${profile.scout_name ?? "-"}`,
