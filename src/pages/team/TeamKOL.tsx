@@ -418,10 +418,10 @@ function InvitationsTab({
 
   const [search, setSearch] = useState("");
   const [filterAcc, setFilterAcc] = useState<string>("all");
-  const [filterRarity, setFilterRarity] = useState<string>("all");
+  const [filterRarity, setFilterRarity] = useState<string[]>([]);
   const [filterTags, setFilterTags] = useState<string[]>([]);
   const [filterScout, setFilterScout] = useState<string>("all");
-  const [filterYear, setFilterYear] = useState<string>("all");
+  const [filterYear, setFilterYear] = useState<string>(String(new Date().getFullYear()));
   const [filterMonth, setFilterMonth] = useState<string>("all");
   const [filterQualified, setFilterQualified] = useState<string>("all");
   const PAGE_SIZE = 50;
@@ -547,7 +547,7 @@ function InvitationsTab({
         q = q.eq("venue_name", filterAcc.slice(6));
       }
     }
-    if (filterRarity !== "all") q = q.eq("rarity", filterRarity);
+    if (filterRarity.length > 0) q = q.in("rarity", filterRarity);
     if (filterTags.length > 0) q = q.overlaps("kol_tags", filterTags);
     if (filterScout !== "all") q = q.eq("scout_id", filterScout);
     if (filterQualified === "yes") q = q.eq("kpi_qualified", true);
@@ -577,7 +577,7 @@ function InvitationsTab({
     const s = search.trim();
     if (s) {
       const esc = s.replace(/[%,()]/g, " ");
-      q = q.or(`name.ilike.%${esc}%,ig_handle.ilike.%${esc}%`);
+      q = q.or(`name.ilike.%${esc}%,ig_handle.ilike.%${esc}%,cid_code.ilike.%${esc}%`);
     }
 
     const { data, count, error } = await q.order("created_at", { ascending: false }).range(from, to);
@@ -945,155 +945,172 @@ function InvitationsTab({
   return (
     <div className="space-y-4">
       {/* 篩選列 */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="space-y-2">
+        {/* Row 1: 搜尋框獨佔 */}
         <Input
-          placeholder="搜尋 KOL 名稱 或 網紅帳號連結"
+          placeholder="搜尋 KOL 名稱 / 網紅帳號 / CID"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-64"
+          className="w-full sm:w-64"
         />
-        <Select value={filterAcc} onValueChange={setFilterAcc}>
-          <SelectTrigger className="w-44">
-            <SelectValue placeholder="館別" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">全部館別</SelectItem>
-            {accommodationOptions.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                <span className="inline-flex items-center gap-2">
-                  <span>{opt.label}</span>
-                  <span className="text-[10px] text-muted-foreground">{opt.badge}</span>
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
 
-        <Select value={filterScout} onValueChange={setFilterScout}>
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="邀約人" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">全部邀約人</SelectItem>
-            {scouts.map((s) => (
-              <SelectItem key={s.user_id} value={s.user_id}>
-                {s.display_name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Row 2: 館別 + 邀約人 */}
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+          <Select value={filterAcc} onValueChange={setFilterAcc}>
+            <SelectTrigger className="w-full sm:w-44">
+              <SelectValue placeholder="館別" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部館別</SelectItem>
+              {accommodationOptions.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  <span className="inline-flex items-center gap-2">
+                    <span>{opt.label}</span>
+                    <span className="text-[10px] text-muted-foreground">{opt.badge}</span>
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="h-10 font-normal" type="button">
-              {filterTags.length === 0 ? "標籤篩選" : `標籤：已選 ${filterTags.length}`}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-56 p-2" align="start">
-            <div className="max-h-60 overflow-y-auto space-y-1">
-              {allTags.length === 0 && <div className="text-xs text-muted-foreground py-2 text-center">尚無標籤</div>}
-              {allTags.map((t) => {
-                const checked = filterTags.includes(t);
-                return (
-                  <label
-                    key={t}
-                    className="flex items-center gap-2 text-sm px-2 py-1 rounded hover:bg-muted cursor-pointer"
-                  >
-                    <Checkbox
-                      checked={checked}
-                      onCheckedChange={(v) => setFilterTags(v ? [...filterTags, t] : filterTags.filter((x) => x !== t))}
-                    />
-                    {t}
-                  </label>
-                );
-              })}
-            </div>
-            {filterTags.length > 0 && (
-              <div className="border-t mt-2 pt-2">
-                <Button size="sm" variant="ghost" className="w-full h-7 text-xs" onClick={() => setFilterTags([])}>
-                  清除標籤篩選
-                </Button>
-              </div>
-            )}
-          </PopoverContent>
-        </Popover>
-
-        {/* 稀有度篩選按鈕 */}
-        <div className="flex items-center gap-1">
-          {RARITY_OPTIONS.map((r) => {
-            const active = filterRarity === r;
-            return (
-              <Button
-                key={r}
-                size="sm"
-                variant={active ? "default" : "outline"}
-                className="h-9 min-w-[40px] px-2"
-                type="button"
-                onClick={() => setFilterRarity(active ? "all" : r)}
-              >
-                {r}
-              </Button>
-            );
-          })}
-          {filterRarity !== "all" && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-9 px-2 text-xs"
-              type="button"
-              onClick={() => setFilterRarity("all")}
-            >
-              全部
-            </Button>
-          )}
+          <Select value={filterScout} onValueChange={setFilterScout}>
+            <SelectTrigger className="w-full sm:w-36">
+              <SelectValue placeholder="邀約人" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部邀約人</SelectItem>
+              {scouts.map((s) => (
+                <SelectItem key={s.user_id} value={s.user_id}>
+                  {s.display_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        <Select value={filterYear} onValueChange={setFilterYear}>
-          <SelectTrigger className="w-24">
-            <SelectValue placeholder="年份" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">全部年份</SelectItem>
-            {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map((y) => (
-              <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Row 3: 稀有度 checkbox + 標籤篩選 */}
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-10 font-normal w-full sm:w-auto justify-start" type="button">
+                {filterRarity.length === 0 ? "稀有度篩選" : `稀有度：${filterRarity.join("/")}`}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-48 p-2" align="start">
+              <div className="space-y-1">
+                {RARITY_OPTIONS.map((r) => {
+                  const checked = filterRarity.includes(r);
+                  return (
+                    <label
+                      key={r}
+                      className="flex items-center gap-2 text-sm px-2 py-1 rounded hover:bg-muted cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) =>
+                          setFilterRarity(v ? [...filterRarity, r] : filterRarity.filter((x) => x !== r))
+                        }
+                      />
+                      {r}
+                    </label>
+                  );
+                })}
+              </div>
+              {filterRarity.length > 0 && (
+                <div className="border-t mt-2 pt-2">
+                  <Button size="sm" variant="ghost" className="w-full h-7 text-xs" onClick={() => setFilterRarity([])}>
+                    清除稀有度篩選
+                  </Button>
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
 
-        <Select value={filterMonth} onValueChange={setFilterMonth}>
-          <SelectTrigger className="w-24">
-            <SelectValue placeholder="月份" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">全部月份</SelectItem>
-            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-              <SelectItem key={m} value={String(m)}>{m} 月</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-10 font-normal w-full sm:w-auto justify-start" type="button">
+                {filterTags.length === 0 ? "標籤篩選" : `標籤：已選 ${filterTags.length}`}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-2" align="start">
+              <div className="max-h-60 overflow-y-auto space-y-1">
+                {allTags.length === 0 && <div className="text-xs text-muted-foreground py-2 text-center">尚無標籤</div>}
+                {allTags.map((t) => {
+                  const checked = filterTags.includes(t);
+                  return (
+                    <label
+                      key={t}
+                      className="flex items-center gap-2 text-sm px-2 py-1 rounded hover:bg-muted cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) => setFilterTags(v ? [...filterTags, t] : filterTags.filter((x) => x !== t))}
+                      />
+                      {t}
+                    </label>
+                  );
+                })}
+              </div>
+              {filterTags.length > 0 && (
+                <div className="border-t mt-2 pt-2">
+                  <Button size="sm" variant="ghost" className="w-full h-7 text-xs" onClick={() => setFilterTags([])}>
+                    清除標籤篩選
+                  </Button>
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
+        </div>
 
+        {/* Row 4: 入住日期篩選（年份 + 月份） */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm text-muted-foreground whitespace-nowrap">入住日期篩選：</span>
+          <Select value={filterYear} onValueChange={setFilterYear}>
+            <SelectTrigger className="w-24">
+              <SelectValue placeholder="年份" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部年份</SelectItem>
+              {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map((y) => (
+                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filterMonth} onValueChange={setFilterMonth}>
+            <SelectTrigger className="w-28">
+              <SelectValue placeholder="月份" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部月份</SelectItem>
+              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                <SelectItem key={m} value={String(m)}>{m} 月</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Row 5: 累積資格獨佔 */}
         <Select value={filterQualified} onValueChange={setFilterQualified}>
-          <SelectTrigger className="w-32">
-            <SelectValue placeholder="資格" />
+          <SelectTrigger className="w-full sm:w-40">
+            <SelectValue placeholder="累積資格" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">全部資格</SelectItem>
+            <SelectItem value="all">累積資格</SelectItem>
             <SelectItem value="yes">符合資格</SelectItem>
             <SelectItem value="no">未符合資格</SelectItem>
           </SelectContent>
         </Select>
 
-
-
-
-        <div className="ml-auto flex items-center gap-2">
+        {/* Row 6: 新增邀約按鈕靠右 */}
+        <div className="flex justify-end">
           <Button onClick={openCreate}>
             <Plus className="mr-1 h-4 w-4" />
             新增邀約
           </Button>
         </div>
       </div>
+
 
       {/* 結果 */}
       {loading ? null : filtered.length === 0 ? (
