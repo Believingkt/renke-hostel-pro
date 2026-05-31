@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
 
     const { data: profile, error: profileErr } = await supabase
       .from("kol_profiles")
-      .select("id, kol_name, venue_name, cid_code, order_number, check_in_date, cid_notified, cid_configured, scout_name")
+      .select("id, name, venue_name, cid_code, order_number, check_in_date, cid_notified, cid_configured, scout_name")
       .eq("id", kol_profile_id)
       .maybeSingle();
 
