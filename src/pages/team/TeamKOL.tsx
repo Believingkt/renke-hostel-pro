@@ -1546,13 +1546,13 @@ function InvitationsTab({
 
       {/* 新增/編輯 Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
+        <SheetContent className="w-full overflow-y-auto overflow-x-hidden sm:max-w-xl">
           <SheetHeader>
             <SheetTitle>{editingId ? "編輯邀約" : "新增邀約"}</SheetTitle>
           </SheetHeader>
 
           <div className="mt-4 space-y-4">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="KOL 名稱 *">
                 <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
               </Field>
@@ -1567,7 +1567,7 @@ function InvitationsTab({
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="稀有度">
                 <Select value={form.rarity || "ck"} onValueChange={(v) => setForm({ ...form, rarity: v })}>
                   <SelectTrigger>
@@ -1749,7 +1749,7 @@ function InvitationsTab({
               />
             </Field>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="星期幾（自動）">
                 <Input value={form.day_of_week} readOnly className="bg-muted" />
               </Field>
@@ -1758,7 +1758,7 @@ function InvitationsTab({
               </Field>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="訂單編號">
                 <Input value={form.order_number} onChange={(e) => setForm({ ...form, order_number: e.target.value })} />
               </Field>
@@ -1864,7 +1864,7 @@ function InvitationsTab({
               </div>
             </Field>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="發布連結">
                 <Input value={form.publish_url} onChange={(e) => setForm({ ...form, publish_url: e.target.value })} />
               </Field>
@@ -1909,10 +1909,19 @@ function InvitationsTab({
             </Field>
           </div>
 
-          <SheetFooter className="mt-6 sm:justify-between">
-            {editingId && isManager ? (
+          <SheetFooter className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-between sm:gap-2">
+            <div className="flex gap-2 order-2 sm:order-1">
+              <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => setSheetOpen(false)} disabled={saving}>
+                取消
+              </Button>
+              <Button className="flex-1 sm:flex-none" onClick={handleSave} disabled={saving}>
+                {saving ? "儲存中..." : "儲存"}
+              </Button>
+            </div>
+            {editingId && isManager && (
               <Button
                 variant="destructive"
+                className="order-1 sm:order-2 w-full sm:w-auto"
                 disabled={saving}
                 onClick={async () => {
                   if (!editingId) return;
@@ -1930,17 +1939,7 @@ function InvitationsTab({
                 <Trash2 className="h-4 w-4 mr-1" />
                 刪除
               </Button>
-            ) : (
-              <div />
             )}
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setSheetOpen(false)} disabled={saving}>
-                取消
-              </Button>
-              <Button onClick={handleSave} disabled={saving}>
-                {saving ? "儲存中..." : "儲存"}
-              </Button>
-            </div>
           </SheetFooter>
         </SheetContent>
       </Sheet>
