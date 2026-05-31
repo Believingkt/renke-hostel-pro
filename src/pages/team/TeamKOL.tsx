@@ -421,7 +421,7 @@ function InvitationsTab({
   const [filterRarity, setFilterRarity] = useState<string[]>([]);
   const [filterTags, setFilterTags] = useState<string[]>([]);
   const [filterScout, setFilterScout] = useState<string>("all");
-  const [filterYear, setFilterYear] = useState<string>("all");
+  const [filterYear, setFilterYear] = useState<string>(String(new Date().getFullYear()));
   const [filterMonth, setFilterMonth] = useState<string>("all");
   const [filterQualified, setFilterQualified] = useState<string>("all");
   const PAGE_SIZE = 50;
@@ -547,7 +547,7 @@ function InvitationsTab({
         q = q.eq("venue_name", filterAcc.slice(6));
       }
     }
-    if (filterRarity !== "all") q = q.eq("rarity", filterRarity);
+    if (filterRarity.length > 0) q = q.in("rarity", filterRarity);
     if (filterTags.length > 0) q = q.overlaps("kol_tags", filterTags);
     if (filterScout !== "all") q = q.eq("scout_id", filterScout);
     if (filterQualified === "yes") q = q.eq("kpi_qualified", true);
@@ -577,7 +577,7 @@ function InvitationsTab({
     const s = search.trim();
     if (s) {
       const esc = s.replace(/[%,()]/g, " ");
-      q = q.or(`name.ilike.%${esc}%,ig_handle.ilike.%${esc}%`);
+      q = q.or(`name.ilike.%${esc}%,ig_handle.ilike.%${esc}%,cid_code.ilike.%${esc}%`);
     }
 
     const { data, count, error } = await q.order("created_at", { ascending: false }).range(from, to);
