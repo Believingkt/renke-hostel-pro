@@ -35,6 +35,8 @@ interface StagingLite {
   notified_at: string | null;
   pii_due_at: string | null;
   matched_acc_id: string | null;
+  match_reason: string | null;
+  unmatch_reason: string | null;
 }
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
