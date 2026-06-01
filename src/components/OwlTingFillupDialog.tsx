@@ -15,28 +15,36 @@ interface Props {
   onSubmitted?: () => void;
 }
 
-interface StagingData {
+interface StagingRow {
   id: string;
   obe_number: string | null;
+  accommodation_id: string | null;
   accommodation_name: string | null;
   room_type_name: string | null;
   check_in_date: string | null;
   check_out_date: string | null;
   guest_count: number | null;
   total_amount: number | null;
+  pii_status: string;
 }
-interface AccInfo { id: string; name: string | null; }
+interface AccOption { id: string; name: string; }
 interface RoomType { id: string; name: string; base_price: number; }
 
 const OWLNEST_ADMIN_URL = "https://www.owlting.com/booking/admin/?l=zh_TW&p=order";
 
 export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted }: Props) {
-  const [loading, setLoading] = useState(false);
+  const [phase, setPhase] = useState<"loading" | "pick_acc" | "form" | "error">("loading");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [preparing, setPreparing] = useState(false);
+
+  const [stagingRow, setStagingRow] = useState<StagingRow | null>(null);
+  const [accOptions, setAccOptions] = useState<AccOption[]>([]);
+  const [selectedAccId, setSelectedAccId] = useState<string>("none");
+
   const [token, setToken] = useState<string | null>(null);
-  const [staging, setStaging] = useState<StagingData | null>(null);
-  const [acc, setAcc] = useState<AccInfo | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+  const [accName, setAccName] = useState<string>("");
 
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
@@ -44,41 +52,74 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
   const [roomTypeId, setRoomTypeId] = useState<string>("none");
   const [totalAmountOverride, setTotalAmountOverride] = useState("");
 
-  useEffect(() => {
-    if (!open || !stagingId) return;
-    setLoading(true);
-    setToken(null);
-    setStaging(null);
+  const reset = () => {
+    setPhase("loading"); setErrorMsg(null); setStagingRow(null); setAccOptions([]);
+    setSelectedAccId("none"); setToken(null); setRoomTypes([]); setAccName("");
     setGuestName(""); setGuestPhone(""); setGuestEmail("");
     setRoomTypeId("none"); setTotalAmountOverride("");
-    (async () => {
-      try {
-        const { data: iss, error: issErr } = await supabase.functions.invoke("owlting-fillup-issue", {
-          body: { staging_id: stagingId, silent: true },
-        });
-        if (issErr || !iss?.ok || !iss.token) throw new Error(iss?.error || issErr?.message || "無法產生補單 Token");
-        setToken(iss.token);
+  };
 
-        const { data: val, error: valErr } = await supabase.functions.invoke("owlting-fillup-validate", {
-          body: { token: iss.token },
-        });
-        if (valErr || !val?.ok) throw new Error(val?.error || valErr?.message || "驗證失敗");
-        setStaging(val.staging);
-        setAcc(val.accommodation);
-        setRoomTypes(val.room_types || []);
-        if (val.staging?.total_amount) setTotalAmountOverride(String(val.staging.total_amount));
-      } catch (e: any) {
-        toast.error(`載入補單資料失敗：${e.message ?? e}`);
-        onOpenChange(false);
-      } finally {
-        setLoading(false);
+  // Step 1: load staging row and decide path
+  useEffect(() => {
+    if (!open || !stagingId) return;
+    reset();
+    (async () => {
+      const { data, error } = await supabase
+        .from("owlting_email_parsed_staging")
+        .select("id, obe_number, accommodation_id, accommodation_name, room_type_name, check_in_date, check_out_date, guest_count, total_amount, pii_status")
+        .eq("id", stagingId)
+        .maybeSingle();
+      if (error || !data) {
+        setErrorMsg(error?.message ?? "找不到此筆 staging");
+        setPhase("error");
+        return;
+      }
+      const row = data as StagingRow;
+      setStagingRow(row);
+      if (row.total_amount) setTotalAmountOverride(String(row.total_amount));
+      if (row.accommodation_id) {
+        prepareToken(row.accommodation_id);
+      } else {
+        const { data: accs } = await supabase
+          .from("accommodation_info")
+          .select("id, name")
+          .order("name");
+        setAccOptions((accs ?? []).map((a: any) => ({ id: a.id, name: a.name ?? "(未命名)" })));
+        setPhase("pick_acc");
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, stagingId]);
 
+  const prepareToken = async (accId: string) => {
+    setPreparing(true);
+    try {
+      const { data: iss, error: issErr } = await supabase.functions.invoke("owlting-fillup-issue", {
+        body: { staging_id: stagingId, accommodation_id: accId, silent: true },
+      });
+      if (issErr || !iss?.ok || !iss.token) {
+        throw new Error(iss?.error || issErr?.message || "無法產生補單 Token");
+      }
+      setToken(iss.token);
+
+      const { data: val, error: valErr } = await supabase.functions.invoke("owlting-fillup-validate", {
+        body: { token: iss.token },
+      });
+      if (valErr || !val?.ok) throw new Error(val?.error || valErr?.message || "驗證失敗");
+      setRoomTypes(val.room_types || []);
+      setAccName(val.accommodation?.name ?? stagingRow?.accommodation_name ?? "");
+      setPhase("form");
+    } catch (e: any) {
+      setErrorMsg(e.message ?? String(e));
+      setPhase("error");
+    } finally {
+      setPreparing(false);
+    }
+  };
+
   const copyObe = () => {
-    if (!staging?.obe_number) return;
-    navigator.clipboard.writeText(staging.obe_number);
+    if (!stagingRow?.obe_number) return;
+    navigator.clipboard.writeText(stagingRow.obe_number);
     toast.success("已複製訂單編號");
   };
 
@@ -116,20 +157,51 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
       <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {acc?.name ?? staging?.accommodation_name ?? "民宿"}：奧丁丁訂單補單
+            {accName || stagingRow?.accommodation_name || "民宿"}：奧丁丁訂單補單
           </DialogTitle>
         </DialogHeader>
 
-        {loading ? (
+        {phase === "loading" && (
           <div className="py-12 flex justify-center">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
-        ) : staging ? (
+        )}
+
+        {phase === "error" && (
+          <div className="py-6 space-y-3 text-sm">
+            <p className="text-destructive">{errorMsg}</p>
+            <p className="text-muted-foreground text-xs">請關閉重試，或先回到收件監控頁確認資料。</p>
+          </div>
+        )}
+
+        {phase === "pick_acc" && stagingRow && (
+          <div className="space-y-4">
+            <div className="rounded-lg bg-muted p-3 text-sm space-y-1">
+              <div><span className="text-muted-foreground">訂單編號：</span><span className="font-mono font-bold">{stagingRow.obe_number ?? "—"}</span></div>
+              <div><span className="text-muted-foreground">入住：</span>{stagingRow.check_in_date ?? "—"} → {stagingRow.check_out_date ?? "—"}</div>
+              <div className="text-xs text-muted-foreground pt-1">此筆信件未能自動辨識民宿，請手動指定。</div>
+            </div>
+            <div>
+              <Label>對應民宿 <span className="text-destructive">*</span></Label>
+              <Select value={selectedAccId} onValueChange={setSelectedAccId}>
+                <SelectTrigger><SelectValue placeholder="請選擇民宿" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">請選擇</SelectItem>
+                  {accOptions.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
+
+        {phase === "form" && stagingRow && (
           <div className="space-y-4">
             <div className="rounded-lg bg-muted p-3 space-y-2">
               <div className="text-xs text-muted-foreground">奧丁丁訂單編號</div>
               <div className="flex items-center gap-2 flex-wrap">
-                <div className="text-xl font-bold font-mono">{staging.obe_number ?? "—"}</div>
+                <div className="text-xl font-bold font-mono">{stagingRow.obe_number ?? "—"}</div>
                 <Button size="sm" variant="outline" onClick={copyObe}>
                   <Copy className="h-3.5 w-3.5 mr-1" />複製
                 </Button>
@@ -142,10 +214,10 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-sm">
-              <div><span className="text-muted-foreground">入住：</span>{staging.check_in_date ?? "—"}</div>
-              <div><span className="text-muted-foreground">退房：</span>{staging.check_out_date ?? "—"}</div>
-              <div><span className="text-muted-foreground">人數：</span>{staging.guest_count ?? "—"}</div>
-              <div><span className="text-muted-foreground">原房型：</span>{staging.room_type_name ?? "—"}</div>
+              <div><span className="text-muted-foreground">入住：</span>{stagingRow.check_in_date ?? "—"}</div>
+              <div><span className="text-muted-foreground">退房：</span>{stagingRow.check_out_date ?? "—"}</div>
+              <div><span className="text-muted-foreground">人數：</span>{stagingRow.guest_count ?? "—"}</div>
+              <div><span className="text-muted-foreground">原房型：</span>{stagingRow.room_type_name ?? "—"}</div>
             </div>
 
             <div className="space-y-3">
@@ -180,14 +252,25 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
               </div>
             </div>
           </div>
-        ) : null}
+        )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>取消</Button>
-          <Button onClick={handleSubmit} disabled={submitting || loading || !staging}>
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            送出並建立訂單
-          </Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting || preparing}>取消</Button>
+          {phase === "pick_acc" && (
+            <Button
+              onClick={() => selectedAccId !== "none" && prepareToken(selectedAccId)}
+              disabled={selectedAccId === "none" || preparing}
+            >
+              {preparing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              繼續
+            </Button>
+          )}
+          {phase === "form" && (
+            <Button onClick={handleSubmit} disabled={submitting}>
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              送出並建立訂單
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
