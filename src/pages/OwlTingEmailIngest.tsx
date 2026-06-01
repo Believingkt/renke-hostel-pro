@@ -35,6 +35,8 @@ interface StagingLite {
   notified_at: string | null;
   pii_due_at: string | null;
   matched_acc_id: string | null;
+  match_reason: string | null;
+  unmatch_reason: string | null;
 }
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -113,24 +115,44 @@ export default function OwlTingEmailIngest() {
       const map: Record<string, StagingLite> = {};
       (staging ?? []).forEach((s: any) => {
         let matched: string | null = s.accommodation_id ?? null;
+        let matchReason: string | null = matched ? "已綁定 accommodation_id" : null;
+        let unmatchReason: string | null = null;
+        const raw = rawById.get(s.raw_email_id);
+        const name = (s.accommodation_name ?? "").trim();
+        const fe = (raw?.from_email ?? "").toLowerCase();
+
         if (!matched) {
-          const name = (s.accommodation_name ?? "").trim();
           if (name) {
             const target = norm(name);
-            if (accByNorm.has(target)) matched = accByNorm.get(target)!;
-            else {
+            if (accByNorm.has(target)) {
+              matched = accByNorm.get(target)!;
+              matchReason = `民宿名稱完全相符：「${name}」`;
+            } else {
               for (const [k, id] of accByNorm) {
-                if (k.includes(target) || target.includes(k)) { matched = id; break; }
+                if (k.includes(target) || target.includes(k)) {
+                  matched = id;
+                  matchReason = `民宿名稱模糊相符：「${name}」`;
+                  break;
+                }
               }
             }
           }
         }
         if (!matched) {
-          const raw = rawById.get(s.raw_email_id);
-          const fe = (raw?.from_email ?? "").toLowerCase();
-          if (fe && ownerMap.has(fe)) matched = ownerMap.get(fe)!;
+          if (fe && ownerMap.has(fe)) {
+            matched = ownerMap.get(fe)!;
+            matchReason = `寄件者 Email 對應業主：${fe}`;
+          }
         }
-        map[s.raw_email_id] = { ...s, matched_acc_id: matched };
+        if (!matched) {
+          const parts: string[] = [];
+          if (!name) parts.push("民宿名稱：（空）");
+          else parts.push(`民宿名稱「${name}」找不到對應`);
+          if (!fe) parts.push("寄件者 Email：（空）");
+          else parts.push(`寄件者 ${fe} 未綁定業主`);
+          unmatchReason = parts.join("；");
+        }
+        map[s.raw_email_id] = { ...s, matched_acc_id: matched, match_reason: matchReason, unmatch_reason: unmatchReason };
       });
       setStagingMap(map);
     } else {
@@ -225,31 +247,44 @@ export default function OwlTingEmailIngest() {
                     </TableCell>
                     <TableCell className="text-right">
                       {canSend && (
-                        <div className="flex justify-end gap-1.5">
-                          {st.matched_acc_id && (
+                        <div className="flex flex-col items-end gap-1">
+                          <div className="flex justify-end gap-1.5">
+                            {st.matched_acc_id ? (
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onClick={() => { setFillupStagingId(st.id); setFillupOpen(true); }}
+                                title={st.match_reason ?? undefined}
+                              >
+                                <ClipboardEdit className="h-3.5 w-3.5 mr-1" />補單
+                              </Button>
+                            ) : (
+                              <span
+                                className="text-[10px] text-amber-600 dark:text-amber-400 max-w-[220px] text-right leading-tight"
+                                title={st.unmatch_reason ?? "無法自動匹配民宿"}
+                              >
+                                ⚠ 無法自動匹配民宿
+                                {st.unmatch_reason && (
+                                  <span className="block text-muted-foreground">{st.unmatch_reason}</span>
+                                )}
+                              </span>
+                            )}
                             <Button
                               size="sm"
-                              variant="default"
-                              onClick={() => { setFillupStagingId(st.id); setFillupOpen(true); }}
+                              variant="outline"
+                              onClick={() => sendFillupNotification(st.id)}
+                              disabled={sendingId === st.id}
                             >
-                              <ClipboardEdit className="h-3.5 w-3.5 mr-1" />補單
+                              {sendingId === st.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <>
+                                  <Send className="h-3.5 w-3.5 mr-1" />
+                                  {st.notified_at ? "重發通知" : "發送通知"}
+                                </>
+                              )}
                             </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => sendFillupNotification(st.id)}
-                            disabled={sendingId === st.id}
-                          >
-                            {sendingId === st.id ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <>
-                                <Send className="h-3.5 w-3.5 mr-1" />
-                                {st.notified_at ? "重發通知" : "發送通知"}
-                              </>
-                            )}
-                          </Button>
+                          </div>
                         </div>
                       )}
                     </TableCell>
