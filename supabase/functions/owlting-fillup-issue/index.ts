@@ -97,6 +97,7 @@ Deno.serve(async (req) => {
       });
     }
     const accOverride = body.accommodation_id ? String(body.accommodation_id) : null;
+    const silent = body.silent === true;
 
     // Load staging
     const { data: staging, error: stErr } = await admin
@@ -162,7 +163,7 @@ Deno.serve(async (req) => {
     const accName = accInfo?.name ?? staging.accommodation_name ?? "民宿";
 
     let emailedTo: string[] = [];
-    if (RESEND_API_KEY && owners && owners.length > 0) {
+    if (!silent && RESEND_API_KEY && owners && owners.length > 0) {
       for (const o of owners) {
         const html = renderEmail({
           ownerName: o.owner_name ?? "",
@@ -195,16 +196,20 @@ Deno.serve(async (req) => {
       }
     }
 
-    await admin.from("owlting_email_parsed_staging")
-      .update({ notified_at: new Date().toISOString() })
-      .eq("id", stagingId);
+    if (!silent) {
+      await admin.from("owlting_email_parsed_staging")
+        .update({ notified_at: new Date().toISOString() })
+        .eq("id", stagingId);
+    }
 
     return new Response(JSON.stringify({
       ok: true,
+      token,
       magic_url: magicUrl,
       emailed_to: emailedTo,
       owners_count: owners?.length ?? 0,
       expires_at: expiresAt,
+      silent,
     }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("[owlting-fillup-issue] fatal:", e);
