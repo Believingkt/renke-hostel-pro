@@ -162,13 +162,16 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Insert order
+    const finalGuestCount = guestCountOverride ?? staging.guest_count ?? 2;
+    const nowIso = new Date().toISOString();
+
+    // Insert order — when no room_type_id, do NOT inherit default deposit (5000)
     const { data: inserted, error: insErr } = await admin.from("orders").insert({
       accommodation_id: accId,
       room_type_id: roomTypeId,
       check_in_date: staging.check_in_date,
       check_out_date: staging.check_out_date,
-      guest_count: staging.guest_count ?? 2,
+      guest_count: finalGuestCount,
       guest_name: guestName,
       guest_phone: guestPhone,
       guest_email: guestEmail || null,
@@ -178,10 +181,12 @@ Deno.serve(async (req) => {
       order_source: "owlting",
       order_status: "confirmed",
       payment_status: "paid",
+      confirmed_at: nowIso,
       requires_owner_review: true,
       owlting_reservation_id: staging.obe_number,
+      deposit_required_amount: roomTypeId ? undefined : 0,
       notes: `奧丁丁訂單由業主補單 (OBE: ${staging.obe_number ?? ""}, ${staging.room_type_name ?? ""})`,
-    }).select("id, order_number").single();
+    }).select("id, order_number, accommodation_id, room_type_id, check_in_date, check_out_date, final_price").single();
 
     if (insErr) {
       console.error("[owlting-fillup-submit] order insert error:", insErr);
@@ -194,7 +199,7 @@ Deno.serve(async (req) => {
     await admin.from("owlting_email_parsed_staging").update({
       pii_status: "promoted_to_booking",
       promoted_order_id: inserted!.id,
-      owner_filled_at: new Date().toISOString(),
+      owner_filled_at: nowIso,
       guest_name: guestName,
       guest_phone: guestPhone,
       guest_email: guestEmail || null,
@@ -202,14 +207,63 @@ Deno.serve(async (req) => {
     }).eq("id", staging.id);
 
     await admin.from("owlting_fillup_tokens").update({
-      used_at: new Date().toISOString(),
+      used_at: nowIso,
       last_attempt_ip: ip,
     }).eq("id", tok.id);
+
+    // Fire-and-forget: send guest confirmation email (抵達指引) via existing function
+    let emailSent = false;
+    if (guestEmail) {
+      try {
+        // Look up room name for the email
+        let roomName = staging.room_type_name ?? "—";
+        if (roomTypeId) {
+          const { data: rt } = await admin
+            .from("room_types").select("name").eq("id", roomTypeId).maybeSingle();
+          if (rt?.name) roomName = rt.name;
+        }
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const emailResp = await fetch(`${supabaseUrl}/functions/v1/send-booking-confirmation`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${serviceKey}`,
+          },
+          body: JSON.stringify({
+            guestName,
+            guestEmail,
+            orderNumber: inserted!.order_number,
+            roomName,
+            checkInDate: staging.check_in_date,
+            checkOutDate: staging.check_out_date,
+            guestCount: finalGuestCount,
+            mealPlan: "none",
+            mealPlanDisplayName: "—",
+            finalPrice: resolvedTotal,
+            depositAmount: resolvedTotal,
+            paymentMethod: "奧丁丁 OTA",
+          }),
+        });
+        emailSent = emailResp.ok;
+        if (emailResp.ok) {
+          await admin.from("orders").update({
+            internal_email_sent: true,
+            internal_email_sent_at: nowIso,
+          }).eq("id", inserted!.id);
+        } else {
+          console.error("[owlting-fillup-submit] confirmation email non-ok:", await emailResp.text());
+        }
+      } catch (emailErr) {
+        console.error("[owlting-fillup-submit] confirmation email failed:", emailErr);
+      }
+    }
 
     return new Response(JSON.stringify({
       ok: true,
       order_id: inserted!.id,
       order_number: inserted!.order_number,
+      email_sent: emailSent,
     }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("[owlting-fillup-submit] fatal:", e);
