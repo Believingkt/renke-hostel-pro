@@ -171,7 +171,7 @@ export function AccommodationOwnersManagement({ accommodationId, title, descript
     <Card>
       <CardHeader className="flex flex-row items-start justify-between space-y-0">
         <div>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="text-base flex items-center gap-2">
             <UserCog className="h-5 w-5 text-primary" />
             {title ?? "民宿業主聯絡人"}
           </CardTitle>
