@@ -97,6 +97,7 @@ Deno.serve(async (req) => {
       });
     }
     const accOverride = body.accommodation_id ? String(body.accommodation_id) : null;
+    const silent = body.silent === true;
 
     // Load staging
     const { data: staging, error: stErr } = await admin
