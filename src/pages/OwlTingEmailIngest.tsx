@@ -115,24 +115,44 @@ export default function OwlTingEmailIngest() {
       const map: Record<string, StagingLite> = {};
       (staging ?? []).forEach((s: any) => {
         let matched: string | null = s.accommodation_id ?? null;
+        let matchReason: string | null = matched ? "已綁定 accommodation_id" : null;
+        let unmatchReason: string | null = null;
+        const raw = rawById.get(s.raw_email_id);
+        const name = (s.accommodation_name ?? "").trim();
+        const fe = (raw?.from_email ?? "").toLowerCase();
+
         if (!matched) {
-          const name = (s.accommodation_name ?? "").trim();
           if (name) {
             const target = norm(name);
-            if (accByNorm.has(target)) matched = accByNorm.get(target)!;
-            else {
+            if (accByNorm.has(target)) {
+              matched = accByNorm.get(target)!;
+              matchReason = `民宿名稱完全相符：「${name}」`;
+            } else {
               for (const [k, id] of accByNorm) {
-                if (k.includes(target) || target.includes(k)) { matched = id; break; }
+                if (k.includes(target) || target.includes(k)) {
+                  matched = id;
+                  matchReason = `民宿名稱模糊相符：「${name}」`;
+                  break;
+                }
               }
             }
           }
         }
         if (!matched) {
-          const raw = rawById.get(s.raw_email_id);
-          const fe = (raw?.from_email ?? "").toLowerCase();
-          if (fe && ownerMap.has(fe)) matched = ownerMap.get(fe)!;
+          if (fe && ownerMap.has(fe)) {
+            matched = ownerMap.get(fe)!;
+            matchReason = `寄件者 Email 對應業主：${fe}`;
+          }
         }
-        map[s.raw_email_id] = { ...s, matched_acc_id: matched };
+        if (!matched) {
+          const parts: string[] = [];
+          if (!name) parts.push("民宿名稱：（空）");
+          else parts.push(`民宿名稱「${name}」找不到對應`);
+          if (!fe) parts.push("寄件者 Email：（空）");
+          else parts.push(`寄件者 ${fe} 未綁定業主`);
+          unmatchReason = parts.join("；");
+        }
+        map[s.raw_email_id] = { ...s, matched_acc_id: matched, match_reason: matchReason, unmatch_reason: unmatchReason };
       });
       setStagingMap(map);
     } else {
