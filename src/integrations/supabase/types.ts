@@ -564,6 +564,53 @@ export type Database = {
           },
         ]
       }
+      accommodation_owners: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          email: string
+          id: string
+          is_active: boolean
+          line_user_id: string | null
+          notes: string | null
+          notify_priority: number
+          owner_name: string
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          email: string
+          id?: string
+          is_active?: boolean
+          line_user_id?: string | null
+          notes?: string | null
+          notify_priority?: number
+          owner_name: string
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          is_active?: boolean
+          line_user_id?: string | null
+          notes?: string | null
+          notify_priority?: number
+          owner_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodation_owners_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accommodation_packages: {
         Row: {
           accommodation_id: string
@@ -4374,11 +4421,17 @@ export type Database = {
           guest_name: string | null
           guest_phone: string | null
           id: string
+          last_reminder_at: string | null
           message_type: string | null
+          notified_at: string | null
           obe_number: string | null
+          owner_filled_at: string | null
           parse_warnings: Json | null
           parser_version: string
+          pii_due_at: string | null
           pii_masked: boolean
+          pii_status: string
+          promoted_order_id: string | null
           raw_email_id: string
           review_notes: string | null
           review_status: string
@@ -4403,11 +4456,17 @@ export type Database = {
           guest_name?: string | null
           guest_phone?: string | null
           id?: string
+          last_reminder_at?: string | null
           message_type?: string | null
+          notified_at?: string | null
           obe_number?: string | null
+          owner_filled_at?: string | null
           parse_warnings?: Json | null
           parser_version?: string
+          pii_due_at?: string | null
           pii_masked?: boolean
+          pii_status?: string
+          promoted_order_id?: string | null
           raw_email_id: string
           review_notes?: string | null
           review_status?: string
@@ -4432,11 +4491,17 @@ export type Database = {
           guest_name?: string | null
           guest_phone?: string | null
           id?: string
+          last_reminder_at?: string | null
           message_type?: string | null
+          notified_at?: string | null
           obe_number?: string | null
+          owner_filled_at?: string | null
           parse_warnings?: Json | null
           parser_version?: string
+          pii_due_at?: string | null
           pii_masked?: boolean
+          pii_status?: string
+          promoted_order_id?: string | null
           raw_email_id?: string
           review_notes?: string | null
           review_status?: string
@@ -4447,6 +4512,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "owlting_email_parsed_staging_promoted_order_id_fkey"
+            columns: ["promoted_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "owlting_email_parsed_staging_raw_email_id_fkey"
             columns: ["raw_email_id"]
@@ -4532,6 +4604,56 @@ export type Database = {
             columns: ["room_type_id"]
             isOneToOne: false
             referencedRelation: "room_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      owlting_fillup_tokens: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          fail_count: number
+          id: string
+          ip_attempts: Json
+          last_attempt_ip: string | null
+          locked_until: string | null
+          staging_id: string
+          token_hash: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          fail_count?: number
+          id?: string
+          ip_attempts?: Json
+          last_attempt_ip?: string | null
+          locked_until?: string | null
+          staging_id: string
+          token_hash: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          fail_count?: number
+          id?: string
+          ip_attempts?: Json
+          last_attempt_ip?: string | null
+          locked_until?: string | null
+          staging_id?: string
+          token_hash?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owlting_fillup_tokens_staging_id_fkey"
+            columns: ["staging_id"]
+            isOneToOne: false
+            referencedRelation: "owlting_email_parsed_staging"
             referencedColumns: ["id"]
           },
         ]
