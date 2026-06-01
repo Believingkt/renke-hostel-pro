@@ -601,6 +601,12 @@ export default function ChannelManager() {
 
       <OwlTingEmailStatsCards />
 
+      <AccommodationOwnersManagement
+        accommodationId={accId}
+        title="奧丁丁訂單接收 Email"
+        description="此處設定的 Email 會收到本民宿奧丁丁訂單的 PII 補單通知。總部後台會同步顯示，亦可由總部新增 / 編輯。"
+      />
+
       {/* OwlTing 設定區塊 */}
       <Card className="overflow-hidden">
         <CardContent className="p-5 space-y-5">
