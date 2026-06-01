@@ -83,12 +83,55 @@ export default function OwlTingEmailIngest() {
     setRows(rawRows);
 
     if (rawRows.length > 0) {
-      const { data: staging } = await supabase
-        .from("owlting_email_parsed_staging")
-        .select("id,raw_email_id,pii_status,accommodation_id,notified_at,pii_due_at")
-        .in("raw_email_id", rawRows.map((r) => r.id));
+      const [{ data: staging }, { data: accs }] = await Promise.all([
+        supabase
+          .from("owlting_email_parsed_staging")
+          .select("id,raw_email_id,pii_status,accommodation_id,accommodation_name,notified_at,pii_due_at")
+          .in("raw_email_id", rawRows.map((r) => r.id)),
+        supabase.from("accommodation_info").select("id,name"),
+      ]);
+      const accList = (accs ?? []) as { id: string; name: string | null }[];
+      const norm = (s: string) => s.toLowerCase().replace(/\s+/g, "");
+      const accByNorm = new Map<string, string>();
+      accList.forEach((a) => { if (a.name) accByNorm.set(norm(a.name), a.id); });
+
+      // Owner email → accommodation_id (for from_email fallback match)
+      const fromEmails = Array.from(new Set(rawRows.map((r) => (r.from_email ?? "").toLowerCase()).filter(Boolean)));
+      const ownerMap = new Map<string, string>();
+      if (fromEmails.length > 0) {
+        const { data: owners } = await supabase
+          .from("accommodation_owners")
+          .select("email,accommodation_id")
+          .in("email", fromEmails)
+          .eq("is_active", true);
+        (owners ?? []).forEach((o: any) => {
+          if (o.email && o.accommodation_id) ownerMap.set(String(o.email).toLowerCase(), o.accommodation_id);
+        });
+      }
+
+      const rawById = new Map(rawRows.map((r) => [r.id, r]));
       const map: Record<string, StagingLite> = {};
-      (staging ?? []).forEach((s: any) => { map[s.raw_email_id] = s; });
+      (staging ?? []).forEach((s: any) => {
+        let matched: string | null = s.accommodation_id ?? null;
+        if (!matched) {
+          const name = (s.accommodation_name ?? "").trim();
+          if (name) {
+            const target = norm(name);
+            if (accByNorm.has(target)) matched = accByNorm.get(target)!;
+            else {
+              for (const [k, id] of accByNorm) {
+                if (k.includes(target) || target.includes(k)) { matched = id; break; }
+              }
+            }
+          }
+        }
+        if (!matched) {
+          const raw = rawById.get(s.raw_email_id);
+          const fe = (raw?.from_email ?? "").toLowerCase();
+          if (fe && ownerMap.has(fe)) matched = ownerMap.get(fe)!;
+        }
+        map[s.raw_email_id] = { ...s, matched_acc_id: matched };
+      });
       setStagingMap(map);
     } else {
       setStagingMap({});
