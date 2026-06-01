@@ -73,6 +73,7 @@ export default function OwlTingEmailIngest() {
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [fillupStagingId, setFillupStagingId] = useState<string | null>(null);
   const [fillupOpen, setFillupOpen] = useState(false);
+  const [refreshTick, setRefreshTick] = useState(0);
 
   const load = async () => {
     setLoading(true);
@@ -191,10 +192,11 @@ export default function OwlTingEmailIngest() {
     <div className="space-y-6 p-6">
       <AdminPageHeader
         title="奧丁丁訂單收件監控"
-        action={<Button variant="outline" onClick={load} disabled={loading}>重新整理</Button>}
+        action={<Button variant="outline" onClick={() => { load(); setRefreshTick((t) => t + 1); }} disabled={loading}>重新整理</Button>}
       />
 
-      <OwlTingEmailStatsCards showDetailLink={false} />
+
+      <OwlTingEmailStatsCards showDetailLink={false} refreshKey={refreshTick} />
 
       <Card>
         <CardHeader><CardTitle>最近 50 筆 Email</CardTitle></CardHeader>
@@ -302,8 +304,9 @@ export default function OwlTingEmailIngest() {
         open={fillupOpen}
         onOpenChange={setFillupOpen}
         stagingId={fillupStagingId}
-        onSubmitted={load}
+        onSubmitted={() => { load(); setRefreshTick((t) => t + 1); }}
       />
+
     </div>
   );
 }

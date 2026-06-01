@@ -51,12 +51,13 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
   const [guestEmail, setGuestEmail] = useState("");
   const [roomTypeId, setRoomTypeId] = useState<string>("none");
   const [totalAmountOverride, setTotalAmountOverride] = useState("");
+  const [guestCount, setGuestCount] = useState<string>("2");
 
   const reset = () => {
     setPhase("loading"); setErrorMsg(null); setStagingRow(null); setAccOptions([]);
     setSelectedAccId("none"); setToken(null); setRoomTypes([]); setAccName("");
     setGuestName(""); setGuestPhone(""); setGuestEmail("");
-    setRoomTypeId("none"); setTotalAmountOverride("");
+    setRoomTypeId("none"); setTotalAmountOverride(""); setGuestCount("2");
   };
 
   const [matchReason, setMatchReason] = useState<string | null>(null);
@@ -82,6 +83,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
       const row = data as StagingRow & { raw_email_id: string | null };
       setStagingRow(row);
       if (row.total_amount) setTotalAmountOverride(String(row.total_amount));
+      if (row.guest_count && row.guest_count > 0) setGuestCount(String(row.guest_count));
 
       if (row.accommodation_id) {
         prepareToken(row.accommodation_id);
@@ -183,10 +185,28 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
     toast.success("已複製訂單編號");
   };
 
+  const amountNum = totalAmountOverride ? Number(totalAmountOverride) : NaN;
+  const amountSuspicious = !Number.isNaN(amountNum) && (amountNum < 100 || amountNum > 100000);
+  const guestCountNum = Number(guestCount);
+  const guestCountValid = Number.isInteger(guestCountNum) && guestCountNum >= 1 && guestCountNum <= 50;
+  const formReady =
+    !!guestName.trim() &&
+    !!guestPhone.trim() &&
+    roomTypeId !== "none" &&
+    guestCountValid;
+
   const handleSubmit = async () => {
     if (!token) return;
     if (!guestName.trim() || !guestPhone.trim()) {
       toast.error("請填寫姓名與電話");
+      return;
+    }
+    if (roomTypeId === "none") {
+      toast.error("請選擇對應房型");
+      return;
+    }
+    if (!guestCountValid) {
+      toast.error("人數需為 1-50 之間的整數");
       return;
     }
     setSubmitting(true);
@@ -197,7 +217,8 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
           guest_name: guestName.trim(),
           guest_phone: guestPhone.trim(),
           guest_email: guestEmail.trim(),
-          room_type_id: roomTypeId !== "none" ? roomTypeId : null,
+          room_type_id: roomTypeId,
+          guest_count: guestCountNum,
           total_amount: totalAmountOverride ? Number(totalAmountOverride) : null,
         },
       });
@@ -308,21 +329,45 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
                 <Input id="ad_guest_email" type="email" value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)} placeholder="guest@example.com（可選）" />
               </div>
               <div>
-                <Label>對應房型（選填）</Label>
+                <Label>對應房型 <span className="text-destructive">*</span></Label>
                 <Select value={roomTypeId} onValueChange={setRoomTypeId}>
-                  <SelectTrigger><SelectValue placeholder="不指定" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="請選擇房型" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">不指定（保留待後台處理）</SelectItem>
+                    <SelectItem value="none">請選擇</SelectItem>
                     {roomTypes.map((rt) => (
                       <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {stagingRow.room_type_name && (
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    信件原房型欄位：「{stagingRow.room_type_name}」（僅供參考，請依 OwlNest 後台實際房型選擇）
+                  </p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="ad_guest_count">住客人數 <span className="text-destructive">*</span></Label>
+                <Input
+                  id="ad_guest_count"
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={guestCount}
+                  onChange={(e) => setGuestCount(e.target.value)}
+                />
+                {!guestCountValid && (
+                  <p className="text-[11px] text-destructive mt-1">人數需為 1-50 之間的整數</p>
+                )}
               </div>
               <div>
                 <Label htmlFor="ad_total_amount">訂單金額</Label>
                 <Input id="ad_total_amount" type="number" value={totalAmountOverride}
                   onChange={(e) => setTotalAmountOverride(e.target.value)} placeholder="如不確定可留 0" />
+                {amountSuspicious && (
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                    ⚠ 金額看起來不太對（{amountNum}），請從 OwlNest 後台確認後修正
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -340,7 +385,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
             </Button>
           )}
           {phase === "form" && (
-            <Button onClick={handleSubmit} disabled={submitting}>
+            <Button onClick={handleSubmit} disabled={submitting || !formReady}>
               {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               送出並建立訂單
             </Button>
