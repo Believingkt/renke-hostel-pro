@@ -60,6 +60,7 @@ export function useSubdomain() {
             'ai-booking', 'auth', 'hq', 'hq-auth', 'headquarters', 'admin',
             'pay', 'profile', 'reset-password', 'change-password',
             'kol-api-docs', 'points-api-docs', 'og-preview', 'payment-test', '__cb',
+            'owlting-fillup',
           ]);
           const pathAlias = pathSegments[0] && !reservedFirst.has(pathSegments[0])
             ? pathSegments[0] : null;
