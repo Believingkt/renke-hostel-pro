@@ -203,7 +203,7 @@ export function AccommodationOwnersManagement({ accommodationId, title, descript
               {!scoped && <TableHead>民宿</TableHead>}
               <TableHead>姓名</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>LINE</TableHead>
+              
               <TableHead className="text-center">優先序</TableHead>
               <TableHead className="text-center">啟用</TableHead>
               <TableHead>備註</TableHead>
@@ -216,7 +216,7 @@ export function AccommodationOwnersManagement({ accommodationId, title, descript
                 {!scoped && <TableCell className="text-sm">{accName(o.accommodation_id)}</TableCell>}
                 <TableCell className="font-medium">{o.owner_name}</TableCell>
                 <TableCell className="text-sm">{o.email}</TableCell>
-                <TableCell className="text-xs text-muted-foreground">{o.line_user_id ?? "—"}</TableCell>
+                
                 <TableCell className="text-center tabular-nums">{o.notify_priority}</TableCell>
                 <TableCell className="text-center">
                   {o.is_active ? <Badge>啟用</Badge> : <Badge variant="outline">停用</Badge>}
@@ -236,7 +236,7 @@ export function AccommodationOwnersManagement({ accommodationId, title, descript
             ))}
             {!loading && filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={scoped ? 7 : 8} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={scoped ? 6 : 7} className="text-center text-muted-foreground py-8">
                   尚未設定業主聯絡人
                 </TableCell>
               </TableRow>
@@ -283,11 +283,6 @@ export function AccommodationOwnersManagement({ accommodationId, title, descript
                 <Label>Email</Label>
                 <Input type="email" value={edit.email}
                   onChange={(e) => setEdit({ ...edit, email: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>LINE User ID（選填，未來通知用）</Label>
-                <Input value={edit.line_user_id}
-                  onChange={(e) => setEdit({ ...edit, line_user_id: e.target.value })} />
               </div>
               <div className="space-y-2">
                 <Label>備註</Label>
