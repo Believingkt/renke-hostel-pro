@@ -107,6 +107,7 @@ const Analytics = lazy(() => import("./pages/Analytics"));
 const Reception = lazy(() => import("./pages/Reception"));
 const ChannelManager = lazy(() => import("./pages/ChannelManager"));
 const OwlTingEmailIngest = lazy(() => import("./pages/OwlTingEmailIngest"));
+const OwlTingFillup = lazy(() => import("./pages/OwlTingFillup"));
 
 // AI 助理訓練中心 (Phase 2)
 const AiTrainingLayout = lazy(() => import("./pages/ai-training/AiTrainingLayout"));
@@ -188,6 +189,9 @@ function App() {
 
                     {/* 前台頁面 */}
                     <Route path="__cb/:ts" element={<Index />} />
+                    <Route path="owlting-fillup/:token" element={
+                      <Suspense fallback={null}><OwlTingFillup /></Suspense>
+                    } />
                     <Route index element={<Index />} />
                     <Route path="book" element={
                       <Suspense fallback={<FrontendSkeleton />}><BookingFlow /></Suspense>
