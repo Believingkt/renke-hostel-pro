@@ -75,7 +75,7 @@ export function OwlTingEmailStatsCards({ showDetailLink = true, showHeader = tru
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <div className="flex items-center gap-2">
             <Mail className="h-5 w-5 text-primary" />
-            <CardTitle className="text-base">OwlTing Email 收件監控</CardTitle>
+            <CardTitle className="text-base">奧丁丁訂單收件監控</CardTitle>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={load} disabled={loading}>
