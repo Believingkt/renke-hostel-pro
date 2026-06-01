@@ -30,6 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Settings2, Plug, Trash2, Copy, KeyRound, Send, Activity, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { OwlTingEmailStatsCards } from "@/components/OwlTingEmailStatsCards";
+import { AccommodationOwnersManagement } from "@/components/headquarters/AccommodationOwnersManagement";
 
 interface OtaChannel {
   id: string;
