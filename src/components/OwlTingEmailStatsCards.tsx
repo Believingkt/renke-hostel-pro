@@ -8,39 +8,59 @@ import { Mail, ExternalLink } from "lucide-react";
 interface Stats {
   total: number;
   parsed: number;
-  quarantined: number; // 信任 domain 但 parser 失敗 (需人工處理)
-  ignored: number;     // 非信任來源 (預期拒絕)
+  quarantined: number;
+  ignored: number;
+  pendingPii: number;
+  overduePii: number;
 }
 
 interface Props {
-  /** 顯示「查看詳細」連結指向 owlting-email-ingest 頁面 */
   showDetailLink?: boolean;
-  /** 顯示標題 */
   showHeader?: boolean;
 }
 
 export function OwlTingEmailStatsCards({ showDetailLink = true, showHeader = true }: Props) {
-  const [stats, setStats] = useState<Stats>({ total: 0, parsed: 0, quarantined: 0, ignored: 0 });
+  const [stats, setStats] = useState<Stats>({
+    total: 0, parsed: 0, quarantined: 0, ignored: 0, pendingPii: 0, overduePii: 0,
+  });
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     setLoading(true);
-    const [{ count: total }, { count: parsed }, { count: ignored }, { count: quarantined }] = await Promise.all([
+    const nowIso = new Date().toISOString();
+    const [
+      { count: total },
+      { count: parsed },
+      { count: ignored },
+      { count: quarantined },
+      { count: pendingPii },
+      { count: overduePii },
+    ] = await Promise.all([
       supabase.from("owlting_email_orders_raw").select("*", { count: "exact", head: true }),
       supabase.from("owlting_email_orders_raw").select("*", { count: "exact", head: true }).eq("status", "parsed"),
       supabase.from("owlting_email_orders_raw").select("*", { count: "exact", head: true }).eq("status", "ignored"),
-      // 隔離區 = 信任 domain 但 parser 失敗 (failure_stage = 'subject_parse')，且尚未人工處理
       supabase
         .from("owlting_email_parse_failures")
         .select("*", { count: "exact", head: true })
         .eq("resolved", false)
         .eq("failure_stage", "subject_parse"),
+      supabase
+        .from("owlting_email_parsed_staging")
+        .select("*", { count: "exact", head: true })
+        .eq("pii_status", "pending_pii_fillup"),
+      supabase
+        .from("owlting_email_parsed_staging")
+        .select("*", { count: "exact", head: true })
+        .eq("pii_status", "pending_pii_fillup")
+        .lt("pii_due_at", nowIso),
     ]);
     setStats({
       total: total ?? 0,
       parsed: parsed ?? 0,
       quarantined: quarantined ?? 0,
       ignored: ignored ?? 0,
+      pendingPii: pendingPii ?? 0,
+      overduePii: overduePii ?? 0,
     });
     setLoading(false);
   };
@@ -73,9 +93,21 @@ export function OwlTingEmailStatsCards({ showDetailLink = true, showHeader = tru
         </CardHeader>
       )}
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <StatBox label="總收件數" value={stats.total} />
           <StatBox label="成功解析" value={stats.parsed} tone="primary" />
+          <StatBox
+            label="待補 PII"
+            value={stats.pendingPii}
+            tone={stats.pendingPii > 0 ? "warning" : "muted"}
+            hint="業主尚未補齊住客資料"
+          />
+          <StatBox
+            label="逾期未補"
+            value={stats.overduePii}
+            tone={stats.overduePii > 0 ? "destructive" : "muted"}
+            hint="超過補單截止時間"
+          />
           <StatBox
             label="隔離區(需人工)"
             value={stats.quarantined}
@@ -86,7 +118,7 @@ export function OwlTingEmailStatsCards({ showDetailLink = true, showHeader = tru
             label="已忽略(非信任)"
             value={stats.ignored}
             tone="muted"
-            hint="非白名單寄件者，自動忽略"
+            hint="非白名單寄件者"
           />
         </div>
       </CardContent>
@@ -102,7 +134,7 @@ function StatBox({
 }: {
   label: string;
   value: number;
-  tone?: "default" | "primary" | "destructive" | "muted";
+  tone?: "default" | "primary" | "destructive" | "muted" | "warning";
   hint?: string;
 }) {
   const colorClass =
@@ -110,6 +142,8 @@ function StatBox({
       ? "text-primary"
       : tone === "destructive"
       ? "text-destructive"
+      : tone === "warning"
+      ? "text-amber-600"
       : tone === "muted"
       ? "text-muted-foreground"
       : "text-foreground";
