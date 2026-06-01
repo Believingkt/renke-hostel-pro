@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -59,7 +59,17 @@ const emptyEdit: EditState = {
   notes: "",
 };
 
-export function AccommodationOwnersManagement() {
+interface Props {
+  /** 若提供，僅顯示此民宿的業主聯絡人；新增/編輯時鎖定民宿，並隱藏民宿欄位與篩選器（用於民宿後台通路管理）。 */
+  accommodationId?: string;
+  /** 自訂卡片標題 */
+  title?: string;
+  /** 自訂卡片描述 */
+  description?: string;
+}
+
+export function AccommodationOwnersManagement({ accommodationId, title, description }: Props = {}) {
+  const scoped = !!accommodationId;
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [owners, setOwners] = useState<OwnerRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,25 +81,31 @@ export function AccommodationOwnersManagement() {
 
   const load = async () => {
     setLoading(true);
+    const ownersQuery = supabase
+      .from("accommodation_owners")
+      .select("id,accommodation_id,owner_name,email,line_user_id,notify_priority,is_active,notes")
+      .order("notify_priority", { ascending: true });
+    if (scoped) ownersQuery.eq("accommodation_id", accommodationId!);
+
     const [{ data: accs }, { data: ows }] = await Promise.all([
       supabase.from("accommodation_info").select("id,name").order("name"),
-      supabase
-        .from("accommodation_owners")
-        .select("id,accommodation_id,owner_name,email,line_user_id,notify_priority,is_active,notes")
-        .order("notify_priority", { ascending: true }),
+      ownersQuery,
     ]);
     setAccommodations((accs as Accommodation[]) ?? []);
     setOwners((ows as OwnerRow[]) ?? []);
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [accommodationId]);
 
   const accName = (id: string) =>
     accommodations.find((a) => a.id === id)?.name ?? "(未知)";
 
   const openNew = () => {
-    setEdit({ ...emptyEdit, accommodation_id: accommodations[0]?.id ?? "" });
+    setEdit({
+      ...emptyEdit,
+      accommodation_id: scoped ? accommodationId! : (accommodations[0]?.id ?? ""),
+    });
     setEditOpen(true);
   };
 
@@ -142,7 +158,14 @@ export function AccommodationOwnersManagement() {
     await load();
   };
 
-  const filtered = filterAcc === "all" ? owners : owners.filter((o) => o.accommodation_id === filterAcc);
+  const filtered = useMemo(() => {
+    if (scoped) return owners;
+    return filterAcc === "all" ? owners : owners.filter((o) => o.accommodation_id === filterAcc);
+  }, [owners, filterAcc, scoped]);
+
+  const defaultDescription = scoped
+    ? "奧丁丁訂單接收信件會寄到下列 Email（小數字優先序，可設多人收件）"
+    : "奧丁丁 PII 補單通知會依優先序寄給此處的業主 Email（小數字優先）";
 
   return (
     <Card>
@@ -150,25 +173,25 @@ export function AccommodationOwnersManagement() {
         <div>
           <CardTitle className="flex items-center gap-2">
             <UserCog className="h-5 w-5 text-primary" />
-            民宿業主聯絡人
+            {title ?? "民宿業主聯絡人"}
           </CardTitle>
-          <CardDescription>
-            奧丁丁 PII 補單通知會依優先序寄給此處的業主 Email（小數字優先）
-          </CardDescription>
+          <CardDescription>{description ?? defaultDescription}</CardDescription>
         </div>
         <div className="flex items-center gap-2">
-          <Select value={filterAcc} onValueChange={setFilterAcc}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">全部民宿</SelectItem>
-              {accommodations.map((a) => (
-                <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button onClick={openNew} disabled={accommodations.length === 0}>
+          {!scoped && (
+            <Select value={filterAcc} onValueChange={setFilterAcc}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部民宿</SelectItem>
+                {accommodations.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <Button onClick={openNew} disabled={!scoped && accommodations.length === 0}>
             <Plus className="h-4 w-4 mr-1" /> 新增
           </Button>
         </div>
@@ -177,7 +200,7 @@ export function AccommodationOwnersManagement() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>民宿</TableHead>
+              {!scoped && <TableHead>民宿</TableHead>}
               <TableHead>姓名</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>LINE</TableHead>
@@ -190,7 +213,7 @@ export function AccommodationOwnersManagement() {
           <TableBody>
             {filtered.map((o) => (
               <TableRow key={o.id}>
-                <TableCell className="text-sm">{accName(o.accommodation_id)}</TableCell>
+                {!scoped && <TableCell className="text-sm">{accName(o.accommodation_id)}</TableCell>}
                 <TableCell className="font-medium">{o.owner_name}</TableCell>
                 <TableCell className="text-sm">{o.email}</TableCell>
                 <TableCell className="text-xs text-muted-foreground">{o.line_user_id ?? "—"}</TableCell>
@@ -213,7 +236,7 @@ export function AccommodationOwnersManagement() {
             ))}
             {!loading && filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={scoped ? 7 : 8} className="text-center text-muted-foreground py-8">
                   尚未設定業主聯絡人
                 </TableCell>
               </TableRow>
@@ -228,20 +251,22 @@ export function AccommodationOwnersManagement() {
               <DialogDescription>用於奧丁丁 PII 補單通知派送</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>民宿</Label>
-                <Select
-                  value={edit.accommodation_id}
-                  onValueChange={(v) => setEdit({ ...edit, accommodation_id: v })}
-                >
-                  <SelectTrigger><SelectValue placeholder="選擇民宿" /></SelectTrigger>
-                  <SelectContent>
-                    {accommodations.map((a) => (
-                      <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {!scoped && (
+                <div className="space-y-2">
+                  <Label>民宿</Label>
+                  <Select
+                    value={edit.accommodation_id}
+                    onValueChange={(v) => setEdit({ ...edit, accommodation_id: v })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="選擇民宿" /></SelectTrigger>
+                    <SelectContent>
+                      {accommodations.map((a) => (
+                        <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label>姓名</Label>

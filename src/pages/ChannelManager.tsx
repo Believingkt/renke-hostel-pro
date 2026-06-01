@@ -30,6 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Settings2, Plug, Trash2, Copy, KeyRound, Send, Activity, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { OwlTingEmailStatsCards } from "@/components/OwlTingEmailStatsCards";
+import { AccommodationOwnersManagement } from "@/components/headquarters/AccommodationOwnersManagement";
 
 interface OtaChannel {
   id: string;
@@ -599,6 +600,12 @@ export default function ChannelManager() {
       <AdminPageHeader title="通路管理" icon={Plug} />
 
       <OwlTingEmailStatsCards />
+
+      <AccommodationOwnersManagement
+        accommodationId={accId}
+        title="奧丁丁訂單接收 Email"
+        description="此處設定的 Email 會收到本民宿奧丁丁訂單的 PII 補單通知。總部後台會同步顯示，亦可由總部新增 / 編輯。"
+      />
 
       {/* OwlTing 設定區塊 */}
       <Card className="overflow-hidden">
