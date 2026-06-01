@@ -51,12 +51,13 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
   const [guestEmail, setGuestEmail] = useState("");
   const [roomTypeId, setRoomTypeId] = useState<string>("none");
   const [totalAmountOverride, setTotalAmountOverride] = useState("");
+  const [guestCount, setGuestCount] = useState<string>("2");
 
   const reset = () => {
     setPhase("loading"); setErrorMsg(null); setStagingRow(null); setAccOptions([]);
     setSelectedAccId("none"); setToken(null); setRoomTypes([]); setAccName("");
     setGuestName(""); setGuestPhone(""); setGuestEmail("");
-    setRoomTypeId("none"); setTotalAmountOverride("");
+    setRoomTypeId("none"); setTotalAmountOverride(""); setGuestCount("2");
   };
 
   const [matchReason, setMatchReason] = useState<string | null>(null);
