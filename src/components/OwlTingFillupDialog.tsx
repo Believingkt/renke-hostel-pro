@@ -59,14 +59,19 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
     setRoomTypeId("none"); setTotalAmountOverride("");
   };
 
+  const [matchReason, setMatchReason] = useState<string | null>(null);
+  const [matchFailedReason, setMatchFailedReason] = useState<string | null>(null);
+
   // Step 1: load staging row and decide path
   useEffect(() => {
     if (!open || !stagingId) return;
     reset();
+    setMatchReason(null);
+    setMatchFailedReason(null);
     (async () => {
       const { data, error } = await supabase
         .from("owlting_email_parsed_staging")
-        .select("id, obe_number, accommodation_id, accommodation_name, room_type_name, check_in_date, check_out_date, guest_count, total_amount, pii_status")
+        .select("id, raw_email_id, obe_number, accommodation_id, accommodation_name, room_type_name, check_in_date, check_out_date, guest_count, total_amount, pii_status")
         .eq("id", stagingId)
         .maybeSingle();
       if (error || !data) {
@@ -74,19 +79,74 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
         setPhase("error");
         return;
       }
-      const row = data as StagingRow;
+      const row = data as StagingRow & { raw_email_id: string | null };
       setStagingRow(row);
       if (row.total_amount) setTotalAmountOverride(String(row.total_amount));
+
       if (row.accommodation_id) {
         prepareToken(row.accommodation_id);
-      } else {
-        const { data: accs } = await supabase
-          .from("accommodation_info")
-          .select("id, name")
-          .order("name");
-        setAccOptions((accs ?? []).map((a: any) => ({ id: a.id, name: a.name ?? "(未命名)" })));
-        setPhase("pick_acc");
+        return;
       }
+
+      // Need auto-match
+      const { data: accs } = await supabase
+        .from("accommodation_info")
+        .select("id, name")
+        .order("name");
+      const options: AccOption[] = (accs ?? []).map((a: any) => ({ id: a.id, name: a.name ?? "(未命名)" }));
+      setAccOptions(options);
+
+      // Strategy 1: match by accommodation_name (exact then contains)
+      const rawName = (row.accommodation_name ?? "").trim();
+      if (rawName) {
+        const norm = (s: string) => s.toLowerCase().replace(/\s+/g, "");
+        const target = norm(rawName);
+        const exact = options.find((o) => norm(o.name) === target);
+        const contains =
+          exact ||
+          options.find((o) => norm(o.name).includes(target) || target.includes(norm(o.name)));
+        if (contains) {
+          setSelectedAccId(contains.id);
+          setMatchReason(`依信件中民宿名「${rawName}」自動匹配到「${contains.name}」`);
+          setPhase("pick_acc");
+          return;
+        }
+      }
+
+      // Strategy 2: match by owner email from raw_email.from_email
+      if (row.raw_email_id) {
+        const { data: raw } = await supabase
+          .from("owlting_email_orders_raw")
+          .select("from_email")
+          .eq("id", row.raw_email_id)
+          .maybeSingle();
+        const fromEmail = (raw?.from_email ?? "").trim().toLowerCase();
+        if (fromEmail) {
+          const { data: owner } = await supabase
+            .from("accommodation_owners")
+            .select("accommodation_id")
+            .eq("email", fromEmail)
+            .eq("is_active", true)
+            .maybeSingle();
+          if (owner?.accommodation_id) {
+            const opt = options.find((o) => o.id === owner.accommodation_id);
+            if (opt) {
+              setSelectedAccId(opt.id);
+              setMatchReason(`依寄件業主信箱「${fromEmail}」自動匹配到「${opt.name}」`);
+              setPhase("pick_acc");
+              return;
+            }
+          }
+        }
+      }
+
+      // No match — show full picker with reason
+      setMatchFailedReason(
+        rawName
+          ? `信件中民宿名「${rawName}」未對應到任何已建立的民宿；寄件業主信箱也找不到對應。請手動指定。`
+          : "信件未含可辨識的民宿名稱、寄件業主信箱也找不到對應。請手動指定。"
+      );
+      setPhase("pick_acc");
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, stagingId]);
@@ -179,8 +239,22 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
             <div className="rounded-lg bg-muted p-3 text-sm space-y-1">
               <div><span className="text-muted-foreground">訂單編號：</span><span className="font-mono font-bold">{stagingRow.obe_number ?? "—"}</span></div>
               <div><span className="text-muted-foreground">入住：</span>{stagingRow.check_in_date ?? "—"} → {stagingRow.check_out_date ?? "—"}</div>
-              <div className="text-xs text-muted-foreground pt-1">此筆信件未能自動辨識民宿，請手動指定。</div>
+              {stagingRow.accommodation_name && (
+                <div><span className="text-muted-foreground">信件民宿名：</span>{stagingRow.accommodation_name}</div>
+              )}
             </div>
+
+            {matchReason && (
+              <div className="rounded-md border border-green-200 bg-green-50 text-green-800 px-3 py-2 text-xs">
+                ✓ {matchReason}（可下方修改）
+              </div>
+            )}
+            {matchFailedReason && (
+              <div className="rounded-md border border-amber-200 bg-amber-50 text-amber-800 px-3 py-2 text-xs">
+                ⚠ 自動匹配失敗：{matchFailedReason}
+              </div>
+            )}
+
             <div>
               <Label>對應民宿 <span className="text-destructive">*</span></Label>
               <Select value={selectedAccId} onValueChange={setSelectedAccId}>
