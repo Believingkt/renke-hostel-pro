@@ -58,14 +58,11 @@ vi.mock("@/integrations/supabase/client", () => ({
 
 // Radix Select uses pointer APIs that jsdom lacks; provide noop polyfills.
 beforeEach(() => {
-  // @ts-expect-error jsdom polyfill
-  Element.prototype.hasPointerCapture ??= () => false;
-  // @ts-expect-error jsdom polyfill
-  Element.prototype.releasePointerCapture ??= () => {};
-  // @ts-expect-error jsdom polyfill
-  Element.prototype.setPointerCapture ??= () => {};
-  // @ts-expect-error jsdom polyfill
-  Element.prototype.scrollIntoView ??= () => {};
+  const proto = Element.prototype as unknown as Record<string, unknown>;
+  proto.hasPointerCapture ??= () => false;
+  proto.releasePointerCapture ??= () => {};
+  proto.setPointerCapture ??= () => {};
+  proto.scrollIntoView ??= () => {};
 });
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
