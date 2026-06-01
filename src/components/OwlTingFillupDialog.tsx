@@ -239,8 +239,22 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
             <div className="rounded-lg bg-muted p-3 text-sm space-y-1">
               <div><span className="text-muted-foreground">訂單編號：</span><span className="font-mono font-bold">{stagingRow.obe_number ?? "—"}</span></div>
               <div><span className="text-muted-foreground">入住：</span>{stagingRow.check_in_date ?? "—"} → {stagingRow.check_out_date ?? "—"}</div>
-              <div className="text-xs text-muted-foreground pt-1">此筆信件未能自動辨識民宿，請手動指定。</div>
+              {stagingRow.accommodation_name && (
+                <div><span className="text-muted-foreground">信件民宿名：</span>{stagingRow.accommodation_name}</div>
+              )}
             </div>
+
+            {matchReason && (
+              <div className="rounded-md border border-green-200 bg-green-50 text-green-800 px-3 py-2 text-xs">
+                ✓ {matchReason}（可下方修改）
+              </div>
+            )}
+            {matchFailedReason && (
+              <div className="rounded-md border border-amber-200 bg-amber-50 text-amber-800 px-3 py-2 text-xs">
+                ⚠ 自動匹配失敗：{matchFailedReason}
+              </div>
+            )}
+
             <div>
               <Label>對應民宿 <span className="text-destructive">*</span></Label>
               <Select value={selectedAccId} onValueChange={setSelectedAccId}>
