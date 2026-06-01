@@ -192,8 +192,9 @@ export default function OwlTingEmailIngest() {
     <div className="space-y-6 p-6">
       <AdminPageHeader
         title="奧丁丁訂單收件監控"
-        action={<Button variant="outline" onClick={load} disabled={loading}>重新整理</Button>}
+        action={<Button variant="outline" onClick={() => { load(); setRefreshTick((t) => t + 1); }} disabled={loading}>重新整理</Button>}
       />
+
 
       <OwlTingEmailStatsCards showDetailLink={false} refreshKey={refreshTick} />
 
