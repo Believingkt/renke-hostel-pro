@@ -285,11 +285,6 @@ export function AccommodationOwnersManagement({ accommodationId, title, descript
                   onChange={(e) => setEdit({ ...edit, email: e.target.value })} />
               </div>
               <div className="space-y-2">
-                <Label>LINE User ID（選填，未來通知用）</Label>
-                <Input value={edit.line_user_id}
-                  onChange={(e) => setEdit({ ...edit, line_user_id: e.target.value })} />
-              </div>
-              <div className="space-y-2">
                 <Label>備註</Label>
                 <Input value={edit.notes}
                   onChange={(e) => setEdit({ ...edit, notes: e.target.value })} />
