@@ -17,9 +17,10 @@ interface Stats {
 interface Props {
   showDetailLink?: boolean;
   showHeader?: boolean;
+  refreshKey?: number | string;
 }
 
-export function OwlTingEmailStatsCards({ showDetailLink = true, showHeader = true }: Props) {
+export function OwlTingEmailStatsCards({ showDetailLink = true, showHeader = true, refreshKey }: Props) {
   const [stats, setStats] = useState<Stats>({
     total: 0, parsed: 0, quarantined: 0, ignored: 0, pendingPii: 0, overduePii: 0,
   });
@@ -67,7 +68,7 @@ export function OwlTingEmailStatsCards({ showDetailLink = true, showHeader = tru
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [refreshKey]);
 
   return (
     <Card>
