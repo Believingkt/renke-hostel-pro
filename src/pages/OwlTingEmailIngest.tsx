@@ -216,6 +216,13 @@ export default function OwlTingEmailIngest() {
           </Table>
         </CardContent>
       </Card>
+
+      <OwlTingFillupDialog
+        open={fillupOpen}
+        onOpenChange={setFillupOpen}
+        stagingId={fillupStagingId}
+        onSubmitted={load}
+      />
     </div>
   );
 }
