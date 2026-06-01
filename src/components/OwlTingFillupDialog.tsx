@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Copy, ExternalLink, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { isAmountSuspicious, isGuestCountValid } from "@/lib/owltingFillupValidation";
 
 interface Props {
   open: boolean;
