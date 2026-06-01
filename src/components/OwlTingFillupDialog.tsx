@@ -187,9 +187,9 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
   };
 
   const amountNum = totalAmountOverride ? Number(totalAmountOverride) : NaN;
-  const amountSuspicious = !Number.isNaN(amountNum) && (amountNum < 100 || amountNum > 100000);
+  const amountSuspicious = isAmountSuspicious(totalAmountOverride);
   const guestCountNum = Number(guestCount);
-  const guestCountValid = Number.isInteger(guestCountNum) && guestCountNum >= 1 && guestCountNum <= 50;
+  const guestCountValid = isGuestCountValid(guestCount);
   const formReady =
     !!guestName.trim() &&
     !!guestPhone.trim() &&
