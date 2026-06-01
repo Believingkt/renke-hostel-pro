@@ -83,6 +83,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
       const row = data as StagingRow & { raw_email_id: string | null };
       setStagingRow(row);
       if (row.total_amount) setTotalAmountOverride(String(row.total_amount));
+      if (row.guest_count && row.guest_count > 0) setGuestCount(String(row.guest_count));
 
       if (row.accommodation_id) {
         prepareToken(row.accommodation_id);
