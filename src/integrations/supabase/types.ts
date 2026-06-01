@@ -4407,6 +4407,7 @@ export type Database = {
       }
       owlting_email_parsed_staging: {
         Row: {
+          accommodation_id: string | null
           accommodation_name: string | null
           addons: Json | null
           channel_source: string | null
@@ -4442,6 +4443,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          accommodation_id?: string | null
           accommodation_name?: string | null
           addons?: Json | null
           channel_source?: string | null
@@ -4477,6 +4479,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          accommodation_id?: string | null
           accommodation_name?: string | null
           addons?: Json | null
           channel_source?: string | null
@@ -4512,6 +4515,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "owlting_email_parsed_staging_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "owlting_email_parsed_staging_promoted_order_id_fkey"
             columns: ["promoted_order_id"]
@@ -4610,6 +4620,7 @@ export type Database = {
       }
       owlting_fillup_tokens: {
         Row: {
+          accommodation_id: string | null
           created_at: string
           created_by: string | null
           expires_at: string
@@ -4623,6 +4634,7 @@ export type Database = {
           used_at: string | null
         }
         Insert: {
+          accommodation_id?: string | null
           created_at?: string
           created_by?: string | null
           expires_at: string
@@ -4636,6 +4648,7 @@ export type Database = {
           used_at?: string | null
         }
         Update: {
+          accommodation_id?: string | null
           created_at?: string
           created_by?: string | null
           expires_at?: string
@@ -4649,6 +4662,13 @@ export type Database = {
           used_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "owlting_fillup_tokens_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "owlting_fillup_tokens_staging_id_fkey"
             columns: ["staging_id"]
