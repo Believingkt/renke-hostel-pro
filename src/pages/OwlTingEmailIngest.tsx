@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { OwlTingEmailStatsCards } from "@/components/OwlTingEmailStatsCards";
+import { toast } from "sonner";
+import { Send, Loader2 } from "lucide-react";
 
 interface RawEmail {
   id: string;
@@ -23,12 +25,33 @@ interface RawEmail {
   notes: string | null;
 }
 
+interface StagingLite {
+  id: string;
+  raw_email_id: string;
+  pii_status: string;
+  accommodation_id: string | null;
+  notified_at: string | null;
+  pii_due_at: string | null;
+}
+
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   parsed: "default",
   received: "secondary",
   matched: "default",
   ignored: "outline",
   failed: "destructive",
+};
+
+const PII_LABEL: Record<string, string> = {
+  pending_pii_fillup: "待補 PII",
+  pii_filled: "已補齊",
+  promoted_to_booking: "已建單",
+};
+
+const PII_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  pending_pii_fillup: "destructive",
+  pii_filled: "secondary",
+  promoted_to_booking: "default",
 };
 
 const TYPE_LABEL: Record<string, string> = {
@@ -40,7 +63,9 @@ const TYPE_LABEL: Record<string, string> = {
 
 export default function OwlTingEmailIngest() {
   const [rows, setRows] = useState<RawEmail[]>([]);
+  const [stagingMap, setStagingMap] = useState<Record<string, StagingLite>>({});
   const [loading, setLoading] = useState(true);
+  const [sendingId, setSendingId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -49,11 +74,48 @@ export default function OwlTingEmailIngest() {
       .select("id,received_at,from_email,from_domain,subject,message_type,obe_number,accommodation_name,status,notes")
       .order("received_at", { ascending: false })
       .limit(50);
-    setRows((list as RawEmail[]) ?? []);
+    const rawRows = (list as RawEmail[]) ?? [];
+    setRows(rawRows);
+
+    if (rawRows.length > 0) {
+      const { data: staging } = await supabase
+        .from("owlting_email_parsed_staging")
+        .select("id,raw_email_id,pii_status,accommodation_id,notified_at,pii_due_at")
+        .in("raw_email_id", rawRows.map((r) => r.id));
+      const map: Record<string, StagingLite> = {};
+      (staging ?? []).forEach((s: any) => { map[s.raw_email_id] = s; });
+      setStagingMap(map);
+    } else {
+      setStagingMap({});
+    }
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
+
+  const sendFillupNotification = async (stagingId: string) => {
+    setSendingId(stagingId);
+    try {
+      const { data, error } = await supabase.functions.invoke("owlting-fillup-issue", {
+        body: { staging_id: stagingId },
+      });
+      if (error) throw error;
+      const emailed = (data as any)?.emailed_to?.length ?? 0;
+      const owners = (data as any)?.owners_count ?? 0;
+      if (owners === 0) {
+        toast.warning("尚未設定業主聯絡人，請先到 HQ → 系統管理 → 業主聯絡人 新增");
+      } else if (emailed === 0) {
+        toast.warning(`連結已產生但 Email 發送失敗，請檢查 Resend 設定`);
+      } else {
+        toast.success(`已寄送補單通知給 ${emailed} 位業主`);
+      }
+      await load();
+    } catch (e: any) {
+      toast.error(`發送失敗：${e.message ?? e}`);
+    } finally {
+      setSendingId(null);
+    }
+  };
 
   return (
     <div className="space-y-6 p-6">
@@ -64,7 +126,6 @@ export default function OwlTingEmailIngest() {
       />
 
       <OwlTingEmailStatsCards showDetailLink={false} />
-
 
       <Card>
         <CardHeader><CardTitle>最近 50 筆 Email</CardTitle></CardHeader>
@@ -78,27 +139,66 @@ export default function OwlTingEmailIngest() {
                 <TableHead>OBE</TableHead>
                 <TableHead>來源</TableHead>
                 <TableHead>主旨</TableHead>
-                <TableHead>備註</TableHead>
+                <TableHead>補單狀態</TableHead>
+                <TableHead className="text-right">動作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className="whitespace-nowrap text-xs">
-                    {format(new Date(r.received_at), "MM/dd HH:mm:ss")}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={STATUS_VARIANT[r.status] ?? "secondary"}>{r.status}</Badge>
-                  </TableCell>
-                  <TableCell>{r.message_type ? TYPE_LABEL[r.message_type] ?? r.message_type : "—"}</TableCell>
-                  <TableCell className="font-mono text-xs">{r.obe_number ?? "—"}</TableCell>
-                  <TableCell className="text-xs">{r.from_domain ?? r.from_email ?? "—"}</TableCell>
-                  <TableCell className="max-w-[360px] truncate text-xs" title={r.subject ?? ""}>{r.subject ?? "—"}</TableCell>
-                  <TableCell className="max-w-[240px] truncate text-xs text-muted-foreground" title={r.notes ?? ""}>{r.notes ?? "—"}</TableCell>
-                </TableRow>
-              ))}
+              {rows.map((r) => {
+                const st = stagingMap[r.id];
+                const canSend = st && st.pii_status === "pending_pii_fillup";
+                return (
+                  <TableRow key={r.id}>
+                    <TableCell className="whitespace-nowrap text-xs">
+                      {format(new Date(r.received_at), "MM/dd HH:mm:ss")}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={STATUS_VARIANT[r.status] ?? "secondary"}>{r.status}</Badge>
+                    </TableCell>
+                    <TableCell>{r.message_type ? TYPE_LABEL[r.message_type] ?? r.message_type : "—"}</TableCell>
+                    <TableCell className="font-mono text-xs">{r.obe_number ?? "—"}</TableCell>
+                    <TableCell className="text-xs">{r.from_domain ?? r.from_email ?? "—"}</TableCell>
+                    <TableCell className="max-w-[300px] truncate text-xs" title={r.subject ?? ""}>{r.subject ?? "—"}</TableCell>
+                    <TableCell className="text-xs">
+                      {st ? (
+                        <div className="flex flex-col gap-1">
+                          <Badge variant={PII_VARIANT[st.pii_status] ?? "outline"}>
+                            {PII_LABEL[st.pii_status] ?? st.pii_status}
+                          </Badge>
+                          {st.notified_at && (
+                            <span className="text-[10px] text-muted-foreground">
+                              已通知 {format(new Date(st.notified_at), "MM/dd HH:mm")}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {canSend && (
+                        <Button
+                          size="sm"
+                          variant={st.notified_at ? "outline" : "default"}
+                          onClick={() => sendFillupNotification(st.id)}
+                          disabled={sendingId === st.id}
+                        >
+                          {sendingId === st.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <>
+                              <Send className="h-3.5 w-3.5 mr-1" />
+                              {st.notified_at ? "重發" : "發送通知"}
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
               {!loading && rows.length === 0 && (
-                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">尚無收件記錄</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">尚無收件記錄</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
