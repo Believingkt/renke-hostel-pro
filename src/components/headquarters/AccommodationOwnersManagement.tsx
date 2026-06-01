@@ -216,7 +216,7 @@ export function AccommodationOwnersManagement({ accommodationId, title, descript
                 {!scoped && <TableCell className="text-sm">{accName(o.accommodation_id)}</TableCell>}
                 <TableCell className="font-medium">{o.owner_name}</TableCell>
                 <TableCell className="text-sm">{o.email}</TableCell>
-                <TableCell className="text-xs text-muted-foreground">{o.line_user_id ?? "—"}</TableCell>
+                
                 <TableCell className="text-center tabular-nums">{o.notify_priority}</TableCell>
                 <TableCell className="text-center">
                   {o.is_active ? <Badge>啟用</Badge> : <Badge variant="outline">停用</Badge>}
