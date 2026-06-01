@@ -185,10 +185,28 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
     toast.success("已複製訂單編號");
   };
 
+  const amountNum = totalAmountOverride ? Number(totalAmountOverride) : NaN;
+  const amountSuspicious = !Number.isNaN(amountNum) && (amountNum < 100 || amountNum > 100000);
+  const guestCountNum = Number(guestCount);
+  const guestCountValid = Number.isInteger(guestCountNum) && guestCountNum >= 1 && guestCountNum <= 50;
+  const formReady =
+    !!guestName.trim() &&
+    !!guestPhone.trim() &&
+    roomTypeId !== "none" &&
+    guestCountValid;
+
   const handleSubmit = async () => {
     if (!token) return;
     if (!guestName.trim() || !guestPhone.trim()) {
       toast.error("請填寫姓名與電話");
+      return;
+    }
+    if (roomTypeId === "none") {
+      toast.error("請選擇對應房型");
+      return;
+    }
+    if (!guestCountValid) {
+      toast.error("人數需為 1-50 之間的整數");
       return;
     }
     setSubmitting(true);
@@ -199,7 +217,8 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
           guest_name: guestName.trim(),
           guest_phone: guestPhone.trim(),
           guest_email: guestEmail.trim(),
-          room_type_id: roomTypeId !== "none" ? roomTypeId : null,
+          room_type_id: roomTypeId,
+          guest_count: guestCountNum,
           total_amount: totalAmountOverride ? Number(totalAmountOverride) : null,
         },
       });
