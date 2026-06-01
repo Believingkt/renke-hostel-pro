@@ -247,31 +247,44 @@ export default function OwlTingEmailIngest() {
                     </TableCell>
                     <TableCell className="text-right">
                       {canSend && (
-                        <div className="flex justify-end gap-1.5">
-                          {st.matched_acc_id && (
+                        <div className="flex flex-col items-end gap-1">
+                          <div className="flex justify-end gap-1.5">
+                            {st.matched_acc_id ? (
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onClick={() => { setFillupStagingId(st.id); setFillupOpen(true); }}
+                                title={st.match_reason ?? undefined}
+                              >
+                                <ClipboardEdit className="h-3.5 w-3.5 mr-1" />補單
+                              </Button>
+                            ) : (
+                              <span
+                                className="text-[10px] text-amber-600 dark:text-amber-400 max-w-[220px] text-right leading-tight"
+                                title={st.unmatch_reason ?? "無法自動匹配民宿"}
+                              >
+                                ⚠ 無法自動匹配民宿
+                                {st.unmatch_reason && (
+                                  <span className="block text-muted-foreground">{st.unmatch_reason}</span>
+                                )}
+                              </span>
+                            )}
                             <Button
                               size="sm"
-                              variant="default"
-                              onClick={() => { setFillupStagingId(st.id); setFillupOpen(true); }}
+                              variant="outline"
+                              onClick={() => sendFillupNotification(st.id)}
+                              disabled={sendingId === st.id}
                             >
-                              <ClipboardEdit className="h-3.5 w-3.5 mr-1" />補單
+                              {sendingId === st.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <>
+                                  <Send className="h-3.5 w-3.5 mr-1" />
+                                  {st.notified_at ? "重發通知" : "發送通知"}
+                                </>
+                              )}
                             </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => sendFillupNotification(st.id)}
-                            disabled={sendingId === st.id}
-                          >
-                            {sendingId === st.id ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <>
-                                <Send className="h-3.5 w-3.5 mr-1" />
-                                {st.notified_at ? "重發通知" : "發送通知"}
-                              </>
-                            )}
-                          </Button>
+                          </div>
                         </div>
                       )}
                     </TableCell>
