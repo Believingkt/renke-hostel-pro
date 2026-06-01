@@ -146,3 +146,12 @@ verify_jwt = false
 
 [functions.create-accommodation-ai-api-key]
 verify_jwt = true
+
+[functions.owlting-fillup-validate]
+verify_jwt = false
+
+[functions.owlting-fillup-submit]
+verify_jwt = false
+
+[functions.owlting-fillup-remind]
+verify_jwt = false
