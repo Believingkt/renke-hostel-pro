@@ -67,6 +67,8 @@ export default function OwlTingEmailIngest() {
   const [stagingMap, setStagingMap] = useState<Record<string, StagingLite>>({});
   const [loading, setLoading] = useState(true);
   const [sendingId, setSendingId] = useState<string | null>(null);
+  const [fillupStagingId, setFillupStagingId] = useState<string | null>(null);
+  const [fillupOpen, setFillupOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
