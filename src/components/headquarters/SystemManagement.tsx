@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/tabs";
 import { AccommodationApiKeysManagement } from "@/components/headquarters/AccommodationApiKeysManagement";
 import { OwlTingServiceAccountManagement } from "@/components/headquarters/OwlTingServiceAccountManagement";
+import { AccommodationOwnersManagement } from "@/components/headquarters/AccommodationOwnersManagement";
 import { SystemHealthMonitor } from "@/components/headquarters/SystemHealthMonitor";
 import { 
   ScrollText,
@@ -883,6 +884,10 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
 
         <TabsContent value="owlting" className="space-y-4">
           <OwlTingServiceAccountManagement />
+        </TabsContent>
+
+        <TabsContent value="owners" className="space-y-4">
+          <AccommodationOwnersManagement />
         </TabsContent>
       </Tabs>
     </div>
