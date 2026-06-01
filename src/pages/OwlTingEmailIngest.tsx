@@ -31,8 +31,10 @@ interface StagingLite {
   raw_email_id: string;
   pii_status: string;
   accommodation_id: string | null;
+  accommodation_name: string | null;
   notified_at: string | null;
   pii_due_at: string | null;
+  matched_acc_id: string | null;
 }
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
