@@ -203,7 +203,7 @@ export function AccommodationOwnersManagement({ accommodationId, title, descript
               {!scoped && <TableHead>民宿</TableHead>}
               <TableHead>姓名</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>LINE</TableHead>
+              
               <TableHead className="text-center">優先序</TableHead>
               <TableHead className="text-center">啟用</TableHead>
               <TableHead>備註</TableHead>
