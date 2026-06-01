@@ -226,13 +226,15 @@ export default function OwlTingEmailIngest() {
                     <TableCell className="text-right">
                       {canSend && (
                         <div className="flex justify-end gap-1.5">
-                          <Button
-                            size="sm"
-                            variant="default"
-                            onClick={() => { setFillupStagingId(st.id); setFillupOpen(true); }}
-                          >
-                            <ClipboardEdit className="h-3.5 w-3.5 mr-1" />補單
-                          </Button>
+                          {st.matched_acc_id && (
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => { setFillupStagingId(st.id); setFillupOpen(true); }}
+                            >
+                              <ClipboardEdit className="h-3.5 w-3.5 mr-1" />補單
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="outline"
