@@ -885,6 +885,10 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
         <TabsContent value="owlting" className="space-y-4">
           <OwlTingServiceAccountManagement />
         </TabsContent>
+
+        <TabsContent value="owners" className="space-y-4">
+          <AccommodationOwnersManagement />
+        </TabsContent>
       </Tabs>
     </div>
   );
