@@ -204,10 +204,12 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({
       ok: true,
+      token,
       magic_url: magicUrl,
       emailed_to: emailedTo,
       owners_count: owners?.length ?? 0,
       expires_at: expiresAt,
+      silent,
     }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("[owlting-fillup-issue] fatal:", e);
