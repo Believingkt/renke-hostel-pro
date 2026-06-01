@@ -236,7 +236,7 @@ export function AccommodationOwnersManagement({ accommodationId, title, descript
             ))}
             {!loading && filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={scoped ? 7 : 8} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={scoped ? 6 : 7} className="text-center text-muted-foreground py-8">
                   尚未設定業主聯絡人
                 </TableCell>
               </TableRow>
