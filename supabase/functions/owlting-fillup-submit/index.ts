@@ -184,7 +184,7 @@ Deno.serve(async (req) => {
       confirmed_at: nowIso,
       requires_owner_review: true,
       owlting_reservation_id: staging.obe_number,
-      deposit_required_amount: roomTypeId ? undefined : 0,
+      deposit_required_amount: 0,
       notes: `奧丁丁訂單由業主補單 (OBE: ${staging.obe_number ?? ""}, ${staging.room_type_name ?? ""})`,
     }).select("id, order_number, accommodation_id, room_type_id, check_in_date, check_out_date, final_price").single();
 
