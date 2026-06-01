@@ -303,8 +303,9 @@ export default function OwlTingEmailIngest() {
         open={fillupOpen}
         onOpenChange={setFillupOpen}
         stagingId={fillupStagingId}
-        onSubmitted={load}
+        onSubmitted={() => { load(); setRefreshTick((t) => t + 1); }}
       />
+
     </div>
   );
 }
