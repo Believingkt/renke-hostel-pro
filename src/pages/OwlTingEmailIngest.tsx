@@ -195,7 +195,7 @@ export default function OwlTingEmailIngest() {
         action={<Button variant="outline" onClick={load} disabled={loading}>重新整理</Button>}
       />
 
-      <OwlTingEmailStatsCards showDetailLink={false} />
+      <OwlTingEmailStatsCards showDetailLink={false} refreshKey={refreshTick} />
 
       <Card>
         <CardHeader><CardTitle>最近 50 筆 Email</CardTitle></CardHeader>
