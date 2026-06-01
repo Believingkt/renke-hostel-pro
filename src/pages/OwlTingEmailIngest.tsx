@@ -9,8 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { OwlTingEmailStatsCards } from "@/components/OwlTingEmailStatsCards";
+import { OwlTingFillupDialog } from "@/components/OwlTingFillupDialog";
 import { toast } from "sonner";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, ClipboardEdit } from "lucide-react";
 
 interface RawEmail {
   id: string;
