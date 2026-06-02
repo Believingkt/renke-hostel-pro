@@ -320,17 +320,17 @@ export default function KolBonus() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rows.length === 0 ? (
+                  {filteredRows.length === 0 ? (
                     <TableRow>
                       <TableCell
                         colSpan={5}
                         className="text-center text-muted-foreground py-8"
                       >
-                        尚無資料
+                        此期間無資料
                       </TableCell>
                     </TableRow>
                   ) : (
-                    rows.map((r) => {
+                    filteredRows.map((r) => {
                       const valid = isTokenValid(r);
                       return (
                         <TableRow
