@@ -357,6 +357,13 @@ export default function KolBonus() {
 
   return (
     <div className="space-y-6">
+      <Tabs defaultValue="bonus" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="bonus">獎金管理</TabsTrigger>
+          <TabsTrigger value="rates">分潤設定</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="bonus" className="mt-0">
       <Card>
         <CardHeader>
           <CardTitle>KOL 獎金管理</CardTitle>
