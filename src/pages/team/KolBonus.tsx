@@ -439,9 +439,9 @@ function KolDetailDrawer({
   const [month, setMonth] = useState<string>(initialMonth);
 
   useEffect(() => {
-    if (kol) setMonth(currentMonth);
+    if (kol) setMonth(initialMonth);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kol?.id]);
+  }, [kol?.id, initialMonth]);
 
   const matched = useMemo(() => {
     if (!kol?.cid_code) return [];
@@ -453,9 +453,9 @@ function KolDetailDrawer({
     matched.forEach((o) => {
       if (o.order_date) set.add(o.order_date.slice(0, 7));
     });
-    set.add(currentMonth);
+    set.add(initialMonth);
     return Array.from(set).sort((a, b) => b.localeCompare(a));
-  }, [matched, currentMonth]);
+  }, [matched, initialMonth]);
 
   const rowsInMonth = useMemo(
     () => matched.filter((o) => o.order_date?.slice(0, 7) === month),
