@@ -1,11 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Copy, Link as LinkIcon, Eye } from "lucide-react";
+import { Copy, Link as LinkIcon, Eye, Plus, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -65,8 +68,11 @@ interface OrderRow {
 interface CommissionSetting {
   accommodation_id: string;
   effective_from: string;
-  closer_rate: number | null;
+  rate: number | null;
 }
+
+type RateResolver = (accommodationId: string | null, refDate?: string | null) => number;
+
 
 const TOKEN_VALID_DAYS = 90;
 
@@ -123,8 +129,9 @@ export default function KolBonus() {
         .neq("discount_code", "")
         .neq("order_status", "cancelled"),
       supabase
-        .from("accommodation_commission_settings")
-        .select("accommodation_id, effective_from, closer_rate")
+        .from("kol_commission_settings")
+        .select("accommodation_id, effective_from, rate, kol_id")
+        .is("kol_id", null)
         .order("effective_from", { ascending: false }),
     ]);
     if (kolRes.error) toast.error("載入 KOL 失敗：" + kolRes.error.message);
@@ -142,7 +149,11 @@ export default function KolBonus() {
     );
     setRows(filteredKols);
     setOrders(allOrders);
-    setCommissions((commRes.data ?? []) as CommissionSetting[]);
+    setCommissions(((commRes.data ?? []) as any[]).map((c) => ({
+      accommodation_id: c.accommodation_id,
+      effective_from: c.effective_from,
+      rate: c.rate,
+    })));
     setLoading(false);
   };
 
@@ -150,16 +161,31 @@ export default function KolBonus() {
     if (allowed) fetchAll();
   }, [allowed]);
 
-  // 取每館最新分潤
-  const latestRateByAcc = useMemo(() => {
-    const map = new Map<string, number>();
+  // 依館別分組（已按 effective_from DESC 排序）
+  const settingsByAcc = useMemo(() => {
+    const map = new Map<string, CommissionSetting[]>();
     for (const c of commissions) {
-      if (!map.has(c.accommodation_id)) {
-        map.set(c.accommodation_id, Number(c.closer_rate ?? 0));
-      }
+      const arr = map.get(c.accommodation_id) ?? [];
+      arr.push(c);
+      map.set(c.accommodation_id, arr);
     }
     return map;
   }, [commissions]);
+
+  // 依退房日期取最新生效的 rate（effective_from <= refDate）
+  const getRate = useCallback<RateResolver>(
+    (accommodationId, refDate) => {
+      if (!accommodationId) return 0;
+      const list = settingsByAcc.get(accommodationId);
+      if (!list || list.length === 0) return 0;
+      if (!refDate) return Number(list[0]?.rate ?? 0);
+      const ref = refDate.slice(0, 10);
+      const hit = list.find((s) => s.effective_from <= ref);
+      return Number(hit?.rate ?? 0);
+    },
+    [settingsByAcc],
+  );
+
 
   // 訂單依折扣碼分組（大小寫不敏感）
   const ordersByCode = useMemo(() => {
@@ -233,7 +259,7 @@ export default function KolBonus() {
       let commission = 0;
       for (const o of list) {
         const r = Number(o.final_price ?? o.total_price ?? 0);
-        const rate = latestRateByAcc.get(o.accommodation_id || "") ?? 0;
+        const rate = getRate(o.accommodation_id, o.check_out_date);
         const orderMatch = prefix
           ? o.order_date?.startsWith(prefix)
           : true;
@@ -259,7 +285,7 @@ export default function KolBonus() {
       });
     }
     return map;
-  }, [rows, ordersByCode, latestRateByAcc, filterYear, filterMonth]);
+  }, [rows, ordersByCode, getRate, filterYear, filterMonth]);
 
   const metricsLabel = filterMonth === "all" ? "全期" : "當月";
 
@@ -331,6 +357,13 @@ export default function KolBonus() {
 
   return (
     <div className="space-y-6">
+      <Tabs defaultValue="bonus" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="bonus">獎金管理</TabsTrigger>
+          <TabsTrigger value="rates">分潤設定</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="bonus" className="mt-0">
       <Card>
         <CardHeader>
           <CardTitle>KOL 獎金管理</CardTitle>
@@ -499,6 +532,12 @@ export default function KolBonus() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="rates" className="mt-0">
+          <KolRateSettingsTab />
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={!!genDialog} onOpenChange={(o) => !o && setGenDialog(null)}>
         <DialogContent>
@@ -528,7 +567,7 @@ export default function KolBonus() {
         kol={drawerKol}
         onClose={() => setDrawerKol(null)}
         ordersByCode={ordersByCode}
-        latestRateByAcc={latestRateByAcc}
+        getRate={getRate}
         initialMonth={drawerInitialMonth}
         onCopy={copyLink}
         onGenerate={setGenDialog}
@@ -541,7 +580,7 @@ interface DetailProps {
   kol: KolRow | null;
   onClose: () => void;
   ordersByCode: Map<string, OrderRow[]>;
-  latestRateByAcc: Map<string, number>;
+  getRate: RateResolver;
   initialMonth: string;
   onCopy: (row: KolRow) => void;
   onGenerate: (row: KolRow) => void;
@@ -551,7 +590,7 @@ function KolDetailDrawer({
   kol,
   onClose,
   ordersByCode,
-  latestRateByAcc,
+  getRate,
   initialMonth,
   onCopy,
   onGenerate,
@@ -614,13 +653,13 @@ function KolDetailDrawer({
     let commission = 0;
     for (const o of completedList) {
       const r = Number(o.final_price ?? o.total_price ?? 0);
-      const rate = latestRateByAcc.get(o.accommodation_id || "") ?? 0;
+      const rate = getRate(o.accommodation_id, o.check_out_date);
       count += 1;
       revenue += r;
       commission += r * (rate / 100);
     }
     return { count, revenue, commission: Math.round(commission) };
-  }, [completedList, latestRateByAcc]);
+  }, [completedList, getRate]);
 
   return (
     <Sheet open={!!kol} onOpenChange={(o) => !o && onClose()}>
@@ -757,7 +796,7 @@ function KolDetailDrawer({
                     </TableRow>
                   ) : (
                     completedList.map((o) => {
-                      const rate = latestRateByAcc.get(o.accommodation_id || "") ?? 0;
+                      const rate = getRate(o.accommodation_id, o.check_out_date);
                       const revenue = Number(o.final_price ?? o.total_price ?? 0);
                       const amount = Math.round(revenue * (rate / 100));
                       return (
@@ -786,5 +825,236 @@ function KolDetailDrawer({
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+// ============ 分潤設定 Tab ============
+
+interface RateRow {
+  id: string;
+  accommodation_id: string;
+  rate: number;
+  effective_from: string;
+  created_at: string | null;
+}
+
+interface AccGroup {
+  id: string;
+  name: string;
+  rows: RateRow[];
+}
+
+function KolRateSettingsTab() {
+  const [loading, setLoading] = useState(true);
+  const [groups, setGroups] = useState<AccGroup[]>([]);
+  const [dialogAcc, setDialogAcc] = useState<{ id: string; name: string } | null>(null);
+  const [formRate, setFormRate] = useState("");
+  const [formDate, setFormDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    const [accRes, rateRes] = await Promise.all([
+      supabase.from("accommodation_info").select("id, name").order("name"),
+      supabase
+        .from("kol_commission_settings")
+        .select("id, accommodation_id, rate, effective_from, created_at")
+        .is("kol_id", null)
+        .order("effective_from", { ascending: false }),
+    ]);
+    if (accRes.error) toast.error("載入館別失敗：" + accRes.error.message);
+    if (rateRes.error) toast.error("載入分潤設定失敗：" + rateRes.error.message);
+    const accs = (accRes.data ?? []) as { id: string; name: string }[];
+    const rates = ((rateRes.data ?? []) as any[]).map((r) => ({
+      id: r.id,
+      accommodation_id: r.accommodation_id,
+      rate: Number(r.rate ?? 0),
+      effective_from: r.effective_from,
+      created_at: r.created_at,
+    })) as RateRow[];
+    const byAcc = new Map<string, RateRow[]>();
+    for (const r of rates) {
+      const arr = byAcc.get(r.accommodation_id) ?? [];
+      arr.push(r);
+      byAcc.set(r.accommodation_id, arr);
+    }
+    setGroups(
+      accs.map((a) => ({ id: a.id, name: a.name, rows: byAcc.get(a.id) ?? [] })),
+    );
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const openAdd = (acc: { id: string; name: string }) => {
+    setDialogAcc(acc);
+    setFormRate("");
+    setFormDate(new Date().toISOString().slice(0, 10));
+  };
+
+  const handleSave = async () => {
+    if (!dialogAcc) return;
+    const rate = Number(formRate);
+    if (Number.isNaN(rate) || rate < 0 || rate > 100) {
+      toast.error("分潤% 必須在 0-100");
+      return;
+    }
+    if (!formDate || !/^\d{4}-\d{2}-\d{2}$/.test(formDate)) {
+      toast.error("請輸入有效的生效日期");
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase.from("kol_commission_settings").insert({
+      accommodation_id: dialogAcc.id,
+      kol_id: null,
+      rate,
+      effective_from: formDate,
+    });
+    setSaving(false);
+    if (error) {
+      toast.error("儲存失敗：" + error.message);
+      return;
+    }
+    toast.success("已新增費率");
+    setDialogAcc(null);
+    await load();
+  };
+
+  const handleDelete = async (row: RateRow) => {
+    if (!confirm(`確定要刪除生效日期 ${row.effective_from} 的費率？`)) return;
+    setDeletingId(row.id);
+    const { error } = await supabase
+      .from("kol_commission_settings")
+      .delete()
+      .eq("id", row.id);
+    setDeletingId(null);
+    if (error) {
+      toast.error("刪除失敗：" + error.message);
+      return;
+    }
+    toast.success("已刪除");
+    await load();
+  };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="py-6 text-center text-sm text-muted-foreground">
+          載入中...
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {groups.map((g) => (
+        <Card key={g.id}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-base">{g.name}</CardTitle>
+            <Button size="sm" onClick={() => openAdd({ id: g.id, name: g.name })}>
+              <Plus className="h-4 w-4 mr-1" />
+              新增費率
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="whitespace-nowrap">生效日期</TableHead>
+                    <TableHead className="whitespace-nowrap text-right">分潤%</TableHead>
+                    <TableHead className="whitespace-nowrap">建立時間</TableHead>
+                    <TableHead className="whitespace-nowrap text-right">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {g.rows.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
+                        尚無資料
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    g.rows.map((r, idx) => (
+                      <TableRow key={r.id}>
+                        <TableCell className="whitespace-nowrap">
+                          {r.effective_from}
+                          {idx === 0 && (
+                            <Badge className="ml-2 bg-green-100 text-green-700 border-green-200">
+                              目前生效
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">{r.rate}%</TableCell>
+                        <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                          {r.created_at?.slice(0, 19).replace("T", " ") ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {idx !== 0 && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              disabled={deletingId === r.id}
+                              onClick={() => handleDelete(r)}
+                              title="刪除"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+
+      <Dialog open={!!dialogAcc} onOpenChange={(o) => !o && setDialogAcc(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>新增費率 - {dialogAcc?.name}</DialogTitle>
+            <DialogDescription>
+              新增的費率會以「新一筆」紀錄寫入，舊紀錄保留作為歷史。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>分潤%</Label>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                step="0.01"
+                value={formRate}
+                onChange={(e) => setFormRate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>生效日期</Label>
+              <Input
+                type="date"
+                value={formDate}
+                onChange={(e) => setFormDate(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogAcc(null)} disabled={saving}>
+              取消
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "儲存中..." : "儲存"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
