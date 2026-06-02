@@ -117,8 +117,18 @@ export default function KolBonus() {
     if (kolRes.error) toast.error("載入 KOL 失敗：" + kolRes.error.message);
     if (orderRes.error) toast.error("載入訂單失敗：" + orderRes.error.message);
     if (commRes.error) toast.error("載入分潤設定失敗：" + commRes.error.message);
-    setRows((kolRes.data ?? []) as KolRow[]);
-    setOrders((orderRes.data ?? []) as OrderRow[]);
+    const allOrders = (orderRes.data ?? []) as OrderRow[];
+    const activeCodes = new Set(
+      allOrders
+        .map((o) => (o.discount_code ?? "").trim().toUpperCase())
+        .filter(Boolean),
+    );
+    const allKols = (kolRes.data ?? []) as KolRow[];
+    const filteredKols = allKols.filter((k) =>
+      activeCodes.has((k.cid_code ?? "").trim().toUpperCase()),
+    );
+    setRows(filteredKols);
+    setOrders(allOrders);
     setCommissions((commRes.data ?? []) as CommissionSetting[]);
     setLoading(false);
   };
