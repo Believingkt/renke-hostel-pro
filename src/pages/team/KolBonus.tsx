@@ -344,6 +344,8 @@ export default function KolBonus() {
                     <TableHead className="w-[200px]">KOL 名稱</TableHead>
                     <TableHead>折扣碼 / CID</TableHead>
                     <TableHead>館別</TableHead>
+                    <TableHead className="text-right">{metricsLabel}業績</TableHead>
+                    <TableHead className="text-right">{metricsLabel}分潤</TableHead>
                     <TableHead>連結狀態</TableHead>
                     <TableHead className="text-right">操作</TableHead>
                   </TableRow>
@@ -352,7 +354,7 @@ export default function KolBonus() {
                   {filteredRows.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={5}
+                        colSpan={7}
                         className="text-center text-muted-foreground py-8"
                       >
                         此期間無資料
@@ -360,7 +362,7 @@ export default function KolBonus() {
                     </TableRow>
                   ) : (
                     filteredRows.map((r) => {
-                      const valid = isTokenValid(r);
+                      const m = kolMetrics.get(r.id) ?? { revenue: 0, commission: 0 };
                       return (
                         <TableRow
                           key={r.id}
@@ -379,29 +381,25 @@ export default function KolBonus() {
                           <TableCell className="whitespace-nowrap">
                             {r.venue_name || "—"}
                           </TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {fmtMoney(m.revenue)}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {fmtMoney(m.commission)}
+                          </TableCell>
                           <TableCell>{renderStatusBadge(r)}</TableCell>
                           <TableCell
                             className="text-right"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            {valid ? (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => copyLink(r)}
-                              >
-                                <Copy className="h-3 w-3 mr-1" />
-                                複製連結
-                              </Button>
-                            ) : (
-                              <Button
-                                size="sm"
-                                onClick={() => setGenDialog(r)}
-                              >
-                                <LinkIcon className="h-3 w-3 mr-1" />
-                                產生連結
-                              </Button>
-                            )}
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => setDrawerKol(r)}
+                              title="查看明細"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                       );
