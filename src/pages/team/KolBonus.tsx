@@ -532,6 +532,12 @@ export default function KolBonus() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="rates" className="mt-0">
+          <KolRateSettingsTab />
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={!!genDialog} onOpenChange={(o) => !o && setGenDialog(null)}>
         <DialogContent>
@@ -561,7 +567,7 @@ export default function KolBonus() {
         kol={drawerKol}
         onClose={() => setDrawerKol(null)}
         ordersByCode={ordersByCode}
-        latestRateByAcc={latestRateByAcc}
+        getRate={getRate}
         initialMonth={drawerInitialMonth}
         onCopy={copyLink}
         onGenerate={setGenDialog}
