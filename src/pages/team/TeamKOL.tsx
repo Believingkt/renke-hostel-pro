@@ -19,6 +19,7 @@ import { Plus, AlertTriangle, Check, X, Pencil, ExternalLink, Trash2 } from "luc
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { KolStatsTab } from "@/components/team/KolStatsTab";
+import { Link } from "react-router-dom";
 
 // ====== 型別 & 常數 ======
 // 正式邀約 Tab：booking_status 僅保留以下三種顯示，其他值（含 null / 舊資料）一律顯示「—」
@@ -304,9 +305,19 @@ export default function TeamKOL() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold">KOL 星探管理</h1>
-        <p className="text-sm text-muted-foreground">管理 KOL 邀約、潛在名單與邀約目標</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">KOL 星探管理</h1>
+          <p className="text-sm text-muted-foreground">管理 KOL 邀約、潛在名單與邀約目標</p>
+        </div>
+        {canSeeStats && (
+          <Button asChild variant="outline">
+            <Link to="/team/kol/bonus">
+              KOL 獎金管理
+              <ExternalLink className="h-4 w-4" />
+            </Link>
+          </Button>
+        )}
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
