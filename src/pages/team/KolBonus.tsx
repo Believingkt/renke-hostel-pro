@@ -565,34 +565,61 @@ function KolDetailDrawer({
     const set = new Set<string>();
     matched.forEach((o) => {
       if (o.order_date) set.add(o.order_date.slice(0, 7));
+      if (o.check_out_date) set.add(o.check_out_date.slice(0, 7));
     });
     set.add(initialMonth);
     return Array.from(set).sort((a, b) => b.localeCompare(a));
   }, [matched, initialMonth]);
 
-  const rowsInMonth = useMemo(
-    () => matched.filter((o) => o.order_date?.slice(0, 7) === month),
-    [matched, month],
-  );
+  // 預計發放日：退房月份 +1 月的 10 號
+  const payoutDate = useMemo(() => {
+    const [y, m] = month.split("-").map(Number);
+    if (!y || !m) return "—";
+    const ny = m === 12 ? y + 1 : y;
+    const nm = m === 12 ? 1 : m + 1;
+    return `${ny}-${String(nm).padStart(2, "0")}-10`;
+  }, [month]);
 
-  // 同一 KOL 通常 1 館，但仍以 accommodation_id 分組以防多館
+  // 以 accommodation_id 分組，計算訂單/完成兩組指標
   const grouped = useMemo(() => {
     const map = new Map<
       string,
-      { count: number; revenue: number; rate: number }
+      {
+        orderCount: number;
+        orderRevenue: number;
+        completedCount: number;
+        completedRevenue: number;
+        rate: number;
+      }
     >();
-    for (const o of rowsInMonth) {
+    for (const o of matched) {
       const accId = o.accommodation_id || "";
       const rate = latestRateByAcc.get(accId) ?? 0;
       const revenue = Number(o.final_price ?? o.total_price ?? 0);
-      const cur = map.get(accId) ?? { count: 0, revenue: 0, rate };
-      cur.count += 1;
-      cur.revenue += revenue;
+      const orderMatch = o.order_date?.slice(0, 7) === month;
+      const completedMatch = o.check_out_date?.slice(0, 7) === month;
+      if (!orderMatch && !completedMatch) continue;
+      const cur =
+        map.get(accId) ?? {
+          orderCount: 0,
+          orderRevenue: 0,
+          completedCount: 0,
+          completedRevenue: 0,
+          rate,
+        };
+      if (orderMatch) {
+        cur.orderCount += 1;
+        cur.orderRevenue += revenue;
+      }
+      if (completedMatch) {
+        cur.completedCount += 1;
+        cur.completedRevenue += revenue;
+      }
       cur.rate = rate;
       map.set(accId, cur);
     }
     return Array.from(map.entries());
-  }, [rowsInMonth, latestRateByAcc]);
+  }, [matched, latestRateByAcc, month]);
 
   return (
     <Sheet open={!!kol} onOpenChange={(o) => !o && onClose()}>
