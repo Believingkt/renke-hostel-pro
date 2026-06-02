@@ -2904,6 +2904,7 @@ export type Database = {
           notes: string | null
           order_id: string | null
           order_number: string | null
+          public_token: string | null
           publish_date: string | null
           publish_url: string | null
           rarity: string | null
@@ -2913,6 +2914,7 @@ export type Database = {
           task_ig_collab: boolean | null
           task_post_story: boolean | null
           task_pre_stay: boolean | null
+          token_expires_at: string | null
           updated_at: string | null
           venue_name: string | null
         }
@@ -2950,6 +2952,7 @@ export type Database = {
           notes?: string | null
           order_id?: string | null
           order_number?: string | null
+          public_token?: string | null
           publish_date?: string | null
           publish_url?: string | null
           rarity?: string | null
@@ -2959,6 +2962,7 @@ export type Database = {
           task_ig_collab?: boolean | null
           task_post_story?: boolean | null
           task_pre_stay?: boolean | null
+          token_expires_at?: string | null
           updated_at?: string | null
           venue_name?: string | null
         }
@@ -2996,6 +3000,7 @@ export type Database = {
           notes?: string | null
           order_id?: string | null
           order_number?: string | null
+          public_token?: string | null
           publish_date?: string | null
           publish_url?: string | null
           rarity?: string | null
@@ -3005,6 +3010,7 @@ export type Database = {
           task_ig_collab?: boolean | null
           task_post_story?: boolean | null
           task_pre_stay?: boolean | null
+          token_expires_at?: string | null
           updated_at?: string | null
           venue_name?: string | null
         }
