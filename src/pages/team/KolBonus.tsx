@@ -446,7 +446,10 @@ function KolDetailDrawer({
                 <TableRow>
                   <TableHead>館別</TableHead>
                   <TableHead>折扣碼</TableHead>
-                  <TableHead className="text-right">有效訂單筆數</TableHead>
+                  <TableHead className="text-right">
+                    有效訂單筆數
+                    <div className="text-xs font-normal text-muted-foreground">依訂單日期統計</div>
+                  </TableHead>
                   <TableHead className="text-right">總業績</TableHead>
                   <TableHead className="text-right">分潤%</TableHead>
                   <TableHead className="text-right">分潤金額</TableHead>
