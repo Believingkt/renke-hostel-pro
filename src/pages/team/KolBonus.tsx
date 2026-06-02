@@ -461,6 +461,8 @@ interface DetailProps {
   ordersByCode: Map<string, OrderRow[]>;
   latestRateByAcc: Map<string, number>;
   initialMonth: string;
+  onCopy: (row: KolRow) => void;
+  onGenerate: (row: KolRow) => void;
 }
 
 function KolDetailDrawer({
@@ -469,6 +471,8 @@ function KolDetailDrawer({
   ordersByCode,
   latestRateByAcc,
   initialMonth,
+  onCopy,
+  onGenerate,
 }: DetailProps) {
   const [month, setMonth] = useState<string>(initialMonth);
 
