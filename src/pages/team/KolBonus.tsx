@@ -448,11 +448,12 @@ export default function KolBonus() {
                           onClick={() => setDrawerKol(r)}
                         >
                           <TableCell
-                            className="w-[200px] max-w-[200px] truncate"
+                            className="whitespace-nowrap"
                             title={r.name || ""}
                           >
                             {r.name || "—"}
                           </TableCell>
+
                           <TableCell className="whitespace-nowrap font-mono">
                             {r.cid_code}
                           </TableCell>
