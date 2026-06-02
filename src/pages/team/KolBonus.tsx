@@ -341,6 +341,22 @@ export default function KolBonus() {
                   ))}
                 </SelectContent>
               </Select>
+              {(() => {
+                const totals = filteredRows.reduce(
+                  (acc, r) => {
+                    const m = kolMetrics.get(r.id) ?? { revenue: 0, commission: 0 };
+                    acc.revenue += m.revenue;
+                    acc.commission += m.commission;
+                    return acc;
+                  },
+                  { revenue: 0, commission: 0 }
+                );
+                return (
+                  <div className="ml-auto text-sm text-muted-foreground">
+                    共 {filteredRows.length} 位 KOL｜總業績 {fmtMoney(totals.revenue)}｜總分潤 {fmtMoney(totals.commission)}
+                  </div>
+                );
+              })()}
             </div>
             <div className="overflow-x-auto">
               <Table className="fixed-table">
