@@ -796,7 +796,7 @@ function KolDetailDrawer({
                     </TableRow>
                   ) : (
                     completedList.map((o) => {
-                      const rate = latestRateByAcc.get(o.accommodation_id || "") ?? 0;
+                      const rate = getRate(o.accommodation_id, o.check_out_date);
                       const revenue = Number(o.final_price ?? o.total_price ?? 0);
                       const amount = Math.round(revenue * (rate / 100));
                       return (
