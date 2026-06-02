@@ -381,6 +381,7 @@ export default function KolBonus() {
                 </TableBody>
               </Table>
             </div>
+            </>
           )}
         </CardContent>
       </Card>
