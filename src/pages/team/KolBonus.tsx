@@ -200,6 +200,34 @@ export default function KolBonus() {
       ? `${currentYear}-${String(currentMonthNum).padStart(2, "0")}`
       : `${filterYear}-${String(Number(filterMonth)).padStart(2, "0")}`;
 
+  // 每位 KOL 在當前篩選期間內的業績與分潤
+  const kolMetrics = useMemo(() => {
+    const prefix =
+      filterMonth === "all"
+        ? null
+        : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
+    const yearPrefix = `${filterYear}-`;
+    const map = new Map<string, { revenue: number; commission: number }>();
+    for (const k of rows) {
+      const code = (k.cid_code ?? "").trim().toUpperCase();
+      const list = ordersByCode.get(code) ?? [];
+      let revenue = 0;
+      let commission = 0;
+      for (const o of list) {
+        if (!o.order_date) continue;
+        if (prefix ? !o.order_date.startsWith(prefix) : !o.order_date.startsWith(yearPrefix)) continue;
+        const r = Number(o.final_price ?? o.total_price ?? 0);
+        const rate = latestRateByAcc.get(o.accommodation_id || "") ?? 0;
+        revenue += r;
+        commission += r * (rate / 100);
+      }
+      map.set(k.id, { revenue, commission: Math.round(commission) });
+    }
+    return map;
+  }, [rows, ordersByCode, latestRateByAcc, filterYear, filterMonth]);
+
+  const metricsLabel = filterMonth === "all" ? `${filterYear} 年累計` : "當月";
+
   if (!allowed) return <Navigate to="/team" replace />;
 
   const handleGenerate = async () => {
