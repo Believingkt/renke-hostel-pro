@@ -371,18 +371,26 @@ export default function KolBonus() {
                 </SelectContent>
               </Select>
               {(() => {
+                const empty = {
+                  orderCount: 0,
+                  orderRevenue: 0,
+                  completedCount: 0,
+                  completedRevenue: 0,
+                  commission: 0,
+                };
                 const totals = filteredRows.reduce(
                   (acc, r) => {
-                    const m = kolMetrics.get(r.id) ?? { revenue: 0, commission: 0 };
-                    acc.revenue += m.revenue;
+                    const m = kolMetrics.get(r.id) ?? empty;
+                    acc.orderRevenue += m.orderRevenue;
+                    acc.completedRevenue += m.completedRevenue;
                     acc.commission += m.commission;
                     return acc;
                   },
-                  { revenue: 0, commission: 0 }
+                  { orderRevenue: 0, completedRevenue: 0, commission: 0 },
                 );
                 return (
                   <div className="ml-auto text-sm text-muted-foreground">
-                    共 {filteredRows.length} 位 KOL｜總業績 {fmtMoney(totals.revenue)}｜總分潤 {fmtMoney(totals.commission)}
+                    共 {filteredRows.length} 位 KOL｜總訂單業績 {fmtMoney(totals.orderRevenue)}｜總完成業績 {fmtMoney(totals.completedRevenue)}｜總分潤 {fmtMoney(totals.commission)}
                   </div>
                 );
               })()}
@@ -394,9 +402,17 @@ export default function KolBonus() {
                     <TableHead className="w-[200px]">KOL 名稱</TableHead>
                     <TableHead>折扣碼 / CID</TableHead>
                     <TableHead>館別</TableHead>
-                    <TableHead className="text-right">{metricsLabel}業績</TableHead>
+                    <TableHead className="text-right">
+                      {metricsLabel}訂單筆數
+                      <div className="text-xs font-normal text-muted-foreground">依訂單日期</div>
+                    </TableHead>
+                    <TableHead className="text-right">{metricsLabel}訂單業績</TableHead>
+                    <TableHead className="text-right">
+                      {metricsLabel}完成筆數
+                      <div className="text-xs font-normal text-muted-foreground">依退房日期</div>
+                    </TableHead>
+                    <TableHead className="text-right">{metricsLabel}完成業績</TableHead>
                     <TableHead className="text-right">{metricsLabel}分潤</TableHead>
-                    
                     <TableHead className="text-right">操作</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -404,7 +420,7 @@ export default function KolBonus() {
                   {filteredRows.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={6}
+                        colSpan={9}
                         className="text-center text-muted-foreground py-8"
                       >
                         此期間無資料
@@ -412,7 +428,13 @@ export default function KolBonus() {
                     </TableRow>
                   ) : (
                     filteredRows.map((r) => {
-                      const m = kolMetrics.get(r.id) ?? { revenue: 0, commission: 0 };
+                      const m = kolMetrics.get(r.id) ?? {
+                        orderCount: 0,
+                        orderRevenue: 0,
+                        completedCount: 0,
+                        completedRevenue: 0,
+                        commission: 0,
+                      };
                       return (
                         <TableRow
                           key={r.id}
@@ -432,12 +454,20 @@ export default function KolBonus() {
                             {r.venue_name || "—"}
                           </TableCell>
                           <TableCell className="text-right tabular-nums">
-                            {fmtMoney(m.revenue)}
+                            {m.orderCount}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {fmtMoney(m.orderRevenue)}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {m.completedCount}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {fmtMoney(m.completedRevenue)}
                           </TableCell>
                           <TableCell className="text-right tabular-nums">
                             {fmtMoney(m.commission)}
                           </TableCell>
-                          
                           <TableCell
                             className="text-right"
                             onClick={(e) => e.stopPropagation()}
