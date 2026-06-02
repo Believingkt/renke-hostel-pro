@@ -401,24 +401,25 @@ export default function KolBonus() {
               })()}
             </div>
             <div className="overflow-x-auto">
-              <Table className="fixed-table">
+              <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[200px]">KOL 名稱</TableHead>
-                    <TableHead>折扣碼 / CID</TableHead>
-                    <TableHead>館別</TableHead>
-                    <TableHead className="text-right">
+                    <TableHead className="whitespace-nowrap">KOL 名稱</TableHead>
+                    <TableHead className="whitespace-nowrap">折扣碼 / CID</TableHead>
+                    <TableHead className="whitespace-nowrap">館別</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">
                       {metricsLabel}訂單筆數
                       <div className="text-xs font-normal text-muted-foreground">依訂單日期</div>
                     </TableHead>
-                    <TableHead className="text-right">{metricsLabel}訂單業績</TableHead>
-                    <TableHead className="text-right">
+                    <TableHead className="text-right whitespace-nowrap">{metricsLabel}訂單業績</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">
                       {metricsLabel}完成筆數
                       <div className="text-xs font-normal text-muted-foreground">依退房日期</div>
                     </TableHead>
-                    <TableHead className="text-right">{metricsLabel}完成業績</TableHead>
-                    <TableHead className="text-right">{metricsLabel}分潤</TableHead>
-                    <TableHead className="text-right">操作</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">{metricsLabel}完成業績</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">{metricsLabel}分潤</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">操作</TableHead>
+
                   </TableRow>
                 </TableHeader>
                 <TableBody>
