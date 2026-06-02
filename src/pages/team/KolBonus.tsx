@@ -76,11 +76,12 @@ const isTokenValid = (row: KolRow) =>
 
 export default function KolBonus() {
   const { roles } = useTeam();
+  const roleSet = roles as string[];
   const allowed =
-    roles.includes("super_admin") ||
-    roles.includes("hotel_admin") ||
-    roles.includes("scout_manager") ||
-    roles.includes("scout");
+    roleSet.includes("super_admin") ||
+    roleSet.includes("hotel_admin") ||
+    roleSet.includes("scout_manager") ||
+    roleSet.includes("scout");
 
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<KolRow[]>([]);
