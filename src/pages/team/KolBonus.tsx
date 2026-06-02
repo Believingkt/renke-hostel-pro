@@ -116,7 +116,7 @@ export default function KolBonus() {
       supabase
         .from("orders")
         .select(
-          "id, order_number, discount_code, check_in_date, order_date, total_price, final_price, order_status, accommodation_id",
+          "id, order_number, discount_code, check_in_date, check_out_date, order_date, total_price, final_price, order_status, accommodation_id",
         )
         .not("discount_code", "is", null)
         .neq("discount_code", "")
