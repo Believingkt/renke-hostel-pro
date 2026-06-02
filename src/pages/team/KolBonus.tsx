@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Copy, Link as LinkIcon } from "lucide-react";
+import { Copy, Link as LinkIcon, Eye } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -181,15 +181,16 @@ export default function KolBonus() {
     return Array.from(set).sort((a, b) => b - a);
   }, [orders, currentYear]);
 
-  // 根據年/月過濾 KOL：該 KOL 在選定區間內須至少有一筆 order_date
+  // 根據年/月過濾 KOL：該 KOL 在選定區間內須至少有一筆 order_date；「全部月份」= 全期
   const filteredRows = useMemo(() => {
     const prefix =
       filterMonth === "all"
-        ? `${filterYear}-`
+        ? null
         : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
     return rows.filter((k) => {
       const code = (k.cid_code ?? "").trim().toUpperCase();
       const list = ordersByCode.get(code) ?? [];
+      if (!prefix) return list.length > 0;
       return list.some((o) => o.order_date?.startsWith(prefix));
     });
   }, [rows, ordersByCode, filterYear, filterMonth]);
@@ -199,6 +200,34 @@ export default function KolBonus() {
     filterMonth === "all"
       ? `${currentYear}-${String(currentMonthNum).padStart(2, "0")}`
       : `${filterYear}-${String(Number(filterMonth)).padStart(2, "0")}`;
+
+  // 每位 KOL 在當前篩選期間內的業績與分潤
+  const kolMetrics = useMemo(() => {
+    const prefix =
+      filterMonth === "all"
+        ? null
+        : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
+    const map = new Map<string, { revenue: number; commission: number }>();
+    for (const k of rows) {
+      const code = (k.cid_code ?? "").trim().toUpperCase();
+      const list = ordersByCode.get(code) ?? [];
+      let revenue = 0;
+      let commission = 0;
+      for (const o of list) {
+        if (prefix) {
+          if (!o.order_date?.startsWith(prefix)) continue;
+        }
+        const r = Number(o.final_price ?? o.total_price ?? 0);
+        const rate = latestRateByAcc.get(o.accommodation_id || "") ?? 0;
+        revenue += r;
+        commission += r * (rate / 100);
+      }
+      map.set(k.id, { revenue, commission: Math.round(commission) });
+    }
+    return map;
+  }, [rows, ordersByCode, latestRateByAcc, filterYear, filterMonth]);
+
+  const metricsLabel = filterMonth === "all" ? "全期" : "當月";
 
   if (!allowed) return <Navigate to="/team" replace />;
 
@@ -224,6 +253,11 @@ export default function KolBonus() {
           ? { ...r, public_token: newToken, token_expires_at: newExpires }
           : r,
       ),
+    );
+    setDrawerKol((prev) =>
+      prev && prev.id === genDialog.id
+        ? { ...prev, public_token: newToken, token_expires_at: newExpires }
+        : prev,
     );
     toast.success("已產生新連結");
     setGenDialog(null);
@@ -315,6 +349,8 @@ export default function KolBonus() {
                     <TableHead className="w-[200px]">KOL 名稱</TableHead>
                     <TableHead>折扣碼 / CID</TableHead>
                     <TableHead>館別</TableHead>
+                    <TableHead className="text-right">{metricsLabel}業績</TableHead>
+                    <TableHead className="text-right">{metricsLabel}分潤</TableHead>
                     <TableHead>連結狀態</TableHead>
                     <TableHead className="text-right">操作</TableHead>
                   </TableRow>
@@ -323,7 +359,7 @@ export default function KolBonus() {
                   {filteredRows.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={5}
+                        colSpan={7}
                         className="text-center text-muted-foreground py-8"
                       >
                         此期間無資料
@@ -331,7 +367,7 @@ export default function KolBonus() {
                     </TableRow>
                   ) : (
                     filteredRows.map((r) => {
-                      const valid = isTokenValid(r);
+                      const m = kolMetrics.get(r.id) ?? { revenue: 0, commission: 0 };
                       return (
                         <TableRow
                           key={r.id}
@@ -350,29 +386,25 @@ export default function KolBonus() {
                           <TableCell className="whitespace-nowrap">
                             {r.venue_name || "—"}
                           </TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {fmtMoney(m.revenue)}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {fmtMoney(m.commission)}
+                          </TableCell>
                           <TableCell>{renderStatusBadge(r)}</TableCell>
                           <TableCell
                             className="text-right"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            {valid ? (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => copyLink(r)}
-                              >
-                                <Copy className="h-3 w-3 mr-1" />
-                                複製連結
-                              </Button>
-                            ) : (
-                              <Button
-                                size="sm"
-                                onClick={() => setGenDialog(r)}
-                              >
-                                <LinkIcon className="h-3 w-3 mr-1" />
-                                產生連結
-                              </Button>
-                            )}
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => setDrawerKol(r)}
+                              title="查看明細"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                       );
@@ -416,6 +448,8 @@ export default function KolBonus() {
         ordersByCode={ordersByCode}
         latestRateByAcc={latestRateByAcc}
         initialMonth={drawerInitialMonth}
+        onCopy={copyLink}
+        onGenerate={setGenDialog}
       />
     </div>
   );
@@ -427,6 +461,8 @@ interface DetailProps {
   ordersByCode: Map<string, OrderRow[]>;
   latestRateByAcc: Map<string, number>;
   initialMonth: string;
+  onCopy: (row: KolRow) => void;
+  onGenerate: (row: KolRow) => void;
 }
 
 function KolDetailDrawer({
@@ -435,6 +471,8 @@ function KolDetailDrawer({
   ordersByCode,
   latestRateByAcc,
   initialMonth,
+  onCopy,
+  onGenerate,
 }: DetailProps) {
   const [month, setMonth] = useState<string>(initialMonth);
 
@@ -493,6 +531,36 @@ function KolDetailDrawer({
         </SheetHeader>
 
         <div className="mt-4 space-y-4">
+          {kol && (
+            <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+              <div className="text-sm font-medium">KOL 專屬查詢連結</div>
+              <p className="text-xs text-muted-foreground">
+                此連結可讓 KOL 本人查看自己的訂單業績，有效期 90 天
+              </p>
+              {isTokenValid(kol) ? (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    到期日：{kol.token_expires_at?.slice(0, 10)}
+                  </span>
+                  <Button size="sm" variant="outline" onClick={() => onCopy(kol)}>
+                    <Copy className="h-3 w-3 mr-1" />
+                    複製連結
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    {kol.public_token ? "連結已過期" : "尚未產生連結"}
+                  </span>
+                  <Button size="sm" onClick={() => onGenerate(kol)}>
+                    <LinkIcon className="h-3 w-3 mr-1" />
+                    產生連結
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">月份</span>
             <Select value={month} onValueChange={setMonth}>
