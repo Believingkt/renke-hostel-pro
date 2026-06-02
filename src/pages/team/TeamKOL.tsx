@@ -428,6 +428,13 @@ function InvitationsTab({
   }, [accommodations, venues]);
 
   const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const composingRef = useRef(false);
+  useEffect(() => {
+    if (composingRef.current) return;
+    const t = setTimeout(() => setSearch(searchInput), 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
   const [filterAcc, setFilterAcc] = useState<string>("all");
   const [filterRarity, setFilterRarity] = useState<string[]>([]);
   const [filterTags, setFilterTags] = useState<string[]>([]);
