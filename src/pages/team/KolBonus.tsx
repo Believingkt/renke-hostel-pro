@@ -206,7 +206,6 @@ export default function KolBonus() {
       filterMonth === "all"
         ? null
         : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
-    const yearPrefix = `${filterYear}-`;
     const map = new Map<string, { revenue: number; commission: number }>();
     for (const k of rows) {
       const code = (k.cid_code ?? "").trim().toUpperCase();
@@ -214,8 +213,9 @@ export default function KolBonus() {
       let revenue = 0;
       let commission = 0;
       for (const o of list) {
-        if (!o.order_date) continue;
-        if (prefix ? !o.order_date.startsWith(prefix) : !o.order_date.startsWith(yearPrefix)) continue;
+        if (prefix) {
+          if (!o.order_date?.startsWith(prefix)) continue;
+        }
         const r = Number(o.final_price ?? o.total_price ?? 0);
         const rate = latestRateByAcc.get(o.accommodation_id || "") ?? 0;
         revenue += r;
@@ -226,7 +226,7 @@ export default function KolBonus() {
     return map;
   }, [rows, ordersByCode, latestRateByAcc, filterYear, filterMonth]);
 
-  const metricsLabel = filterMonth === "all" ? `${filterYear} 年累計` : "當月";
+  const metricsLabel = filterMonth === "all" ? "全期" : "當月";
 
   if (!allowed) return <Navigate to="/team" replace />;
 
