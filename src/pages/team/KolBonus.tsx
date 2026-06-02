@@ -254,6 +254,11 @@ export default function KolBonus() {
           : r,
       ),
     );
+    setDrawerKol((prev) =>
+      prev && prev.id === genDialog.id
+        ? { ...prev, public_token: newToken, token_expires_at: newExpires }
+        : prev,
+    );
     toast.success("已產生新連結");
     setGenDialog(null);
   };
