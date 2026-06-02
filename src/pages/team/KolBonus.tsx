@@ -129,8 +129,9 @@ export default function KolBonus() {
         .neq("discount_code", "")
         .neq("order_status", "cancelled"),
       supabase
-        .from("accommodation_commission_settings")
-        .select("accommodation_id, effective_from, closer_rate")
+        .from("kol_commission_settings")
+        .select("accommodation_id, effective_from, rate, kol_id")
+        .is("kol_id", null)
         .order("effective_from", { ascending: false }),
     ]);
     if (kolRes.error) toast.error("載入 KOL 失敗：" + kolRes.error.message);
@@ -148,7 +149,11 @@ export default function KolBonus() {
     );
     setRows(filteredKols);
     setOrders(allOrders);
-    setCommissions((commRes.data ?? []) as CommissionSetting[]);
+    setCommissions(((commRes.data ?? []) as any[]).map((c) => ({
+      accommodation_id: c.accommodation_id,
+      effective_from: c.effective_from,
+      rate: c.rate,
+    })));
     setLoading(false);
   };
 
@@ -156,16 +161,31 @@ export default function KolBonus() {
     if (allowed) fetchAll();
   }, [allowed]);
 
-  // 取每館最新分潤
-  const latestRateByAcc = useMemo(() => {
-    const map = new Map<string, number>();
+  // 依館別分組（已按 effective_from DESC 排序）
+  const settingsByAcc = useMemo(() => {
+    const map = new Map<string, CommissionSetting[]>();
     for (const c of commissions) {
-      if (!map.has(c.accommodation_id)) {
-        map.set(c.accommodation_id, Number(c.closer_rate ?? 0));
-      }
+      const arr = map.get(c.accommodation_id) ?? [];
+      arr.push(c);
+      map.set(c.accommodation_id, arr);
     }
     return map;
   }, [commissions]);
+
+  // 依退房日期取最新生效的 rate（effective_from <= refDate）
+  const getRate = useCallback<RateResolver>(
+    (accommodationId, refDate) => {
+      if (!accommodationId) return 0;
+      const list = settingsByAcc.get(accommodationId);
+      if (!list || list.length === 0) return 0;
+      if (!refDate) return Number(list[0]?.rate ?? 0);
+      const ref = refDate.slice(0, 10);
+      const hit = list.find((s) => s.effective_from <= ref);
+      return Number(hit?.rate ?? 0);
+    },
+    [settingsByAcc],
+  );
+
 
   // 訂單依折扣碼分組（大小寫不敏感）
   const ordersByCode = useMemo(() => {
