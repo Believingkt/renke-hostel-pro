@@ -415,6 +415,7 @@ export default function KolBonus() {
         onClose={() => setDrawerKol(null)}
         ordersByCode={ordersByCode}
         latestRateByAcc={latestRateByAcc}
+        initialMonth={drawerInitialMonth}
       />
     </div>
   );
@@ -425,6 +426,7 @@ interface DetailProps {
   onClose: () => void;
   ordersByCode: Map<string, OrderRow[]>;
   latestRateByAcc: Map<string, number>;
+  initialMonth: string;
 }
 
 function KolDetailDrawer({
@@ -432,6 +434,7 @@ function KolDetailDrawer({
   onClose,
   ordersByCode,
   latestRateByAcc,
+  initialMonth,
 }: DetailProps) {
   const currentMonth = (() => {
     const now = new Date();
