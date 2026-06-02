@@ -181,15 +181,16 @@ export default function KolBonus() {
     return Array.from(set).sort((a, b) => b - a);
   }, [orders, currentYear]);
 
-  // 根據年/月過濾 KOL：該 KOL 在選定區間內須至少有一筆 order_date
+  // 根據年/月過濾 KOL：該 KOL 在選定區間內須至少有一筆 order_date；「全部月份」= 全期
   const filteredRows = useMemo(() => {
     const prefix =
       filterMonth === "all"
-        ? `${filterYear}-`
+        ? null
         : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
     return rows.filter((k) => {
       const code = (k.cid_code ?? "").trim().toUpperCase();
       const list = ordersByCode.get(code) ?? [];
+      if (!prefix) return list.length > 0;
       return list.some((o) => o.order_date?.startsWith(prefix));
     });
   }, [rows, ordersByCode, filterYear, filterMonth]);
