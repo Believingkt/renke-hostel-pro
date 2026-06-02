@@ -41,7 +41,7 @@ function renderEmail(opts: {
 <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,0.06)">
 <h2 style="margin:0 0 8px;color:#111">${opts.accommodationName}：奧丁丁訂單需補齊住客資料</h2>
 <p style="color:#555;margin:8px 0;">您好 ${opts.ownerName}，</p>
-<p style="margin:8px 0;color:#333;">系統收到一筆奧丁丁訂單通知，但 OwlTing 信件本身不含住客電話/Email，請至 <strong>OwlNest 後台訂單列表</strong> 複製 PII 後到下方補單頁貼上。</p>
+<p style="margin:8px 0;color:#333;">請點下方按鈕進補單頁，按頁面指引到<strong>奧丁丁系統後台</strong>複製旅客姓名/電話/Email 補回。</p>
 <table style="width:100%;border-collapse:collapse;margin:12px 0;font-size:14px;color:#333;">
 <tr><td style="padding:6px 0;color:#888;width:90px;">訂單編號</td><td><strong>${opts.obe}</strong></td></tr>
 <tr><td style="padding:6px 0;color:#888;">入住</td><td>${opts.checkIn ?? "—"} → ${opts.checkOut ?? "—"}</td></tr>
