@@ -68,8 +68,11 @@ interface OrderRow {
 interface CommissionSetting {
   accommodation_id: string;
   effective_from: string;
-  closer_rate: number | null;
+  rate: number | null;
 }
+
+type RateResolver = (accommodationId: string | null, refDate?: string | null) => number;
+
 
 const TOKEN_VALID_DAYS = 90;
 
