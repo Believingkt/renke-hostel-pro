@@ -351,7 +351,7 @@ export default function KolBonus() {
                     <TableHead>館別</TableHead>
                     <TableHead className="text-right">{metricsLabel}業績</TableHead>
                     <TableHead className="text-right">{metricsLabel}分潤</TableHead>
-                    <TableHead>連結狀態</TableHead>
+                    
                     <TableHead className="text-right">操作</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -359,7 +359,7 @@ export default function KolBonus() {
                   {filteredRows.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={7}
+                        colSpan={6}
                         className="text-center text-muted-foreground py-8"
                       >
                         此期間無資料
@@ -392,7 +392,7 @@ export default function KolBonus() {
                           <TableCell className="text-right tabular-nums">
                             {fmtMoney(m.commission)}
                           </TableCell>
-                          <TableCell>{renderStatusBadge(r)}</TableCell>
+                          
                           <TableCell
                             className="text-right"
                             onClick={(e) => e.stopPropagation()}
