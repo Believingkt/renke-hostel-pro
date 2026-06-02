@@ -361,7 +361,12 @@ function KolDetailDrawer({
   ordersByCode,
   latestRateByAcc,
 }: DetailProps) {
-  const currentMonth = new Date().toISOString().slice(0, 7);
+  const currentMonth = (() => {
+    const now = new Date();
+    const twOffset = 8 * 60;
+    const twDate = new Date(now.getTime() + (twOffset + now.getTimezoneOffset()) * 60000);
+    return twDate.toISOString().slice(0, 7);
+  })();
   const [month, setMonth] = useState<string>(currentMonth);
 
   useEffect(() => {
@@ -377,14 +382,14 @@ function KolDetailDrawer({
   const monthOptions = useMemo(() => {
     const set = new Set<string>();
     matched.forEach((o) => {
-      if (o.check_in_date) set.add(o.check_in_date.slice(0, 7));
+      if (o.order_date) set.add(o.order_date.slice(0, 7));
     });
     set.add(currentMonth);
     return Array.from(set).sort((a, b) => b.localeCompare(a));
   }, [matched, currentMonth]);
 
   const rowsInMonth = useMemo(
-    () => matched.filter((o) => o.check_in_date?.slice(0, 7) === month),
+    () => matched.filter((o) => o.order_date?.slice(0, 7) === month),
     [matched, month],
   );
 
