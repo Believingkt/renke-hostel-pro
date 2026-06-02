@@ -206,7 +206,7 @@ export default function OwlTingFillup() {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="total_amount">訂單金額（OwlNest 顯示金額）</Label>
+                <Label htmlFor="total_amount">訂單金額（奧丁丁系統顯示金額）</Label>
                 <Input id="total_amount" type="number" inputMode="numeric" value={totalAmountOverride}
                   onChange={(e) => setTotalAmountOverride(e.target.value)} placeholder="如不確定可留 0" />
               </div>
