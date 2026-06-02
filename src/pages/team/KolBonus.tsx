@@ -847,7 +847,8 @@ interface AccGroup {
 function KolRateSettingsTab() {
   const [loading, setLoading] = useState(true);
   const [groups, setGroups] = useState<AccGroup[]>([]);
-  const [dialogAcc, setDialogAcc] = useState<{ id: string; name: string } | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [formAccId, setFormAccId] = useState<string>("");
   const [formRate, setFormRate] = useState("");
   const [formDate, setFormDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [saving, setSaving] = useState(false);
@@ -889,14 +890,18 @@ function KolRateSettingsTab() {
     load();
   }, []);
 
-  const openAdd = (acc: { id: string; name: string }) => {
-    setDialogAcc(acc);
+  const openAdd = () => {
+    setFormAccId(groups[0]?.id ?? "");
     setFormRate("");
     setFormDate(new Date().toISOString().slice(0, 10));
+    setDialogOpen(true);
   };
 
   const handleSave = async () => {
-    if (!dialogAcc) return;
+    if (!formAccId) {
+      toast.error("請選擇館別");
+      return;
+    }
     const rate = Number(formRate);
     if (Number.isNaN(rate) || rate < 0 || rate > 100) {
       toast.error("分潤% 必須在 0-100");
@@ -908,7 +913,7 @@ function KolRateSettingsTab() {
     }
     setSaving(true);
     const { error } = await supabase.from("kol_commission_settings").insert({
-      accommodation_id: dialogAcc.id,
+      accommodation_id: formAccId,
       kol_id: null,
       rate,
       effective_from: formDate,
@@ -919,7 +924,7 @@ function KolRateSettingsTab() {
       return;
     }
     toast.success("已新增費率");
-    setDialogAcc(null);
+    setDialogOpen(false);
     await load();
   };
 
@@ -949,82 +954,102 @@ function KolRateSettingsTab() {
     );
   }
 
+  const groupsWithRows = groups.filter((g) => g.rows.length > 0);
+  const totalRows = groupsWithRows.reduce((n, g) => n + g.rows.length, 0);
+
   return (
-    <div className="space-y-4">
-      {groups.map((g) => (
-        <Card key={g.id}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-base">{g.name}</CardTitle>
-            <Button size="sm" onClick={() => openAdd({ id: g.id, name: g.name })}>
-              <Plus className="h-4 w-4 mr-1" />
-              新增費率
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="whitespace-nowrap">生效日期</TableHead>
-                    <TableHead className="whitespace-nowrap text-right">分潤%</TableHead>
-                    <TableHead className="whitespace-nowrap">建立時間</TableHead>
-                    <TableHead className="whitespace-nowrap text-right">操作</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {g.rows.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
-                        尚無資料
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <CardTitle className="text-base">KOL 分潤費率</CardTitle>
+        <Button size="sm" onClick={openAdd}>
+          <Plus className="h-4 w-4 mr-1" />
+          新增費率
+        </Button>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="whitespace-nowrap">館別</TableHead>
+                <TableHead className="whitespace-nowrap">生效日期</TableHead>
+                <TableHead className="whitespace-nowrap text-right">分潤%</TableHead>
+                <TableHead className="whitespace-nowrap">建立時間</TableHead>
+                <TableHead className="whitespace-nowrap text-right">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {totalRows === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
+                    尚無資料
+                  </TableCell>
+                </TableRow>
+              ) : (
+                groupsWithRows.flatMap((g) =>
+                  g.rows.map((r, idx) => (
+                    <TableRow key={r.id}>
+                      <TableCell className="whitespace-nowrap font-medium">
+                        {idx === 0 ? g.name : ""}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {r.effective_from}
+                        {idx === 0 && (
+                          <Badge className="ml-2 bg-green-100 text-green-700 border-green-200">
+                            目前生效
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">{r.rate}%</TableCell>
+                      <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                        {r.created_at?.slice(0, 19).replace("T", " ") ?? "—"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {idx !== 0 && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            disabled={deletingId === r.id}
+                            onClick={() => handleDelete(r)}
+                            title="刪除"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
-                  ) : (
-                    g.rows.map((r, idx) => (
-                      <TableRow key={r.id}>
-                        <TableCell className="whitespace-nowrap">
-                          {r.effective_from}
-                          {idx === 0 && (
-                            <Badge className="ml-2 bg-green-100 text-green-700 border-green-200">
-                              目前生效
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">{r.rate}%</TableCell>
-                        <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                          {r.created_at?.slice(0, 19).replace("T", " ") ?? "—"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {idx !== 0 && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              disabled={deletingId === r.id}
-                              onClick={() => handleDelete(r)}
-                              title="刪除"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+                  )),
+                )
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
 
-      <Dialog open={!!dialogAcc} onOpenChange={(o) => !o && setDialogAcc(null)}>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>新增費率 - {dialogAcc?.name}</DialogTitle>
+            <DialogTitle>新增費率</DialogTitle>
             <DialogDescription>
               新增的費率會以「新一筆」紀錄寫入，舊紀錄保留作為歷史。
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>館別</Label>
+              <Select value={formAccId} onValueChange={setFormAccId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="選擇館別" />
+                </SelectTrigger>
+                <SelectContent>
+                  {groups.map((g) => (
+                    <SelectItem key={g.id} value={g.id}>
+                      {g.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2">
               <Label>分潤%</Label>
               <Input
@@ -1046,7 +1071,7 @@ function KolRateSettingsTab() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogAcc(null)} disabled={saving}>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>
               取消
             </Button>
             <Button onClick={handleSave} disabled={saving}>
@@ -1055,6 +1080,6 @@ function KolRateSettingsTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </Card>
   );
 }
