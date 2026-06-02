@@ -448,6 +448,8 @@ export default function KolBonus() {
         ordersByCode={ordersByCode}
         latestRateByAcc={latestRateByAcc}
         initialMonth={drawerInitialMonth}
+        onCopy={copyLink}
+        onGenerate={setGenDialog}
       />
     </div>
   );
