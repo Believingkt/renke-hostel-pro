@@ -259,7 +259,7 @@ export default function KolBonus() {
       let commission = 0;
       for (const o of list) {
         const r = Number(o.final_price ?? o.total_price ?? 0);
-        const rate = latestRateByAcc.get(o.accommodation_id || "") ?? 0;
+        const rate = getRate(o.accommodation_id, o.check_out_date);
         const orderMatch = prefix
           ? o.order_date?.startsWith(prefix)
           : true;
