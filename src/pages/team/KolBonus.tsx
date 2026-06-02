@@ -531,6 +531,36 @@ function KolDetailDrawer({
         </SheetHeader>
 
         <div className="mt-4 space-y-4">
+          {kol && (
+            <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+              <div className="text-sm font-medium">KOL 專屬查詢連結</div>
+              <p className="text-xs text-muted-foreground">
+                此連結可讓 KOL 本人查看自己的訂單業績，有效期 90 天
+              </p>
+              {isTokenValid(kol) ? (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    到期日：{kol.token_expires_at?.slice(0, 10)}
+                  </span>
+                  <Button size="sm" variant="outline" onClick={() => onCopy(kol)}>
+                    <Copy className="h-3 w-3 mr-1" />
+                    複製連結
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    {kol.public_token ? "連結已過期" : "尚未產生連結"}
+                  </span>
+                  <Button size="sm" onClick={() => onGenerate(kol)}>
+                    <LinkIcon className="h-3 w-3 mr-1" />
+                    產生連結
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">月份</span>
             <Select value={month} onValueChange={setMonth}>
