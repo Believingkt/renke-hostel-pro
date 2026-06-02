@@ -202,28 +202,56 @@ export default function KolBonus() {
       ? `${currentYear}-${String(currentMonthNum).padStart(2, "0")}`
       : `${filterYear}-${String(Number(filterMonth)).padStart(2, "0")}`;
 
-  // 每位 KOL 在當前篩選期間內的業績與分潤
+  // 每位 KOL 在當前篩選期間內的訂單/完成業績與分潤
   const kolMetrics = useMemo(() => {
     const prefix =
       filterMonth === "all"
         ? null
         : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
-    const map = new Map<string, { revenue: number; commission: number }>();
+    const map = new Map<
+      string,
+      {
+        orderCount: number;
+        orderRevenue: number;
+        completedCount: number;
+        completedRevenue: number;
+        commission: number;
+      }
+    >();
     for (const k of rows) {
       const code = (k.cid_code ?? "").trim().toUpperCase();
       const list = ordersByCode.get(code) ?? [];
-      let revenue = 0;
+      let orderCount = 0;
+      let orderRevenue = 0;
+      let completedCount = 0;
+      let completedRevenue = 0;
       let commission = 0;
       for (const o of list) {
-        if (prefix) {
-          if (!o.order_date?.startsWith(prefix)) continue;
-        }
         const r = Number(o.final_price ?? o.total_price ?? 0);
         const rate = latestRateByAcc.get(o.accommodation_id || "") ?? 0;
-        revenue += r;
-        commission += r * (rate / 100);
+        const orderMatch = prefix
+          ? o.order_date?.startsWith(prefix)
+          : true;
+        const completedMatch = prefix
+          ? o.check_out_date?.startsWith(prefix)
+          : true;
+        if (orderMatch) {
+          orderCount += 1;
+          orderRevenue += r;
+        }
+        if (completedMatch) {
+          completedCount += 1;
+          completedRevenue += r;
+          commission += r * (rate / 100);
+        }
       }
-      map.set(k.id, { revenue, commission: Math.round(commission) });
+      map.set(k.id, {
+        orderCount,
+        orderRevenue,
+        completedCount,
+        completedRevenue,
+        commission: Math.round(commission),
+      });
     }
     return map;
   }, [rows, ordersByCode, latestRateByAcc, filterYear, filterMonth]);
