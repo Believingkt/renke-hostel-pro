@@ -312,10 +312,10 @@ export default function TeamKOL() {
         </div>
         {canSeeStats && (
           <Button asChild variant="outline">
-            <a href="/team/kol/bonus">
+            <Link to="/team/kol/bonus">
               KOL 獎金管理
               <ExternalLink className="h-4 w-4" />
-            </a>
+            </Link>
           </Button>
         )}
       </div>
