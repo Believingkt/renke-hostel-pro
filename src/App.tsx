@@ -90,6 +90,7 @@ const TeamMembers = lazy(() => import("./pages/team/TeamMembers"));
 const TeamKOL = lazy(() => import("./pages/team/TeamKOL"));
 const TeamKolVenueConfirm = lazy(() => import("./pages/team/TeamKolVenueConfirm"));
 const TeamCommission = lazy(() => import("./pages/team/TeamCommission"));
+const KolBonus = lazy(() => import("./pages/team/KolBonus"));
 const TeamNotification = lazy(() => import("./pages/team/TeamNotification"));
 const TeamAds = lazy(() => import("./pages/team/TeamAds"));
 const TeamFranchise = lazy(() => import("./pages/team/TeamFranchise"));
@@ -505,6 +506,9 @@ function App() {
                         } />
                         <Route path="kol/venue-confirm" element={
                           <Suspense fallback={null}><TeamKolVenueConfirm /></Suspense>
+                        } />
+                        <Route path="kol/bonus" element={
+                          <Suspense fallback={null}><KolBonus /></Suspense>
                         } />
                         <Route path="orders" element={
                           <Suspense fallback={null}><TeamOrders /></Suspense>
