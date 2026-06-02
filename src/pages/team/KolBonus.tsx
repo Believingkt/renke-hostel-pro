@@ -171,6 +171,35 @@ export default function KolBonus() {
     return map;
   }, [orders]);
 
+  // 年份選項：所有訂單 order_date 出現過的年份 + 當年
+  const yearOptions = useMemo(() => {
+    const set = new Set<number>();
+    for (const o of orders) {
+      if (o.order_date) set.add(Number(o.order_date.slice(0, 4)));
+    }
+    set.add(currentYear);
+    return Array.from(set).sort((a, b) => b - a);
+  }, [orders, currentYear]);
+
+  // 根據年/月過濾 KOL：該 KOL 在選定區間內須至少有一筆 order_date
+  const filteredRows = useMemo(() => {
+    const prefix =
+      filterMonth === "all"
+        ? `${filterYear}-`
+        : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
+    return rows.filter((k) => {
+      const code = (k.cid_code ?? "").trim().toUpperCase();
+      const list = ordersByCode.get(code) ?? [];
+      return list.some((o) => o.order_date?.startsWith(prefix));
+    });
+  }, [rows, ordersByCode, filterYear, filterMonth]);
+
+  // 開啟 Drawer 時要帶入的月份：若選「全部月份」則用當月
+  const drawerInitialMonth =
+    filterMonth === "all"
+      ? `${currentYear}-${String(currentMonthNum).padStart(2, "0")}`
+      : `${filterYear}-${String(Number(filterMonth)).padStart(2, "0")}`;
+
   if (!allowed) return <Navigate to="/team" replace />;
 
   const handleGenerate = async () => {
