@@ -19,6 +19,7 @@ import { Plus, AlertTriangle, Check, X, Pencil, ExternalLink, Trash2 } from "luc
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { KolStatsTab } from "@/components/team/KolStatsTab";
+import { Link } from "react-router-dom";
 
 // ====== 型別 & 常數 ======
 // 正式邀約 Tab：booking_status 僅保留以下三種顯示，其他值（含 null / 舊資料）一律顯示「—」
