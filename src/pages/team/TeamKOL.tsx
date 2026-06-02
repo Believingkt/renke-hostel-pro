@@ -304,9 +304,19 @@ export default function TeamKOL() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold">KOL 星探管理</h1>
-        <p className="text-sm text-muted-foreground">管理 KOL 邀約、潛在名單與邀約目標</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">KOL 星探管理</h1>
+          <p className="text-sm text-muted-foreground">管理 KOL 邀約、潛在名單與邀約目標</p>
+        </div>
+        {canSeeStats && (
+          <Button asChild variant="outline">
+            <a href="/team/kol/bonus">
+              KOL 獎金管理
+              <ExternalLink className="h-4 w-4" />
+            </a>
+          </Button>
+        )}
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
