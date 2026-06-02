@@ -53,6 +53,7 @@ interface OrderRow {
   order_number: string;
   discount_code: string | null;
   check_in_date: string;
+  order_date: string | null;
   total_price: number | null;
   final_price: number | null;
   order_status: string;
@@ -104,7 +105,7 @@ export default function KolBonus() {
       supabase
         .from("orders")
         .select(
-          "id, order_number, discount_code, check_in_date, total_price, final_price, order_status, accommodation_id",
+          "id, order_number, discount_code, check_in_date, order_date, total_price, final_price, order_status, accommodation_id",
         )
         .not("discount_code", "is", null)
         .neq("discount_code", "")
@@ -360,7 +361,12 @@ function KolDetailDrawer({
   ordersByCode,
   latestRateByAcc,
 }: DetailProps) {
-  const currentMonth = new Date().toISOString().slice(0, 7);
+  const currentMonth = (() => {
+    const now = new Date();
+    const twOffset = 8 * 60;
+    const twDate = new Date(now.getTime() + (twOffset + now.getTimezoneOffset()) * 60000);
+    return twDate.toISOString().slice(0, 7);
+  })();
   const [month, setMonth] = useState<string>(currentMonth);
 
   useEffect(() => {
@@ -376,14 +382,14 @@ function KolDetailDrawer({
   const monthOptions = useMemo(() => {
     const set = new Set<string>();
     matched.forEach((o) => {
-      if (o.check_in_date) set.add(o.check_in_date.slice(0, 7));
+      if (o.order_date) set.add(o.order_date.slice(0, 7));
     });
     set.add(currentMonth);
     return Array.from(set).sort((a, b) => b.localeCompare(a));
   }, [matched, currentMonth]);
 
   const rowsInMonth = useMemo(
-    () => matched.filter((o) => o.check_in_date?.slice(0, 7) === month),
+    () => matched.filter((o) => o.order_date?.slice(0, 7) === month),
     [matched, month],
   );
 
@@ -440,7 +446,10 @@ function KolDetailDrawer({
                 <TableRow>
                   <TableHead>館別</TableHead>
                   <TableHead>折扣碼</TableHead>
-                  <TableHead className="text-right">有效訂單筆數</TableHead>
+                  <TableHead className="text-right">
+                    有效訂單筆數
+                    <div className="text-xs font-normal text-muted-foreground">依訂單日期統計</div>
+                  </TableHead>
                   <TableHead className="text-right">總業績</TableHead>
                   <TableHead className="text-right">分潤%</TableHead>
                   <TableHead className="text-right">分潤金額</TableHead>
