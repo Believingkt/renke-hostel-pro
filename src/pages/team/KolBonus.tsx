@@ -84,6 +84,14 @@ export default function KolBonus() {
     roleSet.includes("scout_manager") ||
     roleSet.includes("scout");
 
+  const twNow = (() => {
+    const now = new Date();
+    const twOffset = 8 * 60;
+    return new Date(now.getTime() + (twOffset + now.getTimezoneOffset()) * 60000);
+  })();
+  const currentYear = twNow.getUTCFullYear();
+  const currentMonthNum = twNow.getUTCMonth() + 1;
+
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<KolRow[]>([]);
   const [orders, setOrders] = useState<OrderRow[]>([]);
@@ -91,6 +99,8 @@ export default function KolBonus() {
   const [genDialog, setGenDialog] = useState<KolRow | null>(null);
   const [saving, setSaving] = useState(false);
   const [drawerKol, setDrawerKol] = useState<KolRow | null>(null);
+  const [filterYear, setFilterYear] = useState<number>(currentYear);
+  const [filterMonth, setFilterMonth] = useState<string>(String(currentMonthNum)); // "all" | "1".."12"
 
   const fetchAll = async () => {
     setLoading(true);
@@ -160,6 +170,35 @@ export default function KolBonus() {
     }
     return map;
   }, [orders]);
+
+  // 年份選項：所有訂單 order_date 出現過的年份 + 當年
+  const yearOptions = useMemo(() => {
+    const set = new Set<number>();
+    for (const o of orders) {
+      if (o.order_date) set.add(Number(o.order_date.slice(0, 4)));
+    }
+    set.add(currentYear);
+    return Array.from(set).sort((a, b) => b - a);
+  }, [orders, currentYear]);
+
+  // 根據年/月過濾 KOL：該 KOL 在選定區間內須至少有一筆 order_date
+  const filteredRows = useMemo(() => {
+    const prefix =
+      filterMonth === "all"
+        ? `${filterYear}-`
+        : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
+    return rows.filter((k) => {
+      const code = (k.cid_code ?? "").trim().toUpperCase();
+      const list = ordersByCode.get(code) ?? [];
+      return list.some((o) => o.order_date?.startsWith(prefix));
+    });
+  }, [rows, ordersByCode, filterYear, filterMonth]);
+
+  // 開啟 Drawer 時要帶入的月份：若選「全部月份」則用當月
+  const drawerInitialMonth =
+    filterMonth === "all"
+      ? `${currentYear}-${String(currentMonthNum).padStart(2, "0")}`
+      : `${filterYear}-${String(Number(filterMonth)).padStart(2, "0")}`;
 
   if (!allowed) return <Navigate to="/team" replace />;
 
@@ -237,6 +276,38 @@ export default function KolBonus() {
               載入中...
             </p>
           ) : (
+            <>
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              <span className="text-sm text-muted-foreground">期間</span>
+              <Select
+                value={String(filterYear)}
+                onValueChange={(v) => setFilterYear(Number(v))}
+              >
+                <SelectTrigger className="w-[110px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {yearOptions.map((y) => (
+                    <SelectItem key={y} value={String(y)}>
+                      {y} 年
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={filterMonth} onValueChange={setFilterMonth}>
+                <SelectTrigger className="w-[130px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部月份</SelectItem>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                    <SelectItem key={m} value={String(m)}>
+                      {m} 月
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="overflow-x-auto">
               <Table className="fixed-table">
                 <TableHeader>
@@ -249,17 +320,17 @@ export default function KolBonus() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rows.length === 0 ? (
+                  {filteredRows.length === 0 ? (
                     <TableRow>
                       <TableCell
                         colSpan={5}
                         className="text-center text-muted-foreground py-8"
                       >
-                        尚無資料
+                        此期間無資料
                       </TableCell>
                     </TableRow>
                   ) : (
-                    rows.map((r) => {
+                    filteredRows.map((r) => {
                       const valid = isTokenValid(r);
                       return (
                         <TableRow
@@ -310,6 +381,7 @@ export default function KolBonus() {
                 </TableBody>
               </Table>
             </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -343,6 +415,7 @@ export default function KolBonus() {
         onClose={() => setDrawerKol(null)}
         ordersByCode={ordersByCode}
         latestRateByAcc={latestRateByAcc}
+        initialMonth={drawerInitialMonth}
       />
     </div>
   );
@@ -353,6 +426,7 @@ interface DetailProps {
   onClose: () => void;
   ordersByCode: Map<string, OrderRow[]>;
   latestRateByAcc: Map<string, number>;
+  initialMonth: string;
 }
 
 function KolDetailDrawer({
@@ -360,19 +434,14 @@ function KolDetailDrawer({
   onClose,
   ordersByCode,
   latestRateByAcc,
+  initialMonth,
 }: DetailProps) {
-  const currentMonth = (() => {
-    const now = new Date();
-    const twOffset = 8 * 60;
-    const twDate = new Date(now.getTime() + (twOffset + now.getTimezoneOffset()) * 60000);
-    return twDate.toISOString().slice(0, 7);
-  })();
-  const [month, setMonth] = useState<string>(currentMonth);
+  const [month, setMonth] = useState<string>(initialMonth);
 
   useEffect(() => {
-    if (kol) setMonth(currentMonth);
+    if (kol) setMonth(initialMonth);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kol?.id]);
+  }, [kol?.id, initialMonth]);
 
   const matched = useMemo(() => {
     if (!kol?.cid_code) return [];
@@ -384,9 +453,9 @@ function KolDetailDrawer({
     matched.forEach((o) => {
       if (o.order_date) set.add(o.order_date.slice(0, 7));
     });
-    set.add(currentMonth);
+    set.add(initialMonth);
     return Array.from(set).sort((a, b) => b.localeCompare(a));
-  }, [matched, currentMonth]);
+  }, [matched, initialMonth]);
 
   const rowsInMonth = useMemo(
     () => matched.filter((o) => o.order_date?.slice(0, 7) === month),
