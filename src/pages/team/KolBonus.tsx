@@ -580,7 +580,7 @@ interface DetailProps {
   kol: KolRow | null;
   onClose: () => void;
   ordersByCode: Map<string, OrderRow[]>;
-  latestRateByAcc: Map<string, number>;
+  getRate: RateResolver;
   initialMonth: string;
   onCopy: (row: KolRow) => void;
   onGenerate: (row: KolRow) => void;
@@ -590,7 +590,7 @@ function KolDetailDrawer({
   kol,
   onClose,
   ordersByCode,
-  latestRateByAcc,
+  getRate,
   initialMonth,
   onCopy,
   onGenerate,
