@@ -84,6 +84,14 @@ export default function KolBonus() {
     roleSet.includes("scout_manager") ||
     roleSet.includes("scout");
 
+  const twNow = (() => {
+    const now = new Date();
+    const twOffset = 8 * 60;
+    return new Date(now.getTime() + (twOffset + now.getTimezoneOffset()) * 60000);
+  })();
+  const currentYear = twNow.getUTCFullYear();
+  const currentMonthNum = twNow.getUTCMonth() + 1;
+
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<KolRow[]>([]);
   const [orders, setOrders] = useState<OrderRow[]>([]);
@@ -91,6 +99,8 @@ export default function KolBonus() {
   const [genDialog, setGenDialog] = useState<KolRow | null>(null);
   const [saving, setSaving] = useState(false);
   const [drawerKol, setDrawerKol] = useState<KolRow | null>(null);
+  const [filterYear, setFilterYear] = useState<number>(currentYear);
+  const [filterMonth, setFilterMonth] = useState<string>(String(currentMonthNum)); // "all" | "1".."12"
 
   const fetchAll = async () => {
     setLoading(true);
