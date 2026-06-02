@@ -193,7 +193,11 @@ export default function KolBonus() {
       const code = (k.cid_code ?? "").trim().toUpperCase();
       const list = ordersByCode.get(code) ?? [];
       if (!prefix) return list.length > 0;
-      return list.some((o) => o.order_date?.startsWith(prefix));
+      return list.some(
+        (o) =>
+          o.order_date?.startsWith(prefix) ||
+          (o.order_status !== "cancelled" && o.check_out_date?.startsWith(prefix)),
+      );
     });
   }, [rows, ordersByCode, filterYear, filterMonth]);
 
