@@ -580,46 +580,40 @@ function KolDetailDrawer({
     return `${ny}-${String(nm).padStart(2, "0")}-10`;
   }, [month]);
 
-  // 以 accommodation_id 分組，計算訂單/完成兩組指標
-  const grouped = useMemo(() => {
-    const map = new Map<
-      string,
-      {
-        orderCount: number;
-        orderRevenue: number;
-        completedCount: number;
-        completedRevenue: number;
-        rate: number;
-      }
-    >();
-    for (const o of matched) {
-      const accId = o.accommodation_id || "";
-      const rate = latestRateByAcc.get(accId) ?? 0;
-      const revenue = Number(o.final_price ?? o.total_price ?? 0);
-      const orderMatch = o.order_date?.slice(0, 7) === month;
-      const completedMatch = o.check_out_date?.slice(0, 7) === month;
-      if (!orderMatch && !completedMatch) continue;
-      const cur =
-        map.get(accId) ?? {
-          orderCount: 0,
-          orderRevenue: 0,
-          completedCount: 0,
-          completedRevenue: 0,
-          rate,
-        };
-      if (orderMatch) {
-        cur.orderCount += 1;
-        cur.orderRevenue += revenue;
-      }
-      if (completedMatch) {
-        cur.completedCount += 1;
-        cur.completedRevenue += revenue;
-      }
-      cur.rate = rate;
-      map.set(accId, cur);
+  // 訂單明細：依 order_date 在當月
+  const orderList = useMemo(
+    () => matched.filter((o) => o.order_date?.slice(0, 7) === month),
+    [matched, month],
+  );
+  // 完成業績明細：依 check_out_date 在當月
+  const completedList = useMemo(
+    () => matched.filter((o) => o.check_out_date?.slice(0, 7) === month),
+    [matched, month],
+  );
+
+  const orderTotals = useMemo(() => {
+    let count = 0;
+    let revenue = 0;
+    for (const o of orderList) {
+      count += 1;
+      revenue += Number(o.final_price ?? o.total_price ?? 0);
     }
-    return Array.from(map.entries());
-  }, [matched, latestRateByAcc, month]);
+    return { count, revenue };
+  }, [orderList]);
+
+  const completedTotals = useMemo(() => {
+    let count = 0;
+    let revenue = 0;
+    let commission = 0;
+    for (const o of completedList) {
+      const r = Number(o.final_price ?? o.total_price ?? 0);
+      const rate = latestRateByAcc.get(o.accommodation_id || "") ?? 0;
+      count += 1;
+      revenue += r;
+      commission += r * (rate / 100);
+    }
+    return { count, revenue, commission: Math.round(commission) };
+  }, [completedList, latestRateByAcc]);
 
   return (
     <Sheet open={!!kol} onOpenChange={(o) => !o && onClose()}>
