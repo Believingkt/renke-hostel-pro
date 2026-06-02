@@ -53,6 +53,7 @@ interface OrderRow {
   order_number: string;
   discount_code: string | null;
   check_in_date: string;
+  check_out_date: string | null;
   order_date: string | null;
   total_price: number | null;
   final_price: number | null;
