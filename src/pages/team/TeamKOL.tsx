@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTeam } from "@/components/team/TeamContext";
 import { Card, CardContent } from "@/components/ui/card";
@@ -428,6 +428,13 @@ function InvitationsTab({
   }, [accommodations, venues]);
 
   const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const composingRef = useRef(false);
+  useEffect(() => {
+    if (composingRef.current) return;
+    const t = setTimeout(() => setSearch(searchInput), 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
   const [filterAcc, setFilterAcc] = useState<string>("all");
   const [filterRarity, setFilterRarity] = useState<string[]>([]);
   const [filterTags, setFilterTags] = useState<string[]>([]);
@@ -930,8 +937,13 @@ function InvitationsTab({
         {/* Row 1: 搜尋框獨佔 */}
         <Input
           placeholder="搜尋 KOL 名稱 / 網紅帳號 / CID"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          onCompositionStart={() => { composingRef.current = true; }}
+          onCompositionEnd={(e) => {
+            composingRef.current = false;
+            setSearchInput((e.target as HTMLInputElement).value);
+          }}
           className="w-full sm:w-64"
         />
 
