@@ -436,13 +436,7 @@ function KolDetailDrawer({
   latestRateByAcc,
   initialMonth,
 }: DetailProps) {
-  const currentMonth = (() => {
-    const now = new Date();
-    const twOffset = 8 * 60;
-    const twDate = new Date(now.getTime() + (twOffset + now.getTimezoneOffset()) * 60000);
-    return twDate.toISOString().slice(0, 7);
-  })();
-  const [month, setMonth] = useState<string>(currentMonth);
+  const [month, setMonth] = useState<string>(initialMonth);
 
   useEffect(() => {
     if (kol) setMonth(currentMonth);
