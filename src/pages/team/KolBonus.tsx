@@ -663,20 +663,25 @@ function KolDetailDrawer({
             </div>
           )}
 
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">月份</span>
-            <Select value={month} onValueChange={setMonth}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {monthOptions.map((m) => (
-                  <SelectItem key={m} value={m}>
-                    {m}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">月份</span>
+              <Select value={month} onValueChange={setMonth}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {monthOptions.map((m) => (
+                    <SelectItem key={m} value={m}>
+                      {m}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              訂單筆數依訂單日期統計，完成業績依退房日期統計
+            </p>
           </div>
 
           <div className="overflow-x-auto">
@@ -686,19 +691,25 @@ function KolDetailDrawer({
                   <TableHead>館別</TableHead>
                   <TableHead>折扣碼</TableHead>
                   <TableHead className="text-right">
-                    有效訂單筆數
-                    <div className="text-xs font-normal text-muted-foreground">依訂單日期統計</div>
+                    訂單筆數
+                    <div className="text-xs font-normal text-muted-foreground">依訂單日期</div>
                   </TableHead>
-                  <TableHead className="text-right">總業績</TableHead>
+                  <TableHead className="text-right">訂單業績</TableHead>
+                  <TableHead className="text-right">
+                    完成筆數
+                    <div className="text-xs font-normal text-muted-foreground">依退房日期</div>
+                  </TableHead>
+                  <TableHead className="text-right">完成業績</TableHead>
                   <TableHead className="text-right">分潤%</TableHead>
                   <TableHead className="text-right">分潤金額</TableHead>
+                  <TableHead className="whitespace-nowrap">預計發放日</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {grouped.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={6}
+                      colSpan={9}
                       className="text-center text-muted-foreground py-6"
                     >
                       此月份無資料
@@ -706,7 +717,7 @@ function KolDetailDrawer({
                   </TableRow>
                 ) : (
                   grouped.map(([accId, g]) => {
-                    const amount = Math.round(g.revenue * (g.rate / 100));
+                    const amount = Math.round(g.completedRevenue * (g.rate / 100));
                     return (
                       <TableRow key={accId || "unknown"}>
                         <TableCell>{kol?.venue_name || "—"}</TableCell>
@@ -714,16 +725,25 @@ function KolDetailDrawer({
                           {kol?.cid_code}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
-                          {g.count}
+                          {g.orderCount}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
-                          {fmtMoney(g.revenue)}
+                          {fmtMoney(g.orderRevenue)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {g.completedCount}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {fmtMoney(g.completedRevenue)}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
                           {g.rate}%
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
                           {fmtMoney(amount)}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-xs">
+                          {payoutDate}
                         </TableCell>
                       </TableRow>
                     );
