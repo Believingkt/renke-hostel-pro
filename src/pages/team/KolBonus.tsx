@@ -36,6 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { useTeam } from "@/components/team/TeamContext";
 
 interface KolRow {
@@ -580,46 +581,40 @@ function KolDetailDrawer({
     return `${ny}-${String(nm).padStart(2, "0")}-10`;
   }, [month]);
 
-  // 以 accommodation_id 分組，計算訂單/完成兩組指標
-  const grouped = useMemo(() => {
-    const map = new Map<
-      string,
-      {
-        orderCount: number;
-        orderRevenue: number;
-        completedCount: number;
-        completedRevenue: number;
-        rate: number;
-      }
-    >();
-    for (const o of matched) {
-      const accId = o.accommodation_id || "";
-      const rate = latestRateByAcc.get(accId) ?? 0;
-      const revenue = Number(o.final_price ?? o.total_price ?? 0);
-      const orderMatch = o.order_date?.slice(0, 7) === month;
-      const completedMatch = o.check_out_date?.slice(0, 7) === month;
-      if (!orderMatch && !completedMatch) continue;
-      const cur =
-        map.get(accId) ?? {
-          orderCount: 0,
-          orderRevenue: 0,
-          completedCount: 0,
-          completedRevenue: 0,
-          rate,
-        };
-      if (orderMatch) {
-        cur.orderCount += 1;
-        cur.orderRevenue += revenue;
-      }
-      if (completedMatch) {
-        cur.completedCount += 1;
-        cur.completedRevenue += revenue;
-      }
-      cur.rate = rate;
-      map.set(accId, cur);
+  // 訂單明細：依 order_date 在當月
+  const orderList = useMemo(
+    () => matched.filter((o) => o.order_date?.slice(0, 7) === month),
+    [matched, month],
+  );
+  // 完成業績明細：依 check_out_date 在當月
+  const completedList = useMemo(
+    () => matched.filter((o) => o.check_out_date?.slice(0, 7) === month),
+    [matched, month],
+  );
+
+  const orderTotals = useMemo(() => {
+    let count = 0;
+    let revenue = 0;
+    for (const o of orderList) {
+      count += 1;
+      revenue += Number(o.final_price ?? o.total_price ?? 0);
     }
-    return Array.from(map.entries());
-  }, [matched, latestRateByAcc, month]);
+    return { count, revenue };
+  }, [orderList]);
+
+  const completedTotals = useMemo(() => {
+    let count = 0;
+    let revenue = 0;
+    let commission = 0;
+    for (const o of completedList) {
+      const r = Number(o.final_price ?? o.total_price ?? 0);
+      const rate = latestRateByAcc.get(o.accommodation_id || "") ?? 0;
+      count += 1;
+      revenue += r;
+      commission += r * (rate / 100);
+    }
+    return { count, revenue, commission: Math.round(commission) };
+  }, [completedList, latestRateByAcc]);
 
   return (
     <Sheet open={!!kol} onOpenChange={(o) => !o && onClose()}>
@@ -684,73 +679,97 @@ function KolDetailDrawer({
             </p>
           </div>
 
-          <div className="overflow-x-auto">
-            <Table className="fixed-table">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>館別</TableHead>
-                  <TableHead>折扣碼</TableHead>
-                  <TableHead className="text-right">
-                    訂單筆數
-                    <div className="text-xs font-normal text-muted-foreground">依訂單日期</div>
-                  </TableHead>
-                  <TableHead className="text-right">訂單業績</TableHead>
-                  <TableHead className="text-right">
-                    完成筆數
-                    <div className="text-xs font-normal text-muted-foreground">依退房日期</div>
-                  </TableHead>
-                  <TableHead className="text-right">完成業績</TableHead>
-                  <TableHead className="text-right">分潤%</TableHead>
-                  <TableHead className="text-right">分潤金額</TableHead>
-                  <TableHead className="whitespace-nowrap">預計發放日</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {grouped.length === 0 ? (
+          <div className="space-y-2">
+            <div className="text-sm font-semibold">訂單明細（依訂單日期統計）</div>
+            <div className="overflow-x-auto">
+              <Table className="fixed-table">
+                <TableHeader>
                   <TableRow>
-                    <TableCell
-                      colSpan={9}
-                      className="text-center text-muted-foreground py-6"
-                    >
-                      此月份無資料
-                    </TableCell>
+                    <TableHead>館別</TableHead>
+                    <TableHead>折扣碼</TableHead>
+                    <TableHead className="whitespace-nowrap">訂單日期</TableHead>
+                    <TableHead className="whitespace-nowrap">退房日期</TableHead>
+                    <TableHead className="text-right">訂單金額</TableHead>
                   </TableRow>
-                ) : (
-                  grouped.map(([accId, g]) => {
-                    const amount = Math.round(g.completedRevenue * (g.rate / 100));
-                    return (
-                      <TableRow key={accId || "unknown"}>
+                </TableHeader>
+                <TableBody>
+                  {orderList.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
+                        此月份無資料
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    orderList.map((o) => (
+                      <TableRow key={o.id}>
                         <TableCell>{kol?.venue_name || "—"}</TableCell>
-                        <TableCell className="font-mono">
-                          {kol?.cid_code}
-                        </TableCell>
+                        <TableCell className="font-mono">{o.discount_code}</TableCell>
+                        <TableCell className="whitespace-nowrap text-xs">{o.order_date?.slice(0, 10) || "—"}</TableCell>
+                        <TableCell className="whitespace-nowrap text-xs">{o.check_out_date?.slice(0, 10) || "—"}</TableCell>
                         <TableCell className="text-right tabular-nums">
-                          {g.orderCount}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {fmtMoney(g.orderRevenue)}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {g.completedCount}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {fmtMoney(g.completedRevenue)}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {g.rate}%
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {fmtMoney(amount)}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap text-xs">
-                          {payoutDate}
+                          {fmtMoney(Number(o.final_price ?? o.total_price ?? 0))}
                         </TableCell>
                       </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="text-xs text-muted-foreground text-right">
+              小計：{orderTotals.count} 筆｜總金額 {fmtMoney(orderTotals.revenue)}
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className="space-y-2">
+            <div className="text-sm font-semibold">完成業績明細（依退房日期統計）</div>
+            <div className="overflow-x-auto">
+              <Table className="fixed-table">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>館別</TableHead>
+                    <TableHead>折扣碼</TableHead>
+                    <TableHead className="whitespace-nowrap">訂單日期</TableHead>
+                    <TableHead className="whitespace-nowrap">退房日期</TableHead>
+                    <TableHead className="text-right">金額</TableHead>
+                    <TableHead className="text-right">分潤%</TableHead>
+                    <TableHead className="text-right">分潤金額</TableHead>
+                    <TableHead className="whitespace-nowrap">預計發放日</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {completedList.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center text-muted-foreground py-6">
+                        此月份無資料
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    completedList.map((o) => {
+                      const rate = latestRateByAcc.get(o.accommodation_id || "") ?? 0;
+                      const revenue = Number(o.final_price ?? o.total_price ?? 0);
+                      const amount = Math.round(revenue * (rate / 100));
+                      return (
+                        <TableRow key={o.id}>
+                          <TableCell>{kol?.venue_name || "—"}</TableCell>
+                          <TableCell className="font-mono">{o.discount_code}</TableCell>
+                          <TableCell className="whitespace-nowrap text-xs">{o.order_date?.slice(0, 10) || "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap text-xs">{o.check_out_date?.slice(0, 10) || "—"}</TableCell>
+                          <TableCell className="text-right tabular-nums">{fmtMoney(revenue)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{rate}%</TableCell>
+                          <TableCell className="text-right tabular-nums">{fmtMoney(amount)}</TableCell>
+                          <TableCell className="whitespace-nowrap text-xs">{payoutDate}</TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="text-xs text-muted-foreground text-right">
+              小計：{completedTotals.count} 筆｜總完成業績 {fmtMoney(completedTotals.revenue)}｜總分潤 {fmtMoney(completedTotals.commission)}
+            </div>
           </div>
         </div>
       </SheetContent>
