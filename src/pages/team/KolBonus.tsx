@@ -686,6 +686,7 @@ function KolDetailDrawer({
                 <TableHeader>
                   <TableRow>
                     <TableHead>館別</TableHead>
+                    <TableHead className="whitespace-nowrap">訂單編號</TableHead>
                     <TableHead>折扣碼</TableHead>
                     <TableHead className="whitespace-nowrap">訂單日期</TableHead>
                     <TableHead className="whitespace-nowrap">退房日期</TableHead>
@@ -695,7 +696,7 @@ function KolDetailDrawer({
                 <TableBody>
                   {orderList.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-6">
                         此月份無資料
                       </TableCell>
                     </TableRow>
@@ -703,6 +704,7 @@ function KolDetailDrawer({
                     orderList.map((o) => (
                       <TableRow key={o.id}>
                         <TableCell>{kol?.venue_name || "—"}</TableCell>
+                        <TableCell className="whitespace-nowrap font-mono text-xs">{o.order_number}</TableCell>
                         <TableCell className="font-mono">{o.discount_code}</TableCell>
                         <TableCell className="whitespace-nowrap text-xs">{o.order_date?.slice(0, 10) || "—"}</TableCell>
                         <TableCell className="whitespace-nowrap text-xs">{o.check_out_date?.slice(0, 10) || "—"}</TableCell>
@@ -714,6 +716,7 @@ function KolDetailDrawer({
                   )}
                 </TableBody>
               </Table>
+
             </div>
             <div className="text-xs text-muted-foreground text-right">
               小計：{orderTotals.count} 筆｜總金額 {fmtMoney(orderTotals.revenue)}
@@ -725,23 +728,24 @@ function KolDetailDrawer({
           <div className="space-y-2">
             <div className="text-sm font-semibold">完成業績明細（依退房日期統計）</div>
             <div className="overflow-x-auto">
-              <Table className="fixed-table">
+              <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>館別</TableHead>
-                    <TableHead>折扣碼</TableHead>
+                    <TableHead className="whitespace-nowrap">館別</TableHead>
+                    <TableHead className="whitespace-nowrap">訂單編號</TableHead>
+                    <TableHead className="whitespace-nowrap">折扣碼</TableHead>
                     <TableHead className="whitespace-nowrap">訂單日期</TableHead>
                     <TableHead className="whitespace-nowrap">退房日期</TableHead>
-                    <TableHead className="text-right">金額</TableHead>
-                    <TableHead className="text-right">分潤%</TableHead>
-                    <TableHead className="text-right">分潤金額</TableHead>
+                    <TableHead className="whitespace-nowrap text-right">金額</TableHead>
+                    <TableHead className="whitespace-nowrap text-right">分潤%</TableHead>
+                    <TableHead className="whitespace-nowrap text-right">分潤金額</TableHead>
                     <TableHead className="whitespace-nowrap">預計發放日</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {completedList.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center text-muted-foreground py-6">
+                      <TableCell colSpan={9} className="text-center text-muted-foreground py-6">
                         此月份無資料
                       </TableCell>
                     </TableRow>
@@ -752,13 +756,14 @@ function KolDetailDrawer({
                       const amount = Math.round(revenue * (rate / 100));
                       return (
                         <TableRow key={o.id}>
-                          <TableCell>{kol?.venue_name || "—"}</TableCell>
-                          <TableCell className="font-mono">{o.discount_code}</TableCell>
+                          <TableCell className="whitespace-nowrap">{kol?.venue_name || "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap font-mono text-xs">{o.order_number}</TableCell>
+                          <TableCell className="whitespace-nowrap font-mono">{o.discount_code}</TableCell>
                           <TableCell className="whitespace-nowrap text-xs">{o.order_date?.slice(0, 10) || "—"}</TableCell>
                           <TableCell className="whitespace-nowrap text-xs">{o.check_out_date?.slice(0, 10) || "—"}</TableCell>
-                          <TableCell className="text-right tabular-nums">{fmtMoney(revenue)}</TableCell>
-                          <TableCell className="text-right tabular-nums">{rate}%</TableCell>
-                          <TableCell className="text-right tabular-nums">{fmtMoney(amount)}</TableCell>
+                          <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(revenue)}</TableCell>
+                          <TableCell className="whitespace-nowrap text-right tabular-nums">{rate}%</TableCell>
+                          <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(amount)}</TableCell>
                           <TableCell className="whitespace-nowrap text-xs">{payoutDate}</TableCell>
                         </TableRow>
                       );
@@ -767,6 +772,7 @@ function KolDetailDrawer({
                 </TableBody>
               </Table>
             </div>
+
             <div className="text-xs text-muted-foreground text-right">
               小計：{completedTotals.count} 筆｜總完成業績 {fmtMoney(completedTotals.revenue)}｜總分潤 {fmtMoney(completedTotals.commission)}
             </div>
