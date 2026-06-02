@@ -653,13 +653,13 @@ function KolDetailDrawer({
     let commission = 0;
     for (const o of completedList) {
       const r = Number(o.final_price ?? o.total_price ?? 0);
-      const rate = latestRateByAcc.get(o.accommodation_id || "") ?? 0;
+      const rate = getRate(o.accommodation_id, o.check_out_date);
       count += 1;
       revenue += r;
       commission += r * (rate / 100);
     }
     return { count, revenue, commission: Math.round(commission) };
-  }, [completedList, latestRateByAcc]);
+  }, [completedList, getRate]);
 
   return (
     <Sheet open={!!kol} onOpenChange={(o) => !o && onClose()}>
