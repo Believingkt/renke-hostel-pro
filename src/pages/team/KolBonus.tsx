@@ -53,6 +53,7 @@ interface OrderRow {
   order_number: string;
   discount_code: string | null;
   check_in_date: string;
+  check_out_date: string | null;
   order_date: string | null;
   total_price: number | null;
   final_price: number | null;
@@ -115,7 +116,7 @@ export default function KolBonus() {
       supabase
         .from("orders")
         .select(
-          "id, order_number, discount_code, check_in_date, order_date, total_price, final_price, order_status, accommodation_id",
+          "id, order_number, discount_code, check_in_date, check_out_date, order_date, total_price, final_price, order_status, accommodation_id",
         )
         .not("discount_code", "is", null)
         .neq("discount_code", "")
@@ -201,28 +202,56 @@ export default function KolBonus() {
       ? `${currentYear}-${String(currentMonthNum).padStart(2, "0")}`
       : `${filterYear}-${String(Number(filterMonth)).padStart(2, "0")}`;
 
-  // 每位 KOL 在當前篩選期間內的業績與分潤
+  // 每位 KOL 在當前篩選期間內的訂單/完成業績與分潤
   const kolMetrics = useMemo(() => {
     const prefix =
       filterMonth === "all"
         ? null
         : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
-    const map = new Map<string, { revenue: number; commission: number }>();
+    const map = new Map<
+      string,
+      {
+        orderCount: number;
+        orderRevenue: number;
+        completedCount: number;
+        completedRevenue: number;
+        commission: number;
+      }
+    >();
     for (const k of rows) {
       const code = (k.cid_code ?? "").trim().toUpperCase();
       const list = ordersByCode.get(code) ?? [];
-      let revenue = 0;
+      let orderCount = 0;
+      let orderRevenue = 0;
+      let completedCount = 0;
+      let completedRevenue = 0;
       let commission = 0;
       for (const o of list) {
-        if (prefix) {
-          if (!o.order_date?.startsWith(prefix)) continue;
-        }
         const r = Number(o.final_price ?? o.total_price ?? 0);
         const rate = latestRateByAcc.get(o.accommodation_id || "") ?? 0;
-        revenue += r;
-        commission += r * (rate / 100);
+        const orderMatch = prefix
+          ? o.order_date?.startsWith(prefix)
+          : true;
+        const completedMatch = prefix
+          ? o.check_out_date?.startsWith(prefix)
+          : true;
+        if (orderMatch) {
+          orderCount += 1;
+          orderRevenue += r;
+        }
+        if (completedMatch) {
+          completedCount += 1;
+          completedRevenue += r;
+          commission += r * (rate / 100);
+        }
       }
-      map.set(k.id, { revenue, commission: Math.round(commission) });
+      map.set(k.id, {
+        orderCount,
+        orderRevenue,
+        completedCount,
+        completedRevenue,
+        commission: Math.round(commission),
+      });
     }
     return map;
   }, [rows, ordersByCode, latestRateByAcc, filterYear, filterMonth]);
@@ -342,18 +371,26 @@ export default function KolBonus() {
                 </SelectContent>
               </Select>
               {(() => {
+                const empty = {
+                  orderCount: 0,
+                  orderRevenue: 0,
+                  completedCount: 0,
+                  completedRevenue: 0,
+                  commission: 0,
+                };
                 const totals = filteredRows.reduce(
                   (acc, r) => {
-                    const m = kolMetrics.get(r.id) ?? { revenue: 0, commission: 0 };
-                    acc.revenue += m.revenue;
+                    const m = kolMetrics.get(r.id) ?? empty;
+                    acc.orderRevenue += m.orderRevenue;
+                    acc.completedRevenue += m.completedRevenue;
                     acc.commission += m.commission;
                     return acc;
                   },
-                  { revenue: 0, commission: 0 }
+                  { orderRevenue: 0, completedRevenue: 0, commission: 0 },
                 );
                 return (
                   <div className="ml-auto text-sm text-muted-foreground">
-                    共 {filteredRows.length} 位 KOL｜總業績 {fmtMoney(totals.revenue)}｜總分潤 {fmtMoney(totals.commission)}
+                    共 {filteredRows.length} 位 KOL｜總訂單業績 {fmtMoney(totals.orderRevenue)}｜總完成業績 {fmtMoney(totals.completedRevenue)}｜總分潤 {fmtMoney(totals.commission)}
                   </div>
                 );
               })()}
@@ -365,9 +402,17 @@ export default function KolBonus() {
                     <TableHead className="w-[200px]">KOL 名稱</TableHead>
                     <TableHead>折扣碼 / CID</TableHead>
                     <TableHead>館別</TableHead>
-                    <TableHead className="text-right">{metricsLabel}業績</TableHead>
+                    <TableHead className="text-right">
+                      {metricsLabel}訂單筆數
+                      <div className="text-xs font-normal text-muted-foreground">依訂單日期</div>
+                    </TableHead>
+                    <TableHead className="text-right">{metricsLabel}訂單業績</TableHead>
+                    <TableHead className="text-right">
+                      {metricsLabel}完成筆數
+                      <div className="text-xs font-normal text-muted-foreground">依退房日期</div>
+                    </TableHead>
+                    <TableHead className="text-right">{metricsLabel}完成業績</TableHead>
                     <TableHead className="text-right">{metricsLabel}分潤</TableHead>
-                    
                     <TableHead className="text-right">操作</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -375,7 +420,7 @@ export default function KolBonus() {
                   {filteredRows.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={6}
+                        colSpan={9}
                         className="text-center text-muted-foreground py-8"
                       >
                         此期間無資料
@@ -383,7 +428,13 @@ export default function KolBonus() {
                     </TableRow>
                   ) : (
                     filteredRows.map((r) => {
-                      const m = kolMetrics.get(r.id) ?? { revenue: 0, commission: 0 };
+                      const m = kolMetrics.get(r.id) ?? {
+                        orderCount: 0,
+                        orderRevenue: 0,
+                        completedCount: 0,
+                        completedRevenue: 0,
+                        commission: 0,
+                      };
                       return (
                         <TableRow
                           key={r.id}
@@ -403,12 +454,20 @@ export default function KolBonus() {
                             {r.venue_name || "—"}
                           </TableCell>
                           <TableCell className="text-right tabular-nums">
-                            {fmtMoney(m.revenue)}
+                            {m.orderCount}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {fmtMoney(m.orderRevenue)}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {m.completedCount}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {fmtMoney(m.completedRevenue)}
                           </TableCell>
                           <TableCell className="text-right tabular-nums">
                             {fmtMoney(m.commission)}
                           </TableCell>
-                          
                           <TableCell
                             className="text-right"
                             onClick={(e) => e.stopPropagation()}
@@ -506,34 +565,61 @@ function KolDetailDrawer({
     const set = new Set<string>();
     matched.forEach((o) => {
       if (o.order_date) set.add(o.order_date.slice(0, 7));
+      if (o.check_out_date) set.add(o.check_out_date.slice(0, 7));
     });
     set.add(initialMonth);
     return Array.from(set).sort((a, b) => b.localeCompare(a));
   }, [matched, initialMonth]);
 
-  const rowsInMonth = useMemo(
-    () => matched.filter((o) => o.order_date?.slice(0, 7) === month),
-    [matched, month],
-  );
+  // 預計發放日：退房月份 +1 月的 10 號
+  const payoutDate = useMemo(() => {
+    const [y, m] = month.split("-").map(Number);
+    if (!y || !m) return "—";
+    const ny = m === 12 ? y + 1 : y;
+    const nm = m === 12 ? 1 : m + 1;
+    return `${ny}-${String(nm).padStart(2, "0")}-10`;
+  }, [month]);
 
-  // 同一 KOL 通常 1 館，但仍以 accommodation_id 分組以防多館
+  // 以 accommodation_id 分組，計算訂單/完成兩組指標
   const grouped = useMemo(() => {
     const map = new Map<
       string,
-      { count: number; revenue: number; rate: number }
+      {
+        orderCount: number;
+        orderRevenue: number;
+        completedCount: number;
+        completedRevenue: number;
+        rate: number;
+      }
     >();
-    for (const o of rowsInMonth) {
+    for (const o of matched) {
       const accId = o.accommodation_id || "";
       const rate = latestRateByAcc.get(accId) ?? 0;
       const revenue = Number(o.final_price ?? o.total_price ?? 0);
-      const cur = map.get(accId) ?? { count: 0, revenue: 0, rate };
-      cur.count += 1;
-      cur.revenue += revenue;
+      const orderMatch = o.order_date?.slice(0, 7) === month;
+      const completedMatch = o.check_out_date?.slice(0, 7) === month;
+      if (!orderMatch && !completedMatch) continue;
+      const cur =
+        map.get(accId) ?? {
+          orderCount: 0,
+          orderRevenue: 0,
+          completedCount: 0,
+          completedRevenue: 0,
+          rate,
+        };
+      if (orderMatch) {
+        cur.orderCount += 1;
+        cur.orderRevenue += revenue;
+      }
+      if (completedMatch) {
+        cur.completedCount += 1;
+        cur.completedRevenue += revenue;
+      }
       cur.rate = rate;
       map.set(accId, cur);
     }
     return Array.from(map.entries());
-  }, [rowsInMonth, latestRateByAcc]);
+  }, [matched, latestRateByAcc, month]);
 
   return (
     <Sheet open={!!kol} onOpenChange={(o) => !o && onClose()}>
@@ -577,20 +663,25 @@ function KolDetailDrawer({
             </div>
           )}
 
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">月份</span>
-            <Select value={month} onValueChange={setMonth}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {monthOptions.map((m) => (
-                  <SelectItem key={m} value={m}>
-                    {m}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">月份</span>
+              <Select value={month} onValueChange={setMonth}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {monthOptions.map((m) => (
+                    <SelectItem key={m} value={m}>
+                      {m}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              訂單筆數依訂單日期統計，完成業績依退房日期統計
+            </p>
           </div>
 
           <div className="overflow-x-auto">
@@ -600,19 +691,25 @@ function KolDetailDrawer({
                   <TableHead>館別</TableHead>
                   <TableHead>折扣碼</TableHead>
                   <TableHead className="text-right">
-                    有效訂單筆數
-                    <div className="text-xs font-normal text-muted-foreground">依訂單日期統計</div>
+                    訂單筆數
+                    <div className="text-xs font-normal text-muted-foreground">依訂單日期</div>
                   </TableHead>
-                  <TableHead className="text-right">總業績</TableHead>
+                  <TableHead className="text-right">訂單業績</TableHead>
+                  <TableHead className="text-right">
+                    完成筆數
+                    <div className="text-xs font-normal text-muted-foreground">依退房日期</div>
+                  </TableHead>
+                  <TableHead className="text-right">完成業績</TableHead>
                   <TableHead className="text-right">分潤%</TableHead>
                   <TableHead className="text-right">分潤金額</TableHead>
+                  <TableHead className="whitespace-nowrap">預計發放日</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {grouped.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={6}
+                      colSpan={9}
                       className="text-center text-muted-foreground py-6"
                     >
                       此月份無資料
@@ -620,7 +717,7 @@ function KolDetailDrawer({
                   </TableRow>
                 ) : (
                   grouped.map(([accId, g]) => {
-                    const amount = Math.round(g.revenue * (g.rate / 100));
+                    const amount = Math.round(g.completedRevenue * (g.rate / 100));
                     return (
                       <TableRow key={accId || "unknown"}>
                         <TableCell>{kol?.venue_name || "—"}</TableCell>
@@ -628,16 +725,25 @@ function KolDetailDrawer({
                           {kol?.cid_code}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
-                          {g.count}
+                          {g.orderCount}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
-                          {fmtMoney(g.revenue)}
+                          {fmtMoney(g.orderRevenue)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {g.completedCount}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {fmtMoney(g.completedRevenue)}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
                           {g.rate}%
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
                           {fmtMoney(amount)}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-xs">
+                          {payoutDate}
                         </TableCell>
                       </TableRow>
                     );
