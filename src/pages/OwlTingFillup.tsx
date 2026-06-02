@@ -160,11 +160,11 @@ export default function OwlTingFillup() {
               </div>
               <Button size="sm" variant="outline" asChild className="w-full sm:w-auto">
                 <a href={OWLNEST_ADMIN_URL} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-3.5 w-3.5 mr-1" />開 OwlNest 訂單列表
+                  <ExternalLink className="h-3.5 w-3.5 mr-1" />開奧丁丁系統訂單列表
                 </a>
               </Button>
               <p className="text-xs text-muted-foreground">
-                到 OwlNest 後台搜尋上方訂單編號，把住客姓名、電話、Email 複製貼到下方欄位。
+                到奧丁丁系統後台搜尋上方訂單編號，把住客姓名、電話、Email 複製貼到下方欄位。
               </p>
             </div>
 
