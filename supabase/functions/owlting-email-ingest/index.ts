@@ -250,6 +250,8 @@ Deno.serve(async (req) => {
           project_name: fields.project_name,
           room_quantity: fields.room_quantity,
           guest_count: fields.guest_count,
+          adult_count: fields.adult_count,
+          child_count: fields.child_count,
           nights: fields.nights,
           total_amount: fields.total_amount,
           remaining_amount: fields.remaining_amount,
