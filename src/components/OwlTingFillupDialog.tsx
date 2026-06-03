@@ -437,7 +437,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting || preparing}>取消</Button>
           {phase === "pick_acc" && (
             <Button
-              onClick={() => selectedAccId !== "none" && prepareToken(selectedAccId)}
+              onClick={onClickContinue}
               disabled={selectedAccId === "none" || preparing}
             >
               {preparing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
