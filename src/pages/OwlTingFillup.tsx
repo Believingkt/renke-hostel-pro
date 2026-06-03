@@ -22,6 +22,8 @@ interface StagingData {
   check_in_date: string | null;
   check_out_date: string | null;
   guest_count: number | null;
+  adult_count: number | null;
+  child_count: number | null;
   nights: number | null;
   total_amount: number | null;
   remaining_amount: number | null;
