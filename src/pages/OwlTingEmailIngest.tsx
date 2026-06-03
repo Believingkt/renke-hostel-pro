@@ -169,7 +169,7 @@ export default function OwlTingEmailIngest() {
                 <TableHead>狀態</TableHead>
                 <TableHead>類型</TableHead>
                 <TableHead>OBE</TableHead>
-                <TableHead>來源</TableHead>
+                
                 <TableHead>主旨</TableHead>
                 <TableHead>補單狀態</TableHead>
                 <TableHead className="text-right">動作</TableHead>
