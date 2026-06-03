@@ -17,11 +17,16 @@ interface StagingData {
   obe_number: string | null;
   accommodation_name: string | null;
   room_type_name: string | null;
+  project_name: string | null;
+  room_quantity: number | null;
   check_in_date: string | null;
   check_out_date: string | null;
   guest_count: number | null;
+  nights: number | null;
   total_amount: number | null;
+  remaining_amount: number | null;
   currency: string | null;
+  payment_status: string | null;
   pii_due_at: string | null;
 }
 
