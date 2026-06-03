@@ -472,18 +472,33 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
                   </p>
                 )}
               </div>
-              <div>
-                <Label htmlFor="ad_guest_count">住客人數 <span className="text-destructive">*</span></Label>
-                <Input
-                  id="ad_guest_count"
-                  type="number"
-                  min={1}
-                  max={50}
-                  value={guestCount}
-                  onChange={(e) => setGuestCount(e.target.value)}
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="ad_adult_count">大人 <span className="text-destructive">*</span></Label>
+                  <Input
+                    id="ad_adult_count"
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={adultCount}
+                    onChange={(e) => setAdultCount(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="ad_child_count">小孩</Label>
+                  <Input
+                    id="ad_child_count"
+                    type="number"
+                    min={0}
+                    max={50}
+                    value={childCount}
+                    onChange={(e) => setChildCount(e.target.value)}
+                  />
+                </div>
                 {!guestCountValid && (
-                  <p className="text-[11px] text-destructive mt-1">人數需為 1-50 之間的整數</p>
+                  <p className="text-[11px] text-destructive col-span-2 -mt-1">
+                    大人需 1-50、小孩需 0-50，且總人數不超過 50
+                  </p>
                 )}
               </div>
               <div>
