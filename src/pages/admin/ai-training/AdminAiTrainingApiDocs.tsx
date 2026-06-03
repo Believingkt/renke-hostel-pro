@@ -62,7 +62,20 @@ export default function AdminAiTrainingApiDocs() {
           </p>
           <Pre>x-api-key: acc_ai_xxxxxxxxxxxxxxxxxxxxxxxxxxxx</Pre>
           <p className="text-xs text-muted-foreground">每分鐘預設 30 次請求（可在金鑰建立時調整）。</p>
+
+          <div className="mt-4 p-4 rounded-lg border bg-muted/40 space-y-2">
+            <p className="text-sm font-medium">身份識別：一把 key = 一間民宿</p>
+            <p className="text-sm text-muted-foreground">
+              每把 <code>x-api-key</code> 在建立時就<strong>綁定到唯一一間民宿（accommodation_id）</strong>。後端會用這把 key 自動反查所屬民宿，載入該民宿的系統提示詞、知識庫（房型、設施、價格、政策）後再回答。
+            </p>
+            <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
+              <li><strong>不需要</strong>在 <code>messages</code> 或 request body 內傳 <code>accommodation_id</code>，身份由認證層自動帶入。</li>
+              <li>對接<strong>多間民宿</strong>時，請在你們系統的「商家設定」分別存入各民宿對應的 API Key，使用者詢問哪間民宿就用哪把 key 呼叫。</li>
+              <li>切勿在多間民宿之間共用同一把 key — 否則所有對話都會被導向同一間民宿。</li>
+            </ul>
+          </div>
         </section>
+
 
         <Separator />
 
