@@ -387,12 +387,26 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div><span className="text-muted-foreground">入住：</span>{stagingRow.check_in_date ?? "—"}</div>
-              <div><span className="text-muted-foreground">退房：</span>{stagingRow.check_out_date ?? "—"}</div>
-              <div><span className="text-muted-foreground">人數：</span>{stagingRow.guest_count ?? "—"}</div>
-              <div><span className="text-muted-foreground">原房型：</span>{stagingRow.room_type_name ?? "—"}</div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="ad_check_in">入住日 <span className="text-destructive">*</span></Label>
+                <Input id="ad_check_in" type="date" value={checkInDate} onChange={(e) => setCheckInDate(e.target.value)} />
+              </div>
+              <div>
+                <Label htmlFor="ad_check_out">退房日 <span className="text-destructive">*</span></Label>
+                <Input id="ad_check_out" type="date" value={checkOutDate} onChange={(e) => setCheckOutDate(e.target.value)} />
+              </div>
+              <div className="text-sm"><span className="text-muted-foreground">原始人數：</span>{stagingRow.guest_count ?? "—"}</div>
+              <div className="text-sm"><span className="text-muted-foreground">原房型：</span>{stagingRow.room_type_name ?? "—"}</div>
             </div>
+            {!datesValid && (checkInDate || checkOutDate) && (
+              <p className="text-[11px] text-destructive">退房日必須晚於入住日</p>
+            )}
+            {!stagingRow.check_in_date && (
+              <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                ⚠ 信件未解析到入住 / 退房日，請依 OwlNest 後台填入正確日期
+              </p>
+            )}
 
             <div className="space-y-3">
               <div>
