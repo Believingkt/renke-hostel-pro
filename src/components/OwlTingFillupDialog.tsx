@@ -421,7 +421,12 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
                   </div>
                 </>
               )}
-              <div className="text-sm"><span className="text-muted-foreground">原始人數：</span>{stagingRow.guest_count ?? "—"}</div>
+              <div className="text-sm">
+                <span className="text-muted-foreground">原始人數：</span>
+                {stagingRow.adult_count != null || stagingRow.child_count != null
+                  ? `大人 ${stagingRow.adult_count ?? 0} / 小孩 ${stagingRow.child_count ?? 0}`
+                  : (stagingRow.guest_count ?? "—")}
+              </div>
               <div className="text-sm"><span className="text-muted-foreground">原房型：</span>{stagingRow.room_type_name ?? "—"}</div>
             </div>
             {!stagingRow.check_in_date && (
