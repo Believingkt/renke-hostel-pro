@@ -62,6 +62,8 @@ export default function OwlTingFillup() {
           setAcc(data.accommodation);
           setRoomTypes(data.room_types || []);
           if (data.staging?.total_amount) setTotalAmountOverride(String(data.staging.total_amount));
+          if (data.staging?.check_in_date) setCheckInDate(data.staging.check_in_date);
+          if (data.staging?.check_out_date) setCheckOutDate(data.staging.check_out_date);
         }
       } catch (e: any) {
         setError(e.message ?? "驗證失敗");
