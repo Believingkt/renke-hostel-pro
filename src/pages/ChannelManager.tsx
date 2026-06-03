@@ -31,6 +31,7 @@ import { Settings2, Plug, Trash2, Copy, KeyRound, Send, Activity, Loader2, Check
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { OwlTingEmailStatsCards } from "@/components/OwlTingEmailStatsCards";
 import { AccommodationOwnersManagement } from "@/components/headquarters/AccommodationOwnersManagement";
+import { OwlTingAliasesEditor } from "@/components/headquarters/OwlTingAliasesEditor";
 
 interface OtaChannel {
   id: string;
