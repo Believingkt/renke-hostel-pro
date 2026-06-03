@@ -1,9 +1,12 @@
 // Phase 2 — OwlNest forward-email parser (TRIGGER-ONLY mode)
 //
-// 2026-05-29 policy change: 小洪確認資安政策禁止 OwlTing 在 email 內提供 PII。
-// 本 parser 重新定位為「trigger」：只抽 OBE 編號、message_type、accommodation_name (property hint)。
-// 其餘欄位（房型/日期/金額/住客/訂購人/電話/email）一律不抽，全部回 null。
-// 後續真實資料由 OBE API client 用 OBE 編號到 OwlTing 拉訂單詳情取得。
+// 2026-05-29 policy: 小洪確認資安政策禁止 OwlTing 在 email 內提供 PII。
+// 本 parser 只抽 trigger 級欄位：obe_number / message_type / accommodation_name / channel_source。
+// 其餘訂單細節（房型/日期/金額/住客/訂購人/電話/email）由後續 OBE API client 拉取。
+//
+// 2026-06-03 升級：
+//  - accommodation_name 改從 body「(.+?) 您好」(支援 HTML / 轉寄信)
+//  - channel_source 從主旨「^(?:Fwd:\s*)?(\S+)\s*訂單(成立|變更|取消)通知」抓 group 1
 
 export type ParsedConfidence = "trigger_only";
 export type ParsedMessageType = "new_order" | "modified" | "cancelled" | "unknown";
@@ -12,8 +15,8 @@ export interface OwlTingParsedFields {
   message_type: ParsedMessageType;
   obe_number: string | null;
   accommodation_name: string | null;
-  // 以下欄位永遠為 null — trigger-only 模式不抽 PII / 訂單細節
-  channel_source: null;
+  channel_source: string | null;
+  // 以下永遠 null — trigger-only 不抽 PII / 訂單細節
   room_type_name: null;
   check_in_date: null;
   check_out_date: null;
@@ -31,6 +34,12 @@ export interface OwlTingParsedFields {
 }
 
 const OBE_RE = /\b(OBE[A-Z0-9\-]{6,})\b/i;
+// Capture text immediately before 「您好」, stopping at structural boundaries
+// (`{`, `}`, `:`, `：`, newline) so 「To: 小紅旅館 (測試) 您好」→ 「小紅旅館 (測試)」、
+// 「} 品雲岫海景渡假會館 您好」→ 「品雲岫海景渡假會館」。
+const HELLO_RE = /([^{}:：\n\r]+?)\s*您好/;
+// Channel source from subject. Forwarded 信會有「Fwd: 」前綴。
+const CHANNEL_SUBJECT_RE = /(?:Fwd:\s*)?(\S+)\s*訂單(?:成立|變更|取消|修改)通知/i;
 
 export function detectMessageTypeFromBody(text: string): ParsedMessageType {
   if (/取消/.test(text)) return "cancelled";
@@ -49,6 +58,27 @@ function stripTags(html: string): string {
     .trim();
 }
 
+function extractAccommodationFromHello(flat: string): string | null {
+  const m = flat.match(HELLO_RE);
+  if (!m) return null;
+  const candidate = m[1].trim();
+  // Reject empty / pure ascii noise like "To" / "From" / "Date"
+  if (!candidate) return null;
+  if (/^(to|from|date|subject|cc|bcc|re|fwd)$/i.test(candidate)) return null;
+  // Reject overly long match (likely caught CSS / script residue)
+  if (candidate.length > 50) return null;
+  return candidate;
+}
+
+function extractChannelFromSubject(subject: string | null): string | null {
+  if (!subject) return null;
+  const m = subject.match(CHANNEL_SUBJECT_RE);
+  if (!m) return null;
+  const ch = m[1].trim();
+  if (!ch || ch.length > 30) return null;
+  return ch;
+}
+
 export function parseOwlNestForwardEmail(input: {
   subject: string | null;
   text_body: string | null;
@@ -57,7 +87,10 @@ export function parseOwlNestForwardEmail(input: {
   const warnings: string[] = [];
   const text = (input.text_body ?? "").trim();
   const html = input.html_body ?? "";
-  const flat = text || stripTags(html);
+  // 先用 text，沒有再退回 HTML（stripTags 會 collapse whitespace，方便 regex）
+  const flatFromText = text ? text.replace(/\s+/g, " ").trim() : "";
+  const flatFromHtml = stripTags(html);
+  const flat = flatFromText || flatFromHtml;
 
   // message_type — subject first, body fallback
   let messageType: ParsedMessageType = "unknown";
@@ -77,15 +110,29 @@ export function parseOwlNestForwardEmail(input: {
   const obe = obeMatchBody?.[1]?.toUpperCase() ?? obeMatchSubject?.[1]?.toUpperCase() ?? null;
   if (!obe) warnings.push("obe_number: not found — cannot trigger OBE API lookup");
 
-  // accommodation hint (subject "來自 X 的" pattern)
-  const accSubjMatch = input.subject?.match(/來自\s*(.+?)\s*的/);
-  const accommodation = accSubjMatch ? accSubjMatch[1].trim() : null;
+  // accommodation_name — body「您好」pattern，回退主旨「來自 X 的」
+  let accommodation = extractAccommodationFromHello(flat);
+  if (!accommodation) {
+    // fallback: stripped HTML (text body 可能截掉前半段)
+    if (flat !== flatFromHtml && flatFromHtml) {
+      accommodation = extractAccommodationFromHello(flatFromHtml);
+    }
+  }
+  if (!accommodation && input.subject) {
+    const subjMatch = input.subject.match(/來自\s*(.+?)\s*的/);
+    if (subjMatch) accommodation = subjMatch[1].trim();
+  }
+  if (!accommodation) warnings.push("accommodation_name: not found");
+
+  // channel_source — 從主旨
+  const channel = extractChannelFromSubject(input.subject);
+  if (!channel) warnings.push("channel_source: not found in subject");
 
   return {
     message_type: messageType,
     obe_number: obe,
     accommodation_name: accommodation,
-    channel_source: null,
+    channel_source: channel,
     room_type_name: null,
     check_in_date: null,
     check_out_date: null,
@@ -102,6 +149,8 @@ export function parseOwlNestForwardEmail(input: {
     raw_matches: {
       obe_from_body: obeMatchBody?.[1] ?? null,
       obe_from_subject: obeMatchSubject?.[1] ?? null,
+      accommodation_name: accommodation,
+      channel_source: channel,
     },
   };
 }

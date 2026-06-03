@@ -31,6 +31,7 @@ import { Settings2, Plug, Trash2, Copy, KeyRound, Send, Activity, Loader2, Check
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { OwlTingEmailStatsCards } from "@/components/OwlTingEmailStatsCards";
 import { AccommodationOwnersManagement } from "@/components/headquarters/AccommodationOwnersManagement";
+import { OwlTingAliasesEditor } from "@/components/headquarters/OwlTingAliasesEditor";
 
 interface OtaChannel {
   id: string;
@@ -606,6 +607,10 @@ export default function ChannelManager() {
         title="奧丁丁訂單接收 Email"
         description="此處設定的 Email 會收到本民宿奧丁丁訂單的 PII 補單通知。總部後台會同步顯示，亦可由總部新增 / 編輯。"
       />
+
+      <OwlTingAliasesEditor accommodationId={accId} />
+
+
 
 
       {/* 台灣旅圖設定 */}

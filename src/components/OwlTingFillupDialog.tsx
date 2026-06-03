@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,7 +32,7 @@ interface StagingRow {
   total_amount: number | null;
   pii_status: string;
 }
-interface AccOption { id: string; name: string; }
+interface AccOption { id: string; name: string; aliases: string[]; }
 interface RoomType { id: string; name: string; base_price: number; }
 
 const OWLNEST_ADMIN_URL = "https://www.owlting.com/booking/admin/?l=zh_TW&p=order";
@@ -94,20 +98,32 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
       // Need auto-match
       const { data: accs } = await supabase
         .from("accommodation_info")
-        .select("id, name")
+        .select("id, name, owlting_aliases")
         .order("name");
-      const options: AccOption[] = (accs ?? []).map((a: any) => ({ id: a.id, name: a.name ?? "(未命名)" }));
+      const options: AccOption[] = (accs ?? []).map((a: any) => ({
+        id: a.id,
+        name: a.name ?? "(未命名)",
+        aliases: Array.isArray(a.owlting_aliases) ? (a.owlting_aliases as string[]) : [],
+      }));
       setAccOptions(options);
 
-      // Strategy 1: match by accommodation_name (exact then contains)
+      // Strategy 1: match by accommodation_name across name + aliases (normalized exact then contains)
       const rawName = (row.accommodation_name ?? "").trim();
       if (rawName) {
-        const norm = (s: string) => s.toLowerCase().replace(/\s+/g, "");
+        const norm = (s: string) =>
+          s
+            .toLowerCase()
+            .replace(/\s+/g, "")
+            .replace(/　/g, "")
+            .replace(/（/g, "(")
+            .replace(/）/g, ")")
+            .replace(/渡假/g, "度假");
         const target = norm(rawName);
-        const exact = options.find((o) => norm(o.name) === target);
+        const candidatesFor = (o: AccOption) => [o.name, ...o.aliases].map(norm).filter(Boolean);
+        const exact = options.find((o) => candidatesFor(o).some((c) => c === target));
         const contains =
           exact ||
-          options.find((o) => norm(o.name).includes(target) || target.includes(norm(o.name)));
+          options.find((o) => candidatesFor(o).some((c) => c.includes(target) || target.includes(c)));
         if (contains) {
           setSelectedAccId(contains.id);
           setMatchReason(`依信件中民宿名「${rawName}」自動匹配到「${contains.name}」`);
@@ -115,6 +131,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
           return;
         }
       }
+
 
       // Strategy 2: match by owner email from raw_email.from_email
       if (row.raw_email_id) {
@@ -153,6 +170,48 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, stagingId]);
+
+  const [aliasPromptOpen, setAliasPromptOpen] = useState(false);
+  const [pendingAccId, setPendingAccId] = useState<string | null>(null);
+
+  const onClickContinue = () => {
+    if (selectedAccId === "none") return;
+    const rawName = (stagingRow?.accommodation_name ?? "").trim();
+    const acc = accOptions.find((o) => o.id === selectedAccId);
+    if (rawName && acc && acc.name !== rawName && !acc.aliases.includes(rawName)) {
+      setPendingAccId(selectedAccId);
+      setAliasPromptOpen(true);
+      return;
+    }
+    prepareToken(selectedAccId);
+  };
+
+  const addAliasAndProceed = async (alsoAdd: boolean) => {
+    const accId = pendingAccId;
+    setAliasPromptOpen(false);
+    setPendingAccId(null);
+    if (!accId) return;
+    if (alsoAdd) {
+      const acc = accOptions.find((o) => o.id === accId);
+      const rawName = (stagingRow?.accommodation_name ?? "").trim();
+      if (acc && rawName) {
+        const nextAliases = Array.from(new Set([...(acc.aliases ?? []), rawName]));
+        const { error } = await supabase
+          .from("accommodation_info")
+          .update({ owlting_aliases: nextAliases })
+          .eq("id", acc.id);
+        if (error) {
+          toast.error("加入別名失敗：" + error.message);
+        } else {
+          toast.success(`已將「${rawName}」加入「${acc.name}」的別名`);
+          setAccOptions((prev) =>
+            prev.map((o) => (o.id === acc.id ? { ...o, aliases: nextAliases } : o))
+          );
+        }
+      }
+    }
+    prepareToken(accId);
+  };
 
   const prepareToken = async (accId: string) => {
     setPreparing(true);
@@ -378,7 +437,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting || preparing}>取消</Button>
           {phase === "pick_acc" && (
             <Button
-              onClick={() => selectedAccId !== "none" && prepareToken(selectedAccId)}
+              onClick={onClickContinue}
               disabled={selectedAccId === "none" || preparing}
             >
               {preparing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
@@ -393,6 +452,23 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
           )}
         </DialogFooter>
       </DialogContent>
+
+      <AlertDialog open={aliasPromptOpen} onOpenChange={setAliasPromptOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>加入民宿別名？</AlertDialogTitle>
+            <AlertDialogDescription>
+              要把奧丁丁原始民宿名「{stagingRow?.accommodation_name}」加入「
+              {accOptions.find((o) => o.id === pendingAccId)?.name ?? ""}
+              」的別名嗎？下次同樣的名稱會自動匹配，免再手動指定。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => addAliasAndProceed(false)}>不用，先繼續</AlertDialogCancel>
+            <AlertDialogAction onClick={() => addAliasAndProceed(true)}>好，加入別名</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
