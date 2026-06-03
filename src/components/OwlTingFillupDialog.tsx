@@ -30,6 +30,8 @@ interface StagingRow {
   check_in_date: string | null;
   check_out_date: string | null;
   guest_count: number | null;
+  adult_count: number | null;
+  child_count: number | null;
   total_amount: number | null;
   pii_status: string;
 }
