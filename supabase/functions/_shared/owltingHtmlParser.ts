@@ -16,14 +16,19 @@ export interface OwlTingParsedFields {
   obe_number: string | null;
   accommodation_name: string | null;
   channel_source: string | null;
-  // 入住/退房日期（YYYY-MM-DD）— 從 HTML 抓得到就帶出來預填，仍視為 trigger-level
+  // 從 HTML 抓得到就帶出來預填，仍視為 trigger-level（無 PII）
   check_in_date: string | null;
   check_out_date: string | null;
-  // 以下永遠 null — trigger-only 不抽 PII / 訂單細節
-  room_type_name: null;
-  guest_count: null;
-  total_amount: null;
-  currency: null;
+  room_type_name: string | null;
+  project_name: string | null;
+  room_quantity: number | null;
+  guest_count: number | null;
+  nights: number | null;
+  total_amount: number | null;
+  remaining_amount: number | null;
+  currency: string | null;
+  payment_status: string | null;
+  // 以下永遠 null — trigger-only 不抽 PII
   guest_name: null;
   guest_phone: null;
   guest_email: null;
@@ -31,7 +36,7 @@ export interface OwlTingParsedFields {
   addons: null;
   confidence: ParsedConfidence;
   warnings: string[];
-  raw_matches: Record<string, string | null>;
+  raw_matches: Record<string, string | number | null>;
 }
 
 const OBE_RE = /\b(OBE[A-Z0-9\-]{6,})\b/i;
