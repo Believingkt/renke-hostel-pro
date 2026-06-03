@@ -265,6 +265,12 @@ export default function OwlTingEmailIngest() {
         onSubmitted={() => { load(); setRefreshTick((t) => t + 1); }}
       />
 
+      <OwlTingRawEmailDialog
+        open={rawOpen}
+        onOpenChange={setRawOpen}
+        rawEmailId={rawEmailId}
+      />
+
     </div>
   );
 }
