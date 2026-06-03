@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { Copy, ExternalLink, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
 
 interface StagingData {
   id: string;
