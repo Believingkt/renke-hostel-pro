@@ -304,7 +304,7 @@ function Field({ label, value, breakAll }: { label: string; value: ReactNode; br
 export default function TeamFranchise() {
   const { roles, userId } = useTeam();
   const canManage = roles.includes("super_admin") || roles.includes("admin");
-  const canView = canManage || roles.includes("franchise");
+  const canView = canManage || roles.includes("franchise") || roles.includes("franchise_manager");
   const [canManageDistributions, setCanManageDistributions] = useState(false);
 
   useEffect(() => {
