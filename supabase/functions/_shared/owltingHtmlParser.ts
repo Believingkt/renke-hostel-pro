@@ -168,6 +168,67 @@ export function parseOwlNestForwardEmail(input: {
   if (!checkIn) warnings.push("check_in_date: not found");
   if (!checkOut) warnings.push("check_out_date: not found");
 
+  // 訂購內容區塊：「房型名稱 專案名稱 數量 <room> <project> <qty>」
+  // 後接「人數」label。允許 project_name 含空白與符號。
+  let roomTypeName: string | null = null;
+  let projectName: string | null = null;
+  let roomQuantity: number | null = null;
+  {
+    const re = /房型名稱\s+專案名稱\s+數量\s+(\S+)\s+(.+?)\s+(\d+)\s+(?:人數|入住天數|剩餘尾款|訂單款項|付款狀態|旅客)/;
+    const m = flatFromHtml.match(re) ?? flat.match(re);
+    if (m) {
+      roomTypeName = m[1].trim() || null;
+      projectName = m[2].trim() || null;
+      const q = Number(m[3]);
+      roomQuantity = Number.isFinite(q) && q > 0 ? q : null;
+    }
+  }
+
+  // 人數：「人數 大人 2 人,小孩 2 人,嬰兒 0 人」→ 總人數 (大人+小孩)
+  let guestCount: number | null = null;
+  {
+    const m = (flatFromHtml + " " + flat).match(/人數\s+大人\s*(\d+)\s*人[,，]?\s*小孩\s*(\d+)\s*人(?:[,，]?\s*嬰兒\s*(\d+)\s*人)?/);
+    if (m) {
+      const adults = Number(m[1]) || 0;
+      const children = Number(m[2]) || 0;
+      guestCount = adults + children;
+    } else {
+      const m2 = (flatFromHtml + " " + flat).match(/人數\s+(\d+)/);
+      if (m2) guestCount = Number(m2[1]) || null;
+    }
+  }
+
+  // 入住天數
+  let nights: number | null = null;
+  {
+    const m = (flatFromHtml + " " + flat).match(/入住天數\s+(\d+)/);
+    if (m) {
+      const n = Number(m[1]);
+      nights = Number.isFinite(n) && n > 0 ? n : null;
+    }
+  }
+
+  // 剩餘尾款 / 訂單款項 / 付款狀態
+  const parseAmount = (label: string): { currency: string | null; amount: number | null } => {
+    const re = new RegExp(`${label}\\s+([A-Z]{3})?\\s*([\\d,]+(?:\\.\\d+)?)`);
+    const m = (flatFromHtml + " " + flat).match(re);
+    if (!m) return { currency: null, amount: null };
+    const cur = m[1] ?? null;
+    const amt = Number((m[2] ?? "").replace(/,/g, ""));
+    return { currency: cur, amount: Number.isFinite(amt) ? amt : null };
+  };
+  const totalParsed = parseAmount("訂單款項");
+  const remainParsed = parseAmount("剩餘尾款");
+  const totalAmount = totalParsed.amount;
+  const remainingAmount = remainParsed.amount;
+  const currency = totalParsed.currency ?? remainParsed.currency;
+
+  let paymentStatus: string | null = null;
+  {
+    const m = (flatFromHtml + " " + flat).match(/付款狀態\s+([^\s]{1,10})/);
+    if (m) paymentStatus = m[1].trim() || null;
+  }
+
   return {
     message_type: messageType,
     obe_number: obe,
@@ -175,10 +236,15 @@ export function parseOwlNestForwardEmail(input: {
     channel_source: channel,
     check_in_date: checkIn,
     check_out_date: checkOut,
-    room_type_name: null,
-    guest_count: null,
-    total_amount: null,
-    currency: null,
+    room_type_name: roomTypeName,
+    project_name: projectName,
+    room_quantity: roomQuantity,
+    guest_count: guestCount,
+    nights,
+    total_amount: totalAmount,
+    remaining_amount: remainingAmount,
+    currency,
+    payment_status: paymentStatus,
     guest_name: null,
     guest_phone: null,
     guest_email: null,
@@ -193,6 +259,15 @@ export function parseOwlNestForwardEmail(input: {
       channel_source: channel,
       check_in_date: checkIn,
       check_out_date: checkOut,
+      room_type_name: roomTypeName,
+      project_name: projectName,
+      room_quantity: roomQuantity,
+      guest_count: guestCount,
+      nights,
+      total_amount: totalAmount,
+      remaining_amount: remainingAmount,
+      currency,
+      payment_status: paymentStatus,
     },
   };
 }
