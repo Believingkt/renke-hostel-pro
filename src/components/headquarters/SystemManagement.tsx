@@ -889,6 +889,7 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
 
         <TabsContent value="owners" className="space-y-4">
           <AccommodationOwnersManagement />
+          <OwlTingAliasesEditor />
         </TabsContent>
       </Tabs>
     </div>
