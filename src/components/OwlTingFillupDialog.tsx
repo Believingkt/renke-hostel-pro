@@ -83,7 +83,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
     (async () => {
       const { data, error } = await supabase
         .from("owlting_email_parsed_staging")
-        .select("id, raw_email_id, obe_number, accommodation_id, accommodation_name, room_type_name, check_in_date, check_out_date, guest_count, total_amount, pii_status")
+        .select("id, raw_email_id, obe_number, accommodation_id, accommodation_name, room_type_name, check_in_date, check_out_date, guest_count, adult_count, child_count, total_amount, pii_status")
         .eq("id", stagingId)
         .maybeSingle();
       if (error || !data) {
