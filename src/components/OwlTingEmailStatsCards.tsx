@@ -18,9 +18,12 @@ interface Props {
   showDetailLink?: boolean;
   showHeader?: boolean;
   refreshKey?: number | string;
+  /** Tenant scope. When set, every stat is filtered by accommodation_id.
+   *  When null/undefined, stats are global (HQ super_admin view). */
+  accommodationId?: string | null;
 }
 
-export function OwlTingEmailStatsCards({ showDetailLink = true, showHeader = true, refreshKey }: Props) {
+export function OwlTingEmailStatsCards({ showDetailLink = true, showHeader = true, refreshKey, accommodationId }: Props) {
   const [stats, setStats] = useState<Stats>({
     total: 0, parsed: 0, quarantined: 0, ignored: 0, pendingPii: 0, overduePii: 0,
   });
@@ -29,6 +32,10 @@ export function OwlTingEmailStatsCards({ showDetailLink = true, showHeader = tru
   const load = async () => {
     setLoading(true);
     const nowIso = new Date().toISOString();
+
+    const scope = (q: any) =>
+      accommodationId ? q.eq("accommodation_id", accommodationId) : q;
+
     const [
       { count: total },
       { count: parsed },
@@ -37,23 +44,31 @@ export function OwlTingEmailStatsCards({ showDetailLink = true, showHeader = tru
       { count: pendingPii },
       { count: overduePii },
     ] = await Promise.all([
-      supabase.from("owlting_email_orders_raw").select("*", { count: "exact", head: true }),
-      supabase.from("owlting_email_orders_raw").select("*", { count: "exact", head: true }).eq("status", "parsed"),
-      supabase.from("owlting_email_orders_raw").select("*", { count: "exact", head: true }).eq("status", "ignored"),
-      supabase
-        .from("owlting_email_parse_failures")
-        .select("*", { count: "exact", head: true })
-        .eq("resolved", false)
-        .eq("failure_stage", "subject_parse"),
-      supabase
-        .from("owlting_email_parsed_staging")
-        .select("*", { count: "exact", head: true })
-        .eq("pii_status", "pending_pii_fillup"),
-      supabase
-        .from("owlting_email_parsed_staging")
-        .select("*", { count: "exact", head: true })
-        .eq("pii_status", "pending_pii_fillup")
-        .lt("pii_due_at", nowIso),
+      scope(supabase.from("owlting_email_orders_raw").select("*", { count: "exact", head: true })),
+      scope(supabase.from("owlting_email_orders_raw").select("*", { count: "exact", head: true }).eq("status", "parsed")),
+      scope(supabase.from("owlting_email_orders_raw").select("*", { count: "exact", head: true }).eq("status", "ignored")),
+      // Quarantine = subject_parse failures. No accommodation_id column → RLS limits to HQ super_admin.
+      // For tenants, force 0 so the stat stays consistent with the (always-empty) tenant list.
+      accommodationId
+        ? Promise.resolve({ count: 0 } as { count: number })
+        : supabase
+            .from("owlting_email_parse_failures")
+            .select("*", { count: "exact", head: true })
+            .eq("resolved", false)
+            .eq("failure_stage", "subject_parse"),
+      scope(
+        supabase
+          .from("owlting_email_parsed_staging")
+          .select("*", { count: "exact", head: true })
+          .eq("pii_status", "pending_pii_fillup")
+      ),
+      scope(
+        supabase
+          .from("owlting_email_parsed_staging")
+          .select("*", { count: "exact", head: true })
+          .eq("pii_status", "pending_pii_fillup")
+          .lt("pii_due_at", nowIso)
+      ),
     ]);
     setStats({
       total: total ?? 0,
@@ -68,7 +83,7 @@ export function OwlTingEmailStatsCards({ showDetailLink = true, showHeader = tru
 
   useEffect(() => {
     void load();
-  }, [refreshKey]);
+  }, [refreshKey, accommodationId]);
 
   return (
     <Card>
