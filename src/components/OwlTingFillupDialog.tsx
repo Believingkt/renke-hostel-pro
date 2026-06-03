@@ -28,7 +28,7 @@ interface StagingRow {
   total_amount: number | null;
   pii_status: string;
 }
-interface AccOption { id: string; name: string; }
+interface AccOption { id: string; name: string; aliases: string[]; }
 interface RoomType { id: string; name: string; base_price: number; }
 
 const OWLNEST_ADMIN_URL = "https://www.owlting.com/booking/admin/?l=zh_TW&p=order";
