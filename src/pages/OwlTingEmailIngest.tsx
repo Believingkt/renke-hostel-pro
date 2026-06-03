@@ -77,6 +77,8 @@ export default function OwlTingEmailIngest() {
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [fillupStagingId, setFillupStagingId] = useState<string | null>(null);
   const [fillupOpen, setFillupOpen] = useState(false);
+  const [rawEmailId, setRawEmailId] = useState<string | null>(null);
+  const [rawOpen, setRawOpen] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
 
   const load = async () => {
