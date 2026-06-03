@@ -608,6 +608,10 @@ export default function ChannelManager() {
         description="此處設定的 Email 會收到本民宿奧丁丁訂單的 PII 補單通知。總部後台會同步顯示，亦可由總部新增 / 編輯。"
       />
 
+      <OwlTingAliasesEditor accommodationId={accId} />
+
+
+
 
       {/* 台灣旅圖設定 */}
       <Card className="overflow-hidden">
