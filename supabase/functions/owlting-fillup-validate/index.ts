@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
 
     const { data: staging } = await admin
       .from("owlting_email_parsed_staging")
-      .select("id, obe_number, accommodation_name, accommodation_id, room_type_name, check_in_date, check_out_date, guest_count, total_amount, currency, addons, pii_status, pii_due_at")
+      .select("id, obe_number, accommodation_name, accommodation_id, room_type_name, project_name, room_quantity, check_in_date, check_out_date, guest_count, nights, total_amount, remaining_amount, currency, payment_status, addons, pii_status, pii_due_at")
       .eq("id", tok.staging_id)
       .maybeSingle();
 
@@ -100,11 +100,16 @@ Deno.serve(async (req) => {
         obe_number: staging.obe_number,
         accommodation_name: staging.accommodation_name,
         room_type_name: staging.room_type_name,
+        project_name: staging.project_name,
+        room_quantity: staging.room_quantity,
         check_in_date: staging.check_in_date,
         check_out_date: staging.check_out_date,
         guest_count: staging.guest_count,
+        nights: staging.nights,
         total_amount: staging.total_amount,
+        remaining_amount: staging.remaining_amount,
         currency: staging.currency,
+        payment_status: staging.payment_status,
         addons: staging.addons,
         pii_due_at: staging.pii_due_at,
       },
