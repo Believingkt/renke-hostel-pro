@@ -42,6 +42,28 @@ const HELLO_RE = /([^{}:：\n\r]+?)\s*您好/;
 // Channel source from subject. Forwarded 信會有「Fwd: 」前綴。
 const CHANNEL_SUBJECT_RE = /(?:Fwd:\s*)?(\S+)\s*訂單(?:成立|變更|取消|修改)通知/i;
 
+// 入住 / 退房日期 — 支援多種寫法：
+//   「入住日期 2026-08-22」「入住日期：2026/08/22」「入住日 2026.08.22」
+//   「Check-in date: 2026-08-22」
+// 日期格式接受 - / . 分隔，輸出統一 YYYY-MM-DD
+const CHECK_IN_RE = /(?:入住日期|入住日|入住|Check[\s-]*in(?:\s*date)?)\s*[:：]?\s*(\d{4})[\-\/\.](\d{1,2})[\-\/\.](\d{1,2})/i;
+const CHECK_OUT_RE = /(?:退房日期|退房日|退房|離店日期|離店日|Check[\s-]*out(?:\s*date)?)\s*[:：]?\s*(\d{4})[\-\/\.](\d{1,2})[\-\/\.](\d{1,2})/i;
+
+function normalizeDate(y: string, m: string, d: string): string | null {
+  const yy = Number(y);
+  const mm = Number(m);
+  const dd = Number(d);
+  if (!yy || !mm || !dd) return null;
+  if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+  return `${yy.toString().padStart(4, "0")}-${mm.toString().padStart(2, "0")}-${dd.toString().padStart(2, "0")}`;
+}
+
+function extractDate(flat: string, re: RegExp): string | null {
+  const m = flat.match(re);
+  if (!m) return null;
+  return normalizeDate(m[1], m[2], m[3]);
+}
+
 export function detectMessageTypeFromBody(text: string): ParsedMessageType {
   if (/取消/.test(text)) return "cancelled";
   if (/修改|變更|更改/.test(text)) return "modified";
