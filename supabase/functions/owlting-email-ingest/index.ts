@@ -244,6 +244,8 @@ Deno.serve(async (req) => {
           obe_number: fields.obe_number,
           accommodation_name: fields.accommodation_name ?? parsed.accommodation_name,
           channel_source: fields.channel_source,
+          check_in_date: fields.check_in_date,
+          check_out_date: fields.check_out_date,
           pii_masked: false,
           extracted_fields: fields.raw_matches,
           parse_warnings: fields.warnings.length ? fields.warnings : null,

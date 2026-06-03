@@ -16,10 +16,11 @@ export interface OwlTingParsedFields {
   obe_number: string | null;
   accommodation_name: string | null;
   channel_source: string | null;
+  // 入住/退房日期（YYYY-MM-DD）— 從 HTML 抓得到就帶出來預填，仍視為 trigger-level
+  check_in_date: string | null;
+  check_out_date: string | null;
   // 以下永遠 null — trigger-only 不抽 PII / 訂單細節
   room_type_name: null;
-  check_in_date: null;
-  check_out_date: null;
   guest_count: null;
   total_amount: null;
   currency: null;
@@ -40,6 +41,28 @@ const OBE_RE = /\b(OBE[A-Z0-9\-]{6,})\b/i;
 const HELLO_RE = /([^{}:：\n\r]+?)\s*您好/;
 // Channel source from subject. Forwarded 信會有「Fwd: 」前綴。
 const CHANNEL_SUBJECT_RE = /(?:Fwd:\s*)?(\S+)\s*訂單(?:成立|變更|取消|修改)通知/i;
+
+// 入住 / 退房日期 — 支援多種寫法：
+//   「入住日期 2026-08-22」「入住日期：2026/08/22」「入住日 2026.08.22」
+//   「Check-in date: 2026-08-22」
+// 日期格式接受 - / . 分隔，輸出統一 YYYY-MM-DD
+const CHECK_IN_RE = /(?:入住日期|入住日|入住|Check[\s-]*in(?:\s*date)?)\s*[:：]?\s*(\d{4})[\-\/\.](\d{1,2})[\-\/\.](\d{1,2})/i;
+const CHECK_OUT_RE = /(?:退房日期|退房日|退房|離店日期|離店日|Check[\s-]*out(?:\s*date)?)\s*[:：]?\s*(\d{4})[\-\/\.](\d{1,2})[\-\/\.](\d{1,2})/i;
+
+function normalizeDate(y: string, m: string, d: string): string | null {
+  const yy = Number(y);
+  const mm = Number(m);
+  const dd = Number(d);
+  if (!yy || !mm || !dd) return null;
+  if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+  return `${yy.toString().padStart(4, "0")}-${mm.toString().padStart(2, "0")}-${dd.toString().padStart(2, "0")}`;
+}
+
+function extractDate(flat: string, re: RegExp): string | null {
+  const m = flat.match(re);
+  if (!m) return null;
+  return normalizeDate(m[1], m[2], m[3]);
+}
 
 export function detectMessageTypeFromBody(text: string): ParsedMessageType {
   if (/取消/.test(text)) return "cancelled";
@@ -128,14 +151,26 @@ export function parseOwlNestForwardEmail(input: {
   const channel = extractChannelFromSubject(input.subject);
   if (!channel) warnings.push("channel_source: not found in subject");
 
+  // 入住/退房日期 — 優先 text，回退 stripped HTML
+  let checkIn = extractDate(flat, CHECK_IN_RE);
+  if (!checkIn && flat !== flatFromHtml && flatFromHtml) {
+    checkIn = extractDate(flatFromHtml, CHECK_IN_RE);
+  }
+  let checkOut = extractDate(flat, CHECK_OUT_RE);
+  if (!checkOut && flat !== flatFromHtml && flatFromHtml) {
+    checkOut = extractDate(flatFromHtml, CHECK_OUT_RE);
+  }
+  if (!checkIn) warnings.push("check_in_date: not found");
+  if (!checkOut) warnings.push("check_out_date: not found");
+
   return {
     message_type: messageType,
     obe_number: obe,
     accommodation_name: accommodation,
     channel_source: channel,
+    check_in_date: checkIn,
+    check_out_date: checkOut,
     room_type_name: null,
-    check_in_date: null,
-    check_out_date: null,
     guest_count: null,
     total_amount: null,
     currency: null,
@@ -151,6 +186,8 @@ export function parseOwlNestForwardEmail(input: {
       obe_from_subject: obeMatchSubject?.[1] ?? null,
       accommodation_name: accommodation,
       channel_source: channel,
+      check_in_date: checkIn,
+      check_out_date: checkOut,
     },
   };
 }
