@@ -43,6 +43,8 @@ export default function OwlTingFillup() {
   const [guestEmail, setGuestEmail] = useState("");
   const [roomTypeId, setRoomTypeId] = useState<string>("none");
   const [totalAmountOverride, setTotalAmountOverride] = useState("");
+  const [checkInDate, setCheckInDate] = useState<string>("");
+  const [checkOutDate, setCheckOutDate] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [submittedOrder, setSubmittedOrder] = useState<{ id: string; order_number: string } | null>(null);
 
