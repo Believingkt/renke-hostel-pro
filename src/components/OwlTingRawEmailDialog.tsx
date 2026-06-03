@@ -43,8 +43,14 @@ export function OwlTingRawEmailDialog({ open, onOpenChange, rawEmailId }: Props)
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [iframeHeight, setIframeHeight] = useState<number>(400);
 
-  const maxIframeHeight = () =>
-    Math.max(320, Math.floor(window.innerHeight * 0.9) - 140);
+  const getBounds = () => {
+    const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+    // Dialog 上限 90vh，扣除 header / padding，留給 iframe 的最大高度
+    const max = Math.max(320, Math.floor(vh * 0.9) - 140);
+    // 視窗很小時，最小高度也要跟著縮，避免比 max 還大
+    const min = Math.min(280, max);
+    return { min, max };
+  };
 
   const measureIframe = () => {
     const iframe = iframeRef.current;
@@ -58,16 +64,78 @@ export function OwlTingRawEmailDialog({ open, onOpenChange, rawEmailId }: Props)
       root?.scrollHeight ?? 0,
       root?.offsetHeight ?? 0,
     );
+    const { min, max } = getBounds();
+    // 內容尚未渲染：保留現值，避免閃爍
     if (!contentHeight) return;
-    setIframeHeight(Math.min(contentHeight + 8, maxIframeHeight()));
+    const next = Math.min(Math.max(contentHeight + 8, min), max);
+    setIframeHeight((prev) => (Math.abs(prev - next) < 2 ? prev : next));
   };
 
+  // 監聽 iframe 內部 DOM、圖片、字體變化 + window resize
   useEffect(() => {
-    if (!open) return;
+    if (!open || !html) return;
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+
+    let mo: MutationObserver | null = null;
+    let ro: ResizeObserver | null = null;
+    const imgListeners: Array<{ img: HTMLImageElement; fn: () => void }> = [];
+    const timers: number[] = [];
+
+    const attachObservers = () => {
+      const doc = iframe.contentDocument;
+      if (!doc?.body) return;
+      measureIframe();
+
+      mo = new MutationObserver(() => measureIframe());
+      mo.observe(doc.body, { childList: true, subtree: true, attributes: true, characterData: true });
+
+      if (typeof ResizeObserver !== "undefined") {
+        ro = new ResizeObserver(() => measureIframe());
+        ro.observe(doc.body);
+        if (doc.documentElement) ro.observe(doc.documentElement);
+      }
+
+      // 圖片載入完成後再量一次（HTML email 常見大量 img）
+      doc.querySelectorAll("img").forEach((img) => {
+        if (!(img instanceof HTMLImageElement)) return;
+        if (img.complete) return;
+        const fn = () => measureIframe();
+        img.addEventListener("load", fn);
+        img.addEventListener("error", fn);
+        imgListeners.push({ img, fn });
+      });
+
+      // 字體就緒後重量
+      const fonts = (doc as Document & { fonts?: { ready: Promise<unknown> } }).fonts;
+      if (fonts?.ready) fonts.ready.then(() => measureIframe()).catch(() => {});
+
+      // 兜底幾個 timing 點
+      timers.push(window.setTimeout(measureIframe, 150));
+      timers.push(window.setTimeout(measureIframe, 600));
+      timers.push(window.setTimeout(measureIframe, 1500));
+    };
+
+    const onLoad = () => attachObservers();
+    iframe.addEventListener("load", onLoad);
+    // 若 srcDoc 已經完成載入，立即量一次
+    if (iframe.contentDocument?.readyState === "complete") attachObservers();
+
     const onResize = () => measureIframe();
     window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, [open]);
+
+    return () => {
+      iframe.removeEventListener("load", onLoad);
+      window.removeEventListener("resize", onResize);
+      mo?.disconnect();
+      ro?.disconnect();
+      imgListeners.forEach(({ img, fn }) => {
+        img.removeEventListener("load", fn);
+        img.removeEventListener("error", fn);
+      });
+      timers.forEach((t) => window.clearTimeout(t));
+    };
+  }, [open, html]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -97,11 +165,6 @@ export function OwlTingRawEmailDialog({ open, onOpenChange, rawEmailId }: Props)
                 title="email-preview"
                 srcDoc={html}
                 sandbox="allow-same-origin"
-                onLoad={() => {
-                  measureIframe();
-                  setTimeout(measureIframe, 200);
-                  setTimeout(measureIframe, 800);
-                }}
                 style={{ height: iframeHeight }}
                 className="w-full block bg-white"
               />
