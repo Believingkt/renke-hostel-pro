@@ -16,10 +16,11 @@ export interface OwlTingParsedFields {
   obe_number: string | null;
   accommodation_name: string | null;
   channel_source: string | null;
+  // 入住/退房日期（YYYY-MM-DD）— 從 HTML 抓得到就帶出來預填，仍視為 trigger-level
+  check_in_date: string | null;
+  check_out_date: string | null;
   // 以下永遠 null — trigger-only 不抽 PII / 訂單細節
   room_type_name: null;
-  check_in_date: null;
-  check_out_date: null;
   guest_count: null;
   total_amount: null;
   currency: null;
