@@ -59,7 +59,8 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
   const [guestEmail, setGuestEmail] = useState("");
   const [roomTypeId, setRoomTypeId] = useState<string>("none");
   const [totalAmountOverride, setTotalAmountOverride] = useState("");
-  const [guestCount, setGuestCount] = useState<string>("2");
+  const [adultCount, setAdultCount] = useState<string>("2");
+  const [childCount, setChildCount] = useState<string>("0");
   const [checkInDate, setCheckInDate] = useState<string>("");
   const [checkOutDate, setCheckOutDate] = useState<string>("");
 
