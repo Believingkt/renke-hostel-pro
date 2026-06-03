@@ -26,6 +26,17 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -931,15 +942,18 @@ function KolRateSettingsTab() {
   };
 
   const handleDelete = async (row: RateRow) => {
-    if (!confirm(`確定要刪除生效日期 ${row.effective_from} 的費率？`)) return;
     setDeletingId(row.id);
-    const { error } = await supabase
+    const { error, count } = await supabase
       .from("kol_commission_settings")
-      .delete()
+      .delete({ count: "exact" })
       .eq("id", row.id);
     setDeletingId(null);
     if (error) {
       toast.error("刪除失敗：" + error.message);
+      return;
+    }
+    if (!count) {
+      toast.error("刪除失敗：沒有權限或紀錄不存在");
       return;
     }
     toast.success("已刪除");
@@ -1008,15 +1022,32 @@ function KolRateSettingsTab() {
                       </TableCell>
                       <TableCell className="text-right">
                         {idx !== 0 && g.rows.length > 1 && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            disabled={deletingId === r.id}
-                            onClick={() => handleDelete(r)}
-                            title="刪除"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                disabled={deletingId === r.id}
+                                title="刪除"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>確定刪除？</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  將刪除 {g.name} 生效日期 {r.effective_from} 的 {r.rate}% 費率，此操作無法復原。
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>取消</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDelete(r)}>
+                                  確認刪除
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         )}
                       </TableCell>
                     </TableRow>
