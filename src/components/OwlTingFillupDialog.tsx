@@ -92,6 +92,8 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
       setStagingRow(row);
       if (row.total_amount) setTotalAmountOverride(String(row.total_amount));
       if (row.guest_count && row.guest_count > 0) setGuestCount(String(row.guest_count));
+      if (row.check_in_date) setCheckInDate(row.check_in_date);
+      if (row.check_out_date) setCheckOutDate(row.check_out_date);
 
       if (row.accommodation_id) {
         prepareToken(row.accommodation_id);
