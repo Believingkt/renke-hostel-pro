@@ -33,8 +33,8 @@ export function OwlTingEmailStatsCards({ showDetailLink = true, showHeader = tru
     setLoading(true);
     const nowIso = new Date().toISOString();
 
-    const scope = <T extends { eq: (col: string, val: any) => any }>(q: T) =>
-      accommodationId ? (q.eq("accommodation_id", accommodationId) as T) : q;
+    const scope = (q: any) =>
+      accommodationId ? q.eq("accommodation_id", accommodationId) : q;
 
     const [
       { count: total },
