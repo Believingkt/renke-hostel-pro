@@ -156,14 +156,24 @@ export function parseOwlNestForwardEmail(input: {
   const channel = extractChannelFromSubject(input.subject);
   if (!channel) warnings.push("channel_source: not found in subject");
 
-  // 入住/退房日期 — 優先 text，回退 stripped HTML
-  let checkIn = extractDate(flat, CHECK_IN_RE);
-  if (!checkIn && flat !== flatFromHtml && flatFromHtml) {
-    checkIn = extractDate(flatFromHtml, CHECK_IN_RE);
+  // 入住/退房日期
+  // OwlTing email HTML 結構是「入住日期 退房日期 <date1> <date2>」，兩個 label 連在一起，
+  // 兩個日期再連在一起 — 先用 pair 模式抓，再 fallback 到單一 label 模式。
+  let checkIn: string | null = null;
+  let checkOut: string | null = null;
+  const PAIR_RE = /入住日期\s*退房日期\s*(\d{4})[\-\/\.](\d{1,2})[\-\/\.](\d{1,2})\s+(\d{4})[\-\/\.](\d{1,2})[\-\/\.](\d{1,2})/;
+  const pairM = flatFromHtml.match(PAIR_RE) ?? flat.match(PAIR_RE);
+  if (pairM) {
+    checkIn = normalizeDate(pairM[1], pairM[2], pairM[3]);
+    checkOut = normalizeDate(pairM[4], pairM[5], pairM[6]);
   }
-  let checkOut = extractDate(flat, CHECK_OUT_RE);
-  if (!checkOut && flat !== flatFromHtml && flatFromHtml) {
-    checkOut = extractDate(flatFromHtml, CHECK_OUT_RE);
+  if (!checkIn) {
+    checkIn = extractDate(flat, CHECK_IN_RE)
+      ?? (flat !== flatFromHtml && flatFromHtml ? extractDate(flatFromHtml, CHECK_IN_RE) : null);
+  }
+  if (!checkOut) {
+    checkOut = extractDate(flat, CHECK_OUT_RE)
+      ?? (flat !== flatFromHtml && flatFromHtml ? extractDate(flatFromHtml, CHECK_OUT_RE) : null);
   }
   if (!checkIn) warnings.push("check_in_date: not found");
   if (!checkOut) warnings.push("check_out_date: not found");
