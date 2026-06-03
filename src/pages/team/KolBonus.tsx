@@ -1022,15 +1022,32 @@ function KolRateSettingsTab() {
                       </TableCell>
                       <TableCell className="text-right">
                         {idx !== 0 && g.rows.length > 1 && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            disabled={deletingId === r.id}
-                            onClick={() => handleDelete(r)}
-                            title="刪除"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                disabled={deletingId === r.id}
+                                title="刪除"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>確定刪除？</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  將刪除 {g.name} 生效日期 {r.effective_from} 的 {r.rate}% 費率，此操作無法復原。
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>取消</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDelete(r)}>
+                                  確認刪除
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         )}
                       </TableCell>
                     </TableRow>
