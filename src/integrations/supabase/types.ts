@@ -4486,20 +4486,25 @@ export type Database = {
           id: string
           last_reminder_at: string | null
           message_type: string | null
+          nights: number | null
           notified_at: string | null
           obe_number: string | null
           owner_filled_at: string | null
           parse_warnings: Json | null
           parser_version: string
+          payment_status: string | null
           pii_due_at: string | null
           pii_masked: boolean
           pii_status: string
+          project_name: string | null
           promoted_order_id: string | null
           raw_email_id: string
+          remaining_amount: number | null
           review_notes: string | null
           review_status: string
           reviewed_at: string | null
           reviewed_by: string | null
+          room_quantity: number | null
           room_type_name: string | null
           total_amount: number | null
           updated_at: string
@@ -4522,20 +4527,25 @@ export type Database = {
           id?: string
           last_reminder_at?: string | null
           message_type?: string | null
+          nights?: number | null
           notified_at?: string | null
           obe_number?: string | null
           owner_filled_at?: string | null
           parse_warnings?: Json | null
           parser_version?: string
+          payment_status?: string | null
           pii_due_at?: string | null
           pii_masked?: boolean
           pii_status?: string
+          project_name?: string | null
           promoted_order_id?: string | null
           raw_email_id: string
+          remaining_amount?: number | null
           review_notes?: string | null
           review_status?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
+          room_quantity?: number | null
           room_type_name?: string | null
           total_amount?: number | null
           updated_at?: string
@@ -4558,20 +4568,25 @@ export type Database = {
           id?: string
           last_reminder_at?: string | null
           message_type?: string | null
+          nights?: number | null
           notified_at?: string | null
           obe_number?: string | null
           owner_filled_at?: string | null
           parse_warnings?: Json | null
           parser_version?: string
+          payment_status?: string | null
           pii_due_at?: string | null
           pii_masked?: boolean
           pii_status?: string
+          project_name?: string | null
           promoted_order_id?: string | null
           raw_email_id?: string
+          remaining_amount?: number | null
           review_notes?: string | null
           review_status?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
+          room_quantity?: number | null
           room_type_name?: string | null
           total_amount?: number | null
           updated_at?: string
