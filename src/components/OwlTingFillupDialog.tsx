@@ -30,6 +30,8 @@ interface StagingRow {
   check_in_date: string | null;
   check_out_date: string | null;
   guest_count: number | null;
+  adult_count: number | null;
+  child_count: number | null;
   total_amount: number | null;
   pii_status: string;
 }
@@ -81,7 +83,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
     (async () => {
       const { data, error } = await supabase
         .from("owlting_email_parsed_staging")
-        .select("id, raw_email_id, obe_number, accommodation_id, accommodation_name, room_type_name, check_in_date, check_out_date, guest_count, total_amount, pii_status")
+        .select("id, raw_email_id, obe_number, accommodation_id, accommodation_name, room_type_name, check_in_date, check_out_date, guest_count, adult_count, child_count, total_amount, pii_status")
         .eq("id", stagingId)
         .maybeSingle();
       if (error || !data) {
@@ -419,7 +421,12 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
                   </div>
                 </>
               )}
-              <div className="text-sm"><span className="text-muted-foreground">原始人數：</span>{stagingRow.guest_count ?? "—"}</div>
+              <div className="text-sm">
+                <span className="text-muted-foreground">原始人數：</span>
+                {stagingRow.adult_count != null || stagingRow.child_count != null
+                  ? `大人 ${stagingRow.adult_count ?? 0} / 小孩 ${stagingRow.child_count ?? 0}`
+                  : (stagingRow.guest_count ?? "—")}
+              </div>
               <div className="text-sm"><span className="text-muted-foreground">原房型：</span>{stagingRow.room_type_name ?? "—"}</div>
             </div>
             {!stagingRow.check_in_date && (
