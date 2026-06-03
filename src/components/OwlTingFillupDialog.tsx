@@ -258,8 +258,12 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
 
   const amountNum = totalAmountOverride ? Number(totalAmountOverride) : NaN;
   const amountSuspicious = isAmountSuspicious(totalAmountOverride);
-  const guestCountNum = Number(guestCount);
-  const guestCountValid = isGuestCountValid(guestCount);
+  const adultNum = Number(adultCount);
+  const childNum = Number(childCount);
+  const adultValid = Number.isInteger(adultNum) && adultNum >= 1 && adultNum <= 50;
+  const childValid = Number.isInteger(childNum) && childNum >= 0 && childNum <= 50;
+  const guestCountNum = (adultValid ? adultNum : 0) + (childValid ? childNum : 0);
+  const guestCountValid = adultValid && childValid && guestCountNum >= 1 && guestCountNum <= 50;
   const datesValid = !!checkInDate && !!checkOutDate && checkOutDate > checkInDate;
   const formReady =
     !!guestName.trim() &&
