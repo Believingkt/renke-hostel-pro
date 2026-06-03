@@ -12,7 +12,8 @@ import { format } from "date-fns";
 import { OwlTingEmailStatsCards } from "@/components/OwlTingEmailStatsCards";
 import { OwlTingFillupDialog } from "@/components/OwlTingFillupDialog";
 import { toast } from "sonner";
-import { Send, Loader2, ClipboardEdit } from "lucide-react";
+import { Send, Loader2, ClipboardEdit, FileCode } from "lucide-react";
+import { OwlTingRawEmailDialog } from "@/components/OwlTingRawEmailDialog";
 
 interface RawEmail {
   id: string;
