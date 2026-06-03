@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { Copy, ExternalLink, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
 
 interface StagingData {
   id: string;
@@ -92,13 +93,16 @@ export default function OwlTingFillup() {
         },
       });
       if (invokeErr || !data?.ok) {
-        toast({ title: "送出失敗", description: data?.error || invokeErr?.message, variant: "destructive" });
+        const parsed = invokeErr ? await parseFunctionInvokeError(invokeErr) : null;
+        const desc = parsed?.backendError || data?.error || parsed?.message || invokeErr?.message || "請稍後再試";
+        toast({ title: "送出失敗", description: desc, variant: "destructive" });
       } else {
         setSubmittedOrder({ id: data.order_id, order_number: data.order_number });
         toast({ title: "訂單已建立" });
       }
     } catch (e: any) {
-      toast({ title: "送出失敗", description: e.message, variant: "destructive" });
+      const parsed = await parseFunctionInvokeError(e);
+      toast({ title: "送出失敗", description: parsed.backendError || parsed.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
