@@ -189,7 +189,7 @@ export default function OwlTingEmailIngest() {
                     </TableCell>
                     <TableCell>{r.message_type ? TYPE_LABEL[r.message_type] ?? r.message_type : "—"}</TableCell>
                     <TableCell className="font-mono text-xs">{r.obe_number ?? "—"}</TableCell>
-                    <TableCell className="text-xs">{r.from_domain ?? r.from_email ?? "—"}</TableCell>
+                    
                     <TableCell className="max-w-[300px] truncate text-xs" title={r.subject ?? ""}>{r.subject ?? "—"}</TableCell>
                     <TableCell className="text-xs">
                       {st ? (
