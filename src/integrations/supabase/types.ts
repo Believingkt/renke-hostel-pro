@@ -299,6 +299,7 @@ export type Database = {
           og_description: string | null
           og_image_url: string | null
           og_title: string | null
+          owlting_aliases: string[]
           phone: string | null
           region_1: string | null
           region_2: string | null
@@ -366,6 +367,7 @@ export type Database = {
           og_description?: string | null
           og_image_url?: string | null
           og_title?: string | null
+          owlting_aliases?: string[]
           phone?: string | null
           region_1?: string | null
           region_2?: string | null
@@ -433,6 +435,7 @@ export type Database = {
           og_description?: string | null
           og_image_url?: string | null
           og_title?: string | null
+          owlting_aliases?: string[]
           phone?: string | null
           region_1?: string | null
           region_2?: string | null
@@ -7034,6 +7037,7 @@ export type Database = {
       is_team_admin: { Args: { _user_id: string }; Returns: boolean }
       is_team_inviter: { Args: { _user_id: string }; Returns: boolean }
       is_user_admin: { Args: { _user_id: string }; Returns: boolean }
+      normalize_owlting_name: { Args: { p_name: string }; Returns: string }
       resolve_pricing_template_by_numeric_code: {
         Args: { p_accommodation_id: string; p_code: number }
         Returns: {
