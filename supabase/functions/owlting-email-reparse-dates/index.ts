@@ -80,14 +80,14 @@ Deno.serve(async (req) => {
     const rawIds = rows.map((r: any) => r.id);
     const { data: stagings } = await admin
       .from("owlting_email_parsed_staging")
-      .select("id, raw_email_id, check_in_date, check_out_date, room_type_name, project_name, room_quantity, guest_count, nights, total_amount, remaining_amount, currency, payment_status")
+      .select("id, raw_email_id, check_in_date, check_out_date, room_type_name, project_name, room_quantity, guest_count, adult_count, child_count, nights, total_amount, remaining_amount, currency, payment_status")
       .in("raw_email_id", rawIds);
     const stagingByRaw = new Map<string, any>();
     (stagings ?? []).forEach((s: any) => stagingByRaw.set(s.raw_email_id, s));
 
     const FIELDS: Array<keyof any> = [
       "check_in_date", "check_out_date", "room_type_name", "project_name",
-      "room_quantity", "guest_count", "nights", "total_amount",
+      "room_quantity", "guest_count", "adult_count", "child_count", "nights", "total_amount",
       "remaining_amount", "currency", "payment_status",
     ];
 
