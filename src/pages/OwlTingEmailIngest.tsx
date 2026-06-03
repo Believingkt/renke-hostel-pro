@@ -155,7 +155,7 @@ export default function OwlTingEmailIngest() {
     setReparsing(true);
     try {
       const { data, error } = await supabase.functions.invoke("owlting-email-reparse-dates", {
-        body: { accommodation_id: currentAccommodationId },
+        body: { accommodation_id: currentAccommodationId, overwrite: true },
       });
       if (error) throw error;
       const d = data as any;
