@@ -171,6 +171,48 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, stagingId]);
 
+  const [aliasPromptOpen, setAliasPromptOpen] = useState(false);
+  const [pendingAccId, setPendingAccId] = useState<string | null>(null);
+
+  const onClickContinue = () => {
+    if (selectedAccId === "none") return;
+    const rawName = (stagingRow?.accommodation_name ?? "").trim();
+    const acc = accOptions.find((o) => o.id === selectedAccId);
+    if (rawName && acc && acc.name !== rawName && !acc.aliases.includes(rawName)) {
+      setPendingAccId(selectedAccId);
+      setAliasPromptOpen(true);
+      return;
+    }
+    prepareToken(selectedAccId);
+  };
+
+  const addAliasAndProceed = async (alsoAdd: boolean) => {
+    const accId = pendingAccId;
+    setAliasPromptOpen(false);
+    setPendingAccId(null);
+    if (!accId) return;
+    if (alsoAdd) {
+      const acc = accOptions.find((o) => o.id === accId);
+      const rawName = (stagingRow?.accommodation_name ?? "").trim();
+      if (acc && rawName) {
+        const nextAliases = Array.from(new Set([...(acc.aliases ?? []), rawName]));
+        const { error } = await supabase
+          .from("accommodation_info")
+          .update({ owlting_aliases: nextAliases })
+          .eq("id", acc.id);
+        if (error) {
+          toast.error("加入別名失敗：" + error.message);
+        } else {
+          toast.success(`已將「${rawName}」加入「${acc.name}」的別名`);
+          setAccOptions((prev) =>
+            prev.map((o) => (o.id === acc.id ? { ...o, aliases: nextAliases } : o))
+          );
+        }
+      }
+    }
+    prepareToken(accId);
+  };
+
   const prepareToken = async (accId: string) => {
     setPreparing(true);
     try {
