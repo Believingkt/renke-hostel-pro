@@ -254,11 +254,13 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
   const amountSuspicious = isAmountSuspicious(totalAmountOverride);
   const guestCountNum = Number(guestCount);
   const guestCountValid = isGuestCountValid(guestCount);
+  const datesValid = !!checkInDate && !!checkOutDate && checkOutDate > checkInDate;
   const formReady =
     !!guestName.trim() &&
     !!guestPhone.trim() &&
     roomTypeId !== "none" &&
-    guestCountValid;
+    guestCountValid &&
+    datesValid;
 
   const handleSubmit = async () => {
     if (!token) return;
@@ -274,6 +276,10 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
       toast.error("人數需為 1-50 之間的整數");
       return;
     }
+    if (!datesValid) {
+      toast.error("請填寫入住 / 退房日期（退房需晚於入住）");
+      return;
+    }
     setSubmitting(true);
     try {
       const { data, error } = await supabase.functions.invoke("owlting-fillup-submit", {
@@ -285,9 +291,15 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
           room_type_id: roomTypeId,
           guest_count: guestCountNum,
           total_amount: totalAmountOverride ? Number(totalAmountOverride) : null,
+          check_in_date: checkInDate,
+          check_out_date: checkOutDate,
         },
       });
-      if (error || !data?.ok) throw new Error(data?.error || error?.message || "送出失敗");
+      if (error) {
+        const parsed = await parseFunctionInvokeError(error);
+        throw new Error(parsed.backendError || parsed.message);
+      }
+      if (!data?.ok) throw new Error(data?.error || "送出失敗");
       toast.success(`訂單已建立：${data.order_number}`);
       onSubmitted?.();
       onOpenChange(false);
@@ -297,6 +309,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
       setSubmitting(false);
     }
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
