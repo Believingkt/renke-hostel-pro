@@ -105,6 +105,8 @@ Deno.serve(async (req) => {
         check_in_date: staging.check_in_date,
         check_out_date: staging.check_out_date,
         guest_count: staging.guest_count,
+        adult_count: staging.adult_count,
+        child_count: staging.child_count,
         nights: staging.nights,
         total_amount: staging.total_amount,
         remaining_amount: staging.remaining_amount,
