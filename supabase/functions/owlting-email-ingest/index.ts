@@ -161,6 +161,16 @@ Deno.serve(async (req) => {
   const trusted = isTrustedDomain(envelopeFromDomain);
   const parsed = parseSubject(subject);
 
+  // Pre-parse body once so we can enrich raw row with accommodation_name / channel_source
+  let bodyFields: ReturnType<typeof parseOwlNestForwardEmail> | null = null;
+  if (trusted && (text || html)) {
+    try {
+      bodyFields = parseOwlNestForwardEmail({ subject, text_body: text, html_body: html });
+    } catch (e) {
+      console.error("[owlting-email-ingest] body parser threw:", e);
+    }
+  }
+
   // Determine status
   let status = "received";
   let notes: string | null = null;
