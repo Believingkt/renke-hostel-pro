@@ -12,7 +12,8 @@ import { format } from "date-fns";
 import { OwlTingEmailStatsCards } from "@/components/OwlTingEmailStatsCards";
 import { OwlTingFillupDialog } from "@/components/OwlTingFillupDialog";
 import { toast } from "sonner";
-import { Send, Loader2, ClipboardEdit } from "lucide-react";
+import { Send, Loader2, ClipboardEdit, FileCode } from "lucide-react";
+import { OwlTingRawEmailDialog } from "@/components/OwlTingRawEmailDialog";
 
 interface RawEmail {
   id: string;
@@ -76,6 +77,8 @@ export default function OwlTingEmailIngest() {
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [fillupStagingId, setFillupStagingId] = useState<string | null>(null);
   const [fillupOpen, setFillupOpen] = useState(false);
+  const [rawEmailId, setRawEmailId] = useState<string | null>(null);
+  const [rawOpen, setRawOpen] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
 
   const load = async () => {
@@ -208,32 +211,41 @@ export default function OwlTingEmailIngest() {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      {canSend && (
-                        <div className="flex justify-end gap-1.5">
-                          <Button
-                            size="sm"
-                            variant="default"
-                            onClick={() => { setFillupStagingId(st.id); setFillupOpen(true); }}
-                          >
-                            <ClipboardEdit className="h-3.5 w-3.5 mr-1" />補單
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => sendFillupNotification(st.id)}
-                            disabled={sendingId === st.id}
-                          >
-                            {sendingId === st.id ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <>
-                                <Send className="h-3.5 w-3.5 mr-1" />
-                                {st.notified_at ? "重發通知" : "發送通知"}
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      )}
+                      <div className="flex justify-end gap-1.5 flex-wrap">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => { setRawEmailId(r.id); setRawOpen(true); }}
+                        >
+                          <FileCode className="h-3.5 w-3.5 mr-1" />原文
+                        </Button>
+                        {canSend && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => { setFillupStagingId(st.id); setFillupOpen(true); }}
+                            >
+                              <ClipboardEdit className="h-3.5 w-3.5 mr-1" />補單
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => sendFillupNotification(st.id)}
+                              disabled={sendingId === st.id}
+                            >
+                              {sendingId === st.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <>
+                                  <Send className="h-3.5 w-3.5 mr-1" />
+                                  {st.notified_at ? "重發通知" : "發送通知"}
+                                </>
+                              )}
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -251,6 +263,12 @@ export default function OwlTingEmailIngest() {
         onOpenChange={setFillupOpen}
         stagingId={fillupStagingId}
         onSubmitted={() => { load(); setRefreshTick((t) => t + 1); }}
+      />
+
+      <OwlTingRawEmailDialog
+        open={rawOpen}
+        onOpenChange={setRawOpen}
+        rawEmailId={rawEmailId}
       />
 
     </div>
