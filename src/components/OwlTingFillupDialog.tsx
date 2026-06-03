@@ -68,7 +68,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
     setPhase("loading"); setErrorMsg(null); setStagingRow(null); setAccOptions([]);
     setSelectedAccId("none"); setToken(null); setRoomTypes([]); setAccName("");
     setGuestName(""); setGuestPhone(""); setGuestEmail("");
-    setRoomTypeId("none"); setTotalAmountOverride(""); setGuestCount("2");
+    setRoomTypeId("none"); setTotalAmountOverride(""); setAdultCount("2"); setChildCount("0");
     setCheckInDate(""); setCheckOutDate("");
   };
 
