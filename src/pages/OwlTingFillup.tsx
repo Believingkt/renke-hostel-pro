@@ -184,12 +184,40 @@ export default function OwlTingFillup() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div><span className="text-muted-foreground">入住：</span>{staging?.check_in_date ?? "—"}</div>
-              <div><span className="text-muted-foreground">退房：</span>{staging?.check_out_date ?? "—"}</div>
-              <div><span className="text-muted-foreground">人數：</span>{staging?.guest_count ?? "—"}</div>
-              <div><span className="text-muted-foreground">原房型：</span>{staging?.room_type_name ?? "—"}</div>
-            </div>
+            {staging?.check_in_date && staging?.check_out_date ? (
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div><span className="text-muted-foreground">入住：</span>{checkInDate || staging.check_in_date}</div>
+                <div><span className="text-muted-foreground">退房：</span>{checkOutDate || staging.check_out_date}</div>
+                <div><span className="text-muted-foreground">人數：</span>{staging?.guest_count ?? "—"}</div>
+                <div><span className="text-muted-foreground">原房型：</span>{staging?.room_type_name ?? "—"}</div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  ⚠ 信件未解析到入住 / 退房日，請依奧丁丁後台填入正確日期
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="check_in">入住日 <span className="text-destructive">*</span></Label>
+                    <Input id="check_in" type="date" value={checkInDate} onChange={(e) => setCheckInDate(e.target.value)} />
+                    {!checkInDate && <p className="text-[11px] text-destructive mt-1">請填寫入住日</p>}
+                  </div>
+                  <div>
+                    <Label htmlFor="check_out">退房日 <span className="text-destructive">*</span></Label>
+                    <Input id="check_out" type="date" value={checkOutDate} onChange={(e) => setCheckOutDate(e.target.value)} />
+                    {!checkOutDate ? (
+                      <p className="text-[11px] text-destructive mt-1">請填寫退房日</p>
+                    ) : checkInDate && checkOutDate <= checkInDate ? (
+                      <p className="text-[11px] text-destructive mt-1">退房日必須晚於入住日</p>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><span className="text-muted-foreground">人數：</span>{staging?.guest_count ?? "—"}</div>
+                  <div><span className="text-muted-foreground">原房型：</span>{staging?.room_type_name ?? "—"}</div>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-3">
               <div>
