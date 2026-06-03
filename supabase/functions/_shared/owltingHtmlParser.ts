@@ -23,6 +23,8 @@ export interface OwlTingParsedFields {
   project_name: string | null;
   room_quantity: number | null;
   guest_count: number | null;
+  adult_count: number | null;
+  child_count: number | null;
   nights: number | null;
   total_amount: number | null;
   remaining_amount: number | null;
