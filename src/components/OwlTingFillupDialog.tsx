@@ -388,14 +388,29 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="ad_check_in">入住日 <span className="text-destructive">*</span></Label>
-                <Input id="ad_check_in" type="date" value={checkInDate} onChange={(e) => setCheckInDate(e.target.value)} />
-              </div>
-              <div>
-                <Label htmlFor="ad_check_out">退房日 <span className="text-destructive">*</span></Label>
-                <Input id="ad_check_out" type="date" value={checkOutDate} onChange={(e) => setCheckOutDate(e.target.value)} />
-              </div>
+              {stagingRow.check_in_date && stagingRow.check_out_date ? (
+                <>
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">入住：</span>
+                    <span className="font-medium">{checkInDate || stagingRow.check_in_date}</span>
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">退房：</span>
+                    <span className="font-medium">{checkOutDate || stagingRow.check_out_date}</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <Label htmlFor="ad_check_in">入住日 <span className="text-destructive">*</span></Label>
+                    <Input id="ad_check_in" type="date" value={checkInDate} onChange={(e) => setCheckInDate(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label htmlFor="ad_check_out">退房日 <span className="text-destructive">*</span></Label>
+                    <Input id="ad_check_out" type="date" value={checkOutDate} onChange={(e) => setCheckOutDate(e.target.value)} />
+                  </div>
+                </>
+              )}
               <div className="text-sm"><span className="text-muted-foreground">原始人數：</span>{stagingRow.guest_count ?? "—"}</div>
               <div className="text-sm"><span className="text-muted-foreground">原房型：</span>{stagingRow.room_type_name ?? "—"}</div>
             </div>
