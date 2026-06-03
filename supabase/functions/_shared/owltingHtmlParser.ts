@@ -196,14 +196,16 @@ export function parseOwlNestForwardEmail(input: {
     }
   }
 
-  // 人數：「人數 大人 2 人,小孩 2 人,嬰兒 0 人」→ 總人數 (大人+小孩)
+  // 人數：「人數 大人 2 人,小孩 2 人,嬰兒 0 人」→ 拆出大人/小孩
   let guestCount: number | null = null;
+  let adultCount: number | null = null;
+  let childCount: number | null = null;
   {
     const m = (flatFromHtml + " " + flat).match(/人數\s+大人\s*(\d+)\s*人[,，]?\s*小孩\s*(\d+)\s*人(?:[,，]?\s*嬰兒\s*(\d+)\s*人)?/);
     if (m) {
-      const adults = Number(m[1]) || 0;
-      const children = Number(m[2]) || 0;
-      guestCount = adults + children;
+      adultCount = Number(m[1]) || 0;
+      childCount = Number(m[2]) || 0;
+      guestCount = adultCount + childCount;
     } else {
       const m2 = (flatFromHtml + " " + flat).match(/人數\s+(\d+)/);
       if (m2) guestCount = Number(m2[1]) || null;
