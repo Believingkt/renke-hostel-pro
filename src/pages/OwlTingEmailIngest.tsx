@@ -169,7 +169,7 @@ export default function OwlTingEmailIngest() {
                 <TableHead>狀態</TableHead>
                 <TableHead>類型</TableHead>
                 <TableHead>OBE</TableHead>
-                <TableHead>來源</TableHead>
+                
                 <TableHead>主旨</TableHead>
                 <TableHead>補單狀態</TableHead>
                 <TableHead className="text-right">動作</TableHead>
@@ -189,7 +189,7 @@ export default function OwlTingEmailIngest() {
                     </TableCell>
                     <TableCell>{r.message_type ? TYPE_LABEL[r.message_type] ?? r.message_type : "—"}</TableCell>
                     <TableCell className="font-mono text-xs">{r.obe_number ?? "—"}</TableCell>
-                    <TableCell className="text-xs">{r.from_domain ?? r.from_email ?? "—"}</TableCell>
+                    
                     <TableCell className="max-w-[300px] truncate text-xs" title={r.subject ?? ""}>{r.subject ?? "—"}</TableCell>
                     <TableCell className="text-xs">
                       {st ? (
