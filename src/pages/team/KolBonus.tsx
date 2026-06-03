@@ -863,7 +863,8 @@ function KolRateSettingsTab() {
         .from("kol_commission_settings")
         .select("id, accommodation_id, rate, effective_from, created_at")
         .is("kol_id", null)
-        .order("effective_from", { ascending: false }),
+        .order("effective_from", { ascending: false })
+        .order("created_at", { ascending: false }),
     ]);
     if (accRes.error) toast.error("載入館別失敗：" + accRes.error.message);
     if (rateRes.error) toast.error("載入分潤設定失敗：" + rateRes.error.message);
