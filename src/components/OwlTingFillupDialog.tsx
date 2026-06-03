@@ -452,6 +452,23 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
           )}
         </DialogFooter>
       </DialogContent>
+
+      <AlertDialog open={aliasPromptOpen} onOpenChange={setAliasPromptOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>加入民宿別名？</AlertDialogTitle>
+            <AlertDialogDescription>
+              要把奧丁丁原始民宿名「{stagingRow?.accommodation_name}」加入「
+              {accOptions.find((o) => o.id === pendingAccId)?.name ?? ""}
+              」的別名嗎？下次同樣的名稱會自動匹配，免再手動指定。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => addAliasAndProceed(false)}>不用，先繼續</AlertDialogCancel>
+            <AlertDialogAction onClick={() => addAliasAndProceed(true)}>好，加入別名</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
