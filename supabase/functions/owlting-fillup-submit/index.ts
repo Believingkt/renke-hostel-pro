@@ -63,6 +63,8 @@ Deno.serve(async (req) => {
     const roomTypeId = body.room_type_id ? String(body.room_type_id) : null;
     const totalAmount = body.total_amount != null ? Number(body.total_amount) : null;
     const guestCountOverride = body.guest_count != null ? Math.max(1, Math.round(Number(body.guest_count))) : null;
+    const checkInOverride = body.check_in_date ? String(body.check_in_date) : null;
+    const checkOutOverride = body.check_out_date ? String(body.check_out_date) : null;
     const ip = clientIp(req);
 
     if (!token || token.length < 16) {
