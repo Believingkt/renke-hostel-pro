@@ -231,12 +231,13 @@ Deno.serve(async (req) => {
         .from("owlting_email_parsed_staging")
         .insert({
           raw_email_id: inserted.id,
-          parser_version: "trigger-only-v1",
+          parser_version: "trigger-only-v2",
           confidence: "low", // CHECK constraint 仍限 low/medium/high；trigger 模式統一記 low
           review_status: "pending_review",
           message_type: fields.message_type,
           obe_number: fields.obe_number,
-          accommodation_name: fields.accommodation_name,
+          accommodation_name: fields.accommodation_name ?? parsed.accommodation_name,
+          channel_source: fields.channel_source,
           pii_masked: false,
           extracted_fields: fields.raw_matches,
           parse_warnings: fields.warnings.length ? fields.warnings : null,
