@@ -254,6 +254,8 @@ export function parseOwlNestForwardEmail(input: {
     project_name: projectName,
     room_quantity: roomQuantity,
     guest_count: guestCount,
+    adult_count: adultCount,
+    child_count: childCount,
     nights,
     total_amount: totalAmount,
     remaining_amount: remainingAmount,
