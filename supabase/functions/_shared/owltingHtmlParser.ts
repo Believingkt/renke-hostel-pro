@@ -151,14 +151,26 @@ export function parseOwlNestForwardEmail(input: {
   const channel = extractChannelFromSubject(input.subject);
   if (!channel) warnings.push("channel_source: not found in subject");
 
+  // 入住/退房日期 — 優先 text，回退 stripped HTML
+  let checkIn = extractDate(flat, CHECK_IN_RE);
+  if (!checkIn && flat !== flatFromHtml && flatFromHtml) {
+    checkIn = extractDate(flatFromHtml, CHECK_IN_RE);
+  }
+  let checkOut = extractDate(flat, CHECK_OUT_RE);
+  if (!checkOut && flat !== flatFromHtml && flatFromHtml) {
+    checkOut = extractDate(flatFromHtml, CHECK_OUT_RE);
+  }
+  if (!checkIn) warnings.push("check_in_date: not found");
+  if (!checkOut) warnings.push("check_out_date: not found");
+
   return {
     message_type: messageType,
     obe_number: obe,
     accommodation_name: accommodation,
     channel_source: channel,
+    check_in_date: checkIn,
+    check_out_date: checkOut,
     room_type_name: null,
-    check_in_date: null,
-    check_out_date: null,
     guest_count: null,
     total_amount: null,
     currency: null,
@@ -174,6 +186,8 @@ export function parseOwlNestForwardEmail(input: {
       obe_from_subject: obeMatchSubject?.[1] ?? null,
       accommodation_name: accommodation,
       channel_source: channel,
+      check_in_date: checkIn,
+      check_out_date: checkOut,
     },
   };
 }
