@@ -404,19 +404,24 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
                   <div>
                     <Label htmlFor="ad_check_in">入住日 <span className="text-destructive">*</span></Label>
                     <Input id="ad_check_in" type="date" value={checkInDate} onChange={(e) => setCheckInDate(e.target.value)} />
+                    {!checkInDate && (
+                      <p className="text-[11px] text-destructive mt-1">請填寫入住日</p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="ad_check_out">退房日 <span className="text-destructive">*</span></Label>
                     <Input id="ad_check_out" type="date" value={checkOutDate} onChange={(e) => setCheckOutDate(e.target.value)} />
+                    {!checkOutDate ? (
+                      <p className="text-[11px] text-destructive mt-1">請填寫退房日</p>
+                    ) : checkInDate && checkOutDate <= checkInDate ? (
+                      <p className="text-[11px] text-destructive mt-1">退房日必須晚於入住日</p>
+                    ) : null}
                   </div>
                 </>
               )}
               <div className="text-sm"><span className="text-muted-foreground">原始人數：</span>{stagingRow.guest_count ?? "—"}</div>
               <div className="text-sm"><span className="text-muted-foreground">原房型：</span>{stagingRow.room_type_name ?? "—"}</div>
             </div>
-            {!datesValid && (checkInDate || checkOutDate) && (
-              <p className="text-[11px] text-destructive">退房日必須晚於入住日</p>
-            )}
             {!stagingRow.check_in_date && (
               <p className="text-[11px] text-amber-600 dark:text-amber-400">
                 ⚠ 信件未解析到入住 / 退房日，請依 OwlNest 後台填入正確日期
