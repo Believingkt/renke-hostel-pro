@@ -244,17 +244,10 @@ export default function OwlTingEmailIngest() {
                           variant="outline"
                           onClick={() => { setRawEmailId(r.id); setRawOpen(true); }}
                         >
-                          <FileCode className="h-3.5 w-3.5 mr-1" />原文
+                          <FileCode className="h-3.5 w-3.5 mr-1" />信件原文
                         </Button>
                         {canSend && (
                           <>
-                            <Button
-                              size="sm"
-                              variant="default"
-                              onClick={() => { setFillupStagingId(st.id); setFillupOpen(true); }}
-                            >
-                              <ClipboardEdit className="h-3.5 w-3.5 mr-1" />補單
-                            </Button>
                             <Button
                               size="sm"
                               variant="outline"
@@ -266,9 +259,16 @@ export default function OwlTingEmailIngest() {
                               ) : (
                                 <>
                                   <Send className="h-3.5 w-3.5 mr-1" />
-                                  {st.notified_at ? "重發通知" : "發送通知"}
+                                  {st.notified_at ? "重發通知信" : "發送通知信"}
                                 </>
                               )}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => { setFillupStagingId(st.id); setFillupOpen(true); }}
+                            >
+                              <ClipboardEdit className="h-3.5 w-3.5 mr-1" />補單
                             </Button>
                           </>
                         )}
