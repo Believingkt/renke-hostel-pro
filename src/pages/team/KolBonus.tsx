@@ -130,9 +130,10 @@ export default function KolBonus() {
         .neq("order_status", "cancelled"),
       supabase
         .from("kol_commission_settings")
-        .select("accommodation_id, effective_from, rate, kol_id")
+        .select("accommodation_id, effective_from, rate, kol_id, created_at")
         .is("kol_id", null)
-        .order("effective_from", { ascending: false }),
+        .order("effective_from", { ascending: false })
+        .order("created_at", { ascending: false }),
     ]);
     if (kolRes.error) toast.error("載入 KOL 失敗：" + kolRes.error.message);
     if (orderRes.error) toast.error("載入訂單失敗：" + orderRes.error.message);
