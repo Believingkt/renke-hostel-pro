@@ -204,7 +204,7 @@ Deno.serve(async (req) => {
       raw_payload: rawPayload,
       message_type: parsed.message_type,
       obe_number: parsed.obe_number,
-      accommodation_name: parsed.accommodation_name,
+      accommodation_name: bodyFields?.accommodation_name ?? parsed.accommodation_name,
       status,
       notes,
       processed_at: status === "parsed" ? null : new Date().toISOString(),
