@@ -4321,6 +4321,7 @@ export type Database = {
       }
       owlting_email_orders_raw: {
         Row: {
+          accommodation_id: string | null
           accommodation_name: string | null
           attachments: Json | null
           charsets: Json | null
@@ -4347,6 +4348,7 @@ export type Database = {
           to_email: string | null
         }
         Insert: {
+          accommodation_id?: string | null
           accommodation_name?: string | null
           attachments?: Json | null
           charsets?: Json | null
@@ -4373,6 +4375,7 @@ export type Database = {
           to_email?: string | null
         }
         Update: {
+          accommodation_id?: string | null
           accommodation_name?: string | null
           attachments?: Json | null
           charsets?: Json | null
@@ -4398,7 +4401,15 @@ export type Database = {
           text_body?: string | null
           to_email?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "owlting_email_orders_raw_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       owlting_email_parse_failures: {
         Row: {
