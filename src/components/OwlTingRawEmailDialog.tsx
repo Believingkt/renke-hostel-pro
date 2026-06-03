@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
@@ -40,6 +40,34 @@ export function OwlTingRawEmailDialog({ open, onOpenChange, rawEmailId }: Props)
   }, [open, rawEmailId]);
 
   const html = data?.html_body ?? "";
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const [iframeHeight, setIframeHeight] = useState<number>(400);
+
+  const maxIframeHeight = () =>
+    Math.max(320, Math.floor(window.innerHeight * 0.9) - 140);
+
+  const measureIframe = () => {
+    const iframe = iframeRef.current;
+    const doc = iframe?.contentDocument;
+    if (!iframe || !doc) return;
+    const body = doc.body;
+    const root = doc.documentElement;
+    const contentHeight = Math.max(
+      body?.scrollHeight ?? 0,
+      body?.offsetHeight ?? 0,
+      root?.scrollHeight ?? 0,
+      root?.offsetHeight ?? 0,
+    );
+    if (!contentHeight) return;
+    setIframeHeight(Math.min(contentHeight + 8, maxIframeHeight()));
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const onResize = () => measureIframe();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -62,13 +90,20 @@ export function OwlTingRawEmailDialog({ open, onOpenChange, rawEmailId }: Props)
         ) : !data ? (
           <div className="py-12 text-center text-sm text-muted-foreground">找不到資料</div>
         ) : (
-          <div className="flex-1 min-h-0 overflow-hidden border rounded-md bg-white">
+          <div className="flex-1 min-h-0 overflow-auto border rounded-md bg-white">
             {html ? (
               <iframe
+                ref={iframeRef}
                 title="email-preview"
                 srcDoc={html}
-                sandbox=""
-                className="w-full h-full bg-white"
+                sandbox="allow-same-origin"
+                onLoad={() => {
+                  measureIframe();
+                  setTimeout(measureIframe, 200);
+                  setTimeout(measureIframe, 800);
+                }}
+                style={{ height: iframeHeight }}
+                className="w-full block bg-white"
               />
             ) : (
               <div className="p-6 text-sm text-muted-foreground">無 HTML 內容</div>
