@@ -34,6 +34,7 @@ import {
 import { AccommodationApiKeysManagement } from "@/components/headquarters/AccommodationApiKeysManagement";
 import { OwlTingServiceAccountManagement } from "@/components/headquarters/OwlTingServiceAccountManagement";
 import { AccommodationOwnersManagement } from "@/components/headquarters/AccommodationOwnersManagement";
+import { OwlTingAliasesEditor } from "@/components/headquarters/OwlTingAliasesEditor";
 import { SystemHealthMonitor } from "@/components/headquarters/SystemHealthMonitor";
 import { 
   ScrollText,
