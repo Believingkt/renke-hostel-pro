@@ -94,20 +94,32 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
       // Need auto-match
       const { data: accs } = await supabase
         .from("accommodation_info")
-        .select("id, name")
+        .select("id, name, owlting_aliases")
         .order("name");
-      const options: AccOption[] = (accs ?? []).map((a: any) => ({ id: a.id, name: a.name ?? "(未命名)" }));
+      const options: AccOption[] = (accs ?? []).map((a: any) => ({
+        id: a.id,
+        name: a.name ?? "(未命名)",
+        aliases: Array.isArray(a.owlting_aliases) ? (a.owlting_aliases as string[]) : [],
+      }));
       setAccOptions(options);
 
-      // Strategy 1: match by accommodation_name (exact then contains)
+      // Strategy 1: match by accommodation_name across name + aliases (normalized exact then contains)
       const rawName = (row.accommodation_name ?? "").trim();
       if (rawName) {
-        const norm = (s: string) => s.toLowerCase().replace(/\s+/g, "");
+        const norm = (s: string) =>
+          s
+            .toLowerCase()
+            .replace(/\s+/g, "")
+            .replace(/　/g, "")
+            .replace(/（/g, "(")
+            .replace(/）/g, ")")
+            .replace(/渡假/g, "度假");
         const target = norm(rawName);
-        const exact = options.find((o) => norm(o.name) === target);
+        const candidatesFor = (o: AccOption) => [o.name, ...o.aliases].map(norm).filter(Boolean);
+        const exact = options.find((o) => candidatesFor(o).some((c) => c === target));
         const contains =
           exact ||
-          options.find((o) => norm(o.name).includes(target) || target.includes(norm(o.name)));
+          options.find((o) => candidatesFor(o).some((c) => c.includes(target) || target.includes(c)));
         if (contains) {
           setSelectedAccId(contains.id);
           setMatchReason(`依信件中民宿名「${rawName}」自動匹配到「${contains.name}」`);
@@ -115,6 +127,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
           return;
         }
       }
+
 
       // Strategy 2: match by owner email from raw_email.from_email
       if (row.raw_email_id) {
