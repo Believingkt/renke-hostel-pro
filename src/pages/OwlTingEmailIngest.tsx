@@ -259,7 +259,7 @@ export default function OwlTingEmailIngest() {
                               ) : (
                                 <>
                                   <Send className="h-3.5 w-3.5 mr-1" />
-                                  {st.notified_at ? "重發通知信" : "發送通知信"}
+                                  {st.notified_at ? "重發通知信" : "重發通知信"}
                                 </>
                               )}
                             </Button>
