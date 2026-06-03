@@ -80,33 +80,37 @@ Deno.serve(async (req) => {
     const rawIds = rows.map((r: any) => r.id);
     const { data: stagings } = await admin
       .from("owlting_email_parsed_staging")
-      .select("id, raw_email_id, check_in_date, check_out_date")
+      .select("id, raw_email_id, check_in_date, check_out_date, room_type_name, project_name, room_quantity, guest_count, nights, total_amount, remaining_amount, currency, payment_status")
       .in("raw_email_id", rawIds);
     const stagingByRaw = new Map<string, any>();
     (stagings ?? []).forEach((s: any) => stagingByRaw.set(s.raw_email_id, s));
 
+    const FIELDS: Array<keyof any> = [
+      "check_in_date", "check_out_date", "room_type_name", "project_name",
+      "room_quantity", "guest_count", "nights", "total_amount",
+      "remaining_amount", "currency", "payment_status",
+    ];
+
     let updated = 0;
-    let parsedCount = 0;
     let skippedNoStaging = 0;
 
     for (const r of rows as any[]) {
-      const parsed = parseOwlNestForwardEmail({
+      const parsed: any = parseOwlNestForwardEmail({
         subject: r.subject ?? null,
         text_body: r.text_body ?? null,
         html_body: r.html_body ?? null,
       });
-      if (!parsed.check_in_date && !parsed.check_out_date) continue;
-      parsedCount += 1;
 
       const st = stagingByRaw.get(r.id);
       if (!st) { skippedNoStaging += 1; continue; }
 
-      const patch: Record<string, string> = {};
-      if (parsed.check_in_date && (overwrite || !st.check_in_date)) {
-        patch.check_in_date = parsed.check_in_date;
-      }
-      if (parsed.check_out_date && (overwrite || !st.check_out_date)) {
-        patch.check_out_date = parsed.check_out_date;
+      const patch: Record<string, any> = {};
+      for (const f of FIELDS) {
+        const v = parsed[f as string];
+        if (v === null || v === undefined) continue;
+        if (overwrite || st[f as string] === null || st[f as string] === undefined) {
+          patch[f as string] = v;
+        }
       }
       if (Object.keys(patch).length === 0) continue;
 
@@ -120,7 +124,6 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({
       ok: true,
       scanned: rows.length,
-      parsed_with_date: parsedCount,
       updated,
       skipped_no_staging: skippedNoStaging,
     }), {

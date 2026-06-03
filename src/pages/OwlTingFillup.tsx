@@ -17,11 +17,16 @@ interface StagingData {
   obe_number: string | null;
   accommodation_name: string | null;
   room_type_name: string | null;
+  project_name: string | null;
+  room_quantity: number | null;
   check_in_date: string | null;
   check_out_date: string | null;
   guest_count: number | null;
+  nights: number | null;
   total_amount: number | null;
+  remaining_amount: number | null;
   currency: string | null;
+  payment_status: string | null;
   pii_due_at: string | null;
 }
 
@@ -185,11 +190,17 @@ export default function OwlTingFillup() {
             </div>
 
             {staging?.check_in_date && staging?.check_out_date ? (
-              <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                 <div><span className="text-muted-foreground">入住：</span>{checkInDate || staging.check_in_date}</div>
                 <div><span className="text-muted-foreground">退房：</span>{checkOutDate || staging.check_out_date}</div>
+                <div><span className="text-muted-foreground">入住天數：</span>{staging?.nights ?? "—"}</div>
                 <div><span className="text-muted-foreground">人數：</span>{staging?.guest_count ?? "—"}</div>
-                <div><span className="text-muted-foreground">原房型：</span>{staging?.room_type_name ?? "—"}</div>
+                <div><span className="text-muted-foreground">房型：</span>{staging?.room_type_name ?? "—"}</div>
+                <div><span className="text-muted-foreground">專案：</span>{staging?.project_name ?? "—"}</div>
+                <div><span className="text-muted-foreground">數量：</span>{staging?.room_quantity ?? "—"}</div>
+                <div><span className="text-muted-foreground">付款狀態：</span>{staging?.payment_status ?? "—"}</div>
+                <div><span className="text-muted-foreground">訂單款項：</span>{staging?.total_amount != null ? `${staging?.currency ?? ""} ${staging.total_amount}`.trim() : "—"}</div>
+                <div><span className="text-muted-foreground">剩餘尾款：</span>{staging?.remaining_amount != null ? `${staging?.currency ?? ""} ${staging.remaining_amount}`.trim() : "—"}</div>
               </div>
             ) : (
               <div className="space-y-3">
@@ -212,9 +223,15 @@ export default function OwlTingFillup() {
                     ) : null}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                  <div><span className="text-muted-foreground">入住天數：</span>{staging?.nights ?? "—"}</div>
                   <div><span className="text-muted-foreground">人數：</span>{staging?.guest_count ?? "—"}</div>
-                  <div><span className="text-muted-foreground">原房型：</span>{staging?.room_type_name ?? "—"}</div>
+                  <div><span className="text-muted-foreground">房型：</span>{staging?.room_type_name ?? "—"}</div>
+                  <div><span className="text-muted-foreground">專案：</span>{staging?.project_name ?? "—"}</div>
+                  <div><span className="text-muted-foreground">數量：</span>{staging?.room_quantity ?? "—"}</div>
+                  <div><span className="text-muted-foreground">付款狀態：</span>{staging?.payment_status ?? "—"}</div>
+                  <div><span className="text-muted-foreground">訂單款項：</span>{staging?.total_amount != null ? `${staging?.currency ?? ""} ${staging.total_amount}`.trim() : "—"}</div>
+                  <div><span className="text-muted-foreground">剩餘尾款：</span>{staging?.remaining_amount != null ? `${staging?.currency ?? ""} ${staging.remaining_amount}`.trim() : "—"}</div>
                 </div>
               </div>
             )}
