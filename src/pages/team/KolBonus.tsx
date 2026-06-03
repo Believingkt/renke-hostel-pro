@@ -130,9 +130,10 @@ export default function KolBonus() {
         .neq("order_status", "cancelled"),
       supabase
         .from("kol_commission_settings")
-        .select("accommodation_id, effective_from, rate, kol_id")
+        .select("accommodation_id, effective_from, rate, kol_id, created_at")
         .is("kol_id", null)
-        .order("effective_from", { ascending: false }),
+        .order("effective_from", { ascending: false })
+        .order("created_at", { ascending: false }),
     ]);
     if (kolRes.error) toast.error("載入 KOL 失敗：" + kolRes.error.message);
     if (orderRes.error) toast.error("載入訂單失敗：" + orderRes.error.message);
@@ -862,7 +863,8 @@ function KolRateSettingsTab() {
         .from("kol_commission_settings")
         .select("id, accommodation_id, rate, effective_from, created_at")
         .is("kol_id", null)
-        .order("effective_from", { ascending: false }),
+        .order("effective_from", { ascending: false })
+        .order("created_at", { ascending: false }),
     ]);
     if (accRes.error) toast.error("載入館別失敗：" + accRes.error.message);
     if (rateRes.error) toast.error("載入分潤設定失敗：" + rateRes.error.message);
@@ -1005,7 +1007,7 @@ function KolRateSettingsTab() {
                         {r.created_at?.slice(0, 19).replace("T", " ") ?? "—"}
                       </TableCell>
                       <TableCell className="text-right">
-                        {idx !== 0 && (
+                        {idx !== 0 && g.rows.length > 1 && (
                           <Button
                             size="icon"
                             variant="ghost"
