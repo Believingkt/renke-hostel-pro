@@ -931,15 +931,18 @@ function KolRateSettingsTab() {
   };
 
   const handleDelete = async (row: RateRow) => {
-    if (!confirm(`確定要刪除生效日期 ${row.effective_from} 的費率？`)) return;
     setDeletingId(row.id);
-    const { error } = await supabase
+    const { error, count } = await supabase
       .from("kol_commission_settings")
-      .delete()
+      .delete({ count: "exact" })
       .eq("id", row.id);
     setDeletingId(null);
     if (error) {
       toast.error("刪除失敗：" + error.message);
+      return;
+    }
+    if (!count) {
+      toast.error("刪除失敗：沒有權限或紀錄不存在");
       return;
     }
     toast.success("已刪除");
