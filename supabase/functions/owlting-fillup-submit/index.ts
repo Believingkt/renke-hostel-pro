@@ -63,6 +63,8 @@ Deno.serve(async (req) => {
     const roomTypeId = body.room_type_id ? String(body.room_type_id) : null;
     const totalAmount = body.total_amount != null ? Number(body.total_amount) : null;
     const guestCountOverride = body.guest_count != null ? Math.max(1, Math.round(Number(body.guest_count))) : null;
+    const checkInOverride = body.check_in_date ? String(body.check_in_date) : null;
+    const checkOutOverride = body.check_out_date ? String(body.check_out_date) : null;
     const ip = clientIp(req);
 
     if (!token || token.length < 16) {
@@ -163,14 +165,21 @@ Deno.serve(async (req) => {
     }
 
     const finalGuestCount = guestCountOverride ?? staging.guest_count ?? 2;
+    const finalCheckIn = checkInOverride ?? staging.check_in_date;
+    const finalCheckOut = checkOutOverride ?? staging.check_out_date;
+    if (!finalCheckIn || !finalCheckOut) {
+      return new Response(JSON.stringify({ error: "缺少入住 / 退房日期，請於補單頁填入" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const nowIso = new Date().toISOString();
 
     // Insert order — when no room_type_id, do NOT inherit default deposit (5000)
     const { data: inserted, error: insErr } = await admin.from("orders").insert({
       accommodation_id: accId,
       room_type_id: roomTypeId,
-      check_in_date: staging.check_in_date,
-      check_out_date: staging.check_out_date,
+      check_in_date: finalCheckIn,
+      check_out_date: finalCheckOut,
       guest_count: finalGuestCount,
       guest_name: guestName,
       guest_phone: guestPhone,
