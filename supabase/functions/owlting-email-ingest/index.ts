@@ -229,20 +229,16 @@ Deno.serve(async (req) => {
   }
 
   // Trigger-only parser (2026-05-29 policy: OwlTing email 不含 PII，僅當 trigger)
-  // 只記 obe_number / message_type / accommodation_name；訂單細節由後續 OBE API client 拉取。
-  if (trusted && inserted?.id && (text || html)) {
+  // 只記 obe_number / message_type / accommodation_name / channel_source；訂單細節由後續 OBE API client 拉取。
+  if (trusted && inserted?.id && bodyFields) {
     try {
-      const fields = parseOwlNestForwardEmail({
-        subject,
-        text_body: text,
-        html_body: html,
-      });
+      const fields = bodyFields;
       const { error: stageErr } = await supabase
         .from("owlting_email_parsed_staging")
         .insert({
           raw_email_id: inserted.id,
           parser_version: "trigger-only-v2",
-          confidence: "low", // CHECK constraint 仍限 low/medium/high；trigger 模式統一記 low
+          confidence: "low",
           review_status: "pending_review",
           message_type: fields.message_type,
           obe_number: fields.obe_number,
@@ -254,9 +250,10 @@ Deno.serve(async (req) => {
         });
       if (stageErr) console.error("[owlting-email-ingest] staging insert error:", stageErr);
     } catch (e) {
-      console.error("[owlting-email-ingest] trigger parser threw:", e);
+      console.error("[owlting-email-ingest] staging insert threw:", e);
     }
   }
+
 
   return new Response(JSON.stringify({ ok: true, id: inserted?.id ?? null }), {
     status: 200,
