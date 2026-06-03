@@ -62,13 +62,13 @@ export function OwlTingRawEmailDialog({ open, onOpenChange, rawEmailId }: Props)
         ) : !data ? (
           <div className="py-12 text-center text-sm text-muted-foreground">找不到資料</div>
         ) : (
-          <div className="flex-1 overflow-auto border rounded-md bg-white">
+          <div className="flex-1 min-h-0 overflow-hidden border rounded-md bg-white">
             {html ? (
               <iframe
                 title="email-preview"
                 srcDoc={html}
                 sandbox=""
-                className="w-full min-h-[60vh] bg-white"
+                className="w-full h-full bg-white"
               />
             ) : (
               <div className="p-6 text-sm text-muted-foreground">無 HTML 內容</div>
