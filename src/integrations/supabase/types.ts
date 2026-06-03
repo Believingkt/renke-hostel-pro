@@ -4472,9 +4472,11 @@ export type Database = {
           accommodation_id: string | null
           accommodation_name: string | null
           addons: Json | null
+          adult_count: number | null
           channel_source: string | null
           check_in_date: string | null
           check_out_date: string | null
+          child_count: number | null
           confidence: string
           created_at: string
           currency: string | null
@@ -4513,9 +4515,11 @@ export type Database = {
           accommodation_id?: string | null
           accommodation_name?: string | null
           addons?: Json | null
+          adult_count?: number | null
           channel_source?: string | null
           check_in_date?: string | null
           check_out_date?: string | null
+          child_count?: number | null
           confidence?: string
           created_at?: string
           currency?: string | null
@@ -4554,9 +4558,11 @@ export type Database = {
           accommodation_id?: string | null
           accommodation_name?: string | null
           addons?: Json | null
+          adult_count?: number | null
           channel_source?: string | null
           check_in_date?: string | null
           check_out_date?: string | null
+          child_count?: number | null
           confidence?: string
           created_at?: string
           currency?: string | null

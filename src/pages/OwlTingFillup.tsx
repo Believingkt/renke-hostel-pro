@@ -22,6 +22,8 @@ interface StagingData {
   check_in_date: string | null;
   check_out_date: string | null;
   guest_count: number | null;
+  adult_count: number | null;
+  child_count: number | null;
   nights: number | null;
   total_amount: number | null;
   remaining_amount: number | null;
@@ -194,7 +196,8 @@ export default function OwlTingFillup() {
                 <div><span className="text-muted-foreground">入住：</span>{checkInDate || staging.check_in_date}</div>
                 <div><span className="text-muted-foreground">退房：</span>{checkOutDate || staging.check_out_date}</div>
                 <div><span className="text-muted-foreground">入住天數：</span>{staging?.nights ?? "—"}</div>
-                <div><span className="text-muted-foreground">人數：</span>{staging?.guest_count ?? "—"}</div>
+                <div><span className="text-muted-foreground">大人：</span>{staging?.adult_count ?? "—"}</div>
+                <div><span className="text-muted-foreground">小孩：</span>{staging?.child_count ?? "—"}</div>
                 <div><span className="text-muted-foreground">房型：</span>{staging?.room_type_name ?? "—"}</div>
                 <div><span className="text-muted-foreground">專案：</span>{staging?.project_name ?? "—"}</div>
                 <div><span className="text-muted-foreground">數量：</span>{staging?.room_quantity ?? "—"}</div>
@@ -225,7 +228,8 @@ export default function OwlTingFillup() {
                 </div>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                   <div><span className="text-muted-foreground">入住天數：</span>{staging?.nights ?? "—"}</div>
-                  <div><span className="text-muted-foreground">人數：</span>{staging?.guest_count ?? "—"}</div>
+                  <div><span className="text-muted-foreground">大人：</span>{staging?.adult_count ?? "—"}</div>
+                  <div><span className="text-muted-foreground">小孩：</span>{staging?.child_count ?? "—"}</div>
                   <div><span className="text-muted-foreground">房型：</span>{staging?.room_type_name ?? "—"}</div>
                   <div><span className="text-muted-foreground">專案：</span>{staging?.project_name ?? "—"}</div>
                   <div><span className="text-muted-foreground">數量：</span>{staging?.room_quantity ?? "—"}</div>
