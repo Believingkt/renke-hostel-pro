@@ -95,7 +95,9 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
       const row = data as StagingRow & { raw_email_id: string | null };
       setStagingRow(row);
       if (row.total_amount) setTotalAmountOverride(String(row.total_amount));
-      if (row.guest_count && row.guest_count > 0) setGuestCount(String(row.guest_count));
+      if (row.adult_count != null) setAdultCount(String(row.adult_count));
+      else if (row.guest_count && row.guest_count > 0) setAdultCount(String(row.guest_count));
+      if (row.child_count != null) setChildCount(String(row.child_count));
       if (row.check_in_date) setCheckInDate(row.check_in_date);
       if (row.check_out_date) setCheckOutDate(row.check_out_date);
 
