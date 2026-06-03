@@ -43,6 +43,8 @@ export default function OwlTingFillup() {
   const [guestEmail, setGuestEmail] = useState("");
   const [roomTypeId, setRoomTypeId] = useState<string>("none");
   const [totalAmountOverride, setTotalAmountOverride] = useState("");
+  const [checkInDate, setCheckInDate] = useState<string>("");
+  const [checkOutDate, setCheckOutDate] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [submittedOrder, setSubmittedOrder] = useState<{ id: string; order_number: string } | null>(null);
 
@@ -60,6 +62,8 @@ export default function OwlTingFillup() {
           setAcc(data.accommodation);
           setRoomTypes(data.room_types || []);
           if (data.staging?.total_amount) setTotalAmountOverride(String(data.staging.total_amount));
+          if (data.staging?.check_in_date) setCheckInDate(data.staging.check_in_date);
+          if (data.staging?.check_out_date) setCheckOutDate(data.staging.check_out_date);
         }
       } catch (e: any) {
         setError(e.message ?? "驗證失敗");
@@ -75,9 +79,15 @@ export default function OwlTingFillup() {
     toast({ title: "已複製訂單編號" });
   };
 
+  const datesValid = !!checkInDate && !!checkOutDate && checkOutDate > checkInDate;
+
   const handleSubmit = async () => {
     if (!guestName.trim() || !guestPhone.trim()) {
       toast({ title: "請填寫姓名與電話", variant: "destructive" });
+      return;
+    }
+    if (!datesValid) {
+      toast({ title: "請填寫入住 / 退房日期（退房需晚於入住）", variant: "destructive" });
       return;
     }
     setSubmitting(true);
@@ -90,6 +100,8 @@ export default function OwlTingFillup() {
           guest_email: guestEmail.trim(),
           room_type_id: roomTypeId !== "none" ? roomTypeId : null,
           total_amount: totalAmountOverride ? Number(totalAmountOverride) : null,
+          check_in_date: checkInDate,
+          check_out_date: checkOutDate,
         },
       });
       if (invokeErr || !data?.ok) {
@@ -172,12 +184,40 @@ export default function OwlTingFillup() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div><span className="text-muted-foreground">入住：</span>{staging?.check_in_date ?? "—"}</div>
-              <div><span className="text-muted-foreground">退房：</span>{staging?.check_out_date ?? "—"}</div>
-              <div><span className="text-muted-foreground">人數：</span>{staging?.guest_count ?? "—"}</div>
-              <div><span className="text-muted-foreground">原房型：</span>{staging?.room_type_name ?? "—"}</div>
-            </div>
+            {staging?.check_in_date && staging?.check_out_date ? (
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div><span className="text-muted-foreground">入住：</span>{checkInDate || staging.check_in_date}</div>
+                <div><span className="text-muted-foreground">退房：</span>{checkOutDate || staging.check_out_date}</div>
+                <div><span className="text-muted-foreground">人數：</span>{staging?.guest_count ?? "—"}</div>
+                <div><span className="text-muted-foreground">原房型：</span>{staging?.room_type_name ?? "—"}</div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  ⚠ 信件未解析到入住 / 退房日，請依奧丁丁後台填入正確日期
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="check_in">入住日 <span className="text-destructive">*</span></Label>
+                    <Input id="check_in" type="date" value={checkInDate} onChange={(e) => setCheckInDate(e.target.value)} />
+                    {!checkInDate && <p className="text-[11px] text-destructive mt-1">請填寫入住日</p>}
+                  </div>
+                  <div>
+                    <Label htmlFor="check_out">退房日 <span className="text-destructive">*</span></Label>
+                    <Input id="check_out" type="date" value={checkOutDate} onChange={(e) => setCheckOutDate(e.target.value)} />
+                    {!checkOutDate ? (
+                      <p className="text-[11px] text-destructive mt-1">請填寫退房日</p>
+                    ) : checkInDate && checkOutDate <= checkInDate ? (
+                      <p className="text-[11px] text-destructive mt-1">退房日必須晚於入住日</p>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div><span className="text-muted-foreground">人數：</span>{staging?.guest_count ?? "—"}</div>
+                  <div><span className="text-muted-foreground">原房型：</span>{staging?.room_type_name ?? "—"}</div>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-3">
               <div>
