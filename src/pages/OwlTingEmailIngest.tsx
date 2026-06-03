@@ -80,6 +80,7 @@ export default function OwlTingEmailIngest() {
   const [rawEmailId, setRawEmailId] = useState<string | null>(null);
   const [rawOpen, setRawOpen] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
+  const [reparsing, setReparsing] = useState(false);
 
   const load = async () => {
     if (!currentAccommodationId) {
