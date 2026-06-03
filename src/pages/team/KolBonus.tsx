@@ -1007,7 +1007,7 @@ function KolRateSettingsTab() {
                         {r.created_at?.slice(0, 19).replace("T", " ") ?? "—"}
                       </TableCell>
                       <TableCell className="text-right">
-                        {idx !== 0 && (
+                        {idx !== 0 && g.rows.length > 1 && (
                           <Button
                             size="icon"
                             variant="ghost"
