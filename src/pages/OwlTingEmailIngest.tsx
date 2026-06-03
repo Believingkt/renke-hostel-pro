@@ -150,12 +150,40 @@ export default function OwlTingEmailIngest() {
     }
   };
 
+  const reparseDates = async () => {
+    if (!currentAccommodationId) return;
+    setReparsing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("owlting-email-reparse-dates", {
+        body: { accommodation_id: currentAccommodationId },
+      });
+      if (error) throw error;
+      const d = data as any;
+      toast.success(`已回填 ${d?.updated ?? 0} 筆入住/退房日期（掃描 ${d?.scanned ?? 0} 筆）`);
+      await load();
+      setRefreshTick((t) => t + 1);
+    } catch (e: any) {
+      toast.error(`回填失敗：${e.message ?? e}`);
+    } finally {
+      setReparsing(false);
+    }
+  };
+
   return (
     <div className="space-y-6 p-6">
       <AdminPageHeader
         title="奧丁丁訂單收件監控"
-        action={<Button variant="outline" onClick={() => { load(); setRefreshTick((t) => t + 1); }} disabled={loading}>重新整理</Button>}
+        action={
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={reparseDates} disabled={reparsing || loading}>
+              {reparsing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+              回填入住/退房日期
+            </Button>
+            <Button variant="outline" onClick={() => { load(); setRefreshTick((t) => t + 1); }} disabled={loading}>重新整理</Button>
+          </div>
+        }
       />
+
 
       <OwlTingEmailStatsCards
         showDetailLink={false}
