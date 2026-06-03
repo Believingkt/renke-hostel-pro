@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Copy, ExternalLink, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { isAmountSuspicious, isGuestCountValid } from "@/lib/owltingFillupValidation";
+import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
 
 interface Props {
   open: boolean;
