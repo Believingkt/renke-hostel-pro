@@ -79,9 +79,15 @@ export default function OwlTingFillup() {
     toast({ title: "已複製訂單編號" });
   };
 
+  const datesValid = !!checkInDate && !!checkOutDate && checkOutDate > checkInDate;
+
   const handleSubmit = async () => {
     if (!guestName.trim() || !guestPhone.trim()) {
       toast({ title: "請填寫姓名與電話", variant: "destructive" });
+      return;
+    }
+    if (!datesValid) {
+      toast({ title: "請填寫入住 / 退房日期（退房需晚於入住）", variant: "destructive" });
       return;
     }
     setSubmitting(true);
@@ -94,6 +100,8 @@ export default function OwlTingFillup() {
           guest_email: guestEmail.trim(),
           room_type_id: roomTypeId !== "none" ? roomTypeId : null,
           total_amount: totalAmountOverride ? Number(totalAmountOverride) : null,
+          check_in_date: checkInDate,
+          check_out_date: checkOutDate,
         },
       });
       if (invokeErr || !data?.ok) {
