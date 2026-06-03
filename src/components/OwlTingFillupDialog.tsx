@@ -59,8 +59,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
   const [guestEmail, setGuestEmail] = useState("");
   const [roomTypeId, setRoomTypeId] = useState<string>("none");
   const [totalAmountOverride, setTotalAmountOverride] = useState("");
-  const [adultCount, setAdultCount] = useState<string>("2");
-  const [childCount, setChildCount] = useState<string>("0");
+  const [guestCount, setGuestCount] = useState<string>("2");
   const [checkInDate, setCheckInDate] = useState<string>("");
   const [checkOutDate, setCheckOutDate] = useState<string>("");
 
@@ -68,7 +67,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
     setPhase("loading"); setErrorMsg(null); setStagingRow(null); setAccOptions([]);
     setSelectedAccId("none"); setToken(null); setRoomTypes([]); setAccName("");
     setGuestName(""); setGuestPhone(""); setGuestEmail("");
-    setRoomTypeId("none"); setTotalAmountOverride(""); setAdultCount("2"); setChildCount("0");
+    setRoomTypeId("none"); setTotalAmountOverride(""); setGuestCount("2");
     setCheckInDate(""); setCheckOutDate("");
   };
 
@@ -95,9 +94,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
       const row = data as StagingRow & { raw_email_id: string | null };
       setStagingRow(row);
       if (row.total_amount) setTotalAmountOverride(String(row.total_amount));
-      if (row.adult_count != null) setAdultCount(String(row.adult_count));
-      else if (row.guest_count && row.guest_count > 0) setAdultCount(String(row.guest_count));
-      if (row.child_count != null) setChildCount(String(row.child_count));
+      if (row.guest_count && row.guest_count > 0) setGuestCount(String(row.guest_count));
       if (row.check_in_date) setCheckInDate(row.check_in_date);
       if (row.check_out_date) setCheckOutDate(row.check_out_date);
 
@@ -258,12 +255,8 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
 
   const amountNum = totalAmountOverride ? Number(totalAmountOverride) : NaN;
   const amountSuspicious = isAmountSuspicious(totalAmountOverride);
-  const adultNum = Number(adultCount);
-  const childNum = Number(childCount);
-  const adultValid = Number.isInteger(adultNum) && adultNum >= 1 && adultNum <= 50;
-  const childValid = Number.isInteger(childNum) && childNum >= 0 && childNum <= 50;
-  const guestCountNum = (adultValid ? adultNum : 0) + (childValid ? childNum : 0);
-  const guestCountValid = adultValid && childValid && guestCountNum >= 1 && guestCountNum <= 50;
+  const guestCountNum = Number(guestCount);
+  const guestCountValid = isGuestCountValid(guestCount);
   const datesValid = !!checkInDate && !!checkOutDate && checkOutDate > checkInDate;
   const formReady =
     !!guestName.trim() &&
@@ -472,33 +465,18 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
                   </p>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="ad_adult_count">大人 <span className="text-destructive">*</span></Label>
-                  <Input
-                    id="ad_adult_count"
-                    type="number"
-                    min={1}
-                    max={50}
-                    value={adultCount}
-                    onChange={(e) => setAdultCount(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="ad_child_count">小孩</Label>
-                  <Input
-                    id="ad_child_count"
-                    type="number"
-                    min={0}
-                    max={50}
-                    value={childCount}
-                    onChange={(e) => setChildCount(e.target.value)}
-                  />
-                </div>
+              <div>
+                <Label htmlFor="ad_guest_count">住客人數 <span className="text-destructive">*</span></Label>
+                <Input
+                  id="ad_guest_count"
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={guestCount}
+                  onChange={(e) => setGuestCount(e.target.value)}
+                />
                 {!guestCountValid && (
-                  <p className="text-[11px] text-destructive col-span-2 -mt-1">
-                    大人需 1-50、小孩需 0-50，且總人數不超過 50
-                  </p>
+                  <p className="text-[11px] text-destructive mt-1">人數需為 1-50 之間的整數</p>
                 )}
               </div>
               <div>
