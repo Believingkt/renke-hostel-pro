@@ -3786,14 +3786,16 @@ function VoucherProgressTab({ canEdit = true, forcedSource, hideSourceFilter = f
               {projectOptions.map((n) => (<SelectItem key={n} value={n}>{n}</SelectItem>))}
             </SelectContent>
           </Select>
-          <Select value={filterSource} onValueChange={(v) => setFilterSource(v as any)}>
-            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">全部來源</SelectItem>
-              <SelectItem value="internal">內部銷售</SelectItem>
-              <SelectItem value="external">外部銷售</SelectItem>
-            </SelectContent>
-          </Select>
+          {!hideSourceFilter && (
+            <Select value={filterSource} onValueChange={(v) => setFilterSource(v as any)}>
+              <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">全部來源</SelectItem>
+                <SelectItem value="internal">內部銷售</SelectItem>
+                <SelectItem value="external">外部銷售</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
           <Select value={filterCard} onValueChange={setFilterCard}>
             <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
             <SelectContent>
