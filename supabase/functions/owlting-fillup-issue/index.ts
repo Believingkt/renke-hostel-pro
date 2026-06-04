@@ -70,26 +70,33 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Auth: caller must be admin
+    // Auth: caller must be admin OR a service-role caller (server-to-server, e.g. ingest auto-trigger)
     const authHeader = req.headers.get("Authorization") ?? "";
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-      auth: { persistSession: false },
-    });
-    const { data: userData } = await userClient.auth.getUser();
-    if (!userData?.user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const bearer = authHeader.replace(/^Bearer\s+/i, "").trim();
+    const isServiceRole = !!bearer && bearer === serviceKey;
     const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
-    const { data: roleData } = await admin
-      .from("user_roles").select("role").eq("user_id", userData.user.id);
-    const isAdmin = (roleData ?? []).some((r: any) => r.role === "super_admin" || r.role === "hotel_admin");
-    if (!isAdmin) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
-        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+
+    let callerUserId: string | null = null;
+    if (!isServiceRole) {
+      const userClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+        auth: { persistSession: false },
       });
+      const { data: userData } = await userClient.auth.getUser();
+      if (!userData?.user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      callerUserId = userData.user.id;
+      const { data: roleData } = await admin
+        .from("user_roles").select("role").eq("user_id", userData.user.id);
+      const isAdmin = (roleData ?? []).some((r: any) => r.role === "super_admin" || r.role === "hotel_admin");
+      if (!isAdmin) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const body = await req.json().catch(() => ({}));
