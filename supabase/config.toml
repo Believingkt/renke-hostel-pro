@@ -155,3 +155,6 @@ verify_jwt = false
 
 [functions.owlting-fillup-remind]
 verify_jwt = false
+
+[functions.owlting-change-notify]
+verify_jwt = false

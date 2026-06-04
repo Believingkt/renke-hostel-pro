@@ -257,7 +257,11 @@ Deno.serve(async (req) => {
   if (trusted && inserted?.id && bodyFields) {
     try {
       const fields = bodyFields;
-      const { error: stageErr } = await supabase
+      const stagingAccId =
+        (parsed.message_type === "cancelled" || parsed.message_type === "modified")
+          ? inheritedAccId
+          : null;
+      const { data: stagingRow, error: stageErr } = await supabase
         .from("owlting_email_parsed_staging")
         .insert({
           raw_email_id: inserted.id,
@@ -266,7 +270,8 @@ Deno.serve(async (req) => {
           review_status: "pending_review",
           message_type: fields.message_type,
           obe_number: fields.obe_number,
-          accommodation_name: fields.accommodation_name ?? parsed.accommodation_name,
+          accommodation_name: fields.accommodation_name ?? parsed.accommodation_name ?? inheritedAccName,
+          accommodation_id: stagingAccId,
           channel_source: fields.channel_source,
           check_in_date: fields.check_in_date,
           check_out_date: fields.check_out_date,
@@ -284,8 +289,28 @@ Deno.serve(async (req) => {
           pii_masked: false,
           extracted_fields: fields.raw_matches,
           parse_warnings: fields.warnings.length ? fields.warnings : null,
-        });
+        })
+        .select("id")
+        .single();
       if (stageErr) console.error("[owlting-email-ingest] staging insert error:", stageErr);
+
+      // Auto-notify owners on cancel/modify (fire-and-forget; do not block webhook)
+      if (
+        stagingRow?.id &&
+        stagingAccId &&
+        (fields.message_type === "cancelled" || fields.message_type === "modified")
+      ) {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        fetch(`${supabaseUrl}/functions/v1/owlting-change-notify`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${serviceKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ staging_id: stagingRow.id }),
+        }).catch((e) => console.error("[owlting-email-ingest] change-notify trigger failed:", e));
+      }
     } catch (e) {
       console.error("[owlting-email-ingest] staging insert threw:", e);
     }
