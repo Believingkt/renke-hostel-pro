@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY_1") ?? Deno.env.get("RESEND_API_KEY") ?? "";
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY") ?? "";
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
-const FROM_EMAIL = "人客多 Lakeze <noreply@lakeze.com>";
+const FROM_EMAIL = "人客多 Lakeze <noreply@sensaninn.lakeze.com>";
 
 async function sendEmail(payload: { to: string[]; subject: string; html: string }) {
   const res = await fetch(`${GATEWAY_URL}/emails`, {
@@ -183,7 +183,7 @@ serve(async (req) => {
         .upsert(rows, { onConflict: "email,role" });
     }
 
-    // 寄信（透過 Lovable Connector Gateway → Resend，使用已驗證網域 lakeze.com）
+    // 寄信（透過 Lovable Connector Gateway → Resend，使用已驗證的森山子網域）
     let emailSent = false;
     let emailError: string | null = null;
     try {
