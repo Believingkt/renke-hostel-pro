@@ -183,12 +183,12 @@ serve(async (req) => {
         .upsert(rows, { onConflict: "email,role" });
     }
 
-    // 寄信
+    // 寄信（透過 Lovable Connector Gateway → Resend，使用已驗證網域 lakeze.com）
+    let emailSent = false;
+    let emailError: string | null = null;
     try {
-      const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
       if (isNewUser && inviteLink) {
-        await resend.emails.send({
-          from: "森山寫照 <noreply@sensaninn.lakeze.com>",
+        await sendEmail({
           to: [email],
           subject: "歡迎加入 Team — 請設定您的密碼",
           html: `
@@ -204,8 +204,7 @@ serve(async (req) => {
             </div>`,
         });
       } else {
-        await resend.emails.send({
-          from: "森山寫照 <noreply@sensaninn.lakeze.com>",
+        await sendEmail({
           to: [email],
           subject: "您已獲得 Team 新權限",
           html: `
@@ -219,13 +218,17 @@ serve(async (req) => {
             </div>`,
         });
       }
+      emailSent = true;
     } catch (e) {
-      console.error("send email failed:", e);
+      emailError = e instanceof Error ? e.message : String(e);
+      console.error("send email failed:", emailError);
     }
 
     return json({
       success: true,
       isNewUser,
+      emailSent,
+      emailError,
       user: { id: targetUserId, email, name: displayName },
     });
   } catch (err) {
