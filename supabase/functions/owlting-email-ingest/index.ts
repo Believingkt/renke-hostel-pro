@@ -304,9 +304,14 @@ Deno.serve(async (req) => {
           extracted_fields: fields.raw_matches,
           parse_warnings: fields.warnings.length ? fields.warnings : null,
         })
-        .select("id")
+        .select("id, accommodation_id")
         .single();
       if (stageErr) console.error("[owlting-email-ingest] staging insert error:", stageErr);
+
+      // DB trigger `resolve_owlting_staging_accommodation` may have populated accommodation_id;
+      // prefer that resolved value over our local lookup.
+      const resolvedAccId: string | null =
+        (stagingRow as any)?.accommodation_id ?? stagingAccId;
 
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -314,7 +319,7 @@ Deno.serve(async (req) => {
       // Auto-notify owners on cancel/modify (fire-and-forget)
       if (
         stagingRow?.id &&
-        stagingAccId &&
+        resolvedAccId &&
         (fields.message_type === "cancelled" || fields.message_type === "modified")
       ) {
         fetch(`${supabaseUrl}/functions/v1/owlting-change-notify`, {
@@ -328,7 +333,7 @@ Deno.serve(async (req) => {
       }
 
       // Auto-issue fillup magic link for new_order (fire-and-forget)
-      if (stagingRow?.id && stagingAccId && fields.message_type === "new_order") {
+      if (stagingRow?.id && resolvedAccId && fields.message_type === "new_order") {
         fetch(`${supabaseUrl}/functions/v1/owlting-fillup-issue`, {
           method: "POST",
           headers: {
@@ -337,7 +342,7 @@ Deno.serve(async (req) => {
           },
           body: JSON.stringify({ staging_id: stagingRow.id }),
         }).catch((e) => console.error("[owlting-email-ingest] fillup-issue trigger failed:", e));
-      } else if (stagingRow?.id && !stagingAccId && fields.message_type === "new_order") {
+      } else if (stagingRow?.id && !resolvedAccId && fields.message_type === "new_order") {
         console.warn("[owlting-email-ingest] new_order staged but accommodation_id unresolved; skip auto fillup-issue", {
           staging_id: stagingRow.id,
           accommodation_name: fields.accommodation_name,
