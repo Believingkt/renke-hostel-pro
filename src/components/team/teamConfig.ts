@@ -68,7 +68,7 @@ export const TEAM_MENU: TeamMenuItem[] = [
     title: "特許加盟",
     url: "/team/franchise",
     icon: Handshake,
-    allowedRoles: ["franchise", "franchise_manager"],
+    allowedRoles: ["franchise_internal", "franchise_external", "franchise_manager", "finance"],
   },
   {
     title: "星鏈",
