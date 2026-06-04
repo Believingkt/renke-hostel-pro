@@ -4487,6 +4487,10 @@ export type Database = {
           guest_phone: string | null
           id: string
           last_reminder_at: string | null
+          last_send_at: string | null
+          last_send_attempts: number
+          last_send_message: string | null
+          last_send_status: string | null
           message_type: string | null
           nights: number | null
           notified_at: string | null
@@ -4530,6 +4534,10 @@ export type Database = {
           guest_phone?: string | null
           id?: string
           last_reminder_at?: string | null
+          last_send_at?: string | null
+          last_send_attempts?: number
+          last_send_message?: string | null
+          last_send_status?: string | null
           message_type?: string | null
           nights?: number | null
           notified_at?: string | null
@@ -4573,6 +4581,10 @@ export type Database = {
           guest_phone?: string | null
           id?: string
           last_reminder_at?: string | null
+          last_send_at?: string | null
+          last_send_attempts?: number
+          last_send_message?: string | null
+          last_send_status?: string | null
           message_type?: string | null
           nights?: number | null
           notified_at?: string | null
