@@ -3321,12 +3321,16 @@ function MemberDistributionTab({ currentUserId, canManage = true, canDelete = tr
                             </>
                           ) : (
                             <>
-                              <Button size="sm" variant="ghost" onClick={() => startEdit(d)}>
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button size="sm" variant="ghost" onClick={() => handleDelete(d.id)}>
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
+                              {canManage && (
+                                <Button size="sm" variant="ghost" onClick={() => startEdit(d)}>
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {canDelete && (
+                                <Button size="sm" variant="ghost" onClick={() => handleDelete(d.id)}>
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              )}
                             </>
                           )}
                         </div>
