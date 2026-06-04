@@ -255,13 +255,11 @@ export default function OwlTingEmailIngest() {
                               disabled={sendingId === st.id}
                             >
                               {sendingId === st.id ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
                               ) : (
-                                <>
-                                  <Send className="h-3.5 w-3.5 mr-1" />
-                                  重發通知信
-                                </>
+                                <Send className="h-3.5 w-3.5 mr-1" />
                               )}
+                              重發通知信
                             </Button>
                             <Button
                               size="sm"
