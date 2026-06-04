@@ -259,38 +259,6 @@ export default function OwlTingEmailIngest() {
                         <span className="text-muted-foreground">—</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-xs">
-                      {st ? (
-                        <div className="flex flex-col gap-1 max-w-[18rem]">
-                          <div className="flex items-center gap-1 flex-wrap">
-                            <Badge variant={sendVariant}>
-                              {isSending && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
-                              {sendLabel}
-                            </Badge>
-                            {!!st.last_send_attempts && st.last_send_attempts > 0 && (
-                              <span className="text-[10px] text-muted-foreground">
-                                #{st.last_send_attempts}
-                              </span>
-                            )}
-                          </div>
-                          {st.last_send_at && (
-                            <span className="text-[10px] text-muted-foreground">
-                              {format(new Date(st.last_send_at), "MM/dd HH:mm:ss")}
-                            </span>
-                          )}
-                          {st.last_send_message && (
-                            <span
-                              className="text-[10px] text-muted-foreground line-clamp-2 break-all"
-                              title={st.last_send_message}
-                            >
-                              {st.last_send_message}
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1.5 flex-wrap">
                         <Button
