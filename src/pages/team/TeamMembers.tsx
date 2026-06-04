@@ -394,8 +394,18 @@ export default function TeamMembers() {
     fetchMembers();
   };
 
+  const canEditMember = (m: MemberRow): boolean => {
+    if (isAdmin) return true;
+    if (isScoutManager) {
+      if (!m.user_id) return false;
+      if (m.user_id === myUserId) return false;
+      return m.roles.includes("scout");
+    }
+    return false;
+  };
+
   const openEdit = (m: MemberRow) => {
-    if (!canEditAll) return; // scout_manager 無編輯權
+    if (!canEditMember(m)) return;
     setEditTarget(m);
     setEditName(m.display_name);
     setEditRoles(m.roles);
