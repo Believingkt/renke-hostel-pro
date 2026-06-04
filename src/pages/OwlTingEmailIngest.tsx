@@ -208,7 +208,6 @@ export default function OwlTingEmailIngest() {
                 <TableHead>OBE</TableHead>
                 
                 <TableHead>補單狀態</TableHead>
-                <TableHead>寄送狀態</TableHead>
                 <TableHead className="text-right pr-[5.5rem]">動作</TableHead>
               </TableRow>
             </TableHeader>
@@ -253,38 +252,6 @@ export default function OwlTingEmailIngest() {
                           {st.notified_at && (
                             <span className="text-[10px] text-muted-foreground">
                               已通知 {format(new Date(st.notified_at), "MM/dd HH:mm")}
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {st ? (
-                        <div className="flex flex-col gap-1 max-w-[18rem]">
-                          <div className="flex items-center gap-1 flex-wrap">
-                            <Badge variant={sendVariant}>
-                              {isSending && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
-                              {sendLabel}
-                            </Badge>
-                            {!!st.last_send_attempts && st.last_send_attempts > 0 && (
-                              <span className="text-[10px] text-muted-foreground">
-                                #{st.last_send_attempts}
-                              </span>
-                            )}
-                          </div>
-                          {st.last_send_at && (
-                            <span className="text-[10px] text-muted-foreground">
-                              {format(new Date(st.last_send_at), "MM/dd HH:mm:ss")}
-                            </span>
-                          )}
-                          {st.last_send_message && (
-                            <span
-                              className="text-[10px] text-muted-foreground line-clamp-2 break-all"
-                              title={st.last_send_message}
-                            >
-                              {st.last_send_message}
                             </span>
                           )}
                         </div>
@@ -340,7 +307,7 @@ export default function OwlTingEmailIngest() {
                 );
               })}
               {!loading && rows.length === 0 && (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">尚無收件記錄</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">尚無收件記錄</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
