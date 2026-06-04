@@ -562,7 +562,7 @@ function OrdersTab({
     const { data: roleRows } = await (supabase as any)
       .from("user_roles")
       .select("user_id")
-      .in("role", ["franchise", "franchise_manager"]);
+      .in("role", ["franchise", "franchise_internal", "franchise_external", "franchise_manager"]);
     for (const r of (roleRows ?? []) as { user_id: string }[]) {
       if (r.user_id) memberIdSet.add(r.user_id);
     }
