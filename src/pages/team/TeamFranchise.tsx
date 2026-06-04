@@ -603,7 +603,7 @@ function OrdersTab({
   const filtered = useMemo(() => {
     return orders
       .filter((o) => {
-        if (!canManage && o.sold_by !== currentUserId) return false;
+        if (!canManage && !viewAll && o.sold_by !== currentUserId) return false;
         if (o.sold_at) {
           const d = new Date(o.sold_at);
           if (year !== "ALL" && String(d.getFullYear()) !== year) return false;
