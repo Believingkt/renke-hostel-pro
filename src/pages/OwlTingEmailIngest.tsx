@@ -307,7 +307,7 @@ export default function OwlTingEmailIngest() {
                 );
               })}
               {!loading && rows.length === 0 && (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">尚無收件記錄</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">尚無收件記錄</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
