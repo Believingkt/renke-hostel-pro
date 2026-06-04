@@ -1537,8 +1537,9 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
           )}
         </CardContent>
       </Card>
+      )}
 
-      <TeamSettingsCard canManage={canManage} />
+      {visibleCards.teamSettings && <TeamSettingsCard canManage={canManage} />}
 
 
 
