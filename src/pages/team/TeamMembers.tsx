@@ -34,8 +34,6 @@ const ALL_INVITABLE_ROLES: TeamRole[] = [
   "venue_manager",
 ];
 
-// scout_manager 僅能指派的角色
-const SCOUT_MANAGER_INVITABLE_ROLES: TeamRole[] = ["scout", "kol"];
 
 const ROLE_LABEL = {
   super_admin: "超級管理員",
@@ -106,8 +104,11 @@ export default function TeamMembers() {
   // 僅 admin 可邀請任意角色 / 編輯 / 刪除
   const canEditAll = isAdmin;
 
-  // 邀請可選角色（依當前使用者身份）
-  const invitableRoles = isAdmin ? ALL_INVITABLE_ROLES : SCOUT_MANAGER_INVITABLE_ROLES;
+  // 邀請可選角色（依當前使用者身份）— scout_manager 在 UI 顯示完整清單但僅 scout 可勾
+  const invitableRoles = ALL_INVITABLE_ROLES;
+  const enabledInviteRoles: Set<TeamRole> = isAdmin
+    ? new Set(ALL_INVITABLE_ROLES)
+    : new Set<TeamRole>(["scout"]);
 
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [pending, setPending] = useState<PendingInviteRow[]>([]);
@@ -181,7 +182,7 @@ export default function TeamMembers() {
       }
     }
 
-    let rows: MemberRow[] = (profiles ?? []).map((p) => ({
+    const rows: MemberRow[] = (profiles ?? []).map((p) => ({
       id: p.id,
       user_id: p.user_id ?? null,
       display_name: p.display_name,
@@ -192,24 +193,15 @@ export default function TeamMembers() {
       is_scout_team_member: (p as { is_scout_team_member?: boolean | null }).is_scout_team_member ?? false,
     }));
 
-    // scout_manager 僅看到有 scout 或 kol 角色的成員
-    if (!isAdmin && isScoutManager) {
-      rows = rows.filter((r) => r.roles.includes("scout") || r.roles.includes("kol"));
-    }
-
     setMembers(rows);
 
-    // 4. 取得 pending invites（依角色過濾）
+    // 4. 取得 pending invites
     const { data: pendingData } = await supabase
       .from("team_pending_invites")
       .select("id, email, display_name, role, created_at")
       .order("created_at", { ascending: false });
 
-    let pendingRows = (pendingData ?? []) as PendingInviteRow[];
-    if (!isAdmin && isScoutManager) {
-      pendingRows = pendingRows.filter((p) => p.role === "scout" || p.role === "kol");
-    }
-    setPending(pendingRows);
+    setPending((pendingData ?? []) as PendingInviteRow[]);
 
     setLoading(false);
   }, [isAdmin, isScoutManager]);
@@ -400,8 +392,18 @@ export default function TeamMembers() {
     fetchMembers();
   };
 
+  const canEditMember = (m: MemberRow): boolean => {
+    if (isAdmin) return true;
+    if (isScoutManager) {
+      if (!m.user_id) return false;
+      if (m.user_id === myUserId) return false;
+      return m.roles.includes("scout");
+    }
+    return false;
+  };
+
   const openEdit = (m: MemberRow) => {
-    if (!canEditAll) return; // scout_manager 無編輯權
+    if (!canEditMember(m)) return;
     setEditTarget(m);
     setEditName(m.display_name);
     setEditRoles(m.roles);
@@ -425,45 +427,57 @@ export default function TeamMembers() {
     if (!editName.trim()) return toast.error("顯示名稱不可空白");
     setSaving(true);
     try {
-      const wantsVenueManager = editRoles.includes("venue_manager" as TeamRole);
-      const isScoutLike = editRoles.includes("scout") || editRoles.includes("scout_manager");
-      const { error: pErr } = await supabase
-        .from("team_member_profiles")
-        .update({
-          display_name: editName.trim(),
-          is_active: editActive,
-          managed_venue: wantsVenueManager && editVenues.length > 0 ? editVenues : null,
-          is_scout_team_member: isScoutLike ? editScoutTeam : false,
-        })
-        .eq("id", editTarget.id);
-      if (pErr) throw pErr;
+      if (!canEditAll && isScoutManager) {
+        // scout_manager 僅能改 display_name 與 is_scout_team_member
+        const { error: pErr } = await supabase
+          .from("team_member_profiles")
+          .update({
+            display_name: editName.trim(),
+            is_scout_team_member: editRoles.includes("scout") ? editScoutTeam : false,
+          })
+          .eq("id", editTarget.id);
+        if (pErr) throw pErr;
+      } else {
+        const wantsVenueManager = editRoles.includes("venue_manager" as TeamRole);
+        const isScoutLike = editRoles.includes("scout") || editRoles.includes("scout_manager");
+        const { error: pErr } = await supabase
+          .from("team_member_profiles")
+          .update({
+            display_name: editName.trim(),
+            is_active: editActive,
+            managed_venue: wantsVenueManager && editVenues.length > 0 ? editVenues : null,
+            is_scout_team_member: isScoutLike ? editScoutTeam : false,
+          })
+          .eq("id", editTarget.id);
+        if (pErr) throw pErr;
 
-      // 無帳號成員：不處理 user_roles
-      if (editTarget.user_id) {
-        const original = new Set(editTarget.roles);
-        const next = new Set(editRoles);
-        const toAdd = [...next].filter((r) => !original.has(r));
-        const toRemove = [...original].filter((r) => !next.has(r) && r !== "super_admin");
+        // 無帳號成員：不處理 user_roles
+        if (editTarget.user_id) {
+          const original = new Set(editTarget.roles);
+          const next = new Set(editRoles);
+          const toAdd = [...next].filter((r) => !original.has(r));
+          const toRemove = [...original].filter((r) => !next.has(r) && r !== "super_admin");
 
-        if (toAdd.length > 0) {
-          const { error } = await supabase.from("user_roles").insert(
-            toAdd.map((role) => ({
-              user_id: editTarget.user_id!,
-              accommodation_id: null,
-              role,
-            })),
-          );
-          if (error) throw error;
-        }
+          if (toAdd.length > 0) {
+            const { error } = await supabase.from("user_roles").insert(
+              toAdd.map((role) => ({
+                user_id: editTarget.user_id!,
+                accommodation_id: null,
+                role,
+              })),
+            );
+            if (error) throw error;
+          }
 
-        for (const role of toRemove) {
-          const { error } = await supabase
-            .from("user_roles")
-            .delete()
-            .eq("user_id", editTarget.user_id)
-            .is("accommodation_id", null)
-            .eq("role", role);
-          if (error) throw error;
+          for (const role of toRemove) {
+            const { error } = await supabase
+              .from("user_roles")
+              .delete()
+              .eq("user_id", editTarget.user_id)
+              .is("accommodation_id", null)
+              .eq("role", role);
+            if (error) throw error;
+          }
         }
       }
 
@@ -583,18 +597,26 @@ export default function TeamMembers() {
               {invitableRoles.map((role) => {
                 const parent = CHILD_OF[role];
                 const lockedByManager = !!(parent && inviteRoles.includes(parent));
+                const lockedByRole = !enabledInviteRoles.has(role);
+                const disabled = lockedByManager || lockedByRole;
                 return (
                   <label
                     key={role}
-                    title={lockedByManager ? "已由主管角色包含" : undefined}
+                    title={
+                      lockedByManager
+                        ? "已由主管角色包含"
+                        : lockedByRole
+                        ? "您僅能指派 星探 角色"
+                        : undefined
+                    }
                     className={`flex items-center gap-2 border rounded-md px-2 py-1.5 ${
-                      lockedByManager ? "opacity-50 cursor-not-allowed bg-muted/30" : "cursor-pointer hover:bg-muted/50"
+                      disabled ? "opacity-50 cursor-not-allowed bg-muted/30" : "cursor-pointer hover:bg-muted/50"
                     }`}
                   >
                     <Checkbox
                       checked={inviteRoles.includes(role)}
-                      disabled={lockedByManager}
-                      onCheckedChange={() => !lockedByManager && toggleInviteRole(role)}
+                      disabled={disabled}
+                      onCheckedChange={() => !disabled && toggleInviteRole(role)}
                     />
                     <span className="text-sm">{ROLE_LABEL[role]}</span>
                     {lockedByManager && <span className="text-[10px] text-muted-foreground">已含於主管</span>}
@@ -627,7 +649,7 @@ export default function TeamMembers() {
                 <Switch id="invite-scout-team" checked={inviteScoutTeam} onCheckedChange={setInviteScoutTeam} />
               </div>
               )}
-            {!isAdmin && <p className="text-xs text-muted-foreground">您僅能指派 星探 / KOL 角色</p>}
+            {!isAdmin && isScoutManager && <p className="text-xs text-muted-foreground">您僅能指派 星探 角色</p>}
             <p className="text-xs text-muted-foreground">對方若尚未註冊，預設角色將暫存，首次登入時自動套用。</p>
           </div>
 
@@ -713,14 +735,15 @@ export default function TeamMembers() {
           ) : (
             <div className="space-y-2">
               {filteredMembers.map((m) => {
-                const Wrapper = canEditAll ? "button" : "div";
+                const editable = canEditMember(m);
+                const Wrapper = editable ? "button" : "div";
                 return (
                   <Wrapper
                     key={m.id}
-                    type={canEditAll ? "button" : undefined}
-                    onClick={canEditAll ? () => openEdit(m) : undefined}
+                    type={editable ? "button" : undefined}
+                    onClick={editable ? () => openEdit(m) : undefined}
                     className={`w-full text-left border rounded-lg p-3 transition-colors ${
-                      canEditAll ? "hover:bg-muted/50 cursor-pointer" : ""
+                      editable ? "hover:bg-muted/50 cursor-pointer" : ""
                     }`}
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -771,8 +794,8 @@ export default function TeamMembers() {
         </CardContent>
       </Card>
 
-      {/* 編輯側邊面板（僅 admin） */}
-      {canEditAll && (
+      {/* 編輯側邊面板 */}
+      {(canEditAll || isScoutManager) && (
         <Sheet open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>
           <SheetContent side="right" className="w-full sm:max-w-md flex flex-col overflow-y-auto overflow-x-hidden">
             <SheetHeader>
@@ -800,18 +823,26 @@ export default function TeamMembers() {
                     {ALL_INVITABLE_ROLES.map((role) => {
                       const parent = CHILD_OF[role];
                       const lockedByManager = !!(parent && editRoles.includes(parent));
+                      const lockedByScoutManager = !canEditAll && isScoutManager && role !== "scout";
+                      const disabled = lockedByManager || lockedByScoutManager;
                       return (
                         <label
                           key={role}
-                          title={lockedByManager ? "已由主管角色包含" : undefined}
+                          title={
+                            lockedByManager
+                              ? "已由主管角色包含"
+                              : lockedByScoutManager
+                              ? "您僅能調整 星探 角色"
+                              : undefined
+                          }
                           className={`flex items-center gap-2 border rounded-md px-2 py-1.5 ${
-                            lockedByManager ? "opacity-50 cursor-not-allowed bg-muted/30" : "cursor-pointer hover:bg-muted/50"
+                            disabled ? "opacity-50 cursor-not-allowed bg-muted/30" : "cursor-pointer hover:bg-muted/50"
                           }`}
                         >
                           <Checkbox
                             checked={editRoles.includes(role)}
-                            disabled={lockedByManager}
-                            onCheckedChange={() => !lockedByManager && toggleEditRole(role)}
+                            disabled={disabled}
+                            onCheckedChange={() => !disabled && toggleEditRole(role)}
                           />
                           <span className="text-sm">{ROLE_LABEL[role]}</span>
                           {lockedByManager && <span className="text-[10px] text-muted-foreground">已含於主管</span>}
@@ -826,7 +857,7 @@ export default function TeamMembers() {
                       </label>
                     )}
                   </div>
-                  {editRoles.includes("venue_manager" as TeamRole) && (
+                  {editRoles.includes("venue_manager" as TeamRole) && canEditAll && (
                     <div className="space-y-2 pt-2">
                       <Label>負責場域（可多選）</Label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto border rounded-md p-2">
@@ -873,20 +904,26 @@ export default function TeamMembers() {
                 </p>
               )}
 
-              <div className="flex items-center justify-between border-t pt-4">
-                <Label htmlFor="active-switch">啟用狀態</Label>
-                <Switch id="active-switch" checked={editActive} onCheckedChange={setEditActive} />
-              </div>
+              {canEditAll && (
+                <div className="flex items-center justify-between border-t pt-4">
+                  <Label htmlFor="active-switch">啟用狀態</Label>
+                  <Switch id="active-switch" checked={editActive} onCheckedChange={setEditActive} />
+                </div>
+              )}
             </div>
 
             <SheetFooter className="flex flex-row justify-between gap-2 pt-2 border-t">
-              <Button
-                variant="destructive"
-                onClick={handleRemoveMember}
-                disabled={removing || saving || editTarget?.user_id === myUserId || isNorris}
-              >
-                {removing ? "移除中..." : "移除成員"}
-              </Button>
+              {canEditAll ? (
+                <Button
+                  variant="destructive"
+                  onClick={handleRemoveMember}
+                  disabled={removing || saving || editTarget?.user_id === myUserId || isNorris}
+                >
+                  {removing ? "移除中..." : "移除成員"}
+                </Button>
+              ) : (
+                <span />
+              )}
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setEditTarget(null)} disabled={saving || removing}>
                   取消
