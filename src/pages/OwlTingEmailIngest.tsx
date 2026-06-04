@@ -246,7 +246,7 @@ export default function OwlTingEmailIngest() {
                         >
                           <FileCode className="h-3.5 w-3.5 mr-1" />信件原文
                         </Button>
-                        {canSend && (
+                        {canSend ? (
                           <>
                             <Button
                               size="sm"
@@ -266,6 +266,15 @@ export default function OwlTingEmailIngest() {
                               variant="default"
                               onClick={() => { setFillupStagingId(st.id); setFillupOpen(true); }}
                             >
+                              <ClipboardEdit className="h-3.5 w-3.5 mr-1" />補單
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button size="sm" variant="outline" aria-hidden tabIndex={-1} className="invisible pointer-events-none">
+                              <Send className="h-3.5 w-3.5 mr-1" />重發通知信
+                            </Button>
+                            <Button size="sm" variant="default" aria-hidden tabIndex={-1} className="invisible pointer-events-none">
                               <ClipboardEdit className="h-3.5 w-3.5 mr-1" />補單
                             </Button>
                           </>
