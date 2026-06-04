@@ -46,7 +46,7 @@ const BONUS_TYPE_LABEL: Record<string, string> = {
   video: "影音組分潤",
   scout_kol: "星探KOL分潤",
   scout_base: "星探底薪+團隊獎金",
-  franchise: "特許加盟獎金",
+  franchise_internal: "特許加盟獎金",
   starlink: "星鏈方案獎金",
 };
 
