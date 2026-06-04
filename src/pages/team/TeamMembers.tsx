@@ -195,24 +195,15 @@ export default function TeamMembers() {
       is_scout_team_member: (p as { is_scout_team_member?: boolean | null }).is_scout_team_member ?? false,
     }));
 
-    // scout_manager 僅看到有 scout 或 kol 角色的成員
-    if (!isAdmin && isScoutManager) {
-      rows = rows.filter((r) => r.roles.includes("scout") || r.roles.includes("kol"));
-    }
-
     setMembers(rows);
 
-    // 4. 取得 pending invites（依角色過濾）
+    // 4. 取得 pending invites
     const { data: pendingData } = await supabase
       .from("team_pending_invites")
       .select("id, email, display_name, role, created_at")
       .order("created_at", { ascending: false });
 
-    let pendingRows = (pendingData ?? []) as PendingInviteRow[];
-    if (!isAdmin && isScoutManager) {
-      pendingRows = pendingRows.filter((p) => p.role === "scout" || p.role === "kol");
-    }
-    setPending(pendingRows);
+    setPending((pendingData ?? []) as PendingInviteRow[]);
 
     setLoading(false);
   }, [isAdmin, isScoutManager]);
