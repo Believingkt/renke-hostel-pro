@@ -203,7 +203,7 @@ export default function OwlTingEmailIngest() {
                 <TableHead>OBE</TableHead>
                 
                 <TableHead>補單狀態</TableHead>
-                <TableHead className="text-right">動作</TableHead>
+                <TableHead className="text-right pr-[5.5rem]">動作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
