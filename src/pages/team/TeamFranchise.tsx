@@ -319,7 +319,7 @@ export default function TeamFranchise() {
   // Tab 可見性
   const showOrders = canManage || isFinance || isInternal;
   const showExternal = canManage || isFinance || isExternal;
-  const showStats = canManage || isFinance;
+  const showStats = canManage || isFinance || isInternal || isExternal;
   const showDistributions = canManage || isFinance;
   const showVouchers = canManage || isFinance || isExternal;
 
