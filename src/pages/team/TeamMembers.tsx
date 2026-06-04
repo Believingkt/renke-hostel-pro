@@ -106,8 +106,11 @@ export default function TeamMembers() {
   // 僅 admin 可邀請任意角色 / 編輯 / 刪除
   const canEditAll = isAdmin;
 
-  // 邀請可選角色（依當前使用者身份）
-  const invitableRoles = isAdmin ? ALL_INVITABLE_ROLES : SCOUT_MANAGER_INVITABLE_ROLES;
+  // 邀請可選角色（依當前使用者身份）— scout_manager 在 UI 顯示完整清單但僅 scout 可勾
+  const invitableRoles = ALL_INVITABLE_ROLES;
+  const enabledInviteRoles: Set<TeamRole> = isAdmin
+    ? new Set(ALL_INVITABLE_ROLES)
+    : new Set<TeamRole>(["scout"]);
 
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [pending, setPending] = useState<PendingInviteRow[]>([]);
