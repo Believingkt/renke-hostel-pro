@@ -102,20 +102,30 @@ serve(async (req) => {
 
     const siteUrl = "https://sensaninn.lakeze.com";
 
-    // 查找既有用戶
-    const { data: existingProfile } = await supabaseAdmin
-      .from("profiles")
-      .select("id, email")
-      .ilike("email", email)
-      .maybeSingle();
+    // 查找既有用戶 — 先查 auth.users（profiles 可能未同步），再 fallback profiles
+    let targetUserId: string | null = null;
+    {
+      const { data: authRow } = await (supabaseAdmin as any)
+        .schema("auth")
+        .from("users")
+        .select("id")
+        .ilike("email", email)
+        .maybeSingle();
+      if (authRow?.id) targetUserId = authRow.id as string;
+    }
+    if (!targetUserId) {
+      const { data: existingProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("id")
+        .ilike("email", email)
+        .maybeSingle();
+      if (existingProfile?.id) targetUserId = (existingProfile as any).id as string;
+    }
 
-    let targetUserId: string;
     let isNewUser = false;
     let inviteLink: string | null = null;
 
-    if (existingProfile) {
-      targetUserId = existingProfile.id;
-    } else {
+    if (!targetUserId) {
       isNewUser = true;
       const { data: created, error: createErr } = await supabaseAdmin.auth.admin
         .createUser({
@@ -123,27 +133,44 @@ serve(async (req) => {
           email_confirm: true,
           user_metadata: { name: displayName, force_password_change: true },
         });
-      if (createErr || !created.user) {
-        let msg = createErr?.message ?? "建立帳號失敗";
-        if (msg.includes("already")) msg = "此 Email 已被註冊";
-        return json({ success: false, error: msg }, 400);
-      }
-      targetUserId = created.user.id;
 
-      // 建立密碼設定 token
-      const token = crypto.randomUUID() + crypto.randomUUID();
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-      const { error: tokenErr } = await supabaseAdmin
-        .from("password_reset_tokens")
-        .insert({
-          user_id: targetUserId,
-          email,
-          token,
-          expires_at: expiresAt.toISOString(),
-        });
-      inviteLink = tokenErr
-        ? `${siteUrl}/auth`
-        : `${siteUrl}/reset-password?token=${token}`;
+      if (createErr || !created?.user) {
+        // Fallback：若 Auth 報已存在，回查 auth.users 取得既有 id，視為既有用戶
+        const msg = createErr?.message ?? "建立帳號失敗";
+        if (msg.toLowerCase().includes("already")) {
+          const { data: authRow2 } = await (supabaseAdmin as any)
+            .schema("auth")
+            .from("users")
+            .select("id")
+            .ilike("email", email)
+            .maybeSingle();
+          if (authRow2?.id) {
+            targetUserId = authRow2.id as string;
+            isNewUser = false;
+          } else {
+            return json({ success: false, error: "此 Email 已被註冊" }, 400);
+          }
+        } else {
+          return json({ success: false, error: msg }, 400);
+        }
+      } else {
+        targetUserId = created.user.id;
+
+        // 建立密碼設定 token
+        const token = crypto.randomUUID() + crypto.randomUUID();
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        const { error: tokenErr } = await supabaseAdmin
+          .from("password_reset_tokens")
+          .insert({
+            user_id: targetUserId,
+            email,
+            token,
+            expires_at: expiresAt.toISOString(),
+          });
+        inviteLink = tokenErr
+          ? `${siteUrl}/auth`
+          : `${siteUrl}/reset-password?token=${token}`;
+      }
     }
 
     // 建立/更新 team profile
