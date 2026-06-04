@@ -615,7 +615,7 @@ function OrdersTab({
         return true;
       })
       .sort((a, b) => (b.sold_at ?? "").localeCompare(a.sold_at ?? ""));
-  }, [orders, year, month, projectFilter, statusFilter, salesFilter, canManage, currentUserId]);
+  }, [orders, year, month, projectFilter, statusFilter, salesFilter, canManage, viewAll, currentUserId]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = useMemo(
