@@ -1688,7 +1688,7 @@ const OrderDetailPage = () => {
             <div className="flex justify-between items-center gap-2">
               <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">訂單來源</span>
               {isEditing ? (
-                <Select value={editForm.order_source} onValueChange={(v) => setEditForm(f => ({ ...f, order_source: v }))}>
+                <Select value={editForm.order_source} onValueChange={(v) => setEditForm(f => ({ ...f, order_source: v, owner_direct: v === "owner_provided" ? true : f.owner_direct }))}>
                   <SelectTrigger className="w-[160px] h-10 text-sm md:w-[140px] md:h-8 md:text-xs">
                     <SelectValue />
                   </SelectTrigger>
