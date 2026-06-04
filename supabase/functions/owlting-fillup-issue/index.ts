@@ -10,8 +10,11 @@ const corsHeaders = {
 };
 
 const FILLUP_BASE_URL = Deno.env.get("FILLUP_BASE_URL") ?? "https://booking.lakeze.com";
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-const FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") ?? "Lakeze <noreply@lakeze.com>";
+// 透過 Lovable Connector Gateway 寄送，避免直接打 Resend 時遇到「網域未驗證」問題
+const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY_1") ?? Deno.env.get("RESEND_API_KEY");
+const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
+const FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") ?? "人客多 Lakeze <noreply@lakeze.com>";
 
 function randomToken(): string {
   const buf = new Uint8Array(32);
