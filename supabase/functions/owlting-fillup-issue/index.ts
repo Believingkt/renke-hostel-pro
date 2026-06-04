@@ -166,7 +166,7 @@ Deno.serve(async (req) => {
     const accName = accInfo?.name ?? staging.accommodation_name ?? "民宿";
 
     let emailedTo: string[] = [];
-    if (!silent && RESEND_API_KEY && owners && owners.length > 0) {
+    if (!silent && LOVABLE_API_KEY && RESEND_API_KEY && owners && owners.length > 0) {
       for (const o of owners) {
         const html = renderEmail({
           ownerName: o.owner_name ?? "",
@@ -178,10 +178,11 @@ Deno.serve(async (req) => {
           dueAt: staging.pii_due_at ? new Date(staging.pii_due_at).toLocaleString("zh-TW", { timeZone: "Asia/Taipei" }) : null,
         });
         try {
-          const resp = await fetch("https://api.resend.com/emails", {
+          const resp = await fetch(`${GATEWAY_URL}/emails`, {
             method: "POST",
             headers: {
-              "Authorization": `Bearer ${RESEND_API_KEY}`,
+              "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+              "X-Connection-Api-Key": RESEND_API_KEY,
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
