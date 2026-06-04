@@ -303,28 +303,44 @@ function Field({ label, value, breakAll }: { label: string; value: ReactNode; br
 
 export default function TeamFranchise() {
   const { roles, userId } = useTeam();
-  const canManage = roles.includes("super_admin") || roles.includes("admin");
-  const canView = canManage || roles.includes("franchise") || roles.includes("franchise_manager");
-  const [canManageDistributions, setCanManageDistributions] = useState(false);
 
-  useEffect(() => {
-    let active = true;
-    if (!userId) return;
-    (async () => {
-      const { data } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId);
-      if (!active) return;
-      const rs = (data ?? []).map((r: { role: string }) => r.role);
-      setCanManageDistributions(
-        rs.includes("super_admin") || rs.includes("admin") || rs.includes("franchise_manager")
-      );
-    })();
-    return () => {
-      active = false;
-    };
-  }, [userId]);
+  const isSuperOrAdmin = roles.includes("super_admin") || roles.includes("admin");
+  const isFranchiseManager = roles.includes("franchise_manager");
+  const isFinance = roles.includes("finance");
+  const isInternal =
+    roles.includes("franchise_internal" as any) ||
+    roles.includes("franchise" as any); // 舊 'franchise' 角色視同 franchise_internal
+  const isExternal = roles.includes("franchise_external" as any);
+
+  // 全開（新增/編輯/刪除）僅 super_admin、admin、franchise_manager
+  const canManage = isSuperOrAdmin || isFranchiseManager;
+  const canView = canManage || isFinance || isInternal || isExternal;
+
+  // Tab 可見性
+  const showOrders = canManage || isFinance || isInternal;
+  const showExternal = canManage || isFinance || isExternal;
+  const showStats = canManage || isFinance;
+  const showDistributions = canManage || isFinance;
+  const showVouchers = canManage || isFinance || isExternal;
+
+  // Tab 內細部權限
+  const ordersCanManage = canManage; // 內部銷售：僅 canManage 可新增/編輯
+  const ordersViewAll = canManage || isFinance || isInternal;
+  const externalCanManage = canManage || isExternal;
+  const distCanManage = canManage || isFinance;
+  const distCanDelete = canManage; // finance 不能刪除
+  const voucherCanEdit = canManage || isFinance || isExternal;
+  const voucherForceExternal = !canManage && !isFinance && isExternal;
+
+  // SettingsTab 各 Card 可見性
+  const settingsCards = canManage || isFinance
+    ? { projects: true, internal: true, external: true, teamSettings: true }
+    : isInternal
+      ? { projects: true, internal: true, external: false, teamSettings: true }
+      : isExternal
+        ? { projects: true, internal: false, external: true, teamSettings: false }
+        : { projects: false, internal: false, external: false, teamSettings: false };
+  const settingsCanManage = canManage; // 設定頁也只有 canManage 可改
 
   if (!canView) {
     return (
@@ -339,43 +355,57 @@ export default function TeamFranchise() {
     );
   }
 
+  const defaultTab = showOrders
+    ? "orders"
+    : showExternal
+      ? "external"
+      : showStats
+        ? "stats"
+        : showDistributions
+          ? "distributions"
+          : showVouchers
+            ? "vouchers"
+            : "settings";
+
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold">特許加盟</h2>
-      <Tabs defaultValue="orders">
+      <Tabs defaultValue={defaultTab}>
         <TabsList>
-          <TabsTrigger value="orders">內部銷售</TabsTrigger>
-          <TabsTrigger value="external">外部銷售</TabsTrigger>
-          <TabsTrigger value="stats">業績統計</TabsTrigger>
-          {canManageDistributions && (
-            <TabsTrigger value="distributions">會員分潤</TabsTrigger>
-          )}
-          {canManageDistributions && (
-            <TabsTrigger value="vouchers">住宿券進度</TabsTrigger>
-          )}
+          {showOrders && <TabsTrigger value="orders">內部銷售</TabsTrigger>}
+          {showExternal && <TabsTrigger value="external">外部銷售</TabsTrigger>}
+          {showStats && <TabsTrigger value="stats">業績統計</TabsTrigger>}
+          {showDistributions && <TabsTrigger value="distributions">會員分潤</TabsTrigger>}
+          {showVouchers && <TabsTrigger value="vouchers">住宿券進度</TabsTrigger>}
           <TabsTrigger value="settings">分潤設定</TabsTrigger>
         </TabsList>
-        <TabsContent value="orders" className="mt-4">
-          <OrdersTab canManage={canManage} currentUserId={userId} />
-        </TabsContent>
-        <TabsContent value="external" className="mt-4">
-          <ExternalSalesTab canManage={canManage} />
-        </TabsContent>
-        <TabsContent value="stats" className="mt-4">
-          <StatsTab />
-        </TabsContent>
-        {canManageDistributions && (
-          <TabsContent value="distributions" className="mt-4">
-            <MemberDistributionTab currentUserId={userId} />
+        {showOrders && (
+          <TabsContent value="orders" className="mt-4">
+            <OrdersTab canManage={ordersCanManage} viewAll={ordersViewAll} currentUserId={userId} />
           </TabsContent>
         )}
-        {canManageDistributions && (
+        {showExternal && (
+          <TabsContent value="external" className="mt-4">
+            <ExternalSalesTab canManage={externalCanManage} />
+          </TabsContent>
+        )}
+        {showStats && (
+          <TabsContent value="stats" className="mt-4">
+            <StatsTab />
+          </TabsContent>
+        )}
+        {showDistributions && (
+          <TabsContent value="distributions" className="mt-4">
+            <MemberDistributionTab currentUserId={userId} canManage={distCanManage} canDelete={distCanDelete} />
+          </TabsContent>
+        )}
+        {showVouchers && (
           <TabsContent value="vouchers" className="mt-4">
-            <VoucherProgressTab />
+            <VoucherProgressTab canEdit={voucherCanEdit} forcedSource={voucherForceExternal ? "external" : undefined} hideSourceFilter={voucherForceExternal} />
           </TabsContent>
         )}
         <TabsContent value="settings" className="mt-4">
-          <SettingsTab canManage={canManage} canManageProjects={canManageDistributions} />
+          <SettingsTab canManage={settingsCanManage} visibleCards={settingsCards} />
         </TabsContent>
 
       </Tabs>
