@@ -3261,9 +3261,11 @@ function MemberDistributionTab({ currentUserId, canManage = true, canDelete = tr
                 onChange={(e) => setForm({ ...form, unit_price: Number(e.target.value) })}
               />
             </div>
-            <Button onClick={handleSubmit} disabled={saving}>
-              <Plus className="h-4 w-4 mr-1" /> 新增
-            </Button>
+            {canManage && (
+              <Button onClick={handleSubmit} disabled={saving}>
+                <Plus className="h-4 w-4 mr-1" /> 新增
+              </Button>
+            )}
           </div>
 
           <div className="border rounded-md">
