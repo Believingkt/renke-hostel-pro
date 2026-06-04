@@ -429,45 +429,57 @@ export default function TeamMembers() {
     if (!editName.trim()) return toast.error("顯示名稱不可空白");
     setSaving(true);
     try {
-      const wantsVenueManager = editRoles.includes("venue_manager" as TeamRole);
-      const isScoutLike = editRoles.includes("scout") || editRoles.includes("scout_manager");
-      const { error: pErr } = await supabase
-        .from("team_member_profiles")
-        .update({
-          display_name: editName.trim(),
-          is_active: editActive,
-          managed_venue: wantsVenueManager && editVenues.length > 0 ? editVenues : null,
-          is_scout_team_member: isScoutLike ? editScoutTeam : false,
-        })
-        .eq("id", editTarget.id);
-      if (pErr) throw pErr;
+      if (!canEditAll && isScoutManager) {
+        // scout_manager 僅能改 display_name 與 is_scout_team_member
+        const { error: pErr } = await supabase
+          .from("team_member_profiles")
+          .update({
+            display_name: editName.trim(),
+            is_scout_team_member: editRoles.includes("scout") ? editScoutTeam : false,
+          })
+          .eq("id", editTarget.id);
+        if (pErr) throw pErr;
+      } else {
+        const wantsVenueManager = editRoles.includes("venue_manager" as TeamRole);
+        const isScoutLike = editRoles.includes("scout") || editRoles.includes("scout_manager");
+        const { error: pErr } = await supabase
+          .from("team_member_profiles")
+          .update({
+            display_name: editName.trim(),
+            is_active: editActive,
+            managed_venue: wantsVenueManager && editVenues.length > 0 ? editVenues : null,
+            is_scout_team_member: isScoutLike ? editScoutTeam : false,
+          })
+          .eq("id", editTarget.id);
+        if (pErr) throw pErr;
 
-      // 無帳號成員：不處理 user_roles
-      if (editTarget.user_id) {
-        const original = new Set(editTarget.roles);
-        const next = new Set(editRoles);
-        const toAdd = [...next].filter((r) => !original.has(r));
-        const toRemove = [...original].filter((r) => !next.has(r) && r !== "super_admin");
+        // 無帳號成員：不處理 user_roles
+        if (editTarget.user_id) {
+          const original = new Set(editTarget.roles);
+          const next = new Set(editRoles);
+          const toAdd = [...next].filter((r) => !original.has(r));
+          const toRemove = [...original].filter((r) => !next.has(r) && r !== "super_admin");
 
-        if (toAdd.length > 0) {
-          const { error } = await supabase.from("user_roles").insert(
-            toAdd.map((role) => ({
-              user_id: editTarget.user_id!,
-              accommodation_id: null,
-              role,
-            })),
-          );
-          if (error) throw error;
-        }
+          if (toAdd.length > 0) {
+            const { error } = await supabase.from("user_roles").insert(
+              toAdd.map((role) => ({
+                user_id: editTarget.user_id!,
+                accommodation_id: null,
+                role,
+              })),
+            );
+            if (error) throw error;
+          }
 
-        for (const role of toRemove) {
-          const { error } = await supabase
-            .from("user_roles")
-            .delete()
-            .eq("user_id", editTarget.user_id)
-            .is("accommodation_id", null)
-            .eq("role", role);
-          if (error) throw error;
+          for (const role of toRemove) {
+            const { error } = await supabase
+              .from("user_roles")
+              .delete()
+              .eq("user_id", editTarget.user_id)
+              .is("accommodation_id", null)
+              .eq("role", role);
+            if (error) throw error;
+          }
         }
       }
 
