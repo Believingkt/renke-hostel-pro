@@ -1073,6 +1073,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           : null,
         confirmed_at: form.order_status === "confirmed" ? new Date().toISOString() : null,
         order_source: form.order_source || "manual",
+        owner_direct: form.order_source === "owner_provided",
+
         deposit_required_amount: form.security_deposit_amount,
         deposit_method: form.security_deposit_method,
         deposit_status: "pending",

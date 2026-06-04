@@ -55,13 +55,19 @@ export function OrderSourceDialog({ order, open, onOpenChange, onSuccess }: Orde
 
       const noteAppend = `\n【來源變更】${oldLabel} → ${newLabel}`;
 
+      const updatePayload: any = {
+        order_source: selectedSource,
+        notes: order.notes ? `${order.notes}${noteAppend}` : noteAppend.trim(),
+      };
+      if (selectedSource === "owner_provided") {
+        updatePayload.owner_direct = true;
+      }
+
       const { error } = await supabase
         .from("orders")
-        .update({
-          order_source: selectedSource,
-          notes: order.notes ? `${order.notes}${noteAppend}` : noteAppend.trim(),
-        })
+        .update(updatePayload)
         .eq("id", order.id);
+
 
       if (error) throw error;
 
