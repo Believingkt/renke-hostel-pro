@@ -1267,7 +1267,14 @@ function OrdersTab({
   );
 }
 
-function SettingsTab({ canManage, canManageProjects }: { canManage: boolean; canManageProjects: boolean }) {
+interface SettingsCardsVisible {
+  projects: boolean;
+  internal: boolean;
+  external: boolean;
+  teamSettings: boolean;
+}
+function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleCards: SettingsCardsVisible }) {
+  const canManageProjects = canManage && visibleCards.projects;
   const [rows, setRows] = useState<CommissionSettingRow[]>([]);
   const [loading, setLoading] = useState(true);
 
