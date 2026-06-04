@@ -415,9 +415,11 @@ export default function TeamFranchise() {
 
 function OrdersTab({
   canManage,
+  viewAll = false,
   currentUserId,
 }: {
   canManage: boolean;
+  viewAll?: boolean;
   currentUserId: string;
 }) {
   const [orders, setOrders] = useState<FranchiseOrder[]>([]);
