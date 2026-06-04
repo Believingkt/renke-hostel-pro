@@ -3595,7 +3595,7 @@ function formatSerialRange(start: number | null, end: number | null): string {
 
 const VOUCHER_FIELDS = "id,member_number,customer_name,card_status,voucher_count,voucher_batch,voucher_serial_start,voucher_serial_end,voucher_status,voucher_handler,voucher_start_date,voucher_note,voucher_address";
 
-function VoucherProgressTab() {
+function VoucherProgressTab({ canEdit = true, forcedSource, hideSourceFilter = false }: { canEdit?: boolean; forcedSource?: "internal" | "external"; hideSourceFilter?: boolean }) {
   const [rows, setRows] = useState<VoucherRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterProject, setFilterProject] = useState("ALL");
