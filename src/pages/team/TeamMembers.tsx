@@ -629,7 +629,7 @@ export default function TeamMembers() {
                 <Switch id="invite-scout-team" checked={inviteScoutTeam} onCheckedChange={setInviteScoutTeam} />
               </div>
               )}
-            {!isAdmin && <p className="text-xs text-muted-foreground">您僅能指派 星探 / KOL 角色</p>}
+            {!isAdmin && isScoutManager && <p className="text-xs text-muted-foreground">您僅能指派 星探 角色</p>}
             <p className="text-xs text-muted-foreground">對方若尚未註冊，預設角色將暫存，首次登入時自動套用。</p>
           </div>
 
