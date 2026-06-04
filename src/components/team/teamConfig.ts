@@ -92,7 +92,7 @@ export const TEAM_MENU: TeamMenuItem[] = [
     title: "成員管理",
     url: "/team/members",
     icon: Users,
-    allowedRoles: ["super_admin", "admin"],
+    allowedRoles: ["super_admin", "admin", "scout_manager"],
   },
   {
     title: "折扣碼設定",
