@@ -166,6 +166,7 @@ Deno.serve(async (req) => {
     const accName = accInfo?.name ?? staging.accommodation_name ?? "民宿";
 
     let emailedTo: string[] = [];
+    let emailErrors: string[] = [];
     if (!silent && LOVABLE_API_KEY && RESEND_API_KEY && owners && owners.length > 0) {
       for (const o of owners) {
         const html = renderEmail({
@@ -192,15 +193,22 @@ Deno.serve(async (req) => {
               html,
             }),
           });
-          if (resp.ok) emailedTo.push(o.email);
-          else console.error("[owlting-fillup-issue] resend failed:", await resp.text());
+          if (resp.ok) {
+            emailedTo.push(o.email);
+          } else {
+            const errorText = await resp.text();
+            emailErrors.push(`${o.email}: ${errorText}`);
+            console.error("[owlting-fillup-issue] resend failed:", errorText);
+          }
         } catch (e) {
+          const errorMessage = e instanceof Error ? e.message : String(e);
+          emailErrors.push(`${o.email}: ${errorMessage}`);
           console.error("[owlting-fillup-issue] resend exception:", e);
         }
       }
     }
 
-    if (!silent) {
+    if (!silent && emailedTo.length > 0) {
       await admin.from("owlting_email_parsed_staging")
         .update({ notified_at: new Date().toISOString() })
         .eq("id", stagingId);
@@ -211,6 +219,7 @@ Deno.serve(async (req) => {
       token,
       magic_url: magicUrl,
       emailed_to: emailedTo,
+      email_errors: emailErrors,
       owners_count: owners?.length ?? 0,
       expires_at: expiresAt,
       silent,

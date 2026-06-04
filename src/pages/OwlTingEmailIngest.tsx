@@ -135,10 +135,11 @@ export default function OwlTingEmailIngest() {
       if (error) throw error;
       const emailed = (data as any)?.emailed_to?.length ?? 0;
       const owners = (data as any)?.owners_count ?? 0;
+      const emailErrors = (data as any)?.email_errors as string[] | undefined;
       if (owners === 0) {
         toast.warning("尚未設定業主聯絡人，請先到 HQ → 系統管理 → 業主聯絡人 新增");
       } else if (emailed === 0) {
-        toast.warning(`連結已產生但 Email 發送失敗，請檢查 Resend 設定`);
+        toast.warning(`連結已產生但 Email 發送失敗：${emailErrors?.[0] ?? "請檢查寄信設定"}`);
       } else {
         toast.success(`已寄送補單通知給 ${emailed} 位業主`);
       }
