@@ -428,15 +428,37 @@ export default function TeamMembers() {
     setSaving(true);
     try {
       if (!canEditAll && isScoutManager) {
-        // scout_manager 僅能改 display_name 與 is_scout_team_member
+        // scout_manager 僅能改 display_name、is_scout_team_member，以及 scout role 的勾選
+        const nextHasScout = editRoles.includes("scout");
         const { error: pErr } = await supabase
           .from("team_member_profiles")
           .update({
             display_name: editName.trim(),
-            is_scout_team_member: editRoles.includes("scout") ? editScoutTeam : false,
+            is_scout_team_member: nextHasScout ? editScoutTeam : false,
           })
           .eq("id", editTarget.id);
         if (pErr) throw pErr;
+
+        // 額外處理 scout role 的新增/移除（僅限 scout role 本身，不碰其他 role）
+        if (editTarget.user_id) {
+          const originalHasScout = editTarget.roles.includes("scout");
+          if (originalHasScout && !nextHasScout) {
+            const { error } = await supabase
+              .from("user_roles")
+              .delete()
+              .eq("user_id", editTarget.user_id)
+              .is("accommodation_id", null)
+              .eq("role", "scout");
+            if (error) throw error;
+          } else if (!originalHasScout && nextHasScout) {
+            const { error } = await supabase.from("user_roles").insert({
+              user_id: editTarget.user_id,
+              accommodation_id: null,
+              role: "scout",
+            });
+            if (error) throw error;
+          }
+        }
       } else {
         const wantsVenueManager = editRoles.includes("venue_manager" as TeamRole);
         const isScoutLike = editRoles.includes("scout") || editRoles.includes("scout_manager");
