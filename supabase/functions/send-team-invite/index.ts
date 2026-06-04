@@ -1,6 +1,27 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
-import { Resend } from "https://esm.sh/resend@4.0.0";
+
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY_1") ?? Deno.env.get("RESEND_API_KEY") ?? "";
+const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY") ?? "";
+const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
+const FROM_EMAIL = "人客多 Lakeze <noreply@lakeze.com>";
+
+async function sendEmail(payload: { to: string[]; subject: string; html: string }) {
+  const res = await fetch(`${GATEWAY_URL}/emails`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+      "X-Connection-Api-Key": RESEND_API_KEY,
+    },
+    body: JSON.stringify({ from: FROM_EMAIL, ...payload }),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Resend gateway ${res.status}: ${body}`);
+  }
+  return res.json();
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -162,12 +183,12 @@ serve(async (req) => {
         .upsert(rows, { onConflict: "email,role" });
     }
 
-    // 寄信
+    // 寄信（透過 Lovable Connector Gateway → Resend，使用已驗證網域 lakeze.com）
+    let emailSent = false;
+    let emailError: string | null = null;
     try {
-      const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
       if (isNewUser && inviteLink) {
-        await resend.emails.send({
-          from: "森山寫照 <noreply@sensaninn.lakeze.com>",
+        await sendEmail({
           to: [email],
           subject: "歡迎加入 Team — 請設定您的密碼",
           html: `
@@ -183,8 +204,7 @@ serve(async (req) => {
             </div>`,
         });
       } else {
-        await resend.emails.send({
-          from: "森山寫照 <noreply@sensaninn.lakeze.com>",
+        await sendEmail({
           to: [email],
           subject: "您已獲得 Team 新權限",
           html: `
@@ -198,13 +218,17 @@ serve(async (req) => {
             </div>`,
         });
       }
+      emailSent = true;
     } catch (e) {
-      console.error("send email failed:", e);
+      emailError = e instanceof Error ? e.message : String(e);
+      console.error("send email failed:", emailError);
     }
 
     return json({
       success: true,
       isNewUser,
+      emailSent,
+      emailError,
       user: { id: targetUserId, email, name: displayName },
     });
   } catch (err) {
