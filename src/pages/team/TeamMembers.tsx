@@ -577,18 +577,26 @@ export default function TeamMembers() {
               {invitableRoles.map((role) => {
                 const parent = CHILD_OF[role];
                 const lockedByManager = !!(parent && inviteRoles.includes(parent));
+                const lockedByRole = !enabledInviteRoles.has(role);
+                const disabled = lockedByManager || lockedByRole;
                 return (
                   <label
                     key={role}
-                    title={lockedByManager ? "已由主管角色包含" : undefined}
+                    title={
+                      lockedByManager
+                        ? "已由主管角色包含"
+                        : lockedByRole
+                        ? "您僅能指派 星探 角色"
+                        : undefined
+                    }
                     className={`flex items-center gap-2 border rounded-md px-2 py-1.5 ${
-                      lockedByManager ? "opacity-50 cursor-not-allowed bg-muted/30" : "cursor-pointer hover:bg-muted/50"
+                      disabled ? "opacity-50 cursor-not-allowed bg-muted/30" : "cursor-pointer hover:bg-muted/50"
                     }`}
                   >
                     <Checkbox
                       checked={inviteRoles.includes(role)}
-                      disabled={lockedByManager}
-                      onCheckedChange={() => !lockedByManager && toggleInviteRole(role)}
+                      disabled={disabled}
+                      onCheckedChange={() => !disabled && toggleInviteRole(role)}
                     />
                     <span className="text-sm">{ROLE_LABEL[role]}</span>
                     {lockedByManager && <span className="text-[10px] text-muted-foreground">已含於主管</span>}
