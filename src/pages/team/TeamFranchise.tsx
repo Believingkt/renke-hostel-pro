@@ -1406,7 +1406,8 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
 
   return (
     <div className="space-y-4">
-      {canManageProjects && <ProjectsManagementCard />}
+      {visibleCards.projects && <ProjectsManagementCard />}
+      {visibleCards.internal && (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">內部分潤設定</CardTitle>
