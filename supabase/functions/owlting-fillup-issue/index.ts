@@ -149,7 +149,7 @@ Deno.serve(async (req) => {
       accommodation_id: accId,
       token_hash: tokenHash,
       expires_at: expiresAt,
-      created_by: userData.user.id,
+      created_by: callerUserId,
     });
     if (tokErr) {
       return new Response(JSON.stringify({ error: "Token creation failed", detail: tokErr.message }), {
