@@ -10,8 +10,11 @@ const corsHeaders = {
 };
 
 const FILLUP_BASE_URL = Deno.env.get("FILLUP_BASE_URL") ?? "https://booking.lakeze.com";
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-const FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") ?? "Lakeze <noreply@lakeze.com>";
+// 透過 Lovable Connector Gateway 寄送，避免直接打 Resend 時遇到「網域未驗證」問題
+const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY_1") ?? Deno.env.get("RESEND_API_KEY");
+const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
+const FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") ?? "人客多 Lakeze <noreply@lakeze.com>";
 
 function randomToken(): string {
   const buf = new Uint8Array(32);
@@ -163,7 +166,7 @@ Deno.serve(async (req) => {
     const accName = accInfo?.name ?? staging.accommodation_name ?? "民宿";
 
     let emailedTo: string[] = [];
-    if (!silent && RESEND_API_KEY && owners && owners.length > 0) {
+    if (!silent && LOVABLE_API_KEY && RESEND_API_KEY && owners && owners.length > 0) {
       for (const o of owners) {
         const html = renderEmail({
           ownerName: o.owner_name ?? "",
@@ -175,10 +178,11 @@ Deno.serve(async (req) => {
           dueAt: staging.pii_due_at ? new Date(staging.pii_due_at).toLocaleString("zh-TW", { timeZone: "Asia/Taipei" }) : null,
         });
         try {
-          const resp = await fetch("https://api.resend.com/emails", {
+          const resp = await fetch(`${GATEWAY_URL}/emails`, {
             method: "POST",
             headers: {
-              "Authorization": `Bearer ${RESEND_API_KEY}`,
+              "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+              "X-Connection-Api-Key": RESEND_API_KEY,
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
