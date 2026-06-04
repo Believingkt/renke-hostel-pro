@@ -784,8 +784,8 @@ export default function TeamMembers() {
         </CardContent>
       </Card>
 
-      {/* 編輯側邊面板（僅 admin） */}
-      {canEditAll && (
+      {/* 編輯側邊面板 */}
+      {(canEditAll || isScoutManager) && (
         <Sheet open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>
           <SheetContent side="right" className="w-full sm:max-w-md flex flex-col overflow-y-auto overflow-x-hidden">
             <SheetHeader>
@@ -813,18 +813,26 @@ export default function TeamMembers() {
                     {ALL_INVITABLE_ROLES.map((role) => {
                       const parent = CHILD_OF[role];
                       const lockedByManager = !!(parent && editRoles.includes(parent));
+                      const lockedByScoutManager = !canEditAll && isScoutManager && role !== "scout";
+                      const disabled = lockedByManager || lockedByScoutManager;
                       return (
                         <label
                           key={role}
-                          title={lockedByManager ? "已由主管角色包含" : undefined}
+                          title={
+                            lockedByManager
+                              ? "已由主管角色包含"
+                              : lockedByScoutManager
+                              ? "您僅能調整 星探 角色"
+                              : undefined
+                          }
                           className={`flex items-center gap-2 border rounded-md px-2 py-1.5 ${
-                            lockedByManager ? "opacity-50 cursor-not-allowed bg-muted/30" : "cursor-pointer hover:bg-muted/50"
+                            disabled ? "opacity-50 cursor-not-allowed bg-muted/30" : "cursor-pointer hover:bg-muted/50"
                           }`}
                         >
                           <Checkbox
                             checked={editRoles.includes(role)}
-                            disabled={lockedByManager}
-                            onCheckedChange={() => !lockedByManager && toggleEditRole(role)}
+                            disabled={disabled}
+                            onCheckedChange={() => !disabled && toggleEditRole(role)}
                           />
                           <span className="text-sm">{ROLE_LABEL[role]}</span>
                           {lockedByManager && <span className="text-[10px] text-muted-foreground">已含於主管</span>}
@@ -839,7 +847,7 @@ export default function TeamMembers() {
                       </label>
                     )}
                   </div>
-                  {editRoles.includes("venue_manager" as TeamRole) && (
+                  {editRoles.includes("venue_manager" as TeamRole) && canEditAll && (
                     <div className="space-y-2 pt-2">
                       <Label>負責場域（可多選）</Label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto border rounded-md p-2">
@@ -886,20 +894,26 @@ export default function TeamMembers() {
                 </p>
               )}
 
-              <div className="flex items-center justify-between border-t pt-4">
-                <Label htmlFor="active-switch">啟用狀態</Label>
-                <Switch id="active-switch" checked={editActive} onCheckedChange={setEditActive} />
-              </div>
+              {canEditAll && (
+                <div className="flex items-center justify-between border-t pt-4">
+                  <Label htmlFor="active-switch">啟用狀態</Label>
+                  <Switch id="active-switch" checked={editActive} onCheckedChange={setEditActive} />
+                </div>
+              )}
             </div>
 
             <SheetFooter className="flex flex-row justify-between gap-2 pt-2 border-t">
-              <Button
-                variant="destructive"
-                onClick={handleRemoveMember}
-                disabled={removing || saving || editTarget?.user_id === myUserId || isNorris}
-              >
-                {removing ? "移除中..." : "移除成員"}
-              </Button>
+              {canEditAll ? (
+                <Button
+                  variant="destructive"
+                  onClick={handleRemoveMember}
+                  disabled={removing || saving || editTarget?.user_id === myUserId || isNorris}
+                >
+                  {removing ? "移除中..." : "移除成員"}
+                </Button>
+              ) : (
+                <span />
+              )}
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setEditTarget(null)} disabled={saving || removing}>
                   取消
