@@ -20,10 +20,14 @@ type TeamRole =
   | "scout_manager"
   | "video"
   | "franchise"
+  | "franchise_internal"
+  | "franchise_external"
+  | "franchise_manager"
   | "starlink"
   | "kol"
   | "owner"
-  | "finance";
+  | "finance"
+  | "venue_manager";
 
 const TEAM_ROLES: TeamRole[] = [
   "super_admin",
@@ -33,10 +37,14 @@ const TEAM_ROLES: TeamRole[] = [
   "scout_manager",
   "video",
   "franchise",
+  "franchise_internal",
+  "franchise_external",
+  "franchise_manager",
   "starlink",
   "kol",
   "owner",
   "finance",
+  "venue_manager",
 ];
 
 async function userHasTeamRole(userId: string): Promise<boolean> {
