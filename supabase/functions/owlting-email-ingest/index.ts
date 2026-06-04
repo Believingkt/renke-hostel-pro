@@ -184,6 +184,29 @@ Deno.serve(async (req) => {
     status = "parsed";
   }
 
+  // For cancelled / modified emails, the body usually lacks accommodation info.
+  // Inherit accommodation_id / accommodation_name from the prior new_order with the same obe_number.
+  let inheritedAccId: string | null = null;
+  let inheritedAccName: string | null = null;
+  if (
+    status === "parsed" &&
+    parsed.obe_number &&
+    (parsed.message_type === "cancelled" || parsed.message_type === "modified")
+  ) {
+    const { data: prior } = await supabase
+      .from("owlting_email_orders_raw")
+      .select("accommodation_id, accommodation_name")
+      .eq("obe_number", parsed.obe_number)
+      .not("accommodation_id", "is", null)
+      .order("received_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (prior) {
+      inheritedAccId = (prior as any).accommodation_id ?? null;
+      inheritedAccName = (prior as any).accommodation_name ?? null;
+    }
+  }
+
   const { data: inserted, error: insertErr } = await supabase
     .from("owlting_email_orders_raw")
     .insert({
@@ -204,7 +227,8 @@ Deno.serve(async (req) => {
       raw_payload: rawPayload,
       message_type: parsed.message_type,
       obe_number: parsed.obe_number,
-      accommodation_name: bodyFields?.accommodation_name ?? parsed.accommodation_name,
+      accommodation_id: inheritedAccId,
+      accommodation_name: bodyFields?.accommodation_name ?? parsed.accommodation_name ?? inheritedAccName,
       status,
       notes,
       processed_at: status === "parsed" ? null : new Date().toISOString(),
