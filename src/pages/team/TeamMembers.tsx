@@ -182,7 +182,7 @@ export default function TeamMembers() {
       }
     }
 
-    let rows: MemberRow[] = (profiles ?? []).map((p) => ({
+    const rows: MemberRow[] = (profiles ?? []).map((p) => ({
       id: p.id,
       user_id: p.user_id ?? null,
       display_name: p.display_name,
