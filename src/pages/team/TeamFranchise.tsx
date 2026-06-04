@@ -3853,7 +3853,7 @@ function VoucherProgressTab({ canEdit = true, forcedSource, hideSourceFilter = f
             <SheetHeader>
               <div className="flex items-center justify-between pr-8">
                 <SheetTitle>{editing ? "編輯住宿券進度" : "住宿券進度明細"}</SheetTitle>
-                {detail && !editing && (
+                {detail && !editing && canEdit && (
                   <Button size="sm" variant="outline" onClick={startEdit}>
                     <Pencil className="h-4 w-4 mr-1" /> 編輯
                   </Button>
