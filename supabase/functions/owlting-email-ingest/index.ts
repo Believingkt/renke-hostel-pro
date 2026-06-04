@@ -257,10 +257,24 @@ Deno.serve(async (req) => {
   if (trusted && inserted?.id && bodyFields) {
     try {
       const fields = bodyFields;
-      const stagingAccId =
+      let stagingAccId: string | null =
         (parsed.message_type === "cancelled" || parsed.message_type === "modified")
           ? inheritedAccId
           : null;
+
+      // For new_order, try to resolve accommodation_id by name (so auto fillup-issue can fire)
+      if (!stagingAccId && fields.message_type === "new_order") {
+        const accNameLookup = fields.accommodation_name ?? parsed.accommodation_name;
+        if (accNameLookup) {
+          const { data: accRow } = await supabase
+            .from("accommodation_info")
+            .select("id")
+            .eq("name", accNameLookup)
+            .maybeSingle();
+          if (accRow?.id) stagingAccId = accRow.id as string;
+        }
+      }
+
       const { data: stagingRow, error: stageErr } = await supabase
         .from("owlting_email_parsed_staging")
         .insert({
@@ -294,14 +308,15 @@ Deno.serve(async (req) => {
         .single();
       if (stageErr) console.error("[owlting-email-ingest] staging insert error:", stageErr);
 
-      // Auto-notify owners on cancel/modify (fire-and-forget; do not block webhook)
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+      // Auto-notify owners on cancel/modify (fire-and-forget)
       if (
         stagingRow?.id &&
         stagingAccId &&
         (fields.message_type === "cancelled" || fields.message_type === "modified")
       ) {
-        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-        const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
         fetch(`${supabaseUrl}/functions/v1/owlting-change-notify`, {
           method: "POST",
           headers: {
@@ -310,6 +325,23 @@ Deno.serve(async (req) => {
           },
           body: JSON.stringify({ staging_id: stagingRow.id }),
         }).catch((e) => console.error("[owlting-email-ingest] change-notify trigger failed:", e));
+      }
+
+      // Auto-issue fillup magic link for new_order (fire-and-forget)
+      if (stagingRow?.id && stagingAccId && fields.message_type === "new_order") {
+        fetch(`${supabaseUrl}/functions/v1/owlting-fillup-issue`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${serviceKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ staging_id: stagingRow.id }),
+        }).catch((e) => console.error("[owlting-email-ingest] fillup-issue trigger failed:", e));
+      } else if (stagingRow?.id && !stagingAccId && fields.message_type === "new_order") {
+        console.warn("[owlting-email-ingest] new_order staged but accommodation_id unresolved; skip auto fillup-issue", {
+          staging_id: stagingRow.id,
+          accommodation_name: fields.accommodation_name,
+        });
       }
     } catch (e) {
       console.error("[owlting-email-ingest] staging insert threw:", e);
