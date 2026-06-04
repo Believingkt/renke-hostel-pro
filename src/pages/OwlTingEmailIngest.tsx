@@ -40,6 +40,10 @@ interface StagingLite {
   matched_acc_id: string | null;
   match_reason: string | null;
   unmatch_reason: string | null;
+  last_send_status: string | null;
+  last_send_message: string | null;
+  last_send_at: string | null;
+  last_send_attempts: number | null;
 }
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
