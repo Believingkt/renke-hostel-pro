@@ -2987,7 +2987,7 @@ interface MonthlyDistribution {
   payment_date: string;
 }
 
-function MemberDistributionTab({ currentUserId }: { currentUserId: string }) {
+function MemberDistributionTab({ currentUserId, canManage = true, canDelete = true }: { currentUserId: string; canManage?: boolean; canDelete?: boolean }) {
   const [distributions, setDistributions] = useState<MonthlyDistribution[]>([]);
   const [externalOrders, setExternalOrders] = useState<ExternalOrder[]>([]);
   const [internalOrders, setInternalOrders] = useState<Array<{
