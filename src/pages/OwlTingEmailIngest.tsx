@@ -208,6 +208,7 @@ export default function OwlTingEmailIngest() {
                 <TableHead>OBE</TableHead>
                 
                 <TableHead>補單狀態</TableHead>
+                <TableHead>寄送狀態</TableHead>
                 <TableHead className="text-right pr-[5.5rem]">動作</TableHead>
               </TableRow>
             </TableHeader>
@@ -215,6 +216,20 @@ export default function OwlTingEmailIngest() {
               {rows.map((r) => {
                 const st = stagingMap[r.id];
                 const canSend = st && st.pii_status === "pending_pii_fillup";
+                const isSending = st && sendingId === st.id;
+                const sendStatus = st?.last_send_status ?? null;
+                const sendVariant: "default" | "secondary" | "destructive" | "outline" =
+                  isSending ? "secondary"
+                  : sendStatus === "success" ? "default"
+                  : sendStatus === "partial" ? "secondary"
+                  : sendStatus === "failed" ? "destructive"
+                  : "outline";
+                const sendLabel =
+                  isSending ? "重試中"
+                  : sendStatus === "success" ? "成功"
+                  : sendStatus === "partial" ? "部分成功"
+                  : sendStatus === "failed" ? "失敗"
+                  : "未寄送";
                 return (
                   <TableRow key={r.id}>
                     <TableCell className="whitespace-nowrap text-xs">
@@ -235,6 +250,38 @@ export default function OwlTingEmailIngest() {
                           {st.notified_at && (
                             <span className="text-[10px] text-muted-foreground">
                               已通知 {format(new Date(st.notified_at), "MM/dd HH:mm")}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {st ? (
+                        <div className="flex flex-col gap-1 max-w-[18rem]">
+                          <div className="flex items-center gap-1 flex-wrap">
+                            <Badge variant={sendVariant}>
+                              {isSending && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                              {sendLabel}
+                            </Badge>
+                            {!!st.last_send_attempts && st.last_send_attempts > 0 && (
+                              <span className="text-[10px] text-muted-foreground">
+                                #{st.last_send_attempts}
+                              </span>
+                            )}
+                          </div>
+                          {st.last_send_at && (
+                            <span className="text-[10px] text-muted-foreground">
+                              {format(new Date(st.last_send_at), "MM/dd HH:mm:ss")}
+                            </span>
+                          )}
+                          {st.last_send_message && (
+                            <span
+                              className="text-[10px] text-muted-foreground line-clamp-2 break-all"
+                              title={st.last_send_message}
+                            >
+                              {st.last_send_message}
                             </span>
                           )}
                         </div>
