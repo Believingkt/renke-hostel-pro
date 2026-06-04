@@ -725,14 +725,15 @@ export default function TeamMembers() {
           ) : (
             <div className="space-y-2">
               {filteredMembers.map((m) => {
-                const Wrapper = canEditAll ? "button" : "div";
+                const editable = canEditMember(m);
+                const Wrapper = editable ? "button" : "div";
                 return (
                   <Wrapper
                     key={m.id}
-                    type={canEditAll ? "button" : undefined}
-                    onClick={canEditAll ? () => openEdit(m) : undefined}
+                    type={editable ? "button" : undefined}
+                    onClick={editable ? () => openEdit(m) : undefined}
                     className={`w-full text-left border rounded-lg p-3 transition-colors ${
-                      canEditAll ? "hover:bg-muted/50 cursor-pointer" : ""
+                      editable ? "hover:bg-muted/50 cursor-pointer" : ""
                     }`}
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
