@@ -3673,13 +3673,14 @@ function VoucherProgressTab({ canEdit = true, forcedSource, hideSourceFilter = f
   };
   useEffect(() => { load(); }, []);
 
+  const effectiveSource = forcedSource ?? filterSource;
   const filtered = useMemo(() => rows.filter((r) => {
-    if (filterSource !== "ALL" && r.source !== filterSource) return false;
+    if (effectiveSource !== "ALL" && r.source !== effectiveSource) return false;
     if (filterProject !== "ALL" && r.project_name !== filterProject) return false;
     if (filterStatus !== "ALL" && (r.voucher_status ?? "未寄出") !== filterStatus) return false;
     if (filterCard !== "ALL" && (r.card_status ?? "未完成") !== filterCard) return false;
     return true;
-  }), [rows, filterSource, filterProject, filterStatus, filterCard]);
+  }), [rows, effectiveSource, filterProject, filterStatus, filterCard]);
 
   const projectOptions = useMemo(() => {
     const set = new Set<string>();
