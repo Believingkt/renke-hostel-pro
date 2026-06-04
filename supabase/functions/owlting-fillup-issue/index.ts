@@ -208,9 +208,36 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (!silent && emailedTo.length > 0) {
+    if (!silent && (owners?.length ?? 0) > 0) {
+      const ownersCount = owners?.length ?? 0;
+      let sendStatus: "success" | "partial" | "failed";
+      let sendMessage: string;
+      if (emailedTo.length === ownersCount) {
+        sendStatus = "success";
+        sendMessage = `已寄送 ${emailedTo.length} 位業主：${emailedTo.join(", ")}`;
+      } else if (emailedTo.length > 0) {
+        sendStatus = "partial";
+        sendMessage = `成功 ${emailedTo.length}/${ownersCount}；失敗：${emailErrors.join(" | ")}`;
+      } else {
+        sendStatus = "failed";
+        sendMessage = emailErrors.join(" | ") || "未知錯誤";
+      }
+      const { data: cur } = await admin
+        .from("owlting_email_parsed_staging")
+        .select("last_send_attempts")
+        .eq("id", stagingId)
+        .maybeSingle();
+      const patch: Record<string, unknown> = {
+        last_send_status: sendStatus,
+        last_send_message: sendMessage.slice(0, 2000),
+        last_send_at: new Date().toISOString(),
+        last_send_attempts: ((cur?.last_send_attempts ?? 0) as number) + 1,
+      };
+      if (emailedTo.length > 0) {
+        patch.notified_at = new Date().toISOString();
+      }
       await admin.from("owlting_email_parsed_staging")
-        .update({ notified_at: new Date().toISOString() })
+        .update(patch)
         .eq("id", stagingId);
     }
 
