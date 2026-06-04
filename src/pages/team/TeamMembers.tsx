@@ -34,8 +34,6 @@ const ALL_INVITABLE_ROLES: TeamRole[] = [
   "venue_manager",
 ];
 
-// scout_manager 僅能指派的角色
-const SCOUT_MANAGER_INVITABLE_ROLES: TeamRole[] = ["scout", "kol"];
 
 const ROLE_LABEL = {
   super_admin: "超級管理員",
