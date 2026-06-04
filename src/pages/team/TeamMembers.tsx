@@ -334,7 +334,41 @@ export default function TeamMembers() {
           .from("team_pending_invites")
           .upsert(rows, { onConflict: "email,role" });
         if (pendingErr) throw pendingErr;
-        toast.success("已建立邀請，對方首次登入時將自動套用角色");
+      }
+
+      // 寄出邀請信（新用戶：設定密碼信；既有用戶：權限更新通知）
+      let emailSent = false;
+      let emailError: string | null = null;
+      try {
+        const { data: emailRes, error: emailErr } = await supabase.functions.invoke(
+          "send-team-invite",
+          {
+            body: {
+              email: targetEmail,
+              display_name: inviteName.trim(),
+              roles: inviteRoles,
+            },
+          },
+        );
+        if (emailErr) {
+          emailError = emailErr.message;
+        } else if (emailRes?.success) {
+          emailSent = !!emailRes.emailSent;
+          emailError = emailRes.emailError ?? null;
+        } else {
+          emailError = emailRes?.error ?? "未知錯誤";
+        }
+      } catch (e) {
+        emailError = e instanceof Error ? e.message : String(e);
+      }
+
+      if (targetUserId) {
+        toast.success(emailSent ? "已新增成員權限並寄出通知信" : "已新增成員權限");
+      } else {
+        toast.success(emailSent ? "已建立邀請並寄出設定密碼信" : "已建立邀請");
+      }
+      if (!emailSent && emailError) {
+        toast.error(`寄信失敗：${emailError}`);
       }
 
       setInviteName("");
