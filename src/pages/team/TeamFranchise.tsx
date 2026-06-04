@@ -1467,7 +1467,9 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
           )}
         </CardContent>
       </Card>
+      )}
 
+      {visibleCards.external && (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">外部分潤設定</CardTitle>
