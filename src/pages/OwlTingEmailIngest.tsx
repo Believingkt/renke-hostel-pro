@@ -218,17 +218,20 @@ export default function OwlTingEmailIngest() {
                 const canSend = st && st.pii_status === "pending_pii_fillup";
                 const isSending = st && sendingId === st.id;
                 const sendStatus = st?.last_send_status ?? null;
+                const hasLegacyNotified = st && !sendStatus && !!st.notified_at;
                 const sendVariant: "default" | "secondary" | "destructive" | "outline" =
                   isSending ? "secondary"
                   : sendStatus === "success" ? "default"
                   : sendStatus === "partial" ? "secondary"
                   : sendStatus === "failed" ? "destructive"
+                  : hasLegacyNotified ? "secondary"
                   : "outline";
                 const sendLabel =
                   isSending ? "重試中"
                   : sendStatus === "success" ? "成功"
                   : sendStatus === "partial" ? "部分成功"
                   : sendStatus === "failed" ? "失敗"
+                  : hasLegacyNotified ? "已寄送（歷史）"
                   : "未寄送";
                 return (
                   <TableRow key={r.id}>
