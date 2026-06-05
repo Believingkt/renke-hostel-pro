@@ -158,7 +158,12 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           .select("*")
           .eq("order_id", orderId)
           .maybeSingle(),
-      ]);
+        supabase
+          .from("orders")
+          .select("order_date")
+          .eq("id", orderId)
+          .maybeSingle(),
+      ]) as any;
 
       const closerIds = (closerRoles ?? []).map((r) => r.user_id);
       const videoIds = (videoRoles ?? []).map((r) => r.user_id);
