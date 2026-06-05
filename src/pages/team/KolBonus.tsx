@@ -128,7 +128,7 @@ export default function KolBonus() {
 
   const fetchAll = async () => {
     setLoading(true);
-    const [kolRes, orderRes, commRes] = await Promise.all([
+    const [kolRes, orderRes, commRes, accRes] = await Promise.all([
       supabase
         .from("kol_profiles")
         .select(
@@ -150,21 +150,78 @@ export default function KolBonus() {
         .is("kol_id", null)
         .order("effective_from", { ascending: false })
         .order("created_at", { ascending: false }),
+      supabase.from("accommodation_info").select("id, name"),
     ]);
     if (kolRes.error) toast.error("載入 KOL 失敗：" + kolRes.error.message);
     if (orderRes.error) toast.error("載入訂單失敗：" + orderRes.error.message);
     if (commRes.error) toast.error("載入分潤設定失敗：" + commRes.error.message);
+    if (accRes.error) toast.error("載入館別失敗：" + accRes.error.message);
+
     const allOrders = (orderRes.data ?? []) as OrderRow[];
-    const activeCodes = new Set(
-      allOrders
-        .map((o) => (o.discount_code ?? "").trim().toUpperCase())
-        .filter(Boolean),
+    const allKols = (kolRes.data ?? []) as Array<{
+      id: string;
+      name: string | null;
+      cid_code: string | null;
+      venue_name: string | null;
+      accommodation_id: string | null;
+      public_token: string | null;
+      token_expires_at: string | null;
+    }>;
+    const accMap = new Map<string, string>(
+      ((accRes.data ?? []) as Array<{ id: string; name: string }>).map((a) => [
+        a.id,
+        a.name,
+      ]),
     );
-    const allKols = (kolRes.data ?? []) as KolRow[];
-    const filteredKols = allKols.filter((k) =>
-      activeCodes.has((k.cid_code ?? "").trim().toUpperCase()),
-    );
-    setRows(filteredKols);
+
+    // kol_profiles 索引：依 cid_code(大寫) 分組，再依 accommodation_id 對應
+    const profileByCodeAcc = new Map<string, typeof allKols[number]>(); // key: `${codeUpper}|${accId}`
+    const profileFallbackByCode = new Map<string, typeof allKols[number]>(); // key: codeUpper，僅收 accommodation_id 為 null 的那筆
+    for (const p of allKols) {
+      const code = (p.cid_code ?? "").trim().toUpperCase();
+      if (!code) continue;
+      if (p.accommodation_id) {
+        profileByCodeAcc.set(`${code}|${p.accommodation_id}`, p);
+      } else if (!profileFallbackByCode.has(code)) {
+        profileFallbackByCode.set(code, p);
+      }
+    }
+
+    // 以「有實際訂單的 cid_code + accommodation_id 組合」為單位建立列
+    const seen = new Set<string>();
+    const built: KolRow[] = [];
+    for (const o of allOrders) {
+      const code = (o.discount_code ?? "").trim().toUpperCase();
+      if (!code) continue;
+      const accId = o.accommodation_id ?? null;
+      const rowKey = `${code}|${accId ?? "null"}`;
+      if (seen.has(rowKey)) continue;
+      seen.add(rowKey);
+      const matched =
+        (accId && profileByCodeAcc.get(`${code}|${accId}`)) ||
+        profileFallbackByCode.get(code) ||
+        null;
+      built.push({
+        rowKey,
+        id: matched?.id ?? null,
+        name: matched?.name ?? null,
+        cid_code: matched?.cid_code ?? code,
+        accommodation_id: accId,
+        accommodation_name:
+          (accId && accMap.get(accId)) || matched?.venue_name || null,
+        public_token: matched?.public_token ?? null,
+        token_expires_at: matched?.token_expires_at ?? null,
+      });
+    }
+    // 排序：館別名稱 → cid_code
+    built.sort((a, b) => {
+      const an = a.accommodation_name ?? "";
+      const bn = b.accommodation_name ?? "";
+      if (an !== bn) return an.localeCompare(bn);
+      return (a.cid_code ?? "").localeCompare(b.cid_code ?? "");
+    });
+
+    setRows(built);
     setOrders(allOrders);
     setCommissions(((commRes.data ?? []) as any[]).map((c) => ({
       accommodation_id: c.accommodation_id,
