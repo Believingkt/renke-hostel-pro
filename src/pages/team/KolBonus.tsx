@@ -54,11 +54,16 @@ import { Separator } from "@/components/ui/separator";
 import { useTeam } from "@/components/team/TeamContext";
 
 interface KolRow {
-  id: string;
+  // 以「cid_code(大寫) + accommodation_id」為列的唯一鍵
+  rowKey: string;
+  // 對應 kol_profiles.id；若無 match 也無 fallback 則為 null
+  id: string | null;
   name: string | null;
   cid_code: string | null;
-  venue_name: string | null;
+  // 來自 orders 的 accommodation_id（該列的館別）
   accommodation_id: string | null;
+  // 由 accommodation_info 查得的館別名稱，fallback 用 kol_profiles.venue_name
+  accommodation_name: string | null;
   public_token: string | null;
   token_expires_at: string | null;
 }
@@ -123,7 +128,7 @@ export default function KolBonus() {
 
   const fetchAll = async () => {
     setLoading(true);
-    const [kolRes, orderRes, commRes] = await Promise.all([
+    const [kolRes, orderRes, commRes, accRes] = await Promise.all([
       supabase
         .from("kol_profiles")
         .select(
@@ -145,21 +150,78 @@ export default function KolBonus() {
         .is("kol_id", null)
         .order("effective_from", { ascending: false })
         .order("created_at", { ascending: false }),
+      supabase.from("accommodation_info").select("id, name"),
     ]);
     if (kolRes.error) toast.error("載入 KOL 失敗：" + kolRes.error.message);
     if (orderRes.error) toast.error("載入訂單失敗：" + orderRes.error.message);
     if (commRes.error) toast.error("載入分潤設定失敗：" + commRes.error.message);
+    if (accRes.error) toast.error("載入館別失敗：" + accRes.error.message);
+
     const allOrders = (orderRes.data ?? []) as OrderRow[];
-    const activeCodes = new Set(
-      allOrders
-        .map((o) => (o.discount_code ?? "").trim().toUpperCase())
-        .filter(Boolean),
+    const allKols = (kolRes.data ?? []) as Array<{
+      id: string;
+      name: string | null;
+      cid_code: string | null;
+      venue_name: string | null;
+      accommodation_id: string | null;
+      public_token: string | null;
+      token_expires_at: string | null;
+    }>;
+    const accMap = new Map<string, string>(
+      ((accRes.data ?? []) as Array<{ id: string; name: string }>).map((a) => [
+        a.id,
+        a.name,
+      ]),
     );
-    const allKols = (kolRes.data ?? []) as KolRow[];
-    const filteredKols = allKols.filter((k) =>
-      activeCodes.has((k.cid_code ?? "").trim().toUpperCase()),
-    );
-    setRows(filteredKols);
+
+    // kol_profiles 索引：依 cid_code(大寫) 分組，再依 accommodation_id 對應
+    const profileByCodeAcc = new Map<string, typeof allKols[number]>(); // key: `${codeUpper}|${accId}`
+    const profileFallbackByCode = new Map<string, typeof allKols[number]>(); // key: codeUpper，僅收 accommodation_id 為 null 的那筆
+    for (const p of allKols) {
+      const code = (p.cid_code ?? "").trim().toUpperCase();
+      if (!code) continue;
+      if (p.accommodation_id) {
+        profileByCodeAcc.set(`${code}|${p.accommodation_id}`, p);
+      } else if (!profileFallbackByCode.has(code)) {
+        profileFallbackByCode.set(code, p);
+      }
+    }
+
+    // 以「有實際訂單的 cid_code + accommodation_id 組合」為單位建立列
+    const seen = new Set<string>();
+    const built: KolRow[] = [];
+    for (const o of allOrders) {
+      const code = (o.discount_code ?? "").trim().toUpperCase();
+      if (!code) continue;
+      const accId = o.accommodation_id ?? null;
+      const rowKey = `${code}|${accId ?? "null"}`;
+      if (seen.has(rowKey)) continue;
+      seen.add(rowKey);
+      const matched =
+        (accId && profileByCodeAcc.get(`${code}|${accId}`)) ||
+        profileFallbackByCode.get(code) ||
+        null;
+      built.push({
+        rowKey,
+        id: matched?.id ?? null,
+        name: matched?.name ?? null,
+        cid_code: matched?.cid_code ?? code,
+        accommodation_id: accId,
+        accommodation_name:
+          (accId && accMap.get(accId)) || matched?.venue_name || null,
+        public_token: matched?.public_token ?? null,
+        token_expires_at: matched?.token_expires_at ?? null,
+      });
+    }
+    // 排序：館別名稱 → cid_code
+    built.sort((a, b) => {
+      const an = a.accommodation_name ?? "";
+      const bn = b.accommodation_name ?? "";
+      if (an !== bn) return an.localeCompare(bn);
+      return (a.cid_code ?? "").localeCompare(b.cid_code ?? "");
+    });
+
+    setRows(built);
     setOrders(allOrders);
     setCommissions(((commRes.data ?? []) as any[]).map((c) => ({
       accommodation_id: c.accommodation_id,
@@ -199,12 +261,13 @@ export default function KolBonus() {
   );
 
 
-  // 訂單依折扣碼分組（大小寫不敏感）
-  const ordersByCode = useMemo(() => {
+  // 訂單依「cid_code(大寫) + accommodation_id」分組，作為列的明細來源
+  const ordersByKey = useMemo(() => {
     const map = new Map<string, OrderRow[]>();
     for (const o of orders) {
-      const key = (o.discount_code ?? "").trim().toUpperCase();
-      if (!key) continue;
+      const code = (o.discount_code ?? "").trim().toUpperCase();
+      if (!code) continue;
+      const key = `${code}|${o.accommodation_id ?? "null"}`;
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(o);
     }
@@ -221,15 +284,14 @@ export default function KolBonus() {
     return Array.from(set).sort((a, b) => b - a);
   }, [orders, currentYear]);
 
-  // 根據年/月過濾 KOL：該 KOL 在選定區間內須至少有一筆 order_date；「全部月份」= 全期
+  // 根據年/月過濾：該列在選定區間內須至少有一筆 order_date 或 check_out_date；「全部月份」= 全期
   const filteredRows = useMemo(() => {
     const prefix =
       filterMonth === "all"
         ? null
         : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
     return rows.filter((k) => {
-      const code = (k.cid_code ?? "").trim().toUpperCase();
-      const list = ordersByCode.get(code) ?? [];
+      const list = ordersByKey.get(k.rowKey) ?? [];
       if (!prefix) return list.length > 0;
       return list.some(
         (o) =>
@@ -237,7 +299,7 @@ export default function KolBonus() {
           (o.order_status !== "cancelled" && o.check_out_date?.startsWith(prefix)),
       );
     });
-  }, [rows, ordersByCode, filterYear, filterMonth]);
+  }, [rows, ordersByKey, filterYear, filterMonth]);
 
   // 開啟 Drawer 時要帶入的月份：若選「全部月份」則用當月
   const drawerInitialMonth =
@@ -245,7 +307,7 @@ export default function KolBonus() {
       ? `${currentYear}-${String(currentMonthNum).padStart(2, "0")}`
       : `${filterYear}-${String(Number(filterMonth)).padStart(2, "0")}`;
 
-  // 每位 KOL 在當前篩選期間內的訂單/完成業績與分潤
+  // 每列在當前篩選期間內的訂單/完成業績與分潤
   const kolMetrics = useMemo(() => {
     const prefix =
       filterMonth === "all"
@@ -262,8 +324,7 @@ export default function KolBonus() {
       }
     >();
     for (const k of rows) {
-      const code = (k.cid_code ?? "").trim().toUpperCase();
-      const list = ordersByCode.get(code) ?? [];
+      const list = ordersByKey.get(k.rowKey) ?? [];
       let orderCount = 0;
       let orderRevenue = 0;
       let completedCount = 0;
@@ -288,7 +349,7 @@ export default function KolBonus() {
           commission += r * (rate / 100);
         }
       }
-      map.set(k.id, {
+      map.set(k.rowKey, {
         orderCount,
         orderRevenue,
         completedCount,
@@ -297,7 +358,7 @@ export default function KolBonus() {
       });
     }
     return map;
-  }, [rows, ordersByCode, getRate, filterYear, filterMonth]);
+  }, [rows, ordersByKey, getRate, filterYear, filterMonth]);
 
   const metricsLabel = filterMonth === "all" ? "全期" : "當月";
 
@@ -321,13 +382,13 @@ export default function KolBonus() {
     }
     setRows((prev) =>
       prev.map((r) =>
-        r.id === genDialog.id
+        r.id && genDialog.id && r.id === genDialog.id
           ? { ...r, public_token: newToken, token_expires_at: newExpires }
           : r,
       ),
     );
     setDrawerKol((prev) =>
-      prev && prev.id === genDialog.id
+      prev && prev.id && genDialog.id && prev.id === genDialog.id
         ? { ...prev, public_token: newToken, token_expires_at: newExpires }
         : prev,
     );
@@ -479,7 +540,7 @@ export default function KolBonus() {
                     </TableRow>
                   ) : (
                     filteredRows.map((r) => {
-                      const m = kolMetrics.get(r.id) ?? {
+                      const m = kolMetrics.get(r.rowKey) ?? {
                         orderCount: 0,
                         orderRevenue: 0,
                         completedCount: 0,
@@ -488,7 +549,7 @@ export default function KolBonus() {
                       };
                       return (
                         <TableRow
-                          key={r.id}
+                          key={r.rowKey}
                           className="cursor-pointer hover:bg-muted/50"
                           onClick={() => setDrawerKol(r)}
                         >
@@ -503,7 +564,7 @@ export default function KolBonus() {
                             {r.cid_code}
                           </TableCell>
                           <TableCell className="whitespace-nowrap">
-                            {r.venue_name || "—"}
+                            {r.accommodation_name || "—"}
                           </TableCell>
                           <TableCell className="text-right tabular-nums">
                             {m.orderCount}
@@ -578,7 +639,7 @@ export default function KolBonus() {
       <KolDetailDrawer
         kol={drawerKol}
         onClose={() => setDrawerKol(null)}
-        ordersByCode={ordersByCode}
+        ordersByKey={ordersByKey}
         getRate={getRate}
         initialMonth={drawerInitialMonth}
         onCopy={copyLink}
@@ -591,7 +652,7 @@ export default function KolBonus() {
 interface DetailProps {
   kol: KolRow | null;
   onClose: () => void;
-  ordersByCode: Map<string, OrderRow[]>;
+  ordersByKey: Map<string, OrderRow[]>;
   getRate: RateResolver;
   initialMonth: string;
   onCopy: (row: KolRow) => void;
@@ -601,7 +662,7 @@ interface DetailProps {
 function KolDetailDrawer({
   kol,
   onClose,
-  ordersByCode,
+  ordersByKey,
   getRate,
   initialMonth,
   onCopy,
@@ -612,12 +673,13 @@ function KolDetailDrawer({
   useEffect(() => {
     if (kol) setMonth(initialMonth);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kol?.id, initialMonth]);
+  }, [kol?.rowKey, initialMonth]);
 
   const matched = useMemo(() => {
-    if (!kol?.cid_code) return [];
-    return ordersByCode.get(kol.cid_code.trim().toUpperCase()) ?? [];
-  }, [kol, ordersByCode]);
+    if (!kol) return [];
+    return ordersByKey.get(kol.rowKey) ?? [];
+  }, [kol, ordersByKey]);
+  
 
   const monthOptions = useMemo(() => {
     const set = new Set<string>();
@@ -760,7 +822,7 @@ function KolDetailDrawer({
                   ) : (
                     orderList.map((o) => (
                       <TableRow key={o.id}>
-                        <TableCell>{kol?.venue_name || "—"}</TableCell>
+                        <TableCell>{kol?.accommodation_name || "—"}</TableCell>
                         <TableCell className="whitespace-nowrap font-mono text-xs">{o.order_number}</TableCell>
                         <TableCell className="font-mono">{o.discount_code}</TableCell>
                         <TableCell className="whitespace-nowrap text-xs">{o.order_date?.slice(0, 10) || "—"}</TableCell>
@@ -813,7 +875,7 @@ function KolDetailDrawer({
                       const amount = Math.round(revenue * (rate / 100));
                       return (
                         <TableRow key={o.id}>
-                          <TableCell className="whitespace-nowrap">{kol?.venue_name || "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{kol?.accommodation_name || "—"}</TableCell>
                           <TableCell className="whitespace-nowrap font-mono text-xs">{o.order_number}</TableCell>
                           <TableCell className="whitespace-nowrap font-mono">{o.discount_code}</TableCell>
                           <TableCell className="whitespace-nowrap text-xs">{o.order_date?.slice(0, 10) || "—"}</TableCell>
