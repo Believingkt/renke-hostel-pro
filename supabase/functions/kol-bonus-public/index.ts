@@ -92,7 +92,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           accommodation_id: kol.accommodation_id,
           token_expires_at: kol.token_expires_at,
         },
-        orders: orderRes.data ?? [],
+        orders: filteredOrders,
         commissions: (commRes.data ?? []).map((c: any) => ({
           accommodation_id: c.accommodation_id,
           effective_from: c.effective_from,
