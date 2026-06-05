@@ -72,6 +72,11 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [memberNumber, setMemberNumber] = useState("");
   const [isExcluded, setIsExcluded] = useState(false);
   const [exclusionNote, setExclusionNote] = useState("");
+  const [inquiryDate, setInquiryDate] = useState<string>("");
+  const [voucherUsed, setVoucherUsed] = useState(false);
+  const [addonNote, setAddonNote] = useState("");
+  const [addonAmount, setAddonAmount] = useState<number>(0);
+  const [orderDate, setOrderDate] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   // Inline add option inputs
@@ -92,6 +97,11 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setMemberNumber("");
       setIsExcluded(false);
       setExclusionNote("");
+      setInquiryDate("");
+      setVoucherUsed(false);
+      setAddonNote("");
+      setAddonAmount(0);
+      setOrderDate(null);
       setNewTrafficSource("");
       setNewBookingMethod("");
     }
