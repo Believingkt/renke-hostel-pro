@@ -562,6 +562,50 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
             />
           </div>
 
+          {/* 詢問日期 */}
+          <div className="space-y-2">
+            <Label>詢問日期</Label>
+            <Input
+              type="date"
+              value={inquiryDate}
+              onChange={(e) => setInquiryDate(e.target.value)}
+            />
+          </div>
+
+          {/* 使用住宿券 */}
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="voucher_used"
+              checked={voucherUsed}
+              onCheckedChange={(v) => setVoucherUsed(v === true)}
+            />
+            <Label htmlFor="voucher_used" className="cursor-pointer">
+              使用住宿券
+            </Label>
+          </div>
+
+          {/* 加購備註 */}
+          <div className="space-y-2">
+            <Label>加購備註</Label>
+            <Input
+              value={addonNote}
+              onChange={(e) => setAddonNote(e.target.value)}
+              placeholder="輸入加購備註"
+            />
+          </div>
+
+          {/* 加購金額 */}
+          <div className="space-y-2">
+            <Label>加購金額</Label>
+            <Input
+              type="number"
+              value={addonAmount}
+              onChange={(e) =>
+                setAddonAmount(e.target.value === "" ? 0 : Number(e.target.value))
+              }
+            />
+          </div>
+
           {/* 不分潤 */}
           <div className="space-y-2 border-t pt-4">
             <div className="flex items-center gap-2">
