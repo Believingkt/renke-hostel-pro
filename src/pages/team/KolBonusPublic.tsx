@@ -154,7 +154,10 @@ export default function KolBonusPublic() {
     return Array.from(set).sort((a, b) => b - a);
   }, [orders, currentYear]);
 
-  const prefix = `${filterYear}-${String(Number(filterMonth)).padStart(2, "0")}`;
+  const isYearAll = filterMonth === "all";
+  const prefix = isYearAll
+    ? `${filterYear}-`
+    : `${filterYear}-${String(Number(filterMonth)).padStart(2, "0")}`;
 
   const orderList = useMemo(
     () => orders.filter((o) => o.order_date?.startsWith(prefix)),
@@ -189,14 +192,16 @@ export default function KolBonusPublic() {
     return { count, revenue, commission: Math.round(commission) };
   }, [completedList, getRate]);
 
-  const payoutDate = useMemo(() => {
-    const y = filterYear;
-    const m = Number(filterMonth);
+  const computePayoutDate = (checkOut: string | null | undefined): string => {
+    if (!checkOut) return "—";
+    const [ys, ms] = checkOut.slice(0, 10).split("-");
+    const y = Number(ys);
+    const m = Number(ms);
     if (!y || !m) return "—";
     const ny = m === 12 ? y + 1 : y;
     const nm = m === 12 ? 1 : m + 1;
     return `${ny}-${String(nm).padStart(2, "0")}-10`;
-  }, [filterYear, filterMonth]);
+  };
 
   if (loading) {
     return (
@@ -264,6 +269,7 @@ export default function KolBonusPublic() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">整年</SelectItem>
                   {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
                     <SelectItem key={m} value={String(m)}>
                       {m} 月
@@ -366,7 +372,7 @@ export default function KolBonusPublic() {
                             <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(revenue)}</TableCell>
                             <TableCell className="whitespace-nowrap text-right tabular-nums">{rate}%</TableCell>
                             <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(amount)}</TableCell>
-                            <TableCell className="whitespace-nowrap text-xs">{payoutDate}</TableCell>
+                            <TableCell className="whitespace-nowrap text-xs">{computePayoutDate(o.check_out_date)}</TableCell>
                           </TableRow>
                         );
                       })
