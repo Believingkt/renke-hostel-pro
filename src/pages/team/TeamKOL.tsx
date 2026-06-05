@@ -650,8 +650,9 @@ function InvitationsTab({
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   // 前端排序（三段循環：none → asc → desc → none）
-  type SortKey = "code_cid" | "rarity" | "accommodation" | "check_in_date" | "scout" | "publish_date";
+  type SortKey = "qualified" | "rarity" | "accommodation" | "check_in_date" | "scout" | "booking_status" | "contract_progress" | "publish_date";
   const [sortField, setSortField] = useState<SortKey | "">("");
+
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const handleSort = (field: SortKey) => {
     if (sortField !== field) {
@@ -674,7 +675,7 @@ function InvitationsTab({
     if (!sortField) return filtered;
     const getVal = (r: KolRow): string | number | null => {
       switch (sortField) {
-        case "code_cid": return (r.cid_code ?? (r as any).short_url ?? null);
+        case "qualified": return r.kpi_qualified ? 1 : 0;
         case "rarity": {
           const idx = r.rarity ? RARITY_OPTIONS.indexOf(r.rarity as Rarity) : -1;
           return idx < 0 ? Number.POSITIVE_INFINITY : idx;
@@ -682,9 +683,15 @@ function InvitationsTab({
         case "accommodation": return (r as any)._accommodation_name ?? null;
         case "check_in_date": return r.check_in_date ?? null;
         case "scout": return (r as any)._scout_name ?? null;
+        case "booking_status": return r.booking_status ?? null;
+        case "contract_progress": {
+          const cs = computeContractProgress(r.publish_url, r.publish_date, r.contract_file_url);
+          return cs?.empty ? null : (cs?.label ?? null);
+        }
         case "publish_date": return r.publish_date ?? null;
       }
     };
+
     const arr = [...filtered];
     arr.sort((a, b) => {
       const av = getVal(a);
@@ -1183,15 +1190,16 @@ function InvitationsTab({
               <TableHeader>
                 <TableRow>
                   <TableHead>KOL 名稱</TableHead>
-                  <SortableHead field="code_cid">折扣碼 / CID</SortableHead>
+                  <TableHead>折扣碼 / CID</TableHead>
                   <SortableHead field="rarity">稀有度</SortableHead>
-                  <TableHead>符合資格</TableHead>
+                  <SortableHead field="qualified">符合資格</SortableHead>
                   <SortableHead field="accommodation">館別</SortableHead>
                   <SortableHead field="check_in_date">入住日期</SortableHead>
                   <TableHead>星期</TableHead>
                   <SortableHead field="scout">邀約人</SortableHead>
-                  <TableHead>狀態</TableHead>
-                  <TableHead>合約進度</TableHead>
+                  <SortableHead field="booking_status">狀態</SortableHead>
+                  <SortableHead field="contract_progress">合約進度</SortableHead>
+
                   <TableHead>任務</TableHead>
                   <SortableHead field="publish_date">發布日期</SortableHead>
                   <TableHead className="text-right">操作</TableHead>
