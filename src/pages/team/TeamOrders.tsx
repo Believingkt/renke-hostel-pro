@@ -795,10 +795,8 @@ export default function TeamOrders() {
 
               {/* 編輯欄位 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-              {/* 編輯欄位 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* 成交人 */}
+
                 <div className="space-y-2">
                   <Label className="text-sm">成交人</Label>
                   <Select
