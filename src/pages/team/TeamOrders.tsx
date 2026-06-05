@@ -81,8 +81,10 @@ interface MetaRow {
   member_number?: string | null;
   inquiry_date?: string | null;
   voucher_used?: boolean | null;
+  voucher_count?: number | null;
   addon_note?: string | null;
   addon_amount?: number | null;
+
 }
 
 
@@ -164,8 +166,10 @@ export default function TeamOrders() {
       member_number: null,
       inquiry_date: null,
       voucher_used: false,
+      voucher_count: 0,
       addon_note: null,
       addon_amount: 0,
+
     };
   }
 
@@ -365,7 +369,7 @@ export default function TeamOrders() {
               `order_id, closer_id, video_creator_id, scout_id, traffic_source,
                booking_method, ad_id, is_excluded, closer_assisted,
                scout_commission_rate, closer_commission_rate, exclusion_note,
-               franchise_project, member_number, inquiry_date, voucher_used, addon_note, addon_amount`
+               franchise_project, member_number, inquiry_date, voucher_used, voucher_count, addon_note, addon_amount`
             )
             .in("order_id", batchIds);
           if (metaErr) throw metaErr;
@@ -441,8 +445,10 @@ export default function TeamOrders() {
       member_number: o.meta?.member_number ?? null,
       inquiry_date: o.meta?.inquiry_date ?? null,
       voucher_used: o.meta?.voucher_used ?? false,
+      voucher_count: o.meta?.voucher_count ?? 0,
       addon_note: o.meta?.addon_note ?? null,
       addon_amount: o.meta?.addon_amount ?? 0,
+
     });
     setEditOpen(true);
   }
@@ -477,8 +483,12 @@ export default function TeamOrders() {
         member_number: form.member_number,
         inquiry_date: form.inquiry_date,
         voucher_used: !!form.voucher_used,
+        voucher_count: Number.isFinite(form.voucher_count as number)
+          ? Math.max(0, Math.trunc(form.voucher_count as number))
+          : 0,
         addon_note: form.addon_note,
         addon_amount: form.addon_amount ?? 0,
+
       };
 
       const exists = !!editOrder.meta;
