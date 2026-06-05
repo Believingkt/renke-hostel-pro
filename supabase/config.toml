@@ -158,3 +158,6 @@ verify_jwt = false
 
 [functions.owlting-change-notify]
 verify_jwt = false
+
+[functions.kol-bonus-public]
+verify_jwt = false

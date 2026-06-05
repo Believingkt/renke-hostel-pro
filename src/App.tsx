@@ -91,6 +91,7 @@ const TeamKOL = lazy(() => import("./pages/team/TeamKOL"));
 const TeamKolVenueConfirm = lazy(() => import("./pages/team/TeamKolVenueConfirm"));
 const TeamCommission = lazy(() => import("./pages/team/TeamCommission"));
 const KolBonus = lazy(() => import("./pages/team/KolBonus"));
+const KolBonusPublic = lazy(() => import("./pages/team/KolBonusPublic"));
 const TeamNotification = lazy(() => import("./pages/team/TeamNotification"));
 const TeamAds = lazy(() => import("./pages/team/TeamAds"));
 const TeamFranchise = lazy(() => import("./pages/team/TeamFranchise"));
@@ -463,6 +464,9 @@ function App() {
                       {/* HQ 與 headquarters 路由（不放入 alias 樹下） */}
                       <Route path="/hq-auth" element={<HQAuth />} />
                       <Route path="/team-auth" element={<TeamAuth />} />
+                      <Route path="/kol/bonus/:token" element={
+                        <Suspense fallback={null}><KolBonusPublic /></Suspense>
+                      } />
                       <Route path="/hq/ai-training" element={
                         <Suspense fallback={<DashboardSkeleton />}><AiTrainingLayout /></Suspense>
                       }>
