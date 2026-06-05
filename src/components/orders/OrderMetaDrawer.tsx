@@ -72,6 +72,11 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [memberNumber, setMemberNumber] = useState("");
   const [isExcluded, setIsExcluded] = useState(false);
   const [exclusionNote, setExclusionNote] = useState("");
+  const [inquiryDate, setInquiryDate] = useState<string>("");
+  const [voucherUsed, setVoucherUsed] = useState(false);
+  const [addonNote, setAddonNote] = useState("");
+  const [addonAmount, setAddonAmount] = useState<number>(0);
+  const [orderDate, setOrderDate] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   // Inline add option inputs
@@ -92,6 +97,11 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setMemberNumber("");
       setIsExcluded(false);
       setExclusionNote("");
+      setInquiryDate("");
+      setVoucherUsed(false);
+      setAddonNote("");
+      setAddonAmount(0);
+      setOrderDate(null);
       setNewTrafficSource("");
       setNewBookingMethod("");
     }
@@ -112,6 +122,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         { data: bmRows },
         { data: fpRows },
         { data: existingMeta },
+        { data: orderRow },
       ] = await Promise.all([
         supabase.auth.getSession(),
         supabase
@@ -148,7 +159,12 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           .select("*")
           .eq("order_id", orderId)
           .maybeSingle(),
-      ]);
+        supabase
+          .from("orders")
+          .select("order_date")
+          .eq("id", orderId)
+          .maybeSingle(),
+      ]) as any;
 
       const closerIds = (closerRoles ?? []).map((r) => r.user_id);
       const videoIds = (videoRoles ?? []).map((r) => r.user_id);
@@ -182,6 +198,8 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setBookingMethods((bmRows ?? []) as OptionRow[]);
       setFranchiseProjects((fpRows ?? []) as FranchiseProject[]);
 
+      setOrderDate((orderRow as { order_date?: string | null } | null)?.order_date ?? null);
+
       if (existingMeta) {
         const m = existingMeta as Record<string, unknown>;
         setCloserId((m.closer_id as string) ?? NONE);
@@ -193,6 +211,10 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         setMemberNumber((m.member_number as string) ?? "");
         setIsExcluded(Boolean(m.is_excluded));
         setExclusionNote((m.exclusion_note as string) ?? "");
+        setInquiryDate((m.inquiry_date as string) ?? "");
+        setVoucherUsed(Boolean(m.voucher_used));
+        setAddonNote((m.addon_note as string) ?? "");
+        setAddonAmount(Number(m.addon_amount ?? 0));
       } else if (uid && closerIds.includes(uid)) {
         // 預設成交人為目前登入者(若身分為 closer)
         setCloserId(uid);
@@ -312,6 +334,10 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         member_number: memberNumber.trim() || null,
         is_excluded: isExcluded,
         exclusion_note: isExcluded ? exclusionNote.trim() || null : null,
+        inquiry_date: inquiryDate || null,
+        voucher_used: voucherUsed,
+        addon_note: addonNote.trim() || null,
+        addon_amount: Number.isFinite(addonAmount) ? addonAmount : 0,
         import_source: "manual",
         filled_by: currentUserId,
         filled_at: new Date().toISOString(),
@@ -347,6 +373,12 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         </SheetHeader>
 
         <div className="flex-1 space-y-4 py-4">
+          {/* 下單日(唯讀) */}
+          <div className="space-y-1 p-3 rounded-md bg-muted/40">
+            <Label className="text-xs text-muted-foreground">下單日</Label>
+            <div className="text-sm">{orderDate || "-"}</div>
+          </div>
+
           {/* 成交人 */}
           <div className="space-y-2">
             <Label>成交人</Label>
@@ -527,6 +559,50 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
               value={memberNumber}
               onChange={(e) => setMemberNumber(e.target.value)}
               placeholder="輸入會員編號"
+            />
+          </div>
+
+          {/* 詢問日期 */}
+          <div className="space-y-2">
+            <Label>詢問日期</Label>
+            <Input
+              type="date"
+              value={inquiryDate}
+              onChange={(e) => setInquiryDate(e.target.value)}
+            />
+          </div>
+
+          {/* 使用住宿券 */}
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="voucher_used"
+              checked={voucherUsed}
+              onCheckedChange={(v) => setVoucherUsed(v === true)}
+            />
+            <Label htmlFor="voucher_used" className="cursor-pointer">
+              使用住宿券
+            </Label>
+          </div>
+
+          {/* 加購備註 */}
+          <div className="space-y-2">
+            <Label>加購備註</Label>
+            <Input
+              value={addonNote}
+              onChange={(e) => setAddonNote(e.target.value)}
+              placeholder="輸入加購備註"
+            />
+          </div>
+
+          {/* 加購金額 */}
+          <div className="space-y-2">
+            <Label>加購金額</Label>
+            <Input
+              type="number"
+              value={addonAmount}
+              onChange={(e) =>
+                setAddonAmount(e.target.value === "" ? 0 : Number(e.target.value))
+              }
             />
           </div>
 

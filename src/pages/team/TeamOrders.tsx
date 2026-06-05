@@ -58,9 +58,31 @@ interface OrderRow {
   order_source: string | null;
   ota_channel: string | null;
   accommodation_id: string;
+  order_date: string | null;
   created_at: string;
   accommodation_name: string;
   meta: MetaRow | null;
+}
+
+
+interface MetaRow {
+  closer_id: string | null;
+  video_creator_id: string | null;
+  scout_id: string | null;
+  traffic_source: string | null;
+  booking_method: string | null;
+  ad_id: string | null;
+  is_excluded: boolean | null;
+  closer_assisted: boolean | null;
+  scout_commission_rate: number | null;
+  closer_commission_rate: number | null;
+  exclusion_note?: string | null;
+  franchise_project?: string | null;
+  member_number?: string | null;
+  inquiry_date?: string | null;
+  voucher_used?: boolean | null;
+  addon_note?: string | null;
+  addon_amount?: number | null;
 }
 
 
@@ -140,6 +162,10 @@ export default function TeamOrders() {
       exclusion_note: null,
       franchise_project: null,
       member_number: null,
+      inquiry_date: null,
+      voucher_used: false,
+      addon_note: null,
+      addon_amount: 0,
     };
   }
 
@@ -317,7 +343,7 @@ export default function TeamOrders() {
           .from("orders")
           .select(
             `id, order_number, guest_name, check_in_date, check_out_date,
-             final_price, discount_code, order_source, ota_channel, accommodation_id, created_at`
+             final_price, discount_code, order_source, ota_channel, accommodation_id, order_date, created_at`
           )
           .neq("guest_name", "保留單")
           .order("created_at", { ascending: false })
@@ -339,7 +365,7 @@ export default function TeamOrders() {
               `order_id, closer_id, video_creator_id, scout_id, traffic_source,
                booking_method, ad_id, is_excluded, closer_assisted,
                scout_commission_rate, closer_commission_rate, exclusion_note,
-               franchise_project, member_number`
+               franchise_project, member_number, inquiry_date, voucher_used, addon_note, addon_amount`
             )
             .in("order_id", batchIds);
           if (metaErr) throw metaErr;
@@ -362,7 +388,7 @@ export default function TeamOrders() {
         order_source: o.order_source,
         ota_channel: o.ota_channel,
         accommodation_id: o.accommodation_id,
-
+        order_date: o.order_date ?? null,
         created_at: o.created_at,
         accommodation_name: accMap.get(o.accommodation_id) || "-",
         meta: metaMap.get(o.id) || null,
@@ -413,6 +439,10 @@ export default function TeamOrders() {
       exclusion_note: o.meta?.exclusion_note ?? null,
       franchise_project: o.meta?.franchise_project ?? null,
       member_number: o.meta?.member_number ?? null,
+      inquiry_date: o.meta?.inquiry_date ?? null,
+      voucher_used: o.meta?.voucher_used ?? false,
+      addon_note: o.meta?.addon_note ?? null,
+      addon_amount: o.meta?.addon_amount ?? 0,
     });
     setEditOpen(true);
   }
@@ -445,6 +475,10 @@ export default function TeamOrders() {
         exclusion_note: form.exclusion_note,
         franchise_project: form.franchise_project,
         member_number: form.member_number,
+        inquiry_date: form.inquiry_date,
+        voucher_used: !!form.voucher_used,
+        addon_note: form.addon_note,
+        addon_amount: form.addon_amount ?? 0,
       };
 
       const exists = !!editOrder.meta;
@@ -745,6 +779,7 @@ export default function TeamOrders() {
                 <ReadField label="折扣碼" value={editOrder.discount_code || "-"} />
                 <ReadField label="來源" value={editOrder.order_source || "-"} />
                 <ReadField label="訂房方式" value={editOrder.ota_channel || "-"} />
+                <ReadField label="下單日" value={editOrder.order_date || "-"} />
               </div>
 
 
@@ -846,6 +881,58 @@ export default function TeamOrders() {
                       }))
                     }
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm">詢問日期</Label>
+                  <Input
+                    type="date"
+                    className="text-base"
+                    value={form.inquiry_date ?? ""}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, inquiry_date: e.target.value || null }))
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm">加購備註</Label>
+                  <Input
+                    className="text-base"
+                    value={form.addon_note ?? ""}
+                    placeholder="輸入加購備註"
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, addon_note: e.target.value || null }))
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm">加購金額</Label>
+                  <Input
+                    type="number"
+                    className="text-base"
+                    value={form.addon_amount ?? 0}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        addon_amount: e.target.value === "" ? 0 : Number(e.target.value),
+                      }))
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 pt-6">
+                  <Checkbox
+                    id="voucher_used"
+                    checked={!!form.voucher_used}
+                    onCheckedChange={(v) =>
+                      setForm((f) => ({ ...f, voucher_used: !!v }))
+                    }
+                  />
+                  <Label htmlFor="voucher_used" className="cursor-pointer text-sm">
+                    使用住宿券
+                  </Label>
                 </div>
               </div>
 

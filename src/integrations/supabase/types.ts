@@ -3743,6 +3743,8 @@ export type Database = {
         Row: {
           accommodation_id: string | null
           ad_id: string | null
+          addon_amount: number | null
+          addon_note: string | null
           booking_method: string | null
           closer_assisted: boolean | null
           closer_commission_rate: number | null
@@ -3754,6 +3756,7 @@ export type Database = {
           id: string
           import_source: string | null
           influencer_cid: string | null
+          inquiry_date: string | null
           is_excluded: boolean | null
           kol_commission_only: boolean | null
           member_number: string | null
@@ -3763,10 +3766,13 @@ export type Database = {
           traffic_source: string | null
           updated_at: string | null
           video_creator_id: string | null
+          voucher_used: boolean | null
         }
         Insert: {
           accommodation_id?: string | null
           ad_id?: string | null
+          addon_amount?: number | null
+          addon_note?: string | null
           booking_method?: string | null
           closer_assisted?: boolean | null
           closer_commission_rate?: number | null
@@ -3778,6 +3784,7 @@ export type Database = {
           id?: string
           import_source?: string | null
           influencer_cid?: string | null
+          inquiry_date?: string | null
           is_excluded?: boolean | null
           kol_commission_only?: boolean | null
           member_number?: string | null
@@ -3787,10 +3794,13 @@ export type Database = {
           traffic_source?: string | null
           updated_at?: string | null
           video_creator_id?: string | null
+          voucher_used?: boolean | null
         }
         Update: {
           accommodation_id?: string | null
           ad_id?: string | null
+          addon_amount?: number | null
+          addon_note?: string | null
           booking_method?: string | null
           closer_assisted?: boolean | null
           closer_commission_rate?: number | null
@@ -3802,6 +3812,7 @@ export type Database = {
           id?: string
           import_source?: string | null
           influencer_cid?: string | null
+          inquiry_date?: string | null
           is_excluded?: boolean | null
           kol_commission_only?: boolean | null
           member_number?: string | null
@@ -3811,6 +3822,7 @@ export type Database = {
           traffic_source?: string | null
           updated_at?: string | null
           video_creator_id?: string | null
+          voucher_used?: boolean | null
         }
         Relationships: [
           {
