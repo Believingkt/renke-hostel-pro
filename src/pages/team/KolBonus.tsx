@@ -382,13 +382,13 @@ export default function KolBonus() {
     }
     setRows((prev) =>
       prev.map((r) =>
-        r.id === genDialog.id
+        r.id && genDialog.id && r.id === genDialog.id
           ? { ...r, public_token: newToken, token_expires_at: newExpires }
           : r,
       ),
     );
     setDrawerKol((prev) =>
-      prev && prev.id === genDialog.id
+      prev && prev.id && genDialog.id && prev.id === genDialog.id
         ? { ...prev, public_token: newToken, token_expires_at: newExpires }
         : prev,
     );
