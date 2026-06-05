@@ -1190,15 +1190,16 @@ function InvitationsTab({
               <TableHeader>
                 <TableRow>
                   <TableHead>KOL 名稱</TableHead>
-                  <SortableHead field="code_cid">折扣碼 / CID</SortableHead>
+                  <TableHead>折扣碼 / CID</TableHead>
                   <SortableHead field="rarity">稀有度</SortableHead>
-                  <TableHead>符合資格</TableHead>
+                  <SortableHead field="qualified">符合資格</SortableHead>
                   <SortableHead field="accommodation">館別</SortableHead>
                   <SortableHead field="check_in_date">入住日期</SortableHead>
                   <TableHead>星期</TableHead>
                   <SortableHead field="scout">邀約人</SortableHead>
-                  <TableHead>狀態</TableHead>
-                  <TableHead>合約進度</TableHead>
+                  <SortableHead field="booking_status">狀態</SortableHead>
+                  <SortableHead field="contract_progress">合約進度</SortableHead>
+
                   <TableHead>任務</TableHead>
                   <SortableHead field="publish_date">發布日期</SortableHead>
                   <TableHead className="text-right">操作</TableHead>
