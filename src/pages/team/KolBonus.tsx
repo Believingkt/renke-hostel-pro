@@ -54,11 +54,16 @@ import { Separator } from "@/components/ui/separator";
 import { useTeam } from "@/components/team/TeamContext";
 
 interface KolRow {
-  id: string;
+  // 以「cid_code(大寫) + accommodation_id」為列的唯一鍵
+  rowKey: string;
+  // 對應 kol_profiles.id；若無 match 也無 fallback 則為 null
+  id: string | null;
   name: string | null;
   cid_code: string | null;
-  venue_name: string | null;
+  // 來自 orders 的 accommodation_id（該列的館別）
   accommodation_id: string | null;
+  // 由 accommodation_info 查得的館別名稱，fallback 用 kol_profiles.venue_name
+  accommodation_name: string | null;
   public_token: string | null;
   token_expires_at: string | null;
 }
