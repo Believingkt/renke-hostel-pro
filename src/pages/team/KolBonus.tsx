@@ -739,22 +739,47 @@ function KolDetailDrawer({
                   <span className="text-xs text-muted-foreground">
                     到期日：{kol.token_expires_at?.slice(0, 10)}
                   </span>
-                  <Button size="sm" variant="outline" onClick={() => onCopy(kol)}>
-                    <Copy className="h-3 w-3 mr-1" />
-                    複製連結
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" onClick={() => onCopy(kol)}>
+                      <Copy className="h-3 w-3 mr-1" />
+                      複製連結
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="sm" variant="outline" disabled={saving}>
+                          <LinkIcon className="h-3 w-3 mr-1" />
+                          重新產生
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>重新產生連結</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            重新產生後舊連結將立即失效，確定繼續？
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>取消</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => onGenerate(kol)}>
+                            確認重新產生
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
               ) : (
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-xs text-muted-foreground">
-                    {kol.public_token ? "連結已過期" : "尚未產生連結"}
+                    尚未產生連結
                   </span>
-                  <Button size="sm" onClick={() => onGenerate(kol)}>
+                  <Button size="sm" onClick={() => onGenerate(kol)} disabled={saving}>
                     <LinkIcon className="h-3 w-3 mr-1" />
                     產生連結
                   </Button>
                 </div>
               )}
+
             </div>
           )}
 
