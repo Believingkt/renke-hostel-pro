@@ -261,12 +261,13 @@ export default function KolBonus() {
   );
 
 
-  // 訂單依折扣碼分組（大小寫不敏感）
-  const ordersByCode = useMemo(() => {
+  // 訂單依「cid_code(大寫) + accommodation_id」分組，作為列的明細來源
+  const ordersByKey = useMemo(() => {
     const map = new Map<string, OrderRow[]>();
     for (const o of orders) {
-      const key = (o.discount_code ?? "").trim().toUpperCase();
-      if (!key) continue;
+      const code = (o.discount_code ?? "").trim().toUpperCase();
+      if (!code) continue;
+      const key = `${code}|${o.accommodation_id ?? "null"}`;
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(o);
     }
@@ -283,15 +284,14 @@ export default function KolBonus() {
     return Array.from(set).sort((a, b) => b - a);
   }, [orders, currentYear]);
 
-  // 根據年/月過濾 KOL：該 KOL 在選定區間內須至少有一筆 order_date；「全部月份」= 全期
+  // 根據年/月過濾：該列在選定區間內須至少有一筆 order_date 或 check_out_date；「全部月份」= 全期
   const filteredRows = useMemo(() => {
     const prefix =
       filterMonth === "all"
         ? null
         : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
     return rows.filter((k) => {
-      const code = (k.cid_code ?? "").trim().toUpperCase();
-      const list = ordersByCode.get(code) ?? [];
+      const list = ordersByKey.get(k.rowKey) ?? [];
       if (!prefix) return list.length > 0;
       return list.some(
         (o) =>
@@ -299,7 +299,7 @@ export default function KolBonus() {
           (o.order_status !== "cancelled" && o.check_out_date?.startsWith(prefix)),
       );
     });
-  }, [rows, ordersByCode, filterYear, filterMonth]);
+  }, [rows, ordersByKey, filterYear, filterMonth]);
 
   // 開啟 Drawer 時要帶入的月份：若選「全部月份」則用當月
   const drawerInitialMonth =
@@ -307,7 +307,7 @@ export default function KolBonus() {
       ? `${currentYear}-${String(currentMonthNum).padStart(2, "0")}`
       : `${filterYear}-${String(Number(filterMonth)).padStart(2, "0")}`;
 
-  // 每位 KOL 在當前篩選期間內的訂單/完成業績與分潤
+  // 每列在當前篩選期間內的訂單/完成業績與分潤
   const kolMetrics = useMemo(() => {
     const prefix =
       filterMonth === "all"
@@ -324,8 +324,7 @@ export default function KolBonus() {
       }
     >();
     for (const k of rows) {
-      const code = (k.cid_code ?? "").trim().toUpperCase();
-      const list = ordersByCode.get(code) ?? [];
+      const list = ordersByKey.get(k.rowKey) ?? [];
       let orderCount = 0;
       let orderRevenue = 0;
       let completedCount = 0;
@@ -350,7 +349,7 @@ export default function KolBonus() {
           commission += r * (rate / 100);
         }
       }
-      map.set(k.id, {
+      map.set(k.rowKey, {
         orderCount,
         orderRevenue,
         completedCount,
