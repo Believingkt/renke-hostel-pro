@@ -679,7 +679,7 @@ function KolDetailDrawer({
     if (!kol) return [];
     return ordersByKey.get(kol.rowKey) ?? [];
   }, [kol, ordersByKey]);
-  }, [kol, ordersByCode]);
+  
 
   const monthOptions = useMemo(() => {
     const set = new Set<string>();
