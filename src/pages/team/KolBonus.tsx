@@ -822,7 +822,7 @@ function KolDetailDrawer({
                   ) : (
                     orderList.map((o) => (
                       <TableRow key={o.id}>
-                        <TableCell>{kol?.venue_name || "—"}</TableCell>
+                        <TableCell>{kol?.accommodation_name || "—"}</TableCell>
                         <TableCell className="whitespace-nowrap font-mono text-xs">{o.order_number}</TableCell>
                         <TableCell className="font-mono">{o.discount_code}</TableCell>
                         <TableCell className="whitespace-nowrap text-xs">{o.order_date?.slice(0, 10) || "—"}</TableCell>
@@ -875,7 +875,7 @@ function KolDetailDrawer({
                       const amount = Math.round(revenue * (rate / 100));
                       return (
                         <TableRow key={o.id}>
-                          <TableCell className="whitespace-nowrap">{kol?.venue_name || "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{kol?.accommodation_name || "—"}</TableCell>
                           <TableCell className="whitespace-nowrap font-mono text-xs">{o.order_number}</TableCell>
                           <TableCell className="whitespace-nowrap font-mono">{o.discount_code}</TableCell>
                           <TableCell className="whitespace-nowrap text-xs">{o.order_date?.slice(0, 10) || "—"}</TableCell>
