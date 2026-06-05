@@ -58,9 +58,31 @@ interface OrderRow {
   order_source: string | null;
   ota_channel: string | null;
   accommodation_id: string;
+  order_date: string | null;
   created_at: string;
   accommodation_name: string;
   meta: MetaRow | null;
+}
+
+
+interface MetaRow {
+  closer_id: string | null;
+  video_creator_id: string | null;
+  scout_id: string | null;
+  traffic_source: string | null;
+  booking_method: string | null;
+  ad_id: string | null;
+  is_excluded: boolean | null;
+  closer_assisted: boolean | null;
+  scout_commission_rate: number | null;
+  closer_commission_rate: number | null;
+  exclusion_note?: string | null;
+  franchise_project?: string | null;
+  member_number?: string | null;
+  inquiry_date?: string | null;
+  voucher_used?: boolean | null;
+  addon_note?: string | null;
+  addon_amount?: number | null;
 }
 
 
