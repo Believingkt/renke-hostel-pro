@@ -1183,22 +1183,23 @@ function InvitationsTab({
               <TableHeader>
                 <TableRow>
                   <TableHead>KOL 名稱</TableHead>
-                  <TableHead>折扣碼 / CID</TableHead>
-                  <TableHead>稀有度</TableHead>
+                  <SortableHead field="code_cid">折扣碼 / CID</SortableHead>
+                  <SortableHead field="rarity">稀有度</SortableHead>
                   <TableHead>符合資格</TableHead>
-                  <TableHead>館別</TableHead>
-                  <TableHead>入住日期</TableHead>
+                  <SortableHead field="accommodation">館別</SortableHead>
+                  <SortableHead field="check_in_date">入住日期</SortableHead>
                   <TableHead>星期</TableHead>
-                  <TableHead>邀約人</TableHead>
+                  <SortableHead field="scout">邀約人</SortableHead>
                   <TableHead>狀態</TableHead>
                   <TableHead>合約進度</TableHead>
                   <TableHead>任務</TableHead>
-                  <TableHead>發布日期</TableHead>
+                  <SortableHead field="publish_date">發布日期</SortableHead>
                   <TableHead className="text-right">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((r) => {
+                {sortedRows.map((r) => {
+
                   const igUrl = r.ig_handle || null;
                   const contractStatus = computeContractProgress(r.publish_url, r.publish_date, r.contract_file_url);
                   const codeOrCidValue = r.cid_code ?? r.short_url ?? null;
