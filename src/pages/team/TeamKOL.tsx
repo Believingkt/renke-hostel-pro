@@ -649,6 +649,70 @@ function InvitationsTab({
   const filtered = rows;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
+  // 前端排序（三段循環：none → asc → desc → none）
+  type SortKey = "code_cid" | "rarity" | "accommodation" | "check_in_date" | "scout" | "publish_date";
+  const [sortField, setSortField] = useState<SortKey | "">("");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const handleSort = (field: SortKey) => {
+    if (sortField !== field) {
+      setSortField(field);
+      setSortDir("asc");
+    } else if (sortDir === "asc") {
+      setSortDir("desc");
+    } else {
+      setSortField("");
+      setSortDir("asc");
+    }
+  };
+  const getSortIcon = (field: SortKey) => {
+    if (sortField !== field) return <ArrowUpDown className="w-4 h-4 ml-1 opacity-50" />;
+    return sortDir === "asc"
+      ? <ArrowUp className="w-4 h-4 ml-1" />
+      : <ArrowDown className="w-4 h-4 ml-1" />;
+  };
+  const sortedRows = useMemo(() => {
+    if (!sortField) return filtered;
+    const getVal = (r: KolRow): string | number | null => {
+      switch (sortField) {
+        case "code_cid": return (r.cid_code ?? (r as any).short_url ?? null);
+        case "rarity": {
+          const idx = r.rarity ? RARITY_OPTIONS.indexOf(r.rarity as Rarity) : -1;
+          return idx < 0 ? Number.POSITIVE_INFINITY : idx;
+        }
+        case "accommodation": return (r as any)._accommodation_name ?? null;
+        case "check_in_date": return r.check_in_date ?? null;
+        case "scout": return (r as any)._scout_name ?? null;
+        case "publish_date": return r.publish_date ?? null;
+      }
+    };
+    const arr = [...filtered];
+    arr.sort((a, b) => {
+      const av = getVal(a);
+      const bv = getVal(b);
+      const aNull = av === null || av === undefined || av === "";
+      const bNull = bv === null || bv === undefined || bv === "";
+      if (aNull && bNull) return 0;
+      if (aNull) return 1;
+      if (bNull) return -1;
+      if (av! < bv!) return sortDir === "asc" ? -1 : 1;
+      if (av! > bv!) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+    return arr;
+  }, [filtered, sortField, sortDir]);
+  const SortableHead = ({ field, children }: { field: SortKey; children: React.ReactNode }) => (
+    <TableHead
+      className="cursor-pointer hover:text-primary transition-colors select-none"
+      onClick={() => handleSort(field)}
+    >
+      <div className="flex items-center">
+        {children}
+        {getSortIcon(field)}
+      </div>
+    </TableHead>
+  );
+
+
   // 入住日期 → 自動計算星期幾
   useEffect(() => {
     if (form.check_in_date) {
