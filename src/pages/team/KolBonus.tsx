@@ -540,7 +540,7 @@ export default function KolBonus() {
                     </TableRow>
                   ) : (
                     filteredRows.map((r) => {
-                      const m = kolMetrics.get(r.id) ?? {
+                      const m = kolMetrics.get(r.rowKey) ?? {
                         orderCount: 0,
                         orderRevenue: 0,
                         completedCount: 0,
@@ -549,7 +549,7 @@ export default function KolBonus() {
                       };
                       return (
                         <TableRow
-                          key={r.id}
+                          key={r.rowKey}
                           className="cursor-pointer hover:bg-muted/50"
                           onClick={() => setDrawerKol(r)}
                         >
@@ -564,7 +564,7 @@ export default function KolBonus() {
                             {r.cid_code}
                           </TableCell>
                           <TableCell className="whitespace-nowrap">
-                            {r.venue_name || "—"}
+                            {r.accommodation_name || "—"}
                           </TableCell>
                           <TableCell className="text-right tabular-nums">
                             {m.orderCount}
