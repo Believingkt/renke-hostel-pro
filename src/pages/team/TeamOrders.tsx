@@ -81,8 +81,10 @@ interface MetaRow {
   member_number?: string | null;
   inquiry_date?: string | null;
   voucher_used?: boolean | null;
+  voucher_count?: number | null;
   addon_note?: string | null;
   addon_amount?: number | null;
+
 }
 
 
@@ -164,8 +166,10 @@ export default function TeamOrders() {
       member_number: null,
       inquiry_date: null,
       voucher_used: false,
+      voucher_count: 0,
       addon_note: null,
       addon_amount: 0,
+
     };
   }
 
@@ -365,7 +369,7 @@ export default function TeamOrders() {
               `order_id, closer_id, video_creator_id, scout_id, traffic_source,
                booking_method, ad_id, is_excluded, closer_assisted,
                scout_commission_rate, closer_commission_rate, exclusion_note,
-               franchise_project, member_number, inquiry_date, voucher_used, addon_note, addon_amount`
+               franchise_project, member_number, inquiry_date, voucher_used, voucher_count, addon_note, addon_amount`
             )
             .in("order_id", batchIds);
           if (metaErr) throw metaErr;
@@ -441,8 +445,10 @@ export default function TeamOrders() {
       member_number: o.meta?.member_number ?? null,
       inquiry_date: o.meta?.inquiry_date ?? null,
       voucher_used: o.meta?.voucher_used ?? false,
+      voucher_count: o.meta?.voucher_count ?? 0,
       addon_note: o.meta?.addon_note ?? null,
       addon_amount: o.meta?.addon_amount ?? 0,
+
     });
     setEditOpen(true);
   }
@@ -477,8 +483,12 @@ export default function TeamOrders() {
         member_number: form.member_number,
         inquiry_date: form.inquiry_date,
         voucher_used: !!form.voucher_used,
+        voucher_count: Number.isFinite(form.voucher_count as number)
+          ? Math.max(0, Math.trunc(form.voucher_count as number))
+          : 0,
         addon_note: form.addon_note,
         addon_amount: form.addon_amount ?? 0,
+
       };
 
       const exists = !!editOrder.meta;
@@ -785,6 +795,8 @@ export default function TeamOrders() {
 
               {/* 編輯欄位 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* 成交人 */}
+
                 <div className="space-y-2">
                   <Label className="text-sm">成交人</Label>
                   <Select
@@ -807,35 +819,24 @@ export default function TeamOrders() {
                   </Select>
                 </div>
 
+                {/* 詢問日期 */}
                 <div className="space-y-2">
-                  <Label className="text-sm">影音組</Label>
-                  <Select
-                    value={form.video_creator_id ?? NONE}
-                    onValueChange={(v) =>
-                      setForm((f) => ({
-                        ...f,
-                        video_creator_id: v === NONE ? null : v,
-                      }))
+                  <Label className="text-sm">詢問日期</Label>
+                  <Input
+                    type="date"
+                    className="text-base"
+                    value={form.inquiry_date ?? ""}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, inquiry_date: e.target.value || null }))
                     }
-                  >
-                    <SelectTrigger className="text-base">
-                      <SelectValue placeholder="選擇影音組" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NONE}>未指定</SelectItem>
-                      {videos.map((m) => (
-                        <SelectItem key={m.user_id} value={m.user_id}>
-                          {m.display_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  />
                 </div>
 
+                {/* 廣告編號 */}
                 <div className="space-y-2">
-
                   <Label className="text-sm">廣告編號</Label>
-                  <Input className="text-base"
+                  <Input
+                    className="text-base"
                     value={form.ad_id ?? ""}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, ad_id: e.target.value || null }))
@@ -843,6 +844,15 @@ export default function TeamOrders() {
                   />
                 </div>
 
+                {/* 影音組(唯讀) */}
+                <div className="space-y-2">
+                  <Label className="text-sm">影音組</Label>
+                  <div className="min-h-[48px] md:h-10 flex items-center px-4 md:px-3 py-3 md:py-2 rounded-lg border border-input bg-muted/40 text-base md:text-sm">
+                    {videos.find((v) => v.user_id === form.video_creator_id)?.display_name || "-"}
+                  </div>
+                </div>
+
+                {/* 加盟專案 */}
                 <div className="space-y-2">
                   <Label className="text-sm">加盟專案</Label>
                   <Select
@@ -868,6 +878,7 @@ export default function TeamOrders() {
                   </Select>
                 </div>
 
+                {/* 會員編號 */}
                 <div className="space-y-2">
                   <Label className="text-sm">會員編號</Label>
                   <Input
@@ -883,18 +894,7 @@ export default function TeamOrders() {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="text-sm">詢問日期</Label>
-                  <Input
-                    type="date"
-                    className="text-base"
-                    value={form.inquiry_date ?? ""}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, inquiry_date: e.target.value || null }))
-                    }
-                  />
-                </div>
-
+                {/* 加購備註 */}
                 <div className="space-y-2">
                   <Label className="text-sm">加購備註</Label>
                   <Input
@@ -907,6 +907,7 @@ export default function TeamOrders() {
                   />
                 </div>
 
+                {/* 加購金額 */}
                 <div className="space-y-2">
                   <Label className="text-sm">加購金額</Label>
                   <Input
@@ -921,20 +922,30 @@ export default function TeamOrders() {
                     }
                   />
                 </div>
-
-                <div className="flex items-center gap-2 pt-6">
-                  <Checkbox
-                    id="voucher_used"
-                    checked={!!form.voucher_used}
-                    onCheckedChange={(v) =>
-                      setForm((f) => ({ ...f, voucher_used: !!v }))
-                    }
-                  />
-                  <Label htmlFor="voucher_used" className="cursor-pointer text-sm">
-                    使用住宿券
-                  </Label>
-                </div>
               </div>
+
+              {/* 使用住宿券張數 */}
+              <div className="space-y-2">
+                <Label htmlFor="voucher_count" className="text-sm">使用住宿券張數</Label>
+                <Input
+                  id="voucher_count"
+                  type="number"
+                  min={0}
+                  step={1}
+                  className="text-base"
+                  value={form.voucher_count ?? 0}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      voucher_count:
+                        e.target.value === ""
+                          ? 0
+                          : Math.max(0, Math.trunc(Number(e.target.value))),
+                    }))
+                  }
+                />
+              </div>
+
 
 
 

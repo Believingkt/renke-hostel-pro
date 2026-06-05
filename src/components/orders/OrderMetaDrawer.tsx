@@ -73,7 +73,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [isExcluded, setIsExcluded] = useState(false);
   const [exclusionNote, setExclusionNote] = useState("");
   const [inquiryDate, setInquiryDate] = useState<string>("");
-  const [voucherUsed, setVoucherUsed] = useState(false);
+  const [voucherCount, setVoucherCount] = useState<number>(0);
   const [addonNote, setAddonNote] = useState("");
   const [addonAmount, setAddonAmount] = useState<number>(0);
   const [orderDate, setOrderDate] = useState<string | null>(null);
@@ -98,7 +98,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setIsExcluded(false);
       setExclusionNote("");
       setInquiryDate("");
-      setVoucherUsed(false);
+      setVoucherCount(0);
       setAddonNote("");
       setAddonAmount(0);
       setOrderDate(null);
@@ -106,6 +106,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setNewBookingMethod("");
     }
   }, [open, orderId]);
+
 
   // Load team options + common ads + current user + dynamic options + existing meta
   useEffect(() => {
@@ -212,13 +213,14 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         setIsExcluded(Boolean(m.is_excluded));
         setExclusionNote((m.exclusion_note as string) ?? "");
         setInquiryDate((m.inquiry_date as string) ?? "");
-        setVoucherUsed(Boolean(m.voucher_used));
+        setVoucherCount(Number(m.voucher_count ?? 0));
         setAddonNote((m.addon_note as string) ?? "");
         setAddonAmount(Number(m.addon_amount ?? 0));
       } else if (uid && closerIds.includes(uid)) {
         // 預設成交人為目前登入者(若身分為 closer)
         setCloserId(uid);
       }
+
     })();
 
     return () => {
@@ -335,13 +337,14 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         is_excluded: isExcluded,
         exclusion_note: isExcluded ? exclusionNote.trim() || null : null,
         inquiry_date: inquiryDate || null,
-        voucher_used: voucherUsed,
+        voucher_count: Number.isFinite(voucherCount) ? Math.max(0, Math.trunc(voucherCount)) : 0,
         addon_note: addonNote.trim() || null,
         addon_amount: Number.isFinite(addonAmount) ? addonAmount : 0,
         import_source: "manual",
         filled_by: currentUserId,
         filled_at: new Date().toISOString(),
       };
+
 
       const { error } = await supabase
         .from("order_meta")
@@ -379,134 +382,33 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
             <div className="text-sm">{orderDate || "-"}</div>
           </div>
 
-          {/* 成交人 */}
-          <div className="space-y-2">
-            <Label>成交人</Label>
-            <Select value={closerId} onValueChange={setCloserId}>
-              <SelectTrigger>
-                <SelectValue placeholder="請選擇成交人" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE}>未指定</SelectItem>
-                {closers.map((c) => (
-                  <SelectItem key={c.user_id} value={c.user_id}>
-                    {c.display_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* 成交人 / 詢問日期 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>成交人</Label>
+              <Select value={closerId} onValueChange={setCloserId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="請選擇成交人" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>未指定</SelectItem>
+                  {closers.map((c) => (
+                    <SelectItem key={c.user_id} value={c.user_id}>
+                      {c.display_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* 影音組 */}
-          <div className="space-y-2">
-            <Label>影音組</Label>
-            <Select value={videoCreatorId} onValueChange={setVideoCreatorId}>
-              <SelectTrigger>
-                <SelectValue placeholder="請選擇影音組" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE}>未指定</SelectItem>
-                {videoCreators.map((v) => (
-                  <SelectItem key={v.user_id} value={v.user_id}>
-                    {v.display_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* 來源管道 */}
-          <div className="space-y-2">
-            <Label>來源管道</Label>
-            <Select value={trafficSource} onValueChange={setTrafficSource}>
-              <SelectTrigger>
-                <SelectValue placeholder="請選擇來源管道" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE}>未指定</SelectItem>
-                {trafficSources.map((s) => (
-                  <SelectItem key={s.id} value={s.name}>
-                    {s.name}
-                  </SelectItem>
-                ))}
-                <div className="border-t mt-1 pt-2 px-2 pb-1 flex gap-1">
-                  <Input
-                    value={newTrafficSource}
-                    onChange={(e) => setNewTrafficSource(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleAddTrafficSource();
-                      }
-                    }}
-                    placeholder="新增來源管道"
-                    className="h-8 text-sm"
-                    onPointerDown={(e) => e.stopPropagation()}
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="h-8 shrink-0"
-                    disabled={addingTraffic || !newTrafficSource.trim()}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleAddTrafficSource();
-                    }}
-                  >
-                    <Plus className="h-3 w-3 mr-1" />
-                    新增
-                  </Button>
-                </div>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* 訂房方式 */}
-          <div className="space-y-2">
-            <Label>訂房方式</Label>
-            <Select value={bookingMethod} onValueChange={setBookingMethod}>
-              <SelectTrigger>
-                <SelectValue placeholder="請選擇訂房方式" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE}>未指定</SelectItem>
-                {bookingMethods.map((m) => (
-                  <SelectItem key={m.id} value={m.name}>
-                    {m.name}
-                  </SelectItem>
-                ))}
-                <div className="border-t mt-1 pt-2 px-2 pb-1 flex gap-1">
-                  <Input
-                    value={newBookingMethod}
-                    onChange={(e) => setNewBookingMethod(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleAddBookingMethod();
-                      }
-                    }}
-                    placeholder="新增訂房方式"
-                    className="h-8 text-sm"
-                    onPointerDown={(e) => e.stopPropagation()}
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="h-8 shrink-0"
-                    disabled={addingBooking || !newBookingMethod.trim()}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleAddBookingMethod();
-                    }}
-                  >
-                    <Plus className="h-3 w-3 mr-1" />
-                    新增
-                  </Button>
-                </div>
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <Label>詢問日期</Label>
+              <Input
+                type="date"
+                value={inquiryDate}
+                onChange={(e) => setInquiryDate(e.target.value)}
+              />
+            </div>
           </div>
 
           {/* 廣告編號 */}
@@ -534,79 +436,76 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
             )}
           </div>
 
-          {/* 加盟專案 */}
-          <div className="space-y-2">
-            <Label>加盟專案</Label>
-            <Select value={franchiseProject} onValueChange={setFranchiseProject}>
-              <SelectTrigger>
-                <SelectValue placeholder="請選擇加盟專案" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE}>未指定</SelectItem>
-                {franchiseProjects.map((p) => (
-                  <SelectItem key={p.id} value={p.name}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {/* 加盟專案 / 會員編號 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>加盟專案</Label>
+              <Select value={franchiseProject} onValueChange={setFranchiseProject}>
+                <SelectTrigger>
+                  <SelectValue placeholder="請選擇加盟專案" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>未指定</SelectItem>
+                  {franchiseProjects.map((p) => (
+                    <SelectItem key={p.id} value={p.name}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>會員編號</Label>
+              <Input
+                value={memberNumber}
+                onChange={(e) => setMemberNumber(e.target.value)}
+                placeholder="輸入會員編號"
+              />
+            </div>
           </div>
 
-          {/* 會員編號 */}
+          {/* 加購備註 / 加購金額 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>加購備註</Label>
+              <Input
+                value={addonNote}
+                onChange={(e) => setAddonNote(e.target.value)}
+                placeholder="輸入加購備註"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>加購金額</Label>
+              <Input
+                type="number"
+                value={addonAmount}
+                onChange={(e) =>
+                  setAddonAmount(e.target.value === "" ? 0 : Number(e.target.value))
+                }
+              />
+            </div>
+          </div>
+
+          {/* 使用住宿券張數 */}
           <div className="space-y-2">
-            <Label>會員編號</Label>
+            <Label htmlFor="voucher_count">使用住宿券張數</Label>
             <Input
-              value={memberNumber}
-              onChange={(e) => setMemberNumber(e.target.value)}
-              placeholder="輸入會員編號"
-            />
-          </div>
-
-          {/* 詢問日期 */}
-          <div className="space-y-2">
-            <Label>詢問日期</Label>
-            <Input
-              type="date"
-              value={inquiryDate}
-              onChange={(e) => setInquiryDate(e.target.value)}
-            />
-          </div>
-
-          {/* 使用住宿券 */}
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="voucher_used"
-              checked={voucherUsed}
-              onCheckedChange={(v) => setVoucherUsed(v === true)}
-            />
-            <Label htmlFor="voucher_used" className="cursor-pointer">
-              使用住宿券
-            </Label>
-          </div>
-
-          {/* 加購備註 */}
-          <div className="space-y-2">
-            <Label>加購備註</Label>
-            <Input
-              value={addonNote}
-              onChange={(e) => setAddonNote(e.target.value)}
-              placeholder="輸入加購備註"
-            />
-          </div>
-
-          {/* 加購金額 */}
-          <div className="space-y-2">
-            <Label>加購金額</Label>
-            <Input
+              id="voucher_count"
               type="number"
-              value={addonAmount}
+              min={0}
+              step={1}
+              value={voucherCount}
               onChange={(e) =>
-                setAddonAmount(e.target.value === "" ? 0 : Number(e.target.value))
+                setVoucherCount(
+                  e.target.value === "" ? 0 : Math.max(0, Math.trunc(Number(e.target.value))),
+                )
               }
             />
           </div>
 
-          {/* 不分潤 */}
+          {/* 不分潤 / 備註 */}
           <div className="space-y-2 border-t pt-4">
             <div className="flex items-center gap-2">
               <Checkbox
@@ -615,6 +514,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
                 onCheckedChange={(v) => setIsExcluded(v === true)}
               />
               <Label htmlFor="is_excluded" className="cursor-pointer">
+
                 不分潤
               </Label>
             </div>
