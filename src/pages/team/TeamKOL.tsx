@@ -689,6 +689,7 @@ function InvitationsTab({
           return cs?.empty ? null : (cs?.label ?? null);
         }
         case "publish_date": return r.publish_date ?? null;
+        case "created_at": return r.created_at ?? null;
       }
     };
 
