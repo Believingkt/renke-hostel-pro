@@ -639,7 +639,7 @@ export default function KolBonus() {
       <KolDetailDrawer
         kol={drawerKol}
         onClose={() => setDrawerKol(null)}
-        ordersByCode={ordersByCode}
+        ordersByKey={ordersByKey}
         getRate={getRate}
         initialMonth={drawerInitialMonth}
         onCopy={copyLink}
