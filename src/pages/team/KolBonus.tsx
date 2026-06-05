@@ -634,7 +634,8 @@ interface DetailProps {
   getRate: RateResolver;
   initialMonth: string;
   onCopy: (row: KolRow) => void;
-  onGenerate: (row: KolRow) => void;
+  onGenerate: (row: KolRow) => Promise<void> | void;
+  saving: boolean;
 }
 
 function KolDetailDrawer({
@@ -645,7 +646,9 @@ function KolDetailDrawer({
   initialMonth,
   onCopy,
   onGenerate,
+  saving,
 }: DetailProps) {
+
   const [month, setMonth] = useState<string>(initialMonth);
 
   useEffect(() => {
