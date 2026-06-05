@@ -373,6 +373,12 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         </SheetHeader>
 
         <div className="flex-1 space-y-4 py-4">
+          {/* 下單日(唯讀) */}
+          <div className="space-y-1 p-3 rounded-md bg-muted/40">
+            <Label className="text-xs text-muted-foreground">下單日</Label>
+            <div className="text-sm">{orderDate || "-"}</div>
+          </div>
+
           {/* 成交人 */}
           <div className="space-y-2">
             <Label>成交人</Label>
