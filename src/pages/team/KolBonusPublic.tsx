@@ -192,14 +192,16 @@ export default function KolBonusPublic() {
     return { count, revenue, commission: Math.round(commission) };
   }, [completedList, getRate]);
 
-  const payoutDate = useMemo(() => {
-    const y = filterYear;
-    const m = Number(filterMonth);
+  const computePayoutDate = (checkOut: string | null | undefined): string => {
+    if (!checkOut) return "—";
+    const [ys, ms] = checkOut.slice(0, 10).split("-");
+    const y = Number(ys);
+    const m = Number(ms);
     if (!y || !m) return "—";
     const ny = m === 12 ? y + 1 : y;
     const nm = m === 12 ? 1 : m + 1;
     return `${ny}-${String(nm).padStart(2, "0")}-10`;
-  }, [filterYear, filterMonth]);
+  };
 
   if (loading) {
     return (
