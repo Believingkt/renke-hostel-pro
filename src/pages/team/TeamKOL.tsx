@@ -650,7 +650,7 @@ function InvitationsTab({
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   // 前端排序（三段循環：none → asc → desc → none）
-  type SortKey = "qualified" | "rarity" | "accommodation" | "check_in_date" | "scout" | "booking_status" | "contract_progress" | "publish_date";
+  type SortKey = "qualified" | "rarity" | "accommodation" | "check_in_date" | "scout" | "booking_status" | "contract_progress" | "publish_date" | "created_at";
   const [sortField, setSortField] = useState<SortKey | "">("");
 
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
