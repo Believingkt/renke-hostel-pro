@@ -675,7 +675,7 @@ function InvitationsTab({
     if (!sortField) return filtered;
     const getVal = (r: KolRow): string | number | null => {
       switch (sortField) {
-        case "code_cid": return (r.cid_code ?? (r as any).short_url ?? null);
+        case "qualified": return r.kpi_qualified ? 1 : 0;
         case "rarity": {
           const idx = r.rarity ? RARITY_OPTIONS.indexOf(r.rarity as Rarity) : -1;
           return idx < 0 ? Number.POSITIVE_INFINITY : idx;
@@ -683,9 +683,15 @@ function InvitationsTab({
         case "accommodation": return (r as any)._accommodation_name ?? null;
         case "check_in_date": return r.check_in_date ?? null;
         case "scout": return (r as any)._scout_name ?? null;
+        case "booking_status": return r.booking_status ?? null;
+        case "contract_progress": {
+          const cs = computeContractProgress(r.publish_url, r.publish_date, r.contract_file_url);
+          return cs?.empty ? null : (cs?.label ?? null);
+        }
         case "publish_date": return r.publish_date ?? null;
       }
     };
+
     const arr = [...filtered];
     arr.sort((a, b) => {
       const av = getVal(a);
