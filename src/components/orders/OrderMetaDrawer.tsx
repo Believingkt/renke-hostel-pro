@@ -122,6 +122,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         { data: bmRows },
         { data: fpRows },
         { data: existingMeta },
+        { data: orderRow },
       ] = await Promise.all([
         supabase.auth.getSession(),
         supabase
@@ -197,6 +198,8 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setBookingMethods((bmRows ?? []) as OptionRow[]);
       setFranchiseProjects((fpRows ?? []) as FranchiseProject[]);
 
+      setOrderDate((orderRow as { order_date?: string | null } | null)?.order_date ?? null);
+
       if (existingMeta) {
         const m = existingMeta as Record<string, unknown>;
         setCloserId((m.closer_id as string) ?? NONE);
@@ -208,6 +211,10 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         setMemberNumber((m.member_number as string) ?? "");
         setIsExcluded(Boolean(m.is_excluded));
         setExclusionNote((m.exclusion_note as string) ?? "");
+        setInquiryDate((m.inquiry_date as string) ?? "");
+        setVoucherUsed(Boolean(m.voucher_used));
+        setAddonNote((m.addon_note as string) ?? "");
+        setAddonAmount(Number(m.addon_amount ?? 0));
       } else if (uid && closerIds.includes(uid)) {
         // 預設成交人為目前登入者(若身分為 closer)
         setCloserId(uid);
