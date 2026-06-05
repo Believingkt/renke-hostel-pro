@@ -612,30 +612,6 @@ export default function KolBonus() {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={!!genDialog} onOpenChange={(o) => !o && setGenDialog(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>產生專屬查詢連結</DialogTitle>
-            <DialogDescription>
-              此連結有效期為 90 天（至 {expiryNote}）。產生後請複製給 KOL，
-              過期後須重新產生。
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setGenDialog(null)}
-              disabled={saving}
-            >
-              取消
-            </Button>
-            <Button onClick={handleGenerate} disabled={saving}>
-              {saving ? "產生中..." : "確認產生"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <KolDetailDrawer
         kol={drawerKol}
         onClose={() => setDrawerKol(null)}
@@ -643,8 +619,10 @@ export default function KolBonus() {
         getRate={getRate}
         initialMonth={drawerInitialMonth}
         onCopy={copyLink}
-        onGenerate={setGenDialog}
+        onGenerate={handleGenerate}
+        saving={saving}
       />
+
     </div>
   );
 }
