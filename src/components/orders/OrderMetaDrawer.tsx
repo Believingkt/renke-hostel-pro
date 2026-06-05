@@ -73,7 +73,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [isExcluded, setIsExcluded] = useState(false);
   const [exclusionNote, setExclusionNote] = useState("");
   const [inquiryDate, setInquiryDate] = useState<string>("");
-  const [voucherUsed, setVoucherUsed] = useState(false);
+  const [voucherCount, setVoucherCount] = useState<number>(0);
   const [addonNote, setAddonNote] = useState("");
   const [addonAmount, setAddonAmount] = useState<number>(0);
   const [orderDate, setOrderDate] = useState<string | null>(null);
@@ -98,7 +98,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setIsExcluded(false);
       setExclusionNote("");
       setInquiryDate("");
-      setVoucherUsed(false);
+      setVoucherCount(0);
       setAddonNote("");
       setAddonAmount(0);
       setOrderDate(null);
@@ -106,6 +106,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setNewBookingMethod("");
     }
   }, [open, orderId]);
+
 
   // Load team options + common ads + current user + dynamic options + existing meta
   useEffect(() => {
@@ -212,13 +213,14 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         setIsExcluded(Boolean(m.is_excluded));
         setExclusionNote((m.exclusion_note as string) ?? "");
         setInquiryDate((m.inquiry_date as string) ?? "");
-        setVoucherUsed(Boolean(m.voucher_used));
+        setVoucherCount(Number(m.voucher_count ?? 0));
         setAddonNote((m.addon_note as string) ?? "");
         setAddonAmount(Number(m.addon_amount ?? 0));
       } else if (uid && closerIds.includes(uid)) {
         // 預設成交人為目前登入者(若身分為 closer)
         setCloserId(uid);
       }
+
     })();
 
     return () => {
@@ -335,13 +337,14 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         is_excluded: isExcluded,
         exclusion_note: isExcluded ? exclusionNote.trim() || null : null,
         inquiry_date: inquiryDate || null,
-        voucher_used: voucherUsed,
+        voucher_count: Number.isFinite(voucherCount) ? Math.max(0, Math.trunc(voucherCount)) : 0,
         addon_note: addonNote.trim() || null,
         addon_amount: Number.isFinite(addonAmount) ? addonAmount : 0,
         import_source: "manual",
         filled_by: currentUserId,
         filled_at: new Date().toISOString(),
       };
+
 
       const { error } = await supabase
         .from("order_meta")
