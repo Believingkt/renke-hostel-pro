@@ -120,7 +120,6 @@ export default function KolBonus() {
   const [rows, setRows] = useState<KolRow[]>([]);
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [commissions, setCommissions] = useState<CommissionSetting[]>([]);
-  const [genDialog, setGenDialog] = useState<KolRow | null>(null);
   const [saving, setSaving] = useState(false);
   const [drawerKol, setDrawerKol] = useState<KolRow | null>(null);
   const [filterYear, setFilterYear] = useState<number>(currentYear);
@@ -364,8 +363,8 @@ export default function KolBonus() {
 
   if (!allowed) return <Navigate to="/team" replace />;
 
-  const handleGenerate = async () => {
-    if (!genDialog) return;
+  const handleGenerate = async (target: KolRow) => {
+    if (!target?.id) return;
     setSaving(true);
     const newToken = crypto.randomUUID();
     const newExpires = new Date(
@@ -374,7 +373,7 @@ export default function KolBonus() {
     const { error } = await supabase
       .from("kol_profiles")
       .update({ public_token: newToken, token_expires_at: newExpires })
-      .eq("id", genDialog.id);
+      .eq("id", target.id);
     setSaving(false);
     if (error) {
       toast.error("產生失敗：" + error.message);
@@ -382,19 +381,19 @@ export default function KolBonus() {
     }
     setRows((prev) =>
       prev.map((r) =>
-        r.id && genDialog.id && r.id === genDialog.id
+        r.id && r.id === target.id
           ? { ...r, public_token: newToken, token_expires_at: newExpires }
           : r,
       ),
     );
     setDrawerKol((prev) =>
-      prev && prev.id && genDialog.id && prev.id === genDialog.id
+      prev && prev.id && prev.id === target.id
         ? { ...prev, public_token: newToken, token_expires_at: newExpires }
         : prev,
     );
     toast.success("已產生新連結");
-    setGenDialog(null);
   };
+
 
   const copyLink = async (row: KolRow) => {
     if (!row.public_token) return;
@@ -423,10 +422,8 @@ export default function KolBonus() {
     );
   };
 
-  const expiryNote = (() => {
-    const d = new Date(Date.now() + TOKEN_VALID_DAYS * 24 * 60 * 60 * 1000);
-    return d.toISOString().slice(0, 10);
-  })();
+
+
 
   return (
     <div className="space-y-6">
@@ -612,30 +609,6 @@ export default function KolBonus() {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={!!genDialog} onOpenChange={(o) => !o && setGenDialog(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>產生專屬查詢連結</DialogTitle>
-            <DialogDescription>
-              此連結有效期為 90 天（至 {expiryNote}）。產生後請複製給 KOL，
-              過期後須重新產生。
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setGenDialog(null)}
-              disabled={saving}
-            >
-              取消
-            </Button>
-            <Button onClick={handleGenerate} disabled={saving}>
-              {saving ? "產生中..." : "確認產生"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <KolDetailDrawer
         kol={drawerKol}
         onClose={() => setDrawerKol(null)}
@@ -643,8 +616,10 @@ export default function KolBonus() {
         getRate={getRate}
         initialMonth={drawerInitialMonth}
         onCopy={copyLink}
-        onGenerate={setGenDialog}
+        onGenerate={handleGenerate}
+        saving={saving}
       />
+
     </div>
   );
 }
@@ -656,7 +631,8 @@ interface DetailProps {
   getRate: RateResolver;
   initialMonth: string;
   onCopy: (row: KolRow) => void;
-  onGenerate: (row: KolRow) => void;
+  onGenerate: (row: KolRow) => Promise<void> | void;
+  saving: boolean;
 }
 
 function KolDetailDrawer({
@@ -667,7 +643,9 @@ function KolDetailDrawer({
   initialMonth,
   onCopy,
   onGenerate,
+  saving,
 }: DetailProps) {
+
   const [month, setMonth] = useState<string>(initialMonth);
 
   useEffect(() => {
@@ -758,22 +736,47 @@ function KolDetailDrawer({
                   <span className="text-xs text-muted-foreground">
                     到期日：{kol.token_expires_at?.slice(0, 10)}
                   </span>
-                  <Button size="sm" variant="outline" onClick={() => onCopy(kol)}>
-                    <Copy className="h-3 w-3 mr-1" />
-                    複製連結
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" onClick={() => onCopy(kol)}>
+                      <Copy className="h-3 w-3 mr-1" />
+                      複製連結
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="sm" variant="outline" disabled={saving}>
+                          <LinkIcon className="h-3 w-3 mr-1" />
+                          重新產生
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>重新產生連結</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            重新產生後舊連結將立即失效，確定繼續？
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>取消</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => onGenerate(kol)}>
+                            確認重新產生
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
               ) : (
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-xs text-muted-foreground">
-                    {kol.public_token ? "連結已過期" : "尚未產生連結"}
+                    尚未產生連結
                   </span>
-                  <Button size="sm" onClick={() => onGenerate(kol)}>
+                  <Button size="sm" onClick={() => onGenerate(kol)} disabled={saving}>
                     <LinkIcon className="h-3 w-3 mr-1" />
                     產生連結
                   </Button>
                 </div>
               )}
+
             </div>
           )}
 
