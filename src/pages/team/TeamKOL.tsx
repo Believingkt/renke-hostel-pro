@@ -875,7 +875,7 @@ function InvitationsTab({
     setSheetOpen(true);
   };
 
-  const canEditRow = (row: KolRow) => isManager || row.created_by === currentUserId;
+  const canEditRow = (row: KolRow) => isManager || row.created_by === currentUserId || row.scout_id === currentUserId;
 
   const canReportError = (row: KolRow) => row.created_by === currentUserId || isManager;
 
