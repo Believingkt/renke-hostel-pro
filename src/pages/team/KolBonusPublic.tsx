@@ -371,7 +371,7 @@ export default function KolBonusPublic() {
                             <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(revenue)}</TableCell>
                             <TableCell className="whitespace-nowrap text-right tabular-nums">{rate}%</TableCell>
                             <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(amount)}</TableCell>
-                            <TableCell className="whitespace-nowrap text-xs">{payoutDate}</TableCell>
+                            <TableCell className="whitespace-nowrap text-xs">{computePayoutDate(o.check_out_date)}</TableCell>
                           </TableRow>
                         );
                       })
