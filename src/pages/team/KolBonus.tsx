@@ -364,8 +364,8 @@ export default function KolBonus() {
 
   if (!allowed) return <Navigate to="/team" replace />;
 
-  const handleGenerate = async () => {
-    if (!genDialog) return;
+  const handleGenerate = async (target: KolRow) => {
+    if (!target?.id) return;
     setSaving(true);
     const newToken = crypto.randomUUID();
     const newExpires = new Date(
@@ -374,7 +374,7 @@ export default function KolBonus() {
     const { error } = await supabase
       .from("kol_profiles")
       .update({ public_token: newToken, token_expires_at: newExpires })
-      .eq("id", genDialog.id);
+      .eq("id", target.id);
     setSaving(false);
     if (error) {
       toast.error("產生失敗：" + error.message);
@@ -382,19 +382,19 @@ export default function KolBonus() {
     }
     setRows((prev) =>
       prev.map((r) =>
-        r.id && genDialog.id && r.id === genDialog.id
+        r.id && r.id === target.id
           ? { ...r, public_token: newToken, token_expires_at: newExpires }
           : r,
       ),
     );
     setDrawerKol((prev) =>
-      prev && prev.id && genDialog.id && prev.id === genDialog.id
+      prev && prev.id && prev.id === target.id
         ? { ...prev, public_token: newToken, token_expires_at: newExpires }
         : prev,
     );
     toast.success("已產生新連結");
-    setGenDialog(null);
   };
+
 
   const copyLink = async (row: KolRow) => {
     if (!row.public_token) return;
