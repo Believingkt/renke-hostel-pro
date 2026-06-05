@@ -464,7 +464,7 @@ function App() {
                       {/* HQ 與 headquarters 路由（不放入 alias 樹下） */}
                       <Route path="/hq-auth" element={<HQAuth />} />
                       <Route path="/team-auth" element={<TeamAuth />} />
-                      <Route path="/kol/bonus/:token" element={
+                      <Route path="/team/kol/bonus/:token" element={
                         <Suspense fallback={null}><KolBonusPublic /></Suspense>
                       } />
                       <Route path="/hq/ai-training" element={
