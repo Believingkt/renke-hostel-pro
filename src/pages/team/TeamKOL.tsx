@@ -1328,6 +1328,13 @@ function InvitationsTab({
                           <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
+                      <TableCell>
+                        {r.created_at ? (
+                          r.created_at.slice(0, 10)
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <Button
                           size="icon"
