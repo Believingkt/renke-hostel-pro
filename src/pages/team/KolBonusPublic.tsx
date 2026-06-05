@@ -154,7 +154,10 @@ export default function KolBonusPublic() {
     return Array.from(set).sort((a, b) => b - a);
   }, [orders, currentYear]);
 
-  const prefix = `${filterYear}-${String(Number(filterMonth)).padStart(2, "0")}`;
+  const isYearAll = filterMonth === "all";
+  const prefix = isYearAll
+    ? `${filterYear}-`
+    : `${filterYear}-${String(Number(filterMonth)).padStart(2, "0")}`;
 
   const orderList = useMemo(
     () => orders.filter((o) => o.order_date?.startsWith(prefix)),
