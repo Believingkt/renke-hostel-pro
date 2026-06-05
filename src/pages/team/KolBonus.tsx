@@ -422,10 +422,8 @@ export default function KolBonus() {
     );
   };
 
-  const expiryNote = (() => {
-    const d = new Date(Date.now() + TOKEN_VALID_DAYS * 24 * 60 * 60 * 1000);
-    return d.toISOString().slice(0, 10);
-  })();
+
+
 
   return (
     <div className="space-y-6">
