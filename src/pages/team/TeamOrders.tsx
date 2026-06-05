@@ -162,6 +162,10 @@ export default function TeamOrders() {
       exclusion_note: null,
       franchise_project: null,
       member_number: null,
+      inquiry_date: null,
+      voucher_used: false,
+      addon_note: null,
+      addon_amount: 0,
     };
   }
 
@@ -339,7 +343,7 @@ export default function TeamOrders() {
           .from("orders")
           .select(
             `id, order_number, guest_name, check_in_date, check_out_date,
-             final_price, discount_code, order_source, ota_channel, accommodation_id, created_at`
+             final_price, discount_code, order_source, ota_channel, accommodation_id, order_date, created_at`
           )
           .neq("guest_name", "保留單")
           .order("created_at", { ascending: false })
@@ -361,7 +365,7 @@ export default function TeamOrders() {
               `order_id, closer_id, video_creator_id, scout_id, traffic_source,
                booking_method, ad_id, is_excluded, closer_assisted,
                scout_commission_rate, closer_commission_rate, exclusion_note,
-               franchise_project, member_number`
+               franchise_project, member_number, inquiry_date, voucher_used, addon_note, addon_amount`
             )
             .in("order_id", batchIds);
           if (metaErr) throw metaErr;
@@ -384,7 +388,7 @@ export default function TeamOrders() {
         order_source: o.order_source,
         ota_channel: o.ota_channel,
         accommodation_id: o.accommodation_id,
-
+        order_date: o.order_date ?? null,
         created_at: o.created_at,
         accommodation_name: accMap.get(o.accommodation_id) || "-",
         meta: metaMap.get(o.id) || null,
@@ -435,6 +439,10 @@ export default function TeamOrders() {
       exclusion_note: o.meta?.exclusion_note ?? null,
       franchise_project: o.meta?.franchise_project ?? null,
       member_number: o.meta?.member_number ?? null,
+      inquiry_date: o.meta?.inquiry_date ?? null,
+      voucher_used: o.meta?.voucher_used ?? false,
+      addon_note: o.meta?.addon_note ?? null,
+      addon_amount: o.meta?.addon_amount ?? 0,
     });
     setEditOpen(true);
   }
@@ -467,6 +475,10 @@ export default function TeamOrders() {
         exclusion_note: form.exclusion_note,
         franchise_project: form.franchise_project,
         member_number: form.member_number,
+        inquiry_date: form.inquiry_date,
+        voucher_used: !!form.voucher_used,
+        addon_note: form.addon_note,
+        addon_amount: form.addon_amount ?? 0,
       };
 
       const exists = !!editOrder.meta;
