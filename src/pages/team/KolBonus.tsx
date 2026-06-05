@@ -358,7 +358,7 @@ export default function KolBonus() {
       });
     }
     return map;
-  }, [rows, ordersByCode, getRate, filterYear, filterMonth]);
+  }, [rows, ordersByKey, getRate, filterYear, filterMonth]);
 
   const metricsLabel = filterMonth === "all" ? "全期" : "當月";
 
