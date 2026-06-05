@@ -650,7 +650,7 @@ function InvitationsTab({
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   // 前端排序（三段循環：none → asc → desc → none）
-  type SortKey = "qualified" | "rarity" | "accommodation" | "check_in_date" | "scout" | "booking_status" | "contract_progress" | "publish_date";
+  type SortKey = "qualified" | "rarity" | "accommodation" | "check_in_date" | "scout" | "booking_status" | "contract_progress" | "publish_date" | "created_at";
   const [sortField, setSortField] = useState<SortKey | "">("");
 
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -689,6 +689,7 @@ function InvitationsTab({
           return cs?.empty ? null : (cs?.label ?? null);
         }
         case "publish_date": return r.publish_date ?? null;
+        case "created_at": return r.created_at ?? null;
       }
     };
 
@@ -1202,6 +1203,7 @@ function InvitationsTab({
 
                   <TableHead>任務</TableHead>
                   <SortableHead field="publish_date">發布日期</SortableHead>
+                  <SortableHead field="created_at">填寫日期</SortableHead>
                   <TableHead className="text-right">操作</TableHead>
                 </TableRow>
               </TableHeader>
@@ -1322,6 +1324,13 @@ function InvitationsTab({
                           ) : (
                             r.publish_date
                           )
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {r.created_at ? (
+                          r.created_at.slice(0, 10)
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}
