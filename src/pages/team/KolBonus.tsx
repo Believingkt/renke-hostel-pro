@@ -652,7 +652,7 @@ export default function KolBonus() {
 interface DetailProps {
   kol: KolRow | null;
   onClose: () => void;
-  ordersByCode: Map<string, OrderRow[]>;
+  ordersByKey: Map<string, OrderRow[]>;
   getRate: RateResolver;
   initialMonth: string;
   onCopy: (row: KolRow) => void;
@@ -662,7 +662,7 @@ interface DetailProps {
 function KolDetailDrawer({
   kol,
   onClose,
-  ordersByCode,
+  ordersByKey,
   getRate,
   initialMonth,
   onCopy,
@@ -673,11 +673,12 @@ function KolDetailDrawer({
   useEffect(() => {
     if (kol) setMonth(initialMonth);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kol?.id, initialMonth]);
+  }, [kol?.rowKey, initialMonth]);
 
   const matched = useMemo(() => {
-    if (!kol?.cid_code) return [];
-    return ordersByCode.get(kol.cid_code.trim().toUpperCase()) ?? [];
+    if (!kol) return [];
+    return ordersByKey.get(kol.rowKey) ?? [];
+  }, [kol, ordersByKey]);
   }, [kol, ordersByCode]);
 
   const monthOptions = useMemo(() => {
