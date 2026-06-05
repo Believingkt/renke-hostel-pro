@@ -55,14 +55,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
       );
     }
 
+    // 重點：以 cid_code 跨「所有館別」撈訂單（不限 token 對應那筆 kol_profiles 的 accommodation_id）
+    // 同一個折扣碼可能掛在多家民宿；分潤% 由前端依各筆訂單的 accommodation_id 對應 commissions 計算
+    const codeUpper = code.toUpperCase();
     const [orderRes, commRes] = await Promise.all([
       admin
         .from("orders")
         .select(
           "id, order_number, discount_code, check_in_date, check_out_date, order_date, total_price, final_price, order_status, accommodation_id",
         )
-        .ilike("discount_code", code)
-        .neq("order_status", "cancelled"),
+        .neq("order_status", "cancelled")
+        .not("discount_code", "is", null),
       admin
         .from("kol_commission_settings")
         .select("accommodation_id, effective_from, rate, created_at")
@@ -74,6 +77,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (orderRes.error) throw orderRes.error;
     if (commRes.error) throw commRes.error;
 
+    // 在 server 端做精確（大小寫不敏感）折扣碼比對，避免 ilike 的 _/% 萬用字元誤匹配
+    const filteredOrders = (orderRes.data ?? []).filter(
+      (o: any) => (o.discount_code ?? "").trim().toUpperCase() === codeUpper,
+    );
+
     return new Response(
       JSON.stringify({
         kol: {
@@ -84,7 +92,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           accommodation_id: kol.accommodation_id,
           token_expires_at: kol.token_expires_at,
         },
-        orders: orderRes.data ?? [],
+        orders: filteredOrders,
         commissions: (commRes.data ?? []).map((c: any) => ({
           accommodation_id: c.accommodation_id,
           effective_from: c.effective_from,
