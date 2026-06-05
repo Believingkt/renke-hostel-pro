@@ -1203,6 +1203,7 @@ function InvitationsTab({
 
                   <TableHead>任務</TableHead>
                   <SortableHead field="publish_date">發布日期</SortableHead>
+                  <SortableHead field="created_at">填寫日期</SortableHead>
                   <TableHead className="text-right">操作</TableHead>
                 </TableRow>
               </TableHeader>
