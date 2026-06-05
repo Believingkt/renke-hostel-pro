@@ -121,7 +121,6 @@ export default function KolBonus() {
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [commissions, setCommissions] = useState<CommissionSetting[]>([]);
   const [saving, setSaving] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [drawerKol, setDrawerKol] = useState<KolRow | null>(null);
   const [filterYear, setFilterYear] = useState<number>(currentYear);
   const [filterMonth, setFilterMonth] = useState<string>(String(currentMonthNum)); // "all" | "1".."12"
