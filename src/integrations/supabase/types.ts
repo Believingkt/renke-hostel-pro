@@ -3766,6 +3766,7 @@ export type Database = {
           traffic_source: string | null
           updated_at: string | null
           video_creator_id: string | null
+          voucher_count: number | null
           voucher_used: boolean | null
         }
         Insert: {
@@ -3794,6 +3795,7 @@ export type Database = {
           traffic_source?: string | null
           updated_at?: string | null
           video_creator_id?: string | null
+          voucher_count?: number | null
           voucher_used?: boolean | null
         }
         Update: {
@@ -3822,6 +3824,7 @@ export type Database = {
           traffic_source?: string | null
           updated_at?: string | null
           video_creator_id?: string | null
+          voucher_count?: number | null
           voucher_used?: boolean | null
         }
         Relationships: [

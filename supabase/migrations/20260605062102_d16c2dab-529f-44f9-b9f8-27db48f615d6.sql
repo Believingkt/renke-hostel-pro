@@ -1,0 +1,1 @@
+ALTER TABLE order_meta ADD COLUMN IF NOT EXISTS voucher_count integer DEFAULT 0;
