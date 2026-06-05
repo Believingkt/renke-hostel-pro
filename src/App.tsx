@@ -91,6 +91,7 @@ const TeamKOL = lazy(() => import("./pages/team/TeamKOL"));
 const TeamKolVenueConfirm = lazy(() => import("./pages/team/TeamKolVenueConfirm"));
 const TeamCommission = lazy(() => import("./pages/team/TeamCommission"));
 const KolBonus = lazy(() => import("./pages/team/KolBonus"));
+const KolBonusPublic = lazy(() => import("./pages/team/KolBonusPublic"));
 const TeamNotification = lazy(() => import("./pages/team/TeamNotification"));
 const TeamAds = lazy(() => import("./pages/team/TeamAds"));
 const TeamFranchise = lazy(() => import("./pages/team/TeamFranchise"));
