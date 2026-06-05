@@ -120,7 +120,7 @@ export default function KolBonus() {
   const [rows, setRows] = useState<KolRow[]>([]);
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [commissions, setCommissions] = useState<CommissionSetting[]>([]);
-  const [genDialog, setGenDialog] = useState<KolRow | null>(null);
+  const [saving, setSaving] = useState(false);
   const [saving, setSaving] = useState(false);
   const [drawerKol, setDrawerKol] = useState<KolRow | null>(null);
   const [filterYear, setFilterYear] = useState<number>(currentYear);
