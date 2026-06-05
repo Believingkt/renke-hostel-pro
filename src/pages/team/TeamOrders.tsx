@@ -779,6 +779,7 @@ export default function TeamOrders() {
                 <ReadField label="折扣碼" value={editOrder.discount_code || "-"} />
                 <ReadField label="來源" value={editOrder.order_source || "-"} />
                 <ReadField label="訂房方式" value={editOrder.ota_channel || "-"} />
+                <ReadField label="下單日" value={editOrder.order_date || "-"} />
               </div>
 
 
@@ -880,6 +881,58 @@ export default function TeamOrders() {
                       }))
                     }
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm">詢問日期</Label>
+                  <Input
+                    type="date"
+                    className="text-base"
+                    value={form.inquiry_date ?? ""}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, inquiry_date: e.target.value || null }))
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm">加購備註</Label>
+                  <Input
+                    className="text-base"
+                    value={form.addon_note ?? ""}
+                    placeholder="輸入加購備註"
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, addon_note: e.target.value || null }))
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm">加購金額</Label>
+                  <Input
+                    type="number"
+                    className="text-base"
+                    value={form.addon_amount ?? 0}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        addon_amount: e.target.value === "" ? 0 : Number(e.target.value),
+                      }))
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 pt-6">
+                  <Checkbox
+                    id="voucher_used"
+                    checked={!!form.voucher_used}
+                    onCheckedChange={(v) =>
+                      setForm((f) => ({ ...f, voucher_used: !!v }))
+                    }
+                  />
+                  <Label htmlFor="voucher_used" className="cursor-pointer text-sm">
+                    使用住宿券
+                  </Label>
                 </div>
               </div>
 
