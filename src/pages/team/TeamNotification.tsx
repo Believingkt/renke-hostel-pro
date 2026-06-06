@@ -432,34 +432,6 @@ export default function TeamNotification() {
                       </div>
                     </>
                   )}
-
-                  {hasStarlink && (
-                    <div className="space-y-2 border rounded-md p-3">
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          id="show_starlink"
-                          checked={current.show_starlink}
-                          onCheckedChange={(v) => patchCurrent({ show_starlink: !!v })}
-                        />
-                        <Label htmlFor="show_starlink">星鏈業績</Label>
-                      </div>
-                      {current.show_starlink && (
-                        <div className="pl-7 space-y-1">
-                          <Label className="text-xs">月目標</Label>
-                          <Input
-                            type="number"
-                            value={current.starlink_target ?? ""}
-                            onChange={(e) =>
-                              patchCurrent({
-                                starlink_target:
-                                  e.target.value === "" ? null : Number(e.target.value),
-                              })
-                            }
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </section>
 
                 {/* Email */}
