@@ -90,6 +90,12 @@ const MemberLineCallback = () => {
         console.log("[LINE callback] exchange success, navigating");
         cleanup();
         toast.success("LINE 登入成功");
+        const postLoginRedirect = sessionStorage.getItem("post_login_redirect");
+        if (postLoginRedirect) {
+          sessionStorage.removeItem("post_login_redirect");
+          window.location.replace(postLoginRedirect);
+          return;
+        }
         // onAuthStateChange listener (registered in MemberAuth/global) will
         // upsert platform_members; we just redirect.
         navigate("/member/orders", { replace: true });
