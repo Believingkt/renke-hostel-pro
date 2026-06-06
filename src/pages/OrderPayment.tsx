@@ -83,17 +83,7 @@ export default function OrderPayment() {
 
   const startSocialLogin = (provider: "facebook" | "line") => {
     try {
-      const isProdHost = window.location.hostname === "booking.lakeze.com";
 
-      // FB / LINE OAuth 只註冊了 booking.lakeze.com 的 callback。
-      // 若目前不在 booking 網域（例如預覽網域 *.lovable.app），先把整個付款頁
-      // 導到 booking.lakeze.com 對應路徑，再讓使用者按一次登入即可。
-      if (!isProdHost) {
-        const target = `https://booking.lakeze.com${window.location.pathname}${window.location.search}${window.location.hash}`;
-        toast.message("即將切換至正式網域以完成登入");
-        window.location.href = target;
-        return;
-      }
 
       sessionStorage.setItem("post_login_redirect", window.location.href);
       const state = crypto.randomUUID();
