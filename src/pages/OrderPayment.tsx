@@ -602,6 +602,30 @@ export default function OrderPayment() {
             </div>
           </div>
 
+          {/* Email 收據通知欄位（必填） */}
+          <div className="space-y-2">
+            <Label htmlFor="payment-email" className="flex items-center gap-2 text-sm">
+              <Mail className="h-4 w-4" />
+              Email <span className="text-destructive">*</span>
+              <span className="text-xs text-muted-foreground font-normal">（用於寄送付款通知與收據）</span>
+            </Label>
+            <Input
+              id="payment-email"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              placeholder="your@email.com"
+              value={emailInput}
+              onChange={(e) => setEmailInput(e.target.value)}
+              onBlur={() => setEmailTouched(true)}
+              aria-invalid={!!emailError}
+              className={emailError ? "border-destructive" : ""}
+            />
+            {emailError && (
+              <p className="text-xs text-destructive">{emailError}</p>
+            )}
+          </div>
+
           {orderInfo?.needsCardBinding && (
             <Alert className="border-primary/30 bg-primary/5">
               <ShieldCheck className="h-4 w-4" />
