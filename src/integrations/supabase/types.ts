@@ -2697,6 +2697,7 @@ export type Database = {
       }
       franchise_projects: {
         Row: {
+          accommodation_id: string | null
           created_at: string | null
           created_by: string | null
           id: string
@@ -2705,6 +2706,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          accommodation_id?: string | null
           created_at?: string | null
           created_by?: string | null
           id?: string
@@ -2713,6 +2715,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          accommodation_id?: string | null
           created_at?: string | null
           created_by?: string | null
           id?: string
@@ -2720,7 +2723,15 @@ export type Database = {
           name?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "franchise_projects_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       franchise_team_settings: {
         Row: {
