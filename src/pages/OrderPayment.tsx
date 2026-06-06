@@ -67,11 +67,42 @@ export default function OrderPayment() {
 
   useEffect(() => {
     let mounted = true;
-    supabase.auth.getUser().then(({ data }) => {
+
+    // Cross-origin OAuth handoff: callback on booking.lakeze.com appends
+    // access/refresh tokens via URL fragment when redirecting back to a
+    // different origin (e.g. sensaninn.lakeze.com). Consume them here so
+    // the local Supabase client establishes a session in this origin's
+    // localStorage. Fragment is stripped immediately afterward.
+    const consumeFragmentSession = async (): Promise<boolean> => {
+      const hash = window.location.hash || "";
+      if (!hash.includes("access_token=")) return false;
+      const params = new URLSearchParams(hash.replace(/^#/, ""));
+      const access_token = params.get("access_token");
+      const refresh_token = params.get("refresh_token");
+      if (!access_token || !refresh_token) return false;
+      try {
+        console.log("[OrderPayment] consuming OAuth handoff fragment");
+        const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+        if (error) {
+          console.error("[OrderPayment] setSession from fragment failed", error);
+        }
+      } catch (e) {
+        console.error("[OrderPayment] setSession threw", e);
+      }
+      // Strip the fragment so tokens don't linger in URL / history.
+      const cleanUrl = window.location.pathname + window.location.search;
+      window.history.replaceState({}, "", cleanUrl);
+      return true;
+    };
+
+    (async () => {
+      await consumeFragmentSession();
+      const { data } = await supabase.auth.getUser();
       if (!mounted) return;
       setIsAuthed(!!data.user);
       setAuthChecked(true);
-    });
+    })();
+
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
       setIsAuthed(!!session?.user);
     });
