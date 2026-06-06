@@ -218,8 +218,7 @@ export default function TeamNotification() {
     const existing = flags[accId];
     const payload = {
       accommodation_id: accId,
-      has_franchise: existing?.has_franchise ?? false,
-      [field]: value,
+      has_franchise: field === "has_franchise" ? value : (existing?.has_franchise ?? false),
       updated_at: new Date().toISOString(),
     };
     setFlags((prev) => ({ ...prev, [accId]: { ...payload } as FlagsRow }));
