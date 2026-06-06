@@ -130,7 +130,7 @@ const MemberLineCallback = () => {
       cleanup();
       if (result.ok) {
         if (result.successMessage) toast.success(result.successMessage);
-        finish(result.redirectTo);
+        finish(result.redirectTo, { access: result.accessToken, refresh: result.refreshToken });
       } else {
         fail(result.errorMessage || "LINE 登入失敗");
       }
