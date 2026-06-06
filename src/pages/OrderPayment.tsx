@@ -661,7 +661,7 @@ export default function OrderPayment() {
                     amount={amount}
                     cardholder={{
                       name: orderInfo.guestName,
-                      email: orderInfo.guestEmail || "no-email@example.com",
+                      email: emailInput.trim() || "no-email@example.com",
                       phoneNumber: orderInfo.guestPhone,
                     }}
                     initialAtmInfo={orderInfo.atmInfo}
