@@ -386,6 +386,7 @@ Deno.serve(async (req) => {
           "加盟月目標": toWan(fSalesTarget),
           "加盟月達成率": fmtPct(franchiseMonthSales, fSalesTarget),
           "加盟年累積": toWan(franchiseYearSales),
+          "加盟年目標": toWan(fSalesYearTarget),
           "加盟年達成率": fmtPct(franchiseYearSales, fSalesYearTarget),
           "今日加盟訂房": fmtMoney(franchiseBookingToday),
           "加盟訂房月累積": fmtMoney(franchiseBookingMonth),
