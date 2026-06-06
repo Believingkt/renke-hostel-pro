@@ -107,12 +107,17 @@ export async function buildRedirectWithSessionHandoff(
     }
 
     if (access && refresh) {
+      const existingHash = new URLSearchParams(u.hash.replace(/^#/, ""));
+      existingHash.delete("access_token");
+      existingHash.delete("refresh_token");
+      existingHash.delete("source");
       const frag = new URLSearchParams({
         access_token: access,
         refresh_token: refresh,
         source: "oauth_handoff",
       });
-      u.hash = (u.hash ? u.hash.replace(/^#/, "") + "&" : "") + frag.toString();
+      const preservedHash = existingHash.toString();
+      u.hash = (preservedHash ? `${preservedHash}&` : "") + frag.toString();
       target = u.toString();
       console.log(`[${tag} callback] cross-origin handoff tokens appended`);
     } else {

@@ -78,8 +78,10 @@ export default function OrderPayment() {
       const hash = window.location.hash || "";
       if (!hash.includes("access_token=")) return false;
       const params = new URLSearchParams(hash.replace(/^#/, ""));
-      const access_token = params.get("access_token");
-      const refresh_token = params.get("refresh_token");
+      const accessValues = params.getAll("access_token");
+      const refreshValues = params.getAll("refresh_token");
+      const access_token = accessValues[accessValues.length - 1];
+      const refresh_token = refreshValues[refreshValues.length - 1];
       if (!access_token || !refresh_token) return false;
       try {
         console.log("[OrderPayment] consuming OAuth handoff fragment");
