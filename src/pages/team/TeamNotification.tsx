@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { Switch } from "@/components/ui/switch";
 import {
   Table,
@@ -74,9 +74,10 @@ const TIME_OPTIONS = (() => {
   return arr;
 })();
 
-const TEMPLATE_VARS = [
+const GENERAL_TEMPLATE_VARS = [
   "{日期}",
   "{民宿名稱}",
+  "{M}",
   "{今日訂單}",
   "{今日取消筆數}",
   "{今日取消金額}",
@@ -87,11 +88,25 @@ const TEMPLATE_VARS = [
   "{年度累積}",
 ];
 
-const DEFAULT_TEMPLATE = `{日期}
+const FRANCHISE_TEMPLATE_VARS = [
+  "{今日加盟銷售}",
+  "{加盟月累積}",
+  "{加盟月目標}",
+  "{加盟月達成率}",
+  "{加盟年累積}",
+  "{加盟年達成率}",
+  "{今日加盟訂房}",
+  "{加盟訂房月累積}",
+  "{加盟訂房月目標}",
+  "{加盟訂房達成率}",
+  "{加盟訂房年累積}",
+];
+
+const GENERAL_TEMPLATE = `{日期}
 
 【{民宿名稱}進單業績】
 
-今日訂單：{今日訂單}
+今日一般訂房業績：{今日訂單}
 
 今日訂單取消：{今日取消筆數} 筆，{今日取消金額}
 
@@ -99,11 +114,46 @@ const DEFAULT_TEMPLATE = `{日期}
 
 目標訂房業績：{月目標}／月
 
-本月訂房達成率：{達成率}%
+本月({M}月)累積訂房達成率：{達成率}%
 
 前月累積訂房業績：{前月累積}
 
 年度累積訂房金額：{年度累積}`;
+
+const FRANCHISE_TEMPLATE_PREFIX = `{日期}
+
+【{民宿名稱}特許加盟紀錄報表】
+
+今日特許加盟銷售：{今日加盟銷售}
+
+本月累積銷售額：{加盟月累積}
+
+目標月銷售：{加盟月目標}/月
+
+本月銷售達成率：{加盟月達成率}%
+
+累積銷售業績：{加盟年累積}
+
+累積銷售達成率：{加盟年達成率}%
+
+-------------
+
+今日特許加盟訂房業績：{今日加盟訂房}
+
+本月累積訂房業績：{加盟訂房月累積}
+
+目標特許加盟訂房：{加盟訂房月目標}/月
+
+本月累積訂房達成率：{加盟訂房達成率}%
+
+特許加盟年度累積訂房金額：{加盟訂房年累積}
+
+------------
+
+`;
+
+const buildDefaultTemplate = (hasFranchise: boolean) =>
+  hasFranchise ? FRANCHISE_TEMPLATE_PREFIX + GENERAL_TEMPLATE : GENERAL_TEMPLATE;
 
 
 export default function TeamNotification() {
@@ -172,12 +222,12 @@ export default function TeamNotification() {
       accommodation_id: current.accommodation_id,
       enabled: current.enabled,
       notify_time: current.notify_time,
-      show_general_booking: current.show_general_booking,
+      show_general_booking: true,
       general_booking_target: current.general_booking_target,
-      show_franchise_sales: hasFranchise ? current.show_franchise_sales : false,
+      show_franchise_sales: hasFranchise,
       franchise_sales_target: hasFranchise ? current.franchise_sales_target : null,
       franchise_sales_year_target: hasFranchise ? current.franchise_sales_year_target : null,
-      show_franchise_booking: hasFranchise ? current.show_franchise_booking : false,
+      show_franchise_booking: hasFranchise,
       franchise_booking_target: hasFranchise ? current.franchise_booking_target : null,
 
       email_template: current.email_template,
@@ -197,7 +247,7 @@ export default function TeamNotification() {
 
   const insertVar = (v: string) => {
     const el = templateRef.current;
-    const tmpl = current?.email_template || DEFAULT_TEMPLATE;
+    const tmpl = current?.email_template || buildDefaultTemplate(hasFranchise);
     if (!el) {
       patchCurrent({ email_template: tmpl + v });
       return;
@@ -332,103 +382,79 @@ export default function TeamNotification() {
                   <h3 className="font-semibold">通報內容設定</h3>
 
                   <div className="space-y-2 border rounded-md p-3">
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="show_general_booking"
-                        checked={current.show_general_booking}
-                        onCheckedChange={(v) =>
-                          patchCurrent({ show_general_booking: !!v })
+                    <Label className="text-sm font-medium">一般訂房業績</Label>
+                    <div className="space-y-1">
+                      <Label className="text-xs">月目標金額</Label>
+                      <Input
+                        type="number"
+                        value={current.general_booking_target ?? ""}
+                        onChange={(e) =>
+                          patchCurrent({
+                            general_booking_target: e.target.value === "" ? null : Number(e.target.value),
+                          })
                         }
                       />
-                      <Label htmlFor="show_general_booking">一般訂房業績</Label>
                     </div>
-                    {current.show_general_booking && (
-                      <div className="pl-7 space-y-1">
-                        <Label className="text-xs">月目標金額</Label>
-                        <Input
-                          type="number"
-                          value={current.general_booking_target ?? ""}
-                          onChange={(e) =>
-                            patchCurrent({
-                              general_booking_target: e.target.value === "" ? null : Number(e.target.value),
-                            })
-                          }
-                        />
-                      </div>
-                    )}
                   </div>
 
                   {hasFranchise && (
                     <>
                       <div className="space-y-2 border rounded-md p-3">
-                        <div className="flex items-center gap-2">
-                          <Checkbox
-                            id="show_franchise_sales"
-                            checked={current.show_franchise_sales}
-                            onCheckedChange={(v) =>
-                              patchCurrent({ show_franchise_sales: !!v })
-                            }
-                          />
-                          <Label htmlFor="show_franchise_sales">特許加盟銷售</Label>
-                        </div>
-                        {current.show_franchise_sales && (
-                          <div className="pl-7 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                              <Label className="text-xs">月目標銷售</Label>
-                              <Input
-                                type="number"
-                                value={current.franchise_sales_target ?? ""}
-                                onChange={(e) =>
-                                  patchCurrent({
-                                    franchise_sales_target:
-                                      e.target.value === "" ? null : Number(e.target.value),
-                                  })
-                                }
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs">年度目標銷售</Label>
-                              <Input
-                                type="number"
-                                value={current.franchise_sales_year_target ?? ""}
-                                onChange={(e) =>
-                                  patchCurrent({
-                                    franchise_sales_year_target:
-                                      e.target.value === "" ? null : Number(e.target.value),
-                                  })
-                                }
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="space-y-2 border rounded-md p-3">
-                        <div className="flex items-center gap-2">
-                          <Checkbox
-                            id="show_franchise_booking"
-                            checked={current.show_franchise_booking}
-                            onCheckedChange={(v) =>
-                              patchCurrent({ show_franchise_booking: !!v })
-                            }
-                          />
-                          <Label htmlFor="show_franchise_booking">特許加盟訂房業績</Label>
-                        </div>
-                        {current.show_franchise_booking && (
-                          <div className="pl-7 space-y-1">
-                            <Label className="text-xs">月目標</Label>
+                        <Label className="text-sm font-medium">特許加盟銷售</Label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs">月目標銷售</Label>
                             <Input
                               type="number"
-                              value={current.franchise_booking_target ?? ""}
+                              value={current.franchise_sales_target ?? ""}
                               onChange={(e) =>
                                 patchCurrent({
-                                  franchise_booking_target:
+                                  franchise_sales_target:
                                     e.target.value === "" ? null : Number(e.target.value),
                                 })
                               }
                             />
+                            {(!current.franchise_sales_target || current.franchise_sales_target === 0) && (
+                              <p className="text-xs text-amber-600">⚠️ 尚未設定月目標銷售，模板中將顯示空值。</p>
+                            )}
                           </div>
-                        )}
+                          <div className="space-y-1">
+                            <Label className="text-xs">年度目標銷售</Label>
+                            <Input
+                              type="number"
+                              value={current.franchise_sales_year_target ?? ""}
+                              onChange={(e) =>
+                                patchCurrent({
+                                  franchise_sales_year_target:
+                                    e.target.value === "" ? null : Number(e.target.value),
+                                })
+                              }
+                            />
+                            {(!current.franchise_sales_year_target || current.franchise_sales_year_target === 0) && (
+                              <p className="text-xs text-amber-600">⚠️ 尚未設定年度目標銷售，模板中將顯示空值。</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 border rounded-md p-3">
+                        <Label className="text-sm font-medium">特許加盟訂房業績</Label>
+                        <div className="space-y-1">
+                          <Label className="text-xs">月目標</Label>
+                          <Input
+                            type="number"
+                            value={current.franchise_booking_target ?? ""}
+                            onChange={(e) =>
+                              patchCurrent({
+                                franchise_booking_target:
+                                  e.target.value === "" ? null : Number(e.target.value),
+                              })
+                            }
+                          />
+                          {(!current.franchise_booking_target || current.franchise_booking_target === 0) && (
+                            <p className="text-xs text-amber-600">⚠️ 尚未設定月目標，模板中將顯示空值。</p>
+                          )}
+                        </div>
                       </div>
                     </>
                   )}
@@ -446,7 +472,7 @@ export default function TeamNotification() {
                 <section className="space-y-2">
                   <h3 className="font-semibold">通知模板</h3>
                   <div className="flex flex-wrap gap-1">
-                    {TEMPLATE_VARS.map((v) => (
+                    {[...GENERAL_TEMPLATE_VARS, ...(hasFranchise ? FRANCHISE_TEMPLATE_VARS : [])].map((v) => (
                       <Badge
                         key={v}
                         variant="outline"
@@ -459,16 +485,17 @@ export default function TeamNotification() {
                   </div>
                   <Textarea
                     ref={templateRef}
-                    rows={10}
-                    value={current.email_template ? current.email_template : DEFAULT_TEMPLATE}
+                    rows={hasFranchise ? 20 : 12}
+                    value={current.email_template ? current.email_template : buildDefaultTemplate(hasFranchise)}
                     onChange={(e) => patchCurrent({ email_template: e.target.value })}
                     placeholder="留空則使用系統預設模板"
                     className="font-mono text-sm"
                   />
                   <p className="text-xs text-muted-foreground">
-                    留空則使用系統預設模板。可用變數：{TEMPLATE_VARS.join("、")}
+                    留空則使用系統預設模板。可用變數：{[...GENERAL_TEMPLATE_VARS, ...(hasFranchise ? FRANCHISE_TEMPLATE_VARS : [])].join("、")}
                   </p>
                 </section>
+
 
                 <div className="flex justify-end">
                   <Button onClick={handleSave} disabled={saving}>
