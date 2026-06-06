@@ -115,40 +115,35 @@ const GENERAL_TEMPLATE = `{日期}
 前月累積訂房業績：{前月累積}
 年度累積訂房金額：{年度累積}`;
 
-const FRANCHISE_TEMPLATE_PREFIX = `{日期}
-
+const FRANCHISE_TEMPLATE = `{日期}
 【{民宿名稱}特許加盟紀錄報表】
 
 今日特許加盟銷售：{今日加盟銷售}
-
 本月累積銷售額：{加盟月累積}
-
 目標月銷售：{加盟月目標}/月
 
-本月銷售達成率：{加盟月達成率}%
-
+本月銷售達成率({加盟月目標})：{加盟月達成率}%
 累積銷售業績：{加盟年累積}
-
-累積銷售達成率：{加盟年達成率}%
-
+累積銷售達成率({加盟年目標})：{加盟年達成率}%
 -------------
-
-今日特許加盟訂房業績：{今日加盟訂房}
-
+今日特許加盟訂房業績：{今日加盟訂房}萬
 本月累積訂房業績：{加盟訂房月累積}
-
 目標特許加盟訂房：{加盟訂房月目標}/月
-
 本月累積訂房達成率：{加盟訂房達成率}%
 
 特許加盟年度累積訂房金額：{加盟訂房年累積}
-
 ------------
+【{民宿名稱}進單業績】
 
-`;
+今日一般訂房業績：{今日訂單}
+本月累積訂房業績：{月累積}
+目標訂房業績：{月目標}／月
+本月({M}月)累積訂房達成率：{達成率}%
+
+年度累積訂房金額：{年度累積}`;
 
 const buildDefaultTemplate = (hasFranchise: boolean) =>
-  hasFranchise ? FRANCHISE_TEMPLATE_PREFIX + GENERAL_TEMPLATE : GENERAL_TEMPLATE;
+  hasFranchise ? FRANCHISE_TEMPLATE : GENERAL_TEMPLATE;
 
 
 export default function TeamNotification() {
