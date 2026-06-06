@@ -218,8 +218,12 @@ export default function TeamOrders() {
         const scout = roleList.some(
           (r: string) => r === "scout" || r === "scout_manager",
         );
+        const closer = roleList.some((r: string) => r === "closer");
+        const video = roleList.some((r: string) => r === "video");
         setIsAdmin(admin);
         setIsScout(scout && !admin);
+        setIsCloser(closer);
+        setIsVideo(video);
         if (scout && !admin) setTab("scout-codes");
       }
       loadOptions();
