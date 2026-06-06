@@ -83,14 +83,23 @@ export default function OrderPayment() {
 
   const startSocialLogin = (provider: "facebook" | "line") => {
     try {
-      sessionStorage.setItem("post_login_redirect", window.location.href);
-      const state = crypto.randomUUID();
       const isProdHost = window.location.hostname === "booking.lakeze.com";
 
+      // FB / LINE OAuth 只註冊了 booking.lakeze.com 的 callback。
+      // 若目前不在 booking 網域（例如預覽網域 *.lovable.app），先把整個付款頁
+      // 導到 booking.lakeze.com 對應路徑，再讓使用者按一次登入即可。
+      if (!isProdHost) {
+        const target = `https://booking.lakeze.com${window.location.pathname}${window.location.search}${window.location.hash}`;
+        toast.message("即將切換至正式網域以完成登入");
+        window.location.href = target;
+        return;
+      }
+
+      sessionStorage.setItem("post_login_redirect", window.location.href);
+      const state = crypto.randomUUID();
+
       if (provider === "facebook") {
-        const redirectUri = isProdHost
-          ? "https://booking.lakeze.com/member/auth/facebook-callback"
-          : `${window.location.origin}/member/auth/facebook-callback`;
+        const redirectUri = "https://booking.lakeze.com/member/auth/facebook-callback";
         sessionStorage.setItem("fb_oauth_state", state);
         sessionStorage.setItem("fb_oauth_redirect_uri", redirectUri);
         const u = new URL("https://www.facebook.com/v18.0/dialog/oauth");
@@ -102,9 +111,7 @@ export default function OrderPayment() {
         window.location.href = u.toString();
       } else {
         const nonce = crypto.randomUUID();
-        const redirectUri = isProdHost
-          ? "https://booking.lakeze.com/member/auth/line-callback"
-          : `${window.location.origin}/member/auth/line-callback`;
+        const redirectUri = "https://booking.lakeze.com/member/auth/line-callback";
         sessionStorage.setItem("line_oauth_state", state);
         sessionStorage.setItem("line_oauth_nonce", nonce);
         sessionStorage.setItem("line_oauth_redirect_uri", redirectUri);
