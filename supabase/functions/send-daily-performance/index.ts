@@ -157,20 +157,56 @@ Deno.serve(async (req) => {
     const year = yearRange(now);
     const dateLabel = todayLabel(now);
 
-    // 1) Settings matching current Taipei HH:MM
-    const { data: settingsRows, error: sErr } = await supabase
-      .from("performance_notification_settings")
-      .select("*")
-      .eq("enabled", true)
-      .eq("notify_time", hhmm);
-    if (sErr) throw sErr;
+    // Parse optional test_mode body
+    let testMode = false;
+    let testAccId: string | null = null;
+    if (req.method === "POST") {
+      try {
+        const body = await req.json();
+        if (body && body.test_mode === true && typeof body.accommodation_id === "string") {
+          testMode = true;
+          testAccId = body.accommodation_id;
+        }
+      } catch { /* no body */ }
+    }
 
-    const settings = settingsRows ?? [];
-    if (settings.length === 0) {
-      return new Response(
-        JSON.stringify({ ok: true, hhmm, matched: 0 }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+    let settings: any[] = [];
+    if (testMode && testAccId) {
+      const { data, error } = await supabase
+        .from("performance_notification_settings")
+        .select("*")
+        .eq("accommodation_id", testAccId)
+        .maybeSingle();
+      if (error) throw error;
+      if (data) {
+        settings = [data];
+      } else {
+        // Fall back to defaults if no row exists yet
+        settings = [{
+          accommodation_id: testAccId,
+          enabled: false,
+          notify_time: hhmm,
+          general_booking_target: 0,
+          franchise_sales_target: 0,
+          franchise_sales_year_target: 0,
+          franchise_booking_target: 0,
+          email_template: null,
+        }];
+      }
+    } else {
+      const { data: settingsRows, error: sErr } = await supabase
+        .from("performance_notification_settings")
+        .select("*")
+        .eq("enabled", true)
+        .eq("notify_time", hhmm);
+      if (sErr) throw sErr;
+      settings = settingsRows ?? [];
+      if (settings.length === 0) {
+        return new Response(
+          JSON.stringify({ ok: true, hhmm, matched: 0 }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
     }
 
     const results: Array<{ accommodation_id: string; ok: boolean; error?: string }> = [];
