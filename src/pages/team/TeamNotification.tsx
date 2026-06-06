@@ -214,12 +214,11 @@ export default function TeamNotification() {
     });
   };
 
-  const toggleFlag = async (accId: string, field: "has_franchise" | "has_starlink", value: boolean) => {
+  const toggleFlag = async (accId: string, field: "has_franchise", value: boolean) => {
     const existing = flags[accId];
     const payload = {
       accommodation_id: accId,
       has_franchise: existing?.has_franchise ?? false,
-      has_starlink: existing?.has_starlink ?? false,
       [field]: value,
       updated_at: new Date().toISOString(),
     };
