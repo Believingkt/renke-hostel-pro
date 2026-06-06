@@ -204,7 +204,7 @@ export default function TeamNotification() {
 
   const insertVar = (v: string) => {
     const el = templateRef.current;
-    const tmpl = current?.email_template || "";
+    const tmpl = current?.email_template || DEFAULT_TEMPLATE;
     if (!el) {
       patchCurrent({ email_template: tmpl + v });
       return;
@@ -213,6 +213,7 @@ export default function TeamNotification() {
     const end = el.selectionEnd ?? tmpl.length;
     const next = tmpl.slice(0, start) + v + tmpl.slice(end);
     patchCurrent({ email_template: next });
+
     requestAnimationFrame(() => {
       el.focus();
       const pos = start + v.length;
