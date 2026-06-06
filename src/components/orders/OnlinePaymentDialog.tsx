@@ -352,7 +352,7 @@ export function OnlinePaymentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>線上收款</DialogTitle>
           <DialogDescription>生成付款連結讓客人以 {payVerb} 完成付款</DialogDescription>
