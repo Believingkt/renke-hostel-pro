@@ -41,7 +41,7 @@ interface RowView extends Accommodation {
   effective_from: string | null;
 }
 
-export default function CommissionRatesTab() {
+export default function CommissionRatesTab({ readOnly = false }: { readOnly?: boolean } = {}) {
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<RowView[]>([]);
   const [historyByAcc, setHistoryByAcc] = useState<Map<string, CommissionRow[]>>(new Map());
