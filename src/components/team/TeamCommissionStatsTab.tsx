@@ -146,12 +146,20 @@ export default function TeamCommissionStatsTab() {
     try {
       let q = supabase
         .from("orders")
-        .select("id, accommodation_id, final_price, order_status, discount_code");
+        .select("id, accommodation_id, final_price, order_status, discount_code, order_date");
       if (period.startIso) q = q.gte("order_date", period.startIso);
       if (period.nextIso) q = q.lt("order_date", period.nextIso);
       const { data: ordersData, error: oe } = await q;
       if (oe) throw oe;
-      const ords = (ordersData ?? []) as OrderLite[];
+      let ords = (ordersData ?? []) as (OrderLite & { order_date: string })[];
+      // 全部年份 + 指定月份 → 客戶端按月份篩選
+      const monthFilter = (period as any).monthFilter as number | undefined;
+      if (monthFilter) {
+        ords = ords.filter((o) => {
+          const d = o.order_date ? new Date(o.order_date) : null;
+          return d ? d.getMonth() + 1 === monthFilter : false;
+        });
+      }
       setOrders(ords);
 
       const ids = ords.map((o) => o.id);
