@@ -35,7 +35,6 @@ interface Accommodation {
 interface FlagsRow {
   accommodation_id: string;
   has_franchise: boolean;
-  has_starlink: boolean;
 }
 
 interface SettingsRow {
@@ -49,8 +48,6 @@ interface SettingsRow {
   franchise_sales_year_target: number | null;
   show_franchise_booking: boolean;
   franchise_booking_target: number | null;
-  show_starlink: boolean;
-  starlink_target: number | null;
   email_template: string | null;
 }
 
@@ -64,8 +61,6 @@ const DEFAULT_SETTINGS: Omit<SettingsRow, "accommodation_id"> = {
   franchise_sales_year_target: 24000000,
   show_franchise_booking: false,
   franchise_booking_target: 300000,
-  show_starlink: false,
-  starlink_target: null,
   email_template: "",
 };
 
@@ -158,7 +153,6 @@ export default function TeamNotification() {
 
   const currentFlags = selectedId ? flags[selectedId] : undefined;
   const hasFranchise = !!currentFlags?.has_franchise;
-  const hasStarlink = !!currentFlags?.has_starlink;
 
   const patchCurrent = (patch: Partial<SettingsRow>) => {
     if (!selectedId) return;
@@ -185,8 +179,6 @@ export default function TeamNotification() {
       franchise_sales_year_target: hasFranchise ? current.franchise_sales_year_target : null,
       show_franchise_booking: hasFranchise ? current.show_franchise_booking : false,
       franchise_booking_target: hasFranchise ? current.franchise_booking_target : null,
-      show_starlink: hasStarlink ? current.show_starlink : false,
-      starlink_target: hasStarlink ? current.starlink_target : null,
 
       email_template: current.email_template,
       updated_at: new Date().toISOString(),
@@ -222,13 +214,11 @@ export default function TeamNotification() {
     });
   };
 
-  const toggleFlag = async (accId: string, field: "has_franchise" | "has_starlink", value: boolean) => {
+  const toggleFlag = async (accId: string, field: "has_franchise", value: boolean) => {
     const existing = flags[accId];
     const payload = {
       accommodation_id: accId,
-      has_franchise: existing?.has_franchise ?? false,
-      has_starlink: existing?.has_starlink ?? false,
-      [field]: value,
+      has_franchise: field === "has_franchise" ? value : (existing?.has_franchise ?? false),
       updated_at: new Date().toISOString(),
     };
     setFlags((prev) => ({ ...prev, [accId]: { ...payload } as FlagsRow }));
@@ -442,34 +432,6 @@ export default function TeamNotification() {
                       </div>
                     </>
                   )}
-
-                  {hasStarlink && (
-                    <div className="space-y-2 border rounded-md p-3">
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          id="show_starlink"
-                          checked={current.show_starlink}
-                          onCheckedChange={(v) => patchCurrent({ show_starlink: !!v })}
-                        />
-                        <Label htmlFor="show_starlink">星鏈業績</Label>
-                      </div>
-                      {current.show_starlink && (
-                        <div className="pl-7 space-y-1">
-                          <Label className="text-xs">月目標</Label>
-                          <Input
-                            type="number"
-                            value={current.starlink_target ?? ""}
-                            onChange={(e) =>
-                              patchCurrent({
-                                starlink_target:
-                                  e.target.value === "" ? null : Number(e.target.value),
-                              })
-                            }
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </section>
 
                 {/* Email */}
@@ -534,7 +496,6 @@ export default function TeamNotification() {
               <TableRow>
                 <TableHead>館別名稱</TableHead>
                 <TableHead className="w-40">有特許加盟業務</TableHead>
-                <TableHead className="w-40">有星鏈業務</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -547,12 +508,6 @@ export default function TeamNotification() {
                       <Switch
                         checked={!!f?.has_franchise}
                         onCheckedChange={(v) => toggleFlag(a.id, "has_franchise", v)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Switch
-                        checked={!!f?.has_starlink}
-                        onCheckedChange={(v) => toggleFlag(a.id, "has_starlink", v)}
                       />
                     </TableCell>
                   </TableRow>
