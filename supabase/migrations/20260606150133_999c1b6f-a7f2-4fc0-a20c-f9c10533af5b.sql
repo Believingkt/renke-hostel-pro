@@ -1,0 +1,1 @@
+REVOKE UPDATE ON public.order_meta FROM sandbox_exec;
