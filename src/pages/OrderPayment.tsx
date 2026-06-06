@@ -382,7 +382,7 @@ export default function OrderPayment() {
           cardholder: {
             phoneNumber: phoneE164,
             name: orderInfo.guestName,
-            email: orderInfo.guestEmail || "no-email@example.com",
+            email: emailInput.trim(),
           },
           details: `訂單 ${orderNumber} 付款`,
           frontendRedirectUrl: `${baseUrl}/payment-result?order_number=${orderNumber}&amount=${amount}&source=link`,
