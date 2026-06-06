@@ -185,8 +185,9 @@ export default function TeamNotification() {
       franchise_sales_year_target: hasFranchise ? current.franchise_sales_year_target : null,
       show_franchise_booking: hasFranchise ? current.show_franchise_booking : false,
       franchise_booking_target: hasFranchise ? current.franchise_booking_target : null,
-      show_starlink: (hasFranchise || hasStarlink) ? current.show_starlink : false,
-      starlink_target: (hasFranchise || hasStarlink) ? current.starlink_target : null,
+      show_starlink: hasStarlink ? current.show_starlink : false,
+      starlink_target: hasStarlink ? current.starlink_target : null,
+
       email_template: current.email_template,
       updated_at: new Date().toISOString(),
     };
@@ -442,7 +443,7 @@ export default function TeamNotification() {
                     </>
                   )}
 
-                  {(hasFranchise || hasStarlink) && (
+                  {hasStarlink && (
                     <div className="space-y-2 border rounded-md p-3">
                       <div className="flex items-center gap-2">
                         <Checkbox
