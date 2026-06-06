@@ -298,6 +298,18 @@ Deno.serve(async (req) => {
       }
     }
 
+    // 統一寄送訂房通知信
+    try {
+      await sendBookingConfirmationByOrderId(
+        supabaseUrl,
+        supabaseServiceKey,
+        orderData.id,
+        "信用卡",
+      );
+    } catch (e) {
+      console.error("[create-paid-order] booking email failed (non-fatal):", e);
+    }
+
     return jsonResponse({
       success: true,
       order: {
