@@ -3491,19 +3491,47 @@ function MemberDistributionTab({ currentUserId, canManage = true, canDelete = tr
 function ProjectsManagementCard() {
   const projects = useFranchiseProjects(true);
   const [name, setName] = useState("");
+  const [accommodationId, setAccommodationId] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [accommodations, setAccommodations] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("accommodation_info")
+        .select("id,name")
+        .order("name");
+      if (!active) return;
+      const list = (data ?? []).filter(
+        (a: any) => !/奧丁丁|owlting/i.test(a.name || ""),
+      );
+      setAccommodations(list);
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const accMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    accommodations.forEach((a) => (m[a.id] = a.name));
+    return m;
+  }, [accommodations]);
 
   const handleAdd = async () => {
     const trimmed = name.trim();
     if (!trimmed) return toast.error("請輸入專案名稱");
+    if (!accommodationId) return toast.error("請選擇館別");
     setSaving(true);
     const { error } = await (supabase as any)
       .from("franchise_projects")
-      .insert({ name: trimmed });
+      .insert({ name: trimmed, accommodation_id: accommodationId });
     setSaving(false);
     if (error) return toast.error("新增失敗：" + error.message);
     toast.success("已新增專案");
     setName("");
+    setAccommodationId("");
     bumpFranchiseProjects();
   };
 
@@ -3517,13 +3545,23 @@ function ProjectsManagementCard() {
     bumpFranchiseProjects();
   };
 
+  const handleChangeAccommodation = async (p: FranchiseProject, newAccId: string) => {
+    const { error } = await (supabase as any)
+      .from("franchise_projects")
+      .update({ accommodation_id: newAccId })
+      .eq("id", p.id);
+    if (error) return toast.error("更新館別失敗：" + error.message);
+    toast.success("已更新館別");
+    bumpFranchiseProjects();
+  };
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-base">專案管理</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 items-center">
           <Input
             placeholder="新增專案名稱"
             value={name}
@@ -3533,6 +3571,18 @@ function ProjectsManagementCard() {
             }}
             className="max-w-sm"
           />
+          <Select value={accommodationId} onValueChange={setAccommodationId}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="選擇館別 *" />
+            </SelectTrigger>
+            <SelectContent>
+              {accommodations.map((a) => (
+                <SelectItem key={a.id} value={a.id}>
+                  {a.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button onClick={handleAdd} disabled={saving}>
             <Plus className="h-4 w-4 mr-1" /> 新增
           </Button>
@@ -3542,6 +3592,7 @@ function ProjectsManagementCard() {
             <TableHeader>
               <TableRow>
                 <TableHead>專案名稱</TableHead>
+                <TableHead>館別</TableHead>
                 <TableHead>狀態</TableHead>
                 <TableHead className="w-24 text-right">操作</TableHead>
               </TableRow>
@@ -3549,7 +3600,7 @@ function ProjectsManagementCard() {
             <TableBody>
               {projects.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center text-muted-foreground py-6">
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
                     尚無專案
                   </TableCell>
                 </TableRow>
@@ -3557,6 +3608,27 @@ function ProjectsManagementCard() {
                 projects.map((p) => (
                   <TableRow key={p.id}>
                     <TableCell>{p.name}</TableCell>
+                    <TableCell>
+                      <Select
+                        value={p.accommodation_id ?? ""}
+                        onValueChange={(v) => handleChangeAccommodation(p, v)}
+                      >
+                        <SelectTrigger className="w-44 h-9">
+                          <SelectValue placeholder="—">
+                            {p.accommodation_id
+                              ? accMap[p.accommodation_id] ?? "（已刪除）"
+                              : "—"}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {accommodations.map((a) => (
+                            <SelectItem key={a.id} value={a.id}>
+                              {a.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
                     <TableCell>
                       <Badge variant={p.is_active ? "success" : "secondary"}>
                         {p.is_active ? "啟用" : "停用"}
