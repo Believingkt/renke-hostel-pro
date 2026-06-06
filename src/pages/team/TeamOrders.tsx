@@ -554,7 +554,7 @@ export default function TeamOrders() {
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               placeholder="搜尋訂單編號、房客姓名、折扣碼、成交人、影音組、會員編號"
-              className="pl-9"
+              className="pl-10"
             />
           </div>
           <div className="flex flex-wrap gap-2">
