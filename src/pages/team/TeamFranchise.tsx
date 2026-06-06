@@ -36,10 +36,21 @@ import { Plus, Pencil, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 interface InternalRates {
@@ -3519,6 +3530,19 @@ function ProjectsManagementCard() {
     return m;
   }, [accommodations]);
 
+  const [confirmAddOpen, setConfirmAddOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<FranchiseProject | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editAccId, setEditAccId] = useState<string>("");
+  const [editSaving, setEditSaving] = useState(false);
+
+  const requestAdd = () => {
+    const trimmed = name.trim();
+    if (!trimmed) return toast.error("請輸入專案名稱");
+    if (!accommodationId) return toast.error("請選擇館別");
+    setConfirmAddOpen(true);
+  };
+
   const handleAdd = async () => {
     const trimmed = name.trim();
     if (!trimmed) return toast.error("請輸入專案名稱");
@@ -3528,6 +3552,7 @@ function ProjectsManagementCard() {
       .from("franchise_projects")
       .insert({ name: trimmed, accommodation_id: accommodationId });
     setSaving(false);
+    setConfirmAddOpen(false);
     if (error) return toast.error("新增失敗：" + error.message);
     toast.success("已新增專案");
     setName("");
@@ -3545,13 +3570,26 @@ function ProjectsManagementCard() {
     bumpFranchiseProjects();
   };
 
-  const handleChangeAccommodation = async (p: FranchiseProject, newAccId: string) => {
+  const openEdit = (p: FranchiseProject) => {
+    setEditTarget(p);
+    setEditName(p.name);
+    setEditAccId(p.accommodation_id ?? "");
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editTarget) return;
+    const trimmed = editName.trim();
+    if (!trimmed) return toast.error("請輸入專案名稱");
+    if (!editAccId) return toast.error("請選擇館別");
+    setEditSaving(true);
     const { error } = await (supabase as any)
       .from("franchise_projects")
-      .update({ accommodation_id: newAccId })
-      .eq("id", p.id);
-    if (error) return toast.error("更新館別失敗：" + error.message);
-    toast.success("已更新館別");
+      .update({ name: trimmed, accommodation_id: editAccId })
+      .eq("id", editTarget.id);
+    setEditSaving(false);
+    if (error) return toast.error("更新失敗：" + error.message);
+    toast.success("已更新專案");
+    setEditTarget(null);
     bumpFranchiseProjects();
   };
 
@@ -3567,7 +3605,7 @@ function ProjectsManagementCard() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") void handleAdd();
+              if (e.key === "Enter") requestAdd();
             }}
             className="max-w-sm"
           />
@@ -3583,7 +3621,7 @@ function ProjectsManagementCard() {
               ))}
             </SelectContent>
           </Select>
-          <Button onClick={handleAdd} disabled={saving}>
+          <Button onClick={requestAdd} disabled={saving}>
             <Plus className="h-4 w-4 mr-1" /> 新增
           </Button>
         </div>
@@ -3594,7 +3632,7 @@ function ProjectsManagementCard() {
                 <TableHead>專案名稱</TableHead>
                 <TableHead>館別</TableHead>
                 <TableHead>狀態</TableHead>
-                <TableHead className="w-24 text-right">操作</TableHead>
+                <TableHead className="w-32 text-right">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -3609,25 +3647,9 @@ function ProjectsManagementCard() {
                   <TableRow key={p.id}>
                     <TableCell>{p.name}</TableCell>
                     <TableCell>
-                      <Select
-                        value={p.accommodation_id ?? ""}
-                        onValueChange={(v) => handleChangeAccommodation(p, v)}
-                      >
-                        <SelectTrigger className="w-44 h-9">
-                          <SelectValue placeholder="—">
-                            {p.accommodation_id
-                              ? accMap[p.accommodation_id] ?? "（已刪除）"
-                              : "—"}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          {accommodations.map((a) => (
-                            <SelectItem key={a.id} value={a.id}>
-                              {a.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      {p.accommodation_id
+                        ? accMap[p.accommodation_id] ?? "（已刪除）"
+                        : "—"}
                     </TableCell>
                     <TableCell>
                       <Badge variant={p.is_active ? "success" : "secondary"}>
@@ -3635,9 +3657,19 @@ function ProjectsManagementCard() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button size="sm" variant="outline" onClick={() => handleToggle(p)}>
-                        {p.is_active ? "停用" : "啟用"}
-                      </Button>
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => openEdit(p)}
+                          aria-label="編輯專案"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => handleToggle(p)}>
+                          {p.is_active ? "停用" : "啟用"}
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -3646,6 +3678,75 @@ function ProjectsManagementCard() {
           </Table>
         </div>
       </CardContent>
+
+      <AlertDialog open={confirmAddOpen} onOpenChange={setConfirmAddOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>請確認專案資訊</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <div>
+                  <span className="text-muted-foreground">專案名稱：</span>
+                  <span className="font-medium text-foreground">{name.trim()}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">館別：</span>
+                  <span className="font-medium text-foreground">
+                    {accMap[accommodationId] ?? "—"}
+                  </span>
+                </div>
+                <div className="pt-2">確認後將新增此專案，請確認資料無誤。</div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={saving}>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); void handleAdd(); }} disabled={saving}>
+              確認
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={!!editTarget} onOpenChange={(o) => { if (!o) setEditTarget(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>編輯專案</DialogTitle>
+            <DialogDescription className="text-destructive">
+              ⚠️ 修改專案名稱可能影響已關聯的訂單資料，請確認此專案尚無訂單再修改。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>專案名稱 *</Label>
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>館別 *</Label>
+              <Select value={editAccId} onValueChange={setEditAccId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="選擇館別" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accommodations.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditTarget(null)} disabled={editSaving}>
+              取消
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={editSaving}>
+              儲存
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
