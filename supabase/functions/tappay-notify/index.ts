@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendBookingConfirmationByOrderId } from "../_shared/sendBookingEmail.ts";
 
 // CORS headers for webhook (TapPay backend calls)
 const corsHeaders = {
@@ -337,46 +338,18 @@ Deno.serve(async (req) => {
             is_read: false,
           });
 
-          // ATM 付款完成且訂單已全額付清 → 寄送訂房通知 email
+          // ATM 付款完成且訂單已全額付清 → 統一寄送訂房通知 email
+          // （3DS/非3DS 信用卡的通知信由 complete-3ds-booking / create-paid-order 在建單時寄出，
+          //  webhook 不重複發送。）
           if (isAtm && newPaymentStatus === 'paid') {
             try {
-              const { data: full } = await supabase
-                .from('orders')
-                .select('guest_name, guest_email, check_in_date, check_out_date, guest_count, meal_plan, final_price, pet_count, pet_plan_price, meal_plan_details, meal_plan_total, room_types(name)')
-                .eq('id', order.id)
-                .maybeSingle();
-
-              if (full?.guest_email) {
-                const roomName = (full as any).room_types?.name || '';
-                const emailPayload = {
-                  guestName: full.guest_name,
-                  guestEmail: full.guest_email,
-                  orderNumber: order.order_number,
-                  roomName,
-                  checkInDate: full.check_in_date,
-                  checkOutDate: full.check_out_date,
-                  guestCount: full.guest_count,
-                  mealPlan: full.meal_plan || '',
-                  finalPrice: full.final_price,
-                  depositAmount: full.final_price,
-                  paymentMethod: 'ATM 虛擬帳號轉帳',
-                  petCount: full.pet_count > 0 ? full.pet_count : undefined,
-                  petPlanPrice: full.pet_plan_price > 0 ? full.pet_plan_price : undefined,
-                  mealPlanDetails: Array.isArray(full.meal_plan_details) && full.meal_plan_details.length > 0 ? full.meal_plan_details : undefined,
-                  mealPlanTotal: full.meal_plan_total > 0 ? full.meal_plan_total : undefined,
-                };
-                const emailResp = await fetch(`${supabaseUrl}/functions/v1/send-booking-confirmation`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${supabaseServiceKey}`,
-                  },
-                  body: JSON.stringify(emailPayload),
-                });
-                console.log('[tappay-notify] ATM booking confirmation email status:', emailResp.status);
-              } else {
-                console.log('[tappay-notify] ATM order has no guest_email, skip email');
-              }
+              const r = await sendBookingConfirmationByOrderId(
+                supabaseUrl,
+                supabaseServiceKey,
+                order.id,
+                'ATM 虛擬帳號轉帳',
+              );
+              console.log('[tappay-notify] ATM booking email result:', r);
             } catch (mailErr) {
               console.error('[tappay-notify] ATM email send failed (non-fatal):', mailErr);
             }

@@ -2685,51 +2685,37 @@ const BookingFlow = () => {
         }
       }
 
-      // 發送訂購確認郵件
+      // 發送訂購確認郵件（統一走 notify-booking-confirmation）
+      // - 非 3DS 信用卡（paidOrderResult）：create-paid-order 已寄信，跳過避免重複
+      // - ATM 待匯款：webhook 入帳後由 tappay-notify 寄信
+      // - 信用卡（已扣款的 manual insert 路徑）：在此寄信
       let emailSent = false;
-      if (guestInfo.email) {
-        try {
-          const mealPlanDetailsForEmail = mealPlanDetailsData.map(detail => ({
-            date: format(new Date(detail.date), "MM/dd"),
-            count: detail.count,
-            price: detail.price
-          }));
+      const shouldSendEmailNow = !paidOrderResult
+        && !!guestInfo.email
+        && !!paymentTransactionId
+        && orderPaymentType !== "atm";
 
+      if (shouldSendEmailNow && orderData?.id) {
+        try {
+          const paymentMethodLabel =
+            orderPaymentType === "credit_card" ? "信用卡" : (paymentMethod || "線上付款");
           const { data: emailData, error: emailError } = await supabase.functions.invoke(
-            "send-booking-confirmation",
+            "notify-booking-confirmation",
             {
               body: {
-                guestName: guestInfo.name,
-                guestEmail: guestInfo.email,
-                orderNumber: orderData.order_number,
-                roomName: selectedRoom.name,
-                checkInDate: checkInDateStr,
-                checkOutDate: checkOutDateStr,
-                guestCount: totalGuests,
-                mealPlan: selectedMealPlan,
-                mealPlanDisplayName: getMealPlanDisplayName(selectedMealPlan),
-                finalPrice: finalPrice,
-                depositAmount: depositAmount,
-                paymentMethod: paymentMethod,
-                petCount: petCount > 0 ? petCount : undefined,
-                petPlanPrice: petPlanPrice > 0 ? petPlanPrice : undefined,
-                mealPlanDetails: mealPlanDetailsForEmail.length > 0 ? mealPlanDetailsForEmail : undefined,
-                mealPlanTotal: mealPlanTotalPrice > 0 ? mealPlanTotalPrice : undefined,
+                orderId: orderData.id,
+                paymentMethodLabel,
               },
             }
           );
-
-          if (emailError) {
-            emailSent = false;
-          } else if (emailData?.warning) {
-            emailSent = false;
-          } else {
-            emailSent = true;
-          }
+          emailSent = !emailError && !!emailData?.success;
         } catch (emailError) {
           console.error("發送確認郵件時發生錯誤:", emailError);
           emailSent = false;
         }
+      } else if (paidOrderResult) {
+        // 由 create-paid-order 寄送，視為已寄出
+        emailSent = !!guestInfo.email;
       }
 
       // ATM 虛擬帳號：建單成功後跳轉到專屬 ATM 匯款資訊頁

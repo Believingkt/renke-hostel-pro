@@ -153,18 +153,12 @@ export default function LinePayConfirm() {
         // 清除 sessionStorage
         sessionStorage.removeItem('pendingLinePayOrder');
 
-        // 發送確認信
+        // 統一寄送訂房通知信
         try {
-          await supabase.functions.invoke('send-booking-confirmation', {
+          await supabase.functions.invoke('notify-booking-confirmation', {
             body: {
               orderId: orderResult.id,
-              orderNumber: orderResult.order_number,
-              guestEmail: orderData.guestInfo.email,
-              guestName: orderData.guestInfo.name,
-              roomTypeName: orderData.selectedRoom.name,
-              checkInDate: orderData.checkInDateStr,
-              checkOutDate: orderData.checkOutDateStr,
-              totalPrice: orderData.finalPrice,
+              paymentMethodLabel: 'LINE Pay',
             },
           });
         } catch (emailError) {

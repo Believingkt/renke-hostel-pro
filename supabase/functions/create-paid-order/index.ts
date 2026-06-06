@@ -13,6 +13,7 @@ import {
 } from "../_shared/tappay.ts";
 import { validateOrderPrices } from "../_shared/orderPriceValidation.ts";
 import { reportBackendError } from "../_shared/errorReporter.ts";
+import { sendBookingConfirmationByOrderId } from "../_shared/sendBookingEmail.ts";
 
 import { buildCorsHeaders } from "../_shared/cors.ts";
 
@@ -296,6 +297,18 @@ Deno.serve(async (req) => {
       } catch (e) {
         console.log("[create-paid-order] KOL webhook error (non-fatal):", e);
       }
+    }
+
+    // 統一寄送訂房通知信
+    try {
+      await sendBookingConfirmationByOrderId(
+        supabaseUrl,
+        supabaseServiceKey,
+        orderData.id,
+        "信用卡",
+      );
+    } catch (e) {
+      console.error("[create-paid-order] booking email failed (non-fatal):", e);
     }
 
     return jsonResponse({
