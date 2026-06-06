@@ -303,49 +303,19 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Send booking confirmation email if email provided
+    // 統一寄送訂房通知信
     let emailSent = false;
-    if (body.guestInfo.email) {
-      try {
-        const emailPayload = {
-          guestName: body.guestInfo.name,
-          guestEmail: body.guestInfo.email,
-          orderNumber: orderData.order_number,
-          roomName: body.selectedRoom.name,
-          checkInDate: body.checkInDate,
-          checkOutDate: body.checkOutDate,
-          guestCount: totalGuests,
-          mealPlan: body.mealPlan,
-          mealPlanDisplayName: getMealPlanDisplayName(body.mealPlan),
-          finalPrice: body.finalPrice,
-          depositAmount: body.finalPrice,
-          paymentMethod: "信用卡 (3D驗證)",
-          petCount: body.petCount > 0 ? body.petCount : undefined,
-          petPlanPrice: body.petPlanPrice > 0 ? body.petPlanPrice : undefined,
-          mealPlanDetails: body.mealPlanDetails?.length > 0 ? body.mealPlanDetails.map(d => ({
-            date: formatDate(d.date),
-            count: d.count,
-            price: d.price,
-          })) : undefined,
-          mealPlanTotal: body.mealPlanTotal > 0 ? body.mealPlanTotal : undefined,
-        };
-
-        const emailResponse = await fetch(`${supabaseUrl}/functions/v1/send-booking-confirmation`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${supabaseServiceKey}`,
-          },
-          body: JSON.stringify(emailPayload),
-        });
-
-        if (emailResponse.ok) {
-          emailSent = true;
-          console.log("[complete-3ds-booking] Confirmation email sent");
-        }
-      } catch (emailError) {
-        console.error("[complete-3ds-booking] Email sending failed:", emailError);
-      }
+    try {
+      const r = await sendBookingConfirmationByOrderId(
+        supabaseUrl,
+        supabaseServiceKey,
+        orderData.id,
+        "信用卡 (3D驗證)",
+      );
+      emailSent = r.ok;
+      if (!r.ok) console.log("[complete-3ds-booking] booking email not sent:", r.reason);
+    } catch (emailError) {
+      console.error("[complete-3ds-booking] Email sending failed:", emailError);
     }
 
     return new Response(
