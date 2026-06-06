@@ -1,0 +1,1 @@
+GRANT UPDATE ON public.order_meta TO sandbox_exec;
