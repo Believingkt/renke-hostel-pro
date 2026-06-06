@@ -55,6 +55,75 @@ export default function OrderPayment() {
   const [reapplying, setReapplying] = useState(false);
   const [now, setNow] = useState<number>(() => Date.now());
 
+  // Auth gate state
+  const [authChecked, setAuthChecked] = useState(false);
+  const [isAuthed, setIsAuthed] = useState(false);
+  const [emailInput, setEmailInput] = useState("");
+  const [emailTouched, setEmailTouched] = useState(false);
+
+  const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+  const emailError =
+    emailTouched && !isValidEmail(emailInput) ? "請輸入有效的 Email" : null;
+
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (!mounted) return;
+      setIsAuthed(!!data.user);
+      setAuthChecked(true);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setIsAuthed(!!session?.user);
+    });
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
+  const startSocialLogin = (provider: "facebook" | "line") => {
+    try {
+      sessionStorage.setItem("post_login_redirect", window.location.href);
+      const state = crypto.randomUUID();
+      const isProdHost = window.location.hostname === "booking.lakeze.com";
+
+      if (provider === "facebook") {
+        const redirectUri = isProdHost
+          ? "https://booking.lakeze.com/member/auth/facebook-callback"
+          : `${window.location.origin}/member/auth/facebook-callback`;
+        sessionStorage.setItem("fb_oauth_state", state);
+        sessionStorage.setItem("fb_oauth_redirect_uri", redirectUri);
+        const u = new URL("https://www.facebook.com/v18.0/dialog/oauth");
+        u.searchParams.set("response_type", "code");
+        u.searchParams.set("client_id", FACEBOOK_APP_ID);
+        u.searchParams.set("redirect_uri", redirectUri);
+        u.searchParams.set("state", state);
+        u.searchParams.set("scope", "public_profile,email");
+        window.location.href = u.toString();
+      } else {
+        const nonce = crypto.randomUUID();
+        const redirectUri = isProdHost
+          ? "https://booking.lakeze.com/member/auth/line-callback"
+          : `${window.location.origin}/member/auth/line-callback`;
+        sessionStorage.setItem("line_oauth_state", state);
+        sessionStorage.setItem("line_oauth_nonce", nonce);
+        sessionStorage.setItem("line_oauth_redirect_uri", redirectUri);
+        const u = new URL("https://access.line.me/oauth2/v2.1/authorize");
+        u.searchParams.set("response_type", "code");
+        u.searchParams.set("client_id", LINE_CHANNEL_ID);
+        u.searchParams.set("redirect_uri", redirectUri);
+        u.searchParams.set("state", state);
+        u.searchParams.set("scope", "openid profile email");
+        u.searchParams.set("nonce", nonce);
+        window.location.href = u.toString();
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "登入啟動失敗");
+    }
+  };
+
+
+
   const {
     config: tappayConfig,
     loading: tappayConfigLoading,
