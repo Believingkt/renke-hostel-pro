@@ -23,10 +23,25 @@ const MemberLineCallback = () => {
     if (ranRef.current) return;
     ranRef.current = true;
 
-    const finish = (path: string) => {
+    const finish = (path: string, tokens?: { access?: string; refresh?: string }) => {
       console.log(`[${TAG} callback] navigate →`, path);
       if (/^https?:\/\//i.test(path)) {
-        window.location.replace(path);
+        let target = path;
+        try {
+          const u = new URL(path);
+          if (u.origin !== window.location.origin && tokens?.access && tokens?.refresh) {
+            const frag = new URLSearchParams({
+              access_token: tokens.access,
+              refresh_token: tokens.refresh,
+              source: "oauth_handoff",
+            });
+            u.hash = (u.hash ? u.hash.replace(/^#/, "") + "&" : "") + frag.toString();
+            target = u.toString();
+          }
+        } catch {
+          /* keep original path */
+        }
+        window.location.replace(target);
       } else {
         navigate(path, { replace: true });
       }
