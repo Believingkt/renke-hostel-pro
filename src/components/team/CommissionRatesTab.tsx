@@ -225,7 +225,7 @@ export default function CommissionRatesTab({ readOnly = false }: { readOnly?: bo
                     {isOpen && (
                       <TableRow key={`${r.id}-history`} className="bg-muted/30 hover:bg-muted/30">
                         <TableCell></TableCell>
-                        <TableCell colSpan={5} className="p-0">
+                        <TableCell colSpan={readOnly ? 4 : 5} className="p-0">
                           <div className="px-4 py-3">
                             <div className="text-xs text-muted-foreground mb-2">歷史紀錄</div>
                             {history.length === 0 ? (
