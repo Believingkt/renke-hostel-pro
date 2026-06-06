@@ -3612,11 +3612,15 @@ function ProjectsManagementCard() {
             }}
             className="max-w-sm"
           />
-          <Select value={accommodationId} onValueChange={setAccommodationId}>
+          <Select
+            value={accommodationId || "none"}
+            onValueChange={(v) => setAccommodationId(v === "none" ? "" : v)}
+          >
             <SelectTrigger className="w-48">
-              <SelectValue placeholder="選擇館別 *" />
+              <SelectValue placeholder="選擇館別（選填）" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="none">暫不指定</SelectItem>
               {accommodations.map((a) => (
                 <SelectItem key={a.id} value={a.id}>
                   {a.name}
