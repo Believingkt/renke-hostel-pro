@@ -392,11 +392,11 @@ function App() {
                         <Suspense fallback={<FormSkeleton fields={5} />}><DataBackup /></Suspense>
                       </RequireModule>
                     } />
-                    <Route path="admin/settlement" element={
+                    {/* <Route path="admin/settlement" element={
                       <RequireModule module="settlement">
                         <Suspense fallback={<TableSkeleton rows={8} columns={6} />}><Settlement /></Suspense>
                       </RequireModule>
-                    } />
+                    } /> */}
                     <Route path="admin/owner-settlement" element={
                       <RequireModule module="owner_settlement">
                         <Suspense fallback={<TableSkeleton rows={8} columns={8} />}><OwnerSettlement /></Suspense>
