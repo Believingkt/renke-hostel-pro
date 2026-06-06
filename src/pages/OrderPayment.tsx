@@ -270,6 +270,7 @@ export default function OrderPayment() {
           isAtm,
         });
         if (data.guest_email) setEmailInput((prev) => prev || data.guest_email);
+        if (atmActive) setAtmStep(2);
         setPaymentStatus(data.payment_status || "unpaid");
         setOrderStatus(data.order_status || "pending");
 
