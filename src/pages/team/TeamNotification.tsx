@@ -153,7 +153,6 @@ export default function TeamNotification() {
 
   const currentFlags = selectedId ? flags[selectedId] : undefined;
   const hasFranchise = !!currentFlags?.has_franchise;
-  const hasStarlink = !!currentFlags?.has_starlink;
 
   const patchCurrent = (patch: Partial<SettingsRow>) => {
     if (!selectedId) return;
