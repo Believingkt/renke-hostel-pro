@@ -745,20 +745,30 @@ export default function OrderPayment() {
                     </Alert>
                   )}
 
-                  <AtmPaymentPanel
-                    orderId={orderInfo.orderId}
-                    orderNumber={orderNumber}
-                    amount={amount}
-                    cardholder={{
-                      name: orderInfo.guestName,
-                      email: emailInput.trim() || "no-email@example.com",
-                      phoneNumber: orderInfo.guestPhone,
-                    }}
-                    initialAtmInfo={orderInfo.atmInfo}
-                    onCreated={(info) => {
-                      setOrderInfo((prev) => prev ? { ...prev, atmInfo: info, atmExpiredInfo: null } : prev);
-                    }}
-                  />
+                  {!isValidEmail(emailInput) && !orderInfo.atmInfo ? (
+                    <Alert className="border-amber-200 bg-amber-50">
+                      <Info className="h-4 w-4 text-amber-600" />
+                      <AlertTitle className="text-amber-800">請先填寫 Email</AlertTitle>
+                      <AlertDescription className="text-amber-700 text-xs">
+                        虛擬帳號將以此 Email 寄送匯款通知，請於上方填入有效的 Email 後再申請。
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <AtmPaymentPanel
+                      orderId={orderInfo.orderId}
+                      orderNumber={orderNumber}
+                      amount={amount}
+                      cardholder={{
+                        name: orderInfo.guestName,
+                        email: emailInput.trim() || orderInfo.guestEmail || "no-email@example.com",
+                        phoneNumber: orderInfo.guestPhone,
+                      }}
+                      initialAtmInfo={orderInfo.atmInfo}
+                      onCreated={(info) => {
+                        setOrderInfo((prev) => prev ? { ...prev, atmInfo: info, atmExpiredInfo: null } : prev);
+                      }}
+                    />
+                  )}
 
                   {orderInfo.atmInfo && (
                     <>
