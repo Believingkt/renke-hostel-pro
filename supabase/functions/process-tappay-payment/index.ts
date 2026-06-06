@@ -98,6 +98,23 @@ serve(async (req) => {
 
     console.log('Processing TapPay payment with 3D Secure:', { orderId, amount, has3DUrls: !!frontendRedirectUrl, bindCard: !!bindCard });
 
+    // Persist the email the customer entered on the payment page back to the order,
+    // so receipts/notifications go to the address they actually want.
+    try {
+      const supaUrl = Deno.env.get('SUPABASE_URL');
+      const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      if (supaUrl && svcKey && cardholder?.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cardholder.email)) {
+        const admin = createClient(supaUrl, svcKey);
+        await admin
+          .from('orders')
+          .update({ guest_email: cardholder.email })
+          .eq('order_number', orderId)
+          .neq('guest_email', cardholder.email);
+      }
+    } catch (e) {
+      console.warn('Failed to sync guest_email to order (non-blocking):', e);
+    }
+
     const partnerKey = Deno.env.get('TAPPAY_PARTNER_KEY');
     const merchantId = Deno.env.get('TAPPAY_MERCHANT_ID');
 
