@@ -548,6 +548,15 @@ export default function TeamOrders() {
         <TabsContent value="orders" className="space-y-4">
           <Card>
         <CardContent className="p-4 space-y-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              placeholder="搜尋訂單編號、房客姓名、折扣碼、成交人、影音組、會員編號"
+              className="pl-9"
+            />
+          </div>
           <div className="flex flex-wrap gap-2">
             <Select value={accFilter} onValueChange={setAccFilter}>
               <SelectTrigger className="w-44">
