@@ -443,7 +443,7 @@ export default function TeamNotification() {
                     </>
                   )}
 
-                  {(hasFranchise || hasStarlink) && (
+                  {hasStarlink && (
                     <div className="space-y-2 border rounded-md p-3">
                       <div className="flex items-center gap-2">
                         <Checkbox
