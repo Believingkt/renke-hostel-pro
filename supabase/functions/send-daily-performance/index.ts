@@ -305,34 +305,30 @@ Deno.serve(async (req) => {
           const projectNames = (projects ?? []).map((p: any) => p.name);
 
           if (projectNames.length > 0) {
-            // Internal franchise_orders by plan_name (sold_at)
+            // Internal franchise_orders by plan_name — all-time for cumulative sales
             const { data: foAll } = await supabase
               .from("franchise_orders")
               .select("plan_price, quantity, sold_at")
-              .in("plan_name", projectNames)
-              .gte("sold_at", year.start)
-              .lt("sold_at", year.end);
+              .in("plan_name", projectNames);
             for (const r of foAll ?? []) {
               const amt = Number((r as any).plan_price || 0) * Number((r as any).quantity || 1);
               const d = (r as any).sold_at as string | null;
+              franchiseYearSales += amt; // all-time cumulative
               if (!d) continue;
-              franchiseYearSales += amt;
               if (d >= month.start && d < month.end) franchiseMonthSales += amt;
               if (d === today) franchiseTodayCount += 1;
             }
 
-            // External franchise_external_orders by project_name (signed_at acts as sold_at)
+            // External franchise_external_orders by project_name — all-time for cumulative sales
             const { data: feAll } = await supabase
               .from("franchise_external_orders")
               .select("plan_price, unit_count, signed_at")
-              .in("project_name", projectNames)
-              .gte("signed_at", year.start)
-              .lt("signed_at", year.end);
+              .in("project_name", projectNames);
             for (const r of feAll ?? []) {
               const amt = Number((r as any).plan_price || 0) * Number((r as any).unit_count || 1);
               const d = (r as any).signed_at as string | null;
+              franchiseYearSales += amt; // all-time cumulative
               if (!d) continue;
-              franchiseYearSales += amt;
               if (d >= month.start && d < month.end) franchiseMonthSales += amt;
               if (d === today) franchiseTodayCount += 1;
             }
