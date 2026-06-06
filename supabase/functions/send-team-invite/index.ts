@@ -38,11 +38,10 @@ const ADMIN_INVITABLE = new Set([
   "franchise_internal",
   "franchise_external",
   "starlink",
-  "kol",
   "owner",
   "finance",
 ]);
-const SCOUT_MANAGER_INVITABLE = new Set(["scout", "kol"]);
+const SCOUT_MANAGER_INVITABLE = new Set(["scout"]);
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {

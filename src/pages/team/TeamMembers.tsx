@@ -28,7 +28,6 @@ const ALL_INVITABLE_ROLES: TeamRole[] = [
   "franchise_internal",
   "franchise_external",
   "starlink",
-  "kol",
   "owner",
   "finance",
   "venue_manager",
@@ -47,7 +46,7 @@ const ROLE_LABEL = {
   franchise_internal: "特許加盟內部",
   franchise_external: "特許加盟外部",
   starlink: "星鏈",
-  kol: "KOL",
+  
   owner: "屋主",
   finance: "財務",
   venue_manager: "場域負責人",
@@ -65,7 +64,7 @@ const ROLE_BADGE_CLASS = {
   franchise_internal: "bg-amber-100 text-amber-700 border-amber-200",
   franchise_external: "bg-yellow-100 text-yellow-800 border-yellow-200",
   starlink: "bg-gray-100 text-gray-700 border-gray-200",
-  kol: "bg-pink-100 text-pink-700 border-pink-200",
+  
   owner: "bg-stone-200 text-stone-700 border-stone-300",
   finance: "bg-red-100 text-red-700 border-red-200",
   venue_manager: "bg-teal-100 text-teal-700 border-teal-200",

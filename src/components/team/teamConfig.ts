@@ -24,7 +24,6 @@ export type TeamRole =
   | "franchise_external"
   | "franchise_manager"
   | "starlink"
-  | "kol"
   | "owner"
   | "finance"
   | "venue_manager";
@@ -40,7 +39,6 @@ export const TEAM_ROLES: TeamRole[] = [
   "franchise_external",
   "franchise_manager",
   "starlink",
-  "kol",
   "owner",
   "finance",
   "venue_manager",
@@ -56,7 +54,12 @@ export interface TeamMenuItem {
 
 export const TEAM_MENU: TeamMenuItem[] = [
   { title: "首頁", url: "/team", icon: LayoutDashboard },
-  { title: "KOL 星探", url: "/team/kol", icon: Star },
+  {
+    title: "KOL 星探",
+    url: "/team/kol",
+    icon: Star,
+    allowedRoles: ["scout", "scout_manager", "hotel_admin", "super_admin"] as TeamRole[],
+  },
   { title: "成交大師", url: "/team/orders", icon: ClipboardList },
   {
     title: "廣告追蹤",
