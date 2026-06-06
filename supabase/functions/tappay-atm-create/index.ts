@@ -183,6 +183,21 @@ serve(async (req) => {
       });
     }
 
+    // Persist the email the customer entered on the payment page back to the order,
+    // so receipts/notifications go to the address they actually want.
+    try {
+      if (data.cardholder?.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.cardholder.email)) {
+        await supabase
+          .from("orders")
+          .update({ guest_email: data.cardholder.email })
+          .eq("id", order.id)
+          .neq("guest_email", data.cardholder.email);
+      }
+    } catch (e) {
+      console.warn("Failed to sync guest_email to order (non-blocking):", e);
+    }
+
+
     const expireDays = Math.min(7, Math.max(1, data.expireInDays ?? 3));
     const phoneE164 = normalizePhoneE164(data.cardholder.phoneNumber);
     const envRaw = Deno.env.get("TAPPAY_ENV");
