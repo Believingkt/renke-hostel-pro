@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendBookingConfirmationByOrderId } from "../_shared/sendBookingEmail.ts";
 
 // CORS headers for webhook (TapPay backend calls)
 const corsHeaders = {
