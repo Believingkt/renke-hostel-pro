@@ -142,6 +142,8 @@ export async function runOAuthExchange(p: CallbackParams): Promise<CallbackResul
         ok: true,
         redirectTo: pickRedirect(returnUrlOverride),
         successMessage: `${successLabel}登入成功`,
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token,
       };
     } catch (err: any) {
       console.error(`[${tag} callback] exchange error`, err);
