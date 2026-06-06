@@ -3699,7 +3699,7 @@ function ProjectsManagementCard() {
                 <div>
                   <span className="text-muted-foreground">館別：</span>
                   <span className="font-medium text-foreground">
-                    {accMap[accommodationId] ?? "—"}
+                    {accommodationId ? accMap[accommodationId] ?? "—" : "未指定"}
                   </span>
                 </div>
                 <div className="pt-2">確認後將新增此專案，請確認資料無誤。</div>
