@@ -35,7 +35,6 @@ interface Accommodation {
 interface FlagsRow {
   accommodation_id: string;
   has_franchise: boolean;
-  has_starlink: boolean;
 }
 
 interface SettingsRow {
@@ -49,8 +48,6 @@ interface SettingsRow {
   franchise_sales_year_target: number | null;
   show_franchise_booking: boolean;
   franchise_booking_target: number | null;
-  show_starlink: boolean;
-  starlink_target: number | null;
   email_template: string | null;
 }
 
@@ -64,8 +61,6 @@ const DEFAULT_SETTINGS: Omit<SettingsRow, "accommodation_id"> = {
   franchise_sales_year_target: 24000000,
   show_franchise_booking: false,
   franchise_booking_target: 300000,
-  show_starlink: false,
-  starlink_target: null,
   email_template: "",
 };
 
