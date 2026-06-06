@@ -3729,12 +3729,16 @@ function ProjectsManagementCard() {
               <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>館別 *</Label>
-              <Select value={editAccId} onValueChange={setEditAccId}>
+              <Label>館別</Label>
+              <Select
+                value={editAccId || "none"}
+                onValueChange={(v) => setEditAccId(v === "none" ? "" : v)}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="選擇館別" />
+                  <SelectValue placeholder="選擇館別（選填）" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">暫不指定</SelectItem>
                   {accommodations.map((a) => (
                     <SelectItem key={a.id} value={a.id}>
                       {a.name}
