@@ -411,6 +411,78 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
             </div>
           </div>
 
+          {/* 來源管道 / 訂房方式 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>來源管道</Label>
+              <Select value={trafficSource} onValueChange={setTrafficSource}>
+                <SelectTrigger>
+                  <SelectValue placeholder="請選擇來源管道" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>未指定</SelectItem>
+                  {trafficSources.map((o) => (
+                    <SelectItem key={o.id} value={o.name}>
+                      {o.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex gap-2">
+                <Input
+                  value={newTrafficSource}
+                  onChange={(e) => setNewTrafficSource(e.target.value)}
+                  placeholder="新增選項"
+                  className="h-9"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleAddTrafficSource}
+                  disabled={addingTraffic || !newTrafficSource.trim()}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>訂房方式</Label>
+              <Select value={bookingMethod} onValueChange={setBookingMethod}>
+                <SelectTrigger>
+                  <SelectValue placeholder="請選擇訂房方式" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>未指定</SelectItem>
+                  {bookingMethods.map((o) => (
+                    <SelectItem key={o.id} value={o.name}>
+                      {o.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex gap-2">
+                <Input
+                  value={newBookingMethod}
+                  onChange={(e) => setNewBookingMethod(e.target.value)}
+                  placeholder="新增選項"
+                  className="h-9"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleAddBookingMethod}
+                  disabled={addingBooking || !newBookingMethod.trim()}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+
           {/* 廣告編號 */}
           <div className="space-y-2">
             <Label>廣告編號</Label>
