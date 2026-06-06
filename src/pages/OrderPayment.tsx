@@ -83,10 +83,20 @@ export default function OrderPayment() {
 
   const startSocialLogin = (provider: "facebook" | "line") => {
     try {
+      // Encode the current payment URL into OAuth state so the callback
+      // (which lives on booking.lakeze.com — possibly a different origin from
+      // the accommodation's custom domain) can recover it without
+      // sessionStorage (sessionStorage is per-origin).
+      const returnUrl = window.location.href;
+      const returnB64 = btoa(unescape(encodeURIComponent(returnUrl)))
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
+      const random = crypto.randomUUID().replace(/-/g, "");
+      const state = `${random}.${returnB64}`;
 
-
-      sessionStorage.setItem("post_login_redirect", window.location.href);
-      const state = crypto.randomUUID();
+      // Best-effort same-origin storage (used when callback happens to share origin)
+      sessionStorage.setItem("post_login_redirect", returnUrl);
 
       if (provider === "facebook") {
         const redirectUri = "https://booking.lakeze.com/member/auth/facebook-callback";
