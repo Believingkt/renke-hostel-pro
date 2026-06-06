@@ -23,10 +23,29 @@ const MemberFacebookCallback = () => {
     if (ranRef.current) return;
     ranRef.current = true;
 
-    const finish = (path: string) => {
+    const finish = (path: string, tokens?: { access?: string; refresh?: string }) => {
       console.log(`[${TAG} callback] navigate →`, path);
       if (/^https?:\/\//i.test(path)) {
-        window.location.replace(path);
+        let target = path;
+        // Cross-origin handoff: append tokens via URL fragment so the target
+        // origin can call supabase.auth.setSession() locally (localStorage is
+        // per-origin and the session created here on booking.lakeze.com is
+        // invisible to e.g. sensaninn.lakeze.com otherwise).
+        try {
+          const u = new URL(path);
+          if (u.origin !== window.location.origin && tokens?.access && tokens?.refresh) {
+            const frag = new URLSearchParams({
+              access_token: tokens.access,
+              refresh_token: tokens.refresh,
+              source: "oauth_handoff",
+            });
+            u.hash = (u.hash ? u.hash.replace(/^#/, "") + "&" : "") + frag.toString();
+            target = u.toString();
+          }
+        } catch {
+          /* keep original path */
+        }
+        window.location.replace(target);
       } else {
         navigate(path, { replace: true });
       }
