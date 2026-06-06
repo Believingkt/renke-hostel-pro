@@ -13,7 +13,8 @@ import { useTapPayConfig } from "@/hooks/use-tappay-config";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AtmPaymentPanel } from "@/components/payment/AtmPaymentPanel";
-import { getPaymentOriginForAccommodation, redirectToPaymentOrigin } from "@/utils/paymentDomain";
+import { getPaymentOriginForAccommodation, isSameOriginIgnoringWww } from "@/utils/paymentDomain";
+import { buildRedirectWithSessionHandoff } from "@/utils/oauthCallbackHandler";
 import { LINE_CHANNEL_ID, FACEBOOK_APP_ID } from "@/config/oauth";
 
 interface PaymentError {
@@ -174,8 +175,13 @@ export default function OrderPayment() {
     let cancelled = false;
     if (!accommodationId) return;
 
-    getPaymentOriginForAccommodation(accommodationId).then((origin) => {
-      if (!cancelled) redirectToPaymentOrigin(origin);
+    getPaymentOriginForAccommodation(accommodationId).then(async (origin) => {
+      if (cancelled || !origin || isSameOriginIgnoringWww(window.location.origin, origin)) return;
+      const target = await buildRedirectWithSessionHandoff(
+        "OrderPayment",
+        `${origin}${window.location.pathname}${window.location.search}${window.location.hash}`,
+      );
+      if (!cancelled) window.location.replace(target);
     });
 
     return () => {
