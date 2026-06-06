@@ -33,6 +33,8 @@ export interface CallbackResult {
 const DEFAULT_REDIRECT = "/member/orders";
 const TIMEOUT_MS = 8000;
 
+export type SessionHandoffTokens = { access?: string; refresh?: string };
+
 function consumePostLoginRedirect(): string | null {
   const v = sessionStorage.getItem("post_login_redirect");
   if (v) sessionStorage.removeItem("post_login_redirect");
@@ -50,7 +52,10 @@ function pickRedirect(override?: string | null): string {
 export function decodeReturnUrlFromState(state: string | null | undefined): string | null {
   if (!state || !state.includes(".")) return null;
   try {
-    const b64 = state.split(".").slice(1).join(".");
+    // Facebook: <random>.<returnB64>
+    // LINE:     <random>.<returnB64>.<nonce>
+    // Only the second segment is the encoded return URL.
+    const b64 = state.split(".")[1];
     if (!b64) return null;
     const padded = b64.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((b64.length + 3) % 4);
     const decoded = decodeURIComponent(escape(atob(padded)));
@@ -64,17 +69,68 @@ export function decodeReturnUrlFromState(state: string | null | undefined): stri
 export async function preCheckExistingSession(
   tag: string,
   returnUrlOverride?: string | null,
-): Promise<string | null> {
+): Promise<CallbackResult | null> {
   try {
     const { data } = await supabase.auth.getSession();
     if (data?.session?.user) {
       console.log(`[${tag} callback] pre-check: session already present, skipping exchange`);
-      return pickRedirect(returnUrlOverride);
+      return {
+        ok: true,
+        redirectTo: pickRedirect(returnUrlOverride),
+        accessToken: data.session.access_token,
+        refreshToken: data.session.refresh_token,
+      };
     }
   } catch (e) {
     console.warn(`[${tag} callback] pre-check getSession failed`, e);
   }
   return null;
+}
+
+export async function buildRedirectWithSessionHandoff(
+  tag: string,
+  path: string,
+  tokens?: SessionHandoffTokens,
+): Promise<string> {
+  if (!/^https?:\/\//i.test(path)) return path;
+
+  let target = path;
+  try {
+    const u = new URL(path);
+    if (u.origin === window.location.origin) return target;
+
+    let access = tokens?.access;
+    let refresh = tokens?.refresh;
+
+    if (!access || !refresh) {
+      console.log(`[${tag} callback] cross-origin handoff needs tokens, reading current session`);
+      const { data } = await supabase.auth.getSession();
+      access = data?.session?.access_token;
+      refresh = data?.session?.refresh_token;
+    }
+
+    if (access && refresh) {
+      const existingHash = new URLSearchParams(u.hash.replace(/^#/, ""));
+      existingHash.delete("access_token");
+      existingHash.delete("refresh_token");
+      existingHash.delete("source");
+      const frag = new URLSearchParams({
+        access_token: access,
+        refresh_token: refresh,
+        source: "oauth_handoff",
+      });
+      const preservedHash = existingHash.toString();
+      u.hash = (preservedHash ? `${preservedHash}&` : "") + frag.toString();
+      target = u.toString();
+      console.log(`[${tag} callback] cross-origin handoff tokens appended`);
+    } else {
+      console.warn(`[${tag} callback] cross-origin handoff missing tokens`);
+    }
+  } catch (e) {
+    console.warn(`[${tag} callback] build handoff URL failed`, e);
+  }
+
+  return target;
 }
 
 export async function runOAuthExchange(p: CallbackParams): Promise<CallbackResult> {
@@ -130,10 +186,12 @@ export async function runOAuthExchange(p: CallbackParams): Promise<CallbackResul
       // Confirm session is really there before navigating.
       const { data: confirm } = await supabase.auth.getSession();
       console.log(`[${tag} callback] session confirmed:`, !!confirm?.session?.user);
-      if (!confirm?.session?.user) {
+      let confirmedSession = confirm?.session;
+      if (!confirmedSession?.user) {
         await new Promise((r) => setTimeout(r, 200));
         const { data: confirm2 } = await supabase.auth.getSession();
-        if (!confirm2?.session?.user) {
+        confirmedSession = confirm2?.session;
+        if (!confirmedSession?.user) {
           throw new Error("Session 建立失敗，請重試");
         }
       }
@@ -142,8 +200,11 @@ export async function runOAuthExchange(p: CallbackParams): Promise<CallbackResul
         ok: true,
         redirectTo: pickRedirect(returnUrlOverride),
         successMessage: `${successLabel}登入成功`,
-        accessToken: data.access_token,
-        refreshToken: data.refresh_token,
+        // Use the confirmed client session tokens, not the raw edge-function
+        // tokens. setSession may rotate the refresh token; handing the old one
+        // to another origin makes that origin fall back to the login page.
+        accessToken: confirmedSession.access_token,
+        refreshToken: confirmedSession.refresh_token,
       };
     } catch (err: any) {
       console.error(`[${tag} callback] exchange error`, err);
