@@ -45,12 +45,14 @@ export function OnlinePaymentDialog({
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [copied, setCopied] = useState(false);
   const [generatedLink, setGeneratedLink] = useState('');
+  const [methodOverride, setMethodOverride] = useState<'card' | 'atm' | null>(null);
 
   // 計算待付金額
   const unpaidAmount = order ? order.final_price - (order.paid_amount || 0) : 0;
   const depositAmount = order?.deposit_amount || 0;
   const balanceAmount = order ? order.final_price - depositAmount : 0;
-  const isAtm = /atm|虛擬帳號/i.test(`${order?.payment_method || ""} ${order?.balance_payment_method || ""}`);
+  const detectedIsAtm = /atm|虛擬帳號/i.test(`${order?.payment_method || ""} ${order?.balance_payment_method || ""}`);
+  const isAtm = methodOverride ? methodOverride === 'atm' : detectedIsAtm;
   const payVerb = isAtm ? "ATM 虛擬帳號" : "線上刷卡";
 
   // 設定付款金額
@@ -107,6 +109,7 @@ export function OnlinePaymentDialog({
       setCustomAmount('');
       setCopied(false);
       setGeneratedLink('');
+      setMethodOverride(null);
     }
   }, [open]);
 
@@ -177,6 +180,42 @@ export function OnlinePaymentDialog({
         </Alert>
       ) : (
         <>
+          {/* 付款方式選擇 */}
+          <div className="space-y-3">
+            <Label>付款方式</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant={!isAtm ? 'default' : 'outline'}
+                onClick={() => setMethodOverride('card')}
+                className="h-auto py-2"
+              >
+                <div className="text-left">
+                  <div className="text-sm">線上刷卡</div>
+                  <div className="text-xs opacity-80">信用卡即時付款</div>
+                </div>
+              </Button>
+              <Button
+                type="button"
+                variant={isAtm ? 'default' : 'outline'}
+                onClick={() => setMethodOverride('atm')}
+                className="h-auto py-2"
+              >
+                <div className="text-left">
+                  <div className="text-sm">ATM 虛擬帳號</div>
+                  <div className="text-xs opacity-80">銀行轉帳</div>
+                </div>
+              </Button>
+            </div>
+            {methodOverride && (
+              (methodOverride === 'atm') !== detectedIsAtm && (
+                <p className="text-xs text-warning">
+                  注意：此連結將以「{payVerb}」收款，與訂單原設定（{detectedIsAtm ? 'ATM' : '刷卡'}）不同，客人完成付款後系統會自動更新該筆款項方式。
+                </p>
+              )
+            )}
+          </div>
+
           {/* 付款金額選擇 */}
           <div className="space-y-3">
             <Label>付款金額</Label>
