@@ -331,11 +331,56 @@ Deno.serve(async (req) => {
           await supabase.from('notifications').insert({
             accommodation_id: await getAccommodationIdFromOrder(supabase, order.id),
             type: 'payment',
-            title: '3DS 付款確認成功',
-            description: `訂單 ${order.order_number} 透過 3D 驗證付款 NT$${amount.toLocaleString()}，狀態已更新為「${getPaymentStatusLabel(newPaymentStatus)}」`,
+            title: isAtm ? 'ATM 付款確認成功' : '3DS 付款確認成功',
+            description: `訂單 ${order.order_number} 透過 ${isAtm ? 'ATM 虛擬帳號' : '3D 驗證'} 付款 NT$${amount.toLocaleString()}，狀態已更新為「${getPaymentStatusLabel(newPaymentStatus)}」`,
             order_id: order.id,
             is_read: false,
           });
+
+          // ATM 付款完成且訂單已全額付清 → 寄送訂房通知 email
+          if (isAtm && newPaymentStatus === 'paid') {
+            try {
+              const { data: full } = await supabase
+                .from('orders')
+                .select('guest_name, guest_email, check_in_date, check_out_date, guest_count, meal_plan, final_price, pet_count, pet_plan_price, meal_plan_details, meal_plan_total, room_types(name)')
+                .eq('id', order.id)
+                .maybeSingle();
+
+              if (full?.guest_email) {
+                const roomName = (full as any).room_types?.name || '';
+                const emailPayload = {
+                  guestName: full.guest_name,
+                  guestEmail: full.guest_email,
+                  orderNumber: order.order_number,
+                  roomName,
+                  checkInDate: full.check_in_date,
+                  checkOutDate: full.check_out_date,
+                  guestCount: full.guest_count,
+                  mealPlan: full.meal_plan || '',
+                  finalPrice: full.final_price,
+                  depositAmount: full.final_price,
+                  paymentMethod: 'ATM 虛擬帳號轉帳',
+                  petCount: full.pet_count > 0 ? full.pet_count : undefined,
+                  petPlanPrice: full.pet_plan_price > 0 ? full.pet_plan_price : undefined,
+                  mealPlanDetails: Array.isArray(full.meal_plan_details) && full.meal_plan_details.length > 0 ? full.meal_plan_details : undefined,
+                  mealPlanTotal: full.meal_plan_total > 0 ? full.meal_plan_total : undefined,
+                };
+                const emailResp = await fetch(`${supabaseUrl}/functions/v1/send-booking-confirmation`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${supabaseServiceKey}`,
+                  },
+                  body: JSON.stringify(emailPayload),
+                });
+                console.log('[tappay-notify] ATM booking confirmation email status:', emailResp.status);
+              } else {
+                console.log('[tappay-notify] ATM order has no guest_email, skip email');
+              }
+            } catch (mailErr) {
+              console.error('[tappay-notify] ATM email send failed (non-fatal):', mailErr);
+            }
+          }
         }
       } else {
         console.log('[tappay-notify] Payment failed (verified):', { 
