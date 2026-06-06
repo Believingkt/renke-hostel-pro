@@ -41,7 +41,7 @@ interface RowView extends Accommodation {
   effective_from: string | null;
 }
 
-export default function CommissionRatesTab() {
+export default function CommissionRatesTab({ readOnly = false }: { readOnly?: boolean } = {}) {
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<RowView[]>([]);
   const [historyByAcc, setHistoryByAcc] = useState<Map<string, CommissionRow[]>>(new Map());
@@ -167,19 +167,19 @@ export default function CommissionRatesTab() {
               <TableHead className="w-32">成交組分潤%</TableHead>
               <TableHead className="w-32">影音組分潤%</TableHead>
               <TableHead className="w-36">生效日期</TableHead>
-              <TableHead className="w-20 text-right">操作</TableHead>
+              {!readOnly && <TableHead className="w-20 text-right">操作</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading && rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                <TableCell colSpan={readOnly ? 5 : 6} className="text-center text-muted-foreground">
                   載入中...
                 </TableCell>
               </TableRow>
             ) : rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                <TableCell colSpan={readOnly ? 5 : 6} className="text-center text-muted-foreground">
                   尚無資料
                 </TableCell>
               </TableRow>
@@ -209,21 +209,23 @@ export default function CommissionRatesTab() {
                       <TableCell>{r.closer_rate != null ? `${r.closer_rate}%` : "—"}</TableCell>
                       <TableCell>{r.video_rate != null ? `${r.video_rate}%` : "—"}</TableCell>
                       <TableCell>{r.effective_from ?? "—"}</TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => openEdit(r)}
-                          aria-label="編輯"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+                      {!readOnly && (
+                        <TableCell className="text-right">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => openEdit(r)}
+                            aria-label="編輯"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      )}
                     </TableRow>
                     {isOpen && (
                       <TableRow key={`${r.id}-history`} className="bg-muted/30 hover:bg-muted/30">
                         <TableCell></TableCell>
-                        <TableCell colSpan={5} className="p-0">
+                        <TableCell colSpan={readOnly ? 4 : 5} className="p-0">
                           <div className="px-4 py-3">
                             <div className="text-xs text-muted-foreground mb-2">歷史紀錄</div>
                             {history.length === 0 ? (

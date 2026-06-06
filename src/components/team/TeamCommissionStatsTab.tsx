@@ -79,25 +79,37 @@ export default function TeamCommissionStatsTab() {
   const [scoutCodes, setScoutCodes] = useState<ScoutCode[]>([]);
   const [accNameMap, setAccNameMap] = useState<Map<string, string>>(new Map());
 
-  // 上個月區間（或全年 / 全部）
+  // 統計區間
   const period = useMemo(() => {
     const allYears = year === "all";
     const allMonths = month === "all";
+    const todayStr = new Date().toISOString().slice(0, 10);
 
-    // 全部年份
-    if (allYears) {
-      const todayStr = new Date().toISOString().slice(0, 10);
+    // 全部年份 + 全年 → 全部歷史
+    if (allYears && allMonths) {
       return {
         startIso: null as string | null,
         nextIso: null as string | null,
-        startDate: todayStr, // 用於 commission_settings 取最新有效設定
-        label: "全部年份",
+        startDate: todayStr,
+        label: "全部資料",
+      };
+    }
+
+    // 全部年份 + 指定月份 → 跨年度取該月（用 SQL 的 extract(month) 過濾，無 startIso/nextIso）
+    if (allYears && !allMonths) {
+      const m = Number(month);
+      return {
+        startIso: null,
+        nextIso: null,
+        monthFilter: m,
+        startDate: todayStr,
+        label: `所有年份 ${m} 月`,
       };
     }
 
     const y = Number(year);
 
-    // 指定年份 + 全年
+    // 指定年份 + 全年 → 該年度實際資料
     if (allMonths) {
       const startIso = new Date(y, 0, 1).toISOString();
       const nextIso = new Date(y + 1, 0, 1).toISOString();
@@ -109,7 +121,7 @@ export default function TeamCommissionStatsTab() {
       };
     }
 
-    // 指定年月 → 上個月區間
+    // 指定年份 + 指定月份 → 維持原本「上個月」邏輯
     const m = Number(month);
     const prevM = m === 1 ? 12 : m - 1;
     const prevY = m === 1 ? y - 1 : y;
@@ -127,19 +139,27 @@ export default function TeamCommissionStatsTab() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period.startIso, period.nextIso, period.label]);
+  }, [period.startIso, period.nextIso, period.label, (period as any).monthFilter]);
 
   async function load() {
     setLoading(true);
     try {
       let q = supabase
         .from("orders")
-        .select("id, accommodation_id, final_price, order_status, discount_code");
+        .select("id, accommodation_id, final_price, order_status, discount_code, order_date");
       if (period.startIso) q = q.gte("order_date", period.startIso);
       if (period.nextIso) q = q.lt("order_date", period.nextIso);
       const { data: ordersData, error: oe } = await q;
       if (oe) throw oe;
-      const ords = (ordersData ?? []) as OrderLite[];
+      let ords = (ordersData ?? []) as (OrderLite & { order_date: string })[];
+      // 全部年份 + 指定月份 → 客戶端按月份篩選
+      const monthFilter = (period as any).monthFilter as number | undefined;
+      if (monthFilter) {
+        ords = ords.filter((o) => {
+          const d = o.order_date ? new Date(o.order_date) : null;
+          return d ? d.getMonth() + 1 === monthFilter : false;
+        });
+      }
       setOrders(ords);
 
       const ids = ords.map((o) => o.id);
@@ -266,7 +286,7 @@ export default function TeamCommissionStatsTab() {
       );
       row.validCount += 1;
       row.validAmount += o.final_price || 0;
-      row.commission += (o.final_price || 0) * rate;
+      row.commission += ((o.final_price || 0) * rate) / 100;
     });
     cancelOrders.forEach((o) => {
       const m = metaMap.get(o.id);
@@ -316,7 +336,7 @@ export default function TeamCommissionStatsTab() {
       );
       row.validCount += 1;
       row.validAmount += o.final_price || 0;
-      row.commission += (o.final_price || 0) * rate;
+      row.commission += ((o.final_price || 0) * rate) / 100;
     });
     cancelOrders.forEach((o) => {
       const m = metaMap.get(o.id);

@@ -137,6 +137,8 @@ export default function TeamOrders() {
   const [tab, setTab] = useState<string>("orders");
   const [isAdmin, setIsAdmin] = useState(false);
   const [isScout, setIsScout] = useState(false);
+  const [isCloser, setIsCloser] = useState(false);
+  const [isVideo, setIsVideo] = useState(false);
   const [trafficSources, setTrafficSources] = useState<
     { id: string; name: string; is_active: boolean; sort_order: number | null }[]
   >([]);
@@ -216,8 +218,12 @@ export default function TeamOrders() {
         const scout = roleList.some(
           (r: string) => r === "scout" || r === "scout_manager",
         );
+        const closer = roleList.some((r: string) => r === "closer");
+        const video = roleList.some((r: string) => r === "video");
         setIsAdmin(admin);
         setIsScout(scout && !admin);
+        setIsCloser(closer);
+        setIsVideo(video);
         if (scout && !admin) setTab("scout-codes");
       }
       loadOptions();
@@ -541,7 +547,7 @@ export default function TeamOrders() {
           {!isScout && <TabsTrigger value="orders">訂單列表</TabsTrigger>}
           <TabsTrigger value="scout-codes">星探專屬折扣碼</TabsTrigger>
           <TabsTrigger value="stats">成交統計</TabsTrigger>
-          {isAdmin && <TabsTrigger value="commission-rates">分潤比例</TabsTrigger>}
+          {(isAdmin || isCloser || isVideo) && <TabsTrigger value="commission-rates">民宿分潤比例</TabsTrigger>}
           {!isScout && <TabsTrigger value="settings">設定</TabsTrigger>}
         </TabsList>
 
@@ -735,9 +741,9 @@ export default function TeamOrders() {
           <TeamCommissionStatsTab />
         </TabsContent>
 
-        {isAdmin && (
+        {(isAdmin || isCloser || isVideo) && (
           <TabsContent value="commission-rates" className="space-y-4">
-            <CommissionRatesTab />
+            <CommissionRatesTab readOnly={!isAdmin} />
           </TabsContent>
         )}
 
