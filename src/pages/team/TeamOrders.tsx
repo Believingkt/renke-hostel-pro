@@ -32,7 +32,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Pencil, Check, X } from "lucide-react";
+import { Pencil, Check, X, Search } from "lucide-react";
 import ScoutDiscountCodesTab from "@/components/team/ScoutDiscountCodesTab";
 import TeamCommissionStatsTab from "@/components/team/TeamCommissionStatsTab";
 import CommissionRatesTab from "@/components/team/CommissionRatesTab";
@@ -125,6 +125,7 @@ export default function TeamOrders() {
   const [month, setMonth] = useState<string>("ALL");
   const [franchiseFilter, setFranchiseFilter] = useState<string>("ALL");
   const [franchiseProjects, setFranchiseProjects] = useState<{ id: string; name: string }[]>([]);
+  const [search, setSearch] = useState<string>("");
   const [page, setPage] = useState(1);
 
   const [editOpen, setEditOpen] = useState(false);
@@ -414,15 +415,31 @@ export default function TeamOrders() {
   }, [orders]);
 
   const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
     return orders.filter((o) => {
       if (accFilter !== "ALL" && o.accommodation_id !== accFilter) return false;
       const d = new Date(o.check_in_date);
       if (year !== "ALL" && String(d.getFullYear()) !== year) return false;
       if (month !== "ALL" && String(d.getMonth() + 1) !== month) return false;
       if (franchiseFilter !== "ALL" && (o.meta?.franchise_project ?? "") !== franchiseFilter) return false;
+      if (q) {
+        const closerName = closers.find((m) => m.user_id === o.meta?.closer_id)?.display_name ?? "";
+        const videoName = videos.find((m) => m.user_id === o.meta?.video_creator_id)?.display_name ?? "";
+        const hay = [
+          o.order_number,
+          o.guest_name,
+          o.discount_code ?? "",
+          closerName,
+          videoName,
+          o.meta?.member_number ?? "",
+        ]
+          .join(" ")
+          .toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
       return true;
     });
-  }, [orders, accFilter, year, month, franchiseFilter]);
+  }, [orders, accFilter, year, month, franchiseFilter, search, closers, videos]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -531,6 +548,15 @@ export default function TeamOrders() {
         <TabsContent value="orders" className="space-y-4">
           <Card>
         <CardContent className="p-4 space-y-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              placeholder="搜尋訂單編號、房客姓名、折扣碼、成交人、影音組、會員編號"
+              className="pl-9"
+            />
+          </div>
           <div className="flex flex-wrap gap-2">
             <Select value={accFilter} onValueChange={setAccFilter}>
               <SelectTrigger className="w-44">
