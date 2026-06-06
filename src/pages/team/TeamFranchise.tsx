@@ -3656,7 +3656,7 @@ function ProjectsManagementCard() {
                     <TableCell>
                       {p.accommodation_id
                         ? accMap[p.accommodation_id] ?? "（已刪除）"
-                        : "—"}
+                        : <span className="text-muted-foreground">未指定</span>}
                     </TableCell>
                     <TableCell>
                       <Badge variant={p.is_active ? "success" : "secondary"}>
