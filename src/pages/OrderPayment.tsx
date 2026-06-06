@@ -655,7 +655,7 @@ export default function OrderPayment() {
             <Label htmlFor="payment-email" className="flex items-center gap-2 text-sm">
               <Mail className="h-4 w-4" />
               Email <span className="text-destructive">*</span>
-              <span className="text-xs text-muted-foreground font-normal">（用於寄送付款通知與收據）</span>
+              <span className="text-xs text-muted-foreground font-normal">（用於寄送訂房資訊）</span>
             </Label>
             <Input
               id="payment-email"
