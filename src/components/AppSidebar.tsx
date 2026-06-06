@@ -112,7 +112,7 @@ const menuItems = [
   },
   { title: "顧客資料", url: "/admin/customers", icon: Users, moduleKey: "customers" },
   { title: "網紅導購", url: "/admin/discount-codes", icon: Sparkles, moduleKey: "discount_codes" },
-  { title: "請款管理", url: "/admin/settlement", icon: Banknote, moduleKey: "settlement" },
+  // { title: "請款管理", url: "/admin/settlement", icon: Banknote, moduleKey: "settlement" },
   { title: "業主月結", url: "/admin/owner-settlement", icon: FileText, moduleKey: "owner_settlement" },
   { title: "購物商品", url: "/admin/addon-center", icon: Package, moduleKey: "addon_center" },
   { title: "通路管理", url: "/admin/channel-manager", icon: Plug, moduleKey: "channel_manager" },
