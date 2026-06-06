@@ -497,7 +497,29 @@ export default function TeamNotification() {
                 </section>
 
 
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    disabled={saving}
+                    onClick={async () => {
+                      if (!selectedId) return;
+                      const { data, error } = await supabase.functions.invoke("send-daily-performance", {
+                        body: { test_mode: true, accommodation_id: selectedId },
+                      });
+                      if (error) {
+                        toast.error("測試發送失敗：" + error.message);
+                        return;
+                      }
+                      const failed = (data?.results || []).find((r: any) => !r.ok);
+                      if (failed) {
+                        toast.error("測試發送失敗：" + failed.error);
+                      } else {
+                        toast.success("測試信件已發送");
+                      }
+                    }}
+                  >
+                    測試發送
+                  </Button>
                   <Button onClick={handleSave} disabled={saving}>
                     {saving ? "儲存中..." : "儲存設定"}
                   </Button>
