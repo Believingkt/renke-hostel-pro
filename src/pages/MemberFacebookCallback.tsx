@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  preCheckExistingSession,
+  runOAuthExchange,
+} from "@/utils/oauthCallbackHandler";
 
-// Facebook Login callback page.
-// Facebook redirects browser to /member/auth/facebook-callback?code=...&state=...
-// We verify state, exchange code via edge function, then setSession.
+const TAG = "FB";
+const LABEL = "Facebook ";
 
 const MemberFacebookCallback = () => {
   const navigate = useNavigate();
@@ -15,92 +17,80 @@ const MemberFacebookCallback = () => {
   const ranRef = useRef(false);
 
   useEffect(() => {
-    console.log("[FB callback] effect run, ranRef=", ranRef.current);
+    console.log(`[${TAG} callback] effect run, ranRef=`, ranRef.current);
     if (ranRef.current) return;
     ranRef.current = true;
 
-    const code = searchParams.get("code");
-    const state = searchParams.get("state");
-    const errorParam = searchParams.get("error");
-    const errorReason = searchParams.get("error_reason") || searchParams.get("error_description");
-
-    const storedState = sessionStorage.getItem("fb_oauth_state");
-    const storedRedirect = sessionStorage.getItem("fb_oauth_redirect_uri");
-
-    const cleanup = () => {
-      sessionStorage.removeItem("fb_oauth_state");
-      sessionStorage.removeItem("fb_oauth_redirect_uri");
+    const finish = (path: string) => {
+      console.log(`[${TAG} callback] navigate →`, path);
+      if (/^https?:\/\//i.test(path)) {
+        window.location.replace(path);
+      } else {
+        navigate(path, { replace: true });
+      }
     };
-
-    const fail = (msg: string) => {
-      cleanup();
-      toast.error(msg);
-      setMessage(msg);
-      setTimeout(() => navigate("/member/auth", { replace: true }), 1500);
-    };
-
-    if (errorParam) {
-      fail(`Facebook 登入失敗：${errorReason || errorParam}`);
-      return;
-    }
-    if (!code || !state) {
-      fail("Facebook 回呼參數不完整");
-      return;
-    }
-    if (!storedState || state !== storedState) {
-      fail("Facebook 登入 state 驗證失敗，請重新嘗試");
-      return;
-    }
-    if (!storedRedirect) {
-      fail("Facebook 登入資訊已遺失，請重新嘗試");
-      return;
-    }
 
     (async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke("facebook-oauth-exchange", {
-          body: { code, redirectUri: storedRedirect },
-        });
-        if (error) throw new Error(error.message || "Facebook 授權碼交換失敗");
-        if (!data?.access_token || !data?.refresh_token) {
-          throw new Error(data?.error || "未收到 Supabase session");
-        }
+      // 1. Pre-check: if a session already exists, skip everything.
+      const existingRedirect = await preCheckExistingSession(TAG);
+      if (existingRedirect) {
+        sessionStorage.removeItem("fb_oauth_state");
+        sessionStorage.removeItem("fb_oauth_redirect_uri");
+        finish(existingRedirect);
+        return;
+      }
 
-        const { error: setErr } = await supabase.auth.setSession({
-          access_token: data.access_token,
-          refresh_token: data.refresh_token,
-        });
-        if (setErr) throw setErr;
+      const code = searchParams.get("code");
+      const state = searchParams.get("state");
+      const errorParam = searchParams.get("error");
+      const errorReason =
+        searchParams.get("error_reason") || searchParams.get("error_description");
 
-        console.log("[FB callback] exchange success, navigating");
+      const storedState = sessionStorage.getItem("fb_oauth_state");
+      const storedRedirect = sessionStorage.getItem("fb_oauth_redirect_uri");
+
+      const cleanup = () => {
+        sessionStorage.removeItem("fb_oauth_state");
+        sessionStorage.removeItem("fb_oauth_redirect_uri");
+      };
+
+      const fail = (msg: string) => {
         cleanup();
-        toast.success("Facebook 登入成功");
-        const postLoginRedirect = sessionStorage.getItem("post_login_redirect");
-        if (postLoginRedirect) {
-          sessionStorage.removeItem("post_login_redirect");
-          window.location.replace(postLoginRedirect);
-          return;
-        }
-        navigate("/member/orders", { replace: true });
-      } catch (err: any) {
-        console.error("[FB callback] exchange error", err);
-        // Fallback: if session already exists (e.g. StrictMode double-invoke
-        // consumed the code on the first run), treat as success.
-        const { data: sessionData } = await supabase.auth.getSession();
-        if (sessionData?.session) {
-          console.log("[FB callback] session present despite error, navigating");
-          cleanup();
-          toast.success("Facebook 登入成功");
-          const postLoginRedirect = sessionStorage.getItem("post_login_redirect");
-          if (postLoginRedirect) {
-            sessionStorage.removeItem("post_login_redirect");
-            window.location.replace(postLoginRedirect);
-            return;
-          }
-          navigate("/member/orders", { replace: true });
-          return;
-        }
-        fail(err?.message || "Facebook 登入失敗");
+        toast.error(msg);
+        setMessage(msg);
+        setTimeout(() => navigate("/member/auth", { replace: true }), 1500);
+      };
+
+      if (errorParam) {
+        fail(`Facebook 登入失敗：${errorReason || errorParam}`);
+        return;
+      }
+      if (!code || !state) {
+        fail("Facebook 回呼參數不完整");
+        return;
+      }
+      if (!storedState || state !== storedState) {
+        fail("Facebook 登入 state 驗證失敗，請重新嘗試");
+        return;
+      }
+      if (!storedRedirect) {
+        fail("Facebook 登入資訊已遺失，請重新嘗試");
+        return;
+      }
+
+      const result = await runOAuthExchange({
+        tag: TAG,
+        functionName: "facebook-oauth-exchange",
+        invokeBody: { code, redirectUri: storedRedirect },
+        successLabel: LABEL,
+      });
+
+      cleanup();
+      if (result.ok) {
+        if (result.successMessage) toast.success(result.successMessage);
+        finish(result.redirectTo);
+      } else {
+        fail(result.errorMessage || "Facebook 登入失敗");
       }
     })();
   }, [navigate, searchParams]);
