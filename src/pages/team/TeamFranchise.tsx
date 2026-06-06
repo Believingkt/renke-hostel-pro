@@ -3539,18 +3539,19 @@ function ProjectsManagementCard() {
   const requestAdd = () => {
     const trimmed = name.trim();
     if (!trimmed) return toast.error("請輸入專案名稱");
-    if (!accommodationId) return toast.error("請選擇館別");
     setConfirmAddOpen(true);
   };
 
   const handleAdd = async () => {
     const trimmed = name.trim();
     if (!trimmed) return toast.error("請輸入專案名稱");
-    if (!accommodationId) return toast.error("請選擇館別");
     setSaving(true);
     const { error } = await (supabase as any)
       .from("franchise_projects")
-      .insert({ name: trimmed, accommodation_id: accommodationId });
+      .insert({
+        name: trimmed,
+        accommodation_id: accommodationId && accommodationId !== "none" ? accommodationId : null,
+      });
     setSaving(false);
     setConfirmAddOpen(false);
     if (error) return toast.error("新增失敗：" + error.message);
@@ -3573,18 +3574,20 @@ function ProjectsManagementCard() {
   const openEdit = (p: FranchiseProject) => {
     setEditTarget(p);
     setEditName(p.name);
-    setEditAccId(p.accommodation_id ?? "");
+    setEditAccId(p.accommodation_id ?? "none");
   };
 
   const handleSaveEdit = async () => {
     if (!editTarget) return;
     const trimmed = editName.trim();
     if (!trimmed) return toast.error("請輸入專案名稱");
-    if (!editAccId) return toast.error("請選擇館別");
     setEditSaving(true);
     const { error } = await (supabase as any)
       .from("franchise_projects")
-      .update({ name: trimmed, accommodation_id: editAccId })
+      .update({
+        name: trimmed,
+        accommodation_id: editAccId && editAccId !== "none" ? editAccId : null,
+      })
       .eq("id", editTarget.id);
     setEditSaving(false);
     if (error) return toast.error("更新失敗：" + error.message);
@@ -3609,11 +3612,15 @@ function ProjectsManagementCard() {
             }}
             className="max-w-sm"
           />
-          <Select value={accommodationId} onValueChange={setAccommodationId}>
+          <Select
+            value={accommodationId || "none"}
+            onValueChange={(v) => setAccommodationId(v === "none" ? "" : v)}
+          >
             <SelectTrigger className="w-48">
-              <SelectValue placeholder="選擇館別 *" />
+              <SelectValue placeholder="選擇館別（選填）" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="none">暫不指定</SelectItem>
               {accommodations.map((a) => (
                 <SelectItem key={a.id} value={a.id}>
                   {a.name}
@@ -3649,7 +3656,7 @@ function ProjectsManagementCard() {
                     <TableCell>
                       {p.accommodation_id
                         ? accMap[p.accommodation_id] ?? "（已刪除）"
-                        : "—"}
+                        : <span className="text-muted-foreground">未指定</span>}
                     </TableCell>
                     <TableCell>
                       <Badge variant={p.is_active ? "success" : "secondary"}>
@@ -3692,7 +3699,7 @@ function ProjectsManagementCard() {
                 <div>
                   <span className="text-muted-foreground">館別：</span>
                   <span className="font-medium text-foreground">
-                    {accMap[accommodationId] ?? "—"}
+                    {accommodationId ? accMap[accommodationId] ?? "—" : "未指定"}
                   </span>
                 </div>
                 <div className="pt-2">確認後將新增此專案，請確認資料無誤。</div>
@@ -3722,12 +3729,16 @@ function ProjectsManagementCard() {
               <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>館別 *</Label>
-              <Select value={editAccId} onValueChange={setEditAccId}>
+              <Label>館別</Label>
+              <Select
+                value={editAccId || "none"}
+                onValueChange={(v) => setEditAccId(v === "none" ? "" : v)}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="選擇館別" />
+                  <SelectValue placeholder="選擇館別（選填）" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">暫不指定</SelectItem>
                   {accommodations.map((a) => (
                     <SelectItem key={a.id} value={a.id}>
                       {a.name}
