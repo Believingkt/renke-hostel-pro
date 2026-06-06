@@ -195,7 +195,7 @@ function useFranchiseProjects(includeInactive = false) {
     (async () => {
       const q = (supabase as any)
         .from("franchise_projects")
-        .select("id,name,is_active,created_at")
+        .select("id,name,is_active,created_at,accommodation_id")
         .order("created_at", { ascending: true });
       const { data } = await q;
       if (!active) return;
