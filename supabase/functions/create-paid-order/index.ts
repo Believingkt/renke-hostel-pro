@@ -13,6 +13,7 @@ import {
 } from "../_shared/tappay.ts";
 import { validateOrderPrices } from "../_shared/orderPriceValidation.ts";
 import { reportBackendError } from "../_shared/errorReporter.ts";
+import { sendBookingConfirmationByOrderId } from "../_shared/sendBookingEmail.ts";
 
 import { buildCorsHeaders } from "../_shared/cors.ts";
 
