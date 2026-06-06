@@ -173,13 +173,13 @@ export default function CommissionRatesTab({ readOnly = false }: { readOnly?: bo
           <TableBody>
             {loading && rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                <TableCell colSpan={readOnly ? 5 : 6} className="text-center text-muted-foreground">
                   載入中...
                 </TableCell>
               </TableRow>
             ) : rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                <TableCell colSpan={readOnly ? 5 : 6} className="text-center text-muted-foreground">
                   尚無資料
                 </TableCell>
               </TableRow>
