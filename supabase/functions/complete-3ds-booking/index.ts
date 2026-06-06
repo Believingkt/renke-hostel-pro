@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders } from "../_shared/cors.ts";
+import { sendBookingConfirmationByOrderId } from "../_shared/sendBookingEmail.ts";
 
 interface BookingData {
   accommodationId: string;
