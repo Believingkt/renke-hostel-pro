@@ -496,7 +496,6 @@ export default function TeamNotification() {
               <TableRow>
                 <TableHead>館別名稱</TableHead>
                 <TableHead className="w-40">有特許加盟業務</TableHead>
-                <TableHead className="w-40">有星鏈業務</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -509,12 +508,6 @@ export default function TeamNotification() {
                       <Switch
                         checked={!!f?.has_franchise}
                         onCheckedChange={(v) => toggleFlag(a.id, "has_franchise", v)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Switch
-                        checked={!!f?.has_starlink}
-                        onCheckedChange={(v) => toggleFlag(a.id, "has_starlink", v)}
                       />
                     </TableCell>
                   </TableRow>
