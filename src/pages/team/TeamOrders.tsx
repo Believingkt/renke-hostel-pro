@@ -125,6 +125,7 @@ export default function TeamOrders() {
   const [month, setMonth] = useState<string>("ALL");
   const [franchiseFilter, setFranchiseFilter] = useState<string>("ALL");
   const [franchiseProjects, setFranchiseProjects] = useState<{ id: string; name: string }[]>([]);
+  const [search, setSearch] = useState<string>("");
   const [page, setPage] = useState(1);
 
   const [editOpen, setEditOpen] = useState(false);
