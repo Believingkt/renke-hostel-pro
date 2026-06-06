@@ -167,7 +167,7 @@ export default function CommissionRatesTab({ readOnly = false }: { readOnly?: bo
               <TableHead className="w-32">成交組分潤%</TableHead>
               <TableHead className="w-32">影音組分潤%</TableHead>
               <TableHead className="w-36">生效日期</TableHead>
-              <TableHead className="w-20 text-right">操作</TableHead>
+              {!readOnly && <TableHead className="w-20 text-right">操作</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
