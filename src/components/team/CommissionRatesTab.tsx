@@ -209,16 +209,18 @@ export default function CommissionRatesTab({ readOnly = false }: { readOnly?: bo
                       <TableCell>{r.closer_rate != null ? `${r.closer_rate}%` : "—"}</TableCell>
                       <TableCell>{r.video_rate != null ? `${r.video_rate}%` : "—"}</TableCell>
                       <TableCell>{r.effective_from ?? "—"}</TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => openEdit(r)}
-                          aria-label="編輯"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+                      {!readOnly && (
+                        <TableCell className="text-right">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => openEdit(r)}
+                            aria-label="編輯"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      )}
                     </TableRow>
                     {isOpen && (
                       <TableRow key={`${r.id}-history`} className="bg-muted/30 hover:bg-muted/30">
