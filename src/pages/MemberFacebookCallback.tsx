@@ -75,6 +75,12 @@ const MemberFacebookCallback = () => {
         console.log("[FB callback] exchange success, navigating");
         cleanup();
         toast.success("Facebook 登入成功");
+        const postLoginRedirect = sessionStorage.getItem("post_login_redirect");
+        if (postLoginRedirect) {
+          sessionStorage.removeItem("post_login_redirect");
+          window.location.replace(postLoginRedirect);
+          return;
+        }
         navigate("/member/orders", { replace: true });
       } catch (err: any) {
         console.error("[FB callback] exchange error", err);
