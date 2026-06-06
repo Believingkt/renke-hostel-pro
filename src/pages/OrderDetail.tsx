@@ -1443,6 +1443,67 @@ const OrderDetailPage = () => {
     return getMealPlanDisplayName(planId);
   };
 
+  // 確認目前使用者是否為該訂單民宿之管理員（用於顯示「同步 TapPay 退款狀態」按鈕）
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!order?.accommodation_id) return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        if (!cancelled) setIsAdminUser(false);
+        return;
+      }
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("accommodation_id", order.accommodation_id);
+      const roles = (data ?? []).map((r: any) => r.role);
+      if (!cancelled) {
+        setIsAdminUser(roles.includes("hotel_admin") || roles.includes("super_admin"));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [order?.accommodation_id]);
+
+  const handleSyncTapPayRefund = async () => {
+    if (!order) return;
+    setIsSyncingRefund(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("tappay-sync-refund", {
+        body: { orderId: order.id },
+      });
+      if (error) {
+        const msg = (error as any)?.context?.error ?? error.message ?? "同步失敗";
+        throw new Error(msg);
+      }
+      if (!data?.success) {
+        throw new Error(data?.error || "同步失敗");
+      }
+      if (data.changed) {
+        toast({
+          title: "已同步 TapPay 退款狀態",
+          description: `本次新增退款 NT$${Number(data.delta).toLocaleString()}，付款狀態：${data.new_payment_status}`,
+        });
+        // 重新載入訂單資料
+        window.location.reload();
+      } else {
+        toast({
+          title: "已是最新狀態",
+          description: data.message || "TapPay 無新退款記錄",
+        });
+      }
+    } catch (e: any) {
+      toast({
+        title: "同步失敗",
+        description: e?.message || "請稍後再試",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSyncingRefund(false);
+    }
+  };
+
   const handleResendConfirmation = async () => {
     if (!order || !order.guest_email) {
       toast({
