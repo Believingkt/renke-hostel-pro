@@ -3,7 +3,8 @@ import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { CreditCard, Loader2, CheckCircle2, ShieldCheck, AlertTriangle, Building2, RefreshCw, Clock, Info, ListOrdered } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { CreditCard, Loader2, CheckCircle2, ShieldCheck, AlertTriangle, Building2, RefreshCw, Clock, Info, ListOrdered, Mail, LogIn } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AtmPaymentPanel } from "@/components/payment/AtmPaymentPanel";
 import { getPaymentOriginForAccommodation, redirectToPaymentOrigin } from "@/utils/paymentDomain";
+import { LINE_CHANNEL_ID, FACEBOOK_APP_ID } from "@/config/oauth";
 
 interface PaymentError {
   message: string;
