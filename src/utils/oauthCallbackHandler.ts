@@ -52,7 +52,10 @@ function pickRedirect(override?: string | null): string {
 export function decodeReturnUrlFromState(state: string | null | undefined): string | null {
   if (!state || !state.includes(".")) return null;
   try {
-    const b64 = state.split(".").slice(1).join(".");
+    // Facebook: <random>.<returnB64>
+    // LINE:     <random>.<returnB64>.<nonce>
+    // Only the second segment is the encoded return URL.
+    const b64 = state.split(".")[1];
     if (!b64) return null;
     const padded = b64.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((b64.length + 3) % 4);
     const decoded = decodeURIComponent(escape(atob(padded)));
