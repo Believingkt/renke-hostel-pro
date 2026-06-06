@@ -109,6 +109,7 @@ export function OnlinePaymentDialog({
       setCustomAmount('');
       setCopied(false);
       setGeneratedLink('');
+      setMethodOverride(null);
     }
   }, [open]);
 
