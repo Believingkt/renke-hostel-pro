@@ -204,6 +204,8 @@ const OrderDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [isSyncingRefund, setIsSyncingRefund] = useState(false);
+  const [isAdminUser, setIsAdminUser] = useState(false);
   const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
   const [roomTemplates, setRoomTemplates] = useState<(PricingTemplateLite & { room_type_id?: string | null })[]>([]);
   const [allRoomTemplates, setAllRoomTemplates] = useState<(PricingTemplateLite & { room_type_id?: string | null })[]>([]);
@@ -1650,6 +1652,17 @@ const OrderDetailPage = () => {
                   <Mail className="h-4 w-4 mr-2" />
                   <span className="hidden sm:inline">{isSendingEmail ? "發送中..." : "重發確認信"}</span>
                   <span className="sm:hidden">{isSendingEmail ? "發送中..." : "重發信件"}</span>
+                </Button>
+              )}
+              {isAdminUser && order.notes && /rec_trade_id/i.test(order.notes) && (
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto text-sm"
+                  disabled={isSyncingRefund}
+                  onClick={handleSyncTapPayRefund}
+                >
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  {isSyncingRefund ? "同步中..." : "同步 TapPay 退款狀態"}
                 </Button>
               )}
               {order.order_status !== 'cancelled' && (
