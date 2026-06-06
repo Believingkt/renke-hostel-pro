@@ -5,10 +5,12 @@ import { toast } from "sonner";
 import {
   preCheckExistingSession,
   runOAuthExchange,
+  decodeReturnUrlFromState,
 } from "@/utils/oauthCallbackHandler";
 
 const TAG = "LINE";
 const LABEL = "LINE ";
+const FALLBACK_REDIRECT_URI = "https://booking.lakeze.com/member/auth/line-callback";
 
 const MemberLineCallback = () => {
   const navigate = useNavigate();
@@ -31,8 +33,16 @@ const MemberLineCallback = () => {
     };
 
     (async () => {
+      const state = searchParams.get("state");
+      // LINE state format from payment page: <random>.<returnB64>.<nonce>
+      const returnFromState = decodeReturnUrlFromState(state);
+      const nonceFromState = state && state.split(".").length >= 3
+        ? state.split(".")[2]
+        : null;
+      console.log(`[${TAG} callback] returnFromState=`, returnFromState, "nonceFromState=", !!nonceFromState);
+
       // 1. Pre-check: if a session already exists, skip everything.
-      const existingRedirect = await preCheckExistingSession(TAG);
+      const existingRedirect = await preCheckExistingSession(TAG, returnFromState);
       if (existingRedirect) {
         sessionStorage.removeItem("line_oauth_state");
         sessionStorage.removeItem("line_oauth_nonce");
@@ -42,7 +52,6 @@ const MemberLineCallback = () => {
       }
 
       const code = searchParams.get("code");
-      const state = searchParams.get("state");
       const errorParam = searchParams.get("error");
       const errorDescription = searchParams.get("error_description");
 
@@ -71,11 +80,22 @@ const MemberLineCallback = () => {
         fail("LINE 回呼參數不完整");
         return;
       }
-      if (!storedState || state !== storedState) {
+
+      // State validation: same-origin → strict; cross-origin → state must
+      // carry our embedded return URL marker.
+      if (storedState) {
+        if (state !== storedState) {
+          fail("LINE 登入 state 驗證失敗，請重新嘗試");
+          return;
+        }
+      } else if (!returnFromState) {
         fail("LINE 登入 state 驗證失敗，請重新嘗試");
         return;
       }
-      if (!storedNonce || !storedRedirect) {
+
+      const redirectUri = storedRedirect || FALLBACK_REDIRECT_URI;
+      const expectedNonce = storedNonce || nonceFromState;
+      if (!expectedNonce) {
         fail("LINE 登入資訊已遺失，請重新嘗試");
         return;
       }
@@ -85,10 +105,11 @@ const MemberLineCallback = () => {
         functionName: "line-oauth-exchange",
         invokeBody: {
           code,
-          redirectUri: storedRedirect,
-          expectedNonce: storedNonce,
+          redirectUri,
+          expectedNonce,
         },
         successLabel: LABEL,
+        returnUrlOverride: returnFromState,
       });
 
       cleanup();

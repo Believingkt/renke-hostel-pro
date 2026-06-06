@@ -5,10 +5,12 @@ import { toast } from "sonner";
 import {
   preCheckExistingSession,
   runOAuthExchange,
+  decodeReturnUrlFromState,
 } from "@/utils/oauthCallbackHandler";
 
 const TAG = "FB";
 const LABEL = "Facebook ";
+const FALLBACK_REDIRECT_URI = "https://booking.lakeze.com/member/auth/facebook-callback";
 
 const MemberFacebookCallback = () => {
   const navigate = useNavigate();
@@ -31,8 +33,14 @@ const MemberFacebookCallback = () => {
     };
 
     (async () => {
+      const state = searchParams.get("state");
+      // Cross-origin return URL recovery (sessionStorage is per-origin and
+      // the payment page may live on a different domain).
+      const returnFromState = decodeReturnUrlFromState(state);
+      console.log(`[${TAG} callback] returnFromState=`, returnFromState);
+
       // 1. Pre-check: if a session already exists, skip everything.
-      const existingRedirect = await preCheckExistingSession(TAG);
+      const existingRedirect = await preCheckExistingSession(TAG, returnFromState);
       if (existingRedirect) {
         sessionStorage.removeItem("fb_oauth_state");
         sessionStorage.removeItem("fb_oauth_redirect_uri");
@@ -41,7 +49,6 @@ const MemberFacebookCallback = () => {
       }
 
       const code = searchParams.get("code");
-      const state = searchParams.get("state");
       const errorParam = searchParams.get("error");
       const errorReason =
         searchParams.get("error_reason") || searchParams.get("error_description");
@@ -69,20 +76,30 @@ const MemberFacebookCallback = () => {
         fail("Facebook 回呼參數不完整");
         return;
       }
-      if (!storedState || state !== storedState) {
+
+      // State validation:
+      // - Same-origin: stored state must match.
+      // - Cross-origin (no stored state): state must carry our embedded
+      //   return URL marker (decodeReturnUrlFromState succeeded), which proves
+      //   it was minted by our payment page in this browser flow.
+      if (storedState) {
+        if (state !== storedState) {
+          fail("Facebook 登入 state 驗證失敗，請重新嘗試");
+          return;
+        }
+      } else if (!returnFromState) {
         fail("Facebook 登入 state 驗證失敗，請重新嘗試");
         return;
       }
-      if (!storedRedirect) {
-        fail("Facebook 登入資訊已遺失，請重新嘗試");
-        return;
-      }
+
+      const redirectUri = storedRedirect || FALLBACK_REDIRECT_URI;
 
       const result = await runOAuthExchange({
         tag: TAG,
         functionName: "facebook-oauth-exchange",
-        invokeBody: { code, redirectUri: storedRedirect },
+        invokeBody: { code, redirectUri },
         successLabel: LABEL,
+        returnUrlOverride: returnFromState,
       });
 
       cleanup();

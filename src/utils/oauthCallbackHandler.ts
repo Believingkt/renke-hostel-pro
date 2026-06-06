@@ -5,6 +5,11 @@
 //   3. 8s timeout fallback — re-check session before failing.
 //   4. After setSession, re-getSession to confirm before navigating.
 //   5. Verbose console.log at every key step.
+//
+// Cross-origin return URL: callers (e.g. OrderPayment on an accommodation's
+// custom domain) encode the return URL into the OAuth `state` parameter
+// because sessionStorage is per-origin and the callback always lands on
+// booking.lakeze.com. Use `decodeReturnUrlFromState(state)` to recover it.
 
 import { supabase } from "@/integrations/supabase/client";
 
@@ -13,6 +18,7 @@ export interface CallbackParams {
   functionName: string; // edge function name
   invokeBody: Record<string, unknown>;
   successLabel: string; // toast label
+  returnUrlOverride?: string | null; // takes priority over sessionStorage
 }
 
 export interface CallbackResult {
@@ -31,12 +37,37 @@ function consumePostLoginRedirect(): string | null {
   return v;
 }
 
-export async function preCheckExistingSession(tag: string): Promise<string | null> {
+function pickRedirect(override?: string | null): string {
+  return override || consumePostLoginRedirect() || DEFAULT_REDIRECT;
+}
+
+/**
+ * Decode `<random>.<base64url(returnUrl)>` state produced by the payment page.
+ * Returns null if the state does not match this format or decoding fails.
+ */
+export function decodeReturnUrlFromState(state: string | null | undefined): string | null {
+  if (!state || !state.includes(".")) return null;
+  try {
+    const b64 = state.split(".").slice(1).join(".");
+    if (!b64) return null;
+    const padded = b64.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((b64.length + 3) % 4);
+    const decoded = decodeURIComponent(escape(atob(padded)));
+    if (/^https?:\/\//i.test(decoded)) return decoded;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function preCheckExistingSession(
+  tag: string,
+  returnUrlOverride?: string | null,
+): Promise<string | null> {
   try {
     const { data } = await supabase.auth.getSession();
     if (data?.session?.user) {
       console.log(`[${tag} callback] pre-check: session already present, skipping exchange`);
-      return consumePostLoginRedirect() || DEFAULT_REDIRECT;
+      return pickRedirect(returnUrlOverride);
     }
   } catch (e) {
     console.warn(`[${tag} callback] pre-check getSession failed`, e);
@@ -45,7 +76,7 @@ export async function preCheckExistingSession(tag: string): Promise<string | nul
 }
 
 export async function runOAuthExchange(p: CallbackParams): Promise<CallbackResult> {
-  const { tag, functionName, invokeBody, successLabel } = p;
+  const { tag, functionName, invokeBody, successLabel, returnUrlOverride } = p;
 
   // 8-second timeout fallback. Whatever happens, if a session exists when the
   // timer fires, treat as success.
@@ -59,7 +90,7 @@ export async function runOAuthExchange(p: CallbackParams): Promise<CallbackResul
         console.log(`[${tag} callback] session present after timeout, navigating`);
         resolve({
           ok: true,
-          redirectTo: consumePostLoginRedirect() || DEFAULT_REDIRECT,
+          redirectTo: pickRedirect(returnUrlOverride),
           successMessage: `${successLabel}登入成功`,
         });
       } else {
@@ -98,8 +129,6 @@ export async function runOAuthExchange(p: CallbackParams): Promise<CallbackResul
       const { data: confirm } = await supabase.auth.getSession();
       console.log(`[${tag} callback] session confirmed:`, !!confirm?.session?.user);
       if (!confirm?.session?.user) {
-        // Edge case: setSession returned no error but getSession sees nothing.
-        // Wait a tick and retry once.
         await new Promise((r) => setTimeout(r, 200));
         const { data: confirm2 } = await supabase.auth.getSession();
         if (!confirm2?.session?.user) {
@@ -109,20 +138,17 @@ export async function runOAuthExchange(p: CallbackParams): Promise<CallbackResul
 
       return {
         ok: true,
-        redirectTo: consumePostLoginRedirect() || DEFAULT_REDIRECT,
+        redirectTo: pickRedirect(returnUrlOverride),
         successMessage: `${successLabel}登入成功`,
       };
     } catch (err: any) {
       console.error(`[${tag} callback] exchange error`, err);
-      // Last-resort safety: edge function may have created the session even
-      // when our call appears to fail (e.g. CORS race, double-invoke consumed
-      // the code on the first run). Recheck.
       const { data } = await supabase.auth.getSession();
       if (data?.session?.user) {
         console.log(`[${tag} callback] session present despite error, navigating`);
         return {
           ok: true,
-          redirectTo: consumePostLoginRedirect() || DEFAULT_REDIRECT,
+          redirectTo: pickRedirect(returnUrlOverride),
           successMessage: `${successLabel}登入成功`,
         };
       }
