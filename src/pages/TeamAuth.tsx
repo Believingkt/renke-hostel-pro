@@ -24,7 +24,6 @@ type TeamRole =
   | "franchise_external"
   | "franchise_manager"
   | "starlink"
-  | "kol"
   | "owner"
   | "finance"
   | "venue_manager";
@@ -41,7 +40,6 @@ const TEAM_ROLES: TeamRole[] = [
   "franchise_external",
   "franchise_manager",
   "starlink",
-  "kol",
   "owner",
   "finance",
   "venue_manager",
