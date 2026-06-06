@@ -26,6 +26,8 @@ export interface CallbackResult {
   redirectTo: string; // where caller should navigate
   successMessage?: string;
   errorMessage?: string;
+  accessToken?: string;  // for cross-origin token handoff via URL fragment
+  refreshToken?: string;
 }
 
 const DEFAULT_REDIRECT = "/member/orders";
