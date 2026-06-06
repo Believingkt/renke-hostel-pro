@@ -92,6 +92,25 @@ const TEMPLATE_VARS = [
   "{年度累積}",
 ];
 
+const DEFAULT_TEMPLATE = `{日期}
+
+【{民宿名稱}進單業績】
+
+今日訂單：{今日訂單}
+
+今日訂單取消：{今日取消筆數} 筆，{今日取消金額}
+
+本月累積訂房業績：{月累積}
+
+目標訂房業績：{月目標}／月
+
+本月訂房達成率：{達成率}%
+
+前月累積訂房業績：{前月累積}
+
+年度累積訂房金額：{年度累積}`;
+
+
 export default function TeamNotification() {
   const { roles } = useTeam();
   const canAccess = roles.includes("super_admin") || roles.includes("admin");
@@ -185,7 +204,7 @@ export default function TeamNotification() {
 
   const insertVar = (v: string) => {
     const el = templateRef.current;
-    const tmpl = current?.email_template || "";
+    const tmpl = current?.email_template || DEFAULT_TEMPLATE;
     if (!el) {
       patchCurrent({ email_template: tmpl + v });
       return;
@@ -194,6 +213,7 @@ export default function TeamNotification() {
     const end = el.selectionEnd ?? tmpl.length;
     const next = tmpl.slice(0, start) + v + tmpl.slice(end);
     patchCurrent({ email_template: next });
+
     requestAnimationFrame(() => {
       el.focus();
       const pos = start + v.length;
@@ -477,7 +497,7 @@ export default function TeamNotification() {
                   <Textarea
                     ref={templateRef}
                     rows={10}
-                    value={current.email_template ?? ""}
+                    value={current.email_template ? current.email_template : DEFAULT_TEMPLATE}
                     onChange={(e) => patchCurrent({ email_template: e.target.value })}
                     placeholder="留空則使用系統預設模板"
                     className="font-mono text-sm"
