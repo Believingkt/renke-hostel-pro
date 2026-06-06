@@ -61,6 +61,7 @@ export default function OrderPayment() {
   const [isAuthed, setIsAuthed] = useState(false);
   const [emailInput, setEmailInput] = useState("");
   const [emailTouched, setEmailTouched] = useState(false);
+  const [atmStep, setAtmStep] = useState<1 | 2>(1);
 
   const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
   const emailError =
@@ -269,6 +270,7 @@ export default function OrderPayment() {
           isAtm,
         });
         if (data.guest_email) setEmailInput((prev) => prev || data.guest_email);
+        if (atmActive) setAtmStep(2);
         setPaymentStatus(data.payment_status || "unpaid");
         setOrderStatus(data.order_status || "pending");
 
@@ -793,29 +795,60 @@ export default function OrderPayment() {
                     </Alert>
                   )}
 
-                  {!isValidEmail(emailInput) && !orderInfo.atmInfo ? (
-                    <Alert className="border-amber-200 bg-amber-50">
-                      <Info className="h-4 w-4 text-amber-600" />
-                      <AlertTitle className="text-amber-800">請先填寫 Email</AlertTitle>
-                      <AlertDescription className="text-amber-700 text-xs">
-                        虛擬帳號將以此 Email 寄送匯款通知，請於上方填入有效的 Email 後再申請。
-                      </AlertDescription>
-                    </Alert>
+                  {atmStep === 1 && !orderInfo.atmInfo ? (
+                    <div className="space-y-3">
+                      <Alert className="border-amber-200 bg-amber-50">
+                        <Info className="h-4 w-4 text-amber-600" />
+                        <AlertTitle className="text-amber-800">請先填寫 Email</AlertTitle>
+                        <AlertDescription className="text-amber-700 text-xs">
+                          虛擬帳號將以此 Email 寄送匯款通知，請於上方填入有效的 Email，然後按「下一步」取得虛擬帳號。
+                        </AlertDescription>
+                      </Alert>
+                      <Button
+                        onClick={() => {
+                          if (!isValidEmail(emailInput)) {
+                            setEmailTouched(true);
+                            toast.error("請輸入有效的 Email");
+                            return;
+                          }
+                          setAtmStep(2);
+                        }}
+                        disabled={!isValidEmail(emailInput)}
+                        className="w-full h-12 text-base"
+                        size="lg"
+                      >
+                        下一步：取得虛擬帳號
+                      </Button>
+                    </div>
                   ) : (
-                    <AtmPaymentPanel
-                      orderId={orderInfo.orderId}
-                      orderNumber={orderNumber}
-                      amount={amount}
-                      cardholder={{
-                        name: orderInfo.guestName,
-                        email: emailInput.trim() || orderInfo.guestEmail || "no-email@example.com",
-                        phoneNumber: orderInfo.guestPhone,
-                      }}
-                      initialAtmInfo={orderInfo.atmInfo}
-                      onCreated={(info) => {
-                        setOrderInfo((prev) => prev ? { ...prev, atmInfo: info, atmExpiredInfo: null } : prev);
-                      }}
-                    />
+                    <>
+                      {!orderInfo.atmInfo && (
+                        <div className="flex justify-end">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setAtmStep(1)}
+                          >
+                            ← 修改 Email
+                          </Button>
+                        </div>
+                      )}
+                      <AtmPaymentPanel
+                        orderId={orderInfo.orderId}
+                        orderNumber={orderNumber}
+                        amount={amount}
+                        cardholder={{
+                          name: orderInfo.guestName,
+                          email: emailInput.trim() || orderInfo.guestEmail || "no-email@example.com",
+                          phoneNumber: orderInfo.guestPhone,
+                        }}
+                        initialAtmInfo={orderInfo.atmInfo}
+                        onCreated={(info) => {
+                          setOrderInfo((prev) => prev ? { ...prev, atmInfo: info, atmExpiredInfo: null } : prev);
+                        }}
+                      />
+                    </>
                   )}
 
                   {orderInfo.atmInfo && (
