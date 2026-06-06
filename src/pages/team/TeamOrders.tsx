@@ -415,15 +415,31 @@ export default function TeamOrders() {
   }, [orders]);
 
   const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
     return orders.filter((o) => {
       if (accFilter !== "ALL" && o.accommodation_id !== accFilter) return false;
       const d = new Date(o.check_in_date);
       if (year !== "ALL" && String(d.getFullYear()) !== year) return false;
       if (month !== "ALL" && String(d.getMonth() + 1) !== month) return false;
       if (franchiseFilter !== "ALL" && (o.meta?.franchise_project ?? "") !== franchiseFilter) return false;
+      if (q) {
+        const closerName = closers.find((m) => m.user_id === o.meta?.closer_id)?.display_name ?? "";
+        const videoName = videos.find((m) => m.user_id === o.meta?.video_creator_id)?.display_name ?? "";
+        const hay = [
+          o.order_number,
+          o.guest_name,
+          o.discount_code ?? "",
+          closerName,
+          videoName,
+          o.meta?.member_number ?? "",
+        ]
+          .join(" ")
+          .toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
       return true;
     });
-  }, [orders, accFilter, year, month, franchiseFilter]);
+  }, [orders, accFilter, year, month, franchiseFilter, search, closers, videos]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
