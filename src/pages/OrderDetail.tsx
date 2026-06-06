@@ -204,6 +204,8 @@ const OrderDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [isSyncingRefund, setIsSyncingRefund] = useState(false);
+  const [isAdminUser, setIsAdminUser] = useState(false);
   const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
   const [roomTemplates, setRoomTemplates] = useState<(PricingTemplateLite & { room_type_id?: string | null })[]>([]);
   const [allRoomTemplates, setAllRoomTemplates] = useState<(PricingTemplateLite & { room_type_id?: string | null })[]>([]);
@@ -1441,6 +1443,67 @@ const OrderDetailPage = () => {
     return getMealPlanDisplayName(planId);
   };
 
+  // 確認目前使用者是否為該訂單民宿之管理員（用於顯示「同步 TapPay 退款狀態」按鈕）
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!order?.accommodation_id) return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        if (!cancelled) setIsAdminUser(false);
+        return;
+      }
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("accommodation_id", order.accommodation_id);
+      const roles = (data ?? []).map((r: any) => r.role);
+      if (!cancelled) {
+        setIsAdminUser(roles.includes("hotel_admin") || roles.includes("super_admin"));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [order?.accommodation_id]);
+
+  const handleSyncTapPayRefund = async () => {
+    if (!order) return;
+    setIsSyncingRefund(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("tappay-sync-refund", {
+        body: { orderId: order.id },
+      });
+      if (error) {
+        const msg = (error as any)?.context?.error ?? error.message ?? "同步失敗";
+        throw new Error(msg);
+      }
+      if (!data?.success) {
+        throw new Error(data?.error || "同步失敗");
+      }
+      if (data.changed) {
+        toast({
+          title: "已同步 TapPay 退款狀態",
+          description: `本次新增退款 NT$${Number(data.delta).toLocaleString()}，付款狀態：${data.new_payment_status}`,
+        });
+        // 重新載入訂單資料
+        window.location.reload();
+      } else {
+        toast({
+          title: "已是最新狀態",
+          description: data.message || "TapPay 無新退款記錄",
+        });
+      }
+    } catch (e: any) {
+      toast({
+        title: "同步失敗",
+        description: e?.message || "請稍後再試",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSyncingRefund(false);
+    }
+  };
+
   const handleResendConfirmation = async () => {
     if (!order || !order.guest_email) {
       toast({
@@ -1650,6 +1713,17 @@ const OrderDetailPage = () => {
                   <Mail className="h-4 w-4 mr-2" />
                   <span className="hidden sm:inline">{isSendingEmail ? "發送中..." : "重發確認信"}</span>
                   <span className="sm:hidden">{isSendingEmail ? "發送中..." : "重發信件"}</span>
+                </Button>
+              )}
+              {isAdminUser && order.notes && /rec_trade_id/i.test(order.notes) && (
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto text-sm"
+                  disabled={isSyncingRefund}
+                  onClick={handleSyncTapPayRefund}
+                >
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  {isSyncingRefund ? "同步中..." : "同步 TapPay 退款狀態"}
                 </Button>
               )}
               {order.order_status !== 'cancelled' && (
