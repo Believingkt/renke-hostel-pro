@@ -497,7 +497,7 @@ export default function TeamNotification() {
                   <Textarea
                     ref={templateRef}
                     rows={10}
-                    value={current.email_template ?? ""}
+                    value={current.email_template ? current.email_template : DEFAULT_TEMPLATE}
                     onChange={(e) => patchCurrent({ email_template: e.target.value })}
                     placeholder="留空則使用系統預設模板"
                     className="font-mono text-sm"
