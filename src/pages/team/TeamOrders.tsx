@@ -741,9 +741,9 @@ export default function TeamOrders() {
           <TeamCommissionStatsTab />
         </TabsContent>
 
-        {isAdmin && (
+        {(isAdmin || isCloser || isVideo) && (
           <TabsContent value="commission-rates" className="space-y-4">
-            <CommissionRatesTab />
+            <CommissionRatesTab readOnly={!isAdmin} />
           </TabsContent>
         )}
 
