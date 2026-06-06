@@ -3539,18 +3539,19 @@ function ProjectsManagementCard() {
   const requestAdd = () => {
     const trimmed = name.trim();
     if (!trimmed) return toast.error("請輸入專案名稱");
-    if (!accommodationId) return toast.error("請選擇館別");
     setConfirmAddOpen(true);
   };
 
   const handleAdd = async () => {
     const trimmed = name.trim();
     if (!trimmed) return toast.error("請輸入專案名稱");
-    if (!accommodationId) return toast.error("請選擇館別");
     setSaving(true);
     const { error } = await (supabase as any)
       .from("franchise_projects")
-      .insert({ name: trimmed, accommodation_id: accommodationId });
+      .insert({
+        name: trimmed,
+        accommodation_id: accommodationId && accommodationId !== "none" ? accommodationId : null,
+      });
     setSaving(false);
     setConfirmAddOpen(false);
     if (error) return toast.error("新增失敗：" + error.message);
