@@ -110,16 +110,18 @@ export default function OrderPayment() {
         u.searchParams.set("scope", "public_profile,email");
         window.location.href = u.toString();
       } else {
-        const nonce = crypto.randomUUID();
+        const nonce = crypto.randomUUID().replace(/-/g, "");
         const redirectUri = "https://booking.lakeze.com/member/auth/line-callback";
-        sessionStorage.setItem("line_oauth_state", state);
+        // LINE state encodes nonce as third part: <random>.<returnB64>.<nonce>
+        const lineState = `${state}.${nonce}`;
+        sessionStorage.setItem("line_oauth_state", lineState);
         sessionStorage.setItem("line_oauth_nonce", nonce);
         sessionStorage.setItem("line_oauth_redirect_uri", redirectUri);
         const u = new URL("https://access.line.me/oauth2/v2.1/authorize");
         u.searchParams.set("response_type", "code");
         u.searchParams.set("client_id", LINE_CHANNEL_ID);
         u.searchParams.set("redirect_uri", redirectUri);
-        u.searchParams.set("state", state);
+        u.searchParams.set("state", lineState);
         u.searchParams.set("scope", "openid profile email");
         u.searchParams.set("nonce", nonce);
         window.location.href = u.toString();
