@@ -137,6 +137,8 @@ export default function TeamOrders() {
   const [tab, setTab] = useState<string>("orders");
   const [isAdmin, setIsAdmin] = useState(false);
   const [isScout, setIsScout] = useState(false);
+  const [isCloser, setIsCloser] = useState(false);
+  const [isVideo, setIsVideo] = useState(false);
   const [trafficSources, setTrafficSources] = useState<
     { id: string; name: string; is_active: boolean; sort_order: number | null }[]
   >([]);
