@@ -45,12 +45,14 @@ export function OnlinePaymentDialog({
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [copied, setCopied] = useState(false);
   const [generatedLink, setGeneratedLink] = useState('');
+  const [methodOverride, setMethodOverride] = useState<'card' | 'atm' | null>(null);
 
   // 計算待付金額
   const unpaidAmount = order ? order.final_price - (order.paid_amount || 0) : 0;
   const depositAmount = order?.deposit_amount || 0;
   const balanceAmount = order ? order.final_price - depositAmount : 0;
-  const isAtm = /atm|虛擬帳號/i.test(`${order?.payment_method || ""} ${order?.balance_payment_method || ""}`);
+  const detectedIsAtm = /atm|虛擬帳號/i.test(`${order?.payment_method || ""} ${order?.balance_payment_method || ""}`);
+  const isAtm = methodOverride ? methodOverride === 'atm' : detectedIsAtm;
   const payVerb = isAtm ? "ATM 虛擬帳號" : "線上刷卡";
 
   // 設定付款金額
