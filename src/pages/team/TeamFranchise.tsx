@@ -3574,18 +3574,20 @@ function ProjectsManagementCard() {
   const openEdit = (p: FranchiseProject) => {
     setEditTarget(p);
     setEditName(p.name);
-    setEditAccId(p.accommodation_id ?? "");
+    setEditAccId(p.accommodation_id ?? "none");
   };
 
   const handleSaveEdit = async () => {
     if (!editTarget) return;
     const trimmed = editName.trim();
     if (!trimmed) return toast.error("請輸入專案名稱");
-    if (!editAccId) return toast.error("請選擇館別");
     setEditSaving(true);
     const { error } = await (supabase as any)
       .from("franchise_projects")
-      .update({ name: trimmed, accommodation_id: editAccId })
+      .update({
+        name: trimmed,
+        accommodation_id: editAccId && editAccId !== "none" ? editAccId : null,
+      })
       .eq("id", editTarget.id);
     setEditSaving(false);
     if (error) return toast.error("更新失敗：" + error.message);
