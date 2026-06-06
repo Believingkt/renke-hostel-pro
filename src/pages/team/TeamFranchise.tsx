@@ -167,6 +167,7 @@ interface FranchiseProject {
   name: string;
   is_active: boolean;
   created_at?: string | null;
+  accommodation_id?: string | null;
 }
 
 // 全域刷新計數器 — 任何元件呼叫 bumpFranchiseProjects() 都會觸發所有 hook 重新載入
