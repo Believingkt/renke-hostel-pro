@@ -92,6 +92,25 @@ const TEMPLATE_VARS = [
   "{年度累積}",
 ];
 
+const DEFAULT_TEMPLATE = `{日期}
+
+【{民宿名稱}進單業績】
+
+今日訂單：{今日訂單}
+
+今日訂單取消：{今日取消筆數} 筆，{今日取消金額}
+
+本月累積訂房業績：{月累積}
+
+目標訂房業績：{月目標}／月
+
+本月訂房達成率：{達成率}%
+
+前月累積訂房業績：{前月累積}
+
+年度累積訂房金額：{年度累積}`;
+
+
 export default function TeamNotification() {
   const { roles } = useTeam();
   const canAccess = roles.includes("super_admin") || roles.includes("admin");
