@@ -351,6 +351,15 @@ export default function OrderPayment() {
 
   const handlePayment = async () => {
     if (!window.TPDirect || !cardValid || !tappayConfig || !orderInfo) return;
+    if (!isAuthed) {
+      toast.error("請先以 Facebook 或 LINE 登入再進行付款");
+      return;
+    }
+    if (!isValidEmail(emailInput)) {
+      setEmailTouched(true);
+      toast.error("請輸入有效的 Email 以接收付款通知");
+      return;
+    }
 
     setIsProcessing(true);
     setPaymentError(null);
