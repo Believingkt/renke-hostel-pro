@@ -679,7 +679,7 @@ export default function OrderPayment() {
 
               <Button
                 onClick={handlePayment}
-                disabled={!tappayConfig || !cardValid || isProcessing || !isTapPayReady}
+                disabled={!tappayConfig || !cardValid || isProcessing || !isTapPayReady || !isValidEmail(emailInput)}
                 className="w-full h-12 text-base"
                 size="lg"
               >
