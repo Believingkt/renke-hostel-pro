@@ -528,11 +528,7 @@ export default function KolBonus() {
           <Card>
             <CardHeader>
               <CardTitle>KOL 進單管理</CardTitle>
-              <div className="text-sm text-muted-foreground space-y-1">
-                <p>查看 KOL 訂單分潤資料並透過明細中的按鈕，「產生專屬查詢連結」</p>
-                <p>「當月進單」的定義 = 訂單產生的日期，目的用於確認該月份廣告跟訂單的成效分析</p>
-                <p>「當月完成」的定義 = 目的用於結算該月份 KOL 的分潤獎金，詳細可查詢「分潤結算」的 Tab 分頁</p>
-              </div>
+              <p className="text-sm text-muted-foreground">查看 KOL 訂單分潤資料並透過明細中的按鈕「產生專屬查詢連結」</p>
             </CardHeader>
             <CardContent>
               {loading ? (
