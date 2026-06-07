@@ -32,6 +32,7 @@ interface DailyDetail {
   revenue: number;
   avgPrice: number;
   hasOfficial: boolean;
+  hasKol: boolean;
 }
 
 type SegmentKey = 'all' | 'exclusive' | 'standard';
@@ -223,6 +224,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
       const dailyStandardSold: Record<string, number> = {};
       const dailyRevenue: Record<string, number> = {};
       const dailyHasOfficial: Record<string, boolean> = {};
+      const dailyHasKol: Record<string, boolean> = {};
       for (let d = 0; d < daysInMonth; d++) {
         const dateStr = format(addDays(monthStart, d), 'yyyy-MM-dd');
         dailyRoomsSold[dateStr] = 0;
@@ -230,6 +232,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         dailyStandardSold[dateStr] = 0;
         dailyRevenue[dateStr] = 0;
         dailyHasOfficial[dateStr] = false;
+        dailyHasKol[dateStr] = false;
       }
 
       orders.forEach(order => {
@@ -288,6 +291,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
           dailyExclusiveSold[dateStr] = (dailyExclusiveSold[dateStr] || 0) + effectiveExclusiveQty;
           dailyStandardSold[dateStr] = (dailyStandardSold[dateStr] || 0) + effectiveStandardQty;
           if (order.order_source === 'official_use') dailyHasOfficial[dateStr] = true;
+          if (order.order_source === 'kol') dailyHasKol[dateStr] = true;
           dailyEntries.push({ dayType, dateStr });
         }
 
@@ -335,6 +339,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
           revenue: Math.round(rev),
           avgPrice: sold > 0 ? Math.round(rev / sold) : 0,
           hasOfficial: dailyHasOfficial[dateStr] || false,
+          hasKol: dailyHasKol[dateStr] || false,
         });
       }
 
@@ -615,8 +620,8 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
                                             <>{dd.roomsSold}/{allCapacity}</>
                                           )}
                                         </TableCell>
-                                        <TableCell className="text-center py-1 px-2 tabular-nums">{dd.revenue > 0 ? `$${dd.revenue.toLocaleString('zh-TW')}` : (dd.hasOfficial ? <span className="text-amber-600 dark:text-amber-400 font-medium">公務</span> : '-')}</TableCell>
-                                        <TableCell className="text-center py-1 px-2 tabular-nums">{dd.avgPrice > 0 ? `$${dd.avgPrice.toLocaleString('zh-TW')}` : (dd.hasOfficial ? <span className="text-amber-600 dark:text-amber-400 font-medium">公務</span> : '-')}</TableCell>
+                                        <TableCell className="text-center py-1 px-2 tabular-nums">{dd.revenue > 0 ? `$${dd.revenue.toLocaleString('zh-TW')}` : (dd.hasOfficial ? <span className="text-amber-600 dark:text-amber-400 font-medium">公務</span> : (dd.hasKol ? '$0' : '-'))}</TableCell>
+                                        <TableCell className="text-center py-1 px-2 tabular-nums">{dd.avgPrice > 0 ? `$${dd.avgPrice.toLocaleString('zh-TW')}` : (dd.hasOfficial ? <span className="text-amber-600 dark:text-amber-400 font-medium">公務</span> : (dd.hasKol ? '$0' : '-'))}</TableCell>
                                       </TableRow>
                                     );
                                   })}
