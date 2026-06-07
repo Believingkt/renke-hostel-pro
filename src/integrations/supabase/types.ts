@@ -6776,6 +6776,7 @@ export type Database = {
           commission_rate: number | null
           created_at: string | null
           display_name: string
+          employment_type: string
           id: string
           is_active: boolean | null
           is_scout_team_member: boolean
@@ -6788,6 +6789,7 @@ export type Database = {
           commission_rate?: number | null
           created_at?: string | null
           display_name: string
+          employment_type?: string
           id?: string
           is_active?: boolean | null
           is_scout_team_member?: boolean
@@ -6800,6 +6802,7 @@ export type Database = {
           commission_rate?: number | null
           created_at?: string | null
           display_name?: string
+          employment_type?: string
           id?: string
           is_active?: boolean | null
           is_scout_team_member?: boolean
