@@ -126,6 +126,12 @@ export default function KolBonus() {
   const [drawerKol, setDrawerKol] = useState<KolRow | null>(null);
   const [filterYear, setFilterYear] = useState<number>(currentYear);
   const [filterMonth, setFilterMonth] = useState<string>(String(currentMonthNum)); // "all" | "1".."12"
+  // 發放期別：以月份為單位（顯示為「M月10日」），代表完成業績/分潤所抓的退房月份
+  // 預設為上個月（依台灣時間）
+  const [payoutPeriod, setPayoutPeriod] = useState<string>(
+    String(currentMonthNum === 1 ? 12 : currentMonthNum - 1),
+  );
+  const [scoutFilter, setScoutFilter] = useState<string>("all");
 
   const fetchAll = async () => {
     setLoading(true);
