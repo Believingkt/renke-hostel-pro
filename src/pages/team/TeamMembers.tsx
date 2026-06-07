@@ -475,6 +475,7 @@ export default function TeamMembers() {
             is_active: editActive,
             managed_venue: wantsVenueManager && editVenues.length > 0 ? editVenues : null,
             is_scout_team_member: isScoutLike ? editScoutTeam : false,
+            employment_type: editRoles.includes("scout") && editFulltime ? "fulltime" : "parttime",
           })
           .eq("id", editTarget.id);
         if (pErr) throw pErr;
