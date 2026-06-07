@@ -938,7 +938,7 @@ function KolDetailDrawer({
         </SheetHeader>
 
         <div className="mt-4 space-y-4">
-          {kol && (
+          {kol && !settlementMode && (
             <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
               <div className="text-sm font-medium">KOL 專屬查詢連結</div>
               <p className="text-xs text-muted-foreground">
