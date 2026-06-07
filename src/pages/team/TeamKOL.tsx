@@ -3865,12 +3865,6 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">正職團隊邀約目標</h2>
-          {isManager && (
-            <Button size="sm" variant="outline" onClick={() => setAddOpen(true)}>
-              <Plus className="mr-1 h-4 w-4" />
-              新增目標
-            </Button>
-          )}
         </div>
         <Card>
           <Table>
