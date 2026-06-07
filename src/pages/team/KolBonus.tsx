@@ -670,16 +670,17 @@ export default function KolBonus() {
               )}
             </CardContent>
           </Card>
+          <div className="mt-3 px-1 text-xs text-muted-foreground space-y-1">
+            <div>「當月進單」的定義 = 訂單產生的日期，目的用於確認該月份廣告跟訂單的成效分析</div>
+            <div>「當月完成」的定義 = 目的用於結算該月份 KOL 的分潤獎金，詳細可查詢「分潤結算」的 Tab 分頁</div>
+          </div>
         </TabsContent>
 
         <TabsContent value="settlement" className="mt-0">
           <Card>
             <CardHeader>
               <CardTitle>分潤結算</CardTitle>
-              <div className="text-sm text-muted-foreground space-y-1">
-                <p>依「發放期別」查看當月成功入住的客人訂單，KOL 實際完成的「業績」與「分潤金額」</p>
-                <p>同一個「折扣碼 / CID」，若產生兩筆以上訂單，可點開「明細」查看「訂單編號」</p>
-              </div>
+              <p className="text-sm text-muted-foreground">依「發放期別」查看當月成功入住的客人訂單，KOL 實際完成的「業績」與「分潤金額」</p>
             </CardHeader>
             <CardContent>
               {loading ? (
