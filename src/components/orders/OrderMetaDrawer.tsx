@@ -335,7 +335,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         franchise_project: franchiseProject !== NONE ? franchiseProject : null,
         member_number: memberNumber.trim() || null,
         is_excluded: isExcluded,
-        exclusion_note: isExcluded ? exclusionNote.trim() || null : null,
+        exclusion_note: exclusionNote.trim() || null,
         inquiry_date: inquiryDate || null,
         voucher_count: Number.isFinite(voucherCount) ? Math.max(0, Math.trunc(voucherCount)) : 0,
         addon_note: addonNote.trim() || null,
