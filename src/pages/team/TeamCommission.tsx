@@ -611,7 +611,7 @@ const formatTW = (iso: string | null | undefined) => {
   }
 };
 
-function PayoutsBlock({ scoutManagerOnly = false }: { scoutManagerOnly?: boolean }) {
+function PayoutsBlock({ scoutManagerOnly = false, readOnly = false }: { scoutManagerOnly?: boolean; readOnly?: boolean }) {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
