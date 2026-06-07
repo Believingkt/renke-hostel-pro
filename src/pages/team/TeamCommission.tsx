@@ -791,11 +791,11 @@ function PayoutsBlock({ scoutManagerOnly = false, readOnly = false }: { scoutMan
                     <TableCell>
                       {r.payout_status === "paid" ? (
                         <span className="text-xs text-muted-foreground">{r.payout_date ?? ""}</span>
-                      ) : (
+                      ) : !readOnly ? (
                         <Button size="sm" variant="outline" onClick={() => markPaid(r.id)}>
                           標記已發放
                         </Button>
-                      )}
+                      ) : null}
                     </TableCell>
                   </TableRow>
                 );
