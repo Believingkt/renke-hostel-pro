@@ -117,6 +117,13 @@ export default function KolBonus() {
   })();
   const currentYear = twNow.getUTCFullYear();
   const currentMonthNum = twNow.getUTCMonth() + 1;
+  const currentDay = twNow.getUTCDate();
+
+  // 發放期別預設：今天 ≤ 10 → 當月10日；> 10 → 下個月10日（跨年則年份+1）
+  const defaultPayoutMonth =
+    currentDay <= 10 ? currentMonthNum : currentMonthNum === 12 ? 1 : currentMonthNum + 1;
+  const defaultPayoutYear =
+    currentDay > 10 && currentMonthNum === 12 ? currentYear + 1 : currentYear;
 
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<KolRow[]>([]);
@@ -128,10 +135,8 @@ export default function KolBonus() {
   const [filterYear, setFilterYear] = useState<number>(currentYear);
   const [filterMonth, setFilterMonth] = useState<string>(String(currentMonthNum)); // "all" | "1".."12"
   // 發放期別：以月份為單位（顯示為「M月10日」），代表完成業績/分潤所抓的退房月份
-  // 預設為上個月（依台灣時間）
-  const [payoutPeriod, setPayoutPeriod] = useState<string>(
-    String(currentMonthNum === 1 ? 12 : currentMonthNum - 1),
-  );
+  const [payoutYear, setPayoutYear] = useState<number>(defaultPayoutYear);
+  const [payoutPeriod, setPayoutPeriod] = useState<string>(String(defaultPayoutMonth));
   const [scoutFilter, setScoutFilter] = useState<string>("all");
 
   const fetchAll = async () => {
