@@ -158,7 +158,7 @@ export default function KolBonus() {
         .order("effective_from", { ascending: false })
         .order("created_at", { ascending: false }),
       supabase.from("accommodation_info").select("id, name"),
-      supabase.from("team_member_profiles").select("id, display_name"),
+      supabase.from("team_member_profiles").select("user_id, display_name"),
     ]);
     if (kolRes.error) toast.error("載入 KOL 失敗：" + kolRes.error.message);
     if (orderRes.error) toast.error("載入訂單失敗：" + orderRes.error.message);
