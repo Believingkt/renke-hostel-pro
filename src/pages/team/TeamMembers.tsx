@@ -926,6 +926,15 @@ export default function TeamMembers() {
                       <Switch id="edit-scout-team" checked={editScoutTeam} onCheckedChange={setEditScoutTeam} />
                     </div>
                   )}
+                  {editRoles.includes("scout") && (
+                    <div className="flex items-start justify-between gap-3 border rounded-md px-3 py-2 mt-2">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="edit-fulltime" className="cursor-pointer">正職星探</Label>
+                        <p className="text-xs text-muted-foreground">開啟 = 正職（fulltime），關閉 = 兼職（parttime）</p>
+                      </div>
+                      <Switch id="edit-fulltime" checked={editFulltime} onCheckedChange={setEditFulltime} />
+                    </div>
+                  )}
                 </div>
               ) : (
                 <p className="text-xs text-muted-foreground border rounded-md px-3 py-2 bg-muted/30">
