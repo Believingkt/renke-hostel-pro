@@ -993,26 +993,28 @@ function KolDetailDrawer({
             </div>
           )}
 
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">月份</span>
-              <Select value={month} onValueChange={setMonth}>
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {monthOptions.map((m) => (
-                    <SelectItem key={m} value={m}>
-                      {m}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {!settlementMode && (
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">月份</span>
+                <Select value={month} onValueChange={setMonth}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {monthOptions.map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {m}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                訂單筆數依訂單日期統計，完成業績依退房日期統計
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              訂單筆數依訂單日期統計，完成業績依退房日期統計
-            </p>
-          </div>
+          )}
 
           {!settlementMode && (
             <>
