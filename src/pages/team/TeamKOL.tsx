@@ -3695,16 +3695,30 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
 
     const settingsArr = (settings as any[]) ?? [];
 
-    // 2. 當月實際邀約（依 venue_name + kpi_month）
+    // 正職資格判定：scout 的 fulltime_start_yearmonth 存在且 <= 當前選擇月份
+    const selectedYM = `${year}-${String(month).padStart(2, "0")}`;
+    const fulltimeStartMap = new Map(fulltimeScouts.map((s) => [s.user_id, s.fulltime_start_yearmonth ?? null]));
+    const isFulltimeForMonth = (scoutId: string | null | undefined) => {
+      if (!scoutId) return false;
+      const start = fulltimeStartMap.get(scoutId);
+      if (!start) return false;
+      return selectedYM >= start;
+    };
+    const eligibleFulltimeIds = Array.from(fulltimeStartMap.entries())
+      .filter(([id]) => isFulltimeForMonth(id))
+      .map(([id]) => id);
+
+    // 2. 當月實際邀約（依 venue_name + kpi_month），僅統計符合正職資格的星探
     const venueNames = settingsArr.map((s) => s.venue_name).filter(Boolean);
     let kolData: any[] = [];
-    if (venueNames.length > 0) {
+    if (venueNames.length > 0 && eligibleFulltimeIds.length > 0) {
       const { data } = await supabase
         .from("kol_profiles")
         .select("scout_id, venue_name")
         .eq("is_error", false)
         .eq("kpi_month", kpiMonthStr)
-        .in("venue_name", venueNames);
+        .in("venue_name", venueNames)
+        .in("scout_id", eligibleFulltimeIds);
       kolData = data ?? [];
     }
 
@@ -3723,9 +3737,9 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
     tRows.sort((a, b) => a.venue_name.localeCompare(b.venue_name));
     setTeamRows(tRows);
 
-    // 3. 個人實際統計（僅正職）
+    // 3. 個人實際統計（僅符合正職資格的星探）
     const fulltimeScoutMap = new Map(fulltimeScouts.map((s) => [s.user_id, s.display_name]));
-    if (fulltimeScoutMap.size === 0) {
+    if (eligibleFulltimeIds.length === 0) {
       setPersonalRows([]);
     } else {
       const { data: allKol } = await supabase
@@ -3733,7 +3747,7 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
         .select("scout_id, venue_name")
         .eq("is_error", false)
         .eq("kpi_month", kpiMonthStr)
-        .in("scout_id", Array.from(fulltimeScoutMap.keys()));
+        .in("scout_id", eligibleFulltimeIds);
       const personalMap = new Map<string, number>();
       ((allKol as any[]) ?? []).forEach((k) => {
         if (k.scout_id && k.venue_name) {
