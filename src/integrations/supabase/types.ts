@@ -6024,6 +6024,36 @@ export type Database = {
           },
         ]
       }
+      scout_fulltime_targets: {
+        Row: {
+          created_at: string
+          fulltime_min: number
+          id: string
+          month: number
+          target_count: number
+          venue_name: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          fulltime_min?: number
+          id?: string
+          month: number
+          target_count?: number
+          venue_name: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          fulltime_min?: number
+          id?: string
+          month?: number
+          target_count?: number
+          venue_name?: string
+          year?: number
+        }
+        Relationships: []
+      }
       scout_monthly_payouts: {
         Row: {
           base_salary: number | null
