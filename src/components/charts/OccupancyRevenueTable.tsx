@@ -333,6 +333,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
           standardSold: dailyStandardSold[dateStr] || 0,
           revenue: Math.round(rev),
           avgPrice: sold > 0 ? Math.round(rev / sold) : 0,
+          hasOfficial: dailyHasOfficial[dateStr] || false,
         });
       }
 
