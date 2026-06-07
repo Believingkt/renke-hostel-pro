@@ -158,7 +158,7 @@ export default function KolBonus() {
         .order("effective_from", { ascending: false })
         .order("created_at", { ascending: false }),
       supabase.from("accommodation_info").select("id, name"),
-      supabase.from("team_member_profiles").select("id, display_name"),
+      supabase.from("team_member_profiles").select("user_id, display_name"),
     ]);
     if (kolRes.error) toast.error("載入 KOL 失敗：" + kolRes.error.message);
     if (orderRes.error) toast.error("載入訂單失敗：" + orderRes.error.message);
@@ -184,9 +184,9 @@ export default function KolBonus() {
       ]),
     );
     const scoutNameMap = new Map<string, string>(
-      ((scoutRes.data ?? []) as Array<{ id: string; display_name: string | null }>).map(
-        (s) => [s.id, s.display_name ?? ""],
-      ),
+      ((scoutRes.data ?? []) as Array<{ user_id: string | null; display_name: string | null }>)
+        .filter((s) => !!s.user_id)
+        .map((s) => [s.user_id as string, s.display_name ?? ""]),
     );
 
     // kol_profiles 索引：依 cid_code(大寫) 分組，再依 accommodation_id 對應
