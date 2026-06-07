@@ -137,7 +137,7 @@ interface PayoutRuleRow {
   effective_from: string;
 }
 
-function PayoutRulesBlock() {
+function PayoutRulesBlock({ readOnly = false }: { readOnly?: boolean }) {
   const [rows, setRows] = useState<PayoutRuleRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<PayoutRuleRow | null>(null);
