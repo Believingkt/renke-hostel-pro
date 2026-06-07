@@ -240,32 +240,35 @@ function PayoutRulesBlock({ readOnly = false }: { readOnly?: boolean }) {
         <TableCell>{r.cutoff_description ?? "-"}</TableCell>
         <TableCell>{r.effective_from}</TableCell>
         <TableCell>
-          <div className="flex items-center justify-end gap-2">
-            <Button size="sm" variant="outline" onClick={() => openEdit(r)}>
-              以此為範本新增版本
-            </Button>
-            {opts.showDelete && (
-              onlyOne ? (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span>
-                        <Button size="sm" variant="ghost" disabled>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>至少保留一筆版本</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              ) : (
-                <Button size="sm" variant="ghost" onClick={() => setDeletingId(r.id)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )
-            )}
-          </div>
+          {!readOnly && (
+            <div className="flex items-center justify-end gap-2">
+              <Button size="sm" variant="outline" onClick={() => openEdit(r)}>
+                以此為範本新增版本
+              </Button>
+              {opts.showDelete && (
+                onlyOne ? (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span>
+                          <Button size="sm" variant="ghost" disabled>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>至少保留一筆版本</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : (
+                  <Button size="sm" variant="ghost" onClick={() => setDeletingId(r.id)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )
+              )}
+            </div>
+          )}
         </TableCell>
+
       </TableRow>
     );
   };
