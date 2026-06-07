@@ -3274,12 +3274,6 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
             <h2 className="text-lg font-semibold">團隊邀約目標</h2>
             {fallbackLabel && <span className="text-xs text-muted-foreground">{fallbackLabel}</span>}
           </div>
-          {isManager && (
-            <Button size="sm" variant="outline" onClick={() => setAddOpen(true)}>
-              <Plus className="mr-1 h-4 w-4" />
-              新增目標
-            </Button>
-          )}
         </div>
         <Card>
           <Table>
