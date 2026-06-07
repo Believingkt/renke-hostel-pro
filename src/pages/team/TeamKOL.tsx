@@ -92,6 +92,7 @@ interface VenueOption {
 interface Scout {
   user_id: string;
   display_name: string;
+  fulltime_start_yearmonth?: string | null;
 }
 
 interface KolRow {
@@ -3074,6 +3075,20 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
             list.push({ user_id: r.user_id, display_name: r.display_name ?? r.user_id });
           }
         }
+        // 取得 fulltime_start_yearmonth
+        const userIds = list.map((s) => s.user_id);
+        if (userIds.length > 0) {
+          const { data: profs } = await supabase
+            .from("team_member_profiles" as any)
+            .select("user_id, fulltime_start_yearmonth")
+            .in("user_id", userIds);
+          const startMap = new Map<string, string | null>(
+            ((profs as any[]) ?? []).map((p) => [p.user_id, p.fulltime_start_yearmonth ?? null]),
+          );
+          list.forEach((s) => {
+            s.fulltime_start_yearmonth = startMap.get(s.user_id) ?? null;
+          });
+        }
         list.sort((a, b) => a.display_name.localeCompare(b.display_name));
         setScouts(list);
       }
@@ -3122,15 +3137,29 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
     }
 
     // 全部 kol_profiles 當月（給個人表用，含未在設定中的場域亦可顯示）
-    const { data: allKol } = await supabase
+    const { data: allKolRaw } = await supabase
       .from("kol_profiles")
       .select("scout_id, venue_name")
       .eq("is_error", false)
       .eq("kpi_month", kpiMonthStr);
 
+    // 兼職過濾：scout 的 fulltime_start_yearmonth 為 null 或 > 當前選擇月份，才算兼職邀約
+    const selectedYM = `${year}-${String(month).padStart(2, "0")}`;
+    const scoutStartMap = new Map(scouts.map((s) => [s.user_id, s.fulltime_start_yearmonth ?? null]));
+    const isParttimeForMonth = (scoutId: string | null | undefined) => {
+      if (!scoutId) return true;
+      const start = scoutStartMap.get(scoutId);
+      if (!start) return true;
+      return selectedYM < start;
+    };
+
+    const filteredKolData = kolData.filter((k) => isParttimeForMonth(k.scout_id));
+    const filteredAllKol = ((allKolRaw as any[]) ?? []).filter((k) => isParttimeForMonth(k.scout_id));
+    const allKol = filteredAllKol;
+
     // 團隊實際統計
     const teamActual = new Map<string, number>();
-    kolData.forEach((k) => {
+    filteredKolData.forEach((k) => {
       if (k.venue_name) teamActual.set(k.venue_name, (teamActual.get(k.venue_name) ?? 0) + 1);
     });
 
@@ -3627,10 +3656,13 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
       }
       const { data: profs } = await supabase
         .from("team_member_profiles" as any)
-        .select("user_id, employment_type")
+        .select("user_id, employment_type, fulltime_start_yearmonth")
         .in("user_id", userIds);
       const fulltimeSet = new Set(
         ((profs as any[]) ?? []).filter((p) => p.employment_type === "fulltime").map((p) => p.user_id),
+      );
+      const startMap = new Map<string, string | null>(
+        ((profs as any[]) ?? []).map((p) => [p.user_id, p.fulltime_start_yearmonth ?? null]),
       );
       const list: Scout[] = [];
       const seen = new Set<string>();
@@ -3638,7 +3670,11 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
         if (seen.has(r.user_id)) continue;
         if (!fulltimeSet.has(r.user_id)) continue;
         seen.add(r.user_id);
-        list.push({ user_id: r.user_id, display_name: r.display_name ?? r.user_id });
+        list.push({
+          user_id: r.user_id,
+          display_name: r.display_name ?? r.user_id,
+          fulltime_start_yearmonth: startMap.get(r.user_id) ?? null,
+        });
       }
       list.sort((a, b) => a.display_name.localeCompare(b.display_name));
       setFulltimeScouts(list);
@@ -3659,16 +3695,30 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
 
     const settingsArr = (settings as any[]) ?? [];
 
-    // 2. 當月實際邀約（依 venue_name + kpi_month）
+    // 正職資格判定：scout 的 fulltime_start_yearmonth 存在且 <= 當前選擇月份
+    const selectedYM = `${year}-${String(month).padStart(2, "0")}`;
+    const fulltimeStartMap = new Map(fulltimeScouts.map((s) => [s.user_id, s.fulltime_start_yearmonth ?? null]));
+    const isFulltimeForMonth = (scoutId: string | null | undefined) => {
+      if (!scoutId) return false;
+      const start = fulltimeStartMap.get(scoutId);
+      if (!start) return false;
+      return selectedYM >= start;
+    };
+    const eligibleFulltimeIds = Array.from(fulltimeStartMap.entries())
+      .filter(([id]) => isFulltimeForMonth(id))
+      .map(([id]) => id);
+
+    // 2. 當月實際邀約（依 venue_name + kpi_month），僅統計符合正職資格的星探
     const venueNames = settingsArr.map((s) => s.venue_name).filter(Boolean);
     let kolData: any[] = [];
-    if (venueNames.length > 0) {
+    if (venueNames.length > 0 && eligibleFulltimeIds.length > 0) {
       const { data } = await supabase
         .from("kol_profiles")
         .select("scout_id, venue_name")
         .eq("is_error", false)
         .eq("kpi_month", kpiMonthStr)
-        .in("venue_name", venueNames);
+        .in("venue_name", venueNames)
+        .in("scout_id", eligibleFulltimeIds);
       kolData = data ?? [];
     }
 
@@ -3687,9 +3737,9 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
     tRows.sort((a, b) => a.venue_name.localeCompare(b.venue_name));
     setTeamRows(tRows);
 
-    // 3. 個人實際統計（僅正職）
+    // 3. 個人實際統計（僅符合正職資格的星探）
     const fulltimeScoutMap = new Map(fulltimeScouts.map((s) => [s.user_id, s.display_name]));
-    if (fulltimeScoutMap.size === 0) {
+    if (eligibleFulltimeIds.length === 0) {
       setPersonalRows([]);
     } else {
       const { data: allKol } = await supabase
@@ -3697,7 +3747,7 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
         .select("scout_id, venue_name")
         .eq("is_error", false)
         .eq("kpi_month", kpiMonthStr)
-        .in("scout_id", Array.from(fulltimeScoutMap.keys()));
+        .in("scout_id", eligibleFulltimeIds);
       const personalMap = new Map<string, number>();
       ((allKol as any[]) ?? []).forEach((k) => {
         if (k.scout_id && k.venue_name) {

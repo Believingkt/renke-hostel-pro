@@ -1,0 +1,1 @@
+ALTER TABLE public.team_member_profiles ADD COLUMN IF NOT EXISTS fulltime_start_yearmonth text;

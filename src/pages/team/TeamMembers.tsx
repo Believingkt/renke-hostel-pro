@@ -80,6 +80,7 @@ interface MemberRow {
   managed_venue: string[] | null;
   is_scout_team_member: boolean;
   employment_type: "fulltime" | "parttime";
+  fulltime_start_yearmonth: string | null;
 }
 
 interface PendingInviteRow {
@@ -132,6 +133,14 @@ export default function TeamMembers() {
   const [editVenues, setEditVenues] = useState<string[]>([]);
   const [editScoutTeam, setEditScoutTeam] = useState(false);
   const [editFulltime, setEditFulltime] = useState(false);
+  const getCurrentTaipeiYM = () => {
+    const parts = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Taipei", year: "numeric", month: "numeric" }).formatToParts(new Date());
+    const y = parts.find((p) => p.type === "year")?.value ?? String(new Date().getFullYear());
+    const m = parts.find((p) => p.type === "month")?.value ?? String(new Date().getMonth() + 1);
+    return { year: Number(y), month: Number(m) };
+  };
+  const [editFulltimeStartYear, setEditFulltimeStartYear] = useState<number>(() => getCurrentTaipeiYM().year);
+  const [editFulltimeStartMonth, setEditFulltimeStartMonth] = useState<number>(() => getCurrentTaipeiYM().month);
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
 
@@ -195,6 +204,7 @@ export default function TeamMembers() {
       employment_type: ((p as { employment_type?: string | null }).employment_type === "fulltime"
         ? "fulltime"
         : "parttime") as "fulltime" | "parttime",
+      fulltime_start_yearmonth: (p as { fulltime_start_yearmonth?: string | null }).fulltime_start_yearmonth ?? null,
     }));
 
     setMembers(rows);
@@ -415,6 +425,15 @@ export default function TeamMembers() {
     setEditVenues(m.managed_venue ?? []);
     setEditScoutTeam(m.is_scout_team_member);
     setEditFulltime(m.employment_type === "fulltime");
+    const cur = getCurrentTaipeiYM();
+    if (m.fulltime_start_yearmonth && /^\d{4}-\d{2}$/.test(m.fulltime_start_yearmonth)) {
+      const [y, mo] = m.fulltime_start_yearmonth.split("-").map(Number);
+      setEditFulltimeStartYear(y);
+      setEditFulltimeStartMonth(mo);
+    } else {
+      setEditFulltimeStartYear(cur.year);
+      setEditFulltimeStartMonth(cur.month);
+    }
   };
 
   const isNorris = editTarget?.user_id === NORRIS_USER_ID;
@@ -441,6 +460,9 @@ export default function TeamMembers() {
             display_name: editName.trim(),
             is_scout_team_member: nextHasScout ? editScoutTeam : false,
             employment_type: nextHasScout && editFulltime ? "fulltime" : "parttime",
+            fulltime_start_yearmonth: nextHasScout && editFulltime
+              ? `${editFulltimeStartYear}-${String(editFulltimeStartMonth).padStart(2, "0")}`
+              : null,
           })
           .eq("id", editTarget.id);
         if (pErr) throw pErr;
@@ -476,6 +498,9 @@ export default function TeamMembers() {
             managed_venue: wantsVenueManager && editVenues.length > 0 ? editVenues : null,
             is_scout_team_member: isScoutLike ? editScoutTeam : false,
             employment_type: editRoles.includes("scout") && editFulltime ? "fulltime" : "parttime",
+            fulltime_start_yearmonth: editRoles.includes("scout") && editFulltime
+              ? `${editFulltimeStartYear}-${String(editFulltimeStartMonth).padStart(2, "0")}`
+              : null,
           })
           .eq("id", editTarget.id);
         if (pErr) throw pErr;
@@ -927,12 +952,39 @@ export default function TeamMembers() {
                     </div>
                   )}
                   {editRoles.includes("scout") && (
-                    <div className="flex items-start justify-between gap-3 border rounded-md px-3 py-2 mt-2">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="edit-fulltime" className="cursor-pointer">正職星探</Label>
-                        <p className="text-xs text-muted-foreground">開啟 = 正職（fulltime），關閉 = 兼職（parttime）</p>
+                    <div className="border rounded-md px-3 py-2 mt-2 space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="edit-fulltime" className="cursor-pointer">正職星探</Label>
+                          <p className="text-xs text-muted-foreground">開啟 = 正職（fulltime），關閉 = 兼職（parttime）</p>
+                        </div>
+                        <Switch id="edit-fulltime" checked={editFulltime} onCheckedChange={setEditFulltime} />
                       </div>
-                      <Switch id="edit-fulltime" checked={editFulltime} onCheckedChange={setEditFulltime} />
+                      {editFulltime && (
+                        <div className="flex items-center justify-between gap-3 pt-2 border-t">
+                          <Label className="text-sm">正職起始月份</Label>
+                          <div className="flex items-center gap-2">
+                            <Select value={String(editFulltimeStartYear)} onValueChange={(v) => setEditFulltimeStartYear(Number(v))}>
+                              <SelectTrigger className="w-[90px] h-8"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {Array.from({ length: 6 }, (_, i) => getCurrentTaipeiYM().year - 3 + i).map((y) => (
+                                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <span className="text-sm text-muted-foreground">年</span>
+                            <Select value={String(editFulltimeStartMonth)} onValueChange={(v) => setEditFulltimeStartMonth(Number(v))}>
+                              <SelectTrigger className="w-[80px] h-8"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                                  <SelectItem key={m} value={String(m)}>{m}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <span className="text-sm text-muted-foreground">月</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
