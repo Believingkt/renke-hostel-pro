@@ -292,7 +292,9 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
 
         // 營業額分攤
         if (dailyEntries.length > 0 && order.order_status !== 'hold') {
-          const orderFinalPrice = Number(order.final_price) || 0;
+          const isKol = order.order_source === 'kol';
+          const isOfficial = order.order_source === 'official_use';
+          const orderFinalPrice = (isKol || isOfficial) ? 0 : (Number(order.final_price) || 0);
           const totalOrderNights = Math.max(1, differenceInDays(checkOut, checkIn));
           const dailyShare = orderFinalPrice / totalOrderNights;
 
@@ -308,6 +310,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
               buckets.all.revenueByType[dayType] += dailyShare;
             }
             dailyRevenue[dateStr] = (dailyRevenue[dateStr] || 0) + dailyShare;
+            if (isOfficial) dailyHasOfficial[dateStr] = true;
           });
         }
       });
