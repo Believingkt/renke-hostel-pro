@@ -5977,10 +5977,15 @@ interface InvitationTargetRow {
 }
 
 function InvitationTargetsSettingsBlock({ isManager }: { isManager: boolean }) {
-  const now = new Date();
-  const currentYear = now.getFullYear();
+  const tpeParts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "numeric",
+  }).formatToParts(new Date());
+  const currentYear = parseInt(tpeParts.find((p) => p.type === "year")?.value ?? String(new Date().getFullYear()), 10);
+  const currentMonth = parseInt(tpeParts.find((p) => p.type === "month")?.value ?? String(new Date().getMonth() + 1), 10);
   const [filterYear, setFilterYear] = useState<number>(currentYear);
-  const [filterMonth, setFilterMonth] = useState<string>("all"); // "all" | "1".."12"
+  const [filterMonth, setFilterMonth] = useState<string>(String(currentMonth)); // "all" | "1".."12"
   const [filterVenue, setFilterVenue] = useState<string>("all");
   const [rows, setRows] = useState<InvitationTargetRow[]>([]);
   const [loading, setLoading] = useState(true);
