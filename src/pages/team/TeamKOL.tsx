@@ -3075,6 +3075,20 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
             list.push({ user_id: r.user_id, display_name: r.display_name ?? r.user_id });
           }
         }
+        // 取得 fulltime_start_yearmonth
+        const userIds = list.map((s) => s.user_id);
+        if (userIds.length > 0) {
+          const { data: profs } = await supabase
+            .from("team_member_profiles" as any)
+            .select("user_id, fulltime_start_yearmonth")
+            .in("user_id", userIds);
+          const startMap = new Map<string, string | null>(
+            ((profs as any[]) ?? []).map((p) => [p.user_id, p.fulltime_start_yearmonth ?? null]),
+          );
+          list.forEach((s) => {
+            s.fulltime_start_yearmonth = startMap.get(s.user_id) ?? null;
+          });
+        }
         list.sort((a, b) => a.display_name.localeCompare(b.display_name));
         setScouts(list);
       }
