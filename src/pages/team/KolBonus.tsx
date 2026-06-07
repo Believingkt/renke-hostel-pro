@@ -691,8 +691,8 @@ export default function KolBonus() {
                   <div className="flex flex-wrap items-center gap-2 mb-4">
                     <span className="text-sm text-muted-foreground">期間</span>
                     <Select
-                      value={String(filterYear)}
-                      onValueChange={(v) => setFilterYear(Number(v))}
+                      value={String(payoutYear)}
+                      onValueChange={(v) => setPayoutYear(Number(v))}
                     >
                       <SelectTrigger className="w-[110px]">
                         <SelectValue />
