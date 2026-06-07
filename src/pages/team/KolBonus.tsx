@@ -567,9 +567,10 @@ export default function KolBonus() {
                           <TableCell className="text-right tabular-nums">
                             {m.orderCount}
                           </TableCell>
-                          <TableCell className="text-right tabular-nums">
+                          <TableCell className="text-right tabular-nums border-r">
                             {fmtMoney(m.orderRevenue)}
                           </TableCell>
+
                           <TableCell className="text-right tabular-nums">
                             {m.completedCount}
                           </TableCell>
