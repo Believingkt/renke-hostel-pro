@@ -133,6 +133,14 @@ export default function TeamMembers() {
   const [editVenues, setEditVenues] = useState<string[]>([]);
   const [editScoutTeam, setEditScoutTeam] = useState(false);
   const [editFulltime, setEditFulltime] = useState(false);
+  const getCurrentTaipeiYM = () => {
+    const parts = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Taipei", year: "numeric", month: "numeric" }).formatToParts(new Date());
+    const y = parts.find((p) => p.type === "year")?.value ?? String(new Date().getFullYear());
+    const m = parts.find((p) => p.type === "month")?.value ?? String(new Date().getMonth() + 1);
+    return { year: Number(y), month: Number(m) };
+  };
+  const [editFulltimeStartYear, setEditFulltimeStartYear] = useState<number>(() => getCurrentTaipeiYM().year);
+  const [editFulltimeStartMonth, setEditFulltimeStartMonth] = useState<number>(() => getCurrentTaipeiYM().month);
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
 
