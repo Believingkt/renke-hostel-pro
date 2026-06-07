@@ -310,6 +310,26 @@ export default function TeamKOL() {
     };
   }, [userId, canEditTicketLink]);
 
+  const [employmentType, setEmploymentType] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("team_member_profiles")
+        .select("employment_type")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!cancelled) setEmploymentType((data as any)?.employment_type ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+  const isFulltime = employmentType === "fulltime";
+  const isParttime = !isFulltime;
+  const canSeeFulltimeTargets = isFulltime || isManager;
+  const canSeeParttimeTargets = isParttime || isFulltime || isManager;
+
   const handleConvertFromProspect = (p: InvitationPrefill) => {
     setPrefill(p);
     setTab("invitations");
