@@ -3131,8 +3131,12 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
         .from("kol_profiles")
         .select("scout_id, venue_name")
         .eq("is_error", false)
+        .eq("kpi_qualified", true)
         .eq("kpi_month", kpiMonthStr)
-        .in("venue_name", venueNames);
+        .in("venue_name", venueNames)
+        .not("publish_url", "is", null).neq("publish_url", "")
+        .not("publish_date", "is", null)
+        .not("contract_file_url", "is", null).neq("contract_file_url", "");
       kolData = data ?? [];
     }
 
@@ -3141,7 +3145,11 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
       .from("kol_profiles")
       .select("scout_id, venue_name")
       .eq("is_error", false)
-      .eq("kpi_month", kpiMonthStr);
+      .eq("kpi_qualified", true)
+      .eq("kpi_month", kpiMonthStr)
+      .not("publish_url", "is", null).neq("publish_url", "")
+      .not("publish_date", "is", null)
+      .not("contract_file_url", "is", null).neq("contract_file_url", "");
 
     // 兼職過濾：scout 的 fulltime_start_yearmonth 為 null 或 > 當前選擇月份，才算兼職邀約
     const selectedYM = `${year}-${String(month).padStart(2, "0")}`;
