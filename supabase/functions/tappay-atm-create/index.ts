@@ -187,11 +187,13 @@ serve(async (req) => {
     // so receipts/notifications go to the address they actually want.
     try {
       if (data.cardholder?.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.cardholder.email)) {
+        const newEmail = data.cardholder.email;
+        // NOTE: use .or() so NULL guest_email also matches (NULL <> 'x' is NULL in PG, not TRUE)
         await supabase
           .from("orders")
-          .update({ guest_email: data.cardholder.email })
+          .update({ guest_email: newEmail })
           .eq("id", order.id)
-          .neq("guest_email", data.cardholder.email);
+          .or(`guest_email.is.null,guest_email.neq.${newEmail}`);
       }
     } catch (e) {
       console.warn("Failed to sync guest_email to order (non-blocking):", e);
