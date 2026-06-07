@@ -6777,6 +6777,7 @@ export type Database = {
           created_at: string | null
           display_name: string
           employment_type: string
+          fulltime_start_yearmonth: string | null
           id: string
           is_active: boolean | null
           is_scout_team_member: boolean
@@ -6790,6 +6791,7 @@ export type Database = {
           created_at?: string | null
           display_name: string
           employment_type?: string
+          fulltime_start_yearmonth?: string | null
           id?: string
           is_active?: boolean | null
           is_scout_team_member?: boolean
@@ -6803,6 +6805,7 @@ export type Database = {
           created_at?: string | null
           display_name?: string
           employment_type?: string
+          fulltime_start_yearmonth?: string | null
           id?: string
           is_active?: boolean | null
           is_scout_team_member?: boolean
