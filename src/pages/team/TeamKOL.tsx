@@ -3656,10 +3656,13 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
       }
       const { data: profs } = await supabase
         .from("team_member_profiles" as any)
-        .select("user_id, employment_type")
+        .select("user_id, employment_type, fulltime_start_yearmonth")
         .in("user_id", userIds);
       const fulltimeSet = new Set(
         ((profs as any[]) ?? []).filter((p) => p.employment_type === "fulltime").map((p) => p.user_id),
+      );
+      const startMap = new Map<string, string | null>(
+        ((profs as any[]) ?? []).map((p) => [p.user_id, p.fulltime_start_yearmonth ?? null]),
       );
       const list: Scout[] = [];
       const seen = new Set<string>();
@@ -3667,7 +3670,11 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
         if (seen.has(r.user_id)) continue;
         if (!fulltimeSet.has(r.user_id)) continue;
         seen.add(r.user_id);
-        list.push({ user_id: r.user_id, display_name: r.display_name ?? r.user_id });
+        list.push({
+          user_id: r.user_id,
+          display_name: r.display_name ?? r.user_id,
+          fulltime_start_yearmonth: startMap.get(r.user_id) ?? null,
+        });
       }
       list.sort((a, b) => a.display_name.localeCompare(b.display_name));
       setFulltimeScouts(list);
