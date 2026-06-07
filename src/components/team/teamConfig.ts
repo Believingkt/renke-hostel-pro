@@ -75,9 +75,9 @@ export const TEAM_MENU: TeamMenuItem[] = [
       "franchise_manager",
       "franchise_internal",
       "franchise_external",
-      "finance",
     ] as TeamRole[],
   },
+
   {
     title: "廣告追蹤",
     url: "/team/ads",
