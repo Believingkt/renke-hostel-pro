@@ -614,8 +614,8 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
                                             <>{dd.roomsSold}/{allCapacity}</>
                                           )}
                                         </TableCell>
-                                        <TableCell className="text-center py-1 px-2 tabular-nums">{dd.revenue > 0 ? `$${dd.revenue.toLocaleString('zh-TW')}` : '-'}</TableCell>
-                                        <TableCell className="text-center py-1 px-2 tabular-nums">{dd.avgPrice > 0 ? `$${dd.avgPrice.toLocaleString('zh-TW')}` : '-'}</TableCell>
+                                        <TableCell className="text-center py-1 px-2 tabular-nums">{dd.revenue > 0 ? `$${dd.revenue.toLocaleString('zh-TW')}` : (dd.hasOfficial ? <span className="text-amber-600 dark:text-amber-400 font-medium">公務</span> : '-')}</TableCell>
+                                        <TableCell className="text-center py-1 px-2 tabular-nums">{dd.avgPrice > 0 ? `$${dd.avgPrice.toLocaleString('zh-TW')}` : (dd.hasOfficial ? <span className="text-amber-600 dark:text-amber-400 font-medium">公務</span> : '-')}</TableCell>
                                       </TableRow>
                                     );
                                   })}
