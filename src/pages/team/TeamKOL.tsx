@@ -329,7 +329,7 @@ export default function TeamKOL() {
           <TabsTrigger value="targets">兼職邀約目標</TabsTrigger>
           <TabsTrigger value="fulltime_targets">正職邀約目標</TabsTrigger>
           {canSeeStats && <TabsTrigger value="stats">業績統計</TabsTrigger>}
-          <TabsTrigger value="venues">場域管理</TabsTrigger>
+          <TabsTrigger value="venues">場域邀約管理</TabsTrigger>
           <TabsTrigger value="settings">設定</TabsTrigger>
         </TabsList>
 
@@ -5256,7 +5256,7 @@ function PmsVenueSettingsCard({ isManager }: { isManager: boolean }) {
     <Card>
       <CardContent className="p-4 space-y-3">
         <div>
-          <h3 className="font-semibold">PMS 民宿設定</h3>
+          <h3 className="font-semibold">PMS場域管理</h3>
           <p className="text-xs text-muted-foreground">
             管理 PMS 民宿的 KOL 庫存設定（入住配額、允許星期等）
           </p>
