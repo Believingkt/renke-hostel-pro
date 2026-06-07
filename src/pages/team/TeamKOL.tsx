@@ -3146,8 +3146,7 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
       .eq("is_error", false)
       .eq("kpi_qualified", true)
       .eq("kpi_month", kpiMonthStr)
-      .not("publish_url", "is", null).neq("publish_url", "")
-      .not("publish_date", "is", null)
+      .not("kpi_month", "is", null)
       .not("contract_file_url", "is", null).neq("contract_file_url", "");
 
     // 兼職過濾：scout 的 fulltime_start_yearmonth 為 null 或 > 當前選擇月份，才算兼職邀約
