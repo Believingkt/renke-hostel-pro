@@ -307,6 +307,7 @@ export default function KolBonus() {
       if (o.order_date) set.add(Number(o.order_date.slice(0, 4)));
     }
     set.add(currentYear);
+    set.add(defaultPayoutYear);
     return Array.from(set).sort((a, b) => b - a);
   }, [orders, currentYear]);
 
