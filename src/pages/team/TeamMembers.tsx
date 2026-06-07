@@ -79,6 +79,7 @@ interface MemberRow {
   roles: TeamRole[];
   managed_venue: string[] | null;
   is_scout_team_member: boolean;
+  employment_type: "fulltime" | "parttime";
 }
 
 interface PendingInviteRow {
@@ -130,6 +131,7 @@ export default function TeamMembers() {
   const [editActive, setEditActive] = useState(true);
   const [editVenues, setEditVenues] = useState<string[]>([]);
   const [editScoutTeam, setEditScoutTeam] = useState(false);
+  const [editFulltime, setEditFulltime] = useState(false);
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
 
@@ -144,7 +146,7 @@ export default function TeamMembers() {
     // 1. 取得所有 team profiles
     const { data: profiles, error: pErr } = await supabase
       .from("team_member_profiles")
-      .select("id, user_id, display_name, is_active, managed_venue, is_scout_team_member")
+      .select("id, user_id, display_name, is_active, managed_venue, is_scout_team_member, employment_type")
       .order("display_name", { ascending: true });
 
     if (pErr) {
@@ -190,6 +192,9 @@ export default function TeamMembers() {
       roles: p.user_id ? Array.from(rolesMap.get(p.user_id) ?? []) : [],
       managed_venue: (p as { managed_venue?: string[] | null }).managed_venue ?? null,
       is_scout_team_member: (p as { is_scout_team_member?: boolean | null }).is_scout_team_member ?? false,
+      employment_type: ((p as { employment_type?: string | null }).employment_type === "fulltime"
+        ? "fulltime"
+        : "parttime") as "fulltime" | "parttime",
     }));
 
     setMembers(rows);
@@ -409,6 +414,7 @@ export default function TeamMembers() {
     setEditActive(m.is_active);
     setEditVenues(m.managed_venue ?? []);
     setEditScoutTeam(m.is_scout_team_member);
+    setEditFulltime(m.employment_type === "fulltime");
   };
 
   const isNorris = editTarget?.user_id === NORRIS_USER_ID;
@@ -434,6 +440,7 @@ export default function TeamMembers() {
           .update({
             display_name: editName.trim(),
             is_scout_team_member: nextHasScout ? editScoutTeam : false,
+            employment_type: nextHasScout && editFulltime ? "fulltime" : "parttime",
           })
           .eq("id", editTarget.id);
         if (pErr) throw pErr;
@@ -468,6 +475,7 @@ export default function TeamMembers() {
             is_active: editActive,
             managed_venue: wantsVenueManager && editVenues.length > 0 ? editVenues : null,
             is_scout_team_member: isScoutLike ? editScoutTeam : false,
+            employment_type: editRoles.includes("scout") && editFulltime ? "fulltime" : "parttime",
           })
           .eq("id", editTarget.id);
         if (pErr) throw pErr;
@@ -916,6 +924,15 @@ export default function TeamMembers() {
                         <p className="text-xs text-muted-foreground">開啟後此成員將納入團隊達標獎金計算</p>
                       </div>
                       <Switch id="edit-scout-team" checked={editScoutTeam} onCheckedChange={setEditScoutTeam} />
+                    </div>
+                  )}
+                  {editRoles.includes("scout") && (
+                    <div className="flex items-start justify-between gap-3 border rounded-md px-3 py-2 mt-2">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="edit-fulltime" className="cursor-pointer">正職星探</Label>
+                        <p className="text-xs text-muted-foreground">開啟 = 正職（fulltime），關閉 = 兼職（parttime）</p>
+                      </div>
+                      <Switch id="edit-fulltime" checked={editFulltime} onCheckedChange={setEditFulltime} />
                     </div>
                   )}
                 </div>
