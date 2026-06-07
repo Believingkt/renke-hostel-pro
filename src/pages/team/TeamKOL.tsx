@@ -687,7 +687,7 @@ function InvitationsTab({
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   // 前端排序（三段循環：none → asc → desc → none）
-  type SortKey = "qualified" | "rarity" | "accommodation" | "check_in_date" | "scout" | "booking_status" | "contract_progress" | "publish_date" | "created_at";
+  type SortKey = "qualified" | "rarity" | "accommodation" | "check_in_date" | "scout" | "booking_status" | "contract_progress" | "publish_date" | "invited_at";
   const [sortField, setSortField] = useState<SortKey | "">("");
 
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -726,7 +726,7 @@ function InvitationsTab({
           return cs?.empty ? null : (cs?.label ?? null);
         }
         case "publish_date": return r.publish_date ?? null;
-        case "created_at": return r.created_at ?? null;
+        case "invited_at": return r.invited_at ?? null;
       }
     };
 
