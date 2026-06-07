@@ -3525,6 +3525,593 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
 }
 
 // ============================================================
+// ====== Tab 三-2：正職邀約目標 ======
+// ============================================================
+
+interface FulltimeTeamTargetRow {
+  id: string;
+  venue_name: string;
+  target_count: number;
+  fulltime_min: number;
+  actual_count: number;
+}
+
+interface FulltimePersonalRow {
+  scout_id: string;
+  scout_name: string;
+  venue_name: string;
+  fulltime_min: number;
+  actual_count: number;
+}
+
+interface FulltimeSrStat {
+  scout_id: string;
+  scout_name: string;
+  sr_total: number;
+  exceed_count: number;
+  bonus_amount: number;
+}
+
+function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; currentUserId: string }) {
+  const now = new Date();
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
+
+  const [fulltimeScouts, setFulltimeScouts] = useState<Scout[]>([]);
+  const [teamRows, setTeamRows] = useState<FulltimeTeamTargetRow[]>([]);
+  const [personalRows, setPersonalRows] = useState<FulltimePersonalRow[]>([]);
+  const [srStats, setSrStats] = useState<FulltimeSrStat[]>([]);
+  const [personalScoutFilter, setPersonalScoutFilter] = useState<string>("all");
+  const [personalVenueFilter, setPersonalVenueFilter] = useState<string>("all");
+  const [loading, setLoading] = useState(true);
+
+  const [editRow, setEditRow] = useState<FulltimeTeamTargetRow | null>(null);
+  const [editTarget, setEditTarget] = useState("");
+  const [editFulltimeMin, setEditFulltimeMin] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const [addOpen, setAddOpen] = useState(false);
+  const [addVenue, setAddVenue] = useState("");
+  const [addTarget, setAddTarget] = useState("0");
+  const [addFulltimeMin, setAddFulltimeMin] = useState("0");
+
+  const [accList, setAccList] = useState<{ id: string; name: string; is_active?: boolean }[]>([]);
+  const [venueList, setVenueList] = useState<{ name: string; type: string | null; is_active: boolean }[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const [accRes, venueRes] = await Promise.all([
+        supabase.from("accommodation_info").select("id, name, is_active").order("name"),
+        supabase.from("kol_venues" as any).select("name, type, is_active"),
+      ]);
+      if (accRes.data) setAccList(accRes.data as any);
+      if (venueRes.data) setVenueList(venueRes.data as any);
+    })();
+  }, []);
+
+  const venueOptions = useMemo(() => {
+    const pms = accList
+      .filter((a) => a.is_active !== false)
+      .map((a) => ({ name: a.name, badge: "民宿" }));
+    const vs = (venueList || []).filter((v) => v.is_active).map((v) => ({ name: v.name, badge: v.type || "其他" }));
+    const merged = [...pms, ...vs];
+    const used = new Set(teamRows.map((r) => r.venue_name));
+    return merged.filter((o) => !used.has(o.name)).sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
+  }, [accList, venueList, teamRows]);
+
+  // 取得「正職」星探：scout 角色 + team_member_profiles.employment_type='fulltime'
+  useEffect(() => {
+    (async () => {
+      const scoutRes = await supabase.rpc("get_team_role_members", { p_role: "scout" });
+      const rawScouts = (scoutRes.data ?? []) as any[];
+      const userIds = Array.from(new Set(rawScouts.map((r) => r.user_id)));
+      if (userIds.length === 0) {
+        setFulltimeScouts([]);
+        return;
+      }
+      const { data: profs } = await supabase
+        .from("team_member_profiles" as any)
+        .select("user_id, employment_type")
+        .in("user_id", userIds);
+      const fulltimeSet = new Set(
+        ((profs as any[]) ?? []).filter((p) => p.employment_type === "fulltime").map((p) => p.user_id),
+      );
+      const list: Scout[] = [];
+      const seen = new Set<string>();
+      for (const r of rawScouts) {
+        if (seen.has(r.user_id)) continue;
+        if (!fulltimeSet.has(r.user_id)) continue;
+        seen.add(r.user_id);
+        list.push({ user_id: r.user_id, display_name: r.display_name ?? r.user_id });
+      }
+      list.sort((a, b) => a.display_name.localeCompare(b.display_name));
+      setFulltimeScouts(list);
+    })();
+  }, []);
+
+  const kpiMonthStr = `${year}-${String(month).padStart(2, "0")}-01`;
+
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+
+    // 1. 當月正職團隊目標
+    const { data: settings } = await supabase
+      .from("scout_fulltime_targets" as any)
+      .select("*")
+      .eq("year", year)
+      .eq("month", month);
+
+    const settingsArr = (settings as any[]) ?? [];
+
+    // 2. 當月實際邀約（依 venue_name + kpi_month）
+    const venueNames = settingsArr.map((s) => s.venue_name).filter(Boolean);
+    let kolData: any[] = [];
+    if (venueNames.length > 0) {
+      const { data } = await supabase
+        .from("kol_profiles")
+        .select("scout_id, venue_name")
+        .eq("is_error", false)
+        .eq("kpi_month", kpiMonthStr)
+        .in("venue_name", venueNames);
+      kolData = data ?? [];
+    }
+
+    const teamActual = new Map<string, number>();
+    kolData.forEach((k) => {
+      if (k.venue_name) teamActual.set(k.venue_name, (teamActual.get(k.venue_name) ?? 0) + 1);
+    });
+
+    const tRows: FulltimeTeamTargetRow[] = settingsArr.map((s) => ({
+      id: s.id,
+      venue_name: s.venue_name ?? "-",
+      target_count: s.target_count ?? 0,
+      fulltime_min: s.fulltime_min ?? 0,
+      actual_count: teamActual.get(s.venue_name) ?? 0,
+    }));
+    tRows.sort((a, b) => a.venue_name.localeCompare(b.venue_name));
+    setTeamRows(tRows);
+
+    // 3. 個人實際統計（僅正職）
+    const fulltimeScoutMap = new Map(fulltimeScouts.map((s) => [s.user_id, s.display_name]));
+    if (fulltimeScoutMap.size === 0) {
+      setPersonalRows([]);
+    } else {
+      const { data: allKol } = await supabase
+        .from("kol_profiles")
+        .select("scout_id, venue_name")
+        .eq("is_error", false)
+        .eq("kpi_month", kpiMonthStr)
+        .in("scout_id", Array.from(fulltimeScoutMap.keys()));
+      const personalMap = new Map<string, number>();
+      ((allKol as any[]) ?? []).forEach((k) => {
+        if (k.scout_id && k.venue_name) {
+          const key = `${k.scout_id}|${k.venue_name}`;
+          personalMap.set(key, (personalMap.get(key) ?? 0) + 1);
+        }
+      });
+      const fulltimeMinMap = new Map<string, number>(
+        settingsArr.map((s) => [s.venue_name, s.fulltime_min ?? 0]),
+      );
+      const pRows: FulltimePersonalRow[] = [];
+      for (const [key, actual] of personalMap.entries()) {
+        const [scout_id, venue_name] = key.split("|");
+        if (!fulltimeScoutMap.has(scout_id)) continue;
+        pRows.push({
+          scout_id,
+          scout_name: fulltimeScoutMap.get(scout_id) ?? scout_id.slice(0, 8),
+          venue_name,
+          fulltime_min: fulltimeMinMap.get(venue_name) ?? 0,
+          actual_count: actual,
+        });
+      }
+      pRows.sort((a, b) => a.scout_name.localeCompare(b.scout_name) || a.venue_name.localeCompare(b.venue_name));
+      setPersonalRows(pRows);
+    }
+
+    // 4. SR 累積統計（正職星探當月 SR/SSR）
+    if (fulltimeScoutMap.size === 0) {
+      setSrStats([]);
+    } else {
+      const { data: rarityRowsRaw } = await supabase
+        .from("kol_profiles")
+        .select("scout_id, rarity, created_at")
+        .eq("is_error", false)
+        .eq("kpi_month", kpiMonthStr)
+        .in("scout_id", Array.from(fulltimeScoutMap.keys()))
+        .in("rarity", ["SR", "SSR"]);
+      const rarityRows = ((rarityRowsRaw as any[]) ?? []).filter((r) => r.scout_id);
+
+      // 取最近一筆生效的稀有度設定 bonus_amount
+      const { data: raritySettings } = await supabase
+        .from("kol_rarity_settings" as any)
+        .select("rarity, bonus_amount, effective_from")
+        .in("rarity", ["SR", "SSR"])
+        .lte("effective_from", `${year}-${String(month).padStart(2, "0")}-31`)
+        .order("effective_from", { ascending: false });
+      const bonusMap = new Map<string, number>();
+      ((raritySettings as any[]) ?? []).forEach((r) => {
+        if (!bonusMap.has(r.rarity)) bonusMap.set(r.rarity, r.bonus_amount ?? 0);
+      });
+
+      // 依星探分組 → 排序 → 從第 31 筆起算獎金
+      const grouped = new Map<string, { rarity: string; created_at: string }[]>();
+      rarityRows.forEach((r) => {
+        const arr = grouped.get(r.scout_id) ?? [];
+        arr.push({ rarity: r.rarity, created_at: r.created_at });
+        grouped.set(r.scout_id, arr);
+      });
+      const stats: FulltimeSrStat[] = [];
+      for (const [scoutId, name] of fulltimeScoutMap.entries()) {
+        const arr = grouped.get(scoutId) ?? [];
+        arr.sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
+        const total = arr.length;
+        const exceed = total > 30 ? arr.slice(30) : [];
+        const bonus = exceed.reduce((sum, r) => sum + (bonusMap.get(r.rarity) ?? 0), 0);
+        stats.push({
+          scout_id: scoutId,
+          scout_name: name,
+          sr_total: total,
+          exceed_count: exceed.length,
+          bonus_amount: bonus,
+        });
+      }
+      stats.sort((a, b) => b.sr_total - a.sr_total || a.scout_name.localeCompare(b.scout_name));
+      setSrStats(stats);
+    }
+
+    setLoading(false);
+  }, [year, month, kpiMonthStr, fulltimeScouts]);
+
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
+
+  const openEdit = (row: FulltimeTeamTargetRow) => {
+    setEditRow(row);
+    setEditTarget(String(row.target_count));
+    setEditFulltimeMin(String(row.fulltime_min));
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editRow) return;
+    const t = parseInt(editTarget, 10);
+    if (Number.isNaN(t) || t < 0) {
+      toast.error("請輸入有效的團隊目標數");
+      return;
+    }
+    const fm = parseInt(editFulltimeMin, 10);
+    if (Number.isNaN(fm) || fm < 0) {
+      toast.error("請輸入有效的正職個人最低目標");
+      return;
+    }
+    setSaving(true);
+    const { error } = await (supabase.from("scout_fulltime_targets" as any) as any)
+      .update({ target_count: t, fulltime_min: fm })
+      .eq("id", editRow.id);
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("已更新目標");
+    setEditRow(null);
+    fetchAll();
+  };
+
+  const handleAdd = async () => {
+    const name = addVenue.trim();
+    if (!name) {
+      toast.error("請選擇場域");
+      return;
+    }
+    const t = parseInt(addTarget, 10);
+    if (Number.isNaN(t) || t < 0) {
+      toast.error("請輸入有效的團隊目標數");
+      return;
+    }
+    const fm = parseInt(addFulltimeMin, 10);
+    if (Number.isNaN(fm) || fm < 0) {
+      toast.error("請輸入有效的正職個人最低目標");
+      return;
+    }
+    setSaving(true);
+    const { error } = await (supabase.from("scout_fulltime_targets" as any) as any).insert({
+      year,
+      month,
+      venue_name: name,
+      target_count: t,
+      fulltime_min: fm,
+    });
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("已新增目標");
+    setAddOpen(false);
+    setAddVenue("");
+    setAddTarget("0");
+    setAddFulltimeMin("0");
+    fetchAll();
+  };
+
+  const years = [now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-2">
+        <Label>年月:</Label>
+        <Select value={String(year)} onValueChange={(v) => setYear(parseInt(v, 10))}>
+          <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {years.map((y) => (<SelectItem key={y} value={String(y)}>{y} 年</SelectItem>))}
+          </SelectContent>
+        </Select>
+        <Select value={String(month)} onValueChange={(v) => setMonth(parseInt(v, 10))}>
+          <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+              <SelectItem key={m} value={String(m)}>{m} 月</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* 團隊邀約目標 */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">正職團隊邀約目標</h2>
+          {isManager && (
+            <Button size="sm" variant="outline" onClick={() => setAddOpen(true)}>
+              <Plus className="mr-1 h-4 w-4" />
+              新增目標
+            </Button>
+          )}
+        </div>
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>場域</TableHead>
+                <TableHead className="text-right">目標邀約數</TableHead>
+                <TableHead className="text-right">實際邀約數</TableHead>
+                <TableHead className="text-right">達成率</TableHead>
+                <TableHead className="text-right">正職個人最低目標</TableHead>
+                <TableHead className="text-right">狀態</TableHead>
+                {isManager && <TableHead className="text-right">操作</TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? null : teamRows.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={isManager ? 7 : 6} className="text-center text-sm text-muted-foreground">
+                    尚無目標資料
+                  </TableCell>
+                </TableRow>
+              ) : (
+                teamRows.map((r) => {
+                  const rate = r.target_count > 0 ? Math.round((r.actual_count / r.target_count) * 100) : 0;
+                  return (
+                    <TableRow key={r.id}>
+                      <TableCell>{r.venue_name}</TableCell>
+                      <TableCell className="text-right tabular-nums">{r.target_count}</TableCell>
+                      <TableCell className="text-right tabular-nums">{r.actual_count}</TableCell>
+                      <TableCell className="text-right tabular-nums">{rate}%</TableCell>
+                      <TableCell className="text-right tabular-nums">{r.fulltime_min}</TableCell>
+                      <TableCell className="text-right">
+                        <Badge variant="outline" className={achievementColor(r.actual_count, r.target_count)}>
+                          {achievementLabel(r.actual_count, r.target_count)}
+                        </Badge>
+                      </TableCell>
+                      {isManager && (
+                        <TableCell className="text-right">
+                          <Button size="sm" variant="ghost" onClick={() => openEdit(r)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </Card>
+      </div>
+
+      {/* 個人邀約達標率 */}
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold">正職個人邀約達標率</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={personalScoutFilter} onValueChange={setPersonalScoutFilter}>
+              <SelectTrigger className="h-9 w-36"><SelectValue placeholder="星探" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部星探</SelectItem>
+                {Array.from(new Set(personalRows.map((r) => r.scout_name))).map((n) => (
+                  <SelectItem key={n} value={n}>{n}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={personalVenueFilter} onValueChange={setPersonalVenueFilter}>
+              <SelectTrigger className="h-9 w-40"><SelectValue placeholder="場域" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部場域</SelectItem>
+                {Array.from(new Set(personalRows.map((r) => r.venue_name))).map((v) => (
+                  <SelectItem key={v} value={v}>{v}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>星探</TableHead>
+                <TableHead>場域</TableHead>
+                <TableHead className="text-right">正職個人目標</TableHead>
+                <TableHead className="text-right">實際邀約數</TableHead>
+                <TableHead className="text-right">達標狀態</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(() => {
+                const filtered = personalRows.filter(
+                  (r) =>
+                    (personalScoutFilter === "all" || r.scout_name === personalScoutFilter) &&
+                    (personalVenueFilter === "all" || r.venue_name === personalVenueFilter),
+                );
+                if (loading) return null;
+                if (filtered.length === 0) {
+                  return (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
+                        本月尚無正職個人邀約紀錄
+                      </TableCell>
+                    </TableRow>
+                  );
+                }
+                return filtered.map((r, i) => {
+                  const reached = r.actual_count >= r.fulltime_min && r.fulltime_min > 0;
+                  const badge =
+                    r.fulltime_min <= 0 ? (
+                      <span className="text-muted-foreground">—</span>
+                    ) : reached ? (
+                      <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">✅ 達標</Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200">❌ 未達標</Badge>
+                    );
+                  return (
+                    <TableRow key={`${r.scout_id}-${r.venue_name}-${i}`}>
+                      <TableCell>{r.scout_name}</TableCell>
+                      <TableCell>{r.venue_name}</TableCell>
+                      <TableCell className="text-right tabular-nums">{r.fulltime_min}</TableCell>
+                      <TableCell className="text-right tabular-nums">{r.actual_count}</TableCell>
+                      <TableCell className="text-right">{badge}</TableCell>
+                    </TableRow>
+                  );
+                });
+              })()}
+            </TableBody>
+          </Table>
+        </Card>
+      </div>
+
+      {/* SR 累積統計 */}
+      <div className="space-y-2">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-lg font-semibold">SR 累積統計</h2>
+          <span className="text-xs text-muted-foreground">超過 30 位後，依稀有度發放邀約獎金</span>
+        </div>
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>正職星探</TableHead>
+                <TableHead className="text-right">當月 SR/SSR 總數</TableHead>
+                <TableHead className="text-right">是否超過 30 位</TableHead>
+                <TableHead className="text-right">超出位數</TableHead>
+                <TableHead className="text-right">預估稀有度獎金</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? null : srStats.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
+                    尚無正職星探資料
+                  </TableCell>
+                </TableRow>
+              ) : (
+                srStats.map((s) => (
+                  <TableRow key={s.scout_id}>
+                    <TableCell>{s.scout_name}</TableCell>
+                    <TableCell className="text-right tabular-nums">{s.sr_total}</TableCell>
+                    <TableCell className="text-right">
+                      {s.sr_total > 30 ? (
+                        <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">✅ 已達標</Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-200">尚未達標</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{s.exceed_count}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {s.bonus_amount > 0 ? `$${s.bonus_amount.toLocaleString()}` : "—"}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </Card>
+      </div>
+
+      {/* 編輯 Dialog */}
+      <Dialog open={!!editRow} onOpenChange={(o) => !o && setEditRow(null)}>
+        <DialogContent className="sm:max-w-sm overflow-x-hidden">
+          <DialogHeader>
+            <DialogTitle>編輯正職目標 — {editRow?.venue_name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Field label="團隊目標數">
+              <Input type="number" min={0} value={editTarget} onChange={(e) => setEditTarget(e.target.value)} />
+            </Field>
+            <Field label="正職個人最低目標">
+              <Input type="number" min={0} value={editFulltimeMin} onChange={(e) => setEditFulltimeMin(e.target.value)} />
+            </Field>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditRow(null)} disabled={saving}>取消</Button>
+            <Button onClick={handleSaveEdit} disabled={saving}>{saving ? "儲存中..." : "儲存"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 新增 Dialog */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="sm:max-w-md overflow-x-hidden">
+          <DialogHeader>
+            <DialogTitle>新增正職邀約目標（{year} 年 {month} 月）</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Field label="場域名稱">
+              <Select value={addVenue} onValueChange={setAddVenue}>
+                <SelectTrigger><SelectValue placeholder="選擇館別" /></SelectTrigger>
+                <SelectContent>
+                  {venueOptions.length === 0 ? (
+                    <div className="px-2 py-1.5 text-sm text-muted-foreground">無可選場域</div>
+                  ) : (
+                    venueOptions.map((opt) => (
+                      <SelectItem key={opt.name} value={opt.name}>
+                        <span className="inline-flex items-center gap-2">
+                          <span>{opt.name}</span>
+                          <span className="text-[10px] text-muted-foreground">{opt.badge}</span>
+                        </span>
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="團隊目標數">
+              <Input type="number" min={0} placeholder="0" value={addTarget} onChange={(e) => setAddTarget(e.target.value)} />
+            </Field>
+            <Field label="正職個人最低目標">
+              <Input type="number" min={0} placeholder="0" value={addFulltimeMin} onChange={(e) => setAddFulltimeMin(e.target.value)} />
+            </Field>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddOpen(false)} disabled={saving}>取消</Button>
+            <Button onClick={handleAdd} disabled={saving}>{saving ? "新增中..." : "新增"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+
+// ============================================================
 // ====== Tab 四：等級設定 ======
 // ============================================================
 const RARITY_ORDER = ["N", "R", "SR", "SSR", "UR", "ck"] as const;
