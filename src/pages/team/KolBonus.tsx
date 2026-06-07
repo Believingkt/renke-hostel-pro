@@ -66,6 +66,8 @@ interface KolRow {
   accommodation_name: string | null;
   public_token: string | null;
   token_expires_at: string | null;
+  scout_id: string | null;
+  scout_name: string | null;
 }
 
 interface OrderRow {
@@ -124,14 +126,20 @@ export default function KolBonus() {
   const [drawerKol, setDrawerKol] = useState<KolRow | null>(null);
   const [filterYear, setFilterYear] = useState<number>(currentYear);
   const [filterMonth, setFilterMonth] = useState<string>(String(currentMonthNum)); // "all" | "1".."12"
+  // 發放期別：以月份為單位（顯示為「M月10日」），代表完成業績/分潤所抓的退房月份
+  // 預設為上個月（依台灣時間）
+  const [payoutPeriod, setPayoutPeriod] = useState<string>(
+    String(currentMonthNum === 1 ? 12 : currentMonthNum - 1),
+  );
+  const [scoutFilter, setScoutFilter] = useState<string>("all");
 
   const fetchAll = async () => {
     setLoading(true);
-    const [kolRes, orderRes, commRes, accRes] = await Promise.all([
+    const [kolRes, orderRes, commRes, accRes, scoutRes] = await Promise.all([
       supabase
         .from("kol_profiles")
         .select(
-          "id, name, cid_code, venue_name, accommodation_id, public_token, token_expires_at",
+          "id, name, cid_code, venue_name, accommodation_id, public_token, token_expires_at, scout_id, scout_name",
         )
         .not("cid_code", "is", null)
         .neq("cid_code", ""),
@@ -150,6 +158,7 @@ export default function KolBonus() {
         .order("effective_from", { ascending: false })
         .order("created_at", { ascending: false }),
       supabase.from("accommodation_info").select("id, name"),
+      supabase.from("team_member_profiles").select("id, display_name"),
     ]);
     if (kolRes.error) toast.error("載入 KOL 失敗：" + kolRes.error.message);
     if (orderRes.error) toast.error("載入訂單失敗：" + orderRes.error.message);
@@ -165,12 +174,19 @@ export default function KolBonus() {
       accommodation_id: string | null;
       public_token: string | null;
       token_expires_at: string | null;
+      scout_id: string | null;
+      scout_name: string | null;
     }>;
     const accMap = new Map<string, string>(
       ((accRes.data ?? []) as Array<{ id: string; name: string }>).map((a) => [
         a.id,
         a.name,
       ]),
+    );
+    const scoutNameMap = new Map<string, string>(
+      ((scoutRes.data ?? []) as Array<{ id: string; display_name: string | null }>).map(
+        (s) => [s.id, s.display_name ?? ""],
+      ),
     );
 
     // kol_profiles 索引：依 cid_code(大寫) 分組，再依 accommodation_id 對應
@@ -210,6 +226,11 @@ export default function KolBonus() {
           (accId && accMap.get(accId)) || matched?.venue_name || null,
         public_token: matched?.public_token ?? null,
         token_expires_at: matched?.token_expires_at ?? null,
+        scout_id: matched?.scout_id ?? null,
+        scout_name:
+          (matched?.scout_id && scoutNameMap.get(matched.scout_id)) ||
+          matched?.scout_name ||
+          null,
       });
     }
     // 排序：館別名稱 → cid_code
@@ -283,6 +304,19 @@ export default function KolBonus() {
     return Array.from(set).sort((a, b) => b - a);
   }, [orders, currentYear]);
 
+  // 星探選項：只列出有實際邀約 KOL（即有出現在 rows 裡）的星探
+  const scoutOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const r of rows) {
+      if (r.scout_id) {
+        if (!map.has(r.scout_id)) map.set(r.scout_id, r.scout_name || "—");
+      }
+    }
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [rows]);
+
   // 根據年/月過濾：該列在選定區間內須至少有一筆 order_date 或 check_out_date；「全部月份」= 全期
   const filteredRows = useMemo(() => {
     const prefix =
@@ -290,6 +324,7 @@ export default function KolBonus() {
         ? null
         : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
     return rows.filter((k) => {
+      if (scoutFilter !== "all" && k.scout_id !== scoutFilter) return false;
       const list = ordersByKey.get(k.rowKey) ?? [];
       if (!prefix) return list.length > 0;
       return list.some(
@@ -298,7 +333,7 @@ export default function KolBonus() {
           (o.order_status !== "cancelled" && o.check_out_date?.startsWith(prefix)),
       );
     });
-  }, [rows, ordersByKey, filterYear, filterMonth]);
+  }, [rows, ordersByKey, filterYear, filterMonth, scoutFilter]);
 
   // 開啟 Drawer 時要帶入的月份：若選「全部月份」則用當月
   const drawerInitialMonth =
@@ -307,11 +342,17 @@ export default function KolBonus() {
       : `${filterYear}-${String(Number(filterMonth)).padStart(2, "0")}`;
 
   // 每列在當前篩選期間內的訂單/完成業績與分潤
+  // - 進單（orderCount/orderRevenue）：由 filterYear+filterMonth 控制
+  // - 完成（completedCount/completedRevenue/commission）：由 filterYear+payoutPeriod 控制
   const kolMetrics = useMemo(() => {
-    const prefix =
+    const orderPrefix =
       filterMonth === "all"
         ? null
         : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
+    const completedPrefix =
+      payoutPeriod === "all"
+        ? null
+        : `${filterYear}-${String(payoutPeriod).padStart(2, "0")}`;
     const map = new Map<
       string,
       {
@@ -332,11 +373,11 @@ export default function KolBonus() {
       for (const o of list) {
         const r = Number(o.final_price ?? o.total_price ?? 0);
         const rate = getRate(o.accommodation_id, o.check_out_date);
-        const orderMatch = prefix
-          ? o.order_date?.startsWith(prefix)
+        const orderMatch = orderPrefix
+          ? o.order_date?.startsWith(orderPrefix)
           : true;
-        const completedMatch = prefix
-          ? o.check_out_date?.startsWith(prefix)
+        const completedMatch = completedPrefix
+          ? o.check_out_date?.startsWith(completedPrefix)
           : true;
         if (orderMatch) {
           orderCount += 1;
@@ -357,7 +398,7 @@ export default function KolBonus() {
       });
     }
     return map;
-  }, [rows, ordersByKey, getRate, filterYear, filterMonth]);
+  }, [rows, ordersByKey, getRate, filterYear, filterMonth, payoutPeriod]);
 
   const metricsLabel = filterMonth === "all" ? "全期" : "當月";
 
@@ -474,6 +515,34 @@ export default function KolBonus() {
                   {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
                     <SelectItem key={m} value={String(m)}>
                       {m} 月
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <span className="text-sm text-muted-foreground ml-2">發放期別</span>
+              <Select value={payoutPeriod} onValueChange={setPayoutPeriod}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部</SelectItem>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                    <SelectItem key={m} value={String(m)}>
+                      {m} 月 10 日
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <span className="text-sm text-muted-foreground ml-2">星探</span>
+              <Select value={scoutFilter} onValueChange={setScoutFilter}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部星探</SelectItem>
+                  {scoutOptions.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
