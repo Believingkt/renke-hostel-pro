@@ -124,6 +124,7 @@ export default function KolBonus() {
   const [commissions, setCommissions] = useState<CommissionSetting[]>([]);
   const [saving, setSaving] = useState(false);
   const [drawerKol, setDrawerKol] = useState<KolRow | null>(null);
+  const [drawerSettlement, setDrawerSettlement] = useState(false);
   const [filterYear, setFilterYear] = useState<number>(currentYear);
   const [filterMonth, setFilterMonth] = useState<string>(String(currentMonthNum)); // "all" | "1".."12"
   // 發放期別：以月份為單位（顯示為「M月10日」），代表完成業績/分潤所抓的退房月份
