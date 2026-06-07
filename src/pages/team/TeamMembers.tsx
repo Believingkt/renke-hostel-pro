@@ -425,6 +425,15 @@ export default function TeamMembers() {
     setEditVenues(m.managed_venue ?? []);
     setEditScoutTeam(m.is_scout_team_member);
     setEditFulltime(m.employment_type === "fulltime");
+    const cur = getCurrentTaipeiYM();
+    if (m.fulltime_start_yearmonth && /^\d{4}-\d{2}$/.test(m.fulltime_start_yearmonth)) {
+      const [y, mo] = m.fulltime_start_yearmonth.split("-").map(Number);
+      setEditFulltimeStartYear(y);
+      setEditFulltimeStartMonth(mo);
+    } else {
+      setEditFulltimeStartYear(cur.year);
+      setEditFulltimeStartMonth(cur.month);
+    }
   };
 
   const isNorris = editTarget?.user_id === NORRIS_USER_ID;
