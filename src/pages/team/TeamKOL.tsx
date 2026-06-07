@@ -92,6 +92,7 @@ interface VenueOption {
 interface Scout {
   user_id: string;
   display_name: string;
+  fulltime_start_yearmonth?: string | null;
 }
 
 interface KolRow {
