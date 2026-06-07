@@ -4050,7 +4050,7 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
                     <TableRow key={`${r.scout_id}-${r.venue_name}-${i}`}>
                       <TableCell>{r.scout_name}</TableCell>
                       <TableCell>{r.venue_name}</TableCell>
-                      <TableCell className="text-right tabular-nums">{r.fulltime_min}</TableCell>
+                      <TableCell className="text-right tabular-nums">{!r.fulltime_min || r.fulltime_min <= 0 ? <span className="text-muted-foreground">尚未設定</span> : r.fulltime_min}</TableCell>
                       <TableCell className="text-right tabular-nums">{r.actual_count}</TableCell>
                       <TableCell className="text-right">{badge}</TableCell>
                     </TableRow>
