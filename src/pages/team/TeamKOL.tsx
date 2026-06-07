@@ -5955,3 +5955,459 @@ function SalarySettingsBlock({ isManager }: { isManager: boolean }) {
     </Card>
   );
 }
+
+// ============================================================
+// ====== Tab 設定：邀約目標設定 ======
+// ============================================================
+interface InvitationTargetRow {
+  team_id: string | null;
+  fulltime_id: string | null;
+  year: number;
+  month: number;
+  venue_name: string;
+  team_target: number;
+  personal_min: number | null;
+  fulltime_min: number;
+  is_starlink: boolean;
+  accommodation_id: string | null;
+}
+
+function InvitationTargetsSettingsBlock({ isManager }: { isManager: boolean }) {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const [filterYear, setFilterYear] = useState<number>(currentYear);
+  const [filterMonth, setFilterMonth] = useState<string>("all"); // "all" | "1".."12"
+  const [filterVenue, setFilterVenue] = useState<string>("all");
+  const [rows, setRows] = useState<InvitationTargetRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [accList, setAccList] = useState<{ id: string; name: string; is_active?: boolean }[]>([]);
+
+  // dialogs
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<InvitationTargetRow | null>(null);
+  const [fMonth, setFMonth] = useState<string>(String(now.getMonth() + 1));
+  const [fVenue, setFVenue] = useState<string>("");
+  const [fTeamTarget, setFTeamTarget] = useState<string>("0");
+  const [fPersonalMin, setFPersonalMin] = useState<string>("");
+  const [fFulltimeMin, setFFulltimeMin] = useState<string>("0");
+  const [fStarlink, setFStarlink] = useState<boolean>(false);
+  const [saving, setSaving] = useState(false);
+
+  // delete
+  const [deleteRow, setDeleteRow] = useState<InvitationTargetRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("accommodation_info")
+        .select("id, name, is_active")
+        .neq("name", "奧丁丁測試")
+        .order("name");
+      if (data) setAccList(data as any);
+    })();
+  }, []);
+
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    const [teamRes, ftRes] = await Promise.all([
+      supabase.from("scout_team_targets" as any).select("*").eq("year", filterYear),
+      supabase.from("scout_fulltime_targets" as any).select("*").eq("year", filterYear),
+    ]);
+    const teamArr = (teamRes.data as any[]) ?? [];
+    const ftArr = (ftRes.data as any[]) ?? [];
+    const map = new Map<string, InvitationTargetRow>();
+    for (const t of teamArr) {
+      const key = `${t.year}-${t.month}-${t.venue_name}`;
+      map.set(key, {
+        team_id: t.id,
+        fulltime_id: null,
+        year: t.year,
+        month: t.month,
+        venue_name: t.venue_name,
+        team_target: t.target_count ?? 0,
+        personal_min: t.personal_min ?? null,
+        fulltime_min: 0,
+        is_starlink: !!t.is_starlink,
+        accommodation_id: t.accommodation_id ?? null,
+      });
+    }
+    for (const f of ftArr) {
+      const key = `${f.year}-${f.month}-${f.venue_name}`;
+      const cur = map.get(key);
+      if (cur) {
+        cur.fulltime_id = f.id;
+        cur.fulltime_min = f.fulltime_min ?? 0;
+        if (!cur.team_target) cur.team_target = f.target_count ?? 0;
+      } else {
+        map.set(key, {
+          team_id: null,
+          fulltime_id: f.id,
+          year: f.year,
+          month: f.month,
+          venue_name: f.venue_name,
+          team_target: f.target_count ?? 0,
+          personal_min: null,
+          fulltime_min: f.fulltime_min ?? 0,
+          is_starlink: false,
+          accommodation_id: null,
+        });
+      }
+    }
+    const list = Array.from(map.values()).sort(
+      (a, b) => b.month - a.month || a.venue_name.localeCompare(b.venue_name, "zh-Hant"),
+    );
+    setRows(list);
+    setLoading(false);
+  }, [filterYear]);
+
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
+
+  const filteredRows = useMemo(() => {
+    return rows.filter(
+      (r) =>
+        (filterMonth === "all" || String(r.month) === filterMonth) &&
+        (filterVenue === "all" || r.venue_name === filterVenue),
+    );
+  }, [rows, filterMonth, filterVenue]);
+
+  const venueNamesInRows = useMemo(
+    () => Array.from(new Set(rows.map((r) => r.venue_name))).sort((a, b) => a.localeCompare(b, "zh-Hant")),
+    [rows],
+  );
+
+  const years = [currentYear - 1, currentYear, currentYear + 1];
+
+  const openAdd = () => {
+    setEditing(null);
+    setFMonth(String(now.getMonth() + 1));
+    setFVenue("");
+    setFTeamTarget("0");
+    setFPersonalMin("");
+    setFFulltimeMin("0");
+    setFStarlink(false);
+    setDialogOpen(true);
+  };
+
+  const openEdit = (row: InvitationTargetRow) => {
+    setEditing(row);
+    setFMonth(String(row.month));
+    setFVenue(row.venue_name);
+    setFTeamTarget(String(row.team_target));
+    setFPersonalMin(row.personal_min == null ? "" : String(row.personal_min));
+    setFFulltimeMin(String(row.fulltime_min));
+    setFStarlink(row.is_starlink);
+    setDialogOpen(true);
+  };
+
+  const handleSave = async () => {
+    const m = parseInt(fMonth, 10);
+    if (!m || m < 1 || m > 12) return toast.error("請選擇月份");
+    if (!fVenue.trim()) return toast.error("請選擇場域");
+    const tt = parseInt(fTeamTarget, 10);
+    if (Number.isNaN(tt) || tt < 0) return toast.error("請輸入有效的團隊目標數");
+    const pm = fPersonalMin.trim() === "" ? null : parseInt(fPersonalMin, 10);
+    if (pm !== null && (Number.isNaN(pm) || pm < 0)) return toast.error("請輸入有效的兼職個人最低目標");
+    const fm = parseInt(fFulltimeMin, 10);
+    if (Number.isNaN(fm) || fm < 0) return toast.error("請輸入有效的正職個人最低目標");
+
+    setSaving(true);
+    const { data: acc } = await supabase
+      .from("accommodation_info")
+      .select("id")
+      .eq("name", fVenue.trim())
+      .maybeSingle();
+    const accId = acc?.id ?? null;
+    const { data: authData } = await supabase.auth.getUser();
+
+    try {
+      if (editing) {
+        // 更新 team
+        if (editing.team_id) {
+          const { error } = await (supabase.from("scout_team_targets" as any) as any)
+            .update({
+              target_count: tt,
+              personal_min: pm,
+              is_starlink: fStarlink,
+              venue_name: fVenue.trim(),
+              month: m,
+              accommodation_id: accId,
+            })
+            .eq("id", editing.team_id);
+          if (error) throw error;
+        } else {
+          const { error } = await (supabase.from("scout_team_targets" as any) as any).insert({
+            year: filterYear,
+            month: m,
+            venue_name: fVenue.trim(),
+            target_count: tt,
+            personal_min: pm,
+            is_starlink: fStarlink,
+            accommodation_id: accId,
+            created_by: authData.user?.id ?? null,
+          });
+          if (error) throw error;
+        }
+        // 更新 fulltime
+        if (editing.fulltime_id) {
+          const { error } = await (supabase.from("scout_fulltime_targets" as any) as any)
+            .update({
+              target_count: tt,
+              fulltime_min: fm,
+              venue_name: fVenue.trim(),
+              month: m,
+            })
+            .eq("id", editing.fulltime_id);
+          if (error) throw error;
+        } else {
+          const { error } = await (supabase.from("scout_fulltime_targets" as any) as any).insert({
+            year: filterYear,
+            month: m,
+            venue_name: fVenue.trim(),
+            target_count: tt,
+            fulltime_min: fm,
+          });
+          if (error) throw error;
+        }
+        toast.success("已更新目標");
+      } else {
+        // 新增：同時寫入兩張表
+        const [r1, r2] = await Promise.all([
+          (supabase.from("scout_team_targets" as any) as any).insert({
+            year: filterYear,
+            month: m,
+            venue_name: fVenue.trim(),
+            target_count: tt,
+            personal_min: pm,
+            is_starlink: fStarlink,
+            accommodation_id: accId,
+            created_by: authData.user?.id ?? null,
+          }),
+          (supabase.from("scout_fulltime_targets" as any) as any).insert({
+            year: filterYear,
+            month: m,
+            venue_name: fVenue.trim(),
+            target_count: tt,
+            fulltime_min: fm,
+          }),
+        ]);
+        if (r1.error) throw r1.error;
+        if (r2.error) throw r2.error;
+        toast.success("已新增目標");
+      }
+      setDialogOpen(false);
+      fetchAll();
+    } catch (e: any) {
+      toast.error(e?.message ?? "儲存失敗");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteRow) return;
+    setDeleting(true);
+    try {
+      if (deleteRow.team_id) {
+        const { error } = await (supabase.from("scout_team_targets" as any) as any)
+          .delete()
+          .eq("id", deleteRow.team_id);
+        if (error) throw error;
+      }
+      if (deleteRow.fulltime_id) {
+        const { error } = await (supabase.from("scout_fulltime_targets" as any) as any)
+          .delete()
+          .eq("id", deleteRow.fulltime_id);
+        if (error) throw error;
+      }
+      toast.success("已刪除目標");
+      setDeleteRow(null);
+      fetchAll();
+    } catch (e: any) {
+      toast.error(e?.message ?? "刪除失敗");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardContent className="p-4 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="font-semibold">邀約目標設定</h3>
+          {isManager && (
+            <Button size="sm" onClick={openAdd}>
+              <Plus className="h-4 w-4 mr-1" /> 新增目標
+            </Button>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={String(filterYear)} onValueChange={(v) => setFilterYear(parseInt(v, 10))}>
+            <SelectTrigger className="h-9 w-28"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {years.map((y) => (
+                <SelectItem key={y} value={String(y)}>{y} 年</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filterMonth} onValueChange={setFilterMonth}>
+            <SelectTrigger className="h-9 w-28"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部月份</SelectItem>
+              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                <SelectItem key={m} value={String(m)}>{m} 月</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filterVenue} onValueChange={setFilterVenue}>
+            <SelectTrigger className="h-9 w-40"><SelectValue placeholder="館別" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部館別</SelectItem>
+              {venueNamesInRows.map((v) => (
+                <SelectItem key={v} value={v}>{v}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>月份</TableHead>
+              <TableHead>場域</TableHead>
+              <TableHead className="text-right">團隊目標數</TableHead>
+              <TableHead className="text-right">兼職個人最低目標</TableHead>
+              <TableHead className="text-right">正職個人最低目標</TableHead>
+              <TableHead className="text-center">星鏈場域</TableHead>
+              {isManager && <TableHead className="text-right">操作</TableHead>}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? null : filteredRows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={isManager ? 7 : 6} className="text-center text-sm text-muted-foreground">
+                  尚無目標資料
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredRows.map((r) => (
+                <TableRow key={`${r.year}-${r.month}-${r.venue_name}`}>
+                  <TableCell>{r.month} 月</TableCell>
+                  <TableCell>{r.venue_name}</TableCell>
+                  <TableCell className="text-right tabular-nums">{r.team_target}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {r.personal_min == null ? "不限定" : r.personal_min}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">{r.fulltime_min}</TableCell>
+                  <TableCell className="text-center">{r.is_starlink ? "✅" : "－"}</TableCell>
+                  {isManager && (
+                    <TableCell className="text-right">
+                      <Button size="sm" variant="ghost" onClick={() => openEdit(r)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setDeleteRow(r)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  )}
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </CardContent>
+
+      {/* 新增 / 編輯 Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-md overflow-x-hidden">
+          <DialogHeader>
+            <DialogTitle>
+              {editing ? `編輯邀約目標（${filterYear} 年）` : `新增邀約目標（${filterYear} 年）`}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>月份</Label>
+              <Select value={fMonth} onValueChange={setFMonth}>
+                <SelectTrigger><SelectValue placeholder="選擇月份" /></SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                    <SelectItem key={m} value={String(m)}>{m} 月</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>場域名稱</Label>
+              <Select value={fVenue} onValueChange={setFVenue} disabled={!!editing}>
+                <SelectTrigger><SelectValue placeholder="選擇館別" /></SelectTrigger>
+                <SelectContent>
+                  {accList
+                    .filter((a) => a.is_active !== false)
+                    .map((a) => (
+                      <SelectItem key={a.id} value={a.name}>{a.name}</SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>團隊目標數</Label>
+              <Input type="number" min={0} value={fTeamTarget} onChange={(e) => setFTeamTarget(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>兼職個人最低目標（留空=不限定）</Label>
+              <Input
+                type="number"
+                min={0}
+                value={fPersonalMin}
+                onChange={(e) => setFPersonalMin(e.target.value)}
+                placeholder="不限定"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>正職個人最低目標</Label>
+              <Input type="number" min={0} value={fFulltimeMin} onChange={(e) => setFFulltimeMin(e.target.value)} />
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="invite-target-starlink"
+                checked={fStarlink}
+                onCheckedChange={(c) => setFStarlink(!!c)}
+              />
+              <Label htmlFor="invite-target-starlink" className="cursor-pointer">
+                是否為星鏈場域
+              </Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>取消</Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "儲存中..." : "儲存"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 刪除確認 */}
+      <AlertDialog open={!!deleteRow} onOpenChange={(o) => !o && setDeleteRow(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認刪除目標？</AlertDialogTitle>
+            <AlertDialogDescription>
+              將刪除「{deleteRow?.year} 年 {deleteRow?.month} 月 — {deleteRow?.venue_name}」的團隊與正職邀約目標，此動作無法復原。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={deleting}>
+              {deleting ? "刪除中..." : "確認刪除"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Card>
+  );
+}
