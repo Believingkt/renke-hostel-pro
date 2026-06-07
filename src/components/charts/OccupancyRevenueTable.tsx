@@ -287,6 +287,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
           dailyRoomsSold[dateStr] = (dailyRoomsSold[dateStr] || 0) + effectiveTotalQty;
           dailyExclusiveSold[dateStr] = (dailyExclusiveSold[dateStr] || 0) + effectiveExclusiveQty;
           dailyStandardSold[dateStr] = (dailyStandardSold[dateStr] || 0) + effectiveStandardQty;
+          if (order.order_source === 'official_use') dailyHasOfficial[dateStr] = true;
           dailyEntries.push({ dayType, dateStr });
         }
 
