@@ -144,22 +144,43 @@ export default function TeamCommissionStatsTab() {
   async function load() {
     setLoading(true);
     try {
-      let q = supabase
+      // 有效訂單：用 order_date 過濾，排除已取消
+      let validQ = supabase
         .from("orders")
-        .select("id, accommodation_id, final_price, order_status, discount_code, order_date");
-      if (period.startIso) q = q.gte("order_date", period.startIso);
-      if (period.nextIso) q = q.lt("order_date", period.nextIso);
-      const { data: ordersData, error: oe } = await q;
+        .select("id, accommodation_id, final_price, order_status, discount_code, order_date, cancelled_at")
+        .neq("order_status", "cancelled");
+      if (period.startIso) validQ = validQ.gte("order_date", period.startIso);
+      if (period.nextIso) validQ = validQ.lt("order_date", period.nextIso);
+      const { data: validData, error: oe } = await validQ;
       if (oe) throw oe;
-      let ords = (ordersData ?? []) as (OrderLite & { order_date: string })[];
-      // 全部年份 + 指定月份 → 客戶端按月份篩選
+
+      // 取消訂單：用 cancelled_at 過濾
+      let cancelQ = supabase
+        .from("orders")
+        .select("id, accommodation_id, final_price, order_status, discount_code, order_date, cancelled_at")
+        .eq("order_status", "cancelled")
+        .not("cancelled_at", "is", null);
+      if (period.startIso) cancelQ = cancelQ.gte("cancelled_at", period.startIso);
+      if (period.nextIso) cancelQ = cancelQ.lt("cancelled_at", period.nextIso);
+      const { data: cancelData, error: ce } = await cancelQ;
+      if (ce) throw ce;
+
+      let validRows = (validData ?? []) as (OrderLite & { order_date: string; cancelled_at: string | null })[];
+      let cancelRows = (cancelData ?? []) as (OrderLite & { order_date: string; cancelled_at: string | null })[];
+
+      // 全部年份 + 指定月份 → 客戶端按月份篩選（有效訂單用 order_date、取消訂單用 cancelled_at）
       const monthFilter = (period as any).monthFilter as number | undefined;
       if (monthFilter) {
-        ords = ords.filter((o) => {
+        validRows = validRows.filter((o) => {
           const d = o.order_date ? new Date(o.order_date) : null;
           return d ? d.getMonth() + 1 === monthFilter : false;
         });
+        cancelRows = cancelRows.filter((o) => {
+          const d = o.cancelled_at ? new Date(o.cancelled_at) : null;
+          return d ? d.getMonth() + 1 === monthFilter : false;
+        });
       }
+      const ords = [...validRows, ...cancelRows];
       setOrders(ords);
 
       const ids = ords.map((o) => o.id);
@@ -244,7 +265,7 @@ export default function TeamCommissionStatsTab() {
     const valid: OrderLite[] = [];
     const cancel: OrderLite[] = [];
     orders.forEach((o) => {
-      if (o.order_status === "已取消") {
+      if (o.order_status === "cancelled" || o.order_status === "已取消") {
         cancel.push(o);
       } else {
         const m = metaMap.get(o.id);
