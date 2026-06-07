@@ -817,6 +817,9 @@ export default function KolBonus() {
               )}
             </CardContent>
           </Card>
+          <div className="mt-3 px-1 text-xs text-muted-foreground space-y-1">
+            <div>同一個「折扣碼 / CID」，若產生兩筆以上訂單，可點開明細查看「訂單編號」</div>
+          </div>
         </TabsContent>
 
         <TabsContent value="rates" className="mt-0">
