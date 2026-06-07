@@ -3873,7 +3873,7 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
             <TableBody>
               {loading ? null : teamRows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={isManager ? 7 : 6} className="text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
                     尚無目標資料
                   </TableCell>
                 </TableRow>
