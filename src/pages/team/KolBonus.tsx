@@ -226,6 +226,11 @@ export default function KolBonus() {
           (accId && accMap.get(accId)) || matched?.venue_name || null,
         public_token: matched?.public_token ?? null,
         token_expires_at: matched?.token_expires_at ?? null,
+        scout_id: matched?.scout_id ?? null,
+        scout_name:
+          (matched?.scout_id && scoutNameMap.get(matched.scout_id)) ||
+          matched?.scout_name ||
+          null,
       });
     }
     // 排序：館別名稱 → cid_code
