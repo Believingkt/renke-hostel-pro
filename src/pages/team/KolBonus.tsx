@@ -342,11 +342,17 @@ export default function KolBonus() {
       : `${filterYear}-${String(Number(filterMonth)).padStart(2, "0")}`;
 
   // 每列在當前篩選期間內的訂單/完成業績與分潤
+  // - 進單（orderCount/orderRevenue）：由 filterYear+filterMonth 控制
+  // - 完成（completedCount/completedRevenue/commission）：由 filterYear+payoutPeriod 控制
   const kolMetrics = useMemo(() => {
-    const prefix =
+    const orderPrefix =
       filterMonth === "all"
         ? null
         : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
+    const completedPrefix =
+      payoutPeriod === "all"
+        ? null
+        : `${filterYear}-${String(payoutPeriod).padStart(2, "0")}`;
     const map = new Map<
       string,
       {
@@ -367,11 +373,11 @@ export default function KolBonus() {
       for (const o of list) {
         const r = Number(o.final_price ?? o.total_price ?? 0);
         const rate = getRate(o.accommodation_id, o.check_out_date);
-        const orderMatch = prefix
-          ? o.order_date?.startsWith(prefix)
+        const orderMatch = orderPrefix
+          ? o.order_date?.startsWith(orderPrefix)
           : true;
-        const completedMatch = prefix
-          ? o.check_out_date?.startsWith(prefix)
+        const completedMatch = completedPrefix
+          ? o.check_out_date?.startsWith(completedPrefix)
           : true;
         if (orderMatch) {
           orderCount += 1;
@@ -392,7 +398,7 @@ export default function KolBonus() {
       });
     }
     return map;
-  }, [rows, ordersByKey, getRate, filterYear, filterMonth]);
+  }, [rows, ordersByKey, getRate, filterYear, filterMonth, payoutPeriod]);
 
   const metricsLabel = filterMonth === "all" ? "全期" : "當月";
 
