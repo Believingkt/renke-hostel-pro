@@ -103,6 +103,7 @@ const fmtRate = (n: number | null | undefined) =>
 export default function TeamStarlink() {
   const { roles, userId } = useTeam();
   const canManage = roles.includes("super_admin") || roles.includes("admin");
+  const canManagePlans = canManage || roles.includes("starlink");
   const canView = canManage || roles.includes("starlink");
 
   if (!canView) {
@@ -135,7 +136,7 @@ export default function TeamStarlink() {
           <StatsTab />
         </TabsContent>
         <TabsContent value="plans" className="mt-4">
-          <PlansTab canManage={canManage} />
+          <PlansTab canManage={canManagePlans} />
         </TabsContent>
         <TabsContent value="tiers" className="mt-4">
           <TiersTab canManage={canManage} />
