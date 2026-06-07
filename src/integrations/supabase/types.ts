@@ -1536,6 +1536,161 @@ export type Database = {
           },
         ]
       }
+      closer_commission_adjustments: {
+        Row: {
+          adjustment_month: string
+          adjustment_type: string
+          closer_amount: number | null
+          closer_id: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          order_id: string
+          reason: string | null
+          snapshot_id: string
+          video_amount: number | null
+          video_creator_id: string | null
+        }
+        Insert: {
+          adjustment_month: string
+          adjustment_type: string
+          closer_amount?: number | null
+          closer_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          order_id: string
+          reason?: string | null
+          snapshot_id: string
+          video_amount?: number | null
+          video_creator_id?: string | null
+        }
+        Update: {
+          adjustment_month?: string
+          adjustment_type?: string
+          closer_amount?: number | null
+          closer_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          order_id?: string
+          reason?: string | null
+          snapshot_id?: string
+          video_amount?: number | null
+          video_creator_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "closer_commission_adjustments_closer_id_fkey"
+            columns: ["closer_id"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "closer_commission_adjustments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "closer_commission_adjustments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "closer_commission_adjustments_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "closer_commission_snapshots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "closer_commission_adjustments_video_creator_id_fkey"
+            columns: ["video_creator_id"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      closer_commission_snapshots: {
+        Row: {
+          accommodation_id: string
+          closer_commission_amount: number | null
+          closer_id: string | null
+          closer_rate: number | null
+          created_at: string | null
+          final_price_snapshot: number
+          id: string
+          order_id: string
+          snapshot_month: string
+          video_commission_amount: number | null
+          video_creator_id: string | null
+          video_rate: number | null
+        }
+        Insert: {
+          accommodation_id: string
+          closer_commission_amount?: number | null
+          closer_id?: string | null
+          closer_rate?: number | null
+          created_at?: string | null
+          final_price_snapshot: number
+          id?: string
+          order_id: string
+          snapshot_month: string
+          video_commission_amount?: number | null
+          video_creator_id?: string | null
+          video_rate?: number | null
+        }
+        Update: {
+          accommodation_id?: string
+          closer_commission_amount?: number | null
+          closer_id?: string | null
+          closer_rate?: number | null
+          created_at?: string | null
+          final_price_snapshot?: number
+          id?: string
+          order_id?: string
+          snapshot_month?: string
+          video_commission_amount?: number | null
+          video_creator_id?: string | null
+          video_rate?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "closer_commission_snapshots_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "closer_commission_snapshots_closer_id_fkey"
+            columns: ["closer_id"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "closer_commission_snapshots_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "closer_commission_snapshots_video_creator_id_fkey"
+            columns: ["video_creator_id"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       commission_payout_rules: {
         Row: {
           commission_type: string
