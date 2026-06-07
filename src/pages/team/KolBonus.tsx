@@ -519,6 +519,34 @@ export default function KolBonus() {
                   ))}
                 </SelectContent>
               </Select>
+              <span className="text-sm text-muted-foreground ml-2">發放期別</span>
+              <Select value={payoutPeriod} onValueChange={setPayoutPeriod}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部</SelectItem>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                    <SelectItem key={m} value={String(m)}>
+                      {m} 月 10 日
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <span className="text-sm text-muted-foreground ml-2">星探</span>
+              <Select value={scoutFilter} onValueChange={setScoutFilter}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部星探</SelectItem>
+                  {scoutOptions.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {(() => {
                 const empty = {
                   orderCount: 0,
