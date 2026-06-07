@@ -3868,7 +3868,6 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
                 <TableHead className="text-right">達成率</TableHead>
                 <TableHead className="text-right">正職個人最低目標</TableHead>
                 <TableHead className="text-right">狀態</TableHead>
-                {isManager && <TableHead className="text-right">操作</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
