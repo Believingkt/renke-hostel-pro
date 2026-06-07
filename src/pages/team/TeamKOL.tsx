@@ -310,6 +310,26 @@ export default function TeamKOL() {
     };
   }, [userId, canEditTicketLink]);
 
+  const [employmentType, setEmploymentType] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("team_member_profiles")
+        .select("employment_type")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!cancelled) setEmploymentType((data as any)?.employment_type ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+  const isFulltime = employmentType === "fulltime";
+  const isParttime = !isFulltime;
+  const canSeeFulltimeTargets = isFulltime || isManager;
+  const canSeeParttimeTargets = isParttime || isFulltime || isManager;
+
   const handleConvertFromProspect = (p: InvitationPrefill) => {
     setPrefill(p);
     setTab("invitations");
@@ -336,8 +356,8 @@ export default function TeamKOL() {
         <TabsList>
           <TabsTrigger value="invitations">正式邀約</TabsTrigger>
           <TabsTrigger value="prospects">潛在名單</TabsTrigger>
-          <TabsTrigger value="targets">兼職邀約目標</TabsTrigger>
-          <TabsTrigger value="fulltime_targets">正職邀約目標</TabsTrigger>
+          {canSeeFulltimeTargets && <TabsTrigger value="fulltime_targets">邀約目標（正職）</TabsTrigger>}
+          {canSeeParttimeTargets && <TabsTrigger value="targets">邀約目標（兼職）</TabsTrigger>}
           {canSeeStats && <TabsTrigger value="stats">業績統計</TabsTrigger>}
           <TabsTrigger value="venues">場域邀約管理</TabsTrigger>
           <TabsTrigger value="settings">設定</TabsTrigger>
