@@ -31,6 +31,7 @@ interface DailyDetail {
   standardSold: number;
   revenue: number;
   avgPrice: number;
+  hasOfficial: boolean;
 }
 
 type SegmentKey = 'all' | 'exclusive' | 'standard';
