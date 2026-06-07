@@ -117,6 +117,13 @@ export default function KolBonus() {
   })();
   const currentYear = twNow.getUTCFullYear();
   const currentMonthNum = twNow.getUTCMonth() + 1;
+  const currentDay = twNow.getUTCDate();
+
+  // 發放期別預設：今天 ≤ 10 → 當月10日；> 10 → 下個月10日（跨年則年份+1）
+  const defaultPayoutMonth =
+    currentDay <= 10 ? currentMonthNum : currentMonthNum === 12 ? 1 : currentMonthNum + 1;
+  const defaultPayoutYear =
+    currentDay > 10 && currentMonthNum === 12 ? currentYear + 1 : currentYear;
 
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<KolRow[]>([]);
@@ -128,10 +135,8 @@ export default function KolBonus() {
   const [filterYear, setFilterYear] = useState<number>(currentYear);
   const [filterMonth, setFilterMonth] = useState<string>(String(currentMonthNum)); // "all" | "1".."12"
   // 發放期別：以月份為單位（顯示為「M月10日」），代表完成業績/分潤所抓的退房月份
-  // 預設為上個月（依台灣時間）
-  const [payoutPeriod, setPayoutPeriod] = useState<string>(
-    String(currentMonthNum === 1 ? 12 : currentMonthNum - 1),
-  );
+  const [payoutYear, setPayoutYear] = useState<number>(defaultPayoutYear);
+  const [payoutPeriod, setPayoutPeriod] = useState<string>(String(defaultPayoutMonth));
   const [scoutFilter, setScoutFilter] = useState<string>("all");
 
   const fetchAll = async () => {
@@ -302,8 +307,9 @@ export default function KolBonus() {
       if (o.order_date) set.add(Number(o.order_date.slice(0, 4)));
     }
     set.add(currentYear);
+    set.add(defaultPayoutYear);
     return Array.from(set).sort((a, b) => b - a);
-  }, [orders, currentYear]);
+  }, [orders, currentYear, defaultPayoutYear]);
 
   // 星探選項：只列出有實際邀約 KOL（即有出現在 rows 裡）的星探
   const scoutOptions = useMemo(() => {
@@ -386,7 +392,7 @@ export default function KolBonus() {
 
   // Tab2 分潤結算：依 年 + 發放期別 + 星探，且 KOL 須在該期別月份有退房
   const tab2FilteredRows = useMemo(() => {
-    const prefix = `${filterYear}-${String(payoutPeriod).padStart(2, "0")}`;
+    const prefix = `${payoutYear}-${String(payoutPeriod).padStart(2, "0")}`;
     return rows.filter((k) => {
       if (scoutFilter !== "all" && k.scout_id !== scoutFilter) return false;
       const list = ordersByKey.get(k.rowKey) ?? [];
@@ -395,11 +401,11 @@ export default function KolBonus() {
           o.order_status !== "cancelled" && o.check_out_date?.startsWith(prefix),
       );
     });
-  }, [rows, ordersByKey, filterYear, payoutPeriod, scoutFilter]);
+  }, [rows, ordersByKey, payoutYear, payoutPeriod, scoutFilter]);
 
-  // Tab2 度量：完成業績 / 分潤依 filterYear + payoutPeriod
+  // Tab2 度量：完成業績 / 分潤依 payoutYear + payoutPeriod
   const tab2Metrics = useMemo(() => {
-    const prefix = `${filterYear}-${String(payoutPeriod).padStart(2, "0")}`;
+    const prefix = `${payoutYear}-${String(payoutPeriod).padStart(2, "0")}`;
     const map = new Map<
       string,
       { completedCount: number; completedRevenue: number; commission: number }
@@ -425,13 +431,13 @@ export default function KolBonus() {
       });
     }
     return map;
-  }, [rows, ordersByKey, getRate, filterYear, payoutPeriod]);
+  }, [rows, ordersByKey, getRate, payoutYear, payoutPeriod]);
 
   const tab1DrawerInitialMonth =
     filterMonth === "all"
       ? `${currentYear}-${String(currentMonthNum).padStart(2, "0")}`
       : `${filterYear}-${String(Number(filterMonth)).padStart(2, "0")}`;
-  const tab2DrawerInitialMonth = `${filterYear}-${String(Number(payoutPeriod)).padStart(2, "0")}`;
+  const tab2DrawerInitialMonth = `${payoutYear}-${String(Number(payoutPeriod)).padStart(2, "0")}`;
 
   const metricsLabel = filterMonth === "all" ? "全期" : "當月";
 
@@ -686,8 +692,8 @@ export default function KolBonus() {
                   <div className="flex flex-wrap items-center gap-2 mb-4">
                     <span className="text-sm text-muted-foreground">期間</span>
                     <Select
-                      value={String(filterYear)}
-                      onValueChange={(v) => setFilterYear(Number(v))}
+                      value={String(payoutYear)}
+                      onValueChange={(v) => setPayoutYear(Number(v))}
                     >
                       <SelectTrigger className="w-[110px]">
                         <SelectValue />
