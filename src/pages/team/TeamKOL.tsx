@@ -3758,8 +3758,7 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
         .eq("kpi_qualified", true)
         .eq("kpi_month", kpiMonthStr)
         .in("scout_id", eligibleFulltimeIds)
-        .not("publish_url", "is", null).neq("publish_url", "")
-        .not("publish_date", "is", null)
+        .not("kpi_month", "is", null)
         .not("contract_file_url", "is", null).neq("contract_file_url", "");
       const personalMap = new Map<string, number>();
       ((allKol as any[]) ?? []).forEach((k) => {
