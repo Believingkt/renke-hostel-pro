@@ -3137,15 +3137,29 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
     }
 
     // 全部 kol_profiles 當月（給個人表用，含未在設定中的場域亦可顯示）
-    const { data: allKol } = await supabase
+    const { data: allKolRaw } = await supabase
       .from("kol_profiles")
       .select("scout_id, venue_name")
       .eq("is_error", false)
       .eq("kpi_month", kpiMonthStr);
 
+    // 兼職過濾：scout 的 fulltime_start_yearmonth 為 null 或 > 當前選擇月份，才算兼職邀約
+    const selectedYM = `${year}-${String(month).padStart(2, "0")}`;
+    const scoutStartMap = new Map(scouts.map((s) => [s.user_id, s.fulltime_start_yearmonth ?? null]));
+    const isParttimeForMonth = (scoutId: string | null | undefined) => {
+      if (!scoutId) return true;
+      const start = scoutStartMap.get(scoutId);
+      if (!start) return true;
+      return selectedYM < start;
+    };
+
+    const filteredKolData = kolData.filter((k) => isParttimeForMonth(k.scout_id));
+    const filteredAllKol = ((allKolRaw as any[]) ?? []).filter((k) => isParttimeForMonth(k.scout_id));
+    const allKol = filteredAllKol;
+
     // 團隊實際統計
     const teamActual = new Map<string, number>();
-    kolData.forEach((k) => {
+    filteredKolData.forEach((k) => {
       if (k.venue_name) teamActual.set(k.venue_name, (teamActual.get(k.venue_name) ?? 0) + 1);
     });
 
