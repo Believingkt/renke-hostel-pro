@@ -952,12 +952,39 @@ export default function TeamMembers() {
                     </div>
                   )}
                   {editRoles.includes("scout") && (
-                    <div className="flex items-start justify-between gap-3 border rounded-md px-3 py-2 mt-2">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="edit-fulltime" className="cursor-pointer">正職星探</Label>
-                        <p className="text-xs text-muted-foreground">開啟 = 正職（fulltime），關閉 = 兼職（parttime）</p>
+                    <div className="border rounded-md px-3 py-2 mt-2 space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="edit-fulltime" className="cursor-pointer">正職星探</Label>
+                          <p className="text-xs text-muted-foreground">開啟 = 正職（fulltime），關閉 = 兼職（parttime）</p>
+                        </div>
+                        <Switch id="edit-fulltime" checked={editFulltime} onCheckedChange={setEditFulltime} />
                       </div>
-                      <Switch id="edit-fulltime" checked={editFulltime} onCheckedChange={setEditFulltime} />
+                      {editFulltime && (
+                        <div className="flex items-center justify-between gap-3 pt-2 border-t">
+                          <Label className="text-sm">正職起始月份</Label>
+                          <div className="flex items-center gap-2">
+                            <Select value={String(editFulltimeStartYear)} onValueChange={(v) => setEditFulltimeStartYear(Number(v))}>
+                              <SelectTrigger className="w-[90px] h-8"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {Array.from({ length: 6 }, (_, i) => getCurrentTaipeiYM().year - 3 + i).map((y) => (
+                                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <span className="text-sm text-muted-foreground">年</span>
+                            <Select value={String(editFulltimeStartMonth)} onValueChange={(v) => setEditFulltimeStartMonth(Number(v))}>
+                              <SelectTrigger className="w-[80px] h-8"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                                  <SelectItem key={m} value={String(m)}>{m}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <span className="text-sm text-muted-foreground">月</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
