@@ -401,7 +401,7 @@ interface MultiplierRow {
   is_active: boolean;
 }
 
-function MultiplierBlock() {
+function MultiplierBlock({ readOnly = false }: { readOnly?: boolean }) {
   const [rows, setRows] = useState<MultiplierRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
