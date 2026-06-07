@@ -80,6 +80,7 @@ interface MemberRow {
   managed_venue: string[] | null;
   is_scout_team_member: boolean;
   employment_type: "fulltime" | "parttime";
+  fulltime_start_yearmonth: string | null;
 }
 
 interface PendingInviteRow {
