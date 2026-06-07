@@ -192,6 +192,9 @@ export default function TeamMembers() {
       roles: p.user_id ? Array.from(rolesMap.get(p.user_id) ?? []) : [],
       managed_venue: (p as { managed_venue?: string[] | null }).managed_venue ?? null,
       is_scout_team_member: (p as { is_scout_team_member?: boolean | null }).is_scout_team_member ?? false,
+      employment_type: ((p as { employment_type?: string | null }).employment_type === "fulltime"
+        ? "fulltime"
+        : "parttime") as "fulltime" | "parttime",
     }));
 
     setMembers(rows);
