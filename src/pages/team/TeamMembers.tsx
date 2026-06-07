@@ -460,6 +460,9 @@ export default function TeamMembers() {
             display_name: editName.trim(),
             is_scout_team_member: nextHasScout ? editScoutTeam : false,
             employment_type: nextHasScout && editFulltime ? "fulltime" : "parttime",
+            fulltime_start_yearmonth: nextHasScout && editFulltime
+              ? `${editFulltimeStartYear}-${String(editFulltimeStartMonth).padStart(2, "0")}`
+              : null,
           })
           .eq("id", editTarget.id);
         if (pErr) throw pErr;
