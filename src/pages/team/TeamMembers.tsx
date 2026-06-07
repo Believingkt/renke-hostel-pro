@@ -440,6 +440,7 @@ export default function TeamMembers() {
           .update({
             display_name: editName.trim(),
             is_scout_team_member: nextHasScout ? editScoutTeam : false,
+            employment_type: nextHasScout && editFulltime ? "fulltime" : "parttime",
           })
           .eq("id", editTarget.id);
         if (pErr) throw pErr;
