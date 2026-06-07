@@ -844,6 +844,7 @@ interface DetailProps {
   onCopy: (row: KolRow) => void;
   onGenerate: (row: KolRow) => Promise<void> | void;
   saving: boolean;
+  settlementMode?: boolean;
 }
 
 function KolDetailDrawer({
@@ -855,6 +856,7 @@ function KolDetailDrawer({
   onCopy,
   onGenerate,
   saving,
+  settlementMode = false,
 }: DetailProps) {
 
   const [month, setMonth] = useState<string>(initialMonth);
