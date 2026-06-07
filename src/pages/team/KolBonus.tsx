@@ -680,9 +680,10 @@ export default function KolBonus() {
           <Card>
             <CardHeader>
               <CardTitle>分潤結算</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                依發放期別查看當月退房的 KOL 完成業績與分潤金額
-              </p>
+              <div className="text-sm text-muted-foreground space-y-1">
+                <p>依「發放期別」查看當月成功入住的客人訂單，KOL 實際完成的「業績」與「分潤金額」</p>
+                <p>同一個「折扣碼 / CID」，若產生兩筆以上訂單，可點開「明細」查看「訂單編號」</p>
+              </div>
             </CardHeader>
             <CardContent>
               {loading ? (
