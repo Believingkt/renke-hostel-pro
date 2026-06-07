@@ -3726,8 +3726,7 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
         .eq("kpi_month", kpiMonthStr)
         .in("venue_name", venueNames)
         .in("scout_id", eligibleFulltimeIds)
-        .not("publish_url", "is", null).neq("publish_url", "")
-        .not("publish_date", "is", null)
+        .not("kpi_month", "is", null)
         .not("contract_file_url", "is", null).neq("contract_file_url", "");
       kolData = data ?? [];
     }
