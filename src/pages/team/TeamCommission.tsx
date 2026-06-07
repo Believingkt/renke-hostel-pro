@@ -735,9 +735,11 @@ function PayoutsBlock({ scoutManagerOnly = false, readOnly = false }: { scoutMan
               </SelectContent>
             </Select>
           </div>
-          <Button size="sm" onClick={handleRecalculate} disabled={recalculating}>
-            {recalculating ? "計算中…" : "立即更新"}
-          </Button>
+          {!readOnly && (
+            <Button size="sm" onClick={handleRecalculate} disabled={recalculating}>
+              {recalculating ? "計算中…" : "立即更新"}
+            </Button>
+          )}
         </div>
 
         {loading ? null : rows.length === 0 ? (
