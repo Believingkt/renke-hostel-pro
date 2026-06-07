@@ -76,8 +76,10 @@ export default function TeamCommission() {
   const { roles } = useTeam();
   const isAdmin = roles.includes("super_admin") || roles.includes("admin");
   const isScoutManager = roles.includes("scout_manager");
-  const canAccess = isAdmin || isScoutManager;
+  const isFinance = roles.includes("finance");
+  const canAccess = isAdmin || isScoutManager || isFinance;
   const scoutManagerOnly = !isAdmin && isScoutManager;
+  const financeReadOnly = isFinance && !isAdmin;
 
   if (!canAccess) {
     return (
@@ -92,27 +94,29 @@ export default function TeamCommission() {
     );
   }
 
+  const showAdminTabs = isAdmin || isFinance;
+
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold">獎金管理</h2>
-      <Tabs defaultValue={isAdmin ? "payout" : "payouts"}>
+      <Tabs defaultValue={showAdminTabs ? "payout" : "payouts"}>
         <TabsList>
-          {isAdmin && <TabsTrigger value="payout">結算規則</TabsTrigger>}
-          {isAdmin && <TabsTrigger value="multiplier">獎金加倍活動</TabsTrigger>}
+          {showAdminTabs && <TabsTrigger value="payout">結算規則</TabsTrigger>}
+          {showAdminTabs && <TabsTrigger value="multiplier">獎金加倍活動</TabsTrigger>}
           <TabsTrigger value="payouts">發放管理</TabsTrigger>
         </TabsList>
-        {isAdmin && (
+        {showAdminTabs && (
           <TabsContent value="payout">
-            <PayoutRulesBlock />
+            <PayoutRulesBlock readOnly={financeReadOnly} />
           </TabsContent>
         )}
-        {isAdmin && (
+        {showAdminTabs && (
           <TabsContent value="multiplier">
-            <MultiplierBlock />
+            <MultiplierBlock readOnly={financeReadOnly} />
           </TabsContent>
         )}
         <TabsContent value="payouts">
-          <PayoutsBlock scoutManagerOnly={scoutManagerOnly} />
+          <PayoutsBlock scoutManagerOnly={scoutManagerOnly} readOnly={financeReadOnly} />
         </TabsContent>
       </Tabs>
     </div>
@@ -133,7 +137,7 @@ interface PayoutRuleRow {
   effective_from: string;
 }
 
-function PayoutRulesBlock() {
+function PayoutRulesBlock({ readOnly = false }: { readOnly?: boolean }) {
   const [rows, setRows] = useState<PayoutRuleRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<PayoutRuleRow | null>(null);
@@ -236,32 +240,35 @@ function PayoutRulesBlock() {
         <TableCell>{r.cutoff_description ?? "-"}</TableCell>
         <TableCell>{r.effective_from}</TableCell>
         <TableCell>
-          <div className="flex items-center justify-end gap-2">
-            <Button size="sm" variant="outline" onClick={() => openEdit(r)}>
-              以此為範本新增版本
-            </Button>
-            {opts.showDelete && (
-              onlyOne ? (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span>
-                        <Button size="sm" variant="ghost" disabled>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>至少保留一筆版本</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              ) : (
-                <Button size="sm" variant="ghost" onClick={() => setDeletingId(r.id)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )
-            )}
-          </div>
+          {!readOnly && (
+            <div className="flex items-center justify-end gap-2">
+              <Button size="sm" variant="outline" onClick={() => openEdit(r)}>
+                以此為範本新增版本
+              </Button>
+              {opts.showDelete && (
+                onlyOne ? (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span>
+                          <Button size="sm" variant="ghost" disabled>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>至少保留一筆版本</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : (
+                  <Button size="sm" variant="ghost" onClick={() => setDeletingId(r.id)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )
+              )}
+            </div>
+          )}
         </TableCell>
+
       </TableRow>
     );
   };
@@ -284,9 +291,11 @@ function PayoutRulesBlock() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>結算規則</CardTitle>
-          <Button size="sm" onClick={openNew}>
-            <Plus className="h-4 w-4 mr-1" /> 新增規則
-          </Button>
+          {!readOnly && (
+            <Button size="sm" onClick={openNew}>
+              <Plus className="h-4 w-4 mr-1" /> 新增規則
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground mb-3">
@@ -397,7 +406,7 @@ interface MultiplierRow {
   is_active: boolean;
 }
 
-function MultiplierBlock() {
+function MultiplierBlock({ readOnly = false }: { readOnly?: boolean }) {
   const [rows, setRows] = useState<MultiplierRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -463,21 +472,23 @@ function MultiplierBlock() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>獎金加倍活動</CardTitle>
-        <Button
-          size="sm"
-          onClick={() => {
-            setDraft({
-              bonus_type: "all",
-              multiplier: "1.5",
-              start_date: today,
-              end_date: today,
-              reason: "",
-            });
-            setOpen(true);
-          }}
-        >
-          <Plus className="h-4 w-4 mr-1" /> 新增活動
-        </Button>
+        {!readOnly && (
+          <Button
+            size="sm"
+            onClick={() => {
+              setDraft({
+                bonus_type: "all",
+                multiplier: "1.5",
+                start_date: today,
+                end_date: today,
+                reason: "",
+              });
+              setOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4 mr-1" /> 新增活動
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
         {loading ? null : (
@@ -509,7 +520,7 @@ function MultiplierBlock() {
                       )}
                     </TableCell>
                     <TableCell>
-                      {active && (
+                      {active && !readOnly && (
                         <Button size="sm" variant="ghost" onClick={() => endEarly(r.id)}>
                           <StopCircle className="h-4 w-4 mr-1" />提前結束
                         </Button>
@@ -607,7 +618,7 @@ const formatTW = (iso: string | null | undefined) => {
   }
 };
 
-function PayoutsBlock({ scoutManagerOnly = false }: { scoutManagerOnly?: boolean }) {
+function PayoutsBlock({ scoutManagerOnly = false, readOnly = false }: { scoutManagerOnly?: boolean; readOnly?: boolean }) {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -724,9 +735,11 @@ function PayoutsBlock({ scoutManagerOnly = false }: { scoutManagerOnly?: boolean
               </SelectContent>
             </Select>
           </div>
-          <Button size="sm" onClick={handleRecalculate} disabled={recalculating}>
-            {recalculating ? "計算中…" : "立即更新"}
-          </Button>
+          {!readOnly && (
+            <Button size="sm" onClick={handleRecalculate} disabled={recalculating}>
+              {recalculating ? "計算中…" : "立即更新"}
+            </Button>
+          )}
         </div>
 
         {loading ? null : rows.length === 0 ? (
@@ -778,11 +791,11 @@ function PayoutsBlock({ scoutManagerOnly = false }: { scoutManagerOnly?: boolean
                     <TableCell>
                       {r.payout_status === "paid" ? (
                         <span className="text-xs text-muted-foreground">{r.payout_date ?? ""}</span>
-                      ) : (
+                      ) : !readOnly ? (
                         <Button size="sm" variant="outline" onClick={() => markPaid(r.id)}>
                           標記已發放
                         </Button>
-                      )}
+                      ) : null}
                     </TableCell>
                   </TableRow>
                 );
