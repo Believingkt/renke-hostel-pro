@@ -304,6 +304,19 @@ export default function KolBonus() {
     return Array.from(set).sort((a, b) => b - a);
   }, [orders, currentYear]);
 
+  // 星探選項：只列出有實際邀約 KOL（即有出現在 rows 裡）的星探
+  const scoutOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const r of rows) {
+      if (r.scout_id) {
+        if (!map.has(r.scout_id)) map.set(r.scout_id, r.scout_name || "—");
+      }
+    }
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [rows]);
+
   // 根據年/月過濾：該列在選定區間內須至少有一筆 order_date 或 check_out_date；「全部月份」= 全期
   const filteredRows = useMemo(() => {
     const prefix =
@@ -311,6 +324,7 @@ export default function KolBonus() {
         ? null
         : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
     return rows.filter((k) => {
+      if (scoutFilter !== "all" && k.scout_id !== scoutFilter) return false;
       const list = ordersByKey.get(k.rowKey) ?? [];
       if (!prefix) return list.length > 0;
       return list.some(
@@ -319,7 +333,7 @@ export default function KolBonus() {
           (o.order_status !== "cancelled" && o.check_out_date?.startsWith(prefix)),
       );
     });
-  }, [rows, ordersByKey, filterYear, filterMonth]);
+  }, [rows, ordersByKey, filterYear, filterMonth, scoutFilter]);
 
   // 開啟 Drawer 時要帶入的月份：若選「全部月份」則用當月
   const drawerInitialMonth =
