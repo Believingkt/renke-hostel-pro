@@ -76,8 +76,10 @@ export default function TeamCommission() {
   const { roles } = useTeam();
   const isAdmin = roles.includes("super_admin") || roles.includes("admin");
   const isScoutManager = roles.includes("scout_manager");
-  const canAccess = isAdmin || isScoutManager;
+  const isFinance = roles.includes("finance");
+  const canAccess = isAdmin || isScoutManager || isFinance;
   const scoutManagerOnly = !isAdmin && isScoutManager;
+  const financeReadOnly = isFinance && !isAdmin;
 
   if (!canAccess) {
     return (
@@ -92,27 +94,29 @@ export default function TeamCommission() {
     );
   }
 
+  const showAdminTabs = isAdmin || isFinance;
+
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold">獎金管理</h2>
-      <Tabs defaultValue={isAdmin ? "payout" : "payouts"}>
+      <Tabs defaultValue={showAdminTabs ? "payout" : "payouts"}>
         <TabsList>
-          {isAdmin && <TabsTrigger value="payout">結算規則</TabsTrigger>}
-          {isAdmin && <TabsTrigger value="multiplier">獎金加倍活動</TabsTrigger>}
+          {showAdminTabs && <TabsTrigger value="payout">結算規則</TabsTrigger>}
+          {showAdminTabs && <TabsTrigger value="multiplier">獎金加倍活動</TabsTrigger>}
           <TabsTrigger value="payouts">發放管理</TabsTrigger>
         </TabsList>
-        {isAdmin && (
+        {showAdminTabs && (
           <TabsContent value="payout">
-            <PayoutRulesBlock />
+            <PayoutRulesBlock readOnly={financeReadOnly} />
           </TabsContent>
         )}
-        {isAdmin && (
+        {showAdminTabs && (
           <TabsContent value="multiplier">
-            <MultiplierBlock />
+            <MultiplierBlock readOnly={financeReadOnly} />
           </TabsContent>
         )}
         <TabsContent value="payouts">
-          <PayoutsBlock scoutManagerOnly={scoutManagerOnly} />
+          <PayoutsBlock scoutManagerOnly={scoutManagerOnly} readOnly={financeReadOnly} />
         </TabsContent>
       </Tabs>
     </div>
