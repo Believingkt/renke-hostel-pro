@@ -3134,8 +3134,7 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
         .eq("kpi_qualified", true)
         .eq("kpi_month", kpiMonthStr)
         .in("venue_name", venueNames)
-        .not("publish_url", "is", null).neq("publish_url", "")
-        .not("publish_date", "is", null)
+        .not("kpi_month", "is", null)
         .not("contract_file_url", "is", null).neq("contract_file_url", "");
       kolData = data ?? [];
     }
