@@ -265,7 +265,7 @@ export default function TeamCommissionStatsTab() {
     const valid: OrderLite[] = [];
     const cancel: OrderLite[] = [];
     orders.forEach((o) => {
-      if (o.order_status === "已取消") {
+      if (o.order_status === "cancelled" || o.order_status === "已取消") {
         cancel.push(o);
       } else {
         const m = metaMap.get(o.id);
