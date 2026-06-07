@@ -520,7 +520,7 @@ function MultiplierBlock({ readOnly = false }: { readOnly?: boolean }) {
                       )}
                     </TableCell>
                     <TableCell>
-                      {active && (
+                      {active && !readOnly && (
                         <Button size="sm" variant="ghost" onClick={() => endEarly(r.id)}>
                           <StopCircle className="h-4 w-4 mr-1" />提前結束
                         </Button>
