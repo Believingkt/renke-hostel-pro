@@ -318,14 +318,13 @@ export default function KolBonus() {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [rows]);
 
-  // 根據年/月過濾：該列在選定區間內須至少有一筆 order_date 或 check_out_date；「全部月份」= 全期
-  const filteredRows = useMemo(() => {
+  // Tab1 進單管理：依年/月過濾（order_date 或 check_out_date 落在當月）
+  const tab1FilteredRows = useMemo(() => {
     const prefix =
       filterMonth === "all"
         ? null
         : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
     return rows.filter((k) => {
-      if (scoutFilter !== "all" && k.scout_id !== scoutFilter) return false;
       const list = ordersByKey.get(k.rowKey) ?? [];
       if (!prefix) return list.length > 0;
       return list.some(
@@ -334,26 +333,14 @@ export default function KolBonus() {
           (o.order_status !== "cancelled" && o.check_out_date?.startsWith(prefix)),
       );
     });
-  }, [rows, ordersByKey, filterYear, filterMonth, scoutFilter]);
+  }, [rows, ordersByKey, filterYear, filterMonth]);
 
-  // 開啟 Drawer 時要帶入的月份：若選「全部月份」則用當月
-  const drawerInitialMonth =
-    filterMonth === "all"
-      ? `${currentYear}-${String(currentMonthNum).padStart(2, "0")}`
-      : `${filterYear}-${String(Number(filterMonth)).padStart(2, "0")}`;
-
-  // 每列在當前篩選期間內的訂單/完成業績與分潤
-  // - 進單（orderCount/orderRevenue）：由 filterYear+filterMonth 控制
-  // - 完成（completedCount/completedRevenue/commission）：由 filterYear+payoutPeriod 控制
-  const kolMetrics = useMemo(() => {
-    const orderPrefix =
+  // Tab1 度量：進單與完成同時由 filterYear+filterMonth 控制
+  const tab1Metrics = useMemo(() => {
+    const prefix =
       filterMonth === "all"
         ? null
         : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
-    const completedPrefix =
-      payoutPeriod === "all"
-        ? null
-        : `${filterYear}-${String(payoutPeriod).padStart(2, "0")}`;
     const map = new Map<
       string,
       {
@@ -374,12 +361,8 @@ export default function KolBonus() {
       for (const o of list) {
         const r = Number(o.final_price ?? o.total_price ?? 0);
         const rate = getRate(o.accommodation_id, o.check_out_date);
-        const orderMatch = orderPrefix
-          ? o.order_date?.startsWith(orderPrefix)
-          : true;
-        const completedMatch = completedPrefix
-          ? o.check_out_date?.startsWith(completedPrefix)
-          : true;
+        const orderMatch = prefix ? o.order_date?.startsWith(prefix) : true;
+        const completedMatch = prefix ? o.check_out_date?.startsWith(prefix) : true;
         if (orderMatch) {
           orderCount += 1;
           orderRevenue += r;
@@ -399,9 +382,59 @@ export default function KolBonus() {
       });
     }
     return map;
-  }, [rows, ordersByKey, getRate, filterYear, filterMonth, payoutPeriod]);
+  }, [rows, ordersByKey, getRate, filterYear, filterMonth]);
+
+  // Tab2 分潤結算：依 年 + 發放期別 + 星探，且 KOL 須在該期別月份有退房
+  const tab2FilteredRows = useMemo(() => {
+    const prefix = `${filterYear}-${String(payoutPeriod).padStart(2, "0")}`;
+    return rows.filter((k) => {
+      if (scoutFilter !== "all" && k.scout_id !== scoutFilter) return false;
+      const list = ordersByKey.get(k.rowKey) ?? [];
+      return list.some(
+        (o) =>
+          o.order_status !== "cancelled" && o.check_out_date?.startsWith(prefix),
+      );
+    });
+  }, [rows, ordersByKey, filterYear, payoutPeriod, scoutFilter]);
+
+  // Tab2 度量：完成業績 / 分潤依 filterYear + payoutPeriod
+  const tab2Metrics = useMemo(() => {
+    const prefix = `${filterYear}-${String(payoutPeriod).padStart(2, "0")}`;
+    const map = new Map<
+      string,
+      { completedCount: number; completedRevenue: number; commission: number }
+    >();
+    for (const k of rows) {
+      const list = ordersByKey.get(k.rowKey) ?? [];
+      let completedCount = 0;
+      let completedRevenue = 0;
+      let commission = 0;
+      for (const o of list) {
+        if (o.order_status === "cancelled") continue;
+        if (!o.check_out_date?.startsWith(prefix)) continue;
+        const r = Number(o.final_price ?? o.total_price ?? 0);
+        const rate = getRate(o.accommodation_id, o.check_out_date);
+        completedCount += 1;
+        completedRevenue += r;
+        commission += r * (rate / 100);
+      }
+      map.set(k.rowKey, {
+        completedCount,
+        completedRevenue,
+        commission: Math.round(commission),
+      });
+    }
+    return map;
+  }, [rows, ordersByKey, getRate, filterYear, payoutPeriod]);
+
+  const tab1DrawerInitialMonth =
+    filterMonth === "all"
+      ? `${currentYear}-${String(currentMonthNum).padStart(2, "0")}`
+      : `${filterYear}-${String(Number(filterMonth)).padStart(2, "0")}`;
+  const tab2DrawerInitialMonth = `${filterYear}-${String(Number(payoutPeriod)).padStart(2, "0")}`;
 
   const metricsLabel = filterMonth === "all" ? "全期" : "當月";
+
 
   if (!allowed) return <Navigate to="/team" replace />;
 
