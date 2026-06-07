@@ -3291,7 +3291,7 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
             <TableBody>
               {loading ? null : teamRows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={isManager ? 8 : 7} className="text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center text-sm text-muted-foreground">
                     尚無目標資料
                   </TableCell>
                 </TableRow>
