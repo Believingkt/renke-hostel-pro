@@ -3892,13 +3892,6 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
                           {achievementLabel(r.actual_count, r.target_count)}
                         </Badge>
                       </TableCell>
-                      {isManager && (
-                        <TableCell className="text-right">
-                          <Button size="sm" variant="ghost" onClick={() => openEdit(r)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      )}
                     </TableRow>
                   );
                 })
