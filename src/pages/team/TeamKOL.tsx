@@ -6275,6 +6275,23 @@ function InvitationTargetsSettingsBlock({ isManager }: { isManager: boolean }) {
                 </TableRow>
               ))
             )}
+            {!loading && filteredRows.length > 0 && (
+              <TableRow className="bg-muted/60 font-semibold">
+                <TableCell>小計</TableCell>
+                <TableCell />
+                <TableCell className="text-right tabular-nums">
+                  {filteredRows.reduce((sum, r) => sum + (r.team_target ?? 0), 0)}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {filteredRows.reduce((sum, r) => sum + (r.personal_min ?? 0), 0)}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {filteredRows.reduce((sum, r) => sum + (r.fulltime_min ?? 0), 0)}
+                </TableCell>
+                <TableCell />
+                {isManager && <TableCell />}
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </CardContent>
