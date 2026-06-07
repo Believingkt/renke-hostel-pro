@@ -90,7 +90,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
       const [roomTypesRes, ordersRes, holidaysRes, orderRoomsRes, accRes] = await Promise.all([
         supabase.from('room_types').select('id, name, room_count, is_exclusive_package').eq('accommodation_id', accommodationId),
         supabase.from('orders')
-          .select('id, check_in_date, check_out_date, room_type_id, final_price, meal_plan, order_status')
+          .select('id, check_in_date, check_out_date, room_type_id, final_price, meal_plan, order_status, order_source')
           .eq('accommodation_id', accommodationId)
           .in('order_status', ['confirmed', 'hold'])
           .or(`check_in_date.lte.${endDate},check_out_date.gte.${startDate}`)
