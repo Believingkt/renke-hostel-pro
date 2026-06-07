@@ -352,6 +352,11 @@ export default function TeamKOL() {
           <TargetsTab isManager={isManager} currentUserId={userId} />
         </TabsContent>
 
+        <TabsContent value="fulltime_targets" className="mt-4">
+          <FulltimeTargetsTab isManager={isManager} currentUserId={userId} />
+        </TabsContent>
+
+
         {canSeeStats && (
           <TabsContent value="stats" className="mt-4">
             <KolStatsTab />
