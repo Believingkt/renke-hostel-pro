@@ -196,6 +196,7 @@ export default function TeamMembers() {
       employment_type: ((p as { employment_type?: string | null }).employment_type === "fulltime"
         ? "fulltime"
         : "parttime") as "fulltime" | "parttime",
+      fulltime_start_yearmonth: (p as { fulltime_start_yearmonth?: string | null }).fulltime_start_yearmonth ?? null,
     }));
 
     setMembers(rows);
