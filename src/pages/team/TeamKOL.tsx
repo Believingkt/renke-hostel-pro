@@ -326,7 +326,8 @@ export default function TeamKOL() {
         <TabsList>
           <TabsTrigger value="invitations">正式邀約</TabsTrigger>
           <TabsTrigger value="prospects">潛在名單</TabsTrigger>
-          <TabsTrigger value="targets">邀約目標</TabsTrigger>
+          <TabsTrigger value="targets">兼職邀約目標</TabsTrigger>
+          <TabsTrigger value="fulltime_targets">正職邀約目標</TabsTrigger>
           {canSeeStats && <TabsTrigger value="stats">業績統計</TabsTrigger>}
           <TabsTrigger value="venues">場域管理</TabsTrigger>
           <TabsTrigger value="settings">設定</TabsTrigger>
