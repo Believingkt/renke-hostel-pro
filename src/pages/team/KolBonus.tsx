@@ -66,6 +66,8 @@ interface KolRow {
   accommodation_name: string | null;
   public_token: string | null;
   token_expires_at: string | null;
+  scout_id: string | null;
+  scout_name: string | null;
 }
 
 interface OrderRow {
