@@ -3286,13 +3286,12 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
                 <TableHead className="text-right">達標率</TableHead>
                 <TableHead>個人最低目標</TableHead>
                 <TableHead className="text-right">狀態</TableHead>
-                {isManager && <TableHead className="text-right">操作</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? null : teamRows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={isManager ? 8 : 7} className="text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center text-sm text-muted-foreground">
                     尚無目標資料
                   </TableCell>
                 </TableRow>
@@ -3314,13 +3313,6 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
                           {achievementLabel(r.actual_count, r.target_count)}
                         </Badge>
                       </TableCell>
-                      {isManager && (
-                        <TableCell className="text-right">
-                          <Button size="sm" variant="ghost" onClick={() => openEdit(r)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      )}
                     </TableRow>
                   );
                 })
@@ -3876,13 +3868,12 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
                 <TableHead className="text-right">達成率</TableHead>
                 <TableHead className="text-right">正職個人最低目標</TableHead>
                 <TableHead className="text-right">狀態</TableHead>
-                {isManager && <TableHead className="text-right">操作</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? null : teamRows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={isManager ? 7 : 6} className="text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
                     尚無目標資料
                   </TableCell>
                 </TableRow>
@@ -3901,13 +3892,6 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
                           {achievementLabel(r.actual_count, r.target_count)}
                         </Badge>
                       </TableCell>
-                      {isManager && (
-                        <TableCell className="text-right">
-                          <Button size="sm" variant="ghost" onClick={() => openEdit(r)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      )}
                     </TableRow>
                   );
                 })
@@ -6123,22 +6107,10 @@ function InvitationTargetsSettingsBlock({ isManager }: { isManager: boolean }) {
     const { data: authData } = await supabase.auth.getUser();
 
     try {
-      if (editing) {
-        // 更新 team
-        if (editing.team_id) {
-          const { error } = await (supabase.from("scout_team_targets" as any) as any)
-            .update({
-              target_count: tt,
-              personal_min: pm,
-              is_starlink: fStarlink,
-              venue_name: fVenue.trim(),
-              month: m,
-              accommodation_id: accId,
-            })
-            .eq("id", editing.team_id);
-          if (error) throw error;
-        } else {
-          const { error } = await (supabase.from("scout_team_targets" as any) as any).insert({
+      // Upsert：以 (year, month, accommodation_id) / (year, month, venue_name) 為唯一鍵
+      const [r1, r2] = await Promise.all([
+        (supabase.from("scout_team_targets" as any) as any).upsert(
+          {
             year: filterYear,
             month: m,
             venue_name: fVenue.trim(),
@@ -6147,56 +6119,23 @@ function InvitationTargetsSettingsBlock({ isManager }: { isManager: boolean }) {
             is_starlink: fStarlink,
             accommodation_id: accId,
             created_by: authData.user?.id ?? null,
-          });
-          if (error) throw error;
-        }
-        // 更新 fulltime
-        if (editing.fulltime_id) {
-          const { error } = await (supabase.from("scout_fulltime_targets" as any) as any)
-            .update({
-              target_count: tt,
-              fulltime_min: fm,
-              venue_name: fVenue.trim(),
-              month: m,
-            })
-            .eq("id", editing.fulltime_id);
-          if (error) throw error;
-        } else {
-          const { error } = await (supabase.from("scout_fulltime_targets" as any) as any).insert({
+          },
+          { onConflict: "year,month,accommodation_id" }
+        ),
+        (supabase.from("scout_fulltime_targets" as any) as any).upsert(
+          {
             year: filterYear,
             month: m,
             venue_name: fVenue.trim(),
             target_count: tt,
             fulltime_min: fm,
-          });
-          if (error) throw error;
-        }
-        toast.success("已更新目標");
-      } else {
-        // 新增：同時寫入兩張表
-        const [r1, r2] = await Promise.all([
-          (supabase.from("scout_team_targets" as any) as any).insert({
-            year: filterYear,
-            month: m,
-            venue_name: fVenue.trim(),
-            target_count: tt,
-            personal_min: pm,
-            is_starlink: fStarlink,
-            accommodation_id: accId,
-            created_by: authData.user?.id ?? null,
-          }),
-          (supabase.from("scout_fulltime_targets" as any) as any).insert({
-            year: filterYear,
-            month: m,
-            venue_name: fVenue.trim(),
-            target_count: tt,
-            fulltime_min: fm,
-          }),
-        ]);
-        if (r1.error) throw r1.error;
-        if (r2.error) throw r2.error;
-        toast.success("已新增目標");
-      }
+          },
+          { onConflict: "year,month,venue_name" }
+        ),
+      ]);
+      if (r1.error) throw r1.error;
+      if (r2.error) throw r2.error;
+      toast.success(editing ? "已更新目標" : "已新增目標");
       setDialogOpen(false);
       fetchAll();
     } catch (e: any) {
