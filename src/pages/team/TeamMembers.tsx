@@ -414,6 +414,7 @@ export default function TeamMembers() {
     setEditActive(m.is_active);
     setEditVenues(m.managed_venue ?? []);
     setEditScoutTeam(m.is_scout_team_member);
+    setEditFulltime(m.employment_type === "fulltime");
   };
 
   const isNorris = editTarget?.user_id === NORRIS_USER_ID;
