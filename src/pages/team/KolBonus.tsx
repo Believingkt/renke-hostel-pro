@@ -309,7 +309,7 @@ export default function KolBonus() {
     set.add(currentYear);
     set.add(defaultPayoutYear);
     return Array.from(set).sort((a, b) => b - a);
-  }, [orders, currentYear]);
+  }, [orders, currentYear, defaultPayoutYear]);
 
   // 星探選項：只列出有實際邀約 KOL（即有出現在 rows 裡）的星探
   const scoutOptions = useMemo(() => {
