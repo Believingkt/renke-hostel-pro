@@ -72,9 +72,6 @@ export const TEAM_MENU: TeamMenuItem[] = [
       "video",
       "scout_manager",
       "scout",
-      "franchise_manager",
-      "franchise_internal",
-      "franchise_external",
     ] as TeamRole[],
   },
 
