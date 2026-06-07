@@ -79,6 +79,7 @@ interface MemberRow {
   roles: TeamRole[];
   managed_venue: string[] | null;
   is_scout_team_member: boolean;
+  employment_type: "fulltime" | "parttime";
 }
 
 interface PendingInviteRow {
