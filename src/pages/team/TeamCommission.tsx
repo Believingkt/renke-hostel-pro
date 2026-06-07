@@ -472,21 +472,23 @@ function MultiplierBlock({ readOnly = false }: { readOnly?: boolean }) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>獎金加倍活動</CardTitle>
-        <Button
-          size="sm"
-          onClick={() => {
-            setDraft({
-              bonus_type: "all",
-              multiplier: "1.5",
-              start_date: today,
-              end_date: today,
-              reason: "",
-            });
-            setOpen(true);
-          }}
-        >
-          <Plus className="h-4 w-4 mr-1" /> 新增活動
-        </Button>
+        {!readOnly && (
+          <Button
+            size="sm"
+            onClick={() => {
+              setDraft({
+                bonus_type: "all",
+                multiplier: "1.5",
+                start_date: today,
+                end_date: today,
+                reason: "",
+              });
+              setOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4 mr-1" /> 新增活動
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
         {loading ? null : (
