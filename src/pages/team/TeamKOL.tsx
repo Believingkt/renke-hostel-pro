@@ -1240,7 +1240,7 @@ function InvitationsTab({
 
                   <TableHead>任務</TableHead>
                   <SortableHead field="publish_date">發布日期</SortableHead>
-                  <SortableHead field="created_at">填寫日期</SortableHead>
+                  <SortableHead field="invited_at">填寫日期</SortableHead>
                   <TableHead className="text-right">操作</TableHead>
                 </TableRow>
               </TableHeader>
@@ -3134,7 +3134,7 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
         .eq("kpi_qualified", true)
         .eq("kpi_month", kpiMonthStr)
         .in("venue_name", venueNames)
-        .not("kpi_month", "is", null)
+        .not("invited_at", "is", null)
         .not("contract_file_url", "is", null).neq("contract_file_url", "");
       kolData = data ?? [];
     }
@@ -3146,7 +3146,7 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
       .eq("is_error", false)
       .eq("kpi_qualified", true)
       .eq("kpi_month", kpiMonthStr)
-      .not("kpi_month", "is", null)
+      .not("invited_at", "is", null)
       .not("contract_file_url", "is", null).neq("contract_file_url", "");
 
     // 兼職過濾：scout 的 fulltime_start_yearmonth 為 null 或 > 當前選擇月份，才算兼職邀約
@@ -3726,7 +3726,7 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
         .eq("kpi_month", kpiMonthStr)
         .in("venue_name", venueNames)
         .in("scout_id", eligibleFulltimeIds)
-        .not("kpi_month", "is", null)
+        .not("invited_at", "is", null)
         .not("contract_file_url", "is", null).neq("contract_file_url", "");
       kolData = data ?? [];
     }
@@ -3758,7 +3758,7 @@ function FulltimeTargetsTab({ isManager, currentUserId }: { isManager: boolean; 
         .eq("kpi_qualified", true)
         .eq("kpi_month", kpiMonthStr)
         .in("scout_id", eligibleFulltimeIds)
-        .not("kpi_month", "is", null)
+        .not("invited_at", "is", null)
         .not("contract_file_url", "is", null).neq("contract_file_url", "");
       const personalMap = new Map<string, number>();
       ((allKol as any[]) ?? []).forEach((k) => {
