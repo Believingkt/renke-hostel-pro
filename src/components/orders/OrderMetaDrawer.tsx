@@ -335,7 +335,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         franchise_project: franchiseProject !== NONE ? franchiseProject : null,
         member_number: memberNumber.trim() || null,
         is_excluded: isExcluded,
-        exclusion_note: isExcluded ? exclusionNote.trim() || null : null,
+        exclusion_note: exclusionNote.trim() || null,
         inquiry_date: inquiryDate || null,
         voucher_count: Number.isFinite(voucherCount) ? Math.max(0, Math.trunc(voucherCount)) : 0,
         addon_note: addonNote.trim() || null,
@@ -578,7 +578,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           </div>
 
           {/* 不分潤 / 備註 */}
-          <div className="space-y-2 border-t pt-4">
+          <div className="space-y-3 border-t pt-4">
             <div className="flex items-center gap-2">
               <Checkbox
                 id="is_excluded"
@@ -586,18 +586,19 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
                 onCheckedChange={(v) => setIsExcluded(v === true)}
               />
               <Label htmlFor="is_excluded" className="cursor-pointer">
-
                 不分潤
               </Label>
             </div>
-            {isExcluded && (
+            <div className="space-y-2">
+              <Label htmlFor="exclusion_note">備註</Label>
               <Textarea
+                id="exclusion_note"
                 value={exclusionNote}
                 onChange={(e) => setExclusionNote(e.target.value)}
-                placeholder="請填寫不分潤原因"
+                placeholder="輸入備註（若勾選不分潤,請填寫原因）"
                 rows={3}
               />
-            )}
+            </div>
           </div>
         </div>
 
