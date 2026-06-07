@@ -135,11 +135,11 @@ export default function KolBonus() {
 
   const fetchAll = async () => {
     setLoading(true);
-    const [kolRes, orderRes, commRes, accRes] = await Promise.all([
+    const [kolRes, orderRes, commRes, accRes, scoutRes] = await Promise.all([
       supabase
         .from("kol_profiles")
         .select(
-          "id, name, cid_code, venue_name, accommodation_id, public_token, token_expires_at",
+          "id, name, cid_code, venue_name, accommodation_id, public_token, token_expires_at, scout_id, scout_name",
         )
         .not("cid_code", "is", null)
         .neq("cid_code", ""),
@@ -158,6 +158,7 @@ export default function KolBonus() {
         .order("effective_from", { ascending: false })
         .order("created_at", { ascending: false }),
       supabase.from("accommodation_info").select("id, name"),
+      supabase.from("team_member_profiles").select("id, display_name"),
     ]);
     if (kolRes.error) toast.error("載入 KOL 失敗：" + kolRes.error.message);
     if (orderRes.error) toast.error("載入訂單失敗：" + orderRes.error.message);
@@ -173,12 +174,19 @@ export default function KolBonus() {
       accommodation_id: string | null;
       public_token: string | null;
       token_expires_at: string | null;
+      scout_id: string | null;
+      scout_name: string | null;
     }>;
     const accMap = new Map<string, string>(
       ((accRes.data ?? []) as Array<{ id: string; name: string }>).map((a) => [
         a.id,
         a.name,
       ]),
+    );
+    const scoutNameMap = new Map<string, string>(
+      ((scoutRes.data ?? []) as Array<{ id: string; display_name: string | null }>).map(
+        (s) => [s.id, s.display_name ?? ""],
+      ),
     );
 
     // kol_profiles 索引：依 cid_code(大寫) 分組，再依 accommodation_id 對應
