@@ -3286,7 +3286,6 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
                 <TableHead className="text-right">達標率</TableHead>
                 <TableHead>個人最低目標</TableHead>
                 <TableHead className="text-right">狀態</TableHead>
-                {isManager && <TableHead className="text-right">操作</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
