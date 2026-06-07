@@ -31,6 +31,7 @@ interface DailyDetail {
   standardSold: number;
   revenue: number;
   avgPrice: number;
+  hasOfficial: boolean;
 }
 
 type SegmentKey = 'all' | 'exclusive' | 'standard';
@@ -89,7 +90,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
       const [roomTypesRes, ordersRes, holidaysRes, orderRoomsRes, accRes] = await Promise.all([
         supabase.from('room_types').select('id, name, room_count, is_exclusive_package').eq('accommodation_id', accommodationId),
         supabase.from('orders')
-          .select('id, check_in_date, check_out_date, room_type_id, final_price, meal_plan, order_status')
+          .select('id, check_in_date, check_out_date, room_type_id, final_price, meal_plan, order_status, order_source')
           .eq('accommodation_id', accommodationId)
           .in('order_status', ['confirmed', 'hold'])
           .or(`check_in_date.lte.${endDate},check_out_date.gte.${startDate}`)
@@ -221,12 +222,14 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
       const dailyExclusiveSold: Record<string, number> = {};
       const dailyStandardSold: Record<string, number> = {};
       const dailyRevenue: Record<string, number> = {};
+      const dailyHasOfficial: Record<string, boolean> = {};
       for (let d = 0; d < daysInMonth; d++) {
         const dateStr = format(addDays(monthStart, d), 'yyyy-MM-dd');
         dailyRoomsSold[dateStr] = 0;
         dailyExclusiveSold[dateStr] = 0;
         dailyStandardSold[dateStr] = 0;
         dailyRevenue[dateStr] = 0;
+        dailyHasOfficial[dateStr] = false;
       }
 
       orders.forEach(order => {
@@ -289,7 +292,9 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
 
         // 營業額分攤
         if (dailyEntries.length > 0 && order.order_status !== 'hold') {
-          const orderFinalPrice = Number(order.final_price) || 0;
+          const isKol = order.order_source === 'kol';
+          const isOfficial = order.order_source === 'official_use';
+          const orderFinalPrice = (isKol || isOfficial) ? 0 : (Number(order.final_price) || 0);
           const totalOrderNights = Math.max(1, differenceInDays(checkOut, checkIn));
           const dailyShare = orderFinalPrice / totalOrderNights;
 
@@ -305,6 +310,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
               buckets.all.revenueByType[dayType] += dailyShare;
             }
             dailyRevenue[dateStr] = (dailyRevenue[dateStr] || 0) + dailyShare;
+            if (isOfficial) dailyHasOfficial[dateStr] = true;
           });
         }
       });
@@ -327,6 +333,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
           standardSold: dailyStandardSold[dateStr] || 0,
           revenue: Math.round(rev),
           avgPrice: sold > 0 ? Math.round(rev / sold) : 0,
+          hasOfficial: dailyHasOfficial[dateStr] || false,
         });
       }
 
@@ -607,8 +614,8 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
                                             <>{dd.roomsSold}/{allCapacity}</>
                                           )}
                                         </TableCell>
-                                        <TableCell className="text-center py-1 px-2 tabular-nums">{dd.revenue > 0 ? `$${dd.revenue.toLocaleString('zh-TW')}` : '-'}</TableCell>
-                                        <TableCell className="text-center py-1 px-2 tabular-nums">{dd.avgPrice > 0 ? `$${dd.avgPrice.toLocaleString('zh-TW')}` : '-'}</TableCell>
+                                        <TableCell className="text-center py-1 px-2 tabular-nums">{dd.revenue > 0 ? `$${dd.revenue.toLocaleString('zh-TW')}` : (dd.hasOfficial ? <span className="text-amber-600 dark:text-amber-400 font-medium">公務</span> : '-')}</TableCell>
+                                        <TableCell className="text-center py-1 px-2 tabular-nums">{dd.avgPrice > 0 ? `$${dd.avgPrice.toLocaleString('zh-TW')}` : (dd.hasOfficial ? <span className="text-amber-600 dark:text-amber-400 font-medium">公務</span> : '-')}</TableCell>
                                       </TableRow>
                                     );
                                   })}
