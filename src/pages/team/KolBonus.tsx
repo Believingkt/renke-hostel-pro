@@ -511,15 +511,16 @@ export default function KolBonus() {
                     <TableHead className="whitespace-nowrap">折扣碼 / CID</TableHead>
                     <TableHead className="whitespace-nowrap">館別</TableHead>
                     <TableHead className="text-right whitespace-nowrap">
-                      {metricsLabel}訂單筆數
+                      {metricsLabel}進單筆數
                       <div className="text-xs font-normal text-muted-foreground">依訂單日期</div>
                     </TableHead>
-                    <TableHead className="text-right whitespace-nowrap">{metricsLabel}訂單業績</TableHead>
+                    <TableHead className="text-right whitespace-nowrap border-r">{metricsLabel}進單業績</TableHead>
                     <TableHead className="text-right whitespace-nowrap">
                       {metricsLabel}完成筆數
                       <div className="text-xs font-normal text-muted-foreground">依退房日期</div>
                     </TableHead>
                     <TableHead className="text-right whitespace-nowrap">{metricsLabel}完成業績</TableHead>
+
                     <TableHead className="text-right whitespace-nowrap">{metricsLabel}分潤</TableHead>
                     <TableHead className="text-right whitespace-nowrap">操作</TableHead>
 
