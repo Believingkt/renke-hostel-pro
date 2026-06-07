@@ -184,9 +184,9 @@ export default function KolBonus() {
       ]),
     );
     const scoutNameMap = new Map<string, string>(
-      ((scoutRes.data ?? []) as Array<{ id: string; display_name: string | null }>).map(
-        (s) => [s.id, s.display_name ?? ""],
-      ),
+      ((scoutRes.data ?? []) as Array<{ user_id: string | null; display_name: string | null }>)
+        .filter((s) => !!s.user_id)
+        .map((s) => [s.user_id as string, s.display_name ?? ""]),
     );
 
     // kol_profiles 索引：依 cid_code(大寫) 分組，再依 accommodation_id 對應
