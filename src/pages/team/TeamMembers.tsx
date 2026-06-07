@@ -131,6 +131,7 @@ export default function TeamMembers() {
   const [editActive, setEditActive] = useState(true);
   const [editVenues, setEditVenues] = useState<string[]>([]);
   const [editScoutTeam, setEditScoutTeam] = useState(false);
+  const [editFulltime, setEditFulltime] = useState(false);
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
 
