@@ -860,7 +860,7 @@ function InvitationsTab({
       name: prefill.name,
       ig_handle: prefill.ig_handle,
       scout_id: prefill.scout_id || currentUserId,
-      invited_at: todayStr(),
+      invited_at: "",
     });
     setProspectLink(prefill.prospect_id);
     setDupWarning(null);
