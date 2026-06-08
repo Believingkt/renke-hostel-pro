@@ -620,36 +620,8 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
                                             <>{dd.roomsSold}/{allCapacity}</>
                                           )}
                                         </TableCell>
-                                        <TableCell className="text-center py-1 px-2 tabular-nums">
-                                          {dd.revenue > 0 ? (
-                                            <span className="inline-flex items-center gap-1">
-                                              <span>${dd.revenue.toLocaleString('zh-TW')}</span>
-                                              {dd.hasOfficial && <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">+公務</span>}
-                                              {dd.hasKol && <span className="text-[10px] text-sky-600 dark:text-sky-400 font-medium">+KOL</span>}
-                                            </span>
-                                          ) : dd.hasOfficial ? (
-                                            <span className="text-amber-600 dark:text-amber-400 font-medium">公務</span>
-                                          ) : dd.hasKol ? (
-                                            '$0'
-                                          ) : (
-                                            '-'
-                                          )}
-                                        </TableCell>
-                                        <TableCell className="text-center py-1 px-2 tabular-nums">
-                                          {dd.avgPrice > 0 ? (
-                                            <span className="inline-flex items-center gap-1">
-                                              <span>${dd.avgPrice.toLocaleString('zh-TW')}</span>
-                                              {dd.hasOfficial && <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">+公務</span>}
-                                              {dd.hasKol && <span className="text-[10px] text-sky-600 dark:text-sky-400 font-medium">+KOL</span>}
-                                            </span>
-                                          ) : dd.hasOfficial ? (
-                                            <span className="text-amber-600 dark:text-amber-400 font-medium">公務</span>
-                                          ) : dd.hasKol ? (
-                                            '$0'
-                                          ) : (
-                                            '-'
-                                          )}
-                                        </TableCell>
+                                        <TableCell className="text-center py-1 px-2 tabular-nums">{dd.revenue > 0 ? `$${dd.revenue.toLocaleString('zh-TW')}` : (dd.hasOfficial ? <span className="text-amber-600 dark:text-amber-400 font-medium">公務</span> : (dd.hasKol ? '$0' : '-'))}</TableCell>
+                                        <TableCell className="text-center py-1 px-2 tabular-nums">{dd.avgPrice > 0 ? `$${dd.avgPrice.toLocaleString('zh-TW')}` : (dd.hasOfficial ? <span className="text-amber-600 dark:text-amber-400 font-medium">公務</span> : (dd.hasKol ? '$0' : '-'))}</TableCell>
                                       </TableRow>
                                     );
                                   })}
