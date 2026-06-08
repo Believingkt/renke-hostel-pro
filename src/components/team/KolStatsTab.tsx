@@ -478,12 +478,9 @@ export function KolStatsTab() {
           };
         });
 
-        // 過濾：當期沒有任何 kol_profile 記錄的星探不顯示
-        const periodFiltered = results.filter((r) => {
-          const rows = kolRows.filter((k) => k.scout_id === r.scout_id);
-          if (!range) return rows.length > 0;
-          return rows.some((k) => inPeriod(k.check_in_date));
-        });
+        // 顯示全部 is_scout_team_member=true 的星探，與 Edge Function 一致
+        // （不再以「當期是否有 kol_profile 記錄」過濾，避免有 KOL 分潤訂單但本期無新邀請的星探被隱藏）
+        const periodFiltered = results;
 
         let teamBonusPayout = 0;
         if (showSalary) {
