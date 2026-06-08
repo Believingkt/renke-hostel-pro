@@ -14,8 +14,17 @@ function pad(n: number) {
   return String(n).padStart(2, "0");
 }
 
-/** 期別 → 日期區間（依 check_in_date）。null = 不限日期 */
-function periodRange(year: number, period: string): { start: string; end: string } | null {
+/**
+ * 期別 → 日期區間。
+ * start：含當日 00:00；endExclusive：結束日次日 00:00（不含）。
+ * 與 calculate-scout-payout Edge Function 對齊：[start, endExclusive)
+ * - period=10：上月21 ~ 當月05（含），endExclusive = 當月06
+ * - period=25：當月06 ~ 當月20（含），endExclusive = 當月21
+ */
+function periodRange(
+  year: number,
+  period: string,
+): { start: string; end: string; endExclusive: string } | null {
   if (period === "all") return null;
   const m = Number(period.split("-")[0]);
   const d = Number(period.split("-")[1]);
@@ -27,9 +36,17 @@ function periodRange(year: number, period: string): { start: string; end: string
       pm = 12;
       py = year - 1;
     }
-    return { start: `${py}-${pad(pm)}-21`, end: `${year}-${pad(m)}-05` };
+    return {
+      start: `${py}-${pad(pm)}-21`,
+      end: `${year}-${pad(m)}-05`,
+      endExclusive: `${year}-${pad(m)}-06`,
+    };
   }
-  return { start: `${year}-${pad(m)}-06`, end: `${year}-${pad(m)}-20` };
+  return {
+    start: `${year}-${pad(m)}-06`,
+    end: `${year}-${pad(m)}-20`,
+    endExclusive: `${year}-${pad(m)}-21`,
+  };
 }
 
 function periodMonth(period: string): number | null {
