@@ -134,6 +134,7 @@ export default function KolBonus() {
   const [drawerSettlement, setDrawerSettlement] = useState(false);
   const [filterYear, setFilterYear] = useState<number>(currentYear);
   const [filterMonth, setFilterMonth] = useState<string>(String(currentMonthNum)); // "all" | "1".."12"
+  const [tab1Search, setTab1Search] = useState<string>("");
   // 發放期別：以月份為單位（顯示為「M月10日」），代表完成業績/分潤所抓的退房月份
   const [payoutYear, setPayoutYear] = useState<number>(defaultPayoutYear);
   const [payoutPeriod, setPayoutPeriod] = useState<string>(String(defaultPayoutMonth));
@@ -330,16 +331,23 @@ export default function KolBonus() {
       filterMonth === "all"
         ? null
         : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
+    const q = tab1Search.trim().toLowerCase();
     return rows.filter((k) => {
       const list = ordersByKey.get(k.rowKey) ?? [];
-      if (!prefix) return list.length > 0;
-      return list.some(
-        (o) =>
-          o.order_date?.startsWith(prefix) ||
-          (o.order_status !== "cancelled" && o.check_out_date?.startsWith(prefix)),
-      );
+      const periodMatch = !prefix
+        ? list.length > 0
+        : list.some(
+            (o) =>
+              o.order_date?.startsWith(prefix) ||
+              (o.order_status !== "cancelled" && o.check_out_date?.startsWith(prefix)),
+          );
+      if (!periodMatch) return false;
+      if (!q) return true;
+      const name = (k.name ?? "").toLowerCase();
+      const code = (k.cid_code ?? "").toLowerCase();
+      return name.includes(q) || code.includes(q);
     });
-  }, [rows, ordersByKey, filterYear, filterMonth]);
+  }, [rows, ordersByKey, filterYear, filterMonth, tab1Search]);
 
   // Tab1 度量：進單與完成同時由 filterYear+filterMonth 控制
   const tab1Metrics = useMemo(() => {
@@ -538,6 +546,12 @@ export default function KolBonus() {
               ) : (
                 <>
                   <div className="flex flex-wrap items-center gap-2 mb-4">
+                    <Input
+                      value={tab1Search}
+                      onChange={(e) => setTab1Search(e.target.value)}
+                      placeholder="搜尋 KOL 名稱 或 折扣碼 / CID"
+                      className="w-[260px]"
+                    />
                     <span className="text-sm text-muted-foreground">期間</span>
                     <Select
                       value={String(filterYear)}
