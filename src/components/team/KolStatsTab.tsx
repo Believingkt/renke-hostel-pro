@@ -352,15 +352,7 @@ export function KolStatsTab() {
           const tier = tierFor(cumulative);
           const tierName = tier?.tier_name ?? "—";
 
-          // 與 calculate-scout-payout Edge Function 對齊：用 kpi_month 判斷月份，
-          // 並加入 booking_status='成功訂房' + is_error=false 過濾
-          const periodQualified = rows.filter(
-            (r) =>
-              r.kpi_qualified === true &&
-              r.is_error === false &&
-              r.booking_status === "成功訂房" &&
-              inPeriod(r.kpi_month),
-          );
+          const periodQualified = rows.filter((r) => r.kpi_qualified === true && inPeriod(r.check_in_date));
           const qualifiedCount = periodQualified.length;
           const rarityCounts: Record<Rarity, number> = {
             N: 0,
