@@ -6234,6 +6234,7 @@ export type Database = {
           multiplier_reason: string | null
           payout_date: string | null
           payout_status: string | null
+          period: number
           scout_id: string
           team_achieved: boolean | null
           team_bonus: number | null
@@ -6260,6 +6261,7 @@ export type Database = {
           multiplier_reason?: string | null
           payout_date?: string | null
           payout_status?: string | null
+          period?: number
           scout_id: string
           team_achieved?: boolean | null
           team_bonus?: number | null
@@ -6286,6 +6288,7 @@ export type Database = {
           multiplier_reason?: string | null
           payout_date?: string | null
           payout_status?: string | null
+          period?: number
           scout_id?: string
           team_achieved?: boolean | null
           team_bonus?: number | null
