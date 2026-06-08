@@ -324,6 +324,8 @@ export type Database = {
           total_rooms: number | null
           type: string | null
           updated_at: string
+          villa_overview_labels: Json | null
+          villa_trust_badges: Json | null
           website_url: string | null
           youtube_url: string | null
         }
@@ -392,6 +394,8 @@ export type Database = {
           total_rooms?: number | null
           type?: string | null
           updated_at?: string
+          villa_overview_labels?: Json | null
+          villa_trust_badges?: Json | null
           website_url?: string | null
           youtube_url?: string | null
         }
@@ -460,6 +464,8 @@ export type Database = {
           total_rooms?: number | null
           type?: string | null
           updated_at?: string
+          villa_overview_labels?: Json | null
+          villa_trust_badges?: Json | null
           website_url?: string | null
           youtube_url?: string | null
         }
