@@ -654,6 +654,12 @@ export function KolStatsTab() {
             <div>
               以上區間同時適用於：稀有度獎金（check_in_date）、KOL分潤（order_date）、底薪/團隊達標（check_in_date）
             </div>
+            <div className="pt-2 font-medium">欄位計算方式：</div>
+            <div>・「累積邀約」：星探主管在 KOL 名單將「符合資格」打勾的件數</div>
+            <div>・「KOL分潤訂單」：匹配 PMS 民宿管理訂單列表的折扣代碼（不包含場域管理的民宿）</div>
+            <div>
+              ・此表單的「KOL分潤訂單清單」是以「訂單日期」為發放條件（目的是先發獎金給星探），與 KOL 獎金管理的表單條件不同
+            </div>
           </div>
         </CardContent>
 
