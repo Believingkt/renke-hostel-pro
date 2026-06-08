@@ -368,9 +368,10 @@ const BookingVilla = () => {
       <StructuredData
         accommodationInfo={info}
         roomTypes={secondaryData?.roomTypes || []}
-        averageRating={4.8}
-        reviewCount={4}
+        averageRating={extras?.googleRating ?? undefined}
+        reviewCount={extras?.googleTotal ?? undefined}
       />
+
 
       {/* ── Sticky Header (Trip.com style: floating over hero on scroll-top) ── */}
       <header
