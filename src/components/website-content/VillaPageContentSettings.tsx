@@ -84,9 +84,9 @@ export function VillaPageContentSettings({ accommodationId }: Props) {
     const { error } = await supabase
       .from("accommodation_info")
       .update({
-        villa_trust_badges: cleanBadges.length > 0 ? cleanBadges : null,
+        villa_trust_badges: cleanBadges.length > 0 ? (cleanBadges as any) : null,
         villa_overview_labels:
-          Object.keys(cleanLabels).length > 0 ? cleanLabels : null,
+          Object.keys(cleanLabels).length > 0 ? (cleanLabels as any) : null,
       })
       .eq("id", accommodationId);
     setSaving(false);
