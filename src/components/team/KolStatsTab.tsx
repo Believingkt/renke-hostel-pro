@@ -265,7 +265,7 @@ export function KolStatsTab() {
         const { data: kolData, error: kolErr } = await supabase
           .from("kol_profiles")
           .select(
-            "scout_id, name, rarity, kpi_qualified, booking_status, check_in_date, kpi_month, cid_code, order_number, is_error, venue_name",
+            "scout_id, name, rarity, kpi_qualified, booking_status, check_in_date, kpi_month, cid_code, order_number, is_error, venue_name, invited_at",
           )
           .in("scout_id", scoutIds);
         if (kolErr) throw kolErr;
