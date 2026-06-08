@@ -22,6 +22,26 @@ function monthRange(year: number, month: number): { start: string; end: string }
   return { start, end };
 }
 
+// 期別對應的 check_in_date 區間（含起、含迄）
+// period=10 → 上月 21 ~ 當月 5
+// period=25 → 當月 6 ~ 當月 20
+function periodRange(year: number, month: number, period: 10 | 25): { startDate: string; endExclusive: string } {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  if (period === 10) {
+    const prevMonth = month === 1 ? 12 : month - 1;
+    const prevYear = month === 1 ? year - 1 : year;
+    return {
+      startDate: `${prevYear}-${pad(prevMonth)}-21`,
+      endExclusive: `${year}-${pad(month)}-06`,
+    };
+  }
+  return {
+    startDate: `${year}-${pad(month)}-06`,
+    endExclusive: `${year}-${pad(month)}-21`,
+  };
+}
+
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
