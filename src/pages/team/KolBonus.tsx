@@ -546,6 +546,12 @@ export default function KolBonus() {
               ) : (
                 <>
                   <div className="flex flex-wrap items-center gap-2 mb-4">
+                    <Input
+                      value={tab1Search}
+                      onChange={(e) => setTab1Search(e.target.value)}
+                      placeholder="搜尋 KOL 名稱 或 折扣碼 / CID"
+                      className="w-[260px]"
+                    />
                     <span className="text-sm text-muted-foreground">期間</span>
                     <Select
                       value={String(filterYear)}
