@@ -451,7 +451,10 @@ export default function KolBonus() {
     filterMonth === "all"
       ? `${currentYear}-${String(currentMonthNum).padStart(2, "0")}`
       : `${filterYear}-${String(Number(filterMonth)).padStart(2, "0")}`;
-  const tab2DrawerInitialMonth = `${payoutYear}-${String(Number(payoutPeriod)).padStart(2, "0")}`;
+  const tab2DrawerInitialMonth =
+    payoutPeriod === "all"
+      ? `${payoutYear}-${String(currentMonthNum).padStart(2, "0")}`
+      : `${payoutYear}-${String(Number(payoutPeriod)).padStart(2, "0")}`;
 
   const metricsLabel = filterMonth === "all" ? "全期" : "當月";
 
