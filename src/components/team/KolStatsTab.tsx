@@ -217,12 +217,12 @@ export function KolStatsTab() {
             .limit(1)
             .maybeSingle(),
           supabase.from("accommodation_info").select("name"),
-          month
+          showSalary && month
             ? supabase
                 .from("scout_team_targets")
-                .select("year, month, personal_min, venue_name")
-                .eq("year", effYear)
-                .eq("month", month)
+                .select("year, month, personal_min, target_count, venue_name")
+                .eq("year", month === 1 ? effYear - 1 : effYear)
+                .eq("month", month === 1 ? 12 : month - 1)
             : Promise.resolve({ data: [] as TargetRow[], error: null }),
         ]);
 
