@@ -1366,8 +1366,8 @@ function InvitationsTab({
                         )}
                       </TableCell>
                       <TableCell>
-                        {r.created_at ? (
-                          r.created_at.slice(0, 10)
+                        {r.invited_at ? (
+                          r.invited_at.slice(0, 10)
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}
