@@ -930,6 +930,11 @@ function InvitationsTab({
       toast.error("請輸入 IG 帳號");
       return;
     }
+    if (!form.invited_at) {
+      const ok = window.confirm("填寫日期尚未填寫，此 KOL 將不會列入邀約目標統計，確定要繼續儲存嗎？");
+      if (!ok) return;
+    }
+
 
     setSaving(true);
     const kpiEligible = !!form.check_in_date;
