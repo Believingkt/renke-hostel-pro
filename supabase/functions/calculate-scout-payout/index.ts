@@ -281,6 +281,7 @@ serve(async (req) => {
         .eq("scout_id", c.scout_id)
         .eq("year", year)
         .eq("month", month)
+        .eq("period", period)
         .maybeSingle();
 
       if (existing?.locked_at) {
@@ -297,6 +298,7 @@ serve(async (req) => {
       const payload = {
         year,
         month,
+        period,
         scout_id: c.scout_id,
         base_salary: c.base_salary,
         team_bonus: teamBonus,
