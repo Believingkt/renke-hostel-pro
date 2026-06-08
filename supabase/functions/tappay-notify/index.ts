@@ -102,21 +102,23 @@ Deno.serve(async (req) => {
 
     // ===== SECURITY: Verify webhook by querying TapPay API =====
     if (!body.rec_trade_id) {
-      console.warn('[tappay-notify] Missing rec_trade_id, rejecting');
+      console.warn('[tappay-notify] Missing rec_trade_id, acknowledging anyway');
       return new Response(
-        JSON.stringify({ status: 'error', message: 'Missing rec_trade_id' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ status: 'ok', message: 'Missing rec_trade_id (ignored)' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const verification = await verifyWithTapPay(body.rec_trade_id);
     if (!verification.verified) {
       console.warn('[tappay-notify] Failed to verify transaction with TapPay API:', body.rec_trade_id);
+      // Return 200 so TapPay does not mark the URL as failing and stop retries.
       return new Response(
-        JSON.stringify({ status: 'error', message: 'Transaction verification failed' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ status: 'ok', message: 'Transaction verification failed (acknowledged)' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
 
     // Use verified data from TapPay API instead of webhook body
     const verifiedRecord = verification.record;
