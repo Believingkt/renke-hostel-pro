@@ -5928,7 +5928,7 @@ function SalarySettingsBlock({ isManager }: { isManager: boolean }) {
     const { error } = await supabase.from("scout_salary_settings").insert({
       base_salary: Number(base),
       team_bonus: Number(bonus),
-      team_threshold_pct: Number(threshold),
+      team_threshold_pct: latest?.team_threshold_pct ?? 100,
       effective_from: effectiveFrom,
       created_by: auth.user?.id ?? null,
     });
