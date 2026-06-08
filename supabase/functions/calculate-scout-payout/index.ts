@@ -180,31 +180,22 @@ serve(async (req) => {
     for (const scout of scouts) {
       const personalMin = totalPersonalMin;
 
+      // 個人件數與 KOL 分潤來源：以期別區間（check_in_date）+ kpi_qualified=true 查詢，與稀有度獎金一致
       const { data: invites, error: invErr } = await supabase
         .from("kol_profiles")
-        .select("rarity, kpi_qualified, cid_code, venue_name")
+        .select("rarity, kpi_qualified, cid_code, venue_name, check_in_date")
         .eq("scout_id", scout.user_id)
-        .gte("kpi_month", monthStart)
-        .lt("kpi_month", monthEnd)
-        .eq("booking_status", "成功訂房")
-        .eq("is_error", false);
+        .gte("check_in_date", periodStart)
+        .lt("check_in_date", periodEnd)
+        .eq("kpi_qualified", true);
       if (invErr) throw invErr;
 
       const individualCount = invites?.length ?? 0;
       const individualAchieved = personalMin > 0 && individualCount >= personalMin;
 
-      // 稀有度獎金：以期別區間（check_in_date）查詢，與業績統計 Tab 對齊
-      const { data: rarityInvites, error: rarityErr } = await supabase
-        .from("kol_profiles")
-        .select("rarity, kpi_qualified, check_in_date")
-        .eq("scout_id", scout.user_id)
-        .gte("check_in_date", periodStart)
-        .lt("check_in_date", periodEnd)
-        .eq("kpi_qualified", true);
-      if (rarityErr) throw rarityErr;
-
+      // 稀有度獎金沿用同一份 invites（條件一致）
       let rarityBonus = 0;
-      for (const inv of rarityInvites ?? []) {
+      for (const inv of invites ?? []) {
         if (inv.rarity) {
           rarityBonus += rarityMap.get(inv.rarity) ?? 0;
         }
@@ -213,6 +204,7 @@ serve(async (req) => {
       const cidCodes = (invites ?? [])
         .filter((i) => i.cid_code && pmsVenues.has(i.venue_name ?? ""))
         .map((i) => i.cid_code as string);
+
 
       let pmsOrderTotal = 0;
       if (cidCodes.length > 0) {
