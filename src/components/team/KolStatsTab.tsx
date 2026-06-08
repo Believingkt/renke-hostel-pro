@@ -540,13 +540,20 @@ export function KolStatsTab() {
         const periodFiltered = results;
 
         let teamBonusPayout = 0;
-        if (showSalary) {
-          const teamMembers = periodFiltered.filter((r) => r.is_scout_team_member);
-          if (teamMembers.length > 0) {
-            const achieved = teamMembers.filter((r) => r.individual_achieved).length;
-            const rate = (achieved / teamMembers.length) * 100;
-            if (rate >= teamThresholdPct) teamBonusPayout = teamBonusAmount;
+        if (showSalary && targetsList.length > 0) {
+          // 團隊達標：各 target 館別「所有星探」上月邀約總數 >= target_count
+          let teamAchieved = true;
+          for (const t of targetsList) {
+            const total = periodFiltered.reduce((sum, r) => {
+              const vb = r.venueBreakdown.find((v) => v.venue_name === t.venue_name);
+              return sum + (vb?.actual ?? 0);
+            }, 0);
+            if (total < t.target_count) {
+              teamAchieved = false;
+              break;
+            }
           }
+          if (teamAchieved) teamBonusPayout = teamBonusAmount;
         }
         for (const r of periodFiltered) {
           r.team_bonus = showSalary && r.is_scout_team_member ? teamBonusPayout : 0;
