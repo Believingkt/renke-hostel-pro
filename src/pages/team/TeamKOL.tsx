@@ -5895,7 +5895,6 @@ function SalarySettingsBlock({ isManager }: { isManager: boolean }) {
   const [effectiveFrom, setEffectiveFrom] = useState(todayStr());
   const [base, setBase] = useState("3000");
   const [bonus, setBonus] = useState("2000");
-  const [threshold, setThreshold] = useState("50");
   const [saving, setSaving] = useState(false);
 
   const fetchRows = useCallback(async () => {
@@ -5919,7 +5918,6 @@ function SalarySettingsBlock({ isManager }: { isManager: boolean }) {
     setEffectiveFrom(todayStr());
     setBase(String(latest?.base_salary ?? 3000));
     setBonus(String(latest?.team_bonus ?? 2000));
-    setThreshold(String(latest?.team_threshold_pct ?? 50));
     setOpen(true);
   };
 
@@ -5930,7 +5928,7 @@ function SalarySettingsBlock({ isManager }: { isManager: boolean }) {
     const { error } = await supabase.from("scout_salary_settings").insert({
       base_salary: Number(base),
       team_bonus: Number(bonus),
-      team_threshold_pct: Number(threshold),
+      team_threshold_pct: latest?.team_threshold_pct ?? 100,
       effective_from: effectiveFrom,
       created_by: auth.user?.id ?? null,
     });
@@ -5957,9 +5955,8 @@ function SalarySettingsBlock({ isManager }: { isManager: boolean }) {
           <p className="text-sm text-muted-foreground">尚無設定</p>
         ) : (
           <div className="space-y-1 text-sm">
-            <div>個人目標達成底薪：{formatMoney(latest.base_salary)}</div>
+            <div>兼職個人目標達成底薪：{formatMoney(latest.base_salary)}</div>
             <div>團隊獎金金額：{formatMoney(latest.team_bonus)}</div>
-            <div>團隊達成門檻：{latest.team_threshold_pct}%</div>
             <div className="text-xs text-muted-foreground">生效日：{latest.effective_from}</div>
           </div>
         )}
@@ -5972,7 +5969,6 @@ function SalarySettingsBlock({ isManager }: { isManager: boolean }) {
                   <TableHead>生效日</TableHead>
                   <TableHead>底薪</TableHead>
                   <TableHead>團隊獎金</TableHead>
-                  <TableHead>門檻</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -5981,7 +5977,6 @@ function SalarySettingsBlock({ isManager }: { isManager: boolean }) {
                     <TableCell>{r.effective_from}</TableCell>
                     <TableCell>{formatMoney(r.base_salary)}</TableCell>
                     <TableCell>{formatMoney(r.team_bonus)}</TableCell>
-                    <TableCell>{r.team_threshold_pct}%</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -6007,10 +6002,6 @@ function SalarySettingsBlock({ isManager }: { isManager: boolean }) {
             <div>
               <Label>團隊獎金金額</Label>
               <Input type="number" value={bonus} onChange={(e) => setBonus(e.target.value)} />
-            </div>
-            <div>
-              <Label>團隊達成門檻 (%)</Label>
-              <Input type="number" value={threshold} onChange={(e) => setThreshold(e.target.value)} />
             </div>
           </div>
           <DialogFooter>
