@@ -207,9 +207,10 @@ serve(async (req) => {
       (i) => i.check_in_date && i.check_in_date >= periodStart && i.check_in_date < periodEnd,
     );
 
-    // ===== 七、團隊獎金：每個 scout_team_targets 館別當月有效邀約數 >= target_count =====
+    // ===== 七、團隊獎金：每個 scout_team_targets 館別「上月」有效邀約數 >= target_count =====
+    // period=25 不計算團隊獎金（直接 false）
     let teamAchieved = false;
-    if (teamTargets.length > 0) {
+    if (period === 10 && teamTargets.length > 0) {
       teamAchieved = true;
       for (const t of teamTargets) {
         const cnt = allMonthInvites.filter(
