@@ -197,6 +197,17 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
           available.add(date);
           continue;
         }
+        if (
+          STRICT_PACKAGE_ANY_BOOKED_IDS.has(accommodationId) &&
+          packageRoomTypes.length > 0
+        ) {
+          // 嚴格規則：任一包棟被訂走 → 整天關閉（散客房不計入）
+          if (packageRoomTypes.some((rt) => isRoomBookedOut(rt, date))) continue;
+          if (packageRoomTypes.some((rt) => isRoomAvailable(rt, date))) {
+            available.add(date);
+          }
+          continue;
+        }
         if (roomTypes.some((rt) => isRoomAvailable(rt, date))) available.add(date);
       }
 
