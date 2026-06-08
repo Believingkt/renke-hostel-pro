@@ -22,6 +22,26 @@ function monthRange(year: number, month: number): { start: string; end: string }
   return { start, end };
 }
 
+// 期別對應的 check_in_date 區間（含起、含迄）
+// period=10 → 上月 21 ~ 當月 5
+// period=25 → 當月 6 ~ 當月 20
+function periodRange(year: number, month: number, period: 10 | 25): { startDate: string; endExclusive: string } {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  if (period === 10) {
+    const prevMonth = month === 1 ? 12 : month - 1;
+    const prevYear = month === 1 ? year - 1 : year;
+    return {
+      startDate: `${prevYear}-${pad(prevMonth)}-21`,
+      endExclusive: `${year}-${pad(month)}-06`,
+    };
+  }
+  return {
+    startDate: `${year}-${pad(month)}-06`,
+    endExclusive: `${year}-${pad(month)}-21`,
+  };
+}
+
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -31,10 +51,15 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const year = Number(body?.year);
     const month = Number(body?.month);
+    const periodNum = Number(body?.period);
 
     if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
       return jsonResponse({ success: false, error: "year and month (1-12) are required" }, 400);
     }
+    if (periodNum !== 10 && periodNum !== 25) {
+      return jsonResponse({ success: false, error: "period must be 10 or 25" }, 400);
+    }
+    const period = periodNum as 10 | 25;
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -42,7 +67,10 @@ serve(async (req) => {
     );
 
     const { start: monthStart, end: monthEnd } = monthRange(year, month);
+    const { startDate: periodStart, endExclusive: periodEnd } = periodRange(year, month, period);
     const asOfDate = `${year}-${String(month).padStart(2, "0")}-28`;
+
+
 
     const [salaryRes, tierRes, rarityRes] = await Promise.all([
       supabase
@@ -171,13 +199,13 @@ serve(async (req) => {
       const individualCount = invites?.length ?? 0;
       const individualAchieved = personalMin > 0 && individualCount >= personalMin;
 
-      // 稀有度獎金：與 KolStatsTab 一致，改用 check_in_date 月份、不過濾 booking_status 與 is_error
+      // 稀有度獎金：以期別區間（check_in_date）查詢，與業績統計 Tab 對齊
       const { data: rarityInvites, error: rarityErr } = await supabase
         .from("kol_profiles")
         .select("rarity, kpi_qualified, check_in_date")
         .eq("scout_id", scout.user_id)
-        .gte("check_in_date", monthStart)
-        .lt("check_in_date", monthEnd)
+        .gte("check_in_date", periodStart)
+        .lt("check_in_date", periodEnd)
         .eq("kpi_qualified", true);
       if (rarityErr) throw rarityErr;
 
@@ -253,6 +281,7 @@ serve(async (req) => {
         .eq("scout_id", c.scout_id)
         .eq("year", year)
         .eq("month", month)
+        .eq("period", period)
         .maybeSingle();
 
       if (existing?.locked_at) {
@@ -269,6 +298,7 @@ serve(async (req) => {
       const payload = {
         year,
         month,
+        period,
         scout_id: c.scout_id,
         base_salary: c.base_salary,
         team_bonus: teamBonus,
@@ -322,6 +352,7 @@ serve(async (req) => {
       success: true,
       year,
       month,
+      period,
       scouts_calculated: results.length,
       results,
     });
