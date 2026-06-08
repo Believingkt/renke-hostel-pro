@@ -100,6 +100,11 @@ serve(async (req) => {
       supabase
         .from("accommodation_info")
         .select("id, name"),
+      supabase
+        .from("scout_tier_settings")
+        .select("min_count, max_count, commission_rate, effective_from")
+        .lte("effective_from", asOfDate)
+        .order("effective_from", { ascending: false }),
     ]);
 
     if (salaryRes.error) throw salaryRes.error;
