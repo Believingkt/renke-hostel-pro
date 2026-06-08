@@ -642,7 +642,21 @@ export function KolStatsTab() {
               </TableBody>
             </Table>
           </div>
+
+          {/*
+            ⚠️ 注意：若未來修改期別結算區間邏輯（periodRange 函式），
+            必須同步更新此處的說明文字，以及 calculate-scout-payout Edge Function 的對應邏輯。
+          */}
+          <div className="mt-3 px-1 text-xs text-muted-foreground space-y-1">
+            <div className="font-medium">期別結算區間說明：</div>
+            <div>・X月10日期別：上月21日 ～ 當月05日（整天）</div>
+            <div>・X月25日期別：當月06日 ～ 當月20日（整天）</div>
+            <div>
+              以上區間同時適用於：稀有度獎金（check_in_date）、KOL分潤（order_date）、底薪/團隊達標（check_in_date）
+            </div>
+          </div>
         </CardContent>
+
 
         <Sheet open={!!selectedScout} onOpenChange={(open) => !open && setSelectedScout(null)}>
           <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
