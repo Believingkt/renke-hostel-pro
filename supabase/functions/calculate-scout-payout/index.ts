@@ -139,15 +139,9 @@ serve(async (req) => {
       return jsonResponse({ success: true, year, month, scouts_calculated: 0, results: [] });
     }
 
-    const userIds = profiles.map((p) => p.user_id);
-    const { data: roles, error: rolesErr } = await supabase
-      .from("user_roles")
-      .select("user_id, role")
-      .in("user_id", userIds)
-      .in("role", ["scout", "scout_manager"]);
-    if (rolesErr) throw rolesErr;
-    const validUserIds = new Set((roles ?? []).map((r) => r.user_id));
-    const scouts = profiles.filter((p) => validUserIds.has(p.user_id));
+    // 只要 is_scout_team_member = true 即納入計算，不再限定 role
+    const scouts = profiles;
+
 
     const { data: targets, error: targetsErr } = await supabase
       .from("scout_team_targets")
