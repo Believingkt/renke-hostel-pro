@@ -1,0 +1,1 @@
+UPDATE public.team_member_profiles SET is_scout_team_member = true WHERE display_name LIKE '%Elaine%' OR display_name LIKE '%天天%';
