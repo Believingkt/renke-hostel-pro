@@ -299,8 +299,8 @@ serve(async (req) => {
         }
       }
 
-      // ===== 六、KOL 分潤 =====
-      // 1) 取該星探所有歷史 kpi_qualified=true 的 cid_code
+      // ===== 六、KOL 分潤（依 scout_tier_settings 等級階梯） =====
+      // 1) 取該星探所有歷史 kpi_qualified=true 的 cid_code（不限期別，給訂單比對用）
       const { data: allQualified, error: allQErr } = await supabase
         .from("kol_profiles")
         .select("cid_code")
@@ -316,25 +316,21 @@ serve(async (req) => {
           .map((c) => c.toUpperCase()),
       );
 
-      // 2) 取該星探 scout_discount_codes（取得 scout_rate 對應）
-      const { data: scoutCodes, error: scErr } = await supabase
-        .from("scout_discount_codes")
-        .select("discount_code, scout_rate")
-        .eq("scout_id", scoutId);
-      if (scErr) throw scErr;
+      // 2) 累積邀約件數：截至 periodEnd（不含）為止，所有 kpi_qualified=true 的件數
+      const { count: cumulativeCount, error: cumErr } = await supabase
+        .from("kol_profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("scout_id", scoutId)
+        .eq("kpi_qualified", true)
+        .not("invited_at", "is", null)
+        .lt("invited_at", periodEnd);
+      if (cumErr) throw cumErr;
 
-      const rateMap = new Map<string, number>();
-      for (const c of scoutCodes ?? []) {
-        if (c.discount_code) {
-          rateMap.set(
-            (c.discount_code as string).toUpperCase(),
-            Number(c.scout_rate ?? 0),
-          );
-        }
-      }
+      const tierCount = Number(cumulativeCount ?? 0);
+      const commissionRate = commissionRateFor(tierCount);
 
       let kolCommission = 0;
-      if (cidUpperSet.size > 0) {
+      if (cidUpperSet.size > 0 && commissionRate > 0) {
         const { data: orders, error: ordErr } = await supabase
           .from("orders")
           .select("final_price, discount_code, order_date")
@@ -347,9 +343,7 @@ serve(async (req) => {
         for (const o of orders ?? []) {
           const code = String(o.discount_code ?? "").toUpperCase();
           if (!code || !cidUpperSet.has(code)) continue;
-          const rate = rateMap.get(code) ?? 0;
-          if (rate <= 0) continue;
-          kolCommission += (Number(o.final_price ?? 0) * rate) / 100;
+          kolCommission += (Number(o.final_price ?? 0) * commissionRate) / 100;
         }
         kolCommission = Math.round(kolCommission);
       }
