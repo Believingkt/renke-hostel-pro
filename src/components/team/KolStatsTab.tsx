@@ -128,8 +128,9 @@ interface ScoutStats {
   base_salary: number;
   team_bonus: number;
   total: number;
-  targets: Array<{ venue_name: string; personal_min: number }>;
+  targets: Array<{ venue_name: string; personal_min: number; target_count: number }>;
   total_personal_min: number;
+  venueBreakdown: Array<{ venue_name: string; personal_min: number; actual: number; achieved: boolean }>;
   qualifiedKols: Array<{
     name: string;
     rarity: string;
