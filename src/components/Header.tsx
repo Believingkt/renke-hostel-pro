@@ -128,12 +128,25 @@ export function Header() {
       <div className="flex h-16 md:h-16 items-center justify-between px-4 md:px-6 gap-2">
         <div className="flex items-center gap-3">
           <SidebarTrigger className="h-10 w-10" />
-          {/* Sidebar 收起時顯示 Lakeze + OwlNest 聯名 logo */}
+          {/* Sidebar 收起時顯示 Lakeze 主體 + OwlNest 技術合作 */}
           {(!open || isMobile) && (
-            <div className="flex items-center gap-2">
-              <img src={lokezeLogo} alt="Lokeze" className="h-7 md:h-8 object-contain" />
-              <div className="h-5 md:h-6 w-px bg-border" />
-              <img src={owlnestLogo} alt="OwlNest" className="h-7 md:h-8 object-contain opacity-80" />
+            <div className="flex items-center gap-2 group">
+              <img
+                src={lokezeLogo}
+                alt="Lakeze 人客多"
+                className="h-8 md:h-9 object-contain"
+              />
+              <div className="h-5 md:h-6 w-px bg-border/60" />
+              <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded-md transition-all duration-200 hover:bg-muted cursor-default">
+                <span className="hidden sm:inline text-[9px] md:text-[10px] uppercase tracking-wider text-muted-foreground/60 group-hover:text-foreground font-medium transition-colors">
+                  技術合作
+                </span>
+                <img
+                  src={owlnestLogo}
+                  alt="OwlNest 奧丁丁"
+                  className="h-5 md:h-6 object-contain opacity-50 group-hover:opacity-100 transition-opacity duration-200"
+                />
+              </div>
             </div>
           )}
         </div>
