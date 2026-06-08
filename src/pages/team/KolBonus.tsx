@@ -400,7 +400,10 @@ export default function KolBonus() {
 
   // Tab2 分潤結算：依 年 + 發放期別 + 星探，且 KOL 須在該期別月份有退房
   const tab2FilteredRows = useMemo(() => {
-    const prefix = `${payoutYear}-${String(payoutPeriod).padStart(2, "0")}`;
+    const prefix =
+      payoutPeriod === "all"
+        ? `${payoutYear}-`
+        : `${payoutYear}-${String(payoutPeriod).padStart(2, "0")}`;
     return rows.filter((k) => {
       if (scoutFilter !== "all" && k.scout_id !== scoutFilter) return false;
       const list = ordersByKey.get(k.rowKey) ?? [];
@@ -413,7 +416,10 @@ export default function KolBonus() {
 
   // Tab2 度量：完成業績 / 分潤依 payoutYear + payoutPeriod
   const tab2Metrics = useMemo(() => {
-    const prefix = `${payoutYear}-${String(payoutPeriod).padStart(2, "0")}`;
+    const prefix =
+      payoutPeriod === "all"
+        ? `${payoutYear}-`
+        : `${payoutYear}-${String(payoutPeriod).padStart(2, "0")}`;
     const map = new Map<
       string,
       { completedCount: number; completedRevenue: number; commission: number }
@@ -445,7 +451,10 @@ export default function KolBonus() {
     filterMonth === "all"
       ? `${currentYear}-${String(currentMonthNum).padStart(2, "0")}`
       : `${filterYear}-${String(Number(filterMonth)).padStart(2, "0")}`;
-  const tab2DrawerInitialMonth = `${payoutYear}-${String(Number(payoutPeriod)).padStart(2, "0")}`;
+  const tab2DrawerInitialMonth =
+    payoutPeriod === "all"
+      ? `${payoutYear}-${String(currentMonthNum).padStart(2, "0")}`
+      : `${payoutYear}-${String(Number(payoutPeriod)).padStart(2, "0")}`;
 
   const metricsLabel = filterMonth === "all" ? "全期" : "當月";
 
@@ -726,6 +735,7 @@ export default function KolBonus() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="all">全年</SelectItem>
                         {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
                           <SelectItem key={m} value={String(m)}>
                             {m} 月 10 日
