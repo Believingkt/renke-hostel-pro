@@ -102,21 +102,23 @@ Deno.serve(async (req) => {
 
     // ===== SECURITY: Verify webhook by querying TapPay API =====
     if (!body.rec_trade_id) {
-      console.warn('[tappay-notify] Missing rec_trade_id, rejecting');
+      console.warn('[tappay-notify] Missing rec_trade_id, acknowledging anyway');
       return new Response(
-        JSON.stringify({ status: 'error', message: 'Missing rec_trade_id' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ status: 'ok', message: 'Missing rec_trade_id (ignored)' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const verification = await verifyWithTapPay(body.rec_trade_id);
     if (!verification.verified) {
       console.warn('[tappay-notify] Failed to verify transaction with TapPay API:', body.rec_trade_id);
+      // Return 200 so TapPay does not mark the URL as failing and stop retries.
       return new Response(
-        JSON.stringify({ status: 'error', message: 'Transaction verification failed' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ status: 'ok', message: 'Transaction verification failed (acknowledged)' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
 
     // Use verified data from TapPay API instead of webhook body
     const verifiedRecord = verification.record;
@@ -229,9 +231,12 @@ Deno.serve(async (req) => {
         foundBy: orderSource,
       });
 
-      // Check if order already has this transaction recorded (prevent duplicate updates)
-      if (order.notes?.includes(rec_trade_id)) {
-        console.log('[tappay-notify] Transaction already recorded in order, skipping update');
+      // Dedup: only skip if a previous webhook (not the initial atm-create note) already recorded this trade.
+      // The atm-create step writes `[ATM] ... (rec_trade_id: ...)` which also contains rec_trade_id; we must
+      // not let that block the real `[ATM Webhook]` payment confirmation.
+      const webhookTagPattern = new RegExp(`\\[(ATM|3DS) Webhook\\][^\\n]*${rec_trade_id}`);
+      if (order.notes && webhookTagPattern.test(order.notes)) {
+        console.log('[tappay-notify] Webhook for this rec_trade_id already processed, skipping');
         return new Response(
           JSON.stringify({
             status: 'ok',
@@ -242,6 +247,7 @@ Deno.serve(async (req) => {
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+
 
       if (isSuccess) {
         // 偵測是否為 ATM 入帳
