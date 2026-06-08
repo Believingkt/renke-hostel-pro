@@ -51,10 +51,25 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const year = Number(body?.year);
     const month = Number(body?.month);
+    const periodNum = Number(body?.period);
 
     if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
       return jsonResponse({ success: false, error: "year and month (1-12) are required" }, 400);
     }
+    if (periodNum !== 10 && periodNum !== 25) {
+      return jsonResponse({ success: false, error: "period must be 10 or 25" }, 400);
+    }
+    const period = periodNum as 10 | 25;
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    const { start: monthStart, end: monthEnd } = monthRange(year, month);
+    const { startDate: periodStart, endExclusive: periodEnd } = periodRange(year, month, period);
+    const asOfDate = `${year}-${String(month).padStart(2, "0")}-28`;
+
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
