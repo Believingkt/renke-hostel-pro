@@ -23,6 +23,18 @@ import {
   Sparkles,
   Clock,
   Car,
+  Wifi,
+  Coffee,
+  Heart,
+  Utensils,
+  Dog,
+  Baby,
+  Mountain,
+  Trees,
+  Waves,
+  Flame,
+  Music,
+  Snowflake,
 } from "lucide-react";
 import { differenceInDays, format, formatISO } from "date-fns";
 
