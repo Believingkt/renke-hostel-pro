@@ -64,6 +64,28 @@ import BookingInfoSection from "@/components/BookingInfoSection";
 import BookingFooter from "@/components/BookingFooter";
 import MobileBottomNav from "@/components/member/MobileBottomNav";
 
+// 信任標籤可選圖示對照（後台填字串 key，前台對應 lucide icon）
+export const TRUST_BADGE_ICONS: Record<string, typeof ShieldCheck> = {
+  "shield-check": ShieldCheck,
+  shield: ShieldCheck,
+  clock: Clock,
+  car: Car,
+  wifi: Wifi,
+  coffee: Coffee,
+  heart: Heart,
+  utensils: Utensils,
+  dog: Dog,
+  baby: Baby,
+  mountain: Mountain,
+  trees: Trees,
+  waves: Waves,
+  flame: Flame,
+  music: Music,
+  snowflake: Snowflake,
+  sparkles: Sparkles,
+};
+export const TRUST_BADGE_ICON_OPTIONS = Object.keys(TRUST_BADGE_ICONS);
+
 const BookingVilla = () => {
   const { accId } = useParams<{ accId: string }>();
   const navigate = useNavigate();
