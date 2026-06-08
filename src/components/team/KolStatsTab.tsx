@@ -359,8 +359,8 @@ export function KolStatsTab() {
 
         const results: ScoutStats[] = scouts.map((s) => {
           const rows = kolRows.filter((r) => r.scout_id === s.user_id);
-          // 費率階梯基礎：全部歷史 kpi_qualified=true 件數
-          const cumulative = rows.filter((r) => r.kpi_qualified === true).length;
+          // 費率階梯基礎：用 exact count 查到的全部歷史 kpi_qualified=true 件數
+          const cumulative = cumulativeMap.get(s.user_id) ?? 0;
 
           const tier = tierFor(cumulative);
           const tierName = tier?.tier_name ?? "—";
