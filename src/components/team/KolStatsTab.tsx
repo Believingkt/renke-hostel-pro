@@ -87,6 +87,7 @@ interface TargetRow {
   year: number;
   month: number;
   personal_min: number;
+  target_count: number | null;
   venue_name: string | null;
 }
 interface ScoutProfile {
@@ -127,8 +128,9 @@ interface ScoutStats {
   base_salary: number;
   team_bonus: number;
   total: number;
-  targets: Array<{ venue_name: string; personal_min: number }>;
+  targets: Array<{ venue_name: string; personal_min: number; target_count: number }>;
   total_personal_min: number;
+  venueBreakdown: Array<{ venue_name: string; personal_min: number; actual: number; achieved: boolean }>;
   qualifiedKols: Array<{
     name: string;
     rarity: string;
@@ -215,12 +217,12 @@ export function KolStatsTab() {
             .limit(1)
             .maybeSingle(),
           supabase.from("accommodation_info").select("name"),
-          month
+          showSalary && month
             ? supabase
                 .from("scout_team_targets")
-                .select("year, month, personal_min, venue_name")
-                .eq("year", effYear)
-                .eq("month", month)
+                .select("year, month, personal_min, target_count, venue_name")
+                .eq("year", month === 1 ? effYear - 1 : effYear)
+                .eq("month", month === 1 ? 12 : month - 1)
             : Promise.resolve({ data: [] as TargetRow[], error: null }),
         ]);
 
@@ -257,15 +259,18 @@ export function KolStatsTab() {
         const salary = salaryRes.data as SalaryRow | null;
         const baseSalary = Number(salary?.base_salary ?? 0);
         const teamBonusAmount = Number(salary?.team_bonus ?? 0);
-        const teamThresholdPct = Number(salary?.team_threshold_pct ?? 0);
+        void salary?.team_threshold_pct;
 
         const pmsVenues = new Set(((accsRes.data ?? []) as { name: string }[]).map((a) => a.name));
 
         const targetRows = (targetsRes.data ?? []) as TargetRow[];
-        const targetsList = targetRows.map((t) => ({
-          venue_name: t.venue_name ?? "—",
-          personal_min: Number(t.personal_min || 0),
-        }));
+        const targetsList = targetRows
+          .filter((t) => Number(t.personal_min || 0) > 0)
+          .map((t) => ({
+            venue_name: t.venue_name ?? "—",
+            personal_min: Number(t.personal_min || 0),
+            target_count: Number(t.target_count || 0),
+          }));
         const totalPersonalMin = targetsList.reduce((s, t) => s + t.personal_min, 0);
 
         if (scoutIds.length === 0) {
@@ -471,19 +476,36 @@ export function KolStatsTab() {
 
           let monthlySuccess = 0;
           let individualAchieved = false;
+          let venueBreakdown: ScoutStats["venueBreakdown"] = [];
           if (showSalary && monthStart && monthEnd) {
-            // 底薪/團隊達標：使用上月整月 check_in_date（上月1日 ~ 上月末日）
-            // + kpi_qualified=true + is_error=false + invited_at IS NOT NULL
-            monthlySuccess = rows.filter(
+            // 底薪/個人達標：上月整月 check_in_date + kpi_qualified + 非錯誤 + invited_at 非空
+            // 各館各自比對 personal_min（與 Edge Function 對齊）
+            const monthRows = rows.filter(
               (r) =>
                 r.kpi_qualified === true &&
                 !r.is_error &&
                 !!r.invited_at &&
                 r.check_in_date &&
-                r.check_in_date >= monthStart &&
-                r.check_in_date < monthEnd,
-            ).length;
-            individualAchieved = totalPersonalMin > 0 && monthlySuccess >= totalPersonalMin;
+                r.check_in_date >= monthStart! &&
+                r.check_in_date < monthEnd!,
+            );
+            monthlySuccess = monthRows.length;
+            if (targetsList.length === 0) {
+              individualAchieved = false;
+            } else {
+              individualAchieved = true;
+              venueBreakdown = targetsList.map((t) => {
+                const actual = monthRows.filter((r) => (r.venue_name ?? "—") === t.venue_name).length;
+                const achieved = actual >= t.personal_min;
+                if (!achieved) individualAchieved = false;
+                return {
+                  venue_name: t.venue_name,
+                  personal_min: t.personal_min,
+                  actual,
+                  achieved,
+                };
+              });
+            }
           }
           const baseSalaryPayout = showSalary && s.is_scout_team_member && individualAchieved ? baseSalary : 0;
 
@@ -507,6 +529,7 @@ export function KolStatsTab() {
             total: 0,
             targets: targetsList,
             total_personal_min: totalPersonalMin,
+            venueBreakdown,
             qualifiedKols,
             orderItems,
           };
@@ -517,13 +540,20 @@ export function KolStatsTab() {
         const periodFiltered = results;
 
         let teamBonusPayout = 0;
-        if (showSalary) {
-          const teamMembers = periodFiltered.filter((r) => r.is_scout_team_member);
-          if (teamMembers.length > 0) {
-            const achieved = teamMembers.filter((r) => r.individual_achieved).length;
-            const rate = (achieved / teamMembers.length) * 100;
-            if (rate >= teamThresholdPct) teamBonusPayout = teamBonusAmount;
+        if (showSalary && targetsList.length > 0) {
+          // 團隊達標：各 target 館別「所有星探」上月邀約總數 >= target_count
+          let teamAchieved = true;
+          for (const t of targetsList) {
+            const total = periodFiltered.reduce((sum, r) => {
+              const vb = r.venueBreakdown.find((v) => v.venue_name === t.venue_name);
+              return sum + (vb?.actual ?? 0);
+            }, 0);
+            if (total < t.target_count) {
+              teamAchieved = false;
+              break;
+            }
           }
+          if (teamAchieved) teamBonusPayout = teamBonusAmount;
         }
         for (const r of periodFiltered) {
           r.team_bonus = showSalary && r.is_scout_team_member ? teamBonusPayout : 0;
@@ -801,26 +831,37 @@ export function KolStatsTab() {
                       <div className="border rounded-md p-3 space-y-3 text-sm">
                         <div>
                           <div className="font-medium mb-1">各場域個人目標</div>
-                          {selectedScout.targets.length === 0 ? (
+                          {selectedScout.venueBreakdown.length === 0 ? (
                             <div className="text-muted-foreground">本月未設定目標</div>
                           ) : (
-                            <ul className="space-y-1">
-                              {selectedScout.targets.map((t, i) => (
-                                <li key={i} className="flex justify-between">
-                                  <span>{t.venue_name}</span>
-                                  <span className="tabular-nums">{t.personal_min} 件</span>
-                                </li>
-                              ))}
-                            </ul>
+                            <div className="overflow-x-auto border rounded-md">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead>場域</TableHead>
+                                    <TableHead className="text-right">目標</TableHead>
+                                    <TableHead className="text-right">實際</TableHead>
+                                    <TableHead className="text-right">狀態</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {selectedScout.venueBreakdown.map((v, i) => (
+                                    <TableRow key={i}>
+                                      <TableCell className="whitespace-nowrap">{v.venue_name}</TableCell>
+                                      <TableCell className="text-right tabular-nums">{v.personal_min} 件</TableCell>
+                                      <TableCell className="text-right tabular-nums">{v.actual} 件</TableCell>
+                                      <TableCell className={`text-right font-semibold ${v.achieved ? "text-green-600" : "text-orange-500"}`}>
+                                        {v.achieved ? "✓ 達標" : "✗ 未達標"}
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
                           )}
                         </div>
-                        <div className="flex justify-between border-t pt-2">
-                          <span>合計需達件數</span>
-                          <span className="tabular-nums font-semibold">{selectedScout.total_personal_min} 件</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>當月實際達成件數</span>
-                          <span className="tabular-nums font-semibold">{selectedScout.monthly_success_count} 件</span>
+                        <div className="text-xs text-muted-foreground">
+                          需所有館別皆達標才可領取底薪
                         </div>
                         <div className="flex justify-between">
                           <span>達標狀態</span>
