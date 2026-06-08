@@ -268,6 +268,20 @@ export function KolStatsTab() {
         if (kolErr) throw kolErr;
         const kolRows = (kolData ?? []) as KolProfileRow[];
 
+        // 累積件數：對每位星探用 exact count 查詢，避免 PostgREST 預設 1000 筆截斷導致費率階級錯誤
+        const cumulativeEntries = await Promise.all(
+          scoutIds.map(async (sid) => {
+            const { count, error } = await supabase
+              .from("kol_profiles")
+              .select("id", { count: "exact", head: true })
+              .eq("scout_id", sid)
+              .eq("kpi_qualified", true);
+            if (error) throw error;
+            return [sid, Number(count ?? 0)] as const;
+          }),
+        );
+        const cumulativeMap = new Map<string, number>(cumulativeEntries);
+
         const inPeriod = (d: string | null): boolean => {
           if (!range) return true; // 全年 → 不限
           if (!d) return false;
