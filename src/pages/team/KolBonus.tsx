@@ -735,6 +735,7 @@ export default function KolBonus() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="all">全年</SelectItem>
                         {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
                           <SelectItem key={m} value={String(m)}>
                             {m} 月 10 日
