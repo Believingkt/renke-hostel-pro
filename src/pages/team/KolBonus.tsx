@@ -400,7 +400,10 @@ export default function KolBonus() {
 
   // Tab2 分潤結算：依 年 + 發放期別 + 星探，且 KOL 須在該期別月份有退房
   const tab2FilteredRows = useMemo(() => {
-    const prefix = `${payoutYear}-${String(payoutPeriod).padStart(2, "0")}`;
+    const prefix =
+      payoutPeriod === "all"
+        ? `${payoutYear}-`
+        : `${payoutYear}-${String(payoutPeriod).padStart(2, "0")}`;
     return rows.filter((k) => {
       if (scoutFilter !== "all" && k.scout_id !== scoutFilter) return false;
       const list = ordersByKey.get(k.rowKey) ?? [];
@@ -413,7 +416,10 @@ export default function KolBonus() {
 
   // Tab2 度量：完成業績 / 分潤依 payoutYear + payoutPeriod
   const tab2Metrics = useMemo(() => {
-    const prefix = `${payoutYear}-${String(payoutPeriod).padStart(2, "0")}`;
+    const prefix =
+      payoutPeriod === "all"
+        ? `${payoutYear}-`
+        : `${payoutYear}-${String(payoutPeriod).padStart(2, "0")}`;
     const map = new Map<
       string,
       { completedCount: number; completedRevenue: number; commission: number }
