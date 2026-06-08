@@ -180,7 +180,7 @@ serve(async (req) => {
     for (const scout of scouts) {
       const personalMin = totalPersonalMin;
 
-      // 個人件數與 KOL 分潤來源：以期別區間（check_in_date）+ kpi_qualified=true 查詢，與稀有度獎金一致
+      // 個人件數 + 稀有度獎金：以期別區間（check_in_date）+ kpi_qualified=true 查詢
       const { data: invites, error: invErr } = await supabase
         .from("kol_profiles")
         .select("rarity, kpi_qualified, cid_code, venue_name, check_in_date")
@@ -193,7 +193,6 @@ serve(async (req) => {
       const individualCount = invites?.length ?? 0;
       const individualAchieved = personalMin > 0 && individualCount >= personalMin;
 
-      // 稀有度獎金沿用同一份 invites（條件一致）
       let rarityBonus = 0;
       for (const inv of invites ?? []) {
         if (inv.rarity) {
@@ -201,14 +200,21 @@ serve(async (req) => {
         }
       }
 
-      const cidCodes = (invites ?? [])
+      // KOL 分潤 cidCodes：撈該星探「所有歷史 kpi_qualified=true」的 cid_code（不限期別），
+      // 再用 order_date 篩本期訂單，避免 KOL 入住日與訂單日跨期別時漏算
+      const { data: allInvites, error: allInvErr } = await supabase
+        .from("kol_profiles")
+        .select("cid_code, venue_name")
+        .eq("scout_id", scout.user_id)
+        .eq("kpi_qualified", true);
+      if (allInvErr) throw allInvErr;
+
+      const cidCodes = (allInvites ?? [])
         .filter((i) => i.cid_code && pmsVenues.has(i.venue_name ?? ""))
         .map((i) => i.cid_code as string);
 
-
       let pmsOrderTotal = 0;
       if (cidCodes.length > 0) {
-        // 大小寫不敏感比對：先把 cidCodes 轉大寫成 Set
         const cidUpperSet = new Set(cidCodes.map((c) => c.toUpperCase()));
         // 月份區間用 order_date（period=10 → 上月21~當月5；period=25 → 當月6~當月20）
         const { data: orders, error: ordErr } = await supabase
