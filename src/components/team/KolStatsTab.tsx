@@ -348,12 +348,20 @@ export function KolStatsTab() {
 
         const results: ScoutStats[] = scouts.map((s) => {
           const rows = kolRows.filter((r) => r.scout_id === s.user_id);
-          const cumulative = rows.filter((r) => r.kpi_qualified === true && !r.is_error).length;
+          // 費率階梯基礎：全部歷史 kpi_qualified=true 件數
+          const cumulative = rows.filter((r) => r.kpi_qualified === true).length;
 
           const tier = tierFor(cumulative);
           const tierName = tier?.tier_name ?? "—";
 
-          const periodQualified = rows.filter((r) => r.kpi_qualified === true && inPeriod(r.check_in_date));
+          // 有效邀約：kpi_qualified=true、check_in_date 落在期別、invited_at 非空、is_error=false
+          const periodQualified = rows.filter(
+            (r) =>
+              r.kpi_qualified === true &&
+              !r.is_error &&
+              !!r.invited_at &&
+              inPeriod(r.check_in_date),
+          );
           const qualifiedCount = periodQualified.length;
           const rarityCounts: Record<Rarity, number> = {
             N: 0,
