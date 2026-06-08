@@ -89,6 +89,7 @@ interface KolProfileRow {
   order_number: string | null;
   is_error: boolean | null;
   venue_name: string | null;
+  invited_at: string | null;
 }
 
 interface ScoutStats {
@@ -264,7 +265,7 @@ export function KolStatsTab() {
         const { data: kolData, error: kolErr } = await supabase
           .from("kol_profiles")
           .select(
-            "scout_id, name, rarity, kpi_qualified, booking_status, check_in_date, kpi_month, cid_code, order_number, is_error, venue_name",
+            "scout_id, name, rarity, kpi_qualified, booking_status, check_in_date, kpi_month, cid_code, order_number, is_error, venue_name, invited_at",
           )
           .in("scout_id", scoutIds);
         if (kolErr) throw kolErr;
@@ -285,13 +286,13 @@ export function KolStatsTab() {
           return d >= yearStart && d <= yearEnd;
         };
 
-        // PMS 內部 cid 蒐集（不限期別；訂單歸屬期別改由 orders.order_date 判斷）
+        // KOL 分潤 cid 蒐集：所有歷史 kpi_qualified=true 的 cid_code
         const cidByScout = new Map<string, string[]>();
         const allCidCodes = new Set<string>();
         for (const r of kolRows) {
           if (!r.scout_id) continue;
           if (!r.cid_code) continue;
-          if (!pmsVenues.has(r.venue_name ?? "")) continue;
+          if (r.kpi_qualified !== true) continue;
           const arr = cidByScout.get(r.scout_id) ?? [];
           if (!arr.includes(r.cid_code)) arr.push(r.cid_code);
           cidByScout.set(r.scout_id, arr);
@@ -347,12 +348,20 @@ export function KolStatsTab() {
 
         const results: ScoutStats[] = scouts.map((s) => {
           const rows = kolRows.filter((r) => r.scout_id === s.user_id);
-          const cumulative = rows.filter((r) => r.kpi_qualified === true && !r.is_error).length;
+          // 費率階梯基礎：全部歷史 kpi_qualified=true 件數
+          const cumulative = rows.filter((r) => r.kpi_qualified === true).length;
 
           const tier = tierFor(cumulative);
           const tierName = tier?.tier_name ?? "—";
 
-          const periodQualified = rows.filter((r) => r.kpi_qualified === true && inPeriod(r.check_in_date));
+          // 有效邀約：kpi_qualified=true、check_in_date 落在期別、invited_at 非空、is_error=false
+          const periodQualified = rows.filter(
+            (r) =>
+              r.kpi_qualified === true &&
+              !r.is_error &&
+              !!r.invited_at &&
+              inPeriod(r.check_in_date),
+          );
           const qualifiedCount = periodQualified.length;
           const rarityCounts: Record<Rarity, number> = {
             N: 0,
@@ -418,13 +427,16 @@ export function KolStatsTab() {
           let monthlySuccess = 0;
           let individualAchieved = false;
           if (month && monthStart && monthEnd) {
+            // 底薪/團隊達標：用當月 check_in_date 在當月1日~當月末日
+            // + kpi_qualified=true + is_error=false + invited_at IS NOT NULL
             monthlySuccess = rows.filter(
               (r) =>
-                r.booking_status === "成功訂房" &&
+                r.kpi_qualified === true &&
                 !r.is_error &&
-                r.kpi_month &&
-                r.kpi_month >= monthStart &&
-                r.kpi_month < monthEnd,
+                !!r.invited_at &&
+                r.check_in_date &&
+                r.check_in_date >= monthStart &&
+                r.check_in_date < monthEnd,
             ).length;
             individualAchieved = totalPersonalMin > 0 && monthlySuccess >= totalPersonalMin;
           }
