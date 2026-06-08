@@ -644,16 +644,16 @@ export function KolStatsTab() {
           </div>
 
           {/*
-            ⚠️ 注意：若未來修改期別結算區間邏輯（periodRange 函式），
-            必須同步更新此處的說明文字，以及 calculate-scout-payout Edge Function 的對應邏輯。
+            ⚠️ 注意：若未來修改期別結算區間邏輯，
+            必須同步更新 KolStatsTab.tsx、TeamCommission.tsx 的說明文字，
+            以及 calculate-scout-payout Edge Function 的對應邏輯。
           */}
           <div className="mt-3 px-1 text-xs text-muted-foreground space-y-1">
             <div className="font-medium">期別結算區間說明：</div>
-            <div>・X月10日期別：上月21日 ～ 當月05日（整天）</div>
-            <div>・X月25日期別：當月06日 ～ 當月20日（整天）</div>
-            <div>
-              以上區間同時適用於：稀有度獎金（check_in_date）、KOL分潤（order_date）、底薪/團隊達標（check_in_date）
-            </div>
+            <div>・稀有度獎金／KOL分潤：</div>
+            <div className="pl-3">X月10日期別：上月21日 ～ 當月05日（整天）</div>
+            <div className="pl-3">X月25日期別：當月06日 ～ 當月20日（整天）</div>
+            <div>・底薪／團隊獎金：以整月（當月01日～當月末日）達標為準，於當月10日期發放，25日期不發</div>
             <div className="pt-2 font-medium">欄位計算方式：</div>
             <div>・「累積邀約」：星探主管在 KOL 名單將「符合資格」打勾的件數</div>
             <div>・「KOL分潤訂單」：匹配 PMS 民宿管理訂單列表的折扣代碼（不包含場域管理的民宿）</div>
