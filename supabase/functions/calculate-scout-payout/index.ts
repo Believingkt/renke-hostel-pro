@@ -328,14 +328,12 @@ serve(async (req) => {
           .map((c) => c.toUpperCase()),
       );
 
-      // 2) 累積邀約件數：截至 periodEnd（不含）為止，所有 kpi_qualified=true 的件數
+      // 2) 累積邀約件數：所有歷史 kpi_qualified=true 的件數（不限日期、不限 invited_at）
       const { count: cumulativeCount, error: cumErr } = await supabase
         .from("kol_profiles")
         .select("id", { count: "exact", head: true })
         .eq("scout_id", scoutId)
-        .eq("kpi_qualified", true)
-        .not("invited_at", "is", null)
-        .lt("invited_at", periodEnd);
+        .eq("kpi_qualified", true);
       if (cumErr) throw cumErr;
 
       const tierCount = Number(cumulativeCount ?? 0);
