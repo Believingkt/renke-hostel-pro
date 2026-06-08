@@ -352,6 +352,7 @@ serve(async (req) => {
       success: true,
       year,
       month,
+      period,
       scouts_calculated: results.length,
       results,
     });
