@@ -619,9 +619,27 @@ const formatTW = (iso: string | null | undefined) => {
 };
 
 function PayoutsBlock({ scoutManagerOnly = false, readOnly = false }: { scoutManagerOnly?: boolean; readOnly?: boolean }) {
+  // 以台灣時間取得預設期別
+  const computeDefault = () => {
+    const tw = new Date(
+      new Date().toLocaleString("en-US", { timeZone: "Asia/Taipei" }),
+    );
+    const y = tw.getFullYear();
+    const m = tw.getMonth() + 1;
+    const d = tw.getDate();
+    if (d <= 10) return { year: y, month: m, period: 10 as 10 | 25 };
+    if (d <= 25) return { year: y, month: m, period: 25 as 10 | 25 };
+    // > 25 → 下月 10 日
+    const nextMonth = m === 12 ? 1 : m + 1;
+    const nextYear = m === 12 ? y + 1 : y;
+    return { year: nextYear, month: nextMonth, period: 10 as 10 | 25 };
+  };
+  const def = computeDefault();
   const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
+
+  const [year, setYear] = useState(def.year);
+  const [month, setMonth] = useState(def.month);
+  const [period, setPeriod] = useState<10 | 25>(def.period);
   const [status, setStatus] = useState<string>("all");
   const [rows, setRows] = useState<PayoutRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -633,7 +651,8 @@ function PayoutsBlock({ scoutManagerOnly = false, readOnly = false }: { scoutMan
       .from("scout_monthly_payouts")
       .select("*")
       .eq("year", year)
-      .eq("month", month);
+      .eq("month", month)
+      .eq("period", period);
     if (status !== "all") q = q.eq("payout_status", status);
     const { data, error } = await q.order("calculated_at", { ascending: false });
     if (error) {
@@ -653,7 +672,7 @@ function PayoutsBlock({ scoutManagerOnly = false, readOnly = false }: { scoutMan
     }
     setRows(list.map((r) => ({ ...r, scout_name: nameMap[r.scout_id] ?? r.scout_id })));
     setLoading(false);
-  }, [year, month, status]);
+  }, [year, month, period, status]);
 
   useEffect(() => {
     fetchRows();
@@ -663,7 +682,7 @@ function PayoutsBlock({ scoutManagerOnly = false, readOnly = false }: { scoutMan
     setRecalculating(true);
     try {
       const { data, error } = await supabase.functions.invoke("calculate-scout-payout", {
-        body: { year, month },
+        body: { year, month, period },
       });
       if (error) throw error;
       if (data?.success === false) throw new Error(data?.error ?? "計算失敗");
@@ -691,6 +710,13 @@ function PayoutsBlock({ scoutManagerOnly = false, readOnly = false }: { scoutMan
   };
 
   const yearOptions = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
+
+  // 期別選項：每月 10 / 25
+  const periodOptions = Array.from({ length: 12 }, (_, i) => i + 1).flatMap((m) => [
+    { month: m, period: 10 as const, label: `${m}月10日` },
+    { month: m, period: 25 as const, label: `${m}月25日` },
+  ]);
+  const currentPeriodKey = `${month}-${period}`;
 
   return (
     <Card>
