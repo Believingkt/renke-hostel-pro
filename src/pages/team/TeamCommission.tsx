@@ -740,12 +740,21 @@ function PayoutsBlock({ scoutManagerOnly = false, readOnly = false }: { scoutMan
             </Select>
           </div>
           <div>
-            <Label className="text-xs">月份</Label>
-            <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
-              <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+            <Label className="text-xs">期別</Label>
+            <Select
+              value={currentPeriodKey}
+              onValueChange={(v) => {
+                const [m, p] = v.split("-").map(Number);
+                setMonth(m);
+                setPeriod(p as 10 | 25);
+              }}
+            >
+              <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                  <SelectItem key={m} value={String(m)}>{m}</SelectItem>
+                {periodOptions.map((opt) => (
+                  <SelectItem key={`${opt.month}-${opt.period}`} value={`${opt.month}-${opt.period}`}>
+                    {opt.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
