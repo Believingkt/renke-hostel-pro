@@ -6193,6 +6193,25 @@ function InvitationTargetsSettingsBlock({ isManager }: { isManager: boolean }) {
     const fm = parseInt(fFulltimeMin, 10);
     if (Number.isNaN(fm) || fm < 0) return toast.error("請輸入有效的正職個人最低目標");
 
+    // 新增模式才檢查重複；編輯模式直接覆蓋同一筆
+    if (!editing) {
+      const { data: existing } = await supabase
+        .from("scout_team_targets" as any)
+        .select("id")
+        .eq("year", filterYear)
+        .eq("month", m)
+        .eq("venue_name", fVenue.trim())
+        .maybeSingle();
+      if (existing) {
+        setDupConfirmOpen(true);
+        return;
+      }
+    }
+
+    await performSave(m, tt, pm, fm);
+  };
+
+  const performSave = async (m: number, tt: number, pm: number | null, fm: number) => {
     setSaving(true);
     const { data: acc } = await supabase
       .from("accommodation_info")
@@ -6233,12 +6252,21 @@ function InvitationTargetsSettingsBlock({ isManager }: { isManager: boolean }) {
       if (r2.error) throw r2.error;
       toast.success(editing ? "已更新目標" : "已新增目標");
       setDialogOpen(false);
+      setDupConfirmOpen(false);
       fetchAll();
     } catch (e: any) {
       toast.error(e?.message ?? "儲存失敗");
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleConfirmOverwrite = async () => {
+    const m = parseInt(fMonth, 10);
+    const tt = parseInt(fTeamTarget, 10);
+    const pm = fPersonalMin.trim() === "" ? null : parseInt(fPersonalMin, 10);
+    const fm = parseInt(fFulltimeMin, 10);
+    await performSave(m, tt, pm, fm);
   };
 
   const handleDelete = async () => {
