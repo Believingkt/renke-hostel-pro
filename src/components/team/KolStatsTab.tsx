@@ -175,9 +175,11 @@ export function KolStatsTab() {
         const showSalary = periodIsDayTen(period);
         const isAll = period === "all" || yearAll;
 
-        const [rolesRes, profilesRes, rarityRes, tierRes, salaryRes, accsRes, targetsRes] = await Promise.all([
-          supabase.from("user_roles").select("user_id, role").in("role", ["scout", "scout_manager"]),
-          supabase.from("team_member_profiles").select("user_id, display_name, is_scout_team_member"),
+        const [profilesRes, rarityRes, tierRes, salaryRes, accsRes, targetsRes] = await Promise.all([
+          supabase
+            .from("team_member_profiles")
+            .select("user_id, display_name, is_scout_team_member")
+            .eq("is_scout_team_member", true),
           supabase
             .from("kol_rarity_settings")
             .select("rarity, bonus_amount, effective_from")
@@ -205,7 +207,6 @@ export function KolStatsTab() {
             : Promise.resolve({ data: [] as TargetRow[], error: null }),
         ]);
 
-        if (rolesRes.error) throw rolesRes.error;
         if (profilesRes.error) throw profilesRes.error;
         if (rarityRes.error) throw rarityRes.error;
         if (tierRes.error) throw tierRes.error;
@@ -213,11 +214,7 @@ export function KolStatsTab() {
         if (accsRes.error) throw accsRes.error;
         if (targetsRes.error) throw targetsRes.error;
 
-        const scoutRoleIds = new Set<string>(
-          ((rolesRes.data ?? []) as { user_id: string }[]).map((r) => r.user_id).filter(Boolean),
-        );
-        const allProfiles = (profilesRes.data ?? []) as ScoutProfile[];
-        const scouts: ScoutProfile[] = allProfiles.filter((p) => scoutRoleIds.has(p.user_id));
+        const scouts: ScoutProfile[] = (profilesRes.data ?? []) as ScoutProfile[];
         const scoutIds = scouts.map((s) => s.user_id);
 
         const rarityMap = new Map<string, number>();
