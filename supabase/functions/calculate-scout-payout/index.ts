@@ -414,6 +414,7 @@ serve(async (req) => {
         period,
         base_salary: baseSalary,
         kol_commission: kolCommission,
+        kol_commission_rate: commissionRate,
         team_bonus: teamBonus,
         total_payout: totalPayout,
         individual_achieved: individualAchieved,
