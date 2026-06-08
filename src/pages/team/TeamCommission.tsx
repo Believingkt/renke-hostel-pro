@@ -846,11 +846,10 @@ function PayoutsBlock({ scoutManagerOnly = false, readOnly = false }: { scoutMan
         */}
         <div className="mt-3 px-1 text-xs text-muted-foreground space-y-1">
           <div className="font-medium">期別結算區間說明：</div>
-          <div>・X月10日期別：上月21日 ～ 當月05日（整天）</div>
-          <div>・X月25日期別：當月06日 ～ 當月20日（整天）</div>
-          <div>
-            以上區間同時適用於：稀有度獎金（check_in_date）、KOL分潤（order_date）、底薪/團隊達標（check_in_date）
-          </div>
+          <div>・稀有度獎金／KOL分潤：</div>
+          <div className="pl-3">X月10日期別：上月21日 ～ 當月05日（整天）</div>
+          <div className="pl-3">X月25日期別：當月06日 ～ 當月20日（整天）</div>
+          <div>・底薪／團隊獎金：以整月（當月01日～當月末日）達標為準，於當月10日期發放，25日期不發</div>
         </div>
       </CardContent>
     </Card>
