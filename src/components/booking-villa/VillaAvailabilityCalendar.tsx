@@ -19,6 +19,11 @@ import { cn } from "@/lib/utils";
 
 const HAKUNA_ACCOMMODATION_ID = "6b6ac0dc-602b-4dec-9167-7791ac412ba3";
 const SENSAN_ACCOMMODATION_ID = "5f764d55-ae11-4631-80fe-2e611853deae";
+// 「任一包棟被訂走即關閉整天」嚴格規則（散客房不參與判斷）
+const STRICT_PACKAGE_ANY_BOOKED_IDS = new Set<string>([
+  "74d064f4-1f8c-47e8-9be0-f0a596bbe6f8", // 奧莉薇雅生活小酒店
+  "8e3e8866-3cb0-4654-91f3-d9b09a543301", // 淞湘卉館
+]);
 
 import { detectSensanTierByDate, getSensanRangeForTier } from "@/lib/sensan-pricing";
 import {
@@ -190,6 +195,17 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
           )
             continue;
           available.add(date);
+          continue;
+        }
+        if (
+          STRICT_PACKAGE_ANY_BOOKED_IDS.has(accommodationId) &&
+          packageRoomTypes.length > 0
+        ) {
+          // 嚴格規則：任一包棟被訂走 → 整天關閉（散客房不計入）
+          if (packageRoomTypes.some((rt) => isRoomBookedOut(rt, date))) continue;
+          if (packageRoomTypes.some((rt) => isRoomAvailable(rt, date))) {
+            available.add(date);
+          }
           continue;
         }
         if (roomTypes.some((rt) => isRoomAvailable(rt, date))) available.add(date);
