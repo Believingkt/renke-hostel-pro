@@ -199,13 +199,13 @@ serve(async (req) => {
       const individualCount = invites?.length ?? 0;
       const individualAchieved = personalMin > 0 && individualCount >= personalMin;
 
-      // 稀有度獎金：與 KolStatsTab 一致，改用 check_in_date 月份、不過濾 booking_status 與 is_error
+      // 稀有度獎金：以期別區間（check_in_date）查詢，與業績統計 Tab 對齊
       const { data: rarityInvites, error: rarityErr } = await supabase
         .from("kol_profiles")
         .select("rarity, kpi_qualified, check_in_date")
         .eq("scout_id", scout.user_id)
-        .gte("check_in_date", monthStart)
-        .lt("check_in_date", monthEnd)
+        .gte("check_in_date", periodStart)
+        .lt("check_in_date", periodEnd)
         .eq("kpi_qualified", true);
       if (rarityErr) throw rarityErr;
 
