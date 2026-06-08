@@ -99,12 +99,15 @@ export default function TeamCommission() {
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold">獎金管理</h2>
-      <Tabs defaultValue={showAdminTabs ? "payout" : "payouts"}>
+      <Tabs defaultValue="payouts">
         <TabsList>
+          <TabsTrigger value="payouts">發放管理</TabsTrigger>
           {showAdminTabs && <TabsTrigger value="payout">結算規則</TabsTrigger>}
           {showAdminTabs && <TabsTrigger value="multiplier">獎金加倍活動</TabsTrigger>}
-          <TabsTrigger value="payouts">發放管理</TabsTrigger>
         </TabsList>
+        <TabsContent value="payouts">
+          <PayoutsBlock scoutManagerOnly={scoutManagerOnly} readOnly={financeReadOnly} />
+        </TabsContent>
         {showAdminTabs && (
           <TabsContent value="payout">
             <PayoutRulesBlock readOnly={financeReadOnly} />
@@ -115,9 +118,6 @@ export default function TeamCommission() {
             <MultiplierBlock readOnly={financeReadOnly} />
           </TabsContent>
         )}
-        <TabsContent value="payouts">
-          <PayoutsBlock scoutManagerOnly={scoutManagerOnly} readOnly={financeReadOnly} />
-        </TabsContent>
       </Tabs>
     </div>
   );
