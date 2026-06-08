@@ -842,7 +842,7 @@ function InvitationsTab({
     setEditingId(null);
     setForm({
       ...EMPTY_FORM,
-      invited_at: todayStr(),
+      invited_at: "",
       // scout 角色：自動帶入登入者
       scout_id: currentUserId,
     });
@@ -860,7 +860,7 @@ function InvitationsTab({
       name: prefill.name,
       ig_handle: prefill.ig_handle,
       scout_id: prefill.scout_id || currentUserId,
-      invited_at: todayStr(),
+      invited_at: "",
     });
     setProspectLink(prefill.prospect_id);
     setDupWarning(null);
@@ -930,6 +930,11 @@ function InvitationsTab({
       toast.error("請輸入 IG 帳號");
       return;
     }
+    if (!form.invited_at) {
+      const ok = window.confirm("填寫日期尚未填寫，此 KOL 將不會列入邀約目標統計，確定要繼續儲存嗎？");
+      if (!ok) return;
+    }
+
 
     setSaving(true);
     const kpiEligible = !!form.check_in_date;
@@ -1366,8 +1371,8 @@ function InvitationsTab({
                         )}
                       </TableCell>
                       <TableCell>
-                        {r.created_at ? (
-                          r.created_at.slice(0, 10)
+                        {r.invited_at ? (
+                          r.invited_at.slice(0, 10)
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}
