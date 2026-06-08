@@ -172,21 +172,36 @@ serve(async (req) => {
       });
     }
 
-    // ===== 三、撈該月所有有效邀約（全部星探，供團隊獎金 + 個人判斷使用） =====
-    const { data: monthInvites, error: monthInvErr } = await supabase
+    // 抓取範圍：涵蓋期別區間 + 當月區間（用於底薪/團隊達標）
+    const monthStart = `${year}-${pad(month)}-01`;
+    const nextMonth = month === 12 ? 1 : month + 1;
+    const nextYear = month === 12 ? year + 1 : year;
+    const monthEndExclusive = `${nextYear}-${pad(nextMonth)}-01`;
+    const fetchStart = periodStart < monthStart ? periodStart : monthStart;
+    const fetchEndExclusive = periodEnd > monthEndExclusive ? periodEnd : monthEndExclusive;
+
+    // ===== 三、撈有效邀約（kpi_qualified + 非錯誤 + invited_at 非空 + check_in_date 在抓取範圍） =====
+    const { data: monthInvitesRaw, error: monthInvErr } = await supabase
       .from("kol_profiles")
       .select("scout_id, accommodation_id, rarity, check_in_date")
       .eq("is_error", false)
       .eq("kpi_qualified", true)
-      .eq("kpi_month", kpiMonth)
       .not("invited_at", "is", null)
-      .not("contract_file_url", "is", null)
-      .neq("contract_file_url", "");
+      .gte("check_in_date", fetchStart)
+      .lt("check_in_date", fetchEndExclusive);
     if (monthInvErr) throw monthInvErr;
 
-    const allMonthInvites = monthInvites ?? [];
+    const allInvites = monthInvitesRaw ?? [];
+    // 當月內（底薪/個人/團隊達標用）：check_in_date ∈ [monthStart, monthEndExclusive)
+    const allMonthInvites = allInvites.filter(
+      (i) => i.check_in_date && i.check_in_date >= monthStart && i.check_in_date < monthEndExclusive,
+    );
+    // 期別內（稀有度獎金用）：check_in_date ∈ [periodStart, periodEnd)
+    const allPeriodInvites = allInvites.filter(
+      (i) => i.check_in_date && i.check_in_date >= periodStart && i.check_in_date < periodEnd,
+    );
 
-    // ===== 七、團隊獎金：每個 scout_team_targets 館別總邀約數 >= target_count =====
+    // ===== 七、團隊獎金：每個 scout_team_targets 館別當月有效邀約數 >= target_count =====
     let teamAchieved = false;
     if (teamTargets.length > 0) {
       teamAchieved = true;
