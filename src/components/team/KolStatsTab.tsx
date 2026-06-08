@@ -286,13 +286,13 @@ export function KolStatsTab() {
           return d >= yearStart && d <= yearEnd;
         };
 
-        // PMS 內部 cid 蒐集（不限期別；訂單歸屬期別改由 orders.order_date 判斷）
+        // KOL 分潤 cid 蒐集：所有歷史 kpi_qualified=true 的 cid_code
         const cidByScout = new Map<string, string[]>();
         const allCidCodes = new Set<string>();
         for (const r of kolRows) {
           if (!r.scout_id) continue;
           if (!r.cid_code) continue;
-          if (!pmsVenues.has(r.venue_name ?? "")) continue;
+          if (r.kpi_qualified !== true) continue;
           const arr = cidByScout.get(r.scout_id) ?? [];
           if (!arr.includes(r.cid_code)) arr.push(r.cid_code);
           cidByScout.set(r.scout_id, arr);
