@@ -70,6 +70,7 @@ serve(async (req) => {
       profilesRes,
       rarityRes,
       accsRes,
+      tierRes,
     ] = await Promise.all([
       supabase
         .from("scout_salary_settings")
