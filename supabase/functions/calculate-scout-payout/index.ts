@@ -264,7 +264,10 @@ serve(async (req) => {
         achieved: boolean;
       }> = [];
 
-      if (isFulltime) {
+      // period=25 不做個人達標判斷（底薪/團隊獎金都不發）
+      if (period !== 10) {
+        individualAchieved = false;
+      } else if (isFulltime) {
         if (fulltimeByAcc.size === 0) {
           individualAchieved = false;
         } else {
