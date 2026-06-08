@@ -831,26 +831,37 @@ export function KolStatsTab() {
                       <div className="border rounded-md p-3 space-y-3 text-sm">
                         <div>
                           <div className="font-medium mb-1">各場域個人目標</div>
-                          {selectedScout.targets.length === 0 ? (
+                          {selectedScout.venueBreakdown.length === 0 ? (
                             <div className="text-muted-foreground">本月未設定目標</div>
                           ) : (
-                            <ul className="space-y-1">
-                              {selectedScout.targets.map((t, i) => (
-                                <li key={i} className="flex justify-between">
-                                  <span>{t.venue_name}</span>
-                                  <span className="tabular-nums">{t.personal_min} 件</span>
-                                </li>
-                              ))}
-                            </ul>
+                            <div className="overflow-x-auto border rounded-md">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead>場域</TableHead>
+                                    <TableHead className="text-right">目標</TableHead>
+                                    <TableHead className="text-right">實際</TableHead>
+                                    <TableHead className="text-right">狀態</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {selectedScout.venueBreakdown.map((v, i) => (
+                                    <TableRow key={i}>
+                                      <TableCell className="whitespace-nowrap">{v.venue_name}</TableCell>
+                                      <TableCell className="text-right tabular-nums">{v.personal_min} 件</TableCell>
+                                      <TableCell className="text-right tabular-nums">{v.actual} 件</TableCell>
+                                      <TableCell className={`text-right font-semibold ${v.achieved ? "text-green-600" : "text-orange-500"}`}>
+                                        {v.achieved ? "✓ 達標" : "✗ 未達標"}
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
                           )}
                         </div>
-                        <div className="flex justify-between border-t pt-2">
-                          <span>合計需達件數</span>
-                          <span className="tabular-nums font-semibold">{selectedScout.total_personal_min} 件</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>當月實際達成件數</span>
-                          <span className="tabular-nums font-semibold">{selectedScout.monthly_success_count} 件</span>
+                        <div className="text-xs text-muted-foreground">
+                          需所有館別皆達標才可領取底薪
                         </div>
                         <div className="flex justify-between">
                           <span>達標狀態</span>
