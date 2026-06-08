@@ -5955,9 +5955,8 @@ function SalarySettingsBlock({ isManager }: { isManager: boolean }) {
           <p className="text-sm text-muted-foreground">尚無設定</p>
         ) : (
           <div className="space-y-1 text-sm">
-            <div>個人目標達成底薪：{formatMoney(latest.base_salary)}</div>
+            <div>兼職個人目標達成底薪：{formatMoney(latest.base_salary)}</div>
             <div>團隊獎金金額：{formatMoney(latest.team_bonus)}</div>
-            <div>團隊達成門檻：{latest.team_threshold_pct}%</div>
             <div className="text-xs text-muted-foreground">生效日：{latest.effective_from}</div>
           </div>
         )}
