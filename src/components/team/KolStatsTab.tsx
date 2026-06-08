@@ -663,7 +663,7 @@ export function KolStatsTab() {
             <div>・稀有度獎金／KOL分潤：</div>
             <div className="pl-3">X月10日期別：上月21日 ～ 當月05日（整天）</div>
             <div className="pl-3">X月25日期別：當月06日 ～ 當月20日（整天）</div>
-            <div>・底薪／團隊獎金：以整月（當月01日～當月末日）達標為準，於當月10日期發放，25日期不發</div>
+            <div>・底薪／團隊獎金：僅於X月10日期發放，以上月（X-1月）整月達標為準</div>
             <div className="pt-2 font-medium">欄位計算方式：</div>
             <div>・「累積邀約」：星探主管在 KOL 名單將「符合資格」打勾的件數</div>
             <div>・「KOL分潤訂單」：匹配 PMS 民宿管理訂單列表的折扣代碼（不包含場域管理的民宿）</div>
