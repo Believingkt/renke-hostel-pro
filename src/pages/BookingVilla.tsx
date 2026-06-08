@@ -77,6 +77,64 @@ const BookingVilla = () => {
   const [availMinPrice, setAvailMinPrice] = useState<number | null>(null);
   const [availEarliestDate, setAvailEarliestDate] = useState<string | null>(null);
 
+  // 後台可編輯的包棟頁覆寫資料（信任標籤、Overview 標籤）+ Google 評論
+  const [extras, setExtras] = useState<{
+    villaTrustBadges: Array<{ icon: string; label: string }> | null;
+    villaOverviewLabels: {
+      rooms?: string | null;
+      capacity?: string | null;
+      size?: string | null;
+      region?: string | null;
+    } | null;
+    googleRating: number | null;
+    googleTotal: number | null;
+    googleTopReview: { text: string; author: string } | null;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!accId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("accommodation_info")
+        .select("villa_trust_badges, villa_overview_labels, google_reviews_cache")
+        .eq("id", accId)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      const cache = data.google_reviews_cache as any;
+      let topReview: { text: string; author: string } | null = null;
+      if (cache?.reviews && Array.isArray(cache.reviews) && cache.reviews.length > 0) {
+        const candidates = cache.reviews.filter((r: any) => r?.text && r.text.length > 5);
+        if (candidates.length > 0) {
+          const sorted = [...candidates].sort(
+            (a: any, b: any) => (b.rating || 0) - (a.rating || 0)
+          );
+          const r = sorted[0];
+          topReview = {
+            text: String(r.text).slice(0, 70),
+            author: r.authorName || "Google 使用者",
+          };
+        }
+      }
+      const badgesRaw = data.villa_trust_badges as any;
+      const labelsRaw = data.villa_overview_labels as any;
+      setExtras({
+        villaTrustBadges:
+          Array.isArray(badgesRaw) && badgesRaw.length > 0
+            ? badgesRaw.filter((b: any) => b?.label)
+            : null,
+        villaOverviewLabels:
+          labelsRaw && typeof labelsRaw === "object" ? labelsRaw : null,
+        googleRating: typeof cache?.rating === "number" ? cache.rating : null,
+        googleTotal: typeof cache?.totalReviews === "number" ? cache.totalReviews : null,
+        googleTopReview: topReview,
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [accId]);
+
   useEffect(() => {
     let lastY = window.scrollY;
     const onScroll = () => {
