@@ -842,7 +842,7 @@ function InvitationsTab({
     setEditingId(null);
     setForm({
       ...EMPTY_FORM,
-      invited_at: todayStr(),
+      invited_at: "",
       // scout 角色：自動帶入登入者
       scout_id: currentUserId,
     });
