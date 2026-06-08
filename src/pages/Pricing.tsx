@@ -498,7 +498,10 @@ const Pricing = () => {
             </Card>
           )}
           {!showForm && currentAccommodationId && (
-            <ExclusivePackageSettings accommodationId={currentAccommodationId} />
+            <>
+              <ExclusivePackageSettings accommodationId={currentAccommodationId} />
+              <VillaPageContentSettings accommodationId={currentAccommodationId} />
+            </>
           )}
         </TabsContent>
 
