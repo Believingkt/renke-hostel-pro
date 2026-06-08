@@ -353,7 +353,7 @@ serve(async (req) => {
         for (const o of orders ?? []) {
           const code = String(o.discount_code ?? "").toUpperCase();
           if (!code || !cidUpperSet.has(code)) continue;
-          kolCommission += (Number(o.final_price ?? 0) * commissionRate) / 100;
+          kolCommission += Number(o.final_price ?? 0) * commissionRate;
         }
         kolCommission = Math.round(kolCommission);
       }
