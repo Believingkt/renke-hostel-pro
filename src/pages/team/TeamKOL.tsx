@@ -6074,6 +6074,9 @@ function InvitationTargetsSettingsBlock({ isManager }: { isManager: boolean }) {
   const [deleteRow, setDeleteRow] = useState<InvitationTargetRow | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // 重複目標確認 Dialog
+  const [dupConfirmOpen, setDupConfirmOpen] = useState(false);
+
   useEffect(() => {
     (async () => {
       const { data } = await supabase
