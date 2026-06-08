@@ -5895,7 +5895,6 @@ function SalarySettingsBlock({ isManager }: { isManager: boolean }) {
   const [effectiveFrom, setEffectiveFrom] = useState(todayStr());
   const [base, setBase] = useState("3000");
   const [bonus, setBonus] = useState("2000");
-  const [threshold, setThreshold] = useState("50");
   const [saving, setSaving] = useState(false);
 
   const fetchRows = useCallback(async () => {
