@@ -134,6 +134,7 @@ export default function KolBonus() {
   const [drawerSettlement, setDrawerSettlement] = useState(false);
   const [filterYear, setFilterYear] = useState<number>(currentYear);
   const [filterMonth, setFilterMonth] = useState<string>(String(currentMonthNum)); // "all" | "1".."12"
+  const [tab1Search, setTab1Search] = useState<string>("");
   // 發放期別：以月份為單位（顯示為「M月10日」），代表完成業績/分潤所抓的退房月份
   const [payoutYear, setPayoutYear] = useState<number>(defaultPayoutYear);
   const [payoutPeriod, setPayoutPeriod] = useState<string>(String(defaultPayoutMonth));
