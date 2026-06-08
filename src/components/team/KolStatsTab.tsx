@@ -378,8 +378,18 @@ export function KolStatsTab() {
           }
         }
 
-        const monthStart = month ? `${effYear}-${pad(month)}-01` : null;
-        const monthEnd = month ? (month === 12 ? `${effYear + 1}-01-01` : `${effYear}-${pad(month + 1)}-01`) : null;
+        // ⚠️ 底薪／團隊獎金：僅於 period=10 發放，且以「上月整月」達標為準
+        // period=25 不發放底薪與團隊獎金，因此不需要計算 monthStart/monthEnd
+        let monthStart: string | null = null;
+        let monthEnd: string | null = null;
+        if (showSalary && month) {
+          const targetYear = month === 1 ? effYear - 1 : effYear;
+          const targetMonth = month === 1 ? 12 : month - 1;
+          monthStart = `${targetYear}-${pad(targetMonth)}-01`;
+          monthEnd = targetMonth === 12
+            ? `${targetYear + 1}-01-01`
+            : `${targetYear}-${pad(targetMonth + 1)}-01`;
+        }
 
         const results: ScoutStats[] = scouts.map((s) => {
           const rows = kolRows.filter((r) => r.scout_id === s.user_id);
@@ -461,8 +471,8 @@ export function KolStatsTab() {
 
           let monthlySuccess = 0;
           let individualAchieved = false;
-          if (month && monthStart && monthEnd) {
-            // 底薪/團隊達標：用當月 check_in_date 在當月1日~當月末日
+          if (showSalary && monthStart && monthEnd) {
+            // 底薪/團隊達標：使用上月整月 check_in_date（上月1日 ~ 上月末日）
             // + kpi_qualified=true + is_error=false + invited_at IS NOT NULL
             monthlySuccess = rows.filter(
               (r) =>
@@ -653,7 +663,7 @@ export function KolStatsTab() {
             <div>・稀有度獎金／KOL分潤：</div>
             <div className="pl-3">X月10日期別：上月21日 ～ 當月05日（整天）</div>
             <div className="pl-3">X月25日期別：當月06日 ～ 當月20日（整天）</div>
-            <div>・底薪／團隊獎金：以整月（當月01日～當月末日）達標為準，於當月10日期發放，25日期不發</div>
+            <div>・底薪／團隊獎金：僅於X月10日期發放，以上月（X-1月）整月達標為準</div>
             <div className="pt-2 font-medium">欄位計算方式：</div>
             <div>・「累積邀約」：星探主管在 KOL 名單將「符合資格」打勾的件數</div>
             <div>・「KOL分潤訂單」：匹配 PMS 民宿管理訂單列表的折扣代碼（不包含場域管理的民宿）</div>
