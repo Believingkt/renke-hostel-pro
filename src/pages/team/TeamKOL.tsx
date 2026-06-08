@@ -5969,7 +5969,6 @@ function SalarySettingsBlock({ isManager }: { isManager: boolean }) {
                   <TableHead>生效日</TableHead>
                   <TableHead>底薪</TableHead>
                   <TableHead>團隊獎金</TableHead>
-                  <TableHead>門檻</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -5978,7 +5977,6 @@ function SalarySettingsBlock({ isManager }: { isManager: boolean }) {
                     <TableCell>{r.effective_from}</TableCell>
                     <TableCell>{formatMoney(r.base_salary)}</TableCell>
                     <TableCell>{formatMoney(r.team_bonus)}</TableCell>
-                    <TableCell>{r.team_threshold_pct}%</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
