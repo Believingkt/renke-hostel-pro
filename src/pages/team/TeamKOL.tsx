@@ -5918,7 +5918,6 @@ function SalarySettingsBlock({ isManager }: { isManager: boolean }) {
     setEffectiveFrom(todayStr());
     setBase(String(latest?.base_salary ?? 3000));
     setBonus(String(latest?.team_bonus ?? 2000));
-    setThreshold(String(latest?.team_threshold_pct ?? 50));
     setOpen(true);
   };
 
