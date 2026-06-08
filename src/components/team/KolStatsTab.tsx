@@ -259,7 +259,7 @@ export function KolStatsTab() {
         const salary = salaryRes.data as SalaryRow | null;
         const baseSalary = Number(salary?.base_salary ?? 0);
         const teamBonusAmount = Number(salary?.team_bonus ?? 0);
-        const teamThresholdPct = Number(salary?.team_threshold_pct ?? 0);
+        void salary?.team_threshold_pct;
 
         const pmsVenues = new Set(((accsRes.data ?? []) as { name: string }[]).map((a) => a.name));
 
