@@ -89,6 +89,7 @@ interface KolProfileRow {
   order_number: string | null;
   is_error: boolean | null;
   venue_name: string | null;
+  invited_at: string | null;
 }
 
 interface ScoutStats {
