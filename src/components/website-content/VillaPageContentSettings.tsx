@@ -56,8 +56,8 @@ export function VillaPageContentSettings({ accommodationId }: Props) {
         .select("villa_trust_badges, villa_overview_labels")
         .eq("id", accommodationId)
         .maybeSingle();
-      const b = data?.villa_trust_badges as TrustBadge[] | null;
-      const l = data?.villa_overview_labels as OverviewLabels | null;
+      const b = data?.villa_trust_badges as unknown as TrustBadge[] | null;
+      const l = data?.villa_overview_labels as unknown as OverviewLabels | null;
       setBadges(Array.isArray(b) ? b : []);
       setLabels(l && typeof l === "object" ? l : {});
       setLoading(false);
