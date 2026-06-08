@@ -6488,6 +6488,24 @@ function InvitationTargetsSettingsBlock({ isManager }: { isManager: boolean }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* 重複目標覆蓋確認 */}
+      <AlertDialog open={dupConfirmOpen} onOpenChange={(o) => !o && setDupConfirmOpen(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>該場域此月份已存在邀約目標</AlertDialogTitle>
+            <AlertDialogDescription>
+              該場域在此月份的邀約目標已存在，確定要覆蓋更新嗎？此操作會影響夥伴的達標結果。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={saving}>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmOverwrite} disabled={saving}>
+              {saving ? "更新中..." : "確定覆蓋"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
