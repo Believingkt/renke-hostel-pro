@@ -378,8 +378,18 @@ export function KolStatsTab() {
           }
         }
 
-        const monthStart = month ? `${effYear}-${pad(month)}-01` : null;
-        const monthEnd = month ? (month === 12 ? `${effYear + 1}-01-01` : `${effYear}-${pad(month + 1)}-01`) : null;
+        // ⚠️ 底薪／團隊獎金：僅於 period=10 發放，且以「上月整月」達標為準
+        // period=25 不發放底薪與團隊獎金，因此不需要計算 monthStart/monthEnd
+        let monthStart: string | null = null;
+        let monthEnd: string | null = null;
+        if (showSalary && month) {
+          const targetYear = month === 1 ? effYear - 1 : effYear;
+          const targetMonth = month === 1 ? 12 : month - 1;
+          monthStart = `${targetYear}-${pad(targetMonth)}-01`;
+          monthEnd = targetMonth === 12
+            ? `${targetYear + 1}-01-01`
+            : `${targetYear}-${pad(targetMonth + 1)}-01`;
+        }
 
         const results: ScoutStats[] = scouts.map((s) => {
           const rows = kolRows.filter((r) => r.scout_id === s.user_id);
