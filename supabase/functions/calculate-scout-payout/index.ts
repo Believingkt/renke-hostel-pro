@@ -208,14 +208,22 @@ serve(async (req) => {
 
       let pmsOrderTotal = 0;
       if (cidCodes.length > 0) {
+        // 大小寫不敏感比對：先把 cidCodes 轉大寫成 Set
+        const cidUpperSet = new Set(cidCodes.map((c) => c.toUpperCase()));
+        // 月份區間用 order_date（period=10 → 上月21~當月5；period=25 → 當月6~當月20）
         const { data: orders, error: ordErr } = await supabase
           .from("orders")
-          .select("final_price")
-          .in("discount_code", cidCodes)
+          .select("final_price, discount_code")
+          .not("discount_code", "is", null)
+          .gte("order_date", periodStart)
+          .lt("order_date", periodEnd)
           .neq("order_status", "cancelled");
         if (ordErr) throw ordErr;
-        pmsOrderTotal = (orders ?? []).reduce((s, o) => s + Number(o.final_price || 0), 0);
+        pmsOrderTotal = (orders ?? [])
+          .filter((o) => o.discount_code && cidUpperSet.has(String(o.discount_code).toUpperCase()))
+          .reduce((s, o) => s + Number(o.final_price || 0), 0);
       }
+
 
       const commissionRate = commissionRateFor(individualCount);
       const kolCommission = Math.round(pmsOrderTotal * commissionRate);
