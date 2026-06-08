@@ -71,13 +71,6 @@ serve(async (req) => {
     const asOfDate = `${year}-${String(month).padStart(2, "0")}-28`;
 
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
-
-    const { start: monthStart, end: monthEnd } = monthRange(year, month);
-    const asOfDate = `${year}-${String(month).padStart(2, "0")}-28`;
 
     const [salaryRes, tierRes, rarityRes] = await Promise.all([
       supabase
