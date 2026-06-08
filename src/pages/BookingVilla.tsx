@@ -23,6 +23,18 @@ import {
   Sparkles,
   Clock,
   Car,
+  Wifi,
+  Coffee,
+  Heart,
+  Utensils,
+  Dog,
+  Baby,
+  Mountain,
+  Trees,
+  Waves,
+  Flame,
+  Music,
+  Snowflake,
 } from "lucide-react";
 import { differenceInDays, format, formatISO } from "date-fns";
 
@@ -52,6 +64,28 @@ import BookingInfoSection from "@/components/BookingInfoSection";
 import BookingFooter from "@/components/BookingFooter";
 import MobileBottomNav from "@/components/member/MobileBottomNav";
 
+// 信任標籤可選圖示對照（後台填字串 key，前台對應 lucide icon）
+export const TRUST_BADGE_ICONS: Record<string, typeof ShieldCheck> = {
+  "shield-check": ShieldCheck,
+  shield: ShieldCheck,
+  clock: Clock,
+  car: Car,
+  wifi: Wifi,
+  coffee: Coffee,
+  heart: Heart,
+  utensils: Utensils,
+  dog: Dog,
+  baby: Baby,
+  mountain: Mountain,
+  trees: Trees,
+  waves: Waves,
+  flame: Flame,
+  music: Music,
+  snowflake: Snowflake,
+  sparkles: Sparkles,
+};
+export const TRUST_BADGE_ICON_OPTIONS = Object.keys(TRUST_BADGE_ICONS);
+
 const BookingVilla = () => {
   const { accId } = useParams<{ accId: string }>();
   const navigate = useNavigate();
@@ -64,6 +98,64 @@ const BookingVilla = () => {
   const [availableDateSet, setAvailableDateSet] = useState<Set<string> | null>(null);
   const [availMinPrice, setAvailMinPrice] = useState<number | null>(null);
   const [availEarliestDate, setAvailEarliestDate] = useState<string | null>(null);
+
+  // 後台可編輯的包棟頁覆寫資料（信任標籤、Overview 標籤）+ Google 評論
+  const [extras, setExtras] = useState<{
+    villaTrustBadges: Array<{ icon: string; label: string }> | null;
+    villaOverviewLabels: {
+      rooms?: string | null;
+      capacity?: string | null;
+      size?: string | null;
+      region?: string | null;
+    } | null;
+    googleRating: number | null;
+    googleTotal: number | null;
+    googleTopReview: { text: string; author: string } | null;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!accId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("accommodation_info")
+        .select("villa_trust_badges, villa_overview_labels, google_reviews_cache")
+        .eq("id", accId)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      const cache = data.google_reviews_cache as any;
+      let topReview: { text: string; author: string } | null = null;
+      if (cache?.reviews && Array.isArray(cache.reviews) && cache.reviews.length > 0) {
+        const candidates = cache.reviews.filter((r: any) => r?.text && r.text.length > 5);
+        if (candidates.length > 0) {
+          const sorted = [...candidates].sort(
+            (a: any, b: any) => (b.rating || 0) - (a.rating || 0)
+          );
+          const r = sorted[0];
+          topReview = {
+            text: String(r.text).slice(0, 70),
+            author: r.authorName || "Google 使用者",
+          };
+        }
+      }
+      const badgesRaw = data.villa_trust_badges as any;
+      const labelsRaw = data.villa_overview_labels as any;
+      setExtras({
+        villaTrustBadges:
+          Array.isArray(badgesRaw) && badgesRaw.length > 0
+            ? badgesRaw.filter((b: any) => b?.label)
+            : null,
+        villaOverviewLabels:
+          labelsRaw && typeof labelsRaw === "object" ? labelsRaw : null,
+        googleRating: typeof cache?.rating === "number" ? cache.rating : null,
+        googleTotal: typeof cache?.totalReviews === "number" ? cache.totalReviews : null,
+        googleTopReview: topReview,
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [accId]);
 
   useEffect(() => {
     let lastY = window.scrollY;
@@ -298,9 +390,10 @@ const BookingVilla = () => {
       <StructuredData
         accommodationInfo={info}
         roomTypes={secondaryData?.roomTypes || []}
-        averageRating={4.8}
-        reviewCount={4}
+        averageRating={extras?.googleRating ?? undefined}
+        reviewCount={extras?.googleTotal ?? undefined}
       />
+
 
       {/* ── Sticky Header (Trip.com style: floating over hero on scroll-top) ── */}
       <header
@@ -376,17 +469,21 @@ const BookingVilla = () => {
               <h1 className="text-xl font-bold text-foreground leading-tight">
                 {info.name}
               </h1>
-              <p className="italic text-[13px] text-muted-foreground mt-0.5 tracking-wide">
-                — 山中の隱居・專屬包棟
-              </p>
+              {info.hero_subtitle && (
+                <p className="italic text-[13px] text-muted-foreground mt-0.5 tracking-wide">
+                  — {info.hero_subtitle}
+                </p>
+              )}
             </div>
-            <div
-              className="shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded text-white text-xs font-bold"
-              style={{ background: "hsl(25, 70%, 50%)" }}
-            >
-              <Star className="h-3 w-3 fill-current" />
-              4.8
-            </div>
+            {extras?.googleRating != null && (
+              <div
+                className="shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded text-white text-xs font-bold"
+                style={{ background: "hsl(25, 70%, 50%)" }}
+              >
+                <Star className="h-3 w-3 fill-current" />
+                {extras.googleRating.toFixed(1)}
+              </div>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mb-2">
@@ -406,19 +503,23 @@ const BookingVilla = () => {
             )}
           </div>
 
-          {/* Latest social-proof review snippet */}
-          <div
-            className="mt-1.5 rounded-lg px-2.5 py-1.5 text-[11px] leading-snug border"
-            style={{
-              background: "hsl(25, 70%, 97%)",
-              borderColor: "hsl(25, 50%, 88%)",
-              color: "hsl(25, 40%, 30%)",
-            }}
-          >
-            <span className="text-amber-500 mr-1">★★★★★</span>
-            「整棟超寬敞，三代同遊剛好！老闆超親切，下次還要再來。」
-            <span className="text-muted-foreground"> — 林小姐 · 上週入住</span>
-          </div>
+          {/* Latest social-proof review snippet (來自 Google 評論快取，沒有就不顯示) */}
+          {extras?.googleTopReview && (
+            <div
+              className="mt-1.5 rounded-lg px-2.5 py-1.5 text-[11px] leading-snug border"
+              style={{
+                background: "hsl(25, 70%, 97%)",
+                borderColor: "hsl(25, 50%, 88%)",
+                color: "hsl(25, 40%, 30%)",
+              }}
+            >
+              <span className="text-amber-500 mr-1">★★★★★</span>
+              「{extras.googleTopReview.text}」
+              <span className="text-muted-foreground">
+                {" "}— {extras.googleTopReview.author}
+              </span>
+            </div>
+          )}
         </section>
 
         {/* ── 3. Villa Overview (warmer labels) ── */}
@@ -429,26 +530,27 @@ const BookingVilla = () => {
             maxCapacity={villaStats.maxCapacity}
             totalSize={villaStats.totalSize}
             region={region}
+            labels={extras?.villaOverviewLabels}
           />
         )}
 
-        {/* ── Trust signals row ── */}
-        <section className="px-4 py-2.5 bg-card border-b border-border/40">
-          <div className="flex items-center justify-around gap-1 text-[11px] text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-              7 天可取消
-            </span>
-            <span className="flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5 text-emerald-600" />
-              24h 管家
-            </span>
-            <span className="flex items-center gap-1">
-              <Car className="h-3.5 w-3.5 text-emerald-600" />
-              免費停車
-            </span>
-          </div>
-        </section>
+        {/* ── Trust signals row（後台未設定則隱藏） ── */}
+        {extras?.villaTrustBadges && extras.villaTrustBadges.length > 0 && (
+          <section className="px-4 py-2.5 bg-card border-b border-border/40">
+            <div className="flex items-center justify-around gap-1 text-[11px] text-muted-foreground">
+              {extras.villaTrustBadges.map((b, i) => {
+                const Icon = TRUST_BADGE_ICONS[b.icon] || ShieldCheck;
+                return (
+                  <span key={i} className="flex items-center gap-1">
+                    <Icon className="h-3.5 w-3.5 text-emerald-600" />
+                    {b.label}
+                  </span>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
 
         {/* ── Price anchor banner（今天 ~ 下個月月底實際空房，剩 <10 天才顯示 · 促銷風格） ── */}
         {(() => {
