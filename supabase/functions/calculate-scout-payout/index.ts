@@ -114,6 +114,27 @@ serve(async (req) => {
     if (profilesRes.error) throw profilesRes.error;
     if (rarityRes.error) throw rarityRes.error;
     if (accsRes.error) throw accsRes.error;
+    if (tierRes.error) throw tierRes.error;
+
+    // 等級階梯：依 effective_from desc 取最新版本（同 min_count 只保留最新）
+    const tierMap = new Map<string, { min: number; max: number | null; rate: number }>();
+    for (const t of tierRes.data ?? []) {
+      const key = `${t.min_count}-${t.max_count ?? "inf"}`;
+      if (!tierMap.has(key)) {
+        tierMap.set(key, {
+          min: Number(t.min_count),
+          max: t.max_count == null ? null : Number(t.max_count),
+          rate: Number(t.commission_rate ?? 0),
+        });
+      }
+    }
+    const tiers = [...tierMap.values()].sort((a, b) => a.min - b.min);
+    function commissionRateFor(count: number): number {
+      for (const t of tiers) {
+        if (count >= t.min && (t.max == null || count <= t.max)) return t.rate;
+      }
+      return 0;
+    }
 
     const salarySetting = salaryRes.data;
     const baseSalaryAmount = Number(salarySetting?.base_salary ?? 0);
