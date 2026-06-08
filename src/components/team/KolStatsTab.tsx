@@ -14,8 +14,17 @@ function pad(n: number) {
   return String(n).padStart(2, "0");
 }
 
-/** 期別 → 日期區間（依 check_in_date）。null = 不限日期 */
-function periodRange(year: number, period: string): { start: string; end: string } | null {
+/**
+ * 期別 → 日期區間。
+ * start：含當日 00:00；endExclusive：結束日次日 00:00（不含）。
+ * 與 calculate-scout-payout Edge Function 對齊：[start, endExclusive)
+ * - period=10：上月21 ~ 當月05（含），endExclusive = 當月06
+ * - period=25：當月06 ~ 當月20（含），endExclusive = 當月21
+ */
+function periodRange(
+  year: number,
+  period: string,
+): { start: string; end: string; endExclusive: string } | null {
   if (period === "all") return null;
   const m = Number(period.split("-")[0]);
   const d = Number(period.split("-")[1]);
@@ -27,9 +36,17 @@ function periodRange(year: number, period: string): { start: string; end: string
       pm = 12;
       py = year - 1;
     }
-    return { start: `${py}-${pad(pm)}-21`, end: `${year}-${pad(m)}-05` };
+    return {
+      start: `${py}-${pad(pm)}-21`,
+      end: `${year}-${pad(m)}-05`,
+      endExclusive: `${year}-${pad(m)}-06`,
+    };
   }
-  return { start: `${year}-${pad(m)}-06`, end: `${year}-${pad(m)}-20` };
+  return {
+    start: `${year}-${pad(m)}-06`,
+    end: `${year}-${pad(m)}-20`,
+    endExclusive: `${year}-${pad(m)}-21`,
+  };
 }
 
 function periodMonth(period: string): number | null {
@@ -319,17 +336,23 @@ export function KolStatsTab() {
           }
         >();
         if (allCidCodes.size > 0) {
-          // orders.discount_code 都是大寫，kol_profiles.cid_code 多為小寫，
-          // 查詢前統一轉大寫；orderMap 也以大寫為 key，查找時亦轉大寫。
-          const upperCidCodes = Array.from(allCidCodes).map((c) => c.toUpperCase());
+          // 與 Edge Function (calculate-scout-payout) 對齊：
+          // 1) 不用 .in() — PostgREST .in() 大小寫敏感，會漏掉 DB 中小寫的 discount_code（例: fancy10）
+          // 2) order_date 是 timestamptz，期別結束日要用 exclusive 次日（endExclusive），
+          //    避免 .lte("order_date", "YYYY-MM-DD") 因被當成當日 00:00 而漏掉當天訂單
+          // 3) 全期間 fetch 後在 JS 端 toUpperCase 比對 cidUpperSet
+          const cidUpperSet = new Set(
+            Array.from(allCidCodes)
+              .map((c) => c.trim().toUpperCase())
+              .filter((c) => !!c),
+          );
           let q = supabase
             .from("orders")
             .select("order_number, discount_code, final_price, created_at, order_date")
-            .in("discount_code", upperCidCodes)
+            .not("discount_code", "is", null)
             .neq("order_status", "cancelled");
-          // 依 order_date 篩選期別（全年不限）
           if (range) {
-            q = q.gte("order_date", range.start).lte("order_date", range.end);
+            q = q.gte("order_date", range.start).lt("order_date", range.endExclusive);
           }
           const { data: orders, error: ordErr } = await q;
           if (ordErr) throw ordErr;
@@ -341,7 +364,8 @@ export function KolStatsTab() {
               created_at: string | null;
             };
             if (!row.discount_code) continue;
-            const key = row.discount_code.toUpperCase();
+            const key = row.discount_code.trim().toUpperCase();
+            if (!cidUpperSet.has(key)) continue;
             const entry = orderMap.get(key) ?? { count: 0, total: 0, orders: [] };
             entry.count += 1;
             entry.total += Number(row.final_price || 0);
