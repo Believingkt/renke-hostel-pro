@@ -427,13 +427,16 @@ export function KolStatsTab() {
           let monthlySuccess = 0;
           let individualAchieved = false;
           if (month && monthStart && monthEnd) {
+            // 底薪/團隊達標：用當月 check_in_date 在當月1日~當月末日
+            // + kpi_qualified=true + is_error=false + invited_at IS NOT NULL
             monthlySuccess = rows.filter(
               (r) =>
-                r.booking_status === "成功訂房" &&
+                r.kpi_qualified === true &&
                 !r.is_error &&
-                r.kpi_month &&
-                r.kpi_month >= monthStart &&
-                r.kpi_month < monthEnd,
+                !!r.invited_at &&
+                r.check_in_date &&
+                r.check_in_date >= monthStart &&
+                r.check_in_date < monthEnd,
             ).length;
             individualAchieved = totalPersonalMin > 0 && monthlySuccess >= totalPersonalMin;
           }
