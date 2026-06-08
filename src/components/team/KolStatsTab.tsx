@@ -476,19 +476,36 @@ export function KolStatsTab() {
 
           let monthlySuccess = 0;
           let individualAchieved = false;
+          let venueBreakdown: ScoutStats["venueBreakdown"] = [];
           if (showSalary && monthStart && monthEnd) {
-            // 底薪/團隊達標：使用上月整月 check_in_date（上月1日 ~ 上月末日）
-            // + kpi_qualified=true + is_error=false + invited_at IS NOT NULL
-            monthlySuccess = rows.filter(
+            // 底薪/個人達標：上月整月 check_in_date + kpi_qualified + 非錯誤 + invited_at 非空
+            // 各館各自比對 personal_min（與 Edge Function 對齊）
+            const monthRows = rows.filter(
               (r) =>
                 r.kpi_qualified === true &&
                 !r.is_error &&
                 !!r.invited_at &&
                 r.check_in_date &&
-                r.check_in_date >= monthStart &&
-                r.check_in_date < monthEnd,
-            ).length;
-            individualAchieved = totalPersonalMin > 0 && monthlySuccess >= totalPersonalMin;
+                r.check_in_date >= monthStart! &&
+                r.check_in_date < monthEnd!,
+            );
+            monthlySuccess = monthRows.length;
+            if (targetsList.length === 0) {
+              individualAchieved = false;
+            } else {
+              individualAchieved = true;
+              venueBreakdown = targetsList.map((t) => {
+                const actual = monthRows.filter((r) => (r.venue_name ?? "—") === t.venue_name).length;
+                const achieved = actual >= t.personal_min;
+                if (!achieved) individualAchieved = false;
+                return {
+                  venue_name: t.venue_name,
+                  personal_min: t.personal_min,
+                  actual,
+                  achieved,
+                };
+              });
+            }
           }
           const baseSalaryPayout = showSalary && s.is_scout_team_member && individualAchieved ? baseSalary : 0;
 
@@ -512,6 +529,7 @@ export function KolStatsTab() {
             total: 0,
             targets: targetsList,
             total_personal_min: totalPersonalMin,
+            venueBreakdown,
             qualifiedKols,
             orderItems,
           };
