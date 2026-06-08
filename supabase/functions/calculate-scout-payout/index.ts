@@ -307,12 +307,8 @@ serve(async (req) => {
 
       // ===== 五、稀有度獎金（check_in_date 落在 period 區間） =====
       let rarityBonus = 0;
-      for (const inv of myMonthInvites) {
-        if (!inv.check_in_date) continue;
-        const cd = inv.check_in_date as string;
-        if (cd >= periodStart && cd < periodEnd && inv.rarity) {
-          rarityBonus += rarityMap.get(inv.rarity) ?? 0;
-        }
+      for (const inv of myPeriodInvites) {
+        if (inv.rarity) rarityBonus += rarityMap.get(inv.rarity) ?? 0;
       }
 
       // ===== 六、KOL 分潤（依 scout_tier_settings 等級階梯） =====
