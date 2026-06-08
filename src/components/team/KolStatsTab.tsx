@@ -264,10 +264,13 @@ export function KolStatsTab() {
         const pmsVenues = new Set(((accsRes.data ?? []) as { name: string }[]).map((a) => a.name));
 
         const targetRows = (targetsRes.data ?? []) as TargetRow[];
-        const targetsList = targetRows.map((t) => ({
-          venue_name: t.venue_name ?? "—",
-          personal_min: Number(t.personal_min || 0),
-        }));
+        const targetsList = targetRows
+          .filter((t) => Number(t.personal_min || 0) > 0)
+          .map((t) => ({
+            venue_name: t.venue_name ?? "—",
+            personal_min: Number(t.personal_min || 0),
+            target_count: Number(t.target_count || 0),
+          }));
         const totalPersonalMin = targetsList.reduce((s, t) => s + t.personal_min, 0);
 
         if (scoutIds.length === 0) {
