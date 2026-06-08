@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { RoomTypeForm } from "@/components/RoomTypeForm";
 import { RoomFacilitiesForm } from "@/components/RoomFacilitiesForm";
 import { ExclusivePackageSettings } from "@/components/website-content/ExclusivePackageSettings";
+import { VillaPageContentSettings } from "@/components/website-content/VillaPageContentSettings";
 import { PricingTemplateManager, PricingTemplateManagerRef } from "@/components/PricingTemplateManager";
 import { TabsSkeleton } from "@/components/skeletons/TabsSkeleton";
 import { EmptyState } from "@/components/EmptyState";
