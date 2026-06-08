@@ -231,9 +231,12 @@ Deno.serve(async (req) => {
         foundBy: orderSource,
       });
 
-      // Check if order already has this transaction recorded (prevent duplicate updates)
-      if (order.notes?.includes(rec_trade_id)) {
-        console.log('[tappay-notify] Transaction already recorded in order, skipping update');
+      // Dedup: only skip if a previous webhook (not the initial atm-create note) already recorded this trade.
+      // The atm-create step writes `[ATM] ... (rec_trade_id: ...)` which also contains rec_trade_id; we must
+      // not let that block the real `[ATM Webhook]` payment confirmation.
+      const webhookTagPattern = new RegExp(`\\[(ATM|3DS) Webhook\\][^\\n]*${rec_trade_id}`);
+      if (order.notes && webhookTagPattern.test(order.notes)) {
+        console.log('[tappay-notify] Webhook for this rec_trade_id already processed, skipping');
         return new Response(
           JSON.stringify({
             status: 'ok',
@@ -244,6 +247,7 @@ Deno.serve(async (req) => {
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+
 
       if (isSuccess) {
         // 偵測是否為 ATM 入帳
