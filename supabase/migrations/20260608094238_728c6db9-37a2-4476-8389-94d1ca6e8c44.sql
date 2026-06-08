@@ -1,0 +1,1 @@
+UPDATE public.kol_profiles SET invited_at = NULL WHERE invited_at IS NOT NULL;
