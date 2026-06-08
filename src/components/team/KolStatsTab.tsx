@@ -471,8 +471,8 @@ export function KolStatsTab() {
 
           let monthlySuccess = 0;
           let individualAchieved = false;
-          if (month && monthStart && monthEnd) {
-            // 底薪/團隊達標：用當月 check_in_date 在當月1日~當月末日
+          if (showSalary && monthStart && monthEnd) {
+            // 底薪/團隊達標：使用上月整月 check_in_date（上月1日 ~ 上月末日）
             // + kpi_qualified=true + is_error=false + invited_at IS NOT NULL
             monthlySuccess = rows.filter(
               (r) =>
