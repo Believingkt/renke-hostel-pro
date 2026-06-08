@@ -14,19 +14,11 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
-function monthRange(year: number, month: number): { start: string; end: string } {
-  const start = `${year}-${String(month).padStart(2, "0")}-01`;
-  const nextMonth = month === 12 ? 1 : month + 1;
-  const nextYear = month === 12 ? year + 1 : year;
-  const end = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`;
-  return { start, end };
-}
+const pad = (n: number) => String(n).padStart(2, "0");
 
-// 期別對應的 check_in_date 區間（含起、含迄）
-// period=10 → 上月 21 ~ 當月 5
-// period=25 → 當月 6 ~ 當月 20
-function periodRange(year: number, month: number, period: 10 | 25): { startDate: string; endExclusive: string } {
-  const pad = (n: number) => String(n).padStart(2, "0");
+// period=10 → 上月21日 ~ 當月5日
+// period=25 → 當月6日 ~ 當月20日
+function periodRange(year: number, month: number, period: 10 | 25) {
   if (period === 10) {
     const prevMonth = month === 1 ? 12 : month - 1;
     const prevYear = month === 1 ? year - 1 : year;
@@ -40,7 +32,6 @@ function periodRange(year: number, month: number, period: 10 | 25): { startDate:
     endExclusive: `${year}-${pad(month)}-21`,
   };
 }
-
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -66,264 +57,353 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const { start: monthStart, end: monthEnd } = monthRange(year, month);
     const { startDate: periodStart, endExclusive: periodEnd } = periodRange(year, month, period);
-    const asOfDate = `${year}-${String(month).padStart(2, "0")}-28`;
+    const kpiMonth = `${year}-${pad(month)}-01`;
+    const asOfDate = `${year}-${pad(month)}-28`;
+    const currentYM = `${year}-${pad(month)}`;
 
-
-
-    const [salaryRes, tierRes, rarityRes] = await Promise.all([
+    // ===== 一、讀取設定 =====
+    const [
+      salaryRes,
+      teamTargetsRes,
+      fulltimeTargetsRes,
+      profilesRes,
+      rarityRes,
+      accsRes,
+    ] = await Promise.all([
       supabase
         .from("scout_salary_settings")
-        .select("base_salary, team_bonus, team_threshold_pct, effective_from")
+        .select("base_salary, team_bonus, effective_from")
         .lte("effective_from", asOfDate)
         .order("effective_from", { ascending: false })
         .limit(1)
         .maybeSingle(),
       supabase
-        .from("scout_tier_settings")
-        .select("min_count, max_count, commission_rate, effective_from")
-        .lte("effective_from", asOfDate)
-        .order("effective_from", { ascending: false }),
+        .from("scout_team_targets")
+        .select("accommodation_id, personal_min, target_count, venue_name")
+        .eq("year", year)
+        .eq("month", month),
+      supabase
+        .from("scout_fulltime_targets")
+        .select("venue_name, fulltime_min")
+        .eq("year", year)
+        .eq("month", month),
+      supabase
+        .from("team_member_profiles")
+        .select("user_id, display_name, employment_type, fulltime_start_yearmonth, managed_venue")
+        .eq("is_scout_team_member", true),
       supabase
         .from("kol_rarity_settings")
         .select("rarity, bonus_amount, effective_from")
         .lte("effective_from", asOfDate)
         .order("effective_from", { ascending: false }),
+      supabase
+        .from("accommodation_info")
+        .select("id, name"),
     ]);
 
     if (salaryRes.error) throw salaryRes.error;
-    if (tierRes.error) throw tierRes.error;
+    if (teamTargetsRes.error) throw teamTargetsRes.error;
+    if (fulltimeTargetsRes.error) throw fulltimeTargetsRes.error;
+    if (profilesRes.error) throw profilesRes.error;
     if (rarityRes.error) throw rarityRes.error;
+    if (accsRes.error) throw accsRes.error;
 
     const salarySetting = salaryRes.data;
-    if (!salarySetting) {
-      return jsonResponse({ success: false, error: "No scout_salary_settings found" }, 400);
-    }
-    const baseSalary = Number(salarySetting.base_salary || 0);
-    const teamBonusAmount = Number(salarySetting.team_bonus || 0);
-    const teamThresholdPct = Number(salarySetting.team_threshold_pct || 0);
+    const baseSalaryAmount = Number(salarySetting?.base_salary ?? 0);
+    const teamBonusAmount = Number(salarySetting?.team_bonus ?? 0);
 
-    const tierMap = new Map<string, { min: number; max: number | null; rate: number }>();
-    for (const t of tierRes.data ?? []) {
-      const key = `${t.min_count}-${t.max_count ?? "inf"}`;
-      if (!tierMap.has(key)) {
-        tierMap.set(key, {
-          min: Number(t.min_count),
-          max: t.max_count == null ? null : Number(t.max_count),
-          rate: Number(t.commission_rate || 0),
-        });
-      }
-    }
-    const tiers = [...tierMap.values()].sort((a, b) => a.min - b.min);
+    const teamTargets = teamTargetsRes.data ?? [];
+    const fulltimeTargets = fulltimeTargetsRes.data ?? [];
+    const profiles = profilesRes.data ?? [];
 
+    // venue_name → accommodation_id
+    const venueToAccId = new Map<string, string>();
+    for (const a of accsRes.data ?? []) {
+      if (a.name) venueToAccId.set(a.name, a.id as string);
+    }
+
+    // 正職目標 venue_name → accommodation_id + fulltime_min
+    const fulltimeByAcc = new Map<string, number>();
+    for (const t of fulltimeTargets) {
+      const accId = venueToAccId.get(t.venue_name ?? "");
+      if (accId) fulltimeByAcc.set(accId, Number(t.fulltime_min ?? 0));
+    }
+
+    // 稀有度獎金：取每個 rarity 最新一筆
     const rarityMap = new Map<string, number>();
     for (const r of rarityRes.data ?? []) {
-      if (!rarityMap.has(r.rarity)) rarityMap.set(r.rarity, Number(r.bonus_amount || 0));
+      if (!rarityMap.has(r.rarity)) rarityMap.set(r.rarity, Number(r.bonus_amount ?? 0));
     }
 
-    function commissionRateFor(count: number): number {
-      for (const t of tiers) {
-        if (count >= t.min && (t.max == null || count <= t.max)) return t.rate;
+    if (profiles.length === 0) {
+      return jsonResponse({
+        success: true,
+        year, month, period,
+        scouts_calculated: 0,
+        results: [],
+      });
+    }
+
+    // ===== 三、撈該月所有有效邀約（全部星探，供團隊獎金 + 個人判斷使用） =====
+    const { data: monthInvites, error: monthInvErr } = await supabase
+      .from("kol_profiles")
+      .select("scout_id, accommodation_id, rarity, check_in_date")
+      .eq("is_error", false)
+      .eq("kpi_qualified", true)
+      .eq("kpi_month", kpiMonth)
+      .not("invited_at", "is", null)
+      .not("contract_file_url", "is", null)
+      .neq("contract_file_url", "");
+    if (monthInvErr) throw monthInvErr;
+
+    const allMonthInvites = monthInvites ?? [];
+
+    // ===== 七、團隊獎金：每個 scout_team_targets 館別總邀約數 >= target_count =====
+    let teamAchieved = false;
+    if (teamTargets.length > 0) {
+      teamAchieved = true;
+      for (const t of teamTargets) {
+        const cnt = allMonthInvites.filter(
+          (i) => i.accommodation_id === t.accommodation_id,
+        ).length;
+        if (cnt < Number(t.target_count ?? 0)) {
+          teamAchieved = false;
+          break;
+        }
       }
-      return 0;
     }
 
-    const { data: profiles, error: profErr } = await supabase
-      .from("team_member_profiles")
-      .select("user_id, display_name, managed_venue")
-      .eq("is_scout_team_member", true);
-    if (profErr) throw profErr;
-
-    if (!profiles || profiles.length === 0) {
-      return jsonResponse({ success: true, year, month, scouts_calculated: 0, results: [] });
-    }
-
-    // 只要 is_scout_team_member = true 即納入計算，不再限定 role
-    const scouts = profiles;
-
-
-    const { data: targets, error: targetsErr } = await supabase
-      .from("scout_team_targets")
-      .select("venue_name, personal_min, target_count, accommodation_id")
-      .eq("year", year)
-      .eq("month", month);
-    if (targetsErr) throw targetsErr;
-    const totalPersonalMin = (targets ?? []).reduce(
-      (s, t) => s + Number(t.personal_min || 0),
-      0,
-    );
-
-    const { data: accs, error: accsErr } = await supabase
-      .from("accommodation_info")
-      .select("name");
-    if (accsErr) throw accsErr;
-    const pmsVenues = new Set((accs ?? []).map((a) => a.name));
-
+    // ===== 為每位星探計算 =====
     type ScoutCalc = {
       scout_id: string;
       display_name: string;
-      managed_venue: string | null;
-      personal_min: number;
-      individual_count: number;
+      employment_type: string | null;
+      is_fulltime: boolean;
       individual_achieved: boolean;
       base_salary: number;
       rarity_bonus: number;
       kol_commission: number;
-      commission_rate: number;
-      pms_order_total: number;
-      cidCodes: string[];
+      team_bonus: number;
+      total_payout: number;
+      individual_target_snapshot: Record<string, unknown>;
+      team_target_snapshot: Record<string, unknown>;
     };
 
-    const calcs: ScoutCalc[] = [];
+    const results: ScoutCalc[] = [];
+    const calculatedAt = new Date().toISOString();
 
-    for (const scout of scouts) {
-      const personalMin = totalPersonalMin;
+    for (const scout of profiles) {
+      const scoutId = scout.user_id as string;
+      const startYM = scout.fulltime_start_yearmonth as string | null;
+      const isFulltime =
+        scout.employment_type === "fulltime" &&
+        !!startYM &&
+        startYM <= currentYM;
 
-      // 個人件數 + 稀有度獎金：以期別區間（check_in_date）+ kpi_qualified=true 查詢
-      const { data: invites, error: invErr } = await supabase
-        .from("kol_profiles")
-        .select("rarity, kpi_qualified, cid_code, venue_name, check_in_date")
-        .eq("scout_id", scout.user_id)
-        .gte("check_in_date", periodStart)
-        .lt("check_in_date", periodEnd)
-        .eq("kpi_qualified", true);
-      if (invErr) throw invErr;
+      // 該星探本月有效邀約（subset of allMonthInvites）
+      const myMonthInvites = allMonthInvites.filter((i) => i.scout_id === scoutId);
 
-      const individualCount = invites?.length ?? 0;
-      const individualAchieved = personalMin > 0 && individualCount >= personalMin;
+      // ===== 四、個人達標 =====
+      let individualAchieved = false;
+      const venueBreakdown: Array<{
+        accommodation_id: string;
+        venue_name?: string | null;
+        required: number;
+        actual: number;
+        achieved: boolean;
+      }> = [];
 
+      if (isFulltime) {
+        if (fulltimeByAcc.size === 0) {
+          individualAchieved = false;
+        } else {
+          individualAchieved = true;
+          for (const [accId, minCount] of fulltimeByAcc.entries()) {
+            const actual = myMonthInvites.filter(
+              (i) =>
+                i.accommodation_id === accId &&
+                ["SR", "SSR", "UR"].includes(i.rarity ?? ""),
+            ).length;
+            const achieved = actual >= minCount;
+            if (!achieved) individualAchieved = false;
+            venueBreakdown.push({
+              accommodation_id: accId,
+              required: minCount,
+              actual,
+              achieved,
+            });
+          }
+        }
+      } else {
+        if (teamTargets.length === 0) {
+          individualAchieved = false;
+        } else {
+          individualAchieved = true;
+          for (const t of teamTargets) {
+            const required = Number(t.personal_min ?? 0);
+            const actual = myMonthInvites.filter(
+              (i) => i.accommodation_id === t.accommodation_id,
+            ).length;
+            const achieved = actual >= required;
+            if (!achieved) individualAchieved = false;
+            venueBreakdown.push({
+              accommodation_id: t.accommodation_id as string,
+              venue_name: t.venue_name as string | null,
+              required,
+              actual,
+              achieved,
+            });
+          }
+        }
+      }
+
+      // 底薪：兼職 period=10 且達標→base；正職一律 0
+      const baseSalary =
+        !isFulltime && period === 10 && individualAchieved ? baseSalaryAmount : 0;
+
+      // ===== 五、稀有度獎金（check_in_date 落在 period 區間） =====
       let rarityBonus = 0;
-      for (const inv of invites ?? []) {
-        if (inv.rarity) {
+      for (const inv of myMonthInvites) {
+        if (!inv.check_in_date) continue;
+        const cd = inv.check_in_date as string;
+        if (cd >= periodStart && cd < periodEnd && inv.rarity) {
           rarityBonus += rarityMap.get(inv.rarity) ?? 0;
         }
       }
 
-      // KOL 分潤 cidCodes：撈該星探「所有歷史 kpi_qualified=true」的 cid_code（不限期別），
-      // 再用 order_date 篩本期訂單，避免 KOL 入住日與訂單日跨期別時漏算
-      const { data: allInvites, error: allInvErr } = await supabase
+      // ===== 六、KOL 分潤 =====
+      // 1) 取該星探所有歷史 kpi_qualified=true 的 cid_code
+      const { data: allQualified, error: allQErr } = await supabase
         .from("kol_profiles")
-        .select("cid_code, venue_name")
-        .eq("scout_id", scout.user_id)
-        .eq("kpi_qualified", true);
-      if (allInvErr) throw allInvErr;
+        .select("cid_code")
+        .eq("scout_id", scoutId)
+        .eq("kpi_qualified", true)
+        .not("cid_code", "is", null);
+      if (allQErr) throw allQErr;
 
-      const cidCodes = (allInvites ?? [])
-        .filter((i) => i.cid_code && pmsVenues.has(i.venue_name ?? ""))
-        .map((i) => i.cid_code as string);
+      const cidUpperSet = new Set(
+        (allQualified ?? [])
+          .map((r) => (r.cid_code as string | null)?.trim())
+          .filter((c): c is string => !!c)
+          .map((c) => c.toUpperCase()),
+      );
 
-      let pmsOrderTotal = 0;
-      if (cidCodes.length > 0) {
-        const cidUpperSet = new Set(cidCodes.map((c) => c.toUpperCase()));
-        // 月份區間用 order_date（period=10 → 上月21~當月5；period=25 → 當月6~當月20）
+      // 2) 取該星探 scout_discount_codes（取得 scout_rate 對應）
+      const { data: scoutCodes, error: scErr } = await supabase
+        .from("scout_discount_codes")
+        .select("discount_code, scout_rate")
+        .eq("scout_id", scoutId);
+      if (scErr) throw scErr;
+
+      const rateMap = new Map<string, number>();
+      for (const c of scoutCodes ?? []) {
+        if (c.discount_code) {
+          rateMap.set(
+            (c.discount_code as string).toUpperCase(),
+            Number(c.scout_rate ?? 0),
+          );
+        }
+      }
+
+      let kolCommission = 0;
+      if (cidUpperSet.size > 0) {
         const { data: orders, error: ordErr } = await supabase
           .from("orders")
-          .select("final_price, discount_code")
+          .select("final_price, discount_code, order_date")
           .not("discount_code", "is", null)
           .gte("order_date", periodStart)
           .lt("order_date", periodEnd)
           .neq("order_status", "cancelled");
         if (ordErr) throw ordErr;
-        pmsOrderTotal = (orders ?? [])
-          .filter((o) => o.discount_code && cidUpperSet.has(String(o.discount_code).toUpperCase()))
-          .reduce((s, o) => s + Number(o.final_price || 0), 0);
+
+        for (const o of orders ?? []) {
+          const code = String(o.discount_code ?? "").toUpperCase();
+          if (!code || !cidUpperSet.has(code)) continue;
+          const rate = rateMap.get(code) ?? 0;
+          if (rate <= 0) continue;
+          kolCommission += (Number(o.final_price ?? 0) * rate) / 100;
+        }
+        kolCommission = Math.round(kolCommission);
       }
 
+      // ===== 團隊獎金 =====
+      const teamBonus = teamAchieved ? teamBonusAmount : 0;
 
-      const commissionRate = commissionRateFor(individualCount);
-      const kolCommission = Math.round(pmsOrderTotal * commissionRate);
+      const totalPayout = baseSalary + rarityBonus + kolCommission + teamBonus;
 
-      calcs.push({
-        scout_id: scout.user_id,
-        display_name: scout.display_name ?? "",
-        managed_venue: scout.managed_venue ?? null,
-        personal_min: personalMin,
-        individual_count: individualCount,
-        individual_achieved: individualAchieved,
-        base_salary: individualAchieved ? baseSalary : 0,
+      const bonusBreakdown = {
+        base_salary: baseSalary,
         rarity_bonus: rarityBonus,
         kol_commission: kolCommission,
-        commission_rate: commissionRate,
-        pms_order_total: pmsOrderTotal,
-        cidCodes,
-      });
-    }
-
-    const totalScouts = calcs.length;
-    const achievedCount = calcs.filter((c) => c.individual_achieved).length;
-    const teamRate = totalScouts > 0 ? (achievedCount / totalScouts) * 100 : 0;
-    const teamAchieved = totalScouts > 0 && teamRate >= teamThresholdPct;
-
-    const results: Array<{
-      scout_id: string;
-      display_name: string;
-      total_payout: number;
-      individual_achieved: boolean;
-      team_achieved: boolean;
-    }> = [];
-
-    const calculatedAt = new Date().toISOString();
-
-    for (const c of calcs) {
-      const teamBonus = teamAchieved ? teamBonusAmount : 0;
-      const bonusBreakdown = {
-        base_salary: c.base_salary,
-        rarity_bonus: c.rarity_bonus,
-        kol_commission: c.kol_commission,
         team_bonus: teamBonus,
       };
-      const totalPayout = Object.values(bonusBreakdown).reduce((s, v) => s + Number(v || 0), 0);
 
-      const { data: existing } = await supabase
+      const individualSnapshot = {
+        employment_type: isFulltime ? "fulltime" : "parttime",
+        venue_breakdown: venueBreakdown,
+        individual_achieved: individualAchieved,
+      };
+
+      const teamSnapshot = {
+        team_achieved: teamAchieved,
+        team_targets: teamTargets.map((t) => ({
+          accommodation_id: t.accommodation_id,
+          venue_name: t.venue_name,
+          target_count: Number(t.target_count ?? 0),
+          actual: allMonthInvites.filter(
+            (i) => i.accommodation_id === t.accommodation_id,
+          ).length,
+        })),
+      };
+
+      // ===== 八、寫入 scout_monthly_payouts =====
+      const { data: existing, error: exErr } = await supabase
         .from("scout_monthly_payouts")
-        .select("id, payout_status, locked_at")
-        .eq("scout_id", c.scout_id)
+        .select("id, payout_status")
+        .eq("scout_id", scoutId)
         .eq("year", year)
         .eq("month", month)
         .eq("period", period)
         .maybeSingle();
+      if (exErr) throw exErr;
 
-      if (existing?.locked_at) {
+      if (existing && existing.payout_status === "paid") {
         results.push({
-          scout_id: c.scout_id,
-          display_name: c.display_name,
+          scout_id: scoutId,
+          display_name: (scout.display_name as string) ?? "",
+          employment_type: (scout.employment_type as string) ?? null,
+          is_fulltime: isFulltime,
+          individual_achieved: individualAchieved,
+          base_salary: 0,
+          rarity_bonus: 0,
+          kol_commission: 0,
+          team_bonus: 0,
           total_payout: 0,
-          individual_achieved: c.individual_achieved,
-          team_achieved: teamAchieved,
+          individual_target_snapshot: individualSnapshot,
+          team_target_snapshot: teamSnapshot,
         });
         continue;
       }
 
       const payload = {
+        scout_id: scoutId,
         year,
         month,
         period,
-        scout_id: c.scout_id,
-        base_salary: c.base_salary,
+        base_salary: baseSalary,
+        rarity_bonus: rarityBonus,
+        kol_commission: kolCommission,
         team_bonus: teamBonus,
-        kol_commission: c.kol_commission,
         total_payout: totalPayout,
-        bonus_breakdown: bonusBreakdown,
-        individual_achieved: c.individual_achieved,
+        individual_achieved: individualAchieved,
         team_achieved: teamAchieved,
-        kol_commission_rate: c.commission_rate,
-        individual_target_snapshot: {
-          managed_venue: c.managed_venue,
-          personal_min: c.personal_min,
-          individual_count: c.individual_count,
-        },
-        team_target_snapshot: {
-          total_scouts: totalScouts,
-          achieved_count: achievedCount,
-          team_rate_pct: teamRate,
-          threshold_pct: teamThresholdPct,
-        },
-        base_salary_rule: { base_salary: baseSalary },
-        team_bonus_rule: { team_bonus: teamBonusAmount, threshold_pct: teamThresholdPct },
-        data_source: "system_calculated",
-        calculated_at: calculatedAt,
         payout_status: existing?.payout_status ?? "pending",
+        calculated_at: calculatedAt,
+        bonus_breakdown: bonusBreakdown,
+        individual_target_snapshot: individualSnapshot,
+        team_target_snapshot: teamSnapshot,
+        data_source: "system_calculated",
       };
 
       if (existing) {
@@ -340,11 +420,18 @@ serve(async (req) => {
       }
 
       results.push({
-        scout_id: c.scout_id,
-        display_name: c.display_name,
+        scout_id: scoutId,
+        display_name: (scout.display_name as string) ?? "",
+        employment_type: (scout.employment_type as string) ?? null,
+        is_fulltime: isFulltime,
+        individual_achieved: individualAchieved,
+        base_salary: baseSalary,
+        rarity_bonus: rarityBonus,
+        kol_commission: kolCommission,
+        team_bonus: teamBonus,
         total_payout: totalPayout,
-        individual_achieved: c.individual_achieved,
-        team_achieved: teamAchieved,
+        individual_target_snapshot: individualSnapshot,
+        team_target_snapshot: teamSnapshot,
       });
     }
 
@@ -353,6 +440,7 @@ serve(async (req) => {
       year,
       month,
       period,
+      team_achieved: teamAchieved,
       scouts_calculated: results.length,
       results,
     });
