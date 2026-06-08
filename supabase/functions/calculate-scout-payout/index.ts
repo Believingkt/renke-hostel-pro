@@ -243,8 +243,9 @@ serve(async (req) => {
         !!startYM &&
         startYM <= currentYM;
 
-      // 該星探本月有效邀約（subset of allMonthInvites）
+      // 該星探當月有效邀約（底薪/個人達標用）與期別內邀約（稀有度獎金用）
       const myMonthInvites = allMonthInvites.filter((i) => i.scout_id === scoutId);
+      const myPeriodInvites = allPeriodInvites.filter((i) => i.scout_id === scoutId);
 
       // ===== 四、個人達標 =====
       let individualAchieved = false;
