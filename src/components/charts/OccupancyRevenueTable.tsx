@@ -295,11 +295,11 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
           dailyEntries.push({ dayType, dateStr });
         }
 
-        // 營業額分攤
-        if (dailyEntries.length > 0 && order.order_status !== 'hold') {
+        // 營業額分攤（hold 與 official_use/業主自帶 均計入；僅 KOL 不計營收）
+        if (dailyEntries.length > 0) {
           const isKol = order.order_source === 'kol';
           const isOfficial = order.order_source === 'official_use';
-          const orderFinalPrice = (isKol || isOfficial) ? 0 : (Number(order.final_price) || 0);
+          const orderFinalPrice = isKol ? 0 : (Number(order.final_price) || 0);
           const totalOrderNights = Math.max(1, differenceInDays(checkOut, checkIn));
           const dailyShare = orderFinalPrice / totalOrderNights;
 
