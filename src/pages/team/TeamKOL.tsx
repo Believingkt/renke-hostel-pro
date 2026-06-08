@@ -6003,10 +6003,6 @@ function SalarySettingsBlock({ isManager }: { isManager: boolean }) {
               <Label>團隊獎金金額</Label>
               <Input type="number" value={bonus} onChange={(e) => setBonus(e.target.value)} />
             </div>
-            <div>
-              <Label>團隊達成門檻 (%)</Label>
-              <Input type="number" value={threshold} onChange={(e) => setThreshold(e.target.value)} />
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>
