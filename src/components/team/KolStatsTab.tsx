@@ -268,6 +268,20 @@ export function KolStatsTab() {
         if (kolErr) throw kolErr;
         const kolRows = (kolData ?? []) as KolProfileRow[];
 
+        // 累積件數：對每位星探用 exact count 查詢，避免 PostgREST 預設 1000 筆截斷導致費率階級錯誤
+        const cumulativeEntries = await Promise.all(
+          scoutIds.map(async (sid) => {
+            const { count, error } = await supabase
+              .from("kol_profiles")
+              .select("id", { count: "exact", head: true })
+              .eq("scout_id", sid)
+              .eq("kpi_qualified", true);
+            if (error) throw error;
+            return [sid, Number(count ?? 0)] as const;
+          }),
+        );
+        const cumulativeMap = new Map<string, number>(cumulativeEntries);
+
         const inPeriod = (d: string | null): boolean => {
           if (!range) return true; // 全年 → 不限
           if (!d) return false;
@@ -345,8 +359,8 @@ export function KolStatsTab() {
 
         const results: ScoutStats[] = scouts.map((s) => {
           const rows = kolRows.filter((r) => r.scout_id === s.user_id);
-          // 費率階梯基礎：全部歷史 kpi_qualified=true 件數
-          const cumulative = rows.filter((r) => r.kpi_qualified === true).length;
+          // 費率階梯基礎：用 exact count 查到的全部歷史 kpi_qualified=true 件數
+          const cumulative = cumulativeMap.get(s.user_id) ?? 0;
 
           const tier = tierFor(cumulative);
           const tierName = tier?.tier_name ?? "—";
@@ -464,12 +478,9 @@ export function KolStatsTab() {
           };
         });
 
-        // 過濾：當期沒有任何 kol_profile 記錄的星探不顯示
-        const periodFiltered = results.filter((r) => {
-          const rows = kolRows.filter((k) => k.scout_id === r.scout_id);
-          if (!range) return rows.length > 0;
-          return rows.some((k) => inPeriod(k.check_in_date));
-        });
+        // 顯示全部 is_scout_team_member=true 的星探，與 Edge Function 一致
+        // （不再以「當期是否有 kol_profile 記錄」過濾，避免有 KOL 分潤訂單但本期無新邀請的星探被隱藏）
+        const periodFiltered = results;
 
         let teamBonusPayout = 0;
         if (showSalary) {
