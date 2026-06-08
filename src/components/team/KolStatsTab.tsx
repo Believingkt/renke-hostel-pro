@@ -87,6 +87,7 @@ interface TargetRow {
   year: number;
   month: number;
   personal_min: number;
+  target_count: number | null;
   venue_name: string | null;
 }
 interface ScoutProfile {
