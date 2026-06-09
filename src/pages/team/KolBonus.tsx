@@ -300,11 +300,11 @@ export default function KolBonus() {
       rate: c.rate,
     })));
     setLoading(false);
-  };
+  }, [tab1Search]);
 
   useEffect(() => {
     if (allowed) fetchAll();
-  }, [allowed]);
+  }, [allowed, tab1Search, fetchAll]);
 
   // 依館別分組（已按 effective_from DESC 排序）
   const settingsByAcc = useMemo(() => {
