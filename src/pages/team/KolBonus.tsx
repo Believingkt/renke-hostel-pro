@@ -892,6 +892,8 @@ export default function KolBonus() {
         filterPrefix={tab2TargetPrefix}
         payoutYear={payoutYear}
         payoutPeriod={payoutPeriod}
+        filterYear={filterYear}
+        filterMonthAll={filterMonth === "all"}
       />
 
     </div>
@@ -912,6 +914,8 @@ interface DetailProps {
   filterPrefix?: string;
   payoutYear?: number;
   payoutPeriod?: string;
+  filterYear?: number;
+  filterMonthAll?: boolean;
 }
 
 function KolDetailDrawer({
@@ -927,6 +931,8 @@ function KolDetailDrawer({
   filterPrefix = "",
   payoutYear,
   payoutPeriod,
+  filterYear,
+  filterMonthAll = false,
 }: DetailProps) {
 
   const [month, setMonth] = useState<string>(initialMonth);
@@ -961,12 +967,15 @@ function KolDetailDrawer({
     return `${ny}-${String(nm).padStart(2, "0")}-10`;
   }, [month]);
 
-  // 訂單明細：依 order_date 在當月
-  const orderList = useMemo(
-    () => matched.filter((o) => o.order_date?.slice(0, 7) === month),
-    [matched, month],
-  );
-  // 完成業績明細：分潤結算模式依 filterPrefix 過濾並排除取消單；否則依 month
+  // 訂單明細：依 order_date 在當月；非結算模式且選「全年」時改為整年度
+  const orderList = useMemo(() => {
+    if (!settlementMode && filterMonthAll && filterYear) {
+      const yPrefix = `${filterYear}-`;
+      return matched.filter((o) => o.order_date?.startsWith(yPrefix));
+    }
+    return matched.filter((o) => o.order_date?.slice(0, 7) === month);
+  }, [matched, month, settlementMode, filterMonthAll, filterYear]);
+  // 完成業績明細：分潤結算模式依 filterPrefix 過濾並排除取消單；非結算+全年依年度；否則依 month
   const completedList = useMemo(
     () => {
       if (settlementMode) {
@@ -976,9 +985,17 @@ function KolDetailDrawer({
             o.check_out_date?.startsWith(filterPrefix),
         );
       }
+      if (filterMonthAll && filterYear) {
+        const yPrefix = `${filterYear}-`;
+        return matched.filter(
+          (o) =>
+            o.check_out_date?.startsWith(yPrefix) &&
+            o.order_status !== "cancelled",
+        );
+      }
       return matched.filter((o) => o.check_out_date?.slice(0, 7) === month);
     },
-    [matched, month, settlementMode, filterPrefix],
+    [matched, month, settlementMode, filterPrefix, filterMonthAll, filterYear],
   );
 
   const orderTotals = useMemo(() => {
@@ -1072,7 +1089,7 @@ function KolDetailDrawer({
             </div>
           )}
 
-          {!settlementMode && (
+          {!settlementMode && !filterMonthAll && (
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">月份</span>
@@ -1098,7 +1115,11 @@ function KolDetailDrawer({
           {!settlementMode && (
             <>
               <div className="space-y-2">
-                <div className="text-sm font-semibold">訂單明細（依訂單日期統計）</div>
+                <div className="text-sm font-semibold">
+                  {filterMonthAll && filterYear
+                    ? `訂單明細（${filterYear} 全年度）`
+                    : "訂單明細（依訂單日期統計）"}
+                </div>
                 <div className="overflow-x-auto">
                   <Table className="fixed-table">
                     <TableHeader>
@@ -1158,7 +1179,9 @@ function KolDetailDrawer({
                       const coMonth = p === 1 ? 12 : p - 1;
                       return `完成業績明細（${coYear}年${coMonth}月退房，${payoutYear}年${p}月10日發放）`;
                     })()
-                : "完成業績明細（依退房日期統計）"}
+                : filterMonthAll && filterYear
+                  ? `完成業績明細（${filterYear} 全年度）`
+                  : "完成業績明細（依退房日期統計）"}
             </div>
             <div className="overflow-x-auto">
               <Table>
