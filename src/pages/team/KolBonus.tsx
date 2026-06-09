@@ -1124,7 +1124,13 @@ function KolDetailDrawer({
 
 
           <div className="space-y-2">
-            <div className="text-sm font-semibold">完成業績明細（依退房日期統計）</div>
+            <div className="text-sm font-semibold">
+              {settlementMode
+                ? payoutPeriod === "all"
+                  ? `完成業績明細（${payoutYear} 全年度）`
+                  : `完成業績明細（${payoutYear}年${Number(payoutPeriod)}月，依退房日期統計）`
+                : "完成業績明細（依退房日期統計）"}
+            </div>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
