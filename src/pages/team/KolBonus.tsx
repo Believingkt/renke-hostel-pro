@@ -132,7 +132,7 @@ export default function KolBonus() {
   const [saving, setSaving] = useState(false);
   const [drawerKol, setDrawerKol] = useState<KolRow | null>(null);
   const [drawerSettlement, setDrawerSettlement] = useState(false);
-  const [filterYear, setFilterYear] = useState<number>(currentYear);
+  const [filterYear, setFilterYear] = useState<number>(0);
   const [filterMonth, setFilterMonth] = useState<string>(String(currentMonthNum)); // "all" | "1".."12"
   const [tab1Search, setTab1Search] = useState<string>("");
   const [tab1SearchInput, setTab1SearchInput] = useState<string>("");
@@ -367,9 +367,11 @@ export default function KolBonus() {
   // Tab1 進單管理：依年/月過濾（order_date 或 check_out_date 落在當月）
   const tab1FilteredRows = useMemo(() => {
     const prefix =
-      filterMonth === "all"
-        ? `${filterYear}-`
-        : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
+      filterYear === 0
+        ? null
+        : filterMonth === "all"
+          ? `${filterYear}-`
+          : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
     const q = tab1SearchInput.trim().toLowerCase();
     return rows.filter((k) => {
       if (q) {
@@ -378,6 +380,7 @@ export default function KolBonus() {
         if (!name.includes(q) && !code.includes(q)) return false;
       }
       const list = ordersByKey.get(k.rowKey) ?? [];
+      if (prefix === null) return list.length > 0;
       const periodMatch = list.some(
         (o) =>
           o.order_date?.startsWith(prefix) ||
@@ -390,9 +393,11 @@ export default function KolBonus() {
   // Tab1 度量：進單與完成同時由 filterYear+filterMonth 控制
   const tab1Metrics = useMemo(() => {
     const prefix =
-      filterMonth === "all"
-        ? `${filterYear}-`
-        : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
+      filterYear === 0
+        ? null
+        : filterMonth === "all"
+          ? `${filterYear}-`
+          : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
     const map = new Map<
       string,
       {
@@ -413,8 +418,8 @@ export default function KolBonus() {
       for (const o of list) {
         const r = Number(o.final_price ?? o.total_price ?? 0);
         const rate = getRate(o.accommodation_id, o.check_out_date);
-        const orderMatch = o.order_date?.startsWith(prefix);
-        const completedMatch = o.check_out_date?.startsWith(prefix);
+        const orderMatch = prefix === null ? !!o.order_date : o.order_date?.startsWith(prefix);
+        const completedMatch = prefix === null ? !!o.check_out_date : o.check_out_date?.startsWith(prefix);
         if (orderMatch) {
           orderCount += 1;
           orderRevenue += r;
@@ -603,6 +608,7 @@ export default function KolBonus() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="0">全部年份</SelectItem>
                     {yearOptions.map((y) => (
                       <SelectItem key={y} value={String(y)}>
                         {y} 年
@@ -902,7 +908,7 @@ export default function KolBonus() {
         payoutYear={payoutYear}
         payoutPeriod={payoutPeriod}
         filterYear={filterYear}
-        filterMonthAll={filterMonth === "all"}
+        filterMonthAll={filterYear === 0 ? true : filterMonth === "all"}
       />
 
     </div>
@@ -978,7 +984,8 @@ function KolDetailDrawer({
 
   // 訂單明細：依 order_date 在當月；非結算模式且選「全年」時改為整年度
   const orderList = useMemo(() => {
-    if (!settlementMode && filterMonthAll && filterYear) {
+    if (!settlementMode && filterMonthAll) {
+      if (!filterYear) return matched;
       const yPrefix = `${filterYear}-`;
       return matched.filter((o) => o.order_date?.startsWith(yPrefix));
     }
@@ -994,7 +1001,10 @@ function KolDetailDrawer({
             o.check_out_date?.startsWith(filterPrefix),
         );
       }
-      if (filterMonthAll && filterYear) {
+      if (filterMonthAll) {
+        if (!filterYear) {
+          return matched.filter((o) => o.order_status !== "cancelled");
+        }
         const yPrefix = `${filterYear}-`;
         return matched.filter(
           (o) =>
@@ -1125,8 +1135,8 @@ function KolDetailDrawer({
             <>
               <div className="space-y-2">
                 <div className="text-sm font-semibold">
-                  {filterMonthAll && filterYear
-                    ? `訂單明細（${filterYear} 全年度）`
+                  {filterMonthAll
+                    ? `訂單明細（${filterYear ? `${filterYear} 全年度` : "全部年度"}）`
                     : "訂單明細（依訂單日期統計）"}
                 </div>
                 <div className="overflow-x-auto">
@@ -1188,8 +1198,8 @@ function KolDetailDrawer({
                       const coMonth = p === 1 ? 12 : p - 1;
                       return `完成業績明細（${coYear}年${coMonth}月退房，${payoutYear}年${p}月10日發放）`;
                     })()
-                : filterMonthAll && filterYear
-                  ? `完成業績明細（${filterYear} 全年度）`
+                : filterMonthAll
+                  ? `完成業績明細（${filterYear ? `${filterYear} 全年度` : "全部年度"}）`
                   : "完成業績明細（依退房日期統計）"}
             </div>
             <div className="overflow-x-auto">
