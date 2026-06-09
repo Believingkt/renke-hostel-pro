@@ -1816,9 +1816,7 @@ function PayoutsTab({
             </Select>
           </div>
           <div className="text-sm text-muted-foreground">
-            結算區間：{range.monthStart && range.monthEnd
-              ? `${range.monthStart} ～ ${range.monthEnd}（不含）`
-              : "全部訂單"}
+            結算區間：{range.displayLabel}
           </div>
         </CardHeader>
         <CardContent className="overflow-x-auto">
