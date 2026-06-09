@@ -2470,9 +2470,17 @@ function ProspectsTab({
     })();
   }, []);
 
-  const fetchRows = useCallback(async () => {
+  const fetchRows = useCallback(async (searchVal?: string) => {
     setLoading(true);
-    const { data, error } = await supabase.from("kol_prospects").select("*").order("created_at", { ascending: false });
+    let q = supabase.from("kol_prospects").select("*").order("created_at", { ascending: false });
+
+    const s = (searchVal ?? "").trim();
+    if (s) {
+      const esc = s.replace(/[%,()]/g, " ");
+      q = q.or(`name.ilike.%${esc}%,ig_url.ilike.%${esc}%,cid_code.ilike.%${esc}%`);
+    }
+
+    const { data, error } = await q;
     if (error) {
       toast.error(error.message);
       setLoading(false);
@@ -2497,8 +2505,8 @@ function ProspectsTab({
   }, []);
 
   useEffect(() => {
-    fetchRows();
-  }, [fetchRows]);
+    fetchRows(search);
+  }, [fetchRows, search]);
 
   const scoutFilterOptions = useMemo(() => {
     const ids = Array.from(new Set(rows.map((r) => r.scout_id).filter(Boolean) as string[]));
@@ -2509,7 +2517,6 @@ function ProspectsTab({
   }, [rows]);
 
   const filtered = useMemo(() => {
-    const s = search.trim().toLowerCase();
     return rows.filter((r) => {
       if (filterScout !== "all") {
         if (filterScout === "none" ? r.scout_id : r.scout_id !== filterScout) return false;
@@ -2518,14 +2525,9 @@ function ProspectsTab({
         const tags = r.tags ?? [];
         if (!filterTags.some((t) => tags.includes(t))) return false;
       }
-      if (s) {
-        const a = (r.name ?? "").toLowerCase();
-        const b = (r.ig_url ?? "").toLowerCase();
-        if (!a.includes(s) && !b.includes(s)) return false;
-      }
       return true;
     });
-  }, [rows, search, filterScout, filterTags]);
+  }, [rows, filterScout, filterTags]);
 
   const PAGE_SIZE = 50;
   const [page, setPage] = useState(1);
