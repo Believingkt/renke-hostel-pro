@@ -400,8 +400,8 @@ export default function KolBonus() {
       for (const o of list) {
         const r = Number(o.final_price ?? o.total_price ?? 0);
         const rate = getRate(o.accommodation_id, o.check_out_date);
-        const orderMatch = prefix ? o.order_date?.startsWith(prefix) : true;
-        const completedMatch = prefix ? o.check_out_date?.startsWith(prefix) : true;
+        const orderMatch = o.order_date?.startsWith(prefix);
+        const completedMatch = o.check_out_date?.startsWith(prefix);
         if (orderMatch) {
           orderCount += 1;
           orderRevenue += r;
