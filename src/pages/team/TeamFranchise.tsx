@@ -3547,6 +3547,7 @@ function ProjectsManagementCard() {
   }, [accommodations]);
 
   const [confirmAddOpen, setConfirmAddOpen] = useState(false);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<FranchiseProject | null>(null);
   const [editName, setEditName] = useState("");
   const [editAccId, setEditAccId] = useState<string>("");
