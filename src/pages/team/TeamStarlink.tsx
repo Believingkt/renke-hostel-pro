@@ -1871,14 +1871,14 @@ function PayoutsTab({
         </CardContent>
       </Card>
 
-      <Drawer open={!!detailGroup} onOpenChange={(o) => !o && setDetailGroup(null)}>
-        <DrawerContent className="overflow-x-hidden">
-          <DrawerHeader>
-            <DrawerTitle>
+      <Sheet open={!!detailGroup} onOpenChange={(o) => !o && setDetailGroup(null)}>
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto overflow-x-hidden">
+          <SheetHeader>
+            <SheetTitle>
               {detailGroup?.display_name}　·　{range.label} 分潤明細
-            </DrawerTitle>
-          </DrawerHeader>
-          <div className="px-4 pb-6 overflow-x-auto">
+            </SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -1910,8 +1910,9 @@ function PayoutsTab({
               </TableBody>
             </Table>
           </div>
-        </DrawerContent>
-      </Drawer>
+        </SheetContent>
+      </Sheet>
+
     </>
   );
 }
