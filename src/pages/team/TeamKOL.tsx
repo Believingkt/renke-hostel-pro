@@ -1053,11 +1053,6 @@ function InvitationsTab({
           placeholder="搜尋 KOL 名稱 / 網紅帳號 / CID"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          onCompositionStart={() => { composingRef.current = true; }}
-          onCompositionEnd={(e) => {
-            composingRef.current = false;
-            setSearchInput((e.target as HTMLInputElement).value);
-          }}
           className="w-full sm:w-64"
         />
 
