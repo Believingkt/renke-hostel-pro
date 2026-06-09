@@ -1115,7 +1115,11 @@ function KolDetailDrawer({
           {!settlementMode && (
             <>
               <div className="space-y-2">
-                <div className="text-sm font-semibold">訂單明細（依訂單日期統計）</div>
+                <div className="text-sm font-semibold">
+                  {filterMonthAll && filterYear
+                    ? `訂單明細（${filterYear} 全年度）`
+                    : "訂單明細（依訂單日期統計）"}
+                </div>
                 <div className="overflow-x-auto">
                   <Table className="fixed-table">
                     <TableHeader>
