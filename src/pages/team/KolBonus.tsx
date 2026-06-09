@@ -378,7 +378,7 @@ export default function KolBonus() {
   const tab1Metrics = useMemo(() => {
     const prefix =
       filterMonth === "all"
-        ? null
+        ? `${filterYear}-`
         : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
     const map = new Map<
       string,
