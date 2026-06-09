@@ -145,16 +145,22 @@ export default function KolBonus() {
   const [payoutPeriod, setPayoutPeriod] = useState<string>(String(defaultPayoutMonth));
   const [scoutFilter, setScoutFilter] = useState<string>("all");
 
-  const fetchAll = async () => {
+  const fetchAll = useCallback(async () => {
     setLoading(true);
+    let kolQuery = supabase
+      .from("kol_profiles")
+      .select(
+        "id, name, cid_code, venue_name, accommodation_id, public_token, token_expires_at, scout_id, scout_name",
+      )
+      .not("cid_code", "is", null)
+      .neq("cid_code", "");
+    const s = tab1Search.trim();
+    if (s) {
+      const esc = s.replace(/[%,()]/g, " ");
+      kolQuery = kolQuery.or(`name.ilike.%${esc}%,cid_code.ilike.%${esc}%`);
+    }
     const [kolRes, orderRes, commRes, accRes, scoutRes, scoutCodeRes] = await Promise.all([
-      supabase
-        .from("kol_profiles")
-        .select(
-          "id, name, cid_code, venue_name, accommodation_id, public_token, token_expires_at, scout_id, scout_name",
-        )
-        .not("cid_code", "is", null)
-        .neq("cid_code", ""),
+      kolQuery,
       supabase
         .from("orders")
         .select(
@@ -294,11 +300,11 @@ export default function KolBonus() {
       rate: c.rate,
     })));
     setLoading(false);
-  };
+  }, [tab1Search]);
 
   useEffect(() => {
     if (allowed) fetchAll();
-  }, [allowed]);
+  }, [allowed, tab1Search, fetchAll]);
 
   // 依館別分組（已按 effective_from DESC 排序）
   const settingsByAcc = useMemo(() => {
@@ -369,7 +375,6 @@ export default function KolBonus() {
       filterMonth === "all"
         ? `${filterYear}-`
         : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
-    const q = tab1Search.trim().toLowerCase();
     return rows.filter((k) => {
       const list = ordersByKey.get(k.rowKey) ?? [];
       const periodMatch = list.some(
@@ -377,13 +382,9 @@ export default function KolBonus() {
           o.order_date?.startsWith(prefix) ||
           (o.order_status !== "cancelled" && o.check_out_date?.startsWith(prefix)),
       );
-      if (!periodMatch) return false;
-      if (!q) return true;
-      const name = (k.name ?? "").toLowerCase();
-      const code = (k.cid_code ?? "").toLowerCase();
-      return name.includes(q) || code.includes(q);
+      return periodMatch;
     });
-  }, [rows, ordersByKey, filterYear, filterMonth, tab1Search]);
+  }, [rows, ordersByKey, filterYear, filterMonth]);
 
   // Tab1 度量：進單與完成同時由 filterYear+filterMonth 控制
   const tab1Metrics = useMemo(() => {
