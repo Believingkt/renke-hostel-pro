@@ -984,7 +984,8 @@ function KolDetailDrawer({
 
   // 訂單明細：依 order_date 在當月；非結算模式且選「全年」時改為整年度
   const orderList = useMemo(() => {
-    if (!settlementMode && filterMonthAll && filterYear) {
+    if (!settlementMode && filterMonthAll) {
+      if (!filterYear) return matched;
       const yPrefix = `${filterYear}-`;
       return matched.filter((o) => o.order_date?.startsWith(yPrefix));
     }
