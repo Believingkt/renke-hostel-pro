@@ -1680,7 +1680,12 @@ function PayoutsTab({
   const range = useMemo(() => {
     const pad = (n: number) => String(n).padStart(2, "0");
     if (year === "ALL" && month === "ALL") {
-      return { monthStart: null as string | null, monthEnd: null as string | null, label: "全部訂單" };
+      return {
+        monthStart: null as string | null,
+        monthEnd: null as string | null,
+        label: "全部訂單",
+        displayLabel: "全部訂單",
+      };
     }
     if (year !== "ALL" && month === "ALL") {
       const y = Number(year);
@@ -1688,6 +1693,7 @@ function PayoutsTab({
         monthStart: `${y}-01-01`,
         monthEnd: `${y + 1}-01-01`,
         label: `${y} 全年`,
+        displayLabel: `${y}-01-01 ～ ${y}-12-31`,
       };
     }
     // 特定年 + 特定月（X月10日）→ 上月整月
@@ -1697,10 +1703,12 @@ function PayoutsTab({
     const targetMonth = m === 1 ? 12 : m - 1;
     const nextYear = targetMonth === 12 ? targetYear + 1 : targetYear;
     const nextMonth = targetMonth === 12 ? 1 : targetMonth + 1;
+    const lastDay = new Date(targetYear, targetMonth, 0).getDate();
     return {
       monthStart: `${targetYear}-${pad(targetMonth)}-01`,
       monthEnd: `${nextYear}-${pad(nextMonth)}-01`,
       label: `${targetYear}-${pad(targetMonth)}`,
+      displayLabel: `${targetYear}-${pad(targetMonth)}-01 ～ ${targetYear}-${pad(targetMonth)}-${pad(lastDay)}`,
     };
   }, [year, month]);
 
@@ -1808,9 +1816,7 @@ function PayoutsTab({
             </Select>
           </div>
           <div className="text-sm text-muted-foreground">
-            結算區間：{range.monthStart && range.monthEnd
-              ? `${range.monthStart} ～ ${range.monthEnd}（不含）`
-              : "全部訂單"}
+            結算區間：{range.displayLabel}
           </div>
         </CardHeader>
         <CardContent className="overflow-x-auto">
