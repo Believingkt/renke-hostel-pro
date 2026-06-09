@@ -892,6 +892,8 @@ export default function KolBonus() {
         filterPrefix={tab2TargetPrefix}
         payoutYear={payoutYear}
         payoutPeriod={payoutPeriod}
+        filterYear={filterYear}
+        filterMonthAll={filterMonth === "all"}
       />
 
     </div>
