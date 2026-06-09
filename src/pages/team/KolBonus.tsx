@@ -1168,7 +1168,15 @@ function KolDetailDrawer({
                           <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(revenue)}</TableCell>
                           <TableCell className="whitespace-nowrap text-right tabular-nums">{rate}%</TableCell>
                           <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(amount)}</TableCell>
-                          <TableCell className="whitespace-nowrap text-xs">{payoutDate}</TableCell>
+                          <TableCell className="whitespace-nowrap text-xs">{(() => {
+                            const co = o.check_out_date?.slice(0, 10);
+                            if (!co) return "—";
+                            const [y, m] = co.split("-").map(Number);
+                            if (!y || !m) return "—";
+                            const ny = m === 12 ? y + 1 : y;
+                            const nm = m === 12 ? 1 : m + 1;
+                            return `${ny}-${String(nm).padStart(2, "0")}-10`;
+                          })()}</TableCell>
                         </TableRow>
                       );
                     })
