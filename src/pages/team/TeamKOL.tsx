@@ -2406,8 +2406,11 @@ function ProspectsTab({
   const [newTagInput, setNewTagInput] = useState("");
 
   const [search, setSearch] = useState("");
-  const inviteSearchRef = useRef<HTMLInputElement>(null);
-  const inviteDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [inviteSearchInput, setInviteSearchInput] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(inviteSearchInput), 150);
+    return () => clearTimeout(t);
+  }, [inviteSearchInput]);
   const [filterScout, setFilterScout] = useState<string>("all");
   const [filterTags, setFilterTags] = useState<string[]>([]);
 
