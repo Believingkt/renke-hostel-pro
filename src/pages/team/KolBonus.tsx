@@ -862,11 +862,7 @@ export default function KolBonus() {
         onGenerate={handleGenerate}
         saving={saving}
         settlementMode={drawerSettlement}
-        filterPrefix={
-          payoutPeriod === "all"
-            ? `${payoutYear}-`
-            : `${payoutYear}-${String(payoutPeriod).padStart(2, "0")}`
-        }
+        filterPrefix={tab2TargetPrefix}
         payoutYear={payoutYear}
         payoutPeriod={payoutPeriod}
       />
