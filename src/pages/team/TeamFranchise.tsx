@@ -388,6 +388,7 @@ export default function TeamFranchise() {
           {showExternal && <TabsTrigger value="external">外部銷售</TabsTrigger>}
           {showStats && <TabsTrigger value="stats">業績統計</TabsTrigger>}
           {showDistributions && <TabsTrigger value="distributions">會員分潤</TabsTrigger>}
+          {showDistributions && <TabsTrigger value="payouts">分潤結算</TabsTrigger>}
           {showVouchers && <TabsTrigger value="vouchers">住宿券進度</TabsTrigger>}
           <TabsTrigger value="settings">分潤設定</TabsTrigger>
         </TabsList>
