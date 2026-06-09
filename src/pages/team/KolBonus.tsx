@@ -398,28 +398,29 @@ export default function KolBonus() {
     return map;
   }, [rows, ordersByKey, getRate, filterYear, filterMonth]);
 
-  // Tab2 分潤結算：依 年 + 發放期別 + 星探，且 KOL 須在該期別月份有退房
+  // Tab2 退房月份 prefix：發放期別 P 對應退房月 = P-1（P=1 → 上一年12月）
+  const tab2TargetPrefix = useMemo(() => {
+    if (payoutPeriod === "all") return `${payoutYear}-`;
+    const p = Number(payoutPeriod);
+    if (p === 1) return `${payoutYear - 1}-12`;
+    return `${payoutYear}-${String(p - 1).padStart(2, "0")}`;
+  }, [payoutYear, payoutPeriod]);
+
+  // Tab2 分潤結算：依 年 + 發放期別 + 星探，且 KOL 須在對應退房月份有退房
   const tab2FilteredRows = useMemo(() => {
-    const prefix =
-      payoutPeriod === "all"
-        ? `${payoutYear}-`
-        : `${payoutYear}-${String(payoutPeriod).padStart(2, "0")}`;
     return rows.filter((k) => {
       if (scoutFilter !== "all" && k.scout_id !== scoutFilter) return false;
       const list = ordersByKey.get(k.rowKey) ?? [];
       return list.some(
         (o) =>
-          o.order_status !== "cancelled" && o.check_out_date?.startsWith(prefix),
+          o.order_status !== "cancelled" && o.check_out_date?.startsWith(tab2TargetPrefix),
       );
     });
-  }, [rows, ordersByKey, payoutYear, payoutPeriod, scoutFilter]);
+  }, [rows, ordersByKey, tab2TargetPrefix, scoutFilter]);
 
-  // Tab2 度量：完成業績 / 分潤依 payoutYear + payoutPeriod
+  // Tab2 度量：completedCount / completedRevenue / commission 依對應退房月
   const tab2Metrics = useMemo(() => {
-    const prefix =
-      payoutPeriod === "all"
-        ? `${payoutYear}-`
-        : `${payoutYear}-${String(payoutPeriod).padStart(2, "0")}`;
+    const prefix = tab2TargetPrefix;
     const map = new Map<
       string,
       { completedCount: number; completedRevenue: number; commission: number }
@@ -445,7 +446,7 @@ export default function KolBonus() {
       });
     }
     return map;
-  }, [rows, ordersByKey, getRate, payoutYear, payoutPeriod]);
+  }, [rows, ordersByKey, getRate, tab2TargetPrefix]);
 
   const tab1DrawerInitialMonth =
     filterMonth === "all"
@@ -861,11 +862,7 @@ export default function KolBonus() {
         onGenerate={handleGenerate}
         saving={saving}
         settlementMode={drawerSettlement}
-        filterPrefix={
-          payoutPeriod === "all"
-            ? `${payoutYear}-`
-            : `${payoutYear}-${String(payoutPeriod).padStart(2, "0")}`
-        }
+        filterPrefix={tab2TargetPrefix}
         payoutYear={payoutYear}
         payoutPeriod={payoutPeriod}
       />
@@ -1128,7 +1125,12 @@ function KolDetailDrawer({
               {settlementMode
                 ? payoutPeriod === "all"
                   ? `完成業績明細（${payoutYear} 全年度）`
-                  : `完成業績明細（${payoutYear}年${Number(payoutPeriod)}月，依退房日期統計）`
+                  : (() => {
+                      const p = Number(payoutPeriod);
+                      const coYear = p === 1 ? (payoutYear as number) - 1 : payoutYear;
+                      const coMonth = p === 1 ? 12 : p - 1;
+                      return `完成業績明細（${coYear}年${coMonth}月退房，${payoutYear}年${p}月10日發放）`;
+                    })()
                 : "完成業績明細（依退房日期統計）"}
             </div>
             <div className="overflow-x-auto">
