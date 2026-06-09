@@ -46,18 +46,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, CheckCircle2 } from "lucide-react";
+import { Plus, Pencil } from "lucide-react";
 
 interface Member {
   user_id: string;
@@ -1671,30 +1661,46 @@ function PayoutsTab({
     if (today.getDate() > 10) d.setMonth(d.getMonth() + 1);
     return d;
   })();
-  const [year, setYear] = useState<number>(defaultDate.getFullYear());
-  const [month, setMonth] = useState<number>(defaultDate.getMonth() + 1);
+  const [year, setYear] = useState<string>(String(defaultDate.getFullYear()));
+  const [month, setMonth] = useState<string>(String(defaultDate.getMonth() + 1));
   const [orders, setOrders] = useState<PayoutOrderRow[]>([]);
   const [nameMap, setNameMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [detailGroup, setDetailGroup] = useState<PayoutGroup | null>(null);
-  const [confirmGroup, setConfirmGroup] = useState<PayoutGroup | null>(null);
-  const [marking, setMarking] = useState(false);
 
   const years = useMemo(() => {
     const cur = new Date().getFullYear();
     return Array.from({ length: 5 }, (_, i) => cur - i);
   }, []);
 
-  // 期別 X月10日 → 結算上月整月
-  const { monthStart, monthEnd } = useMemo(() => {
-    const targetYear = month === 1 ? year - 1 : year;
-    const targetMonth = month === 1 ? 12 : month - 1;
+  // 計算結算區間
+  // - year=ALL & month=ALL → 不限區間
+  // - year=YYYY & month=ALL → 該年整年
+  // - year=YYYY & month=M → 該 M 月 10 日結算 → 上月整月
+  const range = useMemo(() => {
     const pad = (n: number) => String(n).padStart(2, "0");
+    if (year === "ALL" && month === "ALL") {
+      return { monthStart: null as string | null, monthEnd: null as string | null, label: "全部訂單" };
+    }
+    if (year !== "ALL" && month === "ALL") {
+      const y = Number(year);
+      return {
+        monthStart: `${y}-01-01`,
+        monthEnd: `${y + 1}-01-01`,
+        label: `${y} 全年`,
+      };
+    }
+    // 特定年 + 特定月（X月10日）→ 上月整月
+    const y = Number(year);
+    const m = Number(month);
+    const targetYear = m === 1 ? y - 1 : y;
+    const targetMonth = m === 1 ? 12 : m - 1;
     const nextYear = targetMonth === 12 ? targetYear + 1 : targetYear;
     const nextMonth = targetMonth === 12 ? 1 : targetMonth + 1;
     return {
       monthStart: `${targetYear}-${pad(targetMonth)}-01`,
       monthEnd: `${nextYear}-${pad(nextMonth)}-01`,
+      label: `${targetYear}-${pad(targetMonth)}`,
     };
   }, [year, month]);
 
@@ -1705,9 +1711,11 @@ function PayoutsTab({
       .select(
         "id,client_name,plan_name,plan_price,commission_rate,commission_amount,payout_status,sold_at,sold_by",
       )
-      .eq("payment_confirmed", true)
-      .gte("sold_at", monthStart)
-      .lt("sold_at", monthEnd);
+      .eq("payment_confirmed", true);
+
+    if (range.monthStart && range.monthEnd) {
+      q = q.gte("sold_at", range.monthStart).lt("sold_at", range.monthEnd);
+    }
 
     if (!canManage) {
       q = q.eq("sold_by", currentUserId);
@@ -1772,30 +1780,6 @@ function PayoutsTab({
     return Array.from(m.values()).sort((a, b) => b.total_commission - a.total_commission);
   }, [orders, nameMap]);
 
-  const handleMarkAllPaid = async () => {
-    if (!canManage || !confirmGroup) return;
-    const pendingIds = confirmGroup.orders
-      .filter((o) => o.payout_status !== "paid")
-      .map((o) => o.id);
-    if (pendingIds.length === 0) {
-      setConfirmGroup(null);
-      return;
-    }
-    setMarking(true);
-    const { error } = await supabase
-      .from("starlink_orders")
-      .update({ payout_status: "paid", payout_date: new Date().toISOString().slice(0, 10) })
-      .in("id", pendingIds);
-    setMarking(false);
-    if (error) {
-      toast.error("更新失敗：" + error.message);
-      return;
-    }
-    toast.success(`已標記 ${pendingIds.length} 筆為已發放`);
-    setConfirmGroup(null);
-    void loadData();
-  };
-
   const fmtPct = (r: number | null | undefined) =>
     r == null ? "—" : `${(Number(r) * 100).toFixed(1)}%`;
 
@@ -1804,17 +1788,19 @@ function PayoutsTab({
       <Card>
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div className="flex flex-wrap gap-2 items-center">
-            <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+            <Select value={year} onValueChange={setYear}>
               <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
               <SelectContent>
+                <SelectItem value="ALL">全部年份</SelectItem>
                 {years.map((y) => (
                   <SelectItem key={y} value={String(y)}>{y} 年</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
+            <Select value={month} onValueChange={setMonth}>
               <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
               <SelectContent>
+                <SelectItem value="ALL">全部月份</SelectItem>
                 {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
                   <SelectItem key={m} value={String(m)}>{m} 月 10 日</SelectItem>
                 ))}
@@ -1822,7 +1808,9 @@ function PayoutsTab({
             </Select>
           </div>
           <div className="text-sm text-muted-foreground">
-            結算區間：{monthStart} ～ {monthEnd}（不含）
+            結算區間：{range.monthStart && range.monthEnd
+              ? `${range.monthStart} ～ ${range.monthEnd}（不含）`
+              : "全部訂單"}
           </div>
         </CardHeader>
         <CardContent className="overflow-x-auto">
@@ -1835,19 +1823,18 @@ function PayoutsTab({
                 <TableHead className="text-right">分潤金額</TableHead>
                 <TableHead className="text-right">待結算</TableHead>
                 <TableHead className="text-right">已發放</TableHead>
-                {canManage && <TableHead className="w-32">操作</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={canManage ? 7 : 6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     載入中...
                   </TableCell>
                 </TableRow>
               ) : groups.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={canManage ? 7 : 6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     本期無已確認付款的訂單
                   </TableCell>
                 </TableRow>
@@ -1876,22 +1863,6 @@ function PayoutsTab({
                         <span className="text-muted-foreground">0</span>
                       )}
                     </TableCell>
-                    {canManage && (
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        {g.pending_count > 0 ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setConfirmGroup(g)}
-                          >
-                            <CheckCircle2 className="h-4 w-4 mr-1" />
-                            標記全部已發放
-                          </Button>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">已全部發放</span>
-                        )}
-                      </TableCell>
-                    )}
                   </TableRow>
                 ))
               )}
@@ -1904,7 +1875,7 @@ function PayoutsTab({
         <DrawerContent className="overflow-x-hidden">
           <DrawerHeader>
             <DrawerTitle>
-              {detailGroup?.display_name}　·　{year} 年 {month} 月 10 日 分潤明細
+              {detailGroup?.display_name}　·　{range.label} 分潤明細
             </DrawerTitle>
           </DrawerHeader>
           <div className="px-4 pb-6 overflow-x-auto">
@@ -1941,23 +1912,6 @@ function PayoutsTab({
           </div>
         </DrawerContent>
       </Drawer>
-
-      <AlertDialog open={!!confirmGroup} onOpenChange={(o) => !o && !marking && setConfirmGroup(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>標記為已發放</AlertDialogTitle>
-            <AlertDialogDescription>
-              確定將 {confirmGroup?.display_name} 的 {confirmGroup?.pending_count} 筆訂單標記為已發放？此操作將更新訂單的結算狀態。
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={marking}>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={handleMarkAllPaid} disabled={marking}>
-              {marking ? "處理中..." : "確認"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }
