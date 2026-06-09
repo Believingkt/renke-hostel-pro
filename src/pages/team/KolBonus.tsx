@@ -370,7 +370,13 @@ export default function KolBonus() {
       filterMonth === "all"
         ? `${filterYear}-`
         : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
+    const q = tab1SearchInput.trim().toLowerCase();
     return rows.filter((k) => {
+      if (q) {
+        const name = (k.name ?? "").toLowerCase();
+        const code = (k.cid_code ?? "").toLowerCase();
+        if (!name.includes(q) && !code.includes(q)) return false;
+      }
       const list = ordersByKey.get(k.rowKey) ?? [];
       const periodMatch = list.some(
         (o) =>
@@ -379,7 +385,7 @@ export default function KolBonus() {
       );
       return periodMatch;
     });
-  }, [rows, ordersByKey, filterYear, filterMonth]);
+  }, [rows, ordersByKey, filterYear, filterMonth, tab1SearchInput]);
 
   // Tab1 度量：進單與完成同時由 filterYear+filterMonth 控制
   const tab1Metrics = useMemo(() => {
