@@ -1613,14 +1613,33 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
       <Dialog open={externalDialogOpen} onOpenChange={setExternalDialogOpen}>
         <DialogContent className="overflow-x-hidden">
           <DialogHeader>
-            <DialogTitle>新增外部分潤版本</DialogTitle>
+            <DialogTitle>
+              {externalEditingProject ? `新增版本：${externalEditingProject}` : "新增外部分潤專案"}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <div className="space-y-1">
-              <Label>專案名稱 *</Label>
-              <Input value={externalForm.project_name}
-                onChange={(e) => setExternalForm({ ...externalForm, project_name: e.target.value })} />
-            </div>
+            {!externalEditingProject && (
+              <div className="space-y-1">
+                <Label>專案名稱 *</Label>
+                <Select
+                  value={externalForm.project_name || "none"}
+                  onValueChange={(v) => setExternalForm({ ...externalForm, project_name: v === "none" ? "" : v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="選擇專案" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activeProjects.length === 0 ? (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">尚無啟用中的專案</div>
+                    ) : (
+                      activeProjects.map((p) => (
+                        <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>開發業務比例 (%)</Label>
@@ -1644,20 +1663,20 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
               </div>
             </div>
           </div>
-          {externalForm.project_name && externalByProject[externalForm.project_name]?.length ? (
+          {externalEditingProject ? (
             <div className="text-xs text-muted-foreground space-y-1 border-t pt-3 mt-2">
               <div className="font-medium">設定說明：</div>
-              <div>・針對「{externalForm.project_name}」新增新版本分潤比例</div>
+              <div>・針對「{externalEditingProject}」新增新版本分潤比例</div>
               <div>・新版本會覆蓋此專案的目前生效比例</div>
               <div>・舊版本保留為歷史記錄，不影響已結算的訂單</div>
             </div>
           ) : (
             <div className="text-xs text-muted-foreground space-y-1 border-t pt-3 mt-2">
               <div className="font-medium">設定說明：</div>
+              <div>・請從下拉選單選擇要設定的專案（需先於「專案管理」新增）</div>
               <div>・開發業務比例：主要銷售人的分潤比例</div>
               <div>・協同業務1 比例：第一位協同銷售人的分潤比例</div>
               <div>・協同業務2 比例：第二位協同銷售人的分潤比例</div>
-              <div>・每個專案可以有獨立的分潤比例設定</div>
               <div>・新增後立即生效，舊版本保留為歷史記錄</div>
             </div>
           )}
