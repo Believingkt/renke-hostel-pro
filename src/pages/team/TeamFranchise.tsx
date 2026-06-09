@@ -1293,8 +1293,10 @@ interface SettingsCardsVisible {
 }
 function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleCards: SettingsCardsVisible }) {
   const canManageProjects = canManage && visibleCards.projects;
+  const activeProjects = useFranchiseProjects();
   const [rows, setRows] = useState<CommissionSettingRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [externalEditingProject, setExternalEditingProject] = useState<string>("");
 
   const [internalDialogOpen, setInternalDialogOpen] = useState(false);
   const [internalForm, setInternalForm] = useState({
