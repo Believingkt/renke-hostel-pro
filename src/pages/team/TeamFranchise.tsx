@@ -1355,7 +1355,7 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
       tier2_rate: internalForm.tier2_rate / 100,
       leader_supplement_rate: 0,
       company_rate: internalForm.company_rate / 100,
-      payout_day: internalForm.payout_day,
+      payout_day: "10",
       effective_from: internalForm.effective_from,
     };
     const { error } = await (supabase as any).from("franchise_commission_settings").insert(payload);
@@ -1374,7 +1374,7 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
       sales_rate: externalForm.sales_rate / 100,
       co_sales1_rate: externalForm.co_sales1_rate / 100,
       co_sales2_rate: externalForm.co_sales2_rate / 100,
-      payout_day: externalForm.payout_day,
+      payout_day: "10",
       effective_from: externalForm.effective_from,
     };
     const { error } = await (supabase as any).from("franchise_commission_settings").insert(payload);
@@ -1444,12 +1444,11 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
                 <div className="text-xs text-muted-foreground mb-2">
                   目前版本（生效日：{latestInternal.effective_from}）
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                   <div><span className="text-muted-foreground">個人基本比例：</span>{fmtRate(latestInternal.base_rate)}</div>
                   <div><span className="text-muted-foreground">帶 1 人比例：</span>{fmtRate(latestInternal.tier1_rate)}</div>
                   <div><span className="text-muted-foreground">帶 2 人以上：</span>{fmtRate(latestInternal.tier2_rate)}</div>
                   <div><span className="text-muted-foreground">公司提撥：</span>{fmtRate(latestInternal.company_rate)}</div>
-                  <div><span className="text-muted-foreground">發放日：</span>{latestInternal.payout_day ?? "—"}</div>
                 </div>
               </div>
               {internalRows.length > 1 && (
@@ -1463,7 +1462,6 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
                         <TableHead className="text-right">帶1人</TableHead>
                         <TableHead className="text-right">帶2人+</TableHead>
                         <TableHead className="text-right">公司</TableHead>
-                        <TableHead>發放日</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1474,7 +1472,6 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
                           <TableCell className="text-right tabular-nums">{fmtRate(r.tier1_rate)}</TableCell>
                           <TableCell className="text-right tabular-nums">{fmtRate(r.tier2_rate)}</TableCell>
                           <TableCell className="text-right tabular-nums">{fmtRate(r.company_rate)}</TableCell>
-                          <TableCell>{r.payout_day ?? "—"}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -1516,11 +1513,10 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
                   <div className="text-xs text-muted-foreground mb-2">
                     目前版本（生效日：{latest.effective_from}）
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
                     <div><span className="text-muted-foreground">開發業務：</span>{fmtRate(latest.sales_rate)}</div>
                     <div><span className="text-muted-foreground">協同業務1：</span>{fmtRate(latest.co_sales1_rate)}</div>
                     <div><span className="text-muted-foreground">協同業務2：</span>{fmtRate(latest.co_sales2_rate)}</div>
-                    <div><span className="text-muted-foreground">發放日：</span>{latest.payout_day ?? "—"}</div>
                   </div>
                   {list.length > 1 && (
                     <div className="mt-3">
@@ -1532,7 +1528,7 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
                             <TableHead className="text-right">開發業務</TableHead>
                             <TableHead className="text-right">協同1</TableHead>
                             <TableHead className="text-right">協同2</TableHead>
-                            <TableHead>發放日</TableHead>
+                            
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -1542,7 +1538,7 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
                               <TableCell className="text-right tabular-nums">{fmtRate(r.sales_rate)}</TableCell>
                               <TableCell className="text-right tabular-nums">{fmtRate(r.co_sales1_rate)}</TableCell>
                               <TableCell className="text-right tabular-nums">{fmtRate(r.co_sales2_rate)}</TableCell>
-                              <TableCell>{r.payout_day ?? "—"}</TableCell>
+                              
                             </TableRow>
                           ))}
                         </TableBody>
@@ -1589,12 +1585,6 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
                   onChange={(e) => setInternalForm({ ...internalForm, company_rate: Number(e.target.value) || 0 })} />
               </div>
               <div className="space-y-1">
-                <Label>發放日</Label>
-                <Input value={internalForm.payout_day}
-                  placeholder="例：10 或 10,25"
-                  onChange={(e) => setInternalForm({ ...internalForm, payout_day: e.target.value })} />
-              </div>
-              <div className="space-y-1">
                 <Label>生效日期</Label>
                 <Input type="date" value={internalForm.effective_from}
                   onChange={(e) => setInternalForm({ ...internalForm, effective_from: e.target.value })} />
@@ -1634,11 +1624,6 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
                 <Label>協同業務2 比例 (%)</Label>
                 <Input type="number" step="0.1" value={externalForm.co_sales2_rate}
                   onChange={(e) => setExternalForm({ ...externalForm, co_sales2_rate: Number(e.target.value) || 0 })} />
-              </div>
-              <div className="space-y-1">
-                <Label>發放日</Label>
-                <Input value={externalForm.payout_day}
-                  onChange={(e) => setExternalForm({ ...externalForm, payout_day: e.target.value })} />
               </div>
               <div className="space-y-1 col-span-2">
                 <Label>生效日期</Label>
