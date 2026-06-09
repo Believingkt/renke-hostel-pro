@@ -4161,3 +4161,398 @@ function VoucherProgressTab({ canEdit = true, forcedSource, hideSourceFilter = f
     </Card>
   );
 }
+
+// =====================================================================
+// 分潤結算 Tab
+// =====================================================================
+interface FpInternalOrder {
+  id: string;
+  customer_name: string | null;
+  plan_name: string | null;
+  plan_price: number | null;
+  commission_amount: number | null;
+  leader_amount: number | null;
+  sold_at: string | null;
+  sold_by: string | null;
+  sold_by_name: string | null;
+  team_leader: string | null;
+}
+interface FpExternalOrder {
+  id: string;
+  customer_name: string | null;
+  project_name: string | null;
+  total_amount: number | null;
+  plan_price: number | null;
+  unit_count: number | null;
+  sales_name: string | null;
+  sales_bonus: number | null;
+  co_sales_name: string | null;
+  co_sales_bonus: number | null;
+  co_sales_name2: string | null;
+  co_sales_bonus2: number | null;
+  signed_at: string | null;
+  contract_progress: string | null;
+}
+
+interface FpInternalGroup {
+  key: string;
+  name: string;
+  role: "銷售人" | "隊長";
+  orders: Array<FpInternalOrder & { _bonus: number }>;
+  total_orders: number;
+  total_commission: number;
+}
+interface FpExternalGroup {
+  key: string;
+  name: string;
+  role: "開發業務" | "協同1" | "協同2";
+  orders: Array<FpExternalOrder & { _bonus: number }>;
+  total_orders: number;
+  total_commission: number;
+}
+
+function FranchisePayoutsTab() {
+  const today = new Date();
+  const defaultDate = (() => {
+    const d = new Date(today.getFullYear(), today.getMonth(), 1);
+    if (today.getDate() > 10) d.setMonth(d.getMonth() + 1);
+    return d;
+  })();
+  const [year, setYear] = useState<string>(String(defaultDate.getFullYear()));
+  const [month, setMonth] = useState<string>(String(defaultDate.getMonth() + 1));
+  const [internalOrders, setInternalOrders] = useState<FpInternalOrder[]>([]);
+  const [externalOrders, setExternalOrders] = useState<FpExternalOrder[]>([]);
+  const [nameMap, setNameMap] = useState<Record<string, string>>({});
+  const [loadingI, setLoadingI] = useState(false);
+  const [loadingE, setLoadingE] = useState(false);
+  const [detailInternal, setDetailInternal] = useState<FpInternalGroup | null>(null);
+  const [detailExternal, setDetailExternal] = useState<FpExternalGroup | null>(null);
+
+  const years = useMemo(() => {
+    const cur = new Date().getFullYear();
+    return Array.from({ length: 5 }, (_, i) => cur - i);
+  }, []);
+
+  const range = useMemo(() => {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    if (year === "ALL" && month === "ALL") {
+      return { monthStart: null as string | null, monthEnd: null as string | null, label: "全部訂單", displayLabel: "全部訂單" };
+    }
+    if (year !== "ALL" && month === "ALL") {
+      const y = Number(year);
+      return {
+        monthStart: `${y}-01-01`,
+        monthEnd: `${y + 1}-01-01`,
+        label: `${y} 全年`,
+        displayLabel: `${y}-01-01 ～ ${y}-12-31`,
+      };
+    }
+    const y = Number(year);
+    const m = Number(month);
+    const targetYear = m === 1 ? y - 1 : y;
+    const targetMonth = m === 1 ? 12 : m - 1;
+    const nextYear = targetMonth === 12 ? targetYear + 1 : targetYear;
+    const nextMonth = targetMonth === 12 ? 1 : targetMonth + 1;
+    const lastDay = new Date(targetYear, targetMonth, 0).getDate();
+    return {
+      monthStart: `${targetYear}-${pad(targetMonth)}-01`,
+      monthEnd: `${nextYear}-${pad(nextMonth)}-01`,
+      label: `${targetYear}-${pad(targetMonth)}`,
+      displayLabel: `${targetYear}-${pad(targetMonth)}-01 ～ ${targetYear}-${pad(targetMonth)}-${pad(lastDay)}`,
+    };
+  }, [year, month]);
+
+  useEffect(() => {
+    let aborted = false;
+    const loadInternal = async () => {
+      setLoadingI(true);
+      let q = supabase
+        .from("franchise_orders")
+        .select("id,customer_name,plan_name,plan_price,commission_amount,leader_amount,sold_at,sold_by,sold_by_name,team_leader")
+        .eq("payment_confirmed", true);
+      if (range.monthStart && range.monthEnd) {
+        q = q.gte("sold_at", range.monthStart).lt("sold_at", range.monthEnd);
+      }
+      const { data, error } = await q.order("sold_at", { ascending: true });
+      if (aborted) return;
+      if (error) {
+        toast.error("讀取內部銷售失敗：" + error.message);
+        setInternalOrders([]);
+      } else {
+        setInternalOrders((data ?? []) as FpInternalOrder[]);
+      }
+      setLoadingI(false);
+    };
+    const loadExternal = async () => {
+      setLoadingE(true);
+      let q = supabase
+        .from("franchise_external_orders")
+        .select("id,customer_name,project_name,total_amount,plan_price,unit_count,sales_name,sales_bonus,co_sales_name,co_sales_bonus,co_sales_name2,co_sales_bonus2,signed_at,contract_progress")
+        .eq("contract_progress", "已完成");
+      if (range.monthStart && range.monthEnd) {
+        q = q.gte("signed_at", range.monthStart).lt("signed_at", range.monthEnd);
+      }
+      const { data, error } = await q.order("signed_at", { ascending: true });
+      if (aborted) return;
+      if (error) {
+        toast.error("讀取外部銷售失敗：" + error.message);
+        setExternalOrders([]);
+      } else {
+        setExternalOrders((data ?? []) as FpExternalOrder[]);
+      }
+      setLoadingE(false);
+    };
+    void loadInternal();
+    void loadExternal();
+    return () => { aborted = true; };
+  }, [range.monthStart, range.monthEnd]);
+
+  useEffect(() => {
+    const ids = Array.from(new Set([
+      ...internalOrders.map((o) => o.sold_by).filter(Boolean) as string[],
+      ...internalOrders.map((o) => o.team_leader).filter(Boolean) as string[],
+    ]));
+    if (ids.length === 0) { setNameMap({}); return; }
+    let aborted = false;
+    (async () => {
+      const { data } = await supabase
+        .from("team_member_profiles")
+        .select("user_id,display_name")
+        .in("user_id", ids);
+      if (aborted) return;
+      const map: Record<string, string> = {};
+      (data ?? []).forEach((p: any) => { map[p.user_id] = p.display_name ?? "—"; });
+      setNameMap(map);
+    })();
+    return () => { aborted = true; };
+  }, [internalOrders]);
+
+  const internalGroups: FpInternalGroup[] = useMemo(() => {
+    const m = new Map<string, FpInternalGroup>();
+    // 銷售人分組
+    for (const o of internalOrders) {
+      const key = `sold:${o.sold_by ?? o.sold_by_name ?? "unknown"}`;
+      let g = m.get(key);
+      if (!g) {
+        const name = (o.sold_by_name?.trim()) || (o.sold_by ? nameMap[o.sold_by] : null) || "未指定";
+        g = { key, name, role: "銷售人", orders: [], total_orders: 0, total_commission: 0 };
+        m.set(key, g);
+      }
+      const bonus = Number(o.commission_amount ?? 0);
+      g.orders.push({ ...o, _bonus: bonus });
+      g.total_orders += 1;
+      g.total_commission += bonus;
+    }
+    // 隊長分組
+    for (const o of internalOrders) {
+      if (!o.team_leader) continue;
+      const key = `leader:${o.team_leader}`;
+      let g = m.get(key);
+      if (!g) {
+        const name = nameMap[o.team_leader] ?? "未指定";
+        g = { key, name, role: "隊長", orders: [], total_orders: 0, total_commission: 0 };
+        m.set(key, g);
+      }
+      const bonus = Number(o.leader_amount ?? 0);
+      g.orders.push({ ...o, _bonus: bonus });
+      g.total_orders += 1;
+      g.total_commission += bonus;
+    }
+    return Array.from(m.values()).sort((a, b) => b.total_commission - a.total_commission);
+  }, [internalOrders, nameMap]);
+
+  const externalGroups: FpExternalGroup[] = useMemo(() => {
+    const m = new Map<string, FpExternalGroup>();
+    const push = (name: string | null | undefined, role: FpExternalGroup["role"], bonus: number, o: FpExternalOrder) => {
+      const n = (name ?? "").trim();
+      if (!n) return;
+      const key = `${role}:${n}`;
+      let g = m.get(key);
+      if (!g) {
+        g = { key, name: n, role, orders: [], total_orders: 0, total_commission: 0 };
+        m.set(key, g);
+      }
+      g.orders.push({ ...o, _bonus: bonus });
+      g.total_orders += 1;
+      g.total_commission += bonus;
+    };
+    for (const o of externalOrders) {
+      push(o.sales_name, "開發業務", Number(o.sales_bonus ?? 0), o);
+      push(o.co_sales_name, "協同1", Number(o.co_sales_bonus ?? 0), o);
+      push(o.co_sales_name2, "協同2", Number(o.co_sales_bonus2 ?? 0), o);
+    }
+    return Array.from(m.values()).sort((a, b) => b.total_commission - a.total_commission);
+  }, [externalOrders]);
+
+  return (
+    <div className="space-y-4">
+      {/* Filter */}
+      <Card>
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="flex flex-wrap gap-2 items-center">
+            <Select
+              value={year}
+              onValueChange={(v) => { setYear(v); if (v === "ALL") setMonth("ALL"); }}
+            >
+              <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">全部年份</SelectItem>
+                {years.map((y) => (<SelectItem key={y} value={String(y)}>{y} 年</SelectItem>))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={month}
+              onValueChange={(v) => {
+                setMonth(v);
+                if (v !== "ALL" && year === "ALL") setYear(String(new Date().getFullYear()));
+              }}
+              disabled={year === "ALL"}
+            >
+              <SelectTrigger className="w-32" title={year === "ALL" ? "選擇全部年份時僅支援全部月份" : undefined}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">全部月份</SelectItem>
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((mo) => (
+                  <SelectItem key={mo} value={String(mo)}>{mo} 月 10 日</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {year === "ALL" && (
+              <span className="text-xs text-muted-foreground">選擇全部年份時僅支援全部月份</span>
+            )}
+          </div>
+          <div className="text-sm text-muted-foreground">結算區間：{range.displayLabel}</div>
+        </CardHeader>
+      </Card>
+
+      {/* 內部銷售 */}
+      <Card>
+        <CardHeader><CardTitle>內部銷售分潤</CardTitle></CardHeader>
+        <CardContent className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>姓名</TableHead>
+                <TableHead>角色</TableHead>
+                <TableHead className="text-right">訂單筆數</TableHead>
+                <TableHead className="text-right">分潤金額</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loadingI ? (
+                <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">載入中...</TableCell></TableRow>
+              ) : internalGroups.length === 0 ? (
+                <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">本期無已確認付款的內部訂單</TableCell></TableRow>
+              ) : internalGroups.map((g) => (
+                <TableRow key={g.key} className="cursor-pointer" onClick={() => setDetailInternal(g)}>
+                  <TableCell>{g.name}</TableCell>
+                  <TableCell><Badge variant={g.role === "隊長" ? "default" : "secondary"}>{g.role}</Badge></TableCell>
+                  <TableCell className="text-right tabular-nums">{g.total_orders}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtMoney(g.total_commission)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* 外部銷售 */}
+      <Card>
+        <CardHeader><CardTitle>外部銷售分潤</CardTitle></CardHeader>
+        <CardContent className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>姓名</TableHead>
+                <TableHead>角色</TableHead>
+                <TableHead className="text-right">訂單筆數</TableHead>
+                <TableHead className="text-right">分潤金額</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loadingE ? (
+                <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">載入中...</TableCell></TableRow>
+              ) : externalGroups.length === 0 ? (
+                <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">本期無已完成的外部訂單</TableCell></TableRow>
+              ) : externalGroups.map((g) => (
+                <TableRow key={g.key} className="cursor-pointer" onClick={() => setDetailExternal(g)}>
+                  <TableCell>{g.name}</TableCell>
+                  <TableCell><Badge variant="secondary">{g.role}</Badge></TableCell>
+                  <TableCell className="text-right tabular-nums">{g.total_orders}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtMoney(g.total_commission)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* 內部明細 Sheet */}
+      <Sheet open={!!detailInternal} onOpenChange={(o) => !o && setDetailInternal(null)}>
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto overflow-x-hidden">
+          <SheetHeader>
+            <SheetTitle>{detailInternal?.name}　·　{detailInternal?.role}　·　{range.label} 分潤明細</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>客戶</TableHead>
+                  <TableHead>方案</TableHead>
+                  <TableHead className="text-right">金額</TableHead>
+                  <TableHead className="text-right">分潤</TableHead>
+                  <TableHead>日期</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(detailInternal?.orders ?? []).map((o) => (
+                  <TableRow key={o.id}>
+                    <TableCell>{o.customer_name ?? "—"}</TableCell>
+                    <TableCell>{o.plan_name ?? "—"}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtMoney(o.plan_price)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtMoney(o._bonus)}</TableCell>
+                    <TableCell className="whitespace-nowrap">{o.sold_at ?? "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* 外部明細 Sheet */}
+      <Sheet open={!!detailExternal} onOpenChange={(o) => !o && setDetailExternal(null)}>
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto overflow-x-hidden">
+          <SheetHeader>
+            <SheetTitle>{detailExternal?.name}　·　{detailExternal?.role}　·　{range.label} 分潤明細</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>客戶</TableHead>
+                  <TableHead>專案</TableHead>
+                  <TableHead className="text-right">金額</TableHead>
+                  <TableHead className="text-right">分潤</TableHead>
+                  <TableHead>簽約日</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(detailExternal?.orders ?? []).map((o) => (
+                  <TableRow key={o.id}>
+                    <TableCell>{o.customer_name ?? "—"}</TableCell>
+                    <TableCell>{o.project_name ?? "—"}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtMoney(o.total_amount ?? (o.unit_count ?? 0) * (o.plan_price ?? 0))}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtMoney(o._bonus)}</TableCell>
+                    <TableCell className="whitespace-nowrap">{o.signed_at ?? "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
+}
