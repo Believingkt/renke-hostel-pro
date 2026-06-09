@@ -942,10 +942,19 @@ function KolDetailDrawer({
     () => matched.filter((o) => o.order_date?.slice(0, 7) === month),
     [matched, month],
   );
-  // 完成業績明細：依 check_out_date 在當月
+  // 完成業績明細：分潤結算模式依 filterPrefix 過濾並排除取消單；否則依 month
   const completedList = useMemo(
-    () => matched.filter((o) => o.check_out_date?.slice(0, 7) === month),
-    [matched, month],
+    () => {
+      if (settlementMode) {
+        return matched.filter(
+          (o) =>
+            o.order_status !== "cancelled" &&
+            o.check_out_date?.startsWith(filterPrefix),
+        );
+      }
+      return matched.filter((o) => o.check_out_date?.slice(0, 7) === month);
+    },
+    [matched, month, settlementMode, filterPrefix],
   );
 
   const orderTotals = useMemo(() => {
