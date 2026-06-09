@@ -591,8 +591,13 @@ export default function KolBonus() {
                 <>
                   <div className="flex flex-wrap items-center gap-2 mb-4">
                     <Input
-                      value={tab1SearchInput}
-                      onChange={(e) => setTab1SearchInput(e.target.value)}
+                      ref={tab1SearchRef}
+                      defaultValue=""
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (tab1DebounceRef.current) clearTimeout(tab1DebounceRef.current);
+                        tab1DebounceRef.current = setTimeout(() => setTab1Search(val), 300);
+                      }}
                       placeholder="搜尋 KOL 名稱 或 折扣碼 / CID"
                       className="w-[260px]"
                     />
