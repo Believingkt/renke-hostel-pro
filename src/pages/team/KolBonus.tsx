@@ -608,6 +608,7 @@ export default function KolBonus() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="0">全部年份</SelectItem>
                     {yearOptions.map((y) => (
                       <SelectItem key={y} value={String(y)}>
                         {y} 年
