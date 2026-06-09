@@ -398,28 +398,29 @@ export default function KolBonus() {
     return map;
   }, [rows, ordersByKey, getRate, filterYear, filterMonth]);
 
-  // Tab2 分潤結算：依 年 + 發放期別 + 星探，且 KOL 須在該期別月份有退房
+  // Tab2 退房月份 prefix：發放期別 P 對應退房月 = P-1（P=1 → 上一年12月）
+  const tab2TargetPrefix = useMemo(() => {
+    if (payoutPeriod === "all") return `${payoutYear}-`;
+    const p = Number(payoutPeriod);
+    if (p === 1) return `${payoutYear - 1}-12`;
+    return `${payoutYear}-${String(p - 1).padStart(2, "0")}`;
+  }, [payoutYear, payoutPeriod]);
+
+  // Tab2 分潤結算：依 年 + 發放期別 + 星探，且 KOL 須在對應退房月份有退房
   const tab2FilteredRows = useMemo(() => {
-    const prefix =
-      payoutPeriod === "all"
-        ? `${payoutYear}-`
-        : `${payoutYear}-${String(payoutPeriod).padStart(2, "0")}`;
     return rows.filter((k) => {
       if (scoutFilter !== "all" && k.scout_id !== scoutFilter) return false;
       const list = ordersByKey.get(k.rowKey) ?? [];
       return list.some(
         (o) =>
-          o.order_status !== "cancelled" && o.check_out_date?.startsWith(prefix),
+          o.order_status !== "cancelled" && o.check_out_date?.startsWith(tab2TargetPrefix),
       );
     });
-  }, [rows, ordersByKey, payoutYear, payoutPeriod, scoutFilter]);
+  }, [rows, ordersByKey, tab2TargetPrefix, scoutFilter]);
 
-  // Tab2 度量：完成業績 / 分潤依 payoutYear + payoutPeriod
+  // Tab2 度量：completedCount / completedRevenue / commission 依對應退房月
   const tab2Metrics = useMemo(() => {
-    const prefix =
-      payoutPeriod === "all"
-        ? `${payoutYear}-`
-        : `${payoutYear}-${String(payoutPeriod).padStart(2, "0")}`;
+    const prefix = tab2TargetPrefix;
     const map = new Map<
       string,
       { completedCount: number; completedRevenue: number; commission: number }
