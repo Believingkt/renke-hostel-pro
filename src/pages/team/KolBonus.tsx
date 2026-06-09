@@ -914,6 +914,8 @@ interface DetailProps {
   filterPrefix?: string;
   payoutYear?: number;
   payoutPeriod?: string;
+  filterYear?: number;
+  filterMonthAll?: boolean;
 }
 
 function KolDetailDrawer({
