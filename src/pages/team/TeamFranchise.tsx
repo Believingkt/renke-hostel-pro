@@ -412,6 +412,11 @@ export default function TeamFranchise() {
             <MemberDistributionTab currentUserId={userId} canManage={distCanManage} canDelete={distCanDelete} />
           </TabsContent>
         )}
+        {showDistributions && (
+          <TabsContent value="payouts" className="mt-4">
+            <FranchisePayoutsTab />
+          </TabsContent>
+        )}
         {showVouchers && (
           <TabsContent value="vouchers" className="mt-4">
             <VoucherProgressTab canEdit={voucherCanEdit} forcedSource={voucherForceExternal ? "external" : undefined} hideSourceFilter={voucherForceExternal} />
