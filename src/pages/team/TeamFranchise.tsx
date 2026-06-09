@@ -1625,11 +1625,6 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
                 <Input type="number" step="0.1" value={externalForm.co_sales2_rate}
                   onChange={(e) => setExternalForm({ ...externalForm, co_sales2_rate: Number(e.target.value) || 0 })} />
               </div>
-              <div className="space-y-1">
-                <Label>發放日</Label>
-                <Input value={externalForm.payout_day}
-                  onChange={(e) => setExternalForm({ ...externalForm, payout_day: e.target.value })} />
-              </div>
               <div className="space-y-1 col-span-2">
                 <Label>生效日期</Label>
                 <Input type="date" value={externalForm.effective_from}
