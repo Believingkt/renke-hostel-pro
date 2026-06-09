@@ -1179,7 +1179,9 @@ function KolDetailDrawer({
                       const coMonth = p === 1 ? 12 : p - 1;
                       return `完成業績明細（${coYear}年${coMonth}月退房，${payoutYear}年${p}月10日發放）`;
                     })()
-                : "完成業績明細（依退房日期統計）"}
+                : filterMonthAll && filterYear
+                  ? `完成業績明細（${filterYear} 全年度）`
+                  : "完成業績明細（依退房日期統計）"}
             </div>
             <div className="overflow-x-auto">
               <Table>
