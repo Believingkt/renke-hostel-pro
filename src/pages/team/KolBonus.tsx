@@ -967,12 +967,15 @@ function KolDetailDrawer({
     return `${ny}-${String(nm).padStart(2, "0")}-10`;
   }, [month]);
 
-  // 訂單明細：依 order_date 在當月
-  const orderList = useMemo(
-    () => matched.filter((o) => o.order_date?.slice(0, 7) === month),
-    [matched, month],
-  );
-  // 完成業績明細：分潤結算模式依 filterPrefix 過濾並排除取消單；否則依 month
+  // 訂單明細：依 order_date 在當月；非結算模式且選「全年」時改為整年度
+  const orderList = useMemo(() => {
+    if (!settlementMode && filterMonthAll && filterYear) {
+      const yPrefix = `${filterYear}-`;
+      return matched.filter((o) => o.order_date?.startsWith(yPrefix));
+    }
+    return matched.filter((o) => o.order_date?.slice(0, 7) === month);
+  }, [matched, month, settlementMode, filterMonthAll, filterYear]);
+  // 完成業績明細：分潤結算模式依 filterPrefix 過濾並排除取消單；非結算+全年依年度；否則依 month
   const completedList = useMemo(
     () => {
       if (settlementMode) {
@@ -982,9 +985,17 @@ function KolDetailDrawer({
             o.check_out_date?.startsWith(filterPrefix),
         );
       }
+      if (filterMonthAll && filterYear) {
+        const yPrefix = `${filterYear}-`;
+        return matched.filter(
+          (o) =>
+            o.check_out_date?.startsWith(yPrefix) &&
+            o.order_status !== "cancelled",
+        );
+      }
       return matched.filter((o) => o.check_out_date?.slice(0, 7) === month);
     },
-    [matched, month, settlementMode, filterPrefix],
+    [matched, month, settlementMode, filterPrefix, filterMonthAll, filterYear],
   );
 
   const orderTotals = useMemo(() => {
