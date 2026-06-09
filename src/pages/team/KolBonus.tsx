@@ -885,6 +885,9 @@ interface DetailProps {
   onGenerate: (row: KolRow) => Promise<void> | void;
   saving: boolean;
   settlementMode?: boolean;
+  filterPrefix?: string;
+  payoutYear?: number;
+  payoutPeriod?: string;
 }
 
 function KolDetailDrawer({
@@ -897,6 +900,9 @@ function KolDetailDrawer({
   onGenerate,
   saving,
   settlementMode = false,
+  filterPrefix = "",
+  payoutYear,
+  payoutPeriod,
 }: DetailProps) {
 
   const [month, setMonth] = useState<string>(initialMonth);
