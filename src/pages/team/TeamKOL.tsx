@@ -2470,9 +2470,17 @@ function ProspectsTab({
     })();
   }, []);
 
-  const fetchRows = useCallback(async () => {
+  const fetchRows = useCallback(async (searchVal?: string) => {
     setLoading(true);
-    const { data, error } = await supabase.from("kol_prospects").select("*").order("created_at", { ascending: false });
+    let q = supabase.from("kol_prospects").select("*").order("created_at", { ascending: false });
+
+    const s = (searchVal ?? "").trim();
+    if (s) {
+      const esc = s.replace(/[%,()]/g, " ");
+      q = q.or(`name.ilike.%${esc}%,ig_url.ilike.%${esc}%,cid_code.ilike.%${esc}%`);
+    }
+
+    const { data, error } = await q;
     if (error) {
       toast.error(error.message);
       setLoading(false);
@@ -2497,8 +2505,8 @@ function ProspectsTab({
   }, []);
 
   useEffect(() => {
-    fetchRows();
-  }, [fetchRows]);
+    fetchRows(search);
+  }, [fetchRows, search]);
 
   const scoutFilterOptions = useMemo(() => {
     const ids = Array.from(new Set(rows.map((r) => r.scout_id).filter(Boolean) as string[]));
