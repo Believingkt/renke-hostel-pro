@@ -907,7 +907,7 @@ export default function KolBonus() {
         payoutYear={payoutYear}
         payoutPeriod={payoutPeriod}
         filterYear={filterYear}
-        filterMonthAll={filterMonth === "all"}
+        filterMonthAll={filterYear === 0 ? true : filterMonth === "all"}
       />
 
     </div>
