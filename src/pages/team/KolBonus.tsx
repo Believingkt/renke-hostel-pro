@@ -931,6 +931,8 @@ function KolDetailDrawer({
   filterPrefix = "",
   payoutYear,
   payoutPeriod,
+  filterYear,
+  filterMonthAll = false,
 }: DetailProps) {
 
   const [month, setMonth] = useState<string>(initialMonth);
