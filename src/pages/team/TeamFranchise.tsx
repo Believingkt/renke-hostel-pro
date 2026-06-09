@@ -1355,7 +1355,7 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
       tier2_rate: internalForm.tier2_rate / 100,
       leader_supplement_rate: 0,
       company_rate: internalForm.company_rate / 100,
-      payout_day: internalForm.payout_day,
+      payout_day: "10",
       effective_from: internalForm.effective_from,
     };
     const { error } = await (supabase as any).from("franchise_commission_settings").insert(payload);
