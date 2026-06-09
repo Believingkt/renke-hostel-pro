@@ -6672,6 +6672,62 @@ export type Database = {
         }
         Relationships: []
       }
+      starlink_monthly_payouts: {
+        Row: {
+          calculated_at: string | null
+          created_at: string
+          id: string
+          month: number
+          order_snapshot: Json | null
+          payout_status: string
+          period: number
+          scout_id: string
+          total_commission: number
+          total_orders: number
+          total_sales: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          calculated_at?: string | null
+          created_at?: string
+          id?: string
+          month: number
+          order_snapshot?: Json | null
+          payout_status?: string
+          period?: number
+          scout_id: string
+          total_commission?: number
+          total_orders?: number
+          total_sales?: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          calculated_at?: string | null
+          created_at?: string
+          id?: string
+          month?: number
+          order_snapshot?: Json | null
+          payout_status?: string
+          period?: number
+          scout_id?: string
+          total_commission?: number
+          total_orders?: number
+          total_sales?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "starlink_monthly_payouts_scout_id_fkey"
+            columns: ["scout_id"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       starlink_orders: {
         Row: {
           business_type: string | null
