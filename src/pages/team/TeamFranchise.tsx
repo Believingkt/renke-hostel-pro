@@ -1585,12 +1585,6 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
                   onChange={(e) => setInternalForm({ ...internalForm, company_rate: Number(e.target.value) || 0 })} />
               </div>
               <div className="space-y-1">
-                <Label>發放日</Label>
-                <Input value={internalForm.payout_day}
-                  placeholder="例：10 或 10,25"
-                  onChange={(e) => setInternalForm({ ...internalForm, payout_day: e.target.value })} />
-              </div>
-              <div className="space-y-1">
                 <Label>生效日期</Label>
                 <Input type="date" value={internalForm.effective_from}
                   onChange={(e) => setInternalForm({ ...internalForm, effective_from: e.target.value })} />
