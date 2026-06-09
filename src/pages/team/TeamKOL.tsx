@@ -2609,7 +2609,7 @@ function ProspectsTab({
           onChange={(e) => {
             const val = e.target.value;
             if (inviteDebounceRef.current) clearTimeout(inviteDebounceRef.current);
-            inviteDebounceRef.current = setTimeout(() => setSearch(val), 300);
+            inviteDebounceRef.current = setTimeout(() => setSearch(val), 150);
           }}
           className="w-64"
         />

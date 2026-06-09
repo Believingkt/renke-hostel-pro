@@ -596,7 +596,7 @@ export default function KolBonus() {
                       onChange={(e) => {
                         const val = e.target.value;
                         if (tab1DebounceRef.current) clearTimeout(tab1DebounceRef.current);
-                        tab1DebounceRef.current = setTimeout(() => setTab1Search(val), 300);
+                        tab1DebounceRef.current = setTimeout(() => setTab1Search(val), 150);
                       }}
                       placeholder="搜尋 KOL 名稱 或 折扣碼 / CID"
                       className="w-[260px]"
