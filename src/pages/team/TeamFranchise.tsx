@@ -1444,12 +1444,11 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
                 <div className="text-xs text-muted-foreground mb-2">
                   目前版本（生效日：{latestInternal.effective_from}）
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                   <div><span className="text-muted-foreground">個人基本比例：</span>{fmtRate(latestInternal.base_rate)}</div>
                   <div><span className="text-muted-foreground">帶 1 人比例：</span>{fmtRate(latestInternal.tier1_rate)}</div>
                   <div><span className="text-muted-foreground">帶 2 人以上：</span>{fmtRate(latestInternal.tier2_rate)}</div>
                   <div><span className="text-muted-foreground">公司提撥：</span>{fmtRate(latestInternal.company_rate)}</div>
-                  <div><span className="text-muted-foreground">發放日：</span>{latestInternal.payout_day ?? "—"}</div>
                 </div>
               </div>
               {internalRows.length > 1 && (
