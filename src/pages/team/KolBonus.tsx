@@ -142,7 +142,7 @@ export default function KolBonus() {
 
   const fetchAll = async () => {
     setLoading(true);
-    const [kolRes, orderRes, commRes, accRes, scoutRes] = await Promise.all([
+    const [kolRes, orderRes, commRes, accRes, scoutRes, scoutCodeRes] = await Promise.all([
       supabase
         .from("kol_profiles")
         .select(
@@ -165,7 +165,11 @@ export default function KolBonus() {
         .order("effective_from", { ascending: false })
         .order("created_at", { ascending: false }),
       supabase.from("accommodation_info").select("id, name"),
-      supabase.from("team_member_profiles").select("user_id, display_name"),
+      supabase.from("team_member_profiles").select("id, user_id, display_name"),
+      supabase
+        .from("scout_discount_codes")
+        .select("discount_code, scout_id")
+        .eq("is_active", true),
     ]);
     if (kolRes.error) toast.error("載入 KOL 失敗：" + kolRes.error.message);
     if (orderRes.error) toast.error("載入訂單失敗：" + orderRes.error.message);
@@ -190,11 +194,34 @@ export default function KolBonus() {
         a.name,
       ]),
     );
+    const teamMemberProfiles = (scoutRes.data ?? []) as Array<{
+      id: string | null;
+      user_id: string | null;
+      display_name: string | null;
+    }>;
     const scoutNameMap = new Map<string, string>(
-      ((scoutRes.data ?? []) as Array<{ user_id: string | null; display_name: string | null }>)
+      teamMemberProfiles
         .filter((s) => !!s.user_id)
         .map((s) => [s.user_id as string, s.display_name ?? ""]),
     );
+    // key = team_member_profiles.id → display_name
+    const memberNameById = new Map<string, string>();
+    for (const m of teamMemberProfiles) {
+      if (m.id) memberNameById.set(m.id, m.display_name ?? "");
+    }
+    // key = discount_code 大寫 → 星探 display_name
+    const scoutNameByCode = new Map<string, string>();
+    const scoutDiscountCodes = (scoutCodeRes.data ?? []) as Array<{
+      discount_code: string | null;
+      scout_id: string | null;
+    }>;
+    for (const s of scoutDiscountCodes) {
+      const code = s.discount_code?.trim().toUpperCase();
+      if (!code || !s.scout_id) continue;
+      const name = memberNameById.get(s.scout_id);
+      if (name) scoutNameByCode.set(code, name);
+    }
+
 
     // kol_profiles 索引：依 cid_code(大寫) 分組，再依 accommodation_id 對應
     const profileByCodeAcc = new Map<string, typeof allKols[number]>(); // key: `${codeUpper}|${accId}`
@@ -226,7 +253,7 @@ export default function KolBonus() {
       built.push({
         rowKey,
         id: matched?.id ?? null,
-        name: matched?.name ?? null,
+        name: matched?.name ?? scoutNameByCode.get(code) ?? null,
         cid_code: matched?.cid_code ?? code,
         accommodation_id: accId,
         accommodation_name:
