@@ -1472,7 +1472,6 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
                           <TableCell className="text-right tabular-nums">{fmtRate(r.tier1_rate)}</TableCell>
                           <TableCell className="text-right tabular-nums">{fmtRate(r.tier2_rate)}</TableCell>
                           <TableCell className="text-right tabular-nums">{fmtRate(r.company_rate)}</TableCell>
-                          <TableCell>{r.payout_day ?? "—"}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
