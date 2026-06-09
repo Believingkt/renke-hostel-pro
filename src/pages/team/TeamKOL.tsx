@@ -476,7 +476,7 @@ function InvitationsTab({
   const [filterRarity, setFilterRarity] = useState<string[]>([]);
   const [filterTags, setFilterTags] = useState<string[]>([]);
   const [filterScout, setFilterScout] = useState<string>("all");
-  const [filterYear, setFilterYear] = useState<string>(String(new Date().getFullYear()));
+  const [filterYear, setFilterYear] = useState<string>("all");
   const [filterMonth, setFilterMonth] = useState<string>("all");
   const [filterQualified, setFilterQualified] = useState<string>("all");
   const PAGE_SIZE = 50;
