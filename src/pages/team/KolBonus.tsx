@@ -211,6 +211,8 @@ export default function KolBonus() {
     }
     // key = discount_code 大寫 → 星探 display_name
     const scoutNameByCode = new Map<string, string>();
+    // key = discount_code 大寫 → team_member_profiles.user_id
+    const scoutUserIdByCode = new Map<string, string>();
     const scoutDiscountCodes = (scoutCodeRes.data ?? []) as Array<{
       discount_code: string | null;
       scout_id: string | null;
@@ -220,6 +222,9 @@ export default function KolBonus() {
       if (!code || !s.scout_id) continue;
       const name = memberNameById.get(s.scout_id);
       if (name) scoutNameByCode.set(code, name);
+      // s.scout_id 是 team_member_profiles.id，需要對應到 user_id
+      const member = teamMemberProfiles.find((m) => m.id === s.scout_id);
+      if (member?.user_id) scoutUserIdByCode.set(code, member.user_id);
     }
 
 
@@ -260,10 +265,11 @@ export default function KolBonus() {
           (accId && accMap.get(accId)) || matched?.venue_name || null,
         public_token: matched?.public_token ?? null,
         token_expires_at: matched?.token_expires_at ?? null,
-        scout_id: matched?.scout_id ?? null,
+        scout_id: matched?.scout_id ?? scoutUserIdByCode.get(code) ?? null,
         scout_name:
           (matched?.scout_id && scoutNameMap.get(matched.scout_id)) ||
           matched?.scout_name ||
+          scoutNameByCode.get(code) ||
           null,
       });
     }
