@@ -1089,7 +1089,7 @@ function KolDetailDrawer({
             </div>
           )}
 
-          {!settlementMode && (
+          {!settlementMode && !filterMonthAll && (
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">月份</span>
