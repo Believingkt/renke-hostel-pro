@@ -861,6 +861,13 @@ export default function KolBonus() {
         onGenerate={handleGenerate}
         saving={saving}
         settlementMode={drawerSettlement}
+        filterPrefix={
+          payoutPeriod === "all"
+            ? `${payoutYear}-`
+            : `${payoutYear}-${String(payoutPeriod).padStart(2, "0")}`
+        }
+        payoutYear={payoutYear}
+        payoutPeriod={payoutPeriod}
       />
 
     </div>
@@ -878,6 +885,9 @@ interface DetailProps {
   onGenerate: (row: KolRow) => Promise<void> | void;
   saving: boolean;
   settlementMode?: boolean;
+  filterPrefix?: string;
+  payoutYear?: number;
+  payoutPeriod?: string;
 }
 
 function KolDetailDrawer({
@@ -890,6 +900,9 @@ function KolDetailDrawer({
   onGenerate,
   saving,
   settlementMode = false,
+  filterPrefix = "",
+  payoutYear,
+  payoutPeriod,
 }: DetailProps) {
 
   const [month, setMonth] = useState<string>(initialMonth);
@@ -929,10 +942,19 @@ function KolDetailDrawer({
     () => matched.filter((o) => o.order_date?.slice(0, 7) === month),
     [matched, month],
   );
-  // 完成業績明細：依 check_out_date 在當月
+  // 完成業績明細：分潤結算模式依 filterPrefix 過濾並排除取消單；否則依 month
   const completedList = useMemo(
-    () => matched.filter((o) => o.check_out_date?.slice(0, 7) === month),
-    [matched, month],
+    () => {
+      if (settlementMode) {
+        return matched.filter(
+          (o) =>
+            o.order_status !== "cancelled" &&
+            o.check_out_date?.startsWith(filterPrefix),
+        );
+      }
+      return matched.filter((o) => o.check_out_date?.slice(0, 7) === month);
+    },
+    [matched, month, settlementMode, filterPrefix],
   );
 
   const orderTotals = useMemo(() => {
@@ -1102,7 +1124,13 @@ function KolDetailDrawer({
 
 
           <div className="space-y-2">
-            <div className="text-sm font-semibold">完成業績明細（依退房日期統計）</div>
+            <div className="text-sm font-semibold">
+              {settlementMode
+                ? payoutPeriod === "all"
+                  ? `完成業績明細（${payoutYear} 全年度）`
+                  : `完成業績明細（${payoutYear}年${Number(payoutPeriod)}月，依退房日期統計）`
+                : "完成業績明細（依退房日期統計）"}
+            </div>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
