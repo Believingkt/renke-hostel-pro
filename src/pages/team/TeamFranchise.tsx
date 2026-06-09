@@ -1462,7 +1462,6 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
                         <TableHead className="text-right">帶1人</TableHead>
                         <TableHead className="text-right">帶2人+</TableHead>
                         <TableHead className="text-right">公司</TableHead>
-                        <TableHead>發放日</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
