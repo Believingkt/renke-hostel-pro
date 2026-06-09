@@ -147,18 +147,13 @@ export default function KolBonus() {
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    let kolQuery = supabase
+    const kolQuery = supabase
       .from("kol_profiles")
       .select(
         "id, name, cid_code, venue_name, accommodation_id, public_token, token_expires_at, scout_id, scout_name",
       )
       .not("cid_code", "is", null)
       .neq("cid_code", "");
-    const s = tab1Search.trim();
-    if (s) {
-      const esc = s.replace(/[%,()]/g, " ");
-      kolQuery = kolQuery.or(`name.ilike.%${esc}%,cid_code.ilike.%${esc}%`);
-    }
     const [kolRes, orderRes, commRes, accRes, scoutRes, scoutCodeRes] = await Promise.all([
       kolQuery,
       supabase
@@ -300,11 +295,11 @@ export default function KolBonus() {
       rate: c.rate,
     })));
     setLoading(false);
-  }, [tab1Search]);
+  }, []);
 
   useEffect(() => {
     if (allowed) fetchAll();
-  }, [allowed, tab1Search, fetchAll]);
+  }, [allowed, fetchAll]);
 
   // 依館別分組（已按 effective_from DESC 排序）
   const settingsByAcc = useMemo(() => {
@@ -375,7 +370,13 @@ export default function KolBonus() {
       filterMonth === "all"
         ? `${filterYear}-`
         : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
+    const q = tab1SearchInput.trim().toLowerCase();
     return rows.filter((k) => {
+      if (q) {
+        const name = (k.name ?? "").toLowerCase();
+        const code = (k.cid_code ?? "").toLowerCase();
+        if (!name.includes(q) && !code.includes(q)) return false;
+      }
       const list = ordersByKey.get(k.rowKey) ?? [];
       const periodMatch = list.some(
         (o) =>
@@ -384,7 +385,7 @@ export default function KolBonus() {
       );
       return periodMatch;
     });
-  }, [rows, ordersByKey, filterYear, filterMonth]);
+  }, [rows, ordersByKey, filterYear, filterMonth, tab1SearchInput]);
 
   // Tab1 度量：進單與完成同時由 filterYear+filterMonth 控制
   const tab1Metrics = useMemo(() => {
