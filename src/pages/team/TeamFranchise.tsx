@@ -1401,6 +1401,7 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
   };
 
   const openExternalDialog = (projectName?: string) => {
+    setExternalEditingProject(projectName ?? "");
     const latest = projectName ? externalByProject[projectName]?.[0] : null;
     if (latest) {
       setExternalForm({
@@ -1423,6 +1424,7 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
     }
     setExternalDialogOpen(true);
   };
+
 
   return (
     <div className="space-y-4">
