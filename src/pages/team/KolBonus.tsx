@@ -367,9 +367,11 @@ export default function KolBonus() {
   // Tab1 進單管理：依年/月過濾（order_date 或 check_out_date 落在當月）
   const tab1FilteredRows = useMemo(() => {
     const prefix =
-      filterMonth === "all"
-        ? `${filterYear}-`
-        : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
+      filterYear === 0
+        ? null
+        : filterMonth === "all"
+          ? `${filterYear}-`
+          : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
     const q = tab1SearchInput.trim().toLowerCase();
     return rows.filter((k) => {
       if (q) {
@@ -378,6 +380,7 @@ export default function KolBonus() {
         if (!name.includes(q) && !code.includes(q)) return false;
       }
       const list = ordersByKey.get(k.rowKey) ?? [];
+      if (prefix === null) return list.length > 0;
       const periodMatch = list.some(
         (o) =>
           o.order_date?.startsWith(prefix) ||
