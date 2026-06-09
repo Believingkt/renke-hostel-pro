@@ -3547,6 +3547,7 @@ function ProjectsManagementCard() {
   }, [accommodations]);
 
   const [confirmAddOpen, setConfirmAddOpen] = useState(false);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<FranchiseProject | null>(null);
   const [editName, setEditName] = useState("");
   const [editAccId, setEditAccId] = useState<string>("");
@@ -3574,6 +3575,7 @@ function ProjectsManagementCard() {
     toast.success("已新增專案");
     setName("");
     setAccommodationId("");
+    setAddDialogOpen(false);
     bumpFranchiseProjects();
   };
 
@@ -3614,40 +3616,13 @@ function ProjectsManagementCard() {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-base">專案管理</CardTitle>
+        <Button size="sm" onClick={() => setAddDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-1" /> 新增專案
+        </Button>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex flex-wrap gap-2 items-center">
-          <Input
-            placeholder="新增專案名稱"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") requestAdd();
-            }}
-            className="max-w-sm"
-          />
-          <Select
-            value={accommodationId || "none"}
-            onValueChange={(v) => setAccommodationId(v === "none" ? "" : v)}
-          >
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="選擇館別（選填）" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">暫不指定</SelectItem>
-              {accommodations.map((a) => (
-                <SelectItem key={a.id} value={a.id}>
-                  {a.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button onClick={requestAdd} disabled={saving}>
-            <Plus className="h-4 w-4 mr-1" /> 新增
-          </Button>
-        </div>
         <div className="border rounded-md">
           <Table>
             <TableHeader>
@@ -3701,6 +3676,57 @@ function ProjectsManagementCard() {
           </Table>
         </div>
       </CardContent>
+
+      <Dialog open={addDialogOpen} onOpenChange={(o) => { setAddDialogOpen(o); if (!o) { setName(""); setAccommodationId(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>新增專案</DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-1 text-xs text-muted-foreground">
+                <div>專案是特許加盟銷售的基本單位，外部分潤的每個專案可以獨立設定分潤比例</div>
+                <div>・專案名稱建立後不建議修改，若已有關聯訂單，修改名稱會影響歷史資料</div>
+                <div>・館別若未出現選項，須請貝瑞先於PMS建立民宿館別</div>
+                <div>・新增後預設為「啟用」狀態，可隨時停用</div>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>專案名稱 *</Label>
+              <Input
+                placeholder="請輸入專案名稱"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") requestAdd(); }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>館別</Label>
+              <Select
+                value={accommodationId || "none"}
+                onValueChange={(v) => setAccommodationId(v === "none" ? "" : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="選擇館別（選填）" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">暫不指定</SelectItem>
+                  {accommodations.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            確認後將立即新增此專案，請確認資料無誤再送出。
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddDialogOpen(false)} disabled={saving}>取消</Button>
+            <Button onClick={requestAdd} disabled={saving}>確認新增</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={confirmAddOpen} onOpenChange={setConfirmAddOpen}>
         <AlertDialogContent>
