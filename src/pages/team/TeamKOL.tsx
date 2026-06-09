@@ -468,10 +468,8 @@ function InvitationsTab({
 
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
-  const composingRef = useRef(false);
   useEffect(() => {
-    if (composingRef.current) return;
-    const t = setTimeout(() => setSearch(searchInput), 300);
+    const t = setTimeout(() => setSearch(searchInput), 150);
     return () => clearTimeout(t);
   }, [searchInput]);
   const [filterAcc, setFilterAcc] = useState<string>("all");
