@@ -393,9 +393,11 @@ export default function KolBonus() {
   // Tab1 度量：進單與完成同時由 filterYear+filterMonth 控制
   const tab1Metrics = useMemo(() => {
     const prefix =
-      filterMonth === "all"
-        ? `${filterYear}-`
-        : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
+      filterYear === 0
+        ? null
+        : filterMonth === "all"
+          ? `${filterYear}-`
+          : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
     const map = new Map<
       string,
       {
