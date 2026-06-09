@@ -135,8 +135,11 @@ export default function KolBonus() {
   const [filterYear, setFilterYear] = useState<number>(currentYear);
   const [filterMonth, setFilterMonth] = useState<string>(String(currentMonthNum)); // "all" | "1".."12"
   const [tab1Search, setTab1Search] = useState<string>("");
-  const tab1SearchRef = useRef<HTMLInputElement>(null);
-  const tab1DebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [tab1SearchInput, setTab1SearchInput] = useState<string>("");
+  useEffect(() => {
+    const t = setTimeout(() => setTab1Search(tab1SearchInput), 150);
+    return () => clearTimeout(t);
+  }, [tab1SearchInput]);
   // 發放期別：以月份為單位（顯示為「M月10日」），代表完成業績/分潤所抓的退房月份
   const [payoutYear, setPayoutYear] = useState<number>(defaultPayoutYear);
   const [payoutPeriod, setPayoutPeriod] = useState<string>(String(defaultPayoutMonth));
@@ -583,153 +586,146 @@ export default function KolBonus() {
               <p className="text-sm text-muted-foreground">查看 KOL 訂單分潤資料並透過明細中的按鈕「產生專屬查詢連結」</p>
             </CardHeader>
             <CardContent>
+              <div className="flex flex-wrap items-center gap-2 mb-4">
+                <Input
+                  value={tab1SearchInput}
+                  onChange={(e) => setTab1SearchInput(e.target.value)}
+                  placeholder="搜尋 KOL 名稱 或 折扣碼 / CID"
+                  className="w-[260px]"
+                />
+                <span className="text-sm text-muted-foreground">期間</span>
+                <Select
+                  value={String(filterYear)}
+                  onValueChange={(v) => setFilterYear(Number(v))}
+                >
+                  <SelectTrigger className="w-[110px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {yearOptions.map((y) => (
+                      <SelectItem key={y} value={String(y)}>
+                        {y} 年
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={filterMonth} onValueChange={setFilterMonth}>
+                  <SelectTrigger className="w-[130px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">全部月份</SelectItem>
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                      <SelectItem key={m} value={String(m)}>
+                        {m} 月
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {(() => {
+                  const empty = {
+                    orderCount: 0,
+                    orderRevenue: 0,
+                    completedCount: 0,
+                    completedRevenue: 0,
+                    commission: 0,
+                  };
+                  const totals = tab1FilteredRows.reduce(
+                    (acc, r) => {
+                      const m = tab1Metrics.get(r.rowKey) ?? empty;
+                      acc.orderRevenue += m.orderRevenue;
+                      acc.completedRevenue += m.completedRevenue;
+                      acc.commission += m.commission;
+                      return acc;
+                    },
+                    { orderRevenue: 0, completedRevenue: 0, commission: 0 },
+                  );
+                  return (
+                    <div className="ml-auto text-sm text-muted-foreground">
+                      共 {tab1FilteredRows.length} 位 KOL｜總進單業績 {fmtMoney(totals.orderRevenue)}｜總完成業績 {fmtMoney(totals.completedRevenue)}｜總分潤 {fmtMoney(totals.commission)}
+                    </div>
+                  );
+                })()}
+              </div>
               {loading ? (
                 <p className="text-sm text-muted-foreground py-6 text-center">
                   載入中...
                 </p>
               ) : (
-                <>
-                  <div className="flex flex-wrap items-center gap-2 mb-4">
-                    <Input
-                      ref={tab1SearchRef}
-                      defaultValue=""
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (tab1DebounceRef.current) clearTimeout(tab1DebounceRef.current);
-                        tab1DebounceRef.current = setTimeout(() => setTab1Search(val), 150);
-                      }}
-                      placeholder="搜尋 KOL 名稱 或 折扣碼 / CID"
-                      className="w-[260px]"
-                    />
-                    <span className="text-sm text-muted-foreground">期間</span>
-                    <Select
-                      value={String(filterYear)}
-                      onValueChange={(v) => setFilterYear(Number(v))}
-                    >
-                      <SelectTrigger className="w-[110px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {yearOptions.map((y) => (
-                          <SelectItem key={y} value={String(y)}>
-                            {y} 年
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select value={filterMonth} onValueChange={setFilterMonth}>
-                      <SelectTrigger className="w-[130px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">全部月份</SelectItem>
-                        {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                          <SelectItem key={m} value={String(m)}>
-                            {m} 月
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {(() => {
-                      const empty = {
-                        orderCount: 0,
-                        orderRevenue: 0,
-                        completedCount: 0,
-                        completedRevenue: 0,
-                        commission: 0,
-                      };
-                      const totals = tab1FilteredRows.reduce(
-                        (acc, r) => {
-                          const m = tab1Metrics.get(r.rowKey) ?? empty;
-                          acc.orderRevenue += m.orderRevenue;
-                          acc.completedRevenue += m.completedRevenue;
-                          acc.commission += m.commission;
-                          return acc;
-                        },
-                        { orderRevenue: 0, completedRevenue: 0, commission: 0 },
-                      );
-                      return (
-                        <div className="ml-auto text-sm text-muted-foreground">
-                          共 {tab1FilteredRows.length} 位 KOL｜總進單業績 {fmtMoney(totals.orderRevenue)}｜總完成業績 {fmtMoney(totals.completedRevenue)}｜總分潤 {fmtMoney(totals.commission)}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="whitespace-nowrap">KOL 名稱</TableHead>
+                        <TableHead className="whitespace-nowrap">折扣碼 / CID</TableHead>
+                        <TableHead className="whitespace-nowrap">館別</TableHead>
+                        <TableHead className="text-right whitespace-nowrap">
+                          {metricsLabel}進單筆數
+                          <div className="text-xs font-normal text-muted-foreground">依訂單日期</div>
+                        </TableHead>
+                        <TableHead className="text-right whitespace-nowrap border-r">{metricsLabel}進單業績</TableHead>
+                        <TableHead className="text-right whitespace-nowrap">
+                          {metricsLabel}完成筆數
+                          <div className="text-xs font-normal text-muted-foreground">依退房日期</div>
+                        </TableHead>
+                        <TableHead className="text-right whitespace-nowrap">{metricsLabel}完成業績</TableHead>
+                        <TableHead className="text-right whitespace-nowrap">{metricsLabel}分潤</TableHead>
+                        <TableHead className="text-right whitespace-nowrap">操作</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {tab1FilteredRows.length === 0 ? (
                         <TableRow>
-                          <TableHead className="whitespace-nowrap">KOL 名稱</TableHead>
-                          <TableHead className="whitespace-nowrap">折扣碼 / CID</TableHead>
-                          <TableHead className="whitespace-nowrap">館別</TableHead>
-                          <TableHead className="text-right whitespace-nowrap">
-                            {metricsLabel}進單筆數
-                            <div className="text-xs font-normal text-muted-foreground">依訂單日期</div>
-                          </TableHead>
-                          <TableHead className="text-right whitespace-nowrap border-r">{metricsLabel}進單業績</TableHead>
-                          <TableHead className="text-right whitespace-nowrap">
-                            {metricsLabel}完成筆數
-                            <div className="text-xs font-normal text-muted-foreground">依退房日期</div>
-                          </TableHead>
-                          <TableHead className="text-right whitespace-nowrap">{metricsLabel}完成業績</TableHead>
-                          <TableHead className="text-right whitespace-nowrap">{metricsLabel}分潤</TableHead>
-                          <TableHead className="text-right whitespace-nowrap">操作</TableHead>
+                          <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                            此期間無資料
+                          </TableCell>
                         </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {tab1FilteredRows.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-                              此期間無資料
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          tab1FilteredRows.map((r) => {
-                            const m = tab1Metrics.get(r.rowKey) ?? {
-                              orderCount: 0,
-                              orderRevenue: 0,
-                              completedCount: 0,
-                              completedRevenue: 0,
-                              commission: 0,
-                            };
-                            return (
-                              <TableRow
-                                key={r.rowKey}
-                                className="cursor-pointer hover:bg-muted/50"
-                                onClick={() => openBonusDrawer(r)}
-                              >
-                                <TableCell className="whitespace-nowrap" title={r.name || ""}>
-                                  {r.name || "—"}
-                                </TableCell>
-                                <TableCell className="whitespace-nowrap font-mono">
-                                  {r.cid_code}
-                                </TableCell>
-                                <TableCell className="whitespace-nowrap">
-                                  {r.accommodation_name || "—"}
-                                </TableCell>
-                                <TableCell className="text-right tabular-nums">{m.orderCount}</TableCell>
-                                <TableCell className="text-right tabular-nums border-r">{fmtMoney(m.orderRevenue)}</TableCell>
-                                <TableCell className="text-right tabular-nums">{m.completedCount}</TableCell>
-                                <TableCell className="text-right tabular-nums">{fmtMoney(m.completedRevenue)}</TableCell>
-                                <TableCell className="text-right tabular-nums">{fmtMoney(m.commission)}</TableCell>
-                                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    onClick={() => openBonusDrawer(r)}
-                                    title="查看明細"
-                                  >
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </>
+                      ) : (
+                        tab1FilteredRows.map((r) => {
+                          const m = tab1Metrics.get(r.rowKey) ?? {
+                            orderCount: 0,
+                            orderRevenue: 0,
+                            completedCount: 0,
+                            completedRevenue: 0,
+                            commission: 0,
+                          };
+                          return (
+                            <TableRow
+                              key={r.rowKey}
+                              className="cursor-pointer hover:bg-muted/50"
+                              onClick={() => openBonusDrawer(r)}
+                            >
+                              <TableCell className="whitespace-nowrap" title={r.name || ""}>
+                                {r.name || "—"}
+                              </TableCell>
+                              <TableCell className="whitespace-nowrap font-mono">
+                                {r.cid_code}
+                              </TableCell>
+                              <TableCell className="whitespace-nowrap">
+                                {r.accommodation_name || "—"}
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums">{m.orderCount}</TableCell>
+                              <TableCell className="text-right tabular-nums border-r">{fmtMoney(m.orderRevenue)}</TableCell>
+                              <TableCell className="text-right tabular-nums">{m.completedCount}</TableCell>
+                              <TableCell className="text-right tabular-nums">{fmtMoney(m.completedRevenue)}</TableCell>
+                              <TableCell className="text-right tabular-nums">{fmtMoney(m.commission)}</TableCell>
+                              <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => openBonusDrawer(r)}
+                                  title="查看明細"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </CardContent>
           </Card>
