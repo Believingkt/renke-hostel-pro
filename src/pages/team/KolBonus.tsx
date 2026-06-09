@@ -1125,7 +1125,12 @@ function KolDetailDrawer({
               {settlementMode
                 ? payoutPeriod === "all"
                   ? `完成業績明細（${payoutYear} 全年度）`
-                  : `完成業績明細（${payoutYear}年${Number(payoutPeriod)}月，依退房日期統計）`
+                  : (() => {
+                      const p = Number(payoutPeriod);
+                      const coYear = p === 1 ? (payoutYear as number) - 1 : payoutYear;
+                      const coMonth = p === 1 ? 12 : p - 1;
+                      return `完成業績明細（${coYear}年${coMonth}月退房，${payoutYear}年${p}月10日發放）`;
+                    })()
                 : "完成業績明細（依退房日期統計）"}
             </div>
             <div className="overflow-x-auto">
