@@ -1796,7 +1796,13 @@ function PayoutsTab({
       <Card>
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div className="flex flex-wrap gap-2 items-center">
-            <Select value={year} onValueChange={setYear}>
+            <Select
+              value={year}
+              onValueChange={(v) => {
+                setYear(v);
+                if (v === "ALL") setMonth("ALL");
+              }}
+            >
               <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">全部年份</SelectItem>
@@ -1805,8 +1811,22 @@ function PayoutsTab({
                 ))}
               </SelectContent>
             </Select>
-            <Select value={month} onValueChange={setMonth}>
-              <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+            <Select
+              value={month}
+              onValueChange={(v) => {
+                setMonth(v);
+                if (v !== "ALL" && year === "ALL") {
+                  setYear(String(new Date().getFullYear()));
+                }
+              }}
+              disabled={year === "ALL"}
+            >
+              <SelectTrigger
+                className="w-32"
+                title={year === "ALL" ? "選擇全部年份時僅支援全部月份" : undefined}
+              >
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">全部月份</SelectItem>
                 {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
@@ -1814,6 +1834,9 @@ function PayoutsTab({
                 ))}
               </SelectContent>
             </Select>
+            {year === "ALL" && (
+              <span className="text-xs text-muted-foreground">選擇全部年份時僅支援全部月份</span>
+            )}
           </div>
           <div className="text-sm text-muted-foreground">
             結算區間：{range.displayLabel}
