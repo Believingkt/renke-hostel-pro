@@ -147,18 +147,13 @@ export default function KolBonus() {
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    let kolQuery = supabase
+    const kolQuery = supabase
       .from("kol_profiles")
       .select(
         "id, name, cid_code, venue_name, accommodation_id, public_token, token_expires_at, scout_id, scout_name",
       )
       .not("cid_code", "is", null)
       .neq("cid_code", "");
-    const s = tab1Search.trim();
-    if (s) {
-      const esc = s.replace(/[%,()]/g, " ");
-      kolQuery = kolQuery.or(`name.ilike.%${esc}%,cid_code.ilike.%${esc}%`);
-    }
     const [kolRes, orderRes, commRes, accRes, scoutRes, scoutCodeRes] = await Promise.all([
       kolQuery,
       supabase
