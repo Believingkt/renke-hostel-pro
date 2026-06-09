@@ -387,8 +387,8 @@ export default function TeamFranchise() {
           {showOrders && <TabsTrigger value="orders">內部銷售</TabsTrigger>}
           {showExternal && <TabsTrigger value="external">外部銷售</TabsTrigger>}
           {showStats && <TabsTrigger value="stats">業績統計</TabsTrigger>}
-          {showDistributions && <TabsTrigger value="distributions">會員分潤</TabsTrigger>}
           {showDistributions && <TabsTrigger value="payouts">分潤結算</TabsTrigger>}
+          {showDistributions && <TabsTrigger value="distributions">會員分潤</TabsTrigger>}
           {showVouchers && <TabsTrigger value="vouchers">住宿券進度</TabsTrigger>}
           <TabsTrigger value="settings">分潤設定</TabsTrigger>
         </TabsList>
@@ -408,13 +408,13 @@ export default function TeamFranchise() {
           </TabsContent>
         )}
         {showDistributions && (
-          <TabsContent value="distributions" className="mt-4">
-            <MemberDistributionTab currentUserId={userId} canManage={distCanManage} canDelete={distCanDelete} />
+          <TabsContent value="payouts" className="mt-4">
+            <FranchisePayoutsTab />
           </TabsContent>
         )}
         {showDistributions && (
-          <TabsContent value="payouts" className="mt-4">
-            <FranchisePayoutsTab />
+          <TabsContent value="distributions" className="mt-4">
+            <MemberDistributionTab currentUserId={userId} canManage={distCanManage} canDelete={distCanDelete} />
           </TabsContent>
         )}
         {showVouchers && (
