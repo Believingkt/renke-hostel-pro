@@ -3616,40 +3616,13 @@ function ProjectsManagementCard() {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-base">專案管理</CardTitle>
+        <Button size="sm" onClick={() => setAddDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-1" /> 新增專案
+        </Button>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex flex-wrap gap-2 items-center">
-          <Input
-            placeholder="新增專案名稱"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") requestAdd();
-            }}
-            className="max-w-sm"
-          />
-          <Select
-            value={accommodationId || "none"}
-            onValueChange={(v) => setAccommodationId(v === "none" ? "" : v)}
-          >
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="選擇館別（選填）" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">暫不指定</SelectItem>
-              {accommodations.map((a) => (
-                <SelectItem key={a.id} value={a.id}>
-                  {a.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button onClick={requestAdd} disabled={saving}>
-            <Plus className="h-4 w-4 mr-1" /> 新增
-          </Button>
-        </div>
         <div className="border rounded-md">
           <Table>
             <TableHeader>
