@@ -1528,7 +1528,7 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
                             <TableHead className="text-right">開發業務</TableHead>
                             <TableHead className="text-right">協同1</TableHead>
                             <TableHead className="text-right">協同2</TableHead>
-                            <TableHead>發放日</TableHead>
+                            
                           </TableRow>
                         </TableHeader>
                         <TableBody>
