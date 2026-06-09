@@ -1513,11 +1513,10 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
                   <div className="text-xs text-muted-foreground mb-2">
                     目前版本（生效日：{latest.effective_from}）
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
                     <div><span className="text-muted-foreground">開發業務：</span>{fmtRate(latest.sales_rate)}</div>
                     <div><span className="text-muted-foreground">協同業務1：</span>{fmtRate(latest.co_sales1_rate)}</div>
                     <div><span className="text-muted-foreground">協同業務2：</span>{fmtRate(latest.co_sales2_rate)}</div>
-                    <div><span className="text-muted-foreground">發放日：</span>{latest.payout_day ?? "—"}</div>
                   </div>
                   {list.length > 1 && (
                     <div className="mt-3">
