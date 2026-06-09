@@ -253,7 +253,7 @@ export default function KolBonus() {
       built.push({
         rowKey,
         id: matched?.id ?? null,
-        name: matched?.name ?? null,
+        name: matched?.name ?? scoutNameByCode.get(code) ?? null,
         cid_code: matched?.cid_code ?? code,
         accommodation_id: accId,
         accommodation_name:
