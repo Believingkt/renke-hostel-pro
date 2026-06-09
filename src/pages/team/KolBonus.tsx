@@ -595,11 +595,6 @@ export default function KolBonus() {
                     <Input
                       value={tab1SearchInput}
                       onChange={(e) => setTab1SearchInput(e.target.value)}
-                      onCompositionStart={() => { tab1ComposingRef.current = true; }}
-                      onCompositionEnd={(e) => {
-                        tab1ComposingRef.current = false;
-                        setTab1SearchInput((e.target as HTMLInputElement).value);
-                      }}
                       placeholder="搜尋 KOL 名稱 或 折扣碼 / CID"
                       className="w-[260px]"
                     />
