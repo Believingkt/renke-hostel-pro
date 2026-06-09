@@ -1591,6 +1591,14 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
               </div>
             </div>
           </div>
+          <div className="text-xs text-muted-foreground space-y-1 border-t pt-3 mt-2">
+            <div className="font-medium">設定說明：</div>
+            <div>・個人基本比例：無直屬下線時的個人分潤比例</div>
+            <div>・帶 1 人比例：有 1 位直屬下線時的個人分潤比例</div>
+            <div>・帶 2 人以上：有 2 位以上直屬下線時的個人分潤比例</div>
+            <div>・公司提撥比例：有最上層隊長時，額外提撥給公司的比例</div>
+            <div>・新增版本後，舊版本會保留為歷史記錄，新版本立即生效</div>
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setInternalDialogOpen(false)}>取消</Button>
             <Button onClick={saveInternal}>儲存</Button>
@@ -1632,6 +1640,23 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
               </div>
             </div>
           </div>
+          {externalForm.project_name && externalByProject[externalForm.project_name]?.length ? (
+            <div className="text-xs text-muted-foreground space-y-1 border-t pt-3 mt-2">
+              <div className="font-medium">設定說明：</div>
+              <div>・針對「{externalForm.project_name}」新增新版本分潤比例</div>
+              <div>・新版本會覆蓋此專案的目前生效比例</div>
+              <div>・舊版本保留為歷史記錄，不影響已結算的訂單</div>
+            </div>
+          ) : (
+            <div className="text-xs text-muted-foreground space-y-1 border-t pt-3 mt-2">
+              <div className="font-medium">設定說明：</div>
+              <div>・開發業務比例：主要銷售人的分潤比例</div>
+              <div>・協同業務1 比例：第一位協同銷售人的分潤比例</div>
+              <div>・協同業務2 比例：第二位協同銷售人的分潤比例</div>
+              <div>・每個專案可以有獨立的分潤比例設定</div>
+              <div>・新增後立即生效，舊版本保留為歷史記錄</div>
+            </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setExternalDialogOpen(false)}>取消</Button>
             <Button onClick={() => saveExternal()}>儲存</Button>
