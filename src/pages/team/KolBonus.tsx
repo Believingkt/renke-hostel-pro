@@ -356,18 +356,16 @@ export default function KolBonus() {
   const tab1FilteredRows = useMemo(() => {
     const prefix =
       filterMonth === "all"
-        ? null
+        ? `${filterYear}-`
         : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
     const q = tab1Search.trim().toLowerCase();
     return rows.filter((k) => {
       const list = ordersByKey.get(k.rowKey) ?? [];
-      const periodMatch = !prefix
-        ? list.length > 0
-        : list.some(
-            (o) =>
-              o.order_date?.startsWith(prefix) ||
-              (o.order_status !== "cancelled" && o.check_out_date?.startsWith(prefix)),
-          );
+      const periodMatch = list.some(
+        (o) =>
+          o.order_date?.startsWith(prefix) ||
+          (o.order_status !== "cancelled" && o.check_out_date?.startsWith(prefix)),
+      );
       if (!periodMatch) return false;
       if (!q) return true;
       const name = (k.name ?? "").toLowerCase();
@@ -380,7 +378,7 @@ export default function KolBonus() {
   const tab1Metrics = useMemo(() => {
     const prefix =
       filterMonth === "all"
-        ? null
+        ? `${filterYear}-`
         : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
     const map = new Map<
       string,
@@ -402,8 +400,8 @@ export default function KolBonus() {
       for (const o of list) {
         const r = Number(o.final_price ?? o.total_price ?? 0);
         const rate = getRate(o.accommodation_id, o.check_out_date);
-        const orderMatch = prefix ? o.order_date?.startsWith(prefix) : true;
-        const completedMatch = prefix ? o.check_out_date?.startsWith(prefix) : true;
+        const orderMatch = o.order_date?.startsWith(prefix);
+        const completedMatch = o.check_out_date?.startsWith(prefix);
         if (orderMatch) {
           orderCount += 1;
           orderRevenue += r;
