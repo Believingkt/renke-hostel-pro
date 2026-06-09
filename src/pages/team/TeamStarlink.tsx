@@ -126,6 +126,7 @@ export default function TeamStarlink() {
         <TabsList>
           <TabsTrigger value="orders">訂單列表</TabsTrigger>
           <TabsTrigger value="stats">業績統計</TabsTrigger>
+          <TabsTrigger value="payouts">分潤結算</TabsTrigger>
           <TabsTrigger value="plans">方案設定</TabsTrigger>
           <TabsTrigger value="tiers">等級設定</TabsTrigger>
         </TabsList>
@@ -134,6 +135,9 @@ export default function TeamStarlink() {
         </TabsContent>
         <TabsContent value="stats" className="mt-4">
           <StatsTab />
+        </TabsContent>
+        <TabsContent value="payouts" className="mt-4">
+          <PayoutsTab canManage={canManage} currentUserId={userId} />
         </TabsContent>
         <TabsContent value="plans" className="mt-4">
           <PlansTab canManage={canManagePlans} />
@@ -1620,4 +1624,234 @@ function MonthlyChart({ data }: { data: { month: string; amount: number }[] }) {
     </div>
   );
 }
+
+interface PayoutRow {
+  id: string;
+  scout_id: string;
+  year: number;
+  month: number;
+  period: number;
+  total_orders: number;
+  total_sales: number;
+  total_commission: number;
+  payout_status: string;
+  calculated_at: string | null;
+}
+
+function PayoutsTab({
+  canManage,
+  currentUserId,
+}: {
+  canManage: boolean;
+  currentUserId: string;
+}) {
+  // 預設期別：今天 <= 10 → 當月10日；> 10 → 下月10日
+  const today = new Date();
+  const defaultDate = (() => {
+    const d = new Date(today.getFullYear(), today.getMonth(), 1);
+    if (today.getDate() > 10) d.setMonth(d.getMonth() + 1);
+    return d;
+  })();
+  const [year, setYear] = useState<number>(defaultDate.getFullYear());
+  const [month, setMonth] = useState<number>(defaultDate.getMonth() + 1);
+  const [rows, setRows] = useState<PayoutRow[]>([]);
+  const [nameMap, setNameMap] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
+  const [calculating, setCalculating] = useState(false);
+
+  const years = useMemo(() => {
+    const cur = new Date().getFullYear();
+    return Array.from({ length: 5 }, (_, i) => cur - i);
+  }, []);
+
+  const loadData = async () => {
+    setLoading(true);
+    let q = supabase
+      .from("starlink_monthly_payouts")
+      .select(
+        "id,scout_id,year,month,period,total_orders,total_sales,total_commission,payout_status,calculated_at",
+      )
+      .eq("year", year)
+      .eq("month", month)
+      .eq("period", 10);
+
+    if (!canManage) {
+      // starlink role：只看自己；用 user_id 查 profile id
+      const { data: prof } = await supabase
+        .from("team_member_profiles")
+        .select("id")
+        .eq("user_id", currentUserId)
+        .maybeSingle();
+      if (!prof?.id) {
+        setRows([]);
+        setLoading(false);
+        return;
+      }
+      q = q.eq("scout_id", prof.id);
+    }
+
+    const { data, error } = await q.order("total_commission", { ascending: false });
+    if (error) {
+      toast.error("讀取失敗：" + error.message);
+      setRows([]);
+      setLoading(false);
+      return;
+    }
+    const list = (data ?? []) as PayoutRow[];
+    setRows(list);
+
+    // 拉名稱
+    const ids = Array.from(new Set(list.map((r) => r.scout_id)));
+    if (ids.length > 0) {
+      const { data: profs } = await supabase
+        .from("team_member_profiles")
+        .select("id,display_name")
+        .in("id", ids);
+      const map: Record<string, string> = {};
+      (profs ?? []).forEach((p: any) => {
+        map[p.id] = p.display_name ?? "—";
+      });
+      setNameMap(map);
+    } else {
+      setNameMap({});
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    void loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [year, month]);
+
+  const handleCalculate = async () => {
+    if (!canManage) return;
+    setCalculating(true);
+    const { data, error } = await supabase.functions.invoke("calculate-starlink-payout", {
+      body: { year, month, period: 10 },
+    });
+    setCalculating(false);
+    if (error) {
+      toast.error("計算失敗：" + error.message);
+      return;
+    }
+    if (!data?.success) {
+      toast.error("計算失敗：" + (data?.error ?? "未知錯誤"));
+      return;
+    }
+    toast.success(`已結算 ${data.sales_calculated ?? 0} 位銷售人`);
+    void loadData();
+  };
+
+  const handleMarkPaid = async (id: string) => {
+    if (!canManage) return;
+    const { error } = await supabase
+      .from("starlink_monthly_payouts")
+      .update({ payout_status: "paid" })
+      .eq("id", id);
+    if (error) {
+      toast.error("更新失敗：" + error.message);
+      return;
+    }
+    toast.success("已標記為已發放");
+    void loadData();
+  };
+
+  const fmtTime = (s: string | null) => {
+    if (!s) return "—";
+    const d = new Date(s);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div className="flex flex-wrap gap-2 items-center">
+          <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+            <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {years.map((y) => (
+                <SelectItem key={y} value={String(y)}>{y} 年</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
+            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                <SelectItem key={m} value={String(m)}>{m} 月 10 日</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {canManage && (
+          <Button onClick={handleCalculate} disabled={calculating}>
+            {calculating ? "計算中..." : "立即更新"}
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>銷售人</TableHead>
+              <TableHead className="text-right">訂單筆數</TableHead>
+              <TableHead className="text-right">銷售金額</TableHead>
+              <TableHead className="text-right">分潤金額</TableHead>
+              <TableHead>狀態</TableHead>
+              <TableHead>計算時間</TableHead>
+              {canManage && <TableHead className="w-20">操作</TableHead>}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={canManage ? 7 : 6} className="text-center py-8 text-muted-foreground">
+                  載入中...
+                </TableCell>
+              </TableRow>
+            ) : rows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={canManage ? 7 : 6} className="text-center py-8 text-muted-foreground">
+                  尚無結算紀錄，請點擊「立即更新」
+                </TableCell>
+              </TableRow>
+            ) : (
+              rows.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell>{nameMap[r.scout_id] ?? "—"}</TableCell>
+                  <TableCell className="text-right tabular-nums">{r.total_orders}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtMoney(r.total_sales)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtMoney(r.total_commission)}</TableCell>
+                  <TableCell>
+                    {r.payout_status === "paid" ? (
+                      <Badge className="bg-green-600 hover:bg-green-600 text-white">已發放</Badge>
+                    ) : (
+                      <Badge variant="secondary">待發放</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">{fmtTime(r.calculated_at)}</TableCell>
+                  {canManage && (
+                    <TableCell>
+                      {r.payout_status !== "paid" && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleMarkPaid(r.id)}
+                          title="標記已發放"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </TableCell>
+                  )}
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
 
