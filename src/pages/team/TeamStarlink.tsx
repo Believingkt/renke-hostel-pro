@@ -46,8 +46,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, CheckCircle2 } from "lucide-react";
 
 interface Member {
   user_id: string;
@@ -1625,17 +1635,27 @@ function MonthlyChart({ data }: { data: { month: string; amount: number }[] }) {
   );
 }
 
-interface PayoutRow {
+interface PayoutOrderRow {
   id: string;
-  scout_id: string;
-  year: number;
-  month: number;
-  period: number;
+  client_name: string;
+  plan_name: string | null;
+  plan_price: number;
+  commission_rate: number | null;
+  commission_amount: number | null;
+  payout_status: string;
+  sold_at: string | null;
+  sold_by: string;
+}
+
+interface PayoutGroup {
+  sold_by: string;
+  display_name: string;
   total_orders: number;
   total_sales: number;
   total_commission: number;
-  payout_status: string;
-  calculated_at: string | null;
+  pending_count: number;
+  paid_count: number;
+  orders: PayoutOrderRow[];
 }
 
 function PayoutsTab({
@@ -1645,7 +1665,6 @@ function PayoutsTab({
   canManage: boolean;
   currentUserId: string;
 }) {
-  // 預設期別：今天 <= 10 → 當月10日；> 10 → 下月10日
   const today = new Date();
   const defaultDate = (() => {
     const d = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -1654,62 +1673,65 @@ function PayoutsTab({
   })();
   const [year, setYear] = useState<number>(defaultDate.getFullYear());
   const [month, setMonth] = useState<number>(defaultDate.getMonth() + 1);
-  const [rows, setRows] = useState<PayoutRow[]>([]);
+  const [orders, setOrders] = useState<PayoutOrderRow[]>([]);
   const [nameMap, setNameMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
-  const [calculating, setCalculating] = useState(false);
+  const [detailGroup, setDetailGroup] = useState<PayoutGroup | null>(null);
+  const [confirmGroup, setConfirmGroup] = useState<PayoutGroup | null>(null);
+  const [marking, setMarking] = useState(false);
 
   const years = useMemo(() => {
     const cur = new Date().getFullYear();
     return Array.from({ length: 5 }, (_, i) => cur - i);
   }, []);
 
+  // 期別 X月10日 → 結算上月整月
+  const { monthStart, monthEnd } = useMemo(() => {
+    const targetYear = month === 1 ? year - 1 : year;
+    const targetMonth = month === 1 ? 12 : month - 1;
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const nextYear = targetMonth === 12 ? targetYear + 1 : targetYear;
+    const nextMonth = targetMonth === 12 ? 1 : targetMonth + 1;
+    return {
+      monthStart: `${targetYear}-${pad(targetMonth)}-01`,
+      monthEnd: `${nextYear}-${pad(nextMonth)}-01`,
+    };
+  }, [year, month]);
+
   const loadData = async () => {
     setLoading(true);
     let q = supabase
-      .from("starlink_monthly_payouts")
+      .from("starlink_orders")
       .select(
-        "id,scout_id,year,month,period,total_orders,total_sales,total_commission,payout_status,calculated_at",
+        "id,client_name,plan_name,plan_price,commission_rate,commission_amount,payout_status,sold_at,sold_by",
       )
-      .eq("year", year)
-      .eq("month", month)
-      .eq("period", 10);
+      .eq("payment_confirmed", true)
+      .gte("sold_at", monthStart)
+      .lt("sold_at", monthEnd);
 
     if (!canManage) {
-      // starlink role：只看自己；用 user_id 查 profile id
-      const { data: prof } = await supabase
-        .from("team_member_profiles")
-        .select("id")
-        .eq("user_id", currentUserId)
-        .maybeSingle();
-      if (!prof?.id) {
-        setRows([]);
-        setLoading(false);
-        return;
-      }
-      q = q.eq("scout_id", prof.id);
+      q = q.eq("sold_by", currentUserId);
     }
 
-    const { data, error } = await q.order("total_commission", { ascending: false });
+    const { data, error } = await q.order("sold_at", { ascending: true });
     if (error) {
       toast.error("讀取失敗：" + error.message);
-      setRows([]);
+      setOrders([]);
       setLoading(false);
       return;
     }
-    const list = (data ?? []) as PayoutRow[];
-    setRows(list);
+    const list = (data ?? []) as PayoutOrderRow[];
+    setOrders(list);
 
-    // 拉名稱
-    const ids = Array.from(new Set(list.map((r) => r.scout_id)));
+    const ids = Array.from(new Set(list.map((r) => r.sold_by)));
     if (ids.length > 0) {
       const { data: profs } = await supabase
         .from("team_member_profiles")
-        .select("id,display_name")
-        .in("id", ids);
+        .select("user_id,display_name")
+        .in("user_id", ids);
       const map: Record<string, string> = {};
       (profs ?? []).forEach((p: any) => {
-        map[p.id] = p.display_name ?? "—";
+        map[p.user_id] = p.display_name ?? "—";
       });
       setNameMap(map);
     } else {
@@ -1721,137 +1743,224 @@ function PayoutsTab({
   useEffect(() => {
     void loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [year, month]);
+  }, [year, month, canManage, currentUserId]);
 
-  const handleCalculate = async () => {
-    if (!canManage) return;
-    setCalculating(true);
-    const { data, error } = await supabase.functions.invoke("calculate-starlink-payout", {
-      body: { year, month, period: 10 },
-    });
-    setCalculating(false);
-    if (error) {
-      toast.error("計算失敗：" + error.message);
+  const groups: PayoutGroup[] = useMemo(() => {
+    const m = new Map<string, PayoutGroup>();
+    for (const o of orders) {
+      let g = m.get(o.sold_by);
+      if (!g) {
+        g = {
+          sold_by: o.sold_by,
+          display_name: nameMap[o.sold_by] ?? "—",
+          total_orders: 0,
+          total_sales: 0,
+          total_commission: 0,
+          pending_count: 0,
+          paid_count: 0,
+          orders: [],
+        };
+        m.set(o.sold_by, g);
+      }
+      g.total_orders += 1;
+      g.total_sales += Number(o.plan_price ?? 0);
+      g.total_commission += Number(o.commission_amount ?? 0);
+      if (o.payout_status === "paid") g.paid_count += 1;
+      else g.pending_count += 1;
+      g.orders.push(o);
+    }
+    return Array.from(m.values()).sort((a, b) => b.total_commission - a.total_commission);
+  }, [orders, nameMap]);
+
+  const handleMarkAllPaid = async () => {
+    if (!canManage || !confirmGroup) return;
+    const pendingIds = confirmGroup.orders
+      .filter((o) => o.payout_status !== "paid")
+      .map((o) => o.id);
+    if (pendingIds.length === 0) {
+      setConfirmGroup(null);
       return;
     }
-    if (!data?.success) {
-      toast.error("計算失敗：" + (data?.error ?? "未知錯誤"));
-      return;
-    }
-    toast.success(`已結算 ${data.sales_calculated ?? 0} 位銷售人`);
-    void loadData();
-  };
-
-  const handleMarkPaid = async (id: string) => {
-    if (!canManage) return;
+    setMarking(true);
     const { error } = await supabase
-      .from("starlink_monthly_payouts")
-      .update({ payout_status: "paid" })
-      .eq("id", id);
+      .from("starlink_orders")
+      .update({ payout_status: "paid", payout_date: new Date().toISOString().slice(0, 10) })
+      .in("id", pendingIds);
+    setMarking(false);
     if (error) {
       toast.error("更新失敗：" + error.message);
       return;
     }
-    toast.success("已標記為已發放");
+    toast.success(`已標記 ${pendingIds.length} 筆為已發放`);
+    setConfirmGroup(null);
     void loadData();
   };
 
-  const fmtTime = (s: string | null) => {
-    if (!s) return "—";
-    const d = new Date(s);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-  };
+  const fmtPct = (r: number | null | undefined) =>
+    r == null ? "—" : `${(Number(r) * 100).toFixed(1)}%`;
 
   return (
-    <Card>
-      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <div className="flex flex-wrap gap-2 items-center">
-          <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-            <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {years.map((y) => (
-                <SelectItem key={y} value={String(y)}>{y} 年</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
-            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                <SelectItem key={m} value={String(m)}>{m} 月 10 日</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        {canManage && (
-          <Button onClick={handleCalculate} disabled={calculating}>
-            {calculating ? "計算中..." : "立即更新"}
-          </Button>
-        )}
-      </CardHeader>
-      <CardContent className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>銷售人</TableHead>
-              <TableHead className="text-right">訂單筆數</TableHead>
-              <TableHead className="text-right">銷售金額</TableHead>
-              <TableHead className="text-right">分潤金額</TableHead>
-              <TableHead>狀態</TableHead>
-              <TableHead>計算時間</TableHead>
-              {canManage && <TableHead className="w-20">操作</TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
+    <>
+      <Card>
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="flex flex-wrap gap-2 items-center">
+            <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+              <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {years.map((y) => (
+                  <SelectItem key={y} value={String(y)}>{y} 年</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
+              <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                  <SelectItem key={m} value={String(m)}>{m} 月 10 日</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="text-sm text-muted-foreground">
+            結算區間：{monthStart} ～ {monthEnd}（不含）
+          </div>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={canManage ? 7 : 6} className="text-center py-8 text-muted-foreground">
-                  載入中...
-                </TableCell>
+                <TableHead>銷售人</TableHead>
+                <TableHead className="text-right">訂單筆數</TableHead>
+                <TableHead className="text-right">銷售金額</TableHead>
+                <TableHead className="text-right">分潤金額</TableHead>
+                <TableHead className="text-right">待結算</TableHead>
+                <TableHead className="text-right">已發放</TableHead>
+                {canManage && <TableHead className="w-32">操作</TableHead>}
               </TableRow>
-            ) : rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={canManage ? 7 : 6} className="text-center py-8 text-muted-foreground">
-                  尚無結算紀錄，請點擊「立即更新」
-                </TableCell>
-              </TableRow>
-            ) : (
-              rows.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell>{nameMap[r.scout_id] ?? "—"}</TableCell>
-                  <TableCell className="text-right tabular-nums">{r.total_orders}</TableCell>
-                  <TableCell className="text-right tabular-nums">{fmtMoney(r.total_sales)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{fmtMoney(r.total_commission)}</TableCell>
-                  <TableCell>
-                    {r.payout_status === "paid" ? (
-                      <Badge className="bg-green-600 hover:bg-green-600 text-white">已發放</Badge>
-                    ) : (
-                      <Badge variant="secondary">待發放</Badge>
-                    )}
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={canManage ? 7 : 6} className="text-center py-8 text-muted-foreground">
+                    載入中...
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-sm">{fmtTime(r.calculated_at)}</TableCell>
-                  {canManage && (
-                    <TableCell>
-                      {r.payout_status !== "paid" && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleMarkPaid(r.id)}
-                          title="標記已發放"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+                </TableRow>
+              ) : groups.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={canManage ? 7 : 6} className="text-center py-8 text-muted-foreground">
+                    本期無已確認付款的訂單
+                  </TableCell>
+                </TableRow>
+              ) : (
+                groups.map((g) => (
+                  <TableRow
+                    key={g.sold_by}
+                    className="cursor-pointer"
+                    onClick={() => setDetailGroup(g)}
+                  >
+                    <TableCell>{g.display_name}</TableCell>
+                    <TableCell className="text-right tabular-nums">{g.total_orders}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtMoney(g.total_sales)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtMoney(g.total_commission)}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {g.pending_count > 0 ? (
+                        <Badge variant="secondary">{g.pending_count}</Badge>
+                      ) : (
+                        <span className="text-muted-foreground">0</span>
                       )}
                     </TableCell>
-                  )}
+                    <TableCell className="text-right tabular-nums">
+                      {g.paid_count > 0 ? (
+                        <Badge className="bg-green-600 hover:bg-green-600 text-white">{g.paid_count}</Badge>
+                      ) : (
+                        <span className="text-muted-foreground">0</span>
+                      )}
+                    </TableCell>
+                    {canManage && (
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        {g.pending_count > 0 ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setConfirmGroup(g)}
+                          >
+                            <CheckCircle2 className="h-4 w-4 mr-1" />
+                            標記全部已發放
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">已全部發放</span>
+                        )}
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Drawer open={!!detailGroup} onOpenChange={(o) => !o && setDetailGroup(null)}>
+        <DrawerContent className="overflow-x-hidden">
+          <DrawerHeader>
+            <DrawerTitle>
+              {detailGroup?.display_name}　·　{year} 年 {month} 月 10 日 分潤明細
+            </DrawerTitle>
+          </DrawerHeader>
+          <div className="px-4 pb-6 overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>客戶名稱</TableHead>
+                  <TableHead>方案</TableHead>
+                  <TableHead className="text-right">金額</TableHead>
+                  <TableHead className="text-right">分潤比例</TableHead>
+                  <TableHead className="text-right">分潤金額</TableHead>
+                  <TableHead>狀態</TableHead>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+              </TableHeader>
+              <TableBody>
+                {(detailGroup?.orders ?? []).map((o) => (
+                  <TableRow key={o.id}>
+                    <TableCell>{o.client_name}</TableCell>
+                    <TableCell>{o.plan_name ?? "—"}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtMoney(o.plan_price)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtPct(o.commission_rate)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtMoney(o.commission_amount)}</TableCell>
+                    <TableCell>
+                      {o.payout_status === "paid" ? (
+                        <Badge className="bg-green-600 hover:bg-green-600 text-white">已發放</Badge>
+                      ) : (
+                        <Badge variant="secondary">待發放</Badge>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </DrawerContent>
+      </Drawer>
+
+      <AlertDialog open={!!confirmGroup} onOpenChange={(o) => !o && !marking && setConfirmGroup(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>標記為已發放</AlertDialogTitle>
+            <AlertDialogDescription>
+              確定將 {confirmGroup?.display_name} 的 {confirmGroup?.pending_count} 筆訂單標記為已發放？此操作將更新訂單的結算狀態。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={marking}>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleMarkAllPaid} disabled={marking}>
+              {marking ? "處理中..." : "確認"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
+
 
 
