@@ -2413,6 +2413,13 @@ function ProspectsTab({
   const [newTagInput, setNewTagInput] = useState("");
 
   const [search, setSearch] = useState("");
+  const [inviteSearchInput, setInviteSearchInput] = useState<string>("");
+  const inviteComposingRef = useRef(false);
+  useEffect(() => {
+    if (inviteComposingRef.current) return;
+    const t = setTimeout(() => setSearch(inviteSearchInput), 300);
+    return () => clearTimeout(t);
+  }, [inviteSearchInput]);
   const [filterScout, setFilterScout] = useState<string>("all");
   const [filterTags, setFilterTags] = useState<string[]>([]);
 
@@ -2607,8 +2614,13 @@ function ProspectsTab({
       <div className="flex flex-wrap items-center gap-2">
         <Input
           placeholder="搜尋 KOL 名稱 或 網紅帳號連結"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={inviteSearchInput}
+          onChange={(e) => setInviteSearchInput(e.target.value)}
+          onCompositionStart={() => { inviteComposingRef.current = true; }}
+          onCompositionEnd={(e) => {
+            inviteComposingRef.current = false;
+            setInviteSearchInput((e.target as HTMLInputElement).value);
+          }}
           className="w-64"
         />
         <Select value={filterScout} onValueChange={setFilterScout}>
