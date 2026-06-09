@@ -356,18 +356,16 @@ export default function KolBonus() {
   const tab1FilteredRows = useMemo(() => {
     const prefix =
       filterMonth === "all"
-        ? null
+        ? `${filterYear}-`
         : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
     const q = tab1Search.trim().toLowerCase();
     return rows.filter((k) => {
       const list = ordersByKey.get(k.rowKey) ?? [];
-      const periodMatch = !prefix
-        ? list.length > 0
-        : list.some(
-            (o) =>
-              o.order_date?.startsWith(prefix) ||
-              (o.order_status !== "cancelled" && o.check_out_date?.startsWith(prefix)),
-          );
+      const periodMatch = list.some(
+        (o) =>
+          o.order_date?.startsWith(prefix) ||
+          (o.order_status !== "cancelled" && o.check_out_date?.startsWith(prefix)),
+      );
       if (!periodMatch) return false;
       if (!q) return true;
       const name = (k.name ?? "").toLowerCase();
