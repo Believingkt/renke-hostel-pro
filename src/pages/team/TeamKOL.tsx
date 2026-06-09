@@ -2607,11 +2607,6 @@ function ProspectsTab({
           placeholder="搜尋 KOL 名稱 或 網紅帳號連結"
           value={inviteSearchInput}
           onChange={(e) => setInviteSearchInput(e.target.value)}
-          onCompositionStart={() => { inviteComposingRef.current = true; }}
-          onCompositionEnd={(e) => {
-            inviteComposingRef.current = false;
-            setInviteSearchInput((e.target as HTMLInputElement).value);
-          }}
           className="w-64"
         />
         <Select value={filterScout} onValueChange={setFilterScout}>
