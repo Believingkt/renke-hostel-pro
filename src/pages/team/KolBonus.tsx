@@ -136,10 +136,8 @@ export default function KolBonus() {
   const [filterMonth, setFilterMonth] = useState<string>(String(currentMonthNum)); // "all" | "1".."12"
   const [tab1Search, setTab1Search] = useState<string>("");
   const [tab1SearchInput, setTab1SearchInput] = useState<string>("");
-  const tab1ComposingRef = useRef(false);
   useEffect(() => {
-    if (tab1ComposingRef.current) return;
-    const t = setTimeout(() => setTab1Search(tab1SearchInput), 300);
+    const t = setTimeout(() => setTab1Search(tab1SearchInput), 150);
     return () => clearTimeout(t);
   }, [tab1SearchInput]);
   // 發放期別：以月份為單位（顯示為「M月10日」），代表完成業績/分潤所抓的退房月份
@@ -597,11 +595,6 @@ export default function KolBonus() {
                     <Input
                       value={tab1SearchInput}
                       onChange={(e) => setTab1SearchInput(e.target.value)}
-                      onCompositionStart={() => { tab1ComposingRef.current = true; }}
-                      onCompositionEnd={(e) => {
-                        tab1ComposingRef.current = false;
-                        setTab1SearchInput((e.target as HTMLInputElement).value);
-                      }}
                       placeholder="搜尋 KOL 名稱 或 折扣碼 / CID"
                       className="w-[260px]"
                     />

@@ -468,10 +468,8 @@ function InvitationsTab({
 
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
-  const composingRef = useRef(false);
   useEffect(() => {
-    if (composingRef.current) return;
-    const t = setTimeout(() => setSearch(searchInput), 300);
+    const t = setTimeout(() => setSearch(searchInput), 150);
     return () => clearTimeout(t);
   }, [searchInput]);
   const [filterAcc, setFilterAcc] = useState<string>("all");
@@ -1055,11 +1053,6 @@ function InvitationsTab({
           placeholder="搜尋 KOL 名稱 / 網紅帳號 / CID"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          onCompositionStart={() => { composingRef.current = true; }}
-          onCompositionEnd={(e) => {
-            composingRef.current = false;
-            setSearchInput((e.target as HTMLInputElement).value);
-          }}
           className="w-full sm:w-64"
         />
 
@@ -2414,10 +2407,8 @@ function ProspectsTab({
 
   const [search, setSearch] = useState("");
   const [inviteSearchInput, setInviteSearchInput] = useState<string>("");
-  const inviteComposingRef = useRef(false);
   useEffect(() => {
-    if (inviteComposingRef.current) return;
-    const t = setTimeout(() => setSearch(inviteSearchInput), 300);
+    const t = setTimeout(() => setSearch(inviteSearchInput), 150);
     return () => clearTimeout(t);
   }, [inviteSearchInput]);
   const [filterScout, setFilterScout] = useState<string>("all");
@@ -2616,11 +2607,6 @@ function ProspectsTab({
           placeholder="搜尋 KOL 名稱 或 網紅帳號連結"
           value={inviteSearchInput}
           onChange={(e) => setInviteSearchInput(e.target.value)}
-          onCompositionStart={() => { inviteComposingRef.current = true; }}
-          onCompositionEnd={(e) => {
-            inviteComposingRef.current = false;
-            setInviteSearchInput((e.target as HTMLInputElement).value);
-          }}
           className="w-64"
         />
         <Select value={filterScout} onValueChange={setFilterScout}>
