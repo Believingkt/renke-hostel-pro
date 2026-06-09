@@ -2407,10 +2407,8 @@ function ProspectsTab({
 
   const [search, setSearch] = useState("");
   const [inviteSearchInput, setInviteSearchInput] = useState<string>("");
-  const inviteComposingRef = useRef(false);
   useEffect(() => {
-    if (inviteComposingRef.current) return;
-    const t = setTimeout(() => setSearch(inviteSearchInput), 300);
+    const t = setTimeout(() => setSearch(inviteSearchInput), 150);
     return () => clearTimeout(t);
   }, [inviteSearchInput]);
   const [filterScout, setFilterScout] = useState<string>("all");
