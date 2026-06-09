@@ -1001,7 +1001,10 @@ function KolDetailDrawer({
             o.check_out_date?.startsWith(filterPrefix),
         );
       }
-      if (filterMonthAll && filterYear) {
+      if (filterMonthAll) {
+        if (!filterYear) {
+          return matched.filter((o) => o.order_status !== "cancelled");
+        }
         const yPrefix = `${filterYear}-`;
         return matched.filter(
           (o) =>
