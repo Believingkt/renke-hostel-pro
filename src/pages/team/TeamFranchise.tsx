@@ -1374,7 +1374,7 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
       sales_rate: externalForm.sales_rate / 100,
       co_sales1_rate: externalForm.co_sales1_rate / 100,
       co_sales2_rate: externalForm.co_sales2_rate / 100,
-      payout_day: externalForm.payout_day,
+      payout_day: "10",
       effective_from: externalForm.effective_from,
     };
     const { error } = await (supabase as any).from("franchise_commission_settings").insert(payload);
