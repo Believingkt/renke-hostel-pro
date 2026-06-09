@@ -3575,6 +3575,7 @@ function ProjectsManagementCard() {
     toast.success("已新增專案");
     setName("");
     setAccommodationId("");
+    setAddDialogOpen(false);
     bumpFranchiseProjects();
   };
 
