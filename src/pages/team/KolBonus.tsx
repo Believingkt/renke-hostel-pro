@@ -375,7 +375,6 @@ export default function KolBonus() {
       filterMonth === "all"
         ? `${filterYear}-`
         : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
-    const q = tab1Search.trim().toLowerCase();
     return rows.filter((k) => {
       const list = ordersByKey.get(k.rowKey) ?? [];
       const periodMatch = list.some(
@@ -383,13 +382,9 @@ export default function KolBonus() {
           o.order_date?.startsWith(prefix) ||
           (o.order_status !== "cancelled" && o.check_out_date?.startsWith(prefix)),
       );
-      if (!periodMatch) return false;
-      if (!q) return true;
-      const name = (k.name ?? "").toLowerCase();
-      const code = (k.cid_code ?? "").toLowerCase();
-      return name.includes(q) || code.includes(q);
+      return periodMatch;
     });
-  }, [rows, ordersByKey, filterYear, filterMonth, tab1Search]);
+  }, [rows, ordersByKey, filterYear, filterMonth]);
 
   // Tab1 度量：進單與完成同時由 filterYear+filterMonth 控制
   const tab1Metrics = useMemo(() => {
