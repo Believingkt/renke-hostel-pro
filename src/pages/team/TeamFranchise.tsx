@@ -1591,6 +1591,14 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
               </div>
             </div>
           </div>
+          <div className="text-xs text-muted-foreground space-y-1 border-t pt-3 mt-2">
+            <div className="font-medium">設定說明：</div>
+            <div>・個人基本比例：無直屬下線時的個人分潤比例</div>
+            <div>・帶 1 人比例：有 1 位直屬下線時的個人分潤比例</div>
+            <div>・帶 2 人以上：有 2 位以上直屬下線時的個人分潤比例</div>
+            <div>・公司提撥比例：有最上層隊長時，額外提撥給公司的比例</div>
+            <div>・新增版本後，舊版本會保留為歷史記錄，新版本立即生效</div>
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setInternalDialogOpen(false)}>取消</Button>
             <Button onClick={saveInternal}>儲存</Button>
