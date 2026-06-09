@@ -446,7 +446,7 @@ export default function KolBonus() {
       });
     }
     return map;
-  }, [rows, ordersByKey, getRate, payoutYear, payoutPeriod]);
+  }, [rows, ordersByKey, getRate, tab2TargetPrefix]);
 
   const tab1DrawerInitialMonth =
     filterMonth === "all"
