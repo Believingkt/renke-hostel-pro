@@ -71,7 +71,7 @@ export const ExclusivePackageSettings = ({ accommodationId }: Props) => {
       const [accRes, rtRes] = await Promise.all([
         supabase
           .from("accommodation_info")
-          .select("daily_capacity, exclusive_room_breakdown")
+          .select("daily_capacity, daily_villa_capacity, daily_room_capacity, exclusive_room_breakdown")
           .eq("id", accommodationId)
           .maybeSingle(),
         supabase
@@ -86,6 +86,8 @@ export const ExclusivePackageSettings = ({ accommodationId }: Props) => {
 
       const acc: any = accRes.data || {};
       setDailyCapacity(acc.daily_capacity ?? "");
+      setDailyVillaCapacity(acc.daily_villa_capacity ?? "");
+      setDailyRoomCapacity(acc.daily_room_capacity ?? "");
 
       // 包棟方案 rows ← room_types.package_contents
       const rowsMap: Record<string, PackageRoomRow[]> = {};
