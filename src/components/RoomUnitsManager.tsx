@@ -23,9 +23,14 @@ interface RoomUnitsManagerProps {
   roomTypeId: string;
   accommodationId: string;
   roomCount: number;
+  variant?: "room" | "villa";
 }
 
-export function RoomUnitsManager({ roomTypeId, accommodationId, roomCount }: RoomUnitsManagerProps) {
+export function RoomUnitsManager({ roomTypeId, accommodationId, roomCount, variant = "room" }: RoomUnitsManagerProps) {
+  const L = variant === "villa"
+    ? { unit: "棟", title: "棟號單位管理", desc: "為此包棟房型底下的每一棟獨立命名（例：A棟、B棟、面海棟）。設定後，新增訂單時可指定客人入住的棟別。", addBtn: "新增棟別", autoBtn: (n: number) => `依房型數量自動建立 ${n} 棟`, empty: "尚未建立任何棟號單位。可點選右上方按鈕快速建立。", saveBtn: "儲存棟號設定", saved: "已儲存棟號設定", loadFail: "讀取棟號單位失敗", clearFirst: "請先清空現有棟別後再自動建立", dupErr: "棟號編號不可重複", emptyErr: "棟號編號不可空白", mismatch: (a: number, b: number) => `提醒：目前棟號單位數（${a}）與房型數量（${b}）不一致。` }
+    : { unit: "房", title: "房號單位管理", desc: "為此房型底下的每一間房獨立命名（例：1、201、面海第一間）。設定後，新增訂單時可指定客人入住的房間。", addBtn: "新增房間", autoBtn: (n: number) => `依房型數量自動建立 ${n} 間`, empty: "尚未建立任何房號單位。可點選右上方按鈕快速建立。", saveBtn: "儲存房號設定", saved: "已儲存房號設定", loadFail: "讀取房號單位失敗", clearFirst: "請先清空現有房間後再自動建立", dupErr: "房號編號不可重複", emptyErr: "房號編號不可空白", mismatch: (a: number, b: number) => `提醒：目前房號單位數（${a}）與房型數量（${b}）不一致。` };
+
   const [units, setUnits] = useState<RoomUnit[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
