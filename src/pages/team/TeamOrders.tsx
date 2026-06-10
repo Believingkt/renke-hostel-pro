@@ -854,7 +854,7 @@ export default function TeamOrders() {
                 <div className="grid grid-cols-3 gap-3">
                   <ReadField
                     label="來源"
-                    value={ORDER_SOURCE_LABEL[editOrder.order_source ?? ''] ?? editOrder.order_source ?? '-'}
+                    value={getOrderSourceConfig(editOrder.order_source ?? '').label}
                   />
                   <ReadField
                     label="訂房方式"
