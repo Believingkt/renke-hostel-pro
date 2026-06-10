@@ -517,8 +517,8 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         </CardContent>
       </Card>
 
-      {/* 房間單位管理：僅雲岫海景度假會館且非包棟房型啟用 */}
-      {roomType?.id && !formData.is_exclusive_package && accommodationId === "7690a606-6bac-4cd5-a3e7-2fa754b318e8" && (
+      {/* 房間單位管理：雲岫海景度假會館 / 天送幸福和苑，且非包棟房型啟用 */}
+      {roomType?.id && !formData.is_exclusive_package && ["7690a606-6bac-4cd5-a3e7-2fa754b318e8", "4ee31aca-5641-4d05-80e2-1c67626be83d"].includes(accommodationId) && (
         <RoomUnitsManager
           roomTypeId={roomType.id}
           accommodationId={accommodationId}
