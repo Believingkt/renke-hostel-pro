@@ -859,10 +859,19 @@ export default function TeamOrders() {
                   />
                 </div>
                 <div className="grid grid-cols-3 gap-3">
-                  <ReadField
-                    label="來源"
-                    value={getOrderSourceConfig(editOrder.order_source ?? '').label}
-                  />
+                  <div>
+                    <div className="text-xs text-muted-foreground">來源</div>
+                    <div className="mt-1">
+                      {(() => {
+                        const cfg = getOrderSourceConfig(editOrder.order_source ?? '');
+                        return (
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${cfg.className}`}>
+                            {cfg.label}
+                          </span>
+                        );
+                      })()}
+                    </div>
+                  </div>
                   <ReadField
                     label="訂房方式"
                     value={bookingMap.get(editOrder.meta?.booking_method ?? '') ?? editOrder.meta?.booking_method ?? '-'}
