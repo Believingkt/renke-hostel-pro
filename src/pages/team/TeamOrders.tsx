@@ -52,6 +52,7 @@ interface OrderRow {
   id: string;
   order_number: string;
   guest_name: string;
+  guest_phone: string | null;
   check_in_date: string;
   check_out_date: string;
   final_price: number;
@@ -85,24 +86,8 @@ interface MetaRow {
   voucher_count?: number | null;
   addon_note?: string | null;
   addon_amount?: number | null;
-
-}
-
-
-interface MetaRow {
-  closer_id: string | null;
-  video_creator_id: string | null;
-  scout_id: string | null;
-  traffic_source: string | null;
-  booking_method: string | null;
-  ad_id: string | null;
-  is_excluded: boolean | null;
-  closer_assisted: boolean | null;
-  scout_commission_rate: number | null;
-  closer_commission_rate: number | null;
-  exclusion_note?: string | null;
-  franchise_project?: string | null;
-  member_number?: string | null;
+  nickname?: string | null;
+  deposit_confirm_date?: string | null;
 }
 
 const PAGE_SIZE = 50;
@@ -175,7 +160,8 @@ export default function TeamOrders() {
       voucher_count: 0,
       addon_note: null,
       addon_amount: 0,
-
+      nickname: null,
+      deposit_confirm_date: null,
     };
   }
 
@@ -356,7 +342,7 @@ export default function TeamOrders() {
         supabase
           .from("orders")
           .select(
-            `id, order_number, guest_name, check_in_date, check_out_date,
+            `id, order_number, guest_name, guest_phone, check_in_date, check_out_date,
              final_price, discount_code, order_source, ota_channel, accommodation_id, order_date, created_at`
           )
           .neq("guest_name", "保留單")
@@ -379,7 +365,8 @@ export default function TeamOrders() {
               `order_id, closer_id, video_creator_id, scout_id, traffic_source,
                booking_method, ad_id, is_excluded, closer_assisted,
                scout_commission_rate, closer_commission_rate, exclusion_note,
-               franchise_project, member_number, inquiry_date, voucher_used, voucher_count, addon_note, addon_amount`
+               franchise_project, member_number, inquiry_date, voucher_used, voucher_count, addon_note, addon_amount,
+               nickname, deposit_confirm_date`
             )
             .in("order_id", batchIds);
           if (metaErr) throw metaErr;
