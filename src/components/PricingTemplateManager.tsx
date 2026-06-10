@@ -658,90 +658,151 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
             )}
           </div>
 
-          {/* 平日 / 旺日 / 假日價格（擇一必填） */}
-          <div className="space-y-2">
-            <Label>價格設定 <span className="text-xs text-muted-foreground font-normal">（擇一必填）</span></Label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="weekday_price" className="text-sm font-normal text-muted-foreground">平日價格</Label>
-                <Input
-                  id="weekday_price"
-                  type="number"
-                  min="0"
-                  value={formData.weekday_price ?? ""}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    weekday_price: e.target.value ? parseInt(e.target.value) : null
-                  })}
-                  placeholder="請輸入平日價格"
-                  className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
-                  inputMode="numeric"
-                />
-                <p className="text-xs text-muted-foreground">週一至週四的價格</p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="peak_price" className="text-sm font-normal text-muted-foreground">旺日價格</Label>
-                <Input
-                  id="peak_price"
-                  type="number"
-                  min="0"
-                  value={formData.peak_price ?? ""}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    peak_price: e.target.value ? parseInt(e.target.value) : null
-                  })}
-                  placeholder="請輸入旺日價格"
-                  className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
-                  inputMode="numeric"
-                />
-                <p className="text-xs text-muted-foreground">週五及週日的價格</p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="weekend_price" className="text-sm font-normal text-muted-foreground">假日價格</Label>
-                <Input
-                  id="weekend_price"
-                  type="number"
-                  min="0"
-                  value={formData.weekend_price ?? ""}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    weekend_price: e.target.value ? parseInt(e.target.value) : null
-                  })}
-                  placeholder="請輸入假日價格"
-                  className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
-                  inputMode="numeric"
-                />
-                <p className="text-xs text-muted-foreground">週六及國定假日的價格</p>
+          {/* 天送：專案期限 */}
+          {isTS && (
+            <div className="space-y-2">
+              <Label>專案期限 *<span className="text-xs text-muted-foreground font-normal ml-1">（硬性限制：超出期限將無法選用此專案）</span></Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-normal text-muted-foreground">開始日期</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn("w-full h-12 sm:h-10 justify-start text-left font-normal", !formData.valid_from && "text-muted-foreground")}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {formData.valid_from ? formData.valid_from : "選擇開始日期"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={formData.valid_from ? parseISO(formData.valid_from) : undefined}
+                        onSelect={(d) => setFormData({ ...formData, valid_from: d ? format(d, "yyyy-MM-dd") : "" })}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  {errors.valid_from && <p className="text-sm text-destructive">{errors.valid_from}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-normal text-muted-foreground">結束日期</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn("w-full h-12 sm:h-10 justify-start text-left font-normal", !formData.valid_until && "text-muted-foreground")}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {formData.valid_until ? formData.valid_until : "選擇結束日期"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={formData.valid_until ? parseISO(formData.valid_until) : undefined}
+                        onSelect={(d) => setFormData({ ...formData, valid_until: d ? format(d, "yyyy-MM-dd") : "" })}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  {errors.valid_until && <p className="text-sm text-destructive">{errors.valid_until}</p>}
+                </div>
               </div>
             </div>
-            {(errors.weekday_price || errors.peak_price || errors.weekend_price) && (
-              <p className="text-sm text-destructive">{errors.weekday_price || errors.peak_price || errors.weekend_price}</p>
-            )}
-          </div>
+          )}
 
-          {/* 庫存量 */}
-          <div className="space-y-2">
-            <Label htmlFor="available_rooms">庫存量 *</Label>
-            <Input
-              id="available_rooms"
-              type="number"
-              min="0"
-              value={formData.available_rooms}
-              onChange={(e) => setFormData({
-                ...formData,
-                available_rooms: parseInt(e.target.value) || 0
-              })}
-              placeholder="請輸入庫存量"
-              className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
-              inputMode="numeric"
-            />
-            <p className="text-xs text-muted-foreground">設定每天的可用房數</p>
-            {errors.available_rooms && (
-              <p className="text-sm text-destructive">{errors.available_rooms}</p>
-            )}
-          </div>
+          {/* 平日 / 旺日 / 假日價格（擇一必填）— 天送由每房型獨立設定 */}
+          {!isTS && (
+            <div className="space-y-2">
+              <Label>價格設定 <span className="text-xs text-muted-foreground font-normal">（擇一必填）</span></Label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="weekday_price" className="text-sm font-normal text-muted-foreground">平日價格</Label>
+                  <Input
+                    id="weekday_price"
+                    type="number"
+                    min="0"
+                    value={formData.weekday_price ?? ""}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      weekday_price: e.target.value ? parseInt(e.target.value) : null
+                    })}
+                    placeholder="請輸入平日價格"
+                    className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
+                    inputMode="numeric"
+                  />
+                  <p className="text-xs text-muted-foreground">週一至週四的價格</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="peak_price" className="text-sm font-normal text-muted-foreground">旺日價格</Label>
+                  <Input
+                    id="peak_price"
+                    type="number"
+                    min="0"
+                    value={formData.peak_price ?? ""}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      peak_price: e.target.value ? parseInt(e.target.value) : null
+                    })}
+                    placeholder="請輸入旺日價格"
+                    className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
+                    inputMode="numeric"
+                  />
+                  <p className="text-xs text-muted-foreground">週五及週日的價格</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="weekend_price" className="text-sm font-normal text-muted-foreground">假日價格</Label>
+                  <Input
+                    id="weekend_price"
+                    type="number"
+                    min="0"
+                    value={formData.weekend_price ?? ""}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      weekend_price: e.target.value ? parseInt(e.target.value) : null
+                    })}
+                    placeholder="請輸入假日價格"
+                    className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
+                    inputMode="numeric"
+                  />
+                  <p className="text-xs text-muted-foreground">週六及國定假日的價格</p>
+                </div>
+              </div>
+              {(errors.weekday_price || errors.peak_price || errors.weekend_price) && (
+                <p className="text-sm text-destructive">{errors.weekday_price || errors.peak_price || errors.weekend_price}</p>
+              )}
+            </div>
+          )}
+
+          {/* 庫存量 — 天送由每房型獨立設定 */}
+          {!isTS && (
+            <div className="space-y-2">
+              <Label htmlFor="available_rooms">庫存量 *</Label>
+              <Input
+                id="available_rooms"
+                type="number"
+                min="0"
+                value={formData.available_rooms}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  available_rooms: parseInt(e.target.value) || 0
+                })}
+                placeholder="請輸入庫存量"
+                className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
+                inputMode="numeric"
+              />
+              <p className="text-xs text-muted-foreground">設定每天的可用房數</p>
+              {errors.available_rooms && (
+                <p className="text-sm text-destructive">{errors.available_rooms}</p>
+              )}
+            </div>
+          )}
 
           {/* 對應房型 */}
           <div className="space-y-2">
