@@ -36,6 +36,7 @@ import { Pencil, Check, X, Search } from "lucide-react";
 import ScoutDiscountCodesTab from "@/components/team/ScoutDiscountCodesTab";
 import TeamCommissionStatsTab from "@/components/team/TeamCommissionStatsTab";
 import CommissionRatesTab from "@/components/team/CommissionRatesTab";
+import { getOrderSourceConfig } from "@/utils/orderHelpers";
 
 interface Member {
   user_id: string;
@@ -112,18 +113,6 @@ const BOOKING_OPTIONS = ["官網", "電話", "Line", "現場", "其他"];
 
 const NONE = "__none__";
 
-const ORDER_SOURCE_LABEL: Record<string, string> = {
-  'owner_provided': '業主自帶',
-  'kol': 'KOL',
-  'line': 'Line@',
-  'agoda': 'Agoda',
-  'booking': 'Booking',
-  'trip': 'Trip',
-  'travel_agency': '旅行社',
-  'kol_exchange': 'KOL互惠',
-  'starlink_member': '星鏈會員',
-  'official': '官網訂房',
-};
 
 export default function TeamOrders() {
   const [orders, setOrders] = useState<OrderRow[]>([]);
@@ -701,7 +690,7 @@ export default function TeamOrders() {
                       <TableCell className="whitespace-nowrap">{o.check_out_date}</TableCell>
                       <TableCell className="tabular-nums">${o.final_price?.toLocaleString()}</TableCell>
                       <TableCell>{o.discount_code || "-"}</TableCell>
-                      <TableCell>{ORDER_SOURCE_LABEL[o.order_source ?? ''] ?? o.order_source ?? '-'}</TableCell>
+                      <TableCell>{getOrderSourceConfig(o.order_source ?? '').label}</TableCell>
                       <TableCell className="whitespace-nowrap">{trafficMap.get(o.meta?.traffic_source ?? "") ?? o.meta?.traffic_source ?? "-"}</TableCell>
                       <TableCell className="whitespace-nowrap">{bookingMap.get(o.meta?.booking_method ?? "") ?? o.meta?.booking_method ?? "-"}</TableCell>
                       <TableCell>
@@ -865,7 +854,7 @@ export default function TeamOrders() {
                 <div className="grid grid-cols-3 gap-3">
                   <ReadField
                     label="來源"
-                    value={ORDER_SOURCE_LABEL[editOrder.order_source ?? ''] ?? editOrder.order_source ?? '-'}
+                    value={getOrderSourceConfig(editOrder.order_source ?? '').label}
                   />
                   <ReadField
                     label="訂房方式"
