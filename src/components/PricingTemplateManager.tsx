@@ -213,6 +213,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       extra_dates: [],
       excluded_dates: [],
       room_overrides: {},
+      extra_segments: [],
     });
     setErrors({});
     setShowForm(true);
