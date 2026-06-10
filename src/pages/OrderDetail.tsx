@@ -288,10 +288,8 @@ const OrderDetailPage = () => {
   const exclusiveRoomTypeId = useMemo(() => {
     const editExclusive = editOrderRooms.find(r => roomTypes.find(t => t.id === r.room_type_id)?.is_exclusive_package);
     if (editExclusive) return editExclusive.room_type_id;
-    const editFormType = roomTypes.find(t => t.id === editForm.room_type_id);
-    if (editFormType?.is_exclusive_package) return editFormType.id;
     return order?.room_type_id || null;
-  }, [editOrderRooms, editForm.room_type_id, roomTypes, order?.room_type_id]);
+  }, [editOrderRooms, roomTypes, order?.room_type_id]);
 
   useEffect(() => {
     if (!exclusiveRoomTypeId) {
