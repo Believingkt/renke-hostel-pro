@@ -141,8 +141,9 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       
       const templatesData = (data || []).map(t => ({
         ...t,
-        meal_plans: Array.isArray(t.meal_plans) ? t.meal_plans : []
-      }));
+        meal_plans: Array.isArray(t.meal_plans) ? t.meal_plans : [],
+        room_overrides: Array.isArray((t as any).room_overrides) ? (t as any).room_overrides : [],
+      })) as PricingTemplate[];
       
       setTemplates(templatesData);
     } catch (error) {
