@@ -897,16 +897,22 @@ export default function TeamOrders() {
                 /* 唯讀模式：補充行銷資訊摘要 */
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
+                    {/* 1. 成交人 / 詢問日期 */}
                     <ReadField
                       label="成交人"
                       value={closers.find((m) => m.user_id === form.closer_id)?.display_name || "-"}
                     />
                     <ReadField label="詢問日期" value={form.inquiry_date || "-"} />
+                    {/* 2. 客戶暱稱 / 訂金確認日 */}
+                    <ReadField label="客戶暱稱" value={form.nickname || "-"} />
+                    <ReadField label="訂金確認日" value={form.deposit_confirm_date || "-"} />
+                    {/* 3. 廣告編號 / 影音組 */}
                     <ReadField label="廣告編號" value={form.ad_id || "-"} />
                     <ReadField
                       label="影音組"
                       value={videos.find((v) => v.user_id === form.video_creator_id)?.display_name || "-"}
                     />
+                    {/* 4. 訂房方式 / 來源管道 */}
                     <ReadField
                       label="訂房方式"
                       value={bookingMap.get(form.booking_method ?? '') ?? form.booking_method ?? '-'}
@@ -915,16 +921,21 @@ export default function TeamOrders() {
                       label="來源管道"
                       value={trafficMap.get(form.traffic_source ?? '') ?? form.traffic_source ?? '-'}
                     />
+                    {/* 5. 加盟專案 / 會員編號 */}
                     <ReadField label="加盟專案" value={form.franchise_project || "-"} />
                     <ReadField label="會員編號" value={form.member_number || "-"} />
+                    {/* 6. 加購備註 / 加購金額 */}
                     <ReadField label="加購備註" value={form.addon_note || "-"} />
                     <ReadField
                       label="加購金額"
                       value={form.addon_amount ? `$${Number(form.addon_amount).toLocaleString()}` : "-"}
                     />
-                    <ReadField label="使用住宿券張數" value={String(form.voucher_count ?? 0)} />
-                    <ReadField label="不分潤" value={form.is_excluded ? "是" : "否"} />
                   </div>
+                  {/* 7. 使用住宿券張數 */}
+                  <ReadField label="使用住宿券張數" value={String(form.voucher_count ?? 0)} />
+                  {/* 8. 不分潤 */}
+                  <ReadField label="不分潤" value={form.is_excluded ? "是" : "否"} />
+                  {/* 9. 備註 */}
                   <ReadField label="備註" value={form.exclusion_note || "-"} />
                 </div>
               ) : (
