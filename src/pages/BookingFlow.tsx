@@ -601,19 +601,15 @@ const BookingFlow = () => {
     if (checkInDate && checkOutDate) {
       const nights = Math.max(0, Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / 86400000));
       if (nights > 0) {
-        // 期限硬性限制：任一入住夜超出 valid_from..valid_until 即排除
         const dateStrs: string[] = [];
         for (let i = 0; i < nights; i++) {
           const d = new Date(checkInDate);
           d.setDate(d.getDate() + i);
           dateStrs.push(format(d, "yyyy-MM-dd"));
         }
-        filtered = filtered.filter(t => {
-          const vf = t.valid_from || null;
-          const vu = t.valid_until || null;
-          if (!vf && !vu) return true;
-          return dateStrs.every(d => (!vf || d >= vf) && (!vu || d <= vu));
-        });
+
+        // 期限硬性限制：使用 helpers（同時支援 season_segments 與舊版 valid_from/until）
+        filtered = filtered.filter(t => isTemplateActiveForDates(t as any, dateStrs));
 
         const holidaySet = new Set(publicHolidays);
         const tiers: Array<"weekday" | "peak" | "weekend"> = [];
@@ -622,8 +618,8 @@ const BookingFlow = () => {
           d.setDate(d.getDate() + i);
           tiers.push(classifyDayTier(d, holidaySet));
         }
-        const tierPrice = (t: PricingTemplateOption, tier: "weekday" | "peak" | "weekend") => {
-          // 若有 room_overrides 對應目前選中房型，使用該房型的階段價
+
+        const legacyTierPrice = (t: PricingTemplateOption, tier: "weekday" | "peak" | "weekend") => {
           const ovList = Array.isArray(t.room_overrides) ? t.room_overrides : [];
           const ov = selectedRoom ? ovList.find((o: any) => o?.room_type_id === selectedRoom.id) : null;
           if (ov) {
@@ -635,7 +631,16 @@ const BookingFlow = () => {
           if (tier === "peak") return t.peak_price ?? t.weekday_price ?? t.price ?? 0;
           return t.weekday_price ?? t.price ?? 0;
         };
+
         filtered = filtered.filter(t => {
+          if (templateHasSegments(t as any)) {
+            // segments 模式：逐日逐 tier 檢查
+            return dateStrs.every((dStr, i) => {
+              const info = getTierForDate(t as any, selectedRoom?.id ?? null, dStr, tiers[i]);
+              return info.enabled && info.price != null && info.price > 0;
+            });
+          }
+
           const ovList = Array.isArray(t.room_overrides) ? t.room_overrides : [];
           const ov = selectedRoom ? ovList.find((o: any) => o?.room_type_id === selectedRoom.id) : null;
           const hasAnyTierPrice =
@@ -647,10 +652,11 @@ const BookingFlow = () => {
             (ov?.peak_price ?? 0) > 0 ||
             (ov?.weekend_price ?? 0) > 0;
           if (!hasAnyTierPrice) return true;
-          return tiers.every(tier => tierPrice(t, tier) > 0);
+          return tiers.every(tier => legacyTierPrice(t, tier) > 0);
         });
       }
     }
+
 
     setPricingTemplates(filtered);
 
