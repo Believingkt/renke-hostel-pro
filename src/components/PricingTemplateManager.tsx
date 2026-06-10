@@ -444,7 +444,9 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
           excluded_dates: Array.isArray(s.excluded_dates) ? s.excluded_dates : [],
           room_overrides: Array.isArray(s.room_overrides) ? s.room_overrides : [],
         }));
-        seasonSegments = [primarySeg, ...cleanedExtras];
+        // 額外區段排在前面：findSegmentForDate 以「先匹配者」為準，
+        // 因此暑期/旺季等小範圍會優先覆蓋主期間。
+        seasonSegments = [...cleanedExtras, primarySeg];
         // 頂層 valid_from / until 用 union（向後相容查詢）
         topValidFrom = seasonSegments.reduce((a, s) => a && a < s.valid_from ? a : s.valid_from, seasonSegments[0].valid_from);
         topValidUntil = seasonSegments.reduce((a, s) => a && a > s.valid_until ? a : s.valid_until, seasonSegments[0].valid_until);
