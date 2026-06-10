@@ -283,23 +283,27 @@ const OrderDetailPage = () => {
     })();
   }, [order?.accommodation_id]);
 
-  // Load custom exclusive breakdown from accommodation_info (DB-driven 房型與包棟設定)
+  // Load 包棟方案的內含房間清單（room_types.package_contents）
   useEffect(() => {
-    if (!order?.accommodation_id) return;
+    if (!order?.room_type_id) return;
     (async () => {
       const { data } = await supabase
-        .from("accommodation_info")
-        .select("exclusive_room_breakdown")
-        .eq("id", order.accommodation_id)
+        .from("room_types")
+        .select("package_contents, is_exclusive_package")
+        .eq("id", order.room_type_id)
         .maybeSingle();
-      const items = (data as any)?.exclusive_room_breakdown;
+      const items = (data as any)?.package_contents;
       if (Array.isArray(items) && items.length > 0) {
-        setCustomBreakdown(items.map((it: any) => ({ name: String(it.name || it.custom_name || ""), count: Number(it.count) || 0 })).filter(it => it.name && it.count > 0));
+        setCustomBreakdown(
+          items
+            .map((it: any) => ({ name: String(it.name || ""), count: Number(it.count) || 0 }))
+            .filter((it: { name: string; count: number }) => it.name && it.count > 0),
+        );
       } else {
         setCustomBreakdown(null);
       }
     })();
-  }, [order?.accommodation_id]);
+  }, [order?.room_type_id]);
   const getRoomUnitPrice = useCallback((roomPrice: number, quantity: number) => {
     return quantity > 0 ? Math.round(roomPrice / quantity) : roomPrice;
   }, []);
