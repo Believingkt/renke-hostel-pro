@@ -89,6 +89,16 @@ interface InventoryRecord {
   is_available: boolean | null;
 }
 
+interface ExclusiveBreakdownItem {
+  room_type_id?: string | null;
+  custom_id?: string | null;
+  name?: string | null;
+  custom_name?: string | null;
+  count?: number | string | null;
+  capacity?: number | string | null;
+  visible_in_booking_grid?: boolean | null;
+}
+
 const DAY_LABELS = ["日", "一", "二", "三", "四", "五", "六"];
 
 const SOURCE_ICONS: Record<string, string> = {
@@ -238,8 +248,9 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
       ]);
 
       // 從包棟設定取出「顯示在預訂管理」開關
-      const breakdown: any[] = Array.isArray((accInfoRes.data as any)?.exclusive_room_breakdown)
-        ? (accInfoRes.data as any).exclusive_room_breakdown
+      const accInfo = accInfoRes.data as { exclusive_room_breakdown?: unknown } | null;
+      const breakdown: ExclusiveBreakdownItem[] = Array.isArray(accInfo?.exclusive_room_breakdown)
+        ? (accInfo.exclusive_room_breakdown as ExclusiveBreakdownItem[])
         : [];
       const hidden = new Set<string>();
       const customs: Array<{ id: string; name: string; count: number; capacity: number }> = [];
@@ -453,9 +464,9 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
       }
       toast.success(newUnitId ? "已指派房間" : "已取消指派");
       await loadData();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      toast.error(err?.message || "指派失敗");
+      toast.error(err instanceof Error ? err.message : "指派失敗");
     }
   };
 
