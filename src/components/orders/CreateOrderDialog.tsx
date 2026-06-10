@@ -168,9 +168,18 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     }));
   }, []);
 
-  // Phase 2: 動態包棟組成（HQ 房型與包棟設定）。null = 走舊邏輯 fallback。
+  // Phase 3: 每個包棟方案各自的房間組成（從 room_types.package_contents 讀取）。
+  // breakdownByPackage[包棟房型 id] = [{ room_type_id: 自訂房間 id, name, count }, ...]
   type BreakdownItem = { room_type_id: string; name: string; count: number };
-  const [customBreakdown, setCustomBreakdown] = useState<BreakdownItem[] | null>(null);
+  const [breakdownByPackage, setBreakdownByPackage] = useState<Record<string, BreakdownItem[]>>({});
+  const getPackageBreakdown = useCallback(
+    (pkgRoomTypeId?: string | null): BreakdownItem[] | null => {
+      if (!pkgRoomTypeId) return null;
+      const arr = breakdownByPackage[pkgRoomTypeId];
+      return arr && arr.length > 0 ? arr : null;
+    },
+    [breakdownByPackage],
+  );
   // 第一棟包棟：room_type_id -> 間數
   const [exclusiveCustomCounts, setExclusiveCustomCounts] = useState<Record<string, number>>({});
   // 額外加棟：selection.id -> { room_type_id -> 間數 }
