@@ -16,12 +16,12 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerFooter,
-} from "@/components/ui/drawer";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter,
+} from "@/components/ui/sheet";
 import {
   Select,
   SelectContent,
@@ -495,6 +495,8 @@ export default function TeamOrders() {
         closer_id: form.closer_id,
         video_creator_id: form.video_creator_id,
         scout_id: form.scout_id,
+        traffic_source: form.traffic_source,
+        booking_method: form.booking_method,
         ad_id: form.ad_id,
 
         is_excluded: !!form.is_excluded,
@@ -636,6 +638,8 @@ export default function TeamOrders() {
                   </TableHead>
                   <TableHead className="whitespace-nowrap">折扣碼</TableHead>
                   <TableHead className="whitespace-nowrap">來源</TableHead>
+                  <TableHead className="whitespace-nowrap">來源管道</TableHead>
+                  <TableHead className="whitespace-nowrap">訂房方式</TableHead>
                   <TableHead className="whitespace-nowrap">補充資料</TableHead>
                   <TableHead className="whitespace-nowrap w-16">操作</TableHead>
                 </TableRow>
@@ -643,13 +647,13 @@ export default function TeamOrders() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">
                       載入中...
                     </TableCell>
                   </TableRow>
                 ) : pageItems.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">
                       無資料
                     </TableCell>
                   </TableRow>
@@ -663,14 +667,15 @@ export default function TeamOrders() {
                       <TableCell className="font-mono text-xs">{o.order_number}</TableCell>
                       <TableCell className="whitespace-nowrap tabular-nums text-xs">
                         {o.created_at
-                          ? new Date(o.created_at).toLocaleString("sv-SE", {
+                          ? new Date(o.created_at).toLocaleString("zh-TW", {
                               timeZone: "Asia/Taipei",
                               year: "numeric",
                               month: "2-digit",
                               day: "2-digit",
                               hour: "2-digit",
                               minute: "2-digit",
-                            }).replace(" ", " ").slice(0, 16)
+                              hour12: false,
+                            })
                           : "-"}
                       </TableCell>
                       <TableCell className="whitespace-nowrap">{o.accommodation_name}</TableCell>
@@ -680,6 +685,8 @@ export default function TeamOrders() {
                       <TableCell className="tabular-nums">${o.final_price?.toLocaleString()}</TableCell>
                       <TableCell>{o.discount_code || "-"}</TableCell>
                       <TableCell>{o.order_source || "-"}</TableCell>
+                      <TableCell className="whitespace-nowrap">{o.meta?.traffic_source || "-"}</TableCell>
+                      <TableCell className="whitespace-nowrap">{o.meta?.booking_method || "-"}</TableCell>
                       <TableCell>
                         {o.meta ? (
                           <Badge variant="default">已填</Badge>
@@ -797,11 +804,11 @@ export default function TeamOrders() {
         </TabsContent>
       </Tabs>
 
-      <Drawer open={editOpen} onOpenChange={setEditOpen}>
-        <DrawerContent className="max-h-[92vh] overflow-x-hidden">
-          <DrawerHeader>
-            <DrawerTitle>補充行銷資訊</DrawerTitle>
-          </DrawerHeader>
+      <Sheet open={editOpen} onOpenChange={setEditOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto overflow-x-hidden">
+          <SheetHeader>
+            <SheetTitle>補充行銷資訊</SheetTitle>
+          </SheetHeader>
 
           {editOrder && (
             <div className="overflow-y-auto px-4 pb-4 space-y-4">
@@ -875,6 +882,53 @@ export default function TeamOrders() {
                     }
                   />
                 </div>
+
+                {/* 來源管道 */}
+                <div className="space-y-2">
+                  <Label className="text-sm">來源管道</Label>
+                  <Select
+                    value={form.traffic_source ?? NONE}
+                    onValueChange={(v) =>
+                      setForm((f) => ({ ...f, traffic_source: v === NONE ? null : v }))
+                    }
+                  >
+                    <SelectTrigger className="text-base">
+                      <SelectValue placeholder="選擇來源管道" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE}>未指定</SelectItem>
+                      {trafficSources.filter((o) => o.is_active).map((o) => (
+                        <SelectItem key={o.id} value={o.name}>
+                          {o.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* 訂房方式 */}
+                <div className="space-y-2">
+                  <Label className="text-sm">訂房方式</Label>
+                  <Select
+                    value={form.booking_method ?? NONE}
+                    onValueChange={(v) =>
+                      setForm((f) => ({ ...f, booking_method: v === NONE ? null : v }))
+                    }
+                  >
+                    <SelectTrigger className="text-base">
+                      <SelectValue placeholder="選擇訂房方式" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE}>未指定</SelectItem>
+                      {bookingMethods.filter((o) => o.is_active).map((o) => (
+                        <SelectItem key={o.id} value={o.name}>
+                          {o.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
 
                 {/* 影音組(唯讀) */}
                 <div className="space-y-2">
@@ -1012,16 +1066,16 @@ export default function TeamOrders() {
             </div>
           )}
 
-          <DrawerFooter className="flex-row justify-end gap-2">
+          <SheetFooter className="flex-row justify-end gap-2">
             <Button variant="outline" onClick={() => setEditOpen(false)}>
               取消
             </Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving ? "儲存中..." : "儲存"}
             </Button>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

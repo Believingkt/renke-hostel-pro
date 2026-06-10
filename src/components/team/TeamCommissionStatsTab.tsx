@@ -121,6 +121,8 @@ export default function TeamCommissionStatsTab() {
   const [closersList, setClosersList] = useState<{ user_id: string; display_name: string }[]>([]);
   const [videosList, setVideosList] = useState<{ user_id: string; display_name: string }[]>([]);
   const [franchiseProjects, setFranchiseProjects] = useState<{ id: string; name: string }[]>([]);
+  const [trafficSources, setTrafficSources] = useState<{ id: string; name: string }[]>([]);
+  const [bookingMethods, setBookingMethods] = useState<{ id: string; name: string }[]>([]);
 
   // Sheet / expanded state
   const [expandedCloser, setExpandedCloser] = useState<Set<string>>(new Set());
@@ -149,6 +151,8 @@ export default function TeamCommissionStatsTab() {
     voucher_count: number;
     is_excluded: boolean;
     exclusion_note: string | null;
+    traffic_source: string | null;
+    booking_method: string | null;
   }>({
     closer_id: null,
     inquiry_date: null,
@@ -161,6 +165,8 @@ export default function TeamCommissionStatsTab() {
     voucher_count: 0,
     is_excluded: false,
     exclusion_note: null,
+    traffic_source: null,
+    booking_method: null,
   });
   const [savingEdit, setSavingEdit] = useState(false);
 
@@ -211,7 +217,7 @@ export default function TeamCommissionStatsTab() {
 
   useEffect(() => {
     (async () => {
-      const [c, v, fp] = await Promise.all([
+      const [c, v, fp, ts, bm] = await Promise.all([
         supabase.rpc("get_team_role_members", { p_role: "closer" as any }),
         supabase.rpc("get_team_role_members", { p_role: "video" as any }),
         supabase
@@ -219,10 +225,22 @@ export default function TeamCommissionStatsTab() {
           .select("id, name")
           .eq("is_active", true)
           .order("name"),
+        supabase
+          .from("traffic_sources")
+          .select("id, name")
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true }),
+        supabase
+          .from("booking_methods")
+          .select("id, name")
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true }),
       ]);
       setClosersList((c.data as any[]) || []);
       setVideosList((v.data as any[]) || []);
       setFranchiseProjects((fp.data as any[]) || []);
+      setTrafficSources((ts.data as any[]) || []);
+      setBookingMethods((bm.data as any[]) || []);
     })();
   }, []);
 
@@ -232,7 +250,7 @@ export default function TeamCommissionStatsTab() {
     const { data: full } = await supabase
       .from("order_meta")
       .select(
-        "closer_id, video_creator_id, is_excluded, exclusion_note, ad_id, franchise_project, member_number, inquiry_date, voucher_count, addon_note, addon_amount",
+        "closer_id, video_creator_id, is_excluded, exclusion_note, ad_id, franchise_project, member_number, inquiry_date, voucher_count, addon_note, addon_amount, traffic_source, booking_method",
       )
       .eq("order_id", o.id)
       .maybeSingle();
@@ -249,6 +267,8 @@ export default function TeamCommissionStatsTab() {
       voucher_count: Number(src.voucher_count ?? 0),
       is_excluded: !!src.is_excluded,
       exclusion_note: src.exclusion_note ?? null,
+      traffic_source: src.traffic_source ?? null,
+      booking_method: src.booking_method ?? null,
     });
     setEditOrder(o);
   }
@@ -273,6 +293,8 @@ export default function TeamCommissionStatsTab() {
           : 0,
         is_excluded: editForm.is_excluded,
         exclusion_note: editForm.exclusion_note,
+        traffic_source: editForm.traffic_source,
+        booking_method: editForm.booking_method,
       };
       const exists = metaMap.has(editOrder.id);
       if (exists) {
@@ -1155,6 +1177,53 @@ export default function TeamCommissionStatsTab() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* 來源管道 */}
+                <div className="space-y-2">
+                  <Label>來源管道</Label>
+                  <Select
+                    value={editForm.traffic_source ?? "__none__"}
+                    onValueChange={(v) =>
+                      setEditForm((f) => ({ ...f, traffic_source: v === "__none__" ? null : v }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="選擇來源管道" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">未指定</SelectItem>
+                      {trafficSources.map((o) => (
+                        <SelectItem key={o.id} value={o.name}>
+                          {o.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* 訂房方式 */}
+                <div className="space-y-2">
+                  <Label>訂房方式</Label>
+                  <Select
+                    value={editForm.booking_method ?? "__none__"}
+                    onValueChange={(v) =>
+                      setEditForm((f) => ({ ...f, booking_method: v === "__none__" ? null : v }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="選擇訂房方式" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">未指定</SelectItem>
+                      {bookingMethods.map((o) => (
+                        <SelectItem key={o.id} value={o.name}>
+                          {o.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
 
                 {/* 會員編號 */}
                 <div className="space-y-2">
