@@ -2310,13 +2310,33 @@ const OrderDetailPage = () => {
                 <div className="flex justify-between items-center gap-2">
                   <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">房型</span>
                   {isEditing ? (
-                    <Select value={editForm.room_type_id} onValueChange={(v) => setEditForm(f => ({ ...f, room_type_id: v }))}>
+                    <Select
+                      value={editForm.room_type_id}
+                      onValueChange={async (v) => {
+                        setEditForm(f => ({ ...f, room_type_id: v }));
+                        // 同步建立一筆 editOrderRooms，切換到新版 UI（含棟號/房號選擇）
+                        const selectedRoomType = roomTypes.find(rt => rt.id === v);
+                        const dateBasedTotal = await computeRoomTotalByDates(v, null);
+                        const unitPrice = dateBasedTotal || getSuggestedRoomUnitPrice(v) || (selectedRoomType?.base_price ?? 0);
+                        setEditOrderRooms([{
+                          id: `synthetic-${order.id}`,
+                          room_type_id: v,
+                          quantity: 1,
+                          room_price: unitPrice,
+                          unit_price: unitPrice,
+                          template_name: null,
+                          room_unit_id: null,
+                        }]);
+                      }}
+                    >
                       <SelectTrigger className="w-[200px] h-10 text-sm md:h-8 md:text-xs">
                         <SelectValue placeholder="選擇房型" />
                       </SelectTrigger>
                       <SelectContent>
                         {roomTypes.map(rt => (
-                          <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
+                          <SelectItem key={rt.id} value={rt.id}>
+                            {rt.is_exclusive_package ? `【${exclusiveLabel}】` : ""}{rt.name}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
