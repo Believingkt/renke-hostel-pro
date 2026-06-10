@@ -98,19 +98,26 @@ export async function resolveTemplatePricesForDates(
     return "weekday";
   };
 
+  // 取得房型覆寫（若有）
+  const override = template ? getRoomOverride(template as any, roomTypeId) : null;
+  const overrideWeekday = override?.weekday_price ?? null;
+  const overridePeak = override?.peak_price ?? null;
+  const overrideWeekend = override?.weekend_price ?? null;
+
   const hasTemplateTierPrices =
     template &&
     ((template.weekday_price != null && template.weekday_price > 0) ||
       (template.peak_price != null && template.peak_price > 0) ||
-      (template.weekend_price != null && template.weekend_price > 0));
+      (template.weekend_price != null && template.weekend_price > 0) ||
+      overrideWeekday != null || overridePeak != null || overrideWeekend != null);
 
   const stillUnresolved: string[] = [];
 
   if (hasTemplateTierPrices) {
-    const weekdayPrice = template!.weekday_price ?? template!.price ?? 0;
-    const weekendPrice = template!.weekend_price ?? template!.price ?? weekdayPrice;
-    // 旺日 fallback 順序：peak_price → weekday_price → weekend_price
+    const weekdayPrice = overrideWeekday ?? template!.weekday_price ?? template!.price ?? 0;
+    const weekendPrice = overrideWeekend ?? template!.weekend_price ?? template!.price ?? weekdayPrice;
     const peakPrice =
+      overridePeak ??
       template!.peak_price ??
       (template!.weekday_price != null ? template!.weekday_price : weekendPrice);
 
