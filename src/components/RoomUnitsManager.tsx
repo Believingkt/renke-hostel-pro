@@ -167,7 +167,7 @@ export function RoomUnitsManager({ roomTypeId, accommodationId, roomCount, varia
         if (error) throw error;
       }
 
-      toast.success("已儲存房間設定");
+      toast.success(L.saved);
       await load();
     } catch (e: any) {
       toast.error("儲存失敗：" + (e.message || ""));
