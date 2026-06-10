@@ -382,6 +382,7 @@ export default function TeamOrders() {
         id: o.id,
         order_number: o.order_number,
         guest_name: o.guest_name,
+        guest_phone: o.guest_phone ?? null,
         check_in_date: o.check_in_date,
         check_out_date: o.check_out_date,
         final_price: o.final_price,
