@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Pencil, Trash2, Check, X, GripVertical, Copy } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -51,6 +52,7 @@ interface PricingTemplate {
   is_default: boolean;
   display_order: number;
   room_type_id?: string | null;
+  room_type_ids?: string[] | null;
 }
 
 interface RoomType {
@@ -66,6 +68,12 @@ interface PricingTemplateManagerProps {
 export interface PricingTemplateManagerRef {
   openAddDialog: () => void;
 }
+
+// 這些民宿的「對應房型」維持單選（不動）：森山寫照、哈庫納馬塔塔
+const SINGLE_SELECT_ACCOMMODATIONS = new Set([
+  "5f764d55-ae11-4631-80fe-2e611853deae", // 森山寫照
+  "6b6ac0dc-602b-4dec-9167-7791ac412ba3", // 哈庫納馬塔塔
+]);
 
 const templateSchema = z.object({
   template_name: z.string().trim().min(1, "專案名稱不能為空").max(50, "專案名稱最多50字"),
@@ -89,7 +97,8 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingTemplate, setDeletingTemplate] = useState<PricingTemplate | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
-  
+  const isSingleSelect = SINGLE_SELECT_ACCOMMODATIONS.has(accommodationId);
+
   const [formData, setFormData] = useState({
     template_name: "",
     description: "",
@@ -98,6 +107,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     weekend_price: null as number | null,
     available_rooms: 1,
     room_type_id: "" as string,
+    room_type_ids: [] as string[],
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -165,6 +175,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       weekend_price: null,
       available_rooms: 1,
       room_type_id: "",
+      room_type_ids: [],
     });
     setErrors({});
     setShowForm(true);
@@ -172,6 +183,9 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
 
   const handleEdit = (template: PricingTemplate) => {
     setEditingTemplate(template);
+    const existingIds = Array.isArray(template.room_type_ids) && template.room_type_ids.length > 0
+      ? template.room_type_ids
+      : (template.room_type_id ? [template.room_type_id] : []);
     setFormData({
       template_name: template.template_name,
       description: template.description || "",
@@ -179,7 +193,8 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       peak_price: template.peak_price ?? null,
       weekend_price: template.weekend_price ?? null,
       available_rooms: (template as any).available_rooms ?? 1,
-      room_type_id: template.room_type_id || "",
+      room_type_id: template.room_type_id || existingIds[0] || "",
+      room_type_ids: existingIds,
     });
     setErrors({});
     setShowForm(true);
@@ -211,6 +226,12 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     }
 
     try {
+      const finalIds = isSingleSelect
+        ? (formData.room_type_id ? [formData.room_type_id] : [])
+        : formData.room_type_ids;
+      const primaryId = isSingleSelect
+        ? (formData.room_type_id || null)
+        : (finalIds[0] || null);
       const dataToSave = {
         template_name: formData.template_name,
         description: formData.description || null,
@@ -220,7 +241,8 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         price: formData.weekday_price ?? formData.peak_price ?? formData.weekend_price, // 向後兼容
         available_rooms: formData.available_rooms,
         accommodation_id: accommodationId,
-        room_type_id: formData.room_type_id || null,
+        room_type_id: primaryId,
+        room_type_ids: finalIds,
       };
 
       if (editingTemplate) {
@@ -256,6 +278,9 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
 
   const handleCopy = async (template: PricingTemplate) => {
     try {
+      const copyIds = Array.isArray(template.room_type_ids) && template.room_type_ids.length > 0
+        ? template.room_type_ids
+        : (template.room_type_id ? [template.room_type_id] : []);
       const dataToCopy = {
         template_name: `${template.template_name} (複製)`,
         description: template.description,
@@ -265,7 +290,8 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         price: template.weekday_price ?? template.peak_price ?? template.weekend_price ?? template.price ?? null,
         available_rooms: (template as any).available_rooms ?? 1,
         accommodation_id: accommodationId,
-        room_type_id: template.room_type_id || null,
+        room_type_id: template.room_type_id || copyIds[0] || null,
+        room_type_ids: copyIds,
         display_order: templates.length,
       };
 
@@ -363,10 +389,16 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
           >
             <GripVertical className="h-4 w-4 text-muted-foreground" />
           </button>
-          <div className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-muted/60 text-xs font-medium text-muted-foreground">
-            {template.room_type_id
-              ? (roomTypes.find(r => r.id === template.room_type_id)?.name || '未知房型')
-              : '所有房型'}
+          <div className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-muted/60 text-xs font-medium text-muted-foreground max-w-full truncate">
+            {(() => {
+              const ids = Array.isArray(template.room_type_ids) && template.room_type_ids.length > 0
+                ? template.room_type_ids
+                : (template.room_type_id ? [template.room_type_id] : []);
+              if (ids.length === 0) return '所有房型';
+              const names = ids
+                .map(id => roomTypes.find(r => r.id === id)?.name || '未知房型');
+              return names.join('、');
+            })()}
           </div>
         </div>
 
@@ -623,19 +655,59 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
 
           {/* 對應房型 */}
           <div className="space-y-2">
-            <Label htmlFor="room_type_id">對應房型 *</Label>
-            <Select value={formData.room_type_id || "none"} onValueChange={(v) => setFormData({ ...formData, room_type_id: v === "none" ? "" : v })}>
-              <SelectTrigger className="h-12 sm:h-10">
-                <SelectValue placeholder="選擇對應房型" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">不指定房型</SelectItem>
-                {roomTypes.map((rt) => (
-                  <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-sm text-muted-foreground">指定房型後，新增訂單時僅顯示該房型對應的專案</p>
+            <Label htmlFor="room_type_id">對應房型 *{!isSingleSelect && <span className="text-xs text-muted-foreground font-normal ml-1">（可複選）</span>}</Label>
+            {isSingleSelect ? (
+              <>
+                <Select value={formData.room_type_id || "none"} onValueChange={(v) => setFormData({ ...formData, room_type_id: v === "none" ? "" : v, room_type_ids: v === "none" ? [] : [v] })}>
+                  <SelectTrigger className="h-12 sm:h-10">
+                    <SelectValue placeholder="選擇對應房型" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">不指定房型</SelectItem>
+                    {roomTypes.map((rt) => (
+                      <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">指定房型後，新增訂單時僅顯示該房型對應的專案</p>
+              </>
+            ) : (
+              <>
+                <div className="rounded-md border bg-background p-3 space-y-2 max-h-64 overflow-y-auto">
+                  {roomTypes.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">尚無房型可選</p>
+                  ) : (
+                    roomTypes.map((rt) => {
+                      const checked = formData.room_type_ids.includes(rt.id);
+                      return (
+                        <label
+                          key={rt.id}
+                          className="flex items-center gap-2 cursor-pointer py-1"
+                        >
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(v) => {
+                              const next = v === true
+                                ? Array.from(new Set([...formData.room_type_ids, rt.id]))
+                                : formData.room_type_ids.filter(id => id !== rt.id);
+                              setFormData({
+                                ...formData,
+                                room_type_ids: next,
+                                room_type_id: next[0] || "",
+                              });
+                            }}
+                          />
+                          <span className="text-sm">{rt.name}</span>
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  可同時指定多個房型；未勾選任何房型則代表「不指定房型（所有房型可用）」
+                </p>
+              </>
+            )}
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 pt-4">

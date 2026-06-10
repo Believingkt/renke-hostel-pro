@@ -351,6 +351,7 @@ const BookingFlow = () => {
     meal_plans: any[] | null;
     mealCount: number; // 0,1 → price, 2 → price_2_meals, 3 → price_3_meals
     room_type_id: string | null;
+    room_type_ids?: string[] | null;
     weekday_price: number | null;
     peak_price: number | null;
     weekend_price: number | null;
@@ -521,7 +522,7 @@ const BookingFlow = () => {
         // 獲取所有價格方案（專案模板）
         const { data: allTemplatesData } = await supabase
           .from("pricing_templates")
-          .select("id, template_name, project_name, meal_plans, display_order, room_type_id, weekday_price, peak_price, weekend_price, price")
+          .select("id, template_name, project_name, meal_plans, display_order, room_type_id, room_type_ids, weekday_price, peak_price, weekend_price, price")
           .eq("accommodation_id", accommodationId)
           .order("display_order", { ascending: true });
 
@@ -541,6 +542,7 @@ const BookingFlow = () => {
               meal_plans: meals,
               mealCount,
               room_type_id: t.room_type_id,
+              room_type_ids: (t as any).room_type_ids ?? null,
               weekday_price: t.weekday_price ?? null,
               peak_price: t.peak_price ?? null,
               weekend_price: t.weekend_price ?? null,
@@ -572,9 +574,17 @@ const BookingFlow = () => {
 
     let filtered: PricingTemplateOption[];
     if (selectedRoom) {
-      filtered = allPricingTemplates.filter(t => t.room_type_id === selectedRoom.id);
+      filtered = allPricingTemplates.filter(t => {
+        const ids = t.room_type_ids;
+        if (Array.isArray(ids) && ids.length > 0) return ids.includes(selectedRoom.id);
+        return t.room_type_id === selectedRoom.id;
+      });
       if (filtered.length === 0) {
-        filtered = allPricingTemplates.filter(t => !t.room_type_id);
+        filtered = allPricingTemplates.filter(t => {
+          const ids = t.room_type_ids;
+          const hasIds = Array.isArray(ids) && ids.length > 0;
+          return !hasIds && !t.room_type_id;
+        });
       }
     } else {
       filtered = allPricingTemplates;

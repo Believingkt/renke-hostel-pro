@@ -41,6 +41,7 @@ interface PricingTemplate {
   peak_price: number | null;
   weekend_price: number | null;
   room_type_id: string | null;
+  room_type_ids?: string[] | null;
   available_rooms: number | null;
 }
 
@@ -96,6 +97,7 @@ export default function RoomPriceCalendar() {
   const availableTemplatesForRoom = useMemo(() => {
     if (selectedRoomTypeId === 'all') return [];
     return templates.filter(t => {
+      if (Array.isArray(t.room_type_ids) && t.room_type_ids.length > 0) return t.room_type_ids.includes(selectedRoomTypeId);
       if (t.room_type_id) return t.room_type_id === selectedRoomTypeId;
       // 通用模板：名稱不含任何房型名稱
       const normalizedName = (t.project_name || t.template_name).replace(/\s+/g, '');
@@ -144,7 +146,7 @@ export default function RoomPriceCalendar() {
           .order('display_order', { ascending: true }),
         supabase
           .from('pricing_templates')
-          .select('id, template_name, project_name, price, weekday_price, peak_price, weekend_price, room_type_id, available_rooms')
+          .select('id, template_name, project_name, price, weekday_price, peak_price, weekend_price, room_type_id, room_type_ids, available_rooms')
           .eq('accommodation_id', currentAccommodationId)
           .order('display_order', { ascending: true }),
         supabase
@@ -577,6 +579,7 @@ export default function RoomPriceCalendar() {
                         const normalizedRoomName = roomType.name.replace(/\s+/g, '');
 
                         const roomTemplates = filteredTemplates.filter(t => {
+                          if (Array.isArray(t.room_type_ids) && t.room_type_ids.length > 0) return t.room_type_ids.includes(roomType.id);
                           if (t.room_type_id) return t.room_type_id === roomType.id;
                           const templateName = (t.project_name || t.template_name).replace(/\s+/g, '');
                           const matchesCurrentRoom = templateName.includes(normalizedRoomName);
@@ -608,6 +611,7 @@ export default function RoomPriceCalendar() {
                     const normalizedRoomName = roomType.name.replace(/\s+/g, '');
 
                     const roomTemplates = filteredTemplates.filter(t => {
+                      if (Array.isArray(t.room_type_ids) && t.room_type_ids.length > 0) return t.room_type_ids.includes(roomType.id);
                       if (t.room_type_id) return t.room_type_id === roomType.id;
                       const templateName = (t.project_name || t.template_name).replace(/\s+/g, '');
                       const matchesCurrentRoom = templateName.includes(normalizedRoomName);
@@ -688,6 +692,7 @@ function RoomTypeRows({
   const visibleTemplates = useMemo(() => {
     return templates.filter(t => {
       // 模板綁定了特定房型：嚴格以 room_type_id 為準
+      if (Array.isArray(t.room_type_ids) && t.room_type_ids.length > 0) return t.room_type_ids.includes(roomType.id);
       if (t.room_type_id) return t.room_type_id === roomType.id;
       // 通用模板（未綁定房型）：透過名稱匹配
       const templateName = (t.project_name || t.template_name).replace(/\s+/g, '');

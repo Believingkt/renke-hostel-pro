@@ -405,7 +405,7 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
       const [templatesResult, holidaysResult, amenitiesResult, inventoryResult] = await Promise.all([
         supabase
           .from('pricing_templates')
-          .select('template_name, price, display_order, room_type_id')
+          .select('template_name, price, display_order, room_type_id, room_type_ids')
           .eq('accommodation_id', accommodationId)
           .order('display_order', { ascending: true }),
         supabase
@@ -435,7 +435,10 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
         const roomTemplatesMap: Record<string, RoomTemplate[]> = {};
         for (const t of templatesResult.data) {
           const name = t.template_name;
-          const keys = t.room_type_id ? [t.room_type_id] : ['_global'];
+          const tIds = Array.isArray((t as any).room_type_ids) && (t as any).room_type_ids.length > 0
+            ? ((t as any).room_type_ids as string[])
+            : (t.room_type_id ? [t.room_type_id] : []);
+          const keys = tIds.length > 0 ? tIds : ['_global'];
           for (const key of keys) {
             if (!perRoomLabels[key]) perRoomLabels[key] = {};
             const labels = perRoomLabels[key];
@@ -443,10 +446,10 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
             else if (name.includes('二食') && !labels.price2MealsLabel) labels.price2MealsLabel = name;
             else if (!labels.priceLabel) labels.priceLabel = name;
           }
-          // Store templates per room_type_id
-          if (t.room_type_id) {
-            if (!roomTemplatesMap[t.room_type_id]) roomTemplatesMap[t.room_type_id] = [];
-            roomTemplatesMap[t.room_type_id].push({ template_name: t.template_name, price: t.price });
+          // Store templates per room_type_id (for every mapped room)
+          for (const rid of tIds) {
+            if (!roomTemplatesMap[rid]) roomTemplatesMap[rid] = [];
+            roomTemplatesMap[rid].push({ template_name: t.template_name, price: t.price });
           }
         }
         setSharedTemplateLabels(perRoomLabels['_global'] || {});
