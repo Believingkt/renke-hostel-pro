@@ -388,10 +388,16 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
           >
             <GripVertical className="h-4 w-4 text-muted-foreground" />
           </button>
-          <div className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-muted/60 text-xs font-medium text-muted-foreground">
-            {template.room_type_id
-              ? (roomTypes.find(r => r.id === template.room_type_id)?.name || '未知房型')
-              : '所有房型'}
+          <div className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-muted/60 text-xs font-medium text-muted-foreground max-w-full truncate">
+            {(() => {
+              const ids = Array.isArray(template.room_type_ids) && template.room_type_ids.length > 0
+                ? template.room_type_ids
+                : (template.room_type_id ? [template.room_type_id] : []);
+              if (ids.length === 0) return '所有房型';
+              const names = ids
+                .map(id => roomTypes.find(r => r.id === id)?.name || '未知房型');
+              return names.join('、');
+            })()}
           </div>
         </div>
 
