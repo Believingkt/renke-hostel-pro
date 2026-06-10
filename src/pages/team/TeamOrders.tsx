@@ -538,6 +538,9 @@ export default function TeamOrders() {
     }
   }
 
+  const trafficMap = new Map(trafficSources.map((t) => [t.id, t.name]));
+  const bookingMap = new Map(bookingMethods.map((b) => [b.id, b.name]));
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
