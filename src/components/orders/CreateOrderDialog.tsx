@@ -61,6 +61,7 @@ interface RoomUnit {
   room_type_id: string;
   display_order: number;
   is_active: boolean;
+  unit_label?: string | null;
 }
 
 interface OccupiedRoomUnitRow {
@@ -76,6 +77,7 @@ interface RoomSelection {
   quantity: number;
   roomPrice: number;
   filteredTemplates: PricingTemplate[];
+  room_unit_id?: string | null;
 }
 
 interface InventoryWarning {
@@ -139,6 +141,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
   // Multi-room selections
   const [roomSelections, setRoomSelections] = useState<RoomSelection[]>([]);
+  // 散客房可選房號：載入該民宿所有 active room_units + 計算指定日期區間已被佔用的 unit
+  const [allRoomUnits, setAllRoomUnits] = useState<RoomUnit[]>([]);
+  const [occupiedUnitIdsForDates, setOccupiedUnitIdsForDates] = useState<Set<string>>(new Set());
   // 哈庫納馬塔塔：7 間房（最多 2 雙人房 + 4 四人房，加上 1 額外房型）
   const HAKUNA_ACC_ID = "6b6ac0dc-602b-4dec-9167-7791ac412ba3";
   const SENSAN_ACC_ID = "5f764d55-ae11-4631-80fe-2e611853deae";
@@ -345,6 +350,46 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     fetchData();
   }, [currentAccommodationId]);
 
+  // 載入該民宿所有 active room_units（用於散客房選房號）
+  useEffect(() => {
+    const loadUnits = async () => {
+      if (!currentAccommodationId) { setAllRoomUnits([]); return; }
+      const { data } = await supabase
+        .from("room_units")
+        .select("id, room_type_id, display_order, is_active, unit_label")
+        .eq("accommodation_id", currentAccommodationId)
+        .eq("is_active", true)
+        .order("display_order", { ascending: true });
+      setAllRoomUnits((data as any[]) || []);
+    };
+    loadUnits();
+  }, [currentAccommodationId]);
+
+  // 載入指定入住區間已被其他訂單佔用的 room_units
+  useEffect(() => {
+    const loadOccupied = async () => {
+      if (!currentAccommodationId || !form.check_in_date || !form.check_out_date) {
+        setOccupiedUnitIdsForDates(new Set());
+        return;
+      }
+      const { data } = await supabase
+        .from("order_rooms")
+        .select("room_unit_id, orders!inner(id, accommodation_id, order_status, check_in_date, check_out_date)")
+        .not("room_unit_id", "is", null)
+        .eq("orders.accommodation_id", currentAccommodationId)
+        .neq("orders.order_status", "cancelled")
+        .lt("orders.check_in_date", form.check_out_date)
+        .gt("orders.check_out_date", form.check_in_date);
+      const ids = new Set<string>();
+      ((data as OccupiedRoomUnitRow[] | null) || []).forEach((row) => {
+        if (row.room_unit_id) ids.add(row.room_unit_id);
+      });
+      setOccupiedUnitIdsForDates(ids);
+    };
+    loadOccupied();
+  }, [currentAccommodationId, form.check_in_date, form.check_out_date]);
+
+
   // Helper: get templates for a room_type_id（含期限硬性限制）
   const getTemplatesForRoomType = useCallback((roomTypeId: string) => {
     if (!roomTypeId || pricingTemplates.length === 0) return [];
@@ -476,6 +521,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         updated.template_name = templates[0]?.template_name || "";
         // 切到包棟時鎖為 1
         if (newRt?.is_exclusive_package) updated.quantity = 1;
+        // 換房型時清掉房號選擇
+        updated.room_unit_id = null;
       }
       return updated;
     }));
@@ -1150,7 +1197,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           room_price: sel.roomPrice,
           template_id: sel.template_id || null,
           template_name: sel.template_name || null,
-          room_unit_id: automaticRoomUnitAssignments.get(sel.id) || null,
+          // 手動選擇的房號優先；無則使用自動安排（雲岫）
+          room_unit_id: (sel.quantity === 1 ? sel.room_unit_id : null) || automaticRoomUnitAssignments.get(sel.id) || null,
         }));
         const { error: roomsError } = await supabase.from("order_rooms").insert(orderRooms);
         if (roomsError) {
@@ -1982,6 +2030,49 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                     </div>
                   )}
                 </div>
+
+                {/* 房號選擇（散客房；該房型有配置房號時顯示） */}
+                {(() => {
+                  const rt = roomTypes.find(r => r.id === sel.room_type_id);
+                  if (!rt || rt.is_exclusive_package) return null;
+                  const unitsForType = allRoomUnits.filter(u => u.room_type_id === sel.room_type_id);
+                  if (unitsForType.length === 0) return null;
+                  const usedByOtherRows = new Set(
+                    roomSelections
+                      .filter(o => o.id !== sel.id && o.room_unit_id)
+                      .map(o => o.room_unit_id as string)
+                  );
+                  const disableSelect = sel.quantity !== 1;
+                  return (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">房號（可選）</Label>
+                      <Select
+                        value={sel.room_unit_id || "auto"}
+                        onValueChange={(v) => updateRoomSelection(sel.id, { room_unit_id: v === "auto" ? null : v })}
+                        disabled={disableSelect}
+                      >
+                        <SelectTrigger className="h-10 text-sm">
+                          <SelectValue placeholder="自動安排" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="auto">自動安排</SelectItem>
+                          {unitsForType.map((u) => {
+                            const occupied = occupiedUnitIdsForDates.has(u.id) || usedByOtherRows.has(u.id);
+                            const label = u.unit_label || `房號 ${u.display_order}`;
+                            return (
+                              <SelectItem key={u.id} value={u.id} disabled={occupied}>
+                                {label}{occupied ? "（已佔用）" : ""}
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                      {disableSelect && (
+                        <p className="text-[11px] text-muted-foreground">多間時不指定房號，由系統分配</p>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {sel.roomPrice > 0 && (
                   <div className="text-xs text-right text-muted-foreground">
