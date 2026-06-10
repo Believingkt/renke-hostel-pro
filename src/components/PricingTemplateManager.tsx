@@ -1259,6 +1259,23 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
             </div>
           )}
 
+          {/* 額外期間區段：僅天送、且已選擇至少一個房型時開放 */}
+          {isTS && formData.room_type_ids.length > 0 && (
+            <div className="space-y-2">
+              <SeasonSegmentsEditor
+                segments={formData.extra_segments}
+                onChange={(segs) => setFormData({ ...formData, extra_segments: segs })}
+                roomTypes={roomTypes.map(r => ({ id: r.id, name: r.name }))}
+                roomTypeIds={formData.room_type_ids}
+              />
+              {Object.keys(errors).filter(k => k.startsWith("seg_")).map(k => (
+                <p key={k} className="text-sm text-destructive">{errors[k]}</p>
+              ))}
+            </div>
+          )}
+
+
+
 
 
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
