@@ -277,7 +277,7 @@ export default function TeamCommissionStatsTab() {
       if (ids.length) {
         const { data: metaData } = await supabase
           .from("order_meta")
-          .select("order_id, closer_id, video_creator_id, is_excluded")
+          .select("order_id, closer_id, video_creator_id, is_excluded, exclusion_note")
           .in("order_id", ids);
         (metaData ?? []).forEach((m: any) =>
           mMap.set(m.order_id, m as MetaLite),
