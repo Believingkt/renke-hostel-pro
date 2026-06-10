@@ -685,46 +685,22 @@ export default function TeamCommissionStatsTab() {
       {/* 未補填行銷資訊的訂單 */}
       {isPrivileged && (
         <Card>
-          <CardContent className="p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">未補填行銷資訊的訂單</h2>
-              <span className="text-sm text-muted-foreground">
-                共 {unfilledOrders.length} 筆未補填
-              </span>
-            </div>
-            <div className="overflow-x-auto">
-              <Table className="fixed-table">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="whitespace-nowrap">訂單編號</TableHead>
-                    <TableHead className="whitespace-nowrap">館別</TableHead>
-                    <TableHead className="whitespace-nowrap">房客姓名</TableHead>
-                    <TableHead className="whitespace-nowrap tabular-nums">入住日</TableHead>
-                    <TableHead className="whitespace-nowrap tabular-nums">訂單金額</TableHead>
-                    <TableHead className="whitespace-nowrap">折扣碼</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {unfilledOrders.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
-                        無未補填訂單
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    unfilledOrders.map((o) => (
-                      <TableRow key={o.id}>
-                        <TableCell className="font-mono">{o.order_number ?? "—"}</TableCell>
-                        <TableCell>{accNameMap.get(o.accommodation_id) ?? "—"}</TableCell>
-                        <TableCell>{o.guest_name ?? "—"}</TableCell>
-                        <TableCell className="tabular-nums">{o.check_in_date ?? "—"}</TableCell>
-                        <TableCell className="tabular-nums">{fmtMoney(o.final_price || 0)}</TableCell>
-                        <TableCell className="font-mono">{o.discount_code ?? "—"}</TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h2 className="text-lg font-semibold">未補填行銷資訊的訂單</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  共 {unfilledOrders.length} 筆未補填
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setUnfilledOpen(true)}
+                disabled={unfilledOrders.length === 0}
+              >
+                查看明細
+              </Button>
             </div>
           </CardContent>
         </Card>
