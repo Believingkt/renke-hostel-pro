@@ -205,7 +205,7 @@ export function RoomUnitsManager({ roomTypeId, accommodationId, roomCount, varia
           <div className="text-sm text-muted-foreground">載入中…</div>
         ) : units.length === 0 ? (
           <div className="text-sm text-muted-foreground">
-            尚未建立任何房間單位。可點選右上方按鈕快速建立。
+            {L.empty}
           </div>
         ) : (
           <div className="space-y-2">
