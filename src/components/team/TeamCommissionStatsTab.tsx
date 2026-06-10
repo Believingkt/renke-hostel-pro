@@ -187,6 +187,61 @@ export default function TeamCommissionStatsTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period.startIso, period.nextIso, period.label]);
 
+  useEffect(() => {
+    (async () => {
+      const [c, v] = await Promise.all([
+        supabase.rpc("get_team_role_members", { p_role: "closer" as any }),
+        supabase.rpc("get_team_role_members", { p_role: "video" as any }),
+      ]);
+      setClosersList((c.data as any[]) || []);
+      setVideosList((v.data as any[]) || []);
+    })();
+  }, []);
+
+  function openEditOrder(o: OrderLite) {
+    const m = metaMap.get(o.id);
+    setEditForm({
+      closer_id: m?.closer_id ?? null,
+      video_creator_id: m?.video_creator_id ?? null,
+      is_excluded: !!m?.is_excluded,
+      exclusion_note: (m as any)?.exclusion_note ?? null,
+    });
+    setEditOrder(o);
+  }
+
+  async function saveEditOrder() {
+    if (!editOrder) return;
+    setSavingEdit(true);
+    try {
+      const payload = {
+        order_id: editOrder.id,
+        accommodation_id: editOrder.accommodation_id,
+        closer_id: editForm.closer_id,
+        video_creator_id: editForm.video_creator_id,
+        is_excluded: editForm.is_excluded,
+        exclusion_note: editForm.exclusion_note,
+      };
+      const exists = metaMap.has(editOrder.id);
+      if (exists) {
+        const { error } = await supabase
+          .from("order_meta")
+          .update(payload)
+          .eq("order_id", editOrder.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("order_meta").insert(payload);
+        if (error) throw error;
+      }
+      toast.success("已儲存");
+      setEditOrder(null);
+      await load();
+    } catch (e: any) {
+      toast.error("儲存失敗：" + (e.message || ""));
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
   async function load() {
     setLoading(true);
     try {
