@@ -1012,16 +1012,16 @@ export default function TeamOrders() {
             </div>
           )}
 
-          <DrawerFooter className="flex-row justify-end gap-2">
+          <SheetFooter className="flex-row justify-end gap-2">
             <Button variant="outline" onClick={() => setEditOpen(false)}>
               取消
             </Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving ? "儲存中..." : "儲存"}
             </Button>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
