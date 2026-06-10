@@ -719,6 +719,7 @@ export default function TeamOrders() {
                           onClick={(e) => {
                             e.stopPropagation();
                             openEdit(o);
+                            setIsEditing(true);
                           }}
                         >
                           <Pencil className="h-4 w-4" />
