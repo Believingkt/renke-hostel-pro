@@ -665,14 +665,15 @@ export default function TeamOrders() {
                       <TableCell className="font-mono text-xs">{o.order_number}</TableCell>
                       <TableCell className="whitespace-nowrap tabular-nums text-xs">
                         {o.created_at
-                          ? new Date(o.created_at).toLocaleString("sv-SE", {
+                          ? new Date(o.created_at).toLocaleString("zh-TW", {
                               timeZone: "Asia/Taipei",
                               year: "numeric",
                               month: "2-digit",
                               day: "2-digit",
                               hour: "2-digit",
                               minute: "2-digit",
-                            }).replace(" ", " ").slice(0, 16)
+                              hour12: false,
+                            })
                           : "-"}
                       </TableCell>
                       <TableCell className="whitespace-nowrap">{o.accommodation_name}</TableCell>
@@ -682,6 +683,8 @@ export default function TeamOrders() {
                       <TableCell className="tabular-nums">${o.final_price?.toLocaleString()}</TableCell>
                       <TableCell>{o.discount_code || "-"}</TableCell>
                       <TableCell>{o.order_source || "-"}</TableCell>
+                      <TableCell className="whitespace-nowrap">{o.meta?.traffic_source || "-"}</TableCell>
+                      <TableCell className="whitespace-nowrap">{o.meta?.booking_method || "-"}</TableCell>
                       <TableCell>
                         {o.meta ? (
                           <Badge variant="default">已填</Badge>
