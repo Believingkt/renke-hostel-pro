@@ -323,13 +323,16 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       let overridesArray: RoomOverride[] = [];
       if (isTS) {
         overridesArray = finalIds.map((id) => {
-          const ov = formData.room_overrides[id] || { weekday_price: null, peak_price: null, weekend_price: null, available_rooms: 1 };
+          const ov = formData.room_overrides[id] || { weekday_price: null, peak_price: null, weekend_price: null, available_rooms: 1, weekday_enabled: true, peak_enabled: true, weekend_enabled: true };
           return {
             room_type_id: id,
             weekday_price: ov.weekday_price ?? null,
             peak_price: ov.peak_price ?? null,
             weekend_price: ov.weekend_price ?? null,
             available_rooms: ov.available_rooms ?? 1,
+            weekday_enabled: ov.weekday_enabled !== false,
+            peak_enabled: ov.peak_enabled !== false,
+            weekend_enabled: ov.weekend_enabled !== false,
           };
         });
         const first = overridesArray[0];
@@ -347,6 +350,9 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         weekday_price: topWeekday,
         peak_price: topPeak,
         weekend_price: topWeekend,
+        weekday_enabled: formData.weekday_enabled,
+        peak_enabled: formData.peak_enabled,
+        weekend_enabled: formData.weekend_enabled,
         price: topWeekday ?? topPeak ?? topWeekend, // 向後兼容
         available_rooms: topInv,
         accommodation_id: accommodationId,
@@ -354,6 +360,8 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         room_type_ids: finalIds,
         valid_from: formData.valid_from || null,
         valid_until: formData.valid_until || null,
+        extra_dates: formData.extra_dates,
+        excluded_dates: formData.excluded_dates,
         room_overrides: overridesArray,
       };
 
