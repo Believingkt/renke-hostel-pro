@@ -1060,50 +1060,163 @@ export default function TeamCommissionStatsTab() {
           </SheetHeader>
           {editOrder && (
             <div className="mt-4 space-y-4">
-              <div className="space-y-2">
-                <Label>成交人</Label>
-                <Select
-                  value={editForm.closer_id ?? "__none__"}
-                  onValueChange={(v) =>
-                    setEditForm((f) => ({ ...f, closer_id: v === "__none__" ? null : v }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="選擇成交人" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">未指定</SelectItem>
-                    {closersList.map((m) => (
-                      <SelectItem key={m.user_id} value={m.user_id}>
-                        {m.display_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* 成交人 */}
+                <div className="space-y-2">
+                  <Label>成交人</Label>
+                  <Select
+                    value={editForm.closer_id ?? "__none__"}
+                    onValueChange={(v) =>
+                      setEditForm((f) => ({ ...f, closer_id: v === "__none__" ? null : v }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="選擇成交人" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">未指定</SelectItem>
+                      {closersList.map((m) => (
+                        <SelectItem key={m.user_id} value={m.user_id}>
+                          {m.display_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* 詢問日期 */}
+                <div className="space-y-2">
+                  <Label>詢問日期</Label>
+                  <Input
+                    type="date"
+                    value={editForm.inquiry_date ?? ""}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, inquiry_date: e.target.value || null }))
+                    }
+                  />
+                </div>
+
+                {/* 廣告編號 */}
+                <div className="space-y-2">
+                  <Label>廣告編號</Label>
+                  <Input
+                    value={editForm.ad_id ?? ""}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, ad_id: e.target.value || null }))
+                    }
+                  />
+                </div>
+
+                {/* 影音組 */}
+                <div className="space-y-2">
+                  <Label>影音組</Label>
+                  <Select
+                    value={editForm.video_creator_id ?? "__none__"}
+                    onValueChange={(v) =>
+                      setEditForm((f) => ({ ...f, video_creator_id: v === "__none__" ? null : v }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="選擇影音組" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">未指定</SelectItem>
+                      {videosList.map((m) => (
+                        <SelectItem key={m.user_id} value={m.user_id}>
+                          {m.display_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* 加盟專案 */}
+                <div className="space-y-2">
+                  <Label>加盟專案</Label>
+                  <Select
+                    value={editForm.franchise_project ?? "__none__"}
+                    onValueChange={(v) =>
+                      setEditForm((f) => ({
+                        ...f,
+                        franchise_project: v === "__none__" ? null : v,
+                      }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="選擇加盟專案" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">未指定</SelectItem>
+                      {franchiseProjects.map((p) => (
+                        <SelectItem key={p.id} value={p.name}>
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* 會員編號 */}
+                <div className="space-y-2">
+                  <Label>會員編號</Label>
+                  <Input
+                    value={editForm.member_number ?? ""}
+                    placeholder="輸入會員編號"
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, member_number: e.target.value || null }))
+                    }
+                  />
+                </div>
+
+                {/* 加購備註 */}
+                <div className="space-y-2">
+                  <Label>加購備註</Label>
+                  <Input
+                    value={editForm.addon_note ?? ""}
+                    placeholder="輸入加購備註"
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, addon_note: e.target.value || null }))
+                    }
+                  />
+                </div>
+
+                {/* 加購金額 */}
+                <div className="space-y-2">
+                  <Label>加購金額</Label>
+                  <Input
+                    type="number"
+                    value={editForm.addon_amount ?? 0}
+                    onChange={(e) =>
+                      setEditForm((f) => ({
+                        ...f,
+                        addon_amount: e.target.value === "" ? 0 : Number(e.target.value),
+                      }))
+                    }
+                  />
+                </div>
+
+                {/* 使用住宿券張數 */}
+                <div className="space-y-2">
+                  <Label>使用住宿券張數</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={editForm.voucher_count ?? 0}
+                    onChange={(e) =>
+                      setEditForm((f) => ({
+                        ...f,
+                        voucher_count:
+                          e.target.value === ""
+                            ? 0
+                            : Math.max(0, Math.trunc(Number(e.target.value))),
+                      }))
+                    }
+                  />
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>影音組</Label>
-                <Select
-                  value={editForm.video_creator_id ?? "__none__"}
-                  onValueChange={(v) =>
-                    setEditForm((f) => ({ ...f, video_creator_id: v === "__none__" ? null : v }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="選擇影音組" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">未指定</SelectItem>
-                    {videosList.map((m) => (
-                      <SelectItem key={m.user_id} value={m.user_id}>
-                        {m.display_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
+              {/* 不分潤 */}
               <div className="flex items-center gap-2">
                 <Checkbox
                   id="is_excluded"
@@ -1115,9 +1228,11 @@ export default function TeamCommissionStatsTab() {
                 <Label htmlFor="is_excluded" className="cursor-pointer">不分潤</Label>
               </div>
 
+              {/* 備註 */}
               <div className="space-y-2">
                 <Label>備註</Label>
                 <Textarea
+                  rows={3}
                   value={editForm.exclusion_note ?? ""}
                   onChange={(e) =>
                     setEditForm((f) => ({
