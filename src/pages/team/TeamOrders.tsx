@@ -797,11 +797,11 @@ export default function TeamOrders() {
         </TabsContent>
       </Tabs>
 
-      <Drawer open={editOpen} onOpenChange={setEditOpen}>
-        <DrawerContent className="max-h-[92vh] overflow-x-hidden">
-          <DrawerHeader>
-            <DrawerTitle>補充行銷資訊</DrawerTitle>
-          </DrawerHeader>
+      <Sheet open={editOpen} onOpenChange={setEditOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto overflow-x-hidden">
+          <SheetHeader>
+            <SheetTitle>補充行銷資訊</SheetTitle>
+          </SheetHeader>
 
           {editOrder && (
             <div className="overflow-y-auto px-4 pb-4 space-y-4">
