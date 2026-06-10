@@ -225,6 +225,12 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     }
 
     try {
+      const finalIds = isSingleSelect
+        ? (formData.room_type_id ? [formData.room_type_id] : [])
+        : formData.room_type_ids;
+      const primaryId = isSingleSelect
+        ? (formData.room_type_id || null)
+        : (finalIds[0] || null);
       const dataToSave = {
         template_name: formData.template_name,
         description: formData.description || null,
@@ -234,7 +240,8 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         price: formData.weekday_price ?? formData.peak_price ?? formData.weekend_price, // 向後兼容
         available_rooms: formData.available_rooms,
         accommodation_id: accommodationId,
-        room_type_id: formData.room_type_id || null,
+        room_type_id: primaryId,
+        room_type_ids: finalIds,
       };
 
       if (editingTemplate) {
