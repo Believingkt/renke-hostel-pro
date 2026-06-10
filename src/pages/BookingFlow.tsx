@@ -557,6 +557,9 @@ const BookingFlow = () => {
               valid_from: (t as any).valid_from ?? null,
               valid_until: (t as any).valid_until ?? null,
               room_overrides: (t as any).room_overrides ?? [],
+              season_segments: (t as any).season_segments ?? [],
+              extra_dates: (t as any).extra_dates ?? [],
+              excluded_dates: (t as any).excluded_dates ?? [],
             };
           });
           setAllPricingTemplates(templates);
