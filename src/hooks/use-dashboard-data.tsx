@@ -6,6 +6,8 @@ import { buildPricingMap, aggregateRevenueByMonth, computeRoomNightsByMonth, com
 
 interface DashboardStats {
   totalRooms: number;
+  dailyVillaCap: number;
+  dailyRoomCap: number;
   monthlyBookings: number;
   totalGuests: number;
   monthlyRevenue: number;
