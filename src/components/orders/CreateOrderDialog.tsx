@@ -910,7 +910,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         if (missingTemplateIds.length > 0) {
           const { data: fetchedTemplates } = await supabase
             .from('pricing_templates')
-            .select('id, template_name, project_name, price, weekday_price, peak_price, weekend_price')
+            .select('id, template_name, project_name, price, weekday_price, peak_price, weekend_price, room_overrides, valid_from, valid_until')
             .in('id', missingTemplateIds);
           (fetchedTemplates || []).forEach((t: any) => templatesById.set(t.id, t));
         }
