@@ -285,7 +285,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           .order("created_at", { ascending: true }),
         supabase
           .from("pricing_templates")
-          .select("id, template_name, meal_plans, project_name, room_type_id, room_type_ids, price, weekday_price, peak_price, weekend_price")
+          .select("id, template_name, meal_plans, project_name, room_type_id, room_type_ids, price, weekday_price, peak_price, weekend_price, valid_from, valid_until, room_overrides")
           .eq("accommodation_id", currentAccommodationId)
           .order("display_order")
       ]);
