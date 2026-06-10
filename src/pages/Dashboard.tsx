@@ -266,7 +266,7 @@ const Dashboard = () => {
               title="每日可售"
               value={
                 (stats.dailyVillaCap > 0 || stats.dailyRoomCap > 0)
-                  ? `${stats.dailyVillaCap}棟 + ${stats.dailyRoomCap}間`
+                  ? `${stats.dailyVillaCap}棟\n${stats.dailyRoomCap}間`
                   : `${stats.totalRooms}間`
               }
               change=""
