@@ -73,7 +73,7 @@ export function RoomUnitsManager({ roomTypeId, accommodationId, roomCount, varia
 
   const autoFill = () => {
     if (units.length > 0) {
-      toast.error("請先清空現有房間後再自動建立");
+      toast.error(L.clearFirst);
       return;
     }
     const generated: RoomUnit[] = Array.from({ length: roomCount }).map((_, i) => ({
