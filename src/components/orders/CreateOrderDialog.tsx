@@ -1759,7 +1759,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                       {isExclusive && (
                         <div className="p-3 rounded-lg border border-dashed bg-background/50 space-y-2">
                           <div className="text-xs font-medium">{exclusiveLabel}房間配置</div>
-                          {customBreakdown ? (
+                          {(() => {
+                            const customBreakdown = getPackageBreakdown(sel.room_type_id);
+                            return customBreakdown ? (
                             <>
                               <div className={`grid gap-2 ${customBreakdown.length >= 3 ? "grid-cols-2 md:grid-cols-3" : "grid-cols-2"}`}>
                                 {customBreakdown.map(bd => {
@@ -1821,7 +1823,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                               </div>
                               <p className="text-xs text-muted-foreground">將以備註形式儲存：雙人房 {extraExclusiveConfigs[sel.id]?.double ?? 0} 間、四人房 {extraExclusiveConfigs[sel.id]?.quad ?? 0} 間</p>
                             </>
-                          )}
+                          );
+                          })()}
                         </div>
                       )}
                     </div>
