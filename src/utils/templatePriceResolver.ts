@@ -123,6 +123,11 @@ export async function resolveTemplatePricesForDates(
 
     for (const d of unresolved) {
       const tier = tierFor(d);
+      // 若該日型對應的開關關閉 → 此專案不該販售此日，跳過讓上層 fallback 至 base 價
+      if (template && !isTierSellable(template as any, roomTypeId, tier)) {
+        stillUnresolved.push(d);
+        continue;
+      }
       result[d] =
         tier === "weekend" ? weekendPrice : tier === "peak" ? peakPrice : weekdayPrice;
     }
