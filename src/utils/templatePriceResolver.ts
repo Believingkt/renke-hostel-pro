@@ -1,10 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
-import { getRoomOverride, isTierSellable } from "@/utils/pricingTemplateHelpers";
+import { getRoomOverride, isTierSellable, hasSegments, getTierForDate } from "@/utils/pricingTemplateHelpers";
 
 /**
  * 共用的「專案價」解析器（同前邏輯）；新增規則：
  *  - 若 template.room_overrides 含對應 room_type_id，
  *    其 weekday/peak/weekend 價會優先取代 template 頂層的對應價。
+ *  - 若 template.season_segments 非空：每日依該日所屬 segment 取價（segment 內房型 override 優先）。
  */
 
 export interface PricingTemplateLite {
@@ -16,6 +17,7 @@ export interface PricingTemplateLite {
   peak_price?: number | null;
   weekend_price?: number | null;
   room_overrides?: any;
+  season_segments?: any;
 }
 
 export type DayTier = "weekday" | "peak" | "weekend";
