@@ -690,7 +690,7 @@ export default function TeamOrders() {
                       <TableCell className="whitespace-nowrap">{o.check_out_date}</TableCell>
                       <TableCell className="tabular-nums">${o.final_price?.toLocaleString()}</TableCell>
                       <TableCell>{o.discount_code || "-"}</TableCell>
-                      <TableCell>{ORDER_SOURCE_LABEL[o.order_source ?? ''] ?? o.order_source ?? '-'}</TableCell>
+                      <TableCell>{getOrderSourceConfig(o.order_source ?? '').label}</TableCell>
                       <TableCell className="whitespace-nowrap">{trafficMap.get(o.meta?.traffic_source ?? "") ?? o.meta?.traffic_source ?? "-"}</TableCell>
                       <TableCell className="whitespace-nowrap">{bookingMap.get(o.meta?.booking_method ?? "") ?? o.meta?.booking_method ?? "-"}</TableCell>
                       <TableCell>
