@@ -407,6 +407,9 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         weekday_price: template.weekday_price ?? template.price ?? null,
         peak_price: template.peak_price ?? null,
         weekend_price: template.weekend_price ?? null,
+        weekday_enabled: template.weekday_enabled !== false,
+        peak_enabled: template.peak_enabled !== false,
+        weekend_enabled: template.weekend_enabled !== false,
         price: template.weekday_price ?? template.peak_price ?? template.weekend_price ?? template.price ?? null,
         available_rooms: (template as any).available_rooms ?? 1,
         accommodation_id: accommodationId,
@@ -415,6 +418,8 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         display_order: templates.length,
         valid_from: template.valid_from || null,
         valid_until: template.valid_until || null,
+        extra_dates: Array.isArray(template.extra_dates) ? template.extra_dates : [],
+        excluded_dates: Array.isArray(template.excluded_dates) ? template.excluded_dates : [],
         room_overrides: getRoomOverrides(template as any),
       };
 
