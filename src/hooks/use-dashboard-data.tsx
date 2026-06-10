@@ -6,6 +6,8 @@ import { buildPricingMap, aggregateRevenueByMonth, computeRoomNightsByMonth, com
 
 interface DashboardStats {
   totalRooms: number;
+  dailyVillaCap: number;
+  dailyRoomCap: number;
   monthlyBookings: number;
   totalGuests: number;
   monthlyRevenue: number;
@@ -75,10 +77,14 @@ const fetchDashboardData = async (
   // Read per-accommodation daily_capacity; fall back to 6 (legacy default)
   const { data: accRow } = await supabase
     .from("accommodation_info")
-    .select("daily_capacity")
+    .select("daily_capacity, daily_villa_capacity, daily_room_capacity")
     .eq("id", accommodationId)
     .maybeSingle();
-  const DAILY_ROOM_CAP = Number((accRow as any)?.daily_capacity) > 0 ? Number((accRow as any).daily_capacity) : 6;
+  const dailyVillaCap = Number((accRow as any)?.daily_villa_capacity) > 0 ? Number((accRow as any).daily_villa_capacity) : 0;
+  const dailyRoomCap = Number((accRow as any)?.daily_room_capacity) > 0 ? Number((accRow as any).daily_room_capacity) : 0;
+  const DAILY_ROOM_CAP = (dailyVillaCap + dailyRoomCap) > 0
+    ? (dailyVillaCap + dailyRoomCap)
+    : (Number((accRow as any)?.daily_capacity) > 0 ? Number((accRow as any).daily_capacity) : 6);
   const now = new Date();
   const currentYear = selectedYear || now.getFullYear();
   
@@ -619,6 +625,8 @@ const fetchDashboardData = async (
 
   const finalStats = {
     totalRooms: DAILY_ROOM_CAP,
+    dailyVillaCap,
+    dailyRoomCap,
     monthlyBookings: Number.isFinite(monthlyBookingCount) ? monthlyBookingCount : 0,
     totalGuests: Number.isFinite(monthlyGuestCount) ? monthlyGuestCount : 0,
     monthlyRevenue: Number.isFinite(monthlyRev) ? monthlyRev : 0,
