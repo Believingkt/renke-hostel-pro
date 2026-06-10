@@ -151,6 +151,8 @@ export default function TeamCommissionStatsTab() {
     voucher_count: number;
     is_excluded: boolean;
     exclusion_note: string | null;
+    traffic_source: string | null;
+    booking_method: string | null;
   }>({
     closer_id: null,
     inquiry_date: null,
@@ -163,6 +165,8 @@ export default function TeamCommissionStatsTab() {
     voucher_count: 0,
     is_excluded: false,
     exclusion_note: null,
+    traffic_source: null,
+    booking_method: null,
   });
   const [savingEdit, setSavingEdit] = useState(false);
 
