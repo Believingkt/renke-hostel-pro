@@ -5682,6 +5682,7 @@ export type Database = {
           room_overrides: Json
           room_type_id: string | null
           room_type_ids: string[]
+          season_segments: Json
           template_name: string
           updated_at: string
           valid_from: string | null
@@ -5711,6 +5712,7 @@ export type Database = {
           room_overrides?: Json
           room_type_id?: string | null
           room_type_ids?: string[]
+          season_segments?: Json
           template_name: string
           updated_at?: string
           valid_from?: string | null
@@ -5740,6 +5742,7 @@ export type Database = {
           room_overrides?: Json
           room_type_id?: string | null
           room_type_ids?: string[]
+          season_segments?: Json
           template_name?: string
           updated_at?: string
           valid_from?: string | null
