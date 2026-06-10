@@ -14,7 +14,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
-import { TIANSONG_ACCOMMODATION_ID, isTianSong, getRoomOverrides, getExtraDates, getExcludedDates, type RoomOverride } from "@/utils/pricingTemplateHelpers";
+import { TIANSONG_ACCOMMODATION_ID, isTianSong, getRoomOverrides, getExtraDates, getExcludedDates, type RoomOverride, type SeasonSegment } from "@/utils/pricingTemplateHelpers";
+import { SeasonSegmentsEditor } from "@/components/SeasonSegmentsEditor";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -68,6 +69,7 @@ interface PricingTemplate {
   room_overrides?: RoomOverride[] | null;
   extra_dates?: string[] | null;
   excluded_dates?: string[] | null;
+  season_segments?: SeasonSegment[] | null;
 }
 
 interface RoomType {
@@ -132,6 +134,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     extra_dates: [] as string[],
     excluded_dates: [] as string[],
     room_overrides: {} as Record<string, { weekday_price: number | null; peak_price: number | null; weekend_price: number | null; available_rooms: number; weekday_enabled: boolean; peak_enabled: boolean; weekend_enabled: boolean }>,
+    extra_segments: [] as SeasonSegment[],
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -159,7 +162,8 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         ...t,
         meal_plans: Array.isArray(t.meal_plans) ? t.meal_plans : [],
         room_overrides: Array.isArray((t as any).room_overrides) ? (t as any).room_overrides : [],
-      })) as PricingTemplate[];
+        season_segments: Array.isArray((t as any).season_segments) ? (t as any).season_segments : [],
+      })) as unknown as PricingTemplate[];
       
       setTemplates(templatesData);
     } catch (error) {
@@ -209,6 +213,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       extra_dates: [],
       excluded_dates: [],
       room_overrides: {},
+      extra_segments: [],
     });
     setErrors({});
     setShowForm(true);
@@ -219,9 +224,22 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     const existingIds = Array.isArray(template.room_type_ids) && template.room_type_ids.length > 0
       ? template.room_type_ids
       : (template.room_type_id ? [template.room_type_id] : []);
-    const overridesArr = getRoomOverrides(template as any);
+
+    // 處理 season_segments：第一段對應「主期間」（填入上方表單），其餘為額外區段
+    const allSegs: SeasonSegment[] = Array.isArray((template as any).season_segments)
+      ? (template as any).season_segments
+      : [];
+    const hasSegs = allSegs.length > 0;
+    const primarySeg = hasSegs ? allSegs[0] : null;
+    const extraSegs = hasSegs ? allSegs.slice(1) : [];
+
+    // 主期間的房型 override：segments 模式取 primarySeg.room_overrides；否則取頂層
+    const sourceOverrides: RoomOverride[] = primarySeg && Array.isArray(primarySeg.room_overrides)
+      ? primarySeg.room_overrides
+      : getRoomOverrides(template as any);
+
     const overridesMap: Record<string, { weekday_price: number | null; peak_price: number | null; weekend_price: number | null; available_rooms: number; weekday_enabled: boolean; peak_enabled: boolean; weekend_enabled: boolean }> = {};
-    for (const o of overridesArr) {
+    for (const o of sourceOverrides) {
       overridesMap[o.room_type_id] = {
         weekday_price: o.weekday_price ?? null,
         peak_price: o.peak_price ?? null,
@@ -235,20 +253,21 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     setFormData({
       template_name: template.template_name,
       description: template.description || "",
-      weekday_price: template.weekday_price ?? template.price ?? null,
-      peak_price: template.peak_price ?? null,
-      weekend_price: template.weekend_price ?? null,
-      weekday_enabled: template.weekday_enabled !== false,
-      peak_enabled: template.peak_enabled !== false,
-      weekend_enabled: template.weekend_enabled !== false,
+      weekday_price: primarySeg?.weekday_price ?? template.weekday_price ?? template.price ?? null,
+      peak_price: primarySeg?.peak_price ?? template.peak_price ?? null,
+      weekend_price: primarySeg?.weekend_price ?? template.weekend_price ?? null,
+      weekday_enabled: (primarySeg?.weekday_enabled ?? template.weekday_enabled) !== false,
+      peak_enabled: (primarySeg?.peak_enabled ?? template.peak_enabled) !== false,
+      weekend_enabled: (primarySeg?.weekend_enabled ?? template.weekend_enabled) !== false,
       available_rooms: (template as any).available_rooms ?? 1,
       room_type_id: template.room_type_id || existingIds[0] || "",
       room_type_ids: existingIds,
-      valid_from: template.valid_from || "",
-      valid_until: template.valid_until || "",
-      extra_dates: Array.isArray(template.extra_dates) ? template.extra_dates : [],
-      excluded_dates: Array.isArray(template.excluded_dates) ? template.excluded_dates : [],
+      valid_from: primarySeg?.valid_from || template.valid_from || "",
+      valid_until: primarySeg?.valid_until || template.valid_until || "",
+      extra_dates: primarySeg ? (primarySeg.extra_dates || []) : (Array.isArray(template.extra_dates) ? template.extra_dates : []),
+      excluded_dates: primarySeg ? (primarySeg.excluded_dates || []) : (Array.isArray(template.excluded_dates) ? template.excluded_dates : []),
       room_overrides: overridesMap,
+      extra_segments: extraSegs,
     });
     setErrors({});
     setShowForm(true);
@@ -280,6 +299,44 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
           }
         }
       }
+
+      // 驗證額外期間區段
+      const segs = formData.extra_segments;
+      const ranges: Array<{ from: string; to: string; idx: number }> = [];
+      if (formData.valid_from && formData.valid_until) {
+        ranges.push({ from: formData.valid_from, to: formData.valid_until, idx: -1 });
+      }
+      segs.forEach((s, i) => {
+        if (!s.valid_from || !s.valid_until) {
+          newErrors[`seg_${i}_date`] = `額外區段 ${i + 1}：請填寫起訖日期`;
+          return;
+        }
+        if (s.valid_from > s.valid_until) {
+          newErrors[`seg_${i}_date`] = `額外區段 ${i + 1}：結束日期必須晚於開始日期`;
+          return;
+        }
+        const hasAnyPrice = (s.room_overrides || []).some((o) =>
+          (o.weekday_price != null && o.weekday_price > 0) ||
+          (o.peak_price != null && o.peak_price > 0) ||
+          (o.weekend_price != null && o.weekend_price > 0)
+        );
+        if (!hasAnyPrice) {
+          newErrors[`seg_${i}_price`] = `額外區段 ${i + 1}：請至少為一個房型設定一項價格`;
+        }
+        ranges.push({ from: s.valid_from, to: s.valid_until, idx: i });
+      });
+      // 檢查日期重疊
+      for (let i = 0; i < ranges.length; i++) {
+        for (let j = i + 1; j < ranges.length; j++) {
+          const a = ranges[i];
+          const b = ranges[j];
+          if (a.from <= b.to && b.from <= a.to) {
+            const k = b.idx >= 0 ? `seg_${b.idx}_overlap` : `valid_from`;
+            newErrors[k] = `日期區段重疊：${a.from}~${a.to} 與 ${b.from}~${b.to}`;
+          }
+        }
+      }
+
       setErrors(newErrors);
       return Object.keys(newErrors).length === 0;
     }
@@ -344,6 +401,48 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         }
       }
 
+      // 建構 season_segments：當有額外區段時，把「主期間」設為 segment[0]，其餘附加
+      const extraSegs = formData.extra_segments || [];
+      let seasonSegments: SeasonSegment[] = [];
+      let topValidFrom = formData.valid_from || null;
+      let topValidUntil = formData.valid_until || null;
+      if (extraSegs.length > 0 && formData.valid_from && formData.valid_until) {
+        const primarySeg: SeasonSegment = {
+          id: "primary",
+          label: "主期間",
+          valid_from: formData.valid_from,
+          valid_until: formData.valid_until,
+          weekday_price: topWeekday ?? null,
+          peak_price: topPeak ?? null,
+          weekend_price: topWeekend ?? null,
+          weekday_enabled: formData.weekday_enabled,
+          peak_enabled: formData.peak_enabled,
+          weekend_enabled: formData.weekend_enabled,
+          extra_dates: formData.extra_dates,
+          excluded_dates: formData.excluded_dates,
+          room_overrides: overridesArray,
+        };
+        const cleanedExtras: SeasonSegment[] = extraSegs.map((s, i) => ({
+          id: s.id || `extra-${i}`,
+          label: s.label || null,
+          valid_from: s.valid_from,
+          valid_until: s.valid_until,
+          weekday_price: s.weekday_price ?? null,
+          peak_price: s.peak_price ?? null,
+          weekend_price: s.weekend_price ?? null,
+          weekday_enabled: s.weekday_enabled !== false,
+          peak_enabled: s.peak_enabled !== false,
+          weekend_enabled: s.weekend_enabled !== false,
+          extra_dates: Array.isArray(s.extra_dates) ? s.extra_dates : [],
+          excluded_dates: Array.isArray(s.excluded_dates) ? s.excluded_dates : [],
+          room_overrides: Array.isArray(s.room_overrides) ? s.room_overrides : [],
+        }));
+        seasonSegments = [primarySeg, ...cleanedExtras];
+        // 頂層 valid_from / until 用 union（向後相容查詢）
+        topValidFrom = seasonSegments.reduce((a, s) => a && a < s.valid_from ? a : s.valid_from, seasonSegments[0].valid_from);
+        topValidUntil = seasonSegments.reduce((a, s) => a && a > s.valid_until ? a : s.valid_until, seasonSegments[0].valid_until);
+      }
+
       const dataToSave: any = {
         template_name: formData.template_name,
         description: formData.description || null,
@@ -358,11 +457,12 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         accommodation_id: accommodationId,
         room_type_id: primaryId,
         room_type_ids: finalIds,
-        valid_from: formData.valid_from || null,
-        valid_until: formData.valid_until || null,
+        valid_from: topValidFrom,
+        valid_until: topValidUntil,
         extra_dates: formData.extra_dates,
         excluded_dates: formData.excluded_dates,
         room_overrides: overridesArray,
+        season_segments: seasonSegments,
       };
 
       if (editingTemplate) {
@@ -421,6 +521,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         extra_dates: Array.isArray(template.extra_dates) ? template.extra_dates : [],
         excluded_dates: Array.isArray(template.excluded_dates) ? template.excluded_dates : [],
         room_overrides: getRoomOverrides(template as any),
+        season_segments: Array.isArray((template as any).season_segments) ? (template as any).season_segments : [],
       };
 
       const { error } = await supabase
@@ -548,6 +649,11 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
             <div className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
               <CalendarIcon className="h-3 w-3" />
               <span>期限：{template.valid_from || '不限'} ~ {template.valid_until || '不限'}</span>
+              {Array.isArray((template as any).season_segments) && (template as any).season_segments.length > 1 && (
+                <span className="ml-1 px-1.5 py-px rounded bg-amber-200/70 text-[10px] font-semibold">
+                  {(template as any).season_segments.length} 段
+                </span>
+              )}
             </div>
           )}
           {isTS && getRoomOverrides(template as any).length > 0 ? (
@@ -1157,6 +1263,23 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
               </div>
             </div>
           )}
+
+          {/* 額外期間區段：僅天送、且已選擇至少一個房型時開放 */}
+          {isTS && formData.room_type_ids.length > 0 && (
+            <div className="space-y-2">
+              <SeasonSegmentsEditor
+                segments={formData.extra_segments}
+                onChange={(segs) => setFormData({ ...formData, extra_segments: segs })}
+                roomTypes={roomTypes.map(r => ({ id: r.id, name: r.name }))}
+                roomTypeIds={formData.room_type_ids}
+              />
+              {Object.keys(errors).filter(k => k.startsWith("seg_")).map(k => (
+                <p key={k} className="text-sm text-destructive">{errors[k]}</p>
+              ))}
+            </div>
+          )}
+
+
 
 
 
