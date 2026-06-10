@@ -293,8 +293,12 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
 
           // 森山：包棟訂單一筆即視為整館滿房（allCapacity 間），散客則一間一間照算
           const sensanExclusiveFull = isSensan && exclusiveQty > 0;
-          const effectiveTotalQty = sensanExclusiveFull ? allCapacity : totalQty;
-          const effectiveExclusiveQty = sensanExclusiveFull ? allCapacity : exclusiveQty;
+          // 管理員啟用分流（adminSplit）時，任何包棟訂單一律算 1 棟
+          const villaUnitQty = villaAsSingleUnit && exclusiveQty > 0 ? 1 : exclusiveQty;
+          const effectiveTotalQty = sensanExclusiveFull
+            ? allCapacity
+            : (villaAsSingleUnit ? villaUnitQty + standardQty : totalQty);
+          const effectiveExclusiveQty = sensanExclusiveFull ? allCapacity : villaUnitQty;
           const effectiveStandardQty = sensanExclusiveFull ? 0 : standardQty;
 
           if (splitMode) {
