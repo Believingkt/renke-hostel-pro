@@ -76,6 +76,8 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [voucherCount, setVoucherCount] = useState<number>(0);
   const [addonNote, setAddonNote] = useState("");
   const [addonAmount, setAddonAmount] = useState<number>(0);
+  const [nickname, setNickname] = useState("");
+  const [depositConfirmDate, setDepositConfirmDate] = useState<string>("");
   const [orderDate, setOrderDate] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -101,6 +103,8 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setVoucherCount(0);
       setAddonNote("");
       setAddonAmount(0);
+      setNickname("");
+      setDepositConfirmDate("");
       setOrderDate(null);
       setNewTrafficSource("");
       setNewBookingMethod("");
@@ -216,6 +220,8 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         setVoucherCount(Number(m.voucher_count ?? 0));
         setAddonNote((m.addon_note as string) ?? "");
         setAddonAmount(Number(m.addon_amount ?? 0));
+        setNickname((m.nickname as string) ?? "");
+        setDepositConfirmDate((m.deposit_confirm_date as string) ?? "");
       } else if (uid && closerIds.includes(uid)) {
         // 預設成交人為目前登入者(若身分為 closer)
         setCloserId(uid);
@@ -340,6 +346,8 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         voucher_count: Number.isFinite(voucherCount) ? Math.max(0, Math.trunc(voucherCount)) : 0,
         addon_note: addonNote.trim() || null,
         addon_amount: Number.isFinite(addonAmount) ? addonAmount : 0,
+        nickname: nickname.trim() || null,
+        deposit_confirm_date: depositConfirmDate || null,
         import_source: "manual",
         filled_by: currentUserId,
         filled_at: new Date().toISOString(),
@@ -382,7 +390,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
             <div className="text-sm">{orderDate || "-"}</div>
           </div>
 
-          {/* 成交人 / 詢問日期 */}
+          {/* 1. 成交人 / 詢問日期 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>成交人</Label>
@@ -411,42 +419,72 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
             </div>
           </div>
 
-          {/* 來源管道 / 訂房方式 */}
+          {/* 2. 客戶暱稱 / 訂金確認日 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>來源管道</Label>
-              <Select value={trafficSource} onValueChange={setTrafficSource}>
+              <Label>客戶暱稱</Label>
+              <Input
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                placeholder="輸入客戶暱稱"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>訂金確認日</Label>
+              <Input
+                type="date"
+                value={depositConfirmDate}
+                onChange={(e) => setDepositConfirmDate(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* 3. 廣告編號 / 影音組 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>廣告編號</Label>
+              <Input
+                value={adId}
+                onChange={(e) => setAdId(e.target.value)}
+                placeholder="輸入或點擊下方常用編號"
+              />
+              {commonAds.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {commonAds.map((a) => (
+                    <Button
+                      key={a.id}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAdId(a.ad_id)}
+                    >
+                      {a.label}
+                    </Button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>影音組</Label>
+              <Select value={videoCreatorId} onValueChange={setVideoCreatorId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="請選擇來源管道" />
+                  <SelectValue placeholder="請選擇影音組" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={NONE}>未指定</SelectItem>
-                  {trafficSources.map((o) => (
-                    <SelectItem key={o.id} value={o.name}>
-                      {o.name}
+                  {videoCreators.map((v) => (
+                    <SelectItem key={v.user_id} value={v.user_id}>
+                      {v.display_name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <div className="flex gap-2">
-                <Input
-                  value={newTrafficSource}
-                  onChange={(e) => setNewTrafficSource(e.target.value)}
-                  placeholder="新增選項"
-                  className="h-9"
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={handleAddTrafficSource}
-                  disabled={addingTraffic || !newTrafficSource.trim()}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
             </div>
+          </div>
 
+          {/* 4. 訂房方式 / 來源管道 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>訂房方式</Label>
               <Select value={bookingMethod} onValueChange={setBookingMethod}>
@@ -480,35 +518,43 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
                 </Button>
               </div>
             </div>
-          </div>
 
-
-          {/* 廣告編號 */}
-          <div className="space-y-2">
-            <Label>廣告編號</Label>
-            <Input
-              value={adId}
-              onChange={(e) => setAdId(e.target.value)}
-              placeholder="輸入或點擊下方常用編號"
-            />
-            {commonAds.length > 0 && (
-              <div className="flex flex-wrap gap-2 pt-1">
-                {commonAds.map((a) => (
-                  <Button
-                    key={a.id}
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setAdId(a.ad_id)}
-                  >
-                    {a.label}
-                  </Button>
-                ))}
+            <div className="space-y-2">
+              <Label>來源管道</Label>
+              <Select value={trafficSource} onValueChange={setTrafficSource}>
+                <SelectTrigger>
+                  <SelectValue placeholder="請選擇來源管道" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>未指定</SelectItem>
+                  {trafficSources.map((o) => (
+                    <SelectItem key={o.id} value={o.name}>
+                      {o.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex gap-2">
+                <Input
+                  value={newTrafficSource}
+                  onChange={(e) => setNewTrafficSource(e.target.value)}
+                  placeholder="新增選項"
+                  className="h-9"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleAddTrafficSource}
+                  disabled={addingTraffic || !newTrafficSource.trim()}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
               </div>
-            )}
+            </div>
           </div>
 
-          {/* 加盟專案 / 會員編號 */}
+          {/* 5. 加盟專案 / 會員編號 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>加盟專案</Label>
@@ -537,7 +583,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
             </div>
           </div>
 
-          {/* 加購備註 / 加購金額 */}
+          {/* 6. 加購備註 / 加購金額 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>加購備註</Label>
@@ -560,7 +606,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
             </div>
           </div>
 
-          {/* 使用住宿券張數 */}
+          {/* 7. 使用住宿券張數 */}
           <div className="space-y-2">
             <Label htmlFor="voucher_count">使用住宿券張數</Label>
             <Input
@@ -577,7 +623,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
             />
           </div>
 
-          {/* 不分潤 / 備註 */}
+          {/* 8. 不分潤 / 9. 備註 */}
           <div className="space-y-3 border-t pt-4">
             <div className="flex items-center gap-2">
               <Checkbox

@@ -52,6 +52,7 @@ interface OrderRow {
   id: string;
   order_number: string;
   guest_name: string;
+  guest_phone: string | null;
   check_in_date: string;
   check_out_date: string;
   final_price: number;
@@ -85,24 +86,8 @@ interface MetaRow {
   voucher_count?: number | null;
   addon_note?: string | null;
   addon_amount?: number | null;
-
-}
-
-
-interface MetaRow {
-  closer_id: string | null;
-  video_creator_id: string | null;
-  scout_id: string | null;
-  traffic_source: string | null;
-  booking_method: string | null;
-  ad_id: string | null;
-  is_excluded: boolean | null;
-  closer_assisted: boolean | null;
-  scout_commission_rate: number | null;
-  closer_commission_rate: number | null;
-  exclusion_note?: string | null;
-  franchise_project?: string | null;
-  member_number?: string | null;
+  nickname?: string | null;
+  deposit_confirm_date?: string | null;
 }
 
 const PAGE_SIZE = 50;
@@ -175,7 +160,8 @@ export default function TeamOrders() {
       voucher_count: 0,
       addon_note: null,
       addon_amount: 0,
-
+      nickname: null,
+      deposit_confirm_date: null,
     };
   }
 
@@ -356,7 +342,7 @@ export default function TeamOrders() {
         supabase
           .from("orders")
           .select(
-            `id, order_number, guest_name, check_in_date, check_out_date,
+            `id, order_number, guest_name, guest_phone, check_in_date, check_out_date,
              final_price, discount_code, order_source, ota_channel, accommodation_id, order_date, created_at`
           )
           .neq("guest_name", "保留單")
@@ -379,7 +365,8 @@ export default function TeamOrders() {
               `order_id, closer_id, video_creator_id, scout_id, traffic_source,
                booking_method, ad_id, is_excluded, closer_assisted,
                scout_commission_rate, closer_commission_rate, exclusion_note,
-               franchise_project, member_number, inquiry_date, voucher_used, voucher_count, addon_note, addon_amount`
+               franchise_project, member_number, inquiry_date, voucher_used, voucher_count, addon_note, addon_amount,
+               nickname, deposit_confirm_date`
             )
             .in("order_id", batchIds);
           if (metaErr) throw metaErr;
@@ -395,6 +382,7 @@ export default function TeamOrders() {
         id: o.id,
         order_number: o.order_number,
         guest_name: o.guest_name,
+        guest_phone: o.guest_phone ?? null,
         check_in_date: o.check_in_date,
         check_out_date: o.check_out_date,
         final_price: o.final_price,
@@ -474,7 +462,8 @@ export default function TeamOrders() {
       voucher_count: o.meta?.voucher_count ?? 0,
       addon_note: o.meta?.addon_note ?? null,
       addon_amount: o.meta?.addon_amount ?? 0,
-
+      nickname: o.meta?.nickname ?? null,
+      deposit_confirm_date: o.meta?.deposit_confirm_date ?? null,
     });
     setIsEditing(false);
     setEditOpen(true);
@@ -517,7 +506,8 @@ export default function TeamOrders() {
           : 0,
         addon_note: form.addon_note,
         addon_amount: form.addon_amount ?? 0,
-
+        nickname: form.nickname ?? null,
+        deposit_confirm_date: form.deposit_confirm_date ?? null,
       };
 
       const exists = !!editOrder.meta;
@@ -633,19 +623,24 @@ export default function TeamOrders() {
             <Table className="fixed-table">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="whitespace-nowrap">訂單編號</TableHead>
-                  <TableHead className="whitespace-nowrap">訂購時間</TableHead>
-                  <TableHead className="whitespace-nowrap">館別</TableHead>
-                  <TableHead className="whitespace-nowrap">房客姓名</TableHead>
+                  <TableHead className="whitespace-nowrap">詢問日期</TableHead>
                   <TableHead className="whitespace-nowrap">入住日</TableHead>
                   <TableHead className="whitespace-nowrap">退房日</TableHead>
-                  <TableHead className="whitespace-nowrap tabular-nums">
-                    訂單金額
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap">折扣碼</TableHead>
+                  <TableHead className="whitespace-nowrap">客戶暱稱</TableHead>
+                  <TableHead className="whitespace-nowrap">客戶姓名</TableHead>
+                  <TableHead className="whitespace-nowrap">電話</TableHead>
+                  <TableHead className="whitespace-nowrap">訂購時間</TableHead>
+                  <TableHead className="whitespace-nowrap">訂金確認日</TableHead>
+                  <TableHead className="whitespace-nowrap tabular-nums">總金額</TableHead>
+                  <TableHead className="whitespace-nowrap">館別</TableHead>
+                  <TableHead className="whitespace-nowrap">訂房方式</TableHead>
+                  <TableHead className="whitespace-nowrap">備註</TableHead>
                   <TableHead className="whitespace-nowrap">來源</TableHead>
                   <TableHead className="whitespace-nowrap">來源管道</TableHead>
-                  <TableHead className="whitespace-nowrap">訂房方式</TableHead>
+                  <TableHead className="whitespace-nowrap">訂單編號</TableHead>
+                  <TableHead className="whitespace-nowrap">成交組</TableHead>
+                  <TableHead className="whitespace-nowrap">廣告編號</TableHead>
+                  <TableHead className="whitespace-nowrap">影音組</TableHead>
                   <TableHead className="whitespace-nowrap">補充資料</TableHead>
                   <TableHead className="whitespace-nowrap w-16">操作</TableHead>
                 </TableRow>
@@ -653,24 +648,32 @@ export default function TeamOrders() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={20} className="text-center py-8 text-muted-foreground">
                       載入中...
                     </TableCell>
                   </TableRow>
                 ) : pageItems.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={20} className="text-center py-8 text-muted-foreground">
                       無資料
                     </TableCell>
                   </TableRow>
                 ) : (
-                  pageItems.map((o) => (
+                  pageItems.map((o) => {
+                    const closerName = closers.find((m) => m.user_id === o.meta?.closer_id)?.display_name ?? "-";
+                    const videoName = videos.find((m) => m.user_id === o.meta?.video_creator_id)?.display_name ?? "-";
+                    return (
                     <TableRow
                       key={o.id}
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => openEdit(o)}
                     >
-                      <TableCell className="font-mono text-xs">{o.order_number}</TableCell>
+                      <TableCell className="whitespace-nowrap">{o.meta?.inquiry_date || "-"}</TableCell>
+                      <TableCell className="whitespace-nowrap">{o.check_in_date}</TableCell>
+                      <TableCell className="whitespace-nowrap">{o.check_out_date}</TableCell>
+                      <TableCell className="whitespace-nowrap">{o.meta?.nickname || "-"}</TableCell>
+                      <TableCell className="whitespace-nowrap">{o.guest_name}</TableCell>
+                      <TableCell className="whitespace-nowrap">{o.guest_phone || "-"}</TableCell>
                       <TableCell className="whitespace-nowrap tabular-nums text-xs">
                         {o.created_at
                           ? new Date(o.created_at).toLocaleString("zh-TW", {
@@ -684,12 +687,11 @@ export default function TeamOrders() {
                             })
                           : "-"}
                       </TableCell>
-                      <TableCell className="whitespace-nowrap">{o.accommodation_name}</TableCell>
-                      <TableCell className="whitespace-nowrap">{o.guest_name}</TableCell>
-                      <TableCell className="whitespace-nowrap">{o.check_in_date}</TableCell>
-                      <TableCell className="whitespace-nowrap">{o.check_out_date}</TableCell>
+                      <TableCell className="whitespace-nowrap">{o.meta?.deposit_confirm_date || "-"}</TableCell>
                       <TableCell className="tabular-nums">${o.final_price?.toLocaleString()}</TableCell>
-                      <TableCell>{o.discount_code || "-"}</TableCell>
+                      <TableCell className="whitespace-nowrap">{o.accommodation_name}</TableCell>
+                      <TableCell className="whitespace-nowrap">{bookingMap.get(o.meta?.booking_method ?? "") ?? o.meta?.booking_method ?? "-"}</TableCell>
+                      <TableCell className="whitespace-nowrap max-w-[200px] truncate" title={o.meta?.exclusion_note ?? ""}>{o.meta?.exclusion_note || "-"}</TableCell>
                       <TableCell>{(() => {
                         const cfg = getOrderSourceConfig(o.order_source ?? '');
                         return (
@@ -699,7 +701,10 @@ export default function TeamOrders() {
                         );
                       })()}</TableCell>
                       <TableCell className="whitespace-nowrap">{trafficMap.get(o.meta?.traffic_source ?? "") ?? o.meta?.traffic_source ?? "-"}</TableCell>
-                      <TableCell className="whitespace-nowrap">{bookingMap.get(o.meta?.booking_method ?? "") ?? o.meta?.booking_method ?? "-"}</TableCell>
+                      <TableCell className="font-mono text-xs">{o.order_number}</TableCell>
+                      <TableCell className="whitespace-nowrap">{closerName}</TableCell>
+                      <TableCell className="whitespace-nowrap">{o.meta?.ad_id || "-"}</TableCell>
+                      <TableCell className="whitespace-nowrap">{videoName}</TableCell>
                       <TableCell>
                         {o.meta ? (
                           <Badge variant="default">已填</Badge>
@@ -720,7 +725,8 @@ export default function TeamOrders() {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))
+                  );
+                  })
                 )}
               </TableBody>
             </Table>
@@ -891,16 +897,22 @@ export default function TeamOrders() {
                 /* 唯讀模式：補充行銷資訊摘要 */
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
+                    {/* 1. 成交人 / 詢問日期 */}
                     <ReadField
                       label="成交人"
                       value={closers.find((m) => m.user_id === form.closer_id)?.display_name || "-"}
                     />
                     <ReadField label="詢問日期" value={form.inquiry_date || "-"} />
+                    {/* 2. 客戶暱稱 / 訂金確認日 */}
+                    <ReadField label="客戶暱稱" value={form.nickname || "-"} />
+                    <ReadField label="訂金確認日" value={form.deposit_confirm_date || "-"} />
+                    {/* 3. 廣告編號 / 影音組 */}
                     <ReadField label="廣告編號" value={form.ad_id || "-"} />
                     <ReadField
                       label="影音組"
                       value={videos.find((v) => v.user_id === form.video_creator_id)?.display_name || "-"}
                     />
+                    {/* 4. 訂房方式 / 來源管道 */}
                     <ReadField
                       label="訂房方式"
                       value={bookingMap.get(form.booking_method ?? '') ?? form.booking_method ?? '-'}
@@ -909,16 +921,21 @@ export default function TeamOrders() {
                       label="來源管道"
                       value={trafficMap.get(form.traffic_source ?? '') ?? form.traffic_source ?? '-'}
                     />
+                    {/* 5. 加盟專案 / 會員編號 */}
                     <ReadField label="加盟專案" value={form.franchise_project || "-"} />
                     <ReadField label="會員編號" value={form.member_number || "-"} />
+                    {/* 6. 加購備註 / 加購金額 */}
                     <ReadField label="加購備註" value={form.addon_note || "-"} />
                     <ReadField
                       label="加購金額"
                       value={form.addon_amount ? `$${Number(form.addon_amount).toLocaleString()}` : "-"}
                     />
-                    <ReadField label="使用住宿券張數" value={String(form.voucher_count ?? 0)} />
-                    <ReadField label="不分潤" value={form.is_excluded ? "是" : "否"} />
                   </div>
+                  {/* 7. 使用住宿券張數 */}
+                  <ReadField label="使用住宿券張數" value={String(form.voucher_count ?? 0)} />
+                  {/* 8. 不分潤 */}
+                  <ReadField label="不分潤" value={form.is_excluded ? "是" : "否"} />
+                  {/* 9. 備註 */}
                   <ReadField label="備註" value={form.exclusion_note || "-"} />
                 </div>
               ) : (
@@ -958,6 +975,32 @@ export default function TeamOrders() {
                         value={form.inquiry_date ?? ""}
                         onChange={(e) =>
                           setForm((f) => ({ ...f, inquiry_date: e.target.value || null }))
+                        }
+                      />
+                    </div>
+
+                    {/* 客戶暱稱 */}
+                    <div className="space-y-2">
+                      <Label className="text-sm">客戶暱稱</Label>
+                      <Input
+                        className="text-base"
+                        value={form.nickname ?? ""}
+                        placeholder="輸入客戶暱稱"
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, nickname: e.target.value || null }))
+                        }
+                      />
+                    </div>
+
+                    {/* 訂金確認日 */}
+                    <div className="space-y-2">
+                      <Label className="text-sm">訂金確認日</Label>
+                      <Input
+                        type="date"
+                        className="text-base"
+                        value={form.deposit_confirm_date ?? ""}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, deposit_confirm_date: e.target.value || null }))
                         }
                       />
                     </div>
@@ -1179,6 +1222,8 @@ export default function TeamOrders() {
                       voucher_count: editOrder.meta?.voucher_count ?? 0,
                       addon_note: editOrder.meta?.addon_note ?? null,
                       addon_amount: editOrder.meta?.addon_amount ?? 0,
+                      nickname: editOrder.meta?.nickname ?? null,
+                      deposit_confirm_date: editOrder.meta?.deposit_confirm_date ?? null,
                     });
                   }
                   setIsEditing(false);
