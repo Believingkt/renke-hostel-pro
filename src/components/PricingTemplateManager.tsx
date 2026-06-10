@@ -5,14 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Pencil, Trash2, Check, X, GripVertical, Copy, Calendar as CalendarIcon } from "lucide-react";
+import { Pencil, Trash2, Check, X, GripVertical, Copy, Calendar as CalendarIcon, Plus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
-import { TIANSONG_ACCOMMODATION_ID, isTianSong, getRoomOverrides, type RoomOverride } from "@/utils/pricingTemplateHelpers";
+import { TIANSONG_ACCOMMODATION_ID, isTianSong, getRoomOverrides, getExtraDates, getExcludedDates, type RoomOverride } from "@/utils/pricingTemplateHelpers";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
