@@ -736,11 +736,11 @@ function RoomTypeRows({
           const isPeak = dayType === 'peak';
           const cellData = getCellData(roomType.id, dateStr);
 
-          // 若該日有「啟用中的專案」設定了 room_overrides.available_rooms，取最大值蓋過基礎庫存
+          // 若該日有「啟用中的專案」且該日所屬 segment 設定了 room_overrides.available_rooms，取最大值蓋過基礎庫存
           let effectiveRooms = cellData ? cellData.available_rooms : 0;
           for (const t of visibleTemplates) {
             if (!isTemplateActiveForDates(t as any, [dateStr])) continue;
-            const ov = getRoomOverride(t as any, roomType.id);
+            const ov = getRoomOverrideForDate(t as any, roomType.id, dateStr);
             if (ov?.available_rooms != null && ov.available_rooms > effectiveRooms) {
               effectiveRooms = ov.available_rooms;
             }
