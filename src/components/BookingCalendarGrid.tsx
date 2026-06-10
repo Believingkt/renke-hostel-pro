@@ -169,6 +169,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
   const [pricingTemplates, setPricingTemplates] = useState<TemplateLike[]>([]);
   const [expandedRoomTypes, setExpandedRoomTypes] = useState<Set<string>>(new Set());
   const [hiddenRoomTypeIds, setHiddenRoomTypeIds] = useState<Set<string>>(new Set());
+  const [customRows, setCustomRows] = useState<Array<{ id: string; name: string; count: number; capacity: number }>>([]);
   const [loading, setLoading] = useState(true);
   
 
