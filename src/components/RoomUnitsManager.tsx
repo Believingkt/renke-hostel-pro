@@ -257,7 +257,7 @@ export function RoomUnitsManager({ roomTypeId, accommodationId, roomCount, varia
 
         {units.length !== roomCount && roomCount > 0 && !loading && (
           <div className="text-xs text-amber-600">
-            提醒：目前房間單位數（{units.length}）與房型數量（{roomCount}）不一致。
+            {L.mismatch(units.length, roomCount)}
           </div>
         )}
 
