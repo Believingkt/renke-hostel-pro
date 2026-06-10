@@ -1734,6 +1734,39 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                   </>
                 );
                 })()}
+                {/* 棟號選擇（主包棟） */}
+                {(() => {
+                  const primary = roomSelections[0];
+                  if (!primary) return null;
+                  const unitsForType = allRoomUnits.filter(u => u.room_type_id === primary.room_type_id);
+                  if (unitsForType.length === 0) return null;
+                  const usedByOtherRows = new Set(
+                    roomSelections.filter(o => o.id !== primary.id && o.room_unit_id).map(o => o.room_unit_id as string)
+                  );
+                  return (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">{exclusiveLabel}棟號（可選）</Label>
+                      <Select
+                        value={primary.room_unit_id || "auto"}
+                        onValueChange={(v) => updateRoomSelection(primary.id, { room_unit_id: v === "auto" ? null : v })}
+                      >
+                        <SelectTrigger className="h-10 text-sm"><SelectValue placeholder="自動安排" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="auto">自動安排</SelectItem>
+                          {unitsForType.map(u => {
+                            const occupied = occupiedUnitIdsForDates.has(u.id) || usedByOtherRows.has(u.id);
+                            const label = u.nickname || u.unit_number || `棟號 ${u.display_order}`;
+                            return (
+                              <SelectItem key={u.id} value={u.id} disabled={occupied}>
+                                {label}{occupied ? "（已佔用）" : ""}
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  );
+                })()}
                 {roomSelections[0]?.roomPrice > 0 && (
                   <div className="text-xs text-right text-muted-foreground">
                     小計：NT$ {roomSelections[0].roomPrice.toLocaleString()}（{exclusiveLabel}）
@@ -1802,6 +1835,43 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                           </div>
                         )}
                       </div>
+                      {/* 棟號/房號 選擇（額外加房） */}
+                      {(() => {
+                        const unitsForType = allRoomUnits.filter(u => u.room_type_id === sel.room_type_id);
+                        if (unitsForType.length === 0) return null;
+                        const usedByOtherRows = new Set(
+                          roomSelections.filter(o => o.id !== sel.id && o.room_unit_id).map(o => o.room_unit_id as string)
+                        );
+                        const disableSelect = !isExclusive && sel.quantity !== 1;
+                        const labelText = isExclusive ? `${exclusiveLabel}棟號（可選）` : "房號（可選）";
+                        return (
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">{labelText}</Label>
+                            <Select
+                              value={sel.room_unit_id || "auto"}
+                              onValueChange={(v) => updateRoomSelection(sel.id, { room_unit_id: v === "auto" ? null : v })}
+                              disabled={disableSelect}
+                            >
+                              <SelectTrigger className="h-10 text-sm"><SelectValue placeholder="自動安排" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="auto">自動安排</SelectItem>
+                                {unitsForType.map(u => {
+                                  const occupied = occupiedUnitIdsForDates.has(u.id) || usedByOtherRows.has(u.id);
+                                  const label = u.nickname || u.unit_number || (isExclusive ? `棟號 ${u.display_order}` : `房號 ${u.display_order}`);
+                                  return (
+                                    <SelectItem key={u.id} value={u.id} disabled={occupied}>
+                                      {label}{occupied ? "（已佔用）" : ""}
+                                    </SelectItem>
+                                  );
+                                })}
+                              </SelectContent>
+                            </Select>
+                            {disableSelect && (
+                              <p className="text-[11px] text-muted-foreground">多間時不指定房號，由系統分配</p>
+                            )}
+                          </div>
+                        );
+                      })()}
                       {sel.roomPrice > 0 && (
                         <div className="text-xs text-right text-muted-foreground">小計：NT$ {sel.roomPrice.toLocaleString()} ({sel.quantity} 間)</div>
                       )}
@@ -1892,7 +1962,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                   const hasNormalRoom = roomTypes.some(r => !r.is_exclusive_package);
                   return (
                     <>
-                      {isYunxiu && hasNormalRoom && (
+                      {hasNormalRoom && (
                         <Button type="button" variant="outline" size="sm" onClick={() => addRoomSelection(false)} className="h-8 gap-1">
                           <Plus className="h-3.5 w-3.5" />新增散客房
                         </Button>
