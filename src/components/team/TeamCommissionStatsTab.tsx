@@ -217,7 +217,7 @@ export default function TeamCommissionStatsTab() {
 
   useEffect(() => {
     (async () => {
-      const [c, v, fp] = await Promise.all([
+      const [c, v, fp, ts, bm] = await Promise.all([
         supabase.rpc("get_team_role_members", { p_role: "closer" as any }),
         supabase.rpc("get_team_role_members", { p_role: "video" as any }),
         supabase
@@ -225,10 +225,22 @@ export default function TeamCommissionStatsTab() {
           .select("id, name")
           .eq("is_active", true)
           .order("name"),
+        supabase
+          .from("traffic_sources")
+          .select("id, name")
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true }),
+        supabase
+          .from("booking_methods")
+          .select("id, name")
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true }),
       ]);
       setClosersList((c.data as any[]) || []);
       setVideosList((v.data as any[]) || []);
       setFranchiseProjects((fp.data as any[]) || []);
+      setTrafficSources((ts.data as any[]) || []);
+      setBookingMethods((bm.data as any[]) || []);
     })();
   }, []);
 
