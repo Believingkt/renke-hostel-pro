@@ -161,7 +161,8 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         ...t,
         meal_plans: Array.isArray(t.meal_plans) ? t.meal_plans : [],
         room_overrides: Array.isArray((t as any).room_overrides) ? (t as any).room_overrides : [],
-      })) as PricingTemplate[];
+        season_segments: Array.isArray((t as any).season_segments) ? (t as any).season_segments : [],
+      })) as unknown as PricingTemplate[];
       
       setTemplates(templatesData);
     } catch (error) {
