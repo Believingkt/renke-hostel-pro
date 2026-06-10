@@ -238,7 +238,7 @@ export default function TeamCommissionStatsTab() {
     const { data: full } = await supabase
       .from("order_meta")
       .select(
-        "closer_id, video_creator_id, is_excluded, exclusion_note, ad_id, franchise_project, member_number, inquiry_date, voucher_count, addon_note, addon_amount",
+        "closer_id, video_creator_id, is_excluded, exclusion_note, ad_id, franchise_project, member_number, inquiry_date, voucher_count, addon_note, addon_amount, traffic_source, booking_method",
       )
       .eq("order_id", o.id)
       .maybeSingle();
@@ -255,6 +255,8 @@ export default function TeamCommissionStatsTab() {
       voucher_count: Number(src.voucher_count ?? 0),
       is_excluded: !!src.is_excluded,
       exclusion_note: src.exclusion_note ?? null,
+      traffic_source: src.traffic_source ?? null,
+      booking_method: src.booking_method ?? null,
     });
     setEditOrder(o);
   }
