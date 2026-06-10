@@ -140,6 +140,8 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         inventoryData,
         orderRoomsMap,
         dailyCap,
+        dailyVillaCap,
+        dailyRoomCap,
         accName,
       };
     },
