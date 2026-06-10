@@ -41,9 +41,13 @@ interface PricingTemplate {
   weekday_price: number | null;
   peak_price: number | null;
   weekend_price: number | null;
+  weekday_enabled: boolean | null;
+  peak_enabled: boolean | null;
+  weekend_enabled: boolean | null;
   room_type_id: string | null;
   room_type_ids?: string[] | null;
   available_rooms: number | null;
+  room_overrides?: any;
 }
 
 interface InventoryData {
