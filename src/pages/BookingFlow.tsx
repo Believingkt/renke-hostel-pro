@@ -600,6 +600,20 @@ const BookingFlow = () => {
     if (checkInDate && checkOutDate) {
       const nights = Math.max(0, Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / 86400000));
       if (nights > 0) {
+        // 期限硬性限制：任一入住夜超出 valid_from..valid_until 即排除
+        const dateStrs: string[] = [];
+        for (let i = 0; i < nights; i++) {
+          const d = new Date(checkInDate);
+          d.setDate(d.getDate() + i);
+          dateStrs.push(format(d, "yyyy-MM-dd"));
+        }
+        filtered = filtered.filter(t => {
+          const vf = t.valid_from || null;
+          const vu = t.valid_until || null;
+          if (!vf && !vu) return true;
+          return dateStrs.every(d => (!vf || d >= vf) && (!vu || d <= vu));
+        });
+
         const holidaySet = new Set(publicHolidays);
         const tiers: Array<"weekday" | "peak" | "weekend"> = [];
         for (let i = 0; i < nights; i++) {
@@ -608,17 +622,29 @@ const BookingFlow = () => {
           tiers.push(classifyDayTier(d, holidaySet));
         }
         const tierPrice = (t: PricingTemplateOption, tier: "weekday" | "peak" | "weekend") => {
+          // 若有 room_overrides 對應目前選中房型，使用該房型的階段價
+          const ovList = Array.isArray(t.room_overrides) ? t.room_overrides : [];
+          const ov = selectedRoom ? ovList.find((o: any) => o?.room_type_id === selectedRoom.id) : null;
+          if (ov) {
+            if (tier === "weekend") return ov.weekend_price ?? t.weekend_price ?? t.price ?? 0;
+            if (tier === "peak") return ov.peak_price ?? ov.weekday_price ?? t.peak_price ?? t.price ?? 0;
+            return ov.weekday_price ?? t.weekday_price ?? t.price ?? 0;
+          }
           if (tier === "weekend") return t.weekend_price ?? t.price ?? 0;
           if (tier === "peak") return t.peak_price ?? t.weekday_price ?? t.price ?? 0;
           return t.weekday_price ?? t.price ?? 0;
         };
         filtered = filtered.filter(t => {
-          // 若三個 tier 與 price 都未設定（全 null/0），代表使用 base row，不在此處過濾
+          const ovList = Array.isArray(t.room_overrides) ? t.room_overrides : [];
+          const ov = selectedRoom ? ovList.find((o: any) => o?.room_type_id === selectedRoom.id) : null;
           const hasAnyTierPrice =
             (t.weekday_price ?? 0) > 0 ||
             (t.peak_price ?? 0) > 0 ||
             (t.weekend_price ?? 0) > 0 ||
-            (t.price ?? 0) > 0;
+            (t.price ?? 0) > 0 ||
+            (ov?.weekday_price ?? 0) > 0 ||
+            (ov?.peak_price ?? 0) > 0 ||
+            (ov?.weekend_price ?? 0) > 0;
           if (!hasAnyTierPrice) return true;
           return tiers.every(tier => tierPrice(t, tier) > 0);
         });
