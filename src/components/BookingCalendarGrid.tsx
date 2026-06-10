@@ -1011,6 +1011,15 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                 </TooltipProvider>
                               );
           })}
+          </div>
+                        </div>
+                      ));
+                    })()}
+                  </>
+                )}
+              </div>
+            );
+          })}
 
           {/* 自訂房型虛擬列（僅顯示間數，不可預訂） */}
           {customRows.map(cr => (
@@ -1047,15 +1056,6 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
               </div>
             </div>
           ))}
-          </div>
-                        </div>
-                      ));
-                    })()}
-                  </>
-                )}
-              </div>
-            );
-          })}
           </div>
         </div>
       </div>
