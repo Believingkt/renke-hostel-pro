@@ -247,11 +247,12 @@ export default function CommissionRatesTab({ readOnly = false }: { readOnly?: bo
                                   {history.map((h, idx) => (
                                     <TableRow key={`${r.id}-h-${idx}`}>
                                       <TableCell>
-                                        {h.closer_rate != null ? `${h.closer_rate}%` : "—"}
+                                        {h.closer_rate != null ? `${Number((h.closer_rate * 100).toFixed(2))}%` : "—"}
                                       </TableCell>
                                       <TableCell>
-                                        {h.video_rate != null ? `${h.video_rate}%` : "—"}
+                                        {h.video_rate != null ? `${Number((h.video_rate * 100).toFixed(2))}%` : "—"}
                                       </TableCell>
+
                                       <TableCell>{h.effective_from}</TableCell>
                                     </TableRow>
                                   ))}
