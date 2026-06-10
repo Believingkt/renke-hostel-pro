@@ -61,6 +61,7 @@ interface RoomUnit {
   room_type_id: string;
   display_order: number;
   is_active: boolean;
+  unit_label?: string | null;
 }
 
 interface OccupiedRoomUnitRow {
