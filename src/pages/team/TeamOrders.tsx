@@ -543,8 +543,7 @@ export default function TeamOrders() {
         if (error) throw error;
       }
       toast.success("已儲存");
-      setEditOpen(false);
-      setEditOrder(null);
+      setIsEditing(false);
       await loadOrders();
     } catch (e: any) {
       toast.error("儲存失敗：" + (e.message || ""));
