@@ -883,6 +883,53 @@ export default function TeamOrders() {
                   />
                 </div>
 
+                {/* 來源管道 */}
+                <div className="space-y-2">
+                  <Label className="text-sm">來源管道</Label>
+                  <Select
+                    value={form.traffic_source ?? NONE}
+                    onValueChange={(v) =>
+                      setForm((f) => ({ ...f, traffic_source: v === NONE ? null : v }))
+                    }
+                  >
+                    <SelectTrigger className="text-base">
+                      <SelectValue placeholder="選擇來源管道" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE}>未指定</SelectItem>
+                      {trafficSources.filter((o) => o.is_active).map((o) => (
+                        <SelectItem key={o.id} value={o.name}>
+                          {o.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* 訂房方式 */}
+                <div className="space-y-2">
+                  <Label className="text-sm">訂房方式</Label>
+                  <Select
+                    value={form.booking_method ?? NONE}
+                    onValueChange={(v) =>
+                      setForm((f) => ({ ...f, booking_method: v === NONE ? null : v }))
+                    }
+                  >
+                    <SelectTrigger className="text-base">
+                      <SelectValue placeholder="選擇訂房方式" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE}>未指定</SelectItem>
+                      {bookingMethods.filter((o) => o.is_active).map((o) => (
+                        <SelectItem key={o.id} value={o.name}>
+                          {o.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+
                 {/* 影音組(唯讀) */}
                 <div className="space-y-2">
                   <Label className="text-sm">影音組</Label>
