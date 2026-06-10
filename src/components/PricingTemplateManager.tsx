@@ -277,6 +277,9 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
 
   const handleCopy = async (template: PricingTemplate) => {
     try {
+      const copyIds = Array.isArray(template.room_type_ids) && template.room_type_ids.length > 0
+        ? template.room_type_ids
+        : (template.room_type_id ? [template.room_type_id] : []);
       const dataToCopy = {
         template_name: `${template.template_name} (複製)`,
         description: template.description,
@@ -286,7 +289,8 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         price: template.weekday_price ?? template.peak_price ?? template.weekend_price ?? template.price ?? null,
         available_rooms: (template as any).available_rooms ?? 1,
         accommodation_id: accommodationId,
-        room_type_id: template.room_type_id || null,
+        room_type_id: template.room_type_id || copyIds[0] || null,
+        room_type_ids: copyIds,
         display_order: templates.length,
       };
 
