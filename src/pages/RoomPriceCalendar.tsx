@@ -710,11 +710,10 @@ function RoomTypeRows({
       {/* 房型名稱行 + 庫存數量 */}
       {showCategoryHeader && (
         <tr className="bg-muted/30">
-          <td 
-            colSpan={monthDays.length + 1} 
-            className="sticky left-0 z-10 px-3 py-2 font-semibold text-muted-foreground"
-          >
-            {roomType.name}
+          <td colSpan={monthDays.length + 1} className="p-0">
+            <div className="sticky left-0 px-3 py-2 font-semibold text-muted-foreground w-[160px]">
+              {roomType.name}
+            </div>
           </td>
         </tr>
       )}
