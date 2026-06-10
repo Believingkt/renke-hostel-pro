@@ -220,13 +220,16 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       ? template.room_type_ids
       : (template.room_type_id ? [template.room_type_id] : []);
     const overridesArr = getRoomOverrides(template as any);
-    const overridesMap: Record<string, { weekday_price: number | null; peak_price: number | null; weekend_price: number | null; available_rooms: number }> = {};
+    const overridesMap: Record<string, { weekday_price: number | null; peak_price: number | null; weekend_price: number | null; available_rooms: number; weekday_enabled: boolean; peak_enabled: boolean; weekend_enabled: boolean }> = {};
     for (const o of overridesArr) {
       overridesMap[o.room_type_id] = {
         weekday_price: o.weekday_price ?? null,
         peak_price: o.peak_price ?? null,
         weekend_price: o.weekend_price ?? null,
         available_rooms: o.available_rooms ?? 1,
+        weekday_enabled: o.weekday_enabled !== false,
+        peak_enabled: o.peak_enabled !== false,
+        weekend_enabled: o.weekend_enabled !== false,
       };
     }
     setFormData({
@@ -235,11 +238,16 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       weekday_price: template.weekday_price ?? template.price ?? null,
       peak_price: template.peak_price ?? null,
       weekend_price: template.weekend_price ?? null,
+      weekday_enabled: template.weekday_enabled !== false,
+      peak_enabled: template.peak_enabled !== false,
+      weekend_enabled: template.weekend_enabled !== false,
       available_rooms: (template as any).available_rooms ?? 1,
       room_type_id: template.room_type_id || existingIds[0] || "",
       room_type_ids: existingIds,
       valid_from: template.valid_from || "",
       valid_until: template.valid_until || "",
+      extra_dates: Array.isArray(template.extra_dates) ? template.extra_dates : [],
+      excluded_dates: Array.isArray(template.excluded_dates) ? template.excluded_dates : [],
       room_overrides: overridesMap,
     });
     setErrors({});
