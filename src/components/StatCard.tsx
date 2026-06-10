@@ -60,7 +60,8 @@ export function StatCard({ title, value, change, icon: Icon, variant, isUpdating
           <p className="text-xs md:text-sm font-medium text-muted-foreground truncate leading-tight">{title}</p>
           <div className="flex items-baseline gap-1.5 md:gap-2 flex-wrap">
             <h3 className={cn(
-              "text-2xl md:text-2xl lg:text-3xl font-bold tracking-tight transition-all duration-300",
+              "font-bold tracking-tight transition-all duration-300",
+              isMultiline ? "text-lg md:text-xl lg:text-2xl leading-tight whitespace-pre-line" : "text-2xl md:text-2xl lg:text-3xl",
               isUpdating && "text-primary scale-105"
             )}>{displayValue}</h3>
             {change && (
