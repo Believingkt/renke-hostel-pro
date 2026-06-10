@@ -605,7 +605,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
                               {row.label}
                             </button>
                           </HoverCardTrigger>
-                          <HoverCardContent className="w-[420px] p-0" side="right" align="start">
+                          <HoverCardContent className="w-[500px] p-0" side="right" align="start">
                             <div className="p-3 border-b bg-muted/30">
                               <p className="font-semibold text-sm">{row.label} 每日營運明細</p>
                             </div>
@@ -616,7 +616,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
                                     <TableHead className="text-center py-1.5 px-2 w-[90px]">日期</TableHead>
                                     <TableHead className="text-center py-1.5 px-2 w-[40px]">星期</TableHead>
                                     <TableHead className="text-center py-1.5 px-2 w-[55px]">類別</TableHead>
-                                    <TableHead className="text-center py-1.5 px-2 w-[55px]">住房數</TableHead>
+                                    <TableHead className="text-center py-1.5 px-2 w-[120px] whitespace-nowrap">住房數</TableHead>
                                     <TableHead className="text-center py-1.5 px-2 w-[80px]">營業額</TableHead>
                                     <TableHead className="text-center py-1.5 px-2 w-[70px]">平均房價</TableHead>
                                   </TableRow>
@@ -634,11 +634,11 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
                                         <TableCell className="text-center py-1 px-2">{dd.date.slice(5)}</TableCell>
                                         <TableCell className="text-center py-1 px-2">{dd.dayLabel}</TableCell>
                                         <TableCell className="text-center py-1 px-2">{dayTypeLabel}</TableCell>
-                                        <TableCell className="text-center py-1 px-2 font-medium tabular-nums">
+                                        <TableCell className="text-center py-1 px-2 font-medium tabular-nums whitespace-nowrap">
                                           {splitMode ? (
                                             <>
                                               <span className="text-purple-600 dark:text-purple-300">{dd.exclusiveSold}/{exclusiveCap}棟</span>
-                                              <span className="text-muted-foreground"> + </span>
+                                              <span className="text-muted-foreground mx-1.5">+</span>
                                               <span className="text-sky-600 dark:text-sky-300">{dd.standardSold}/{standardCap}間</span>
                                             </>
                                           ) : (
