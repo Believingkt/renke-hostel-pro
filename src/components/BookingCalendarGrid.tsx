@@ -242,12 +242,23 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
         ? (accInfoRes.data as any).exclusive_room_breakdown
         : [];
       const hidden = new Set<string>();
+      const customs: Array<{ id: string; name: string; count: number; capacity: number }> = [];
       for (const it of breakdown) {
-        if (it && it.room_type_id && it.visible_in_booking_grid === false) {
+        if (!it) continue;
+        if (it.room_type_id && it.visible_in_booking_grid === false) {
           hidden.add(it.room_type_id);
+        }
+        if (!it.room_type_id && it.custom_id && it.visible_in_booking_grid !== false) {
+          customs.push({
+            id: String(it.custom_id),
+            name: String(it.custom_name || it.name || ""),
+            count: Number(it.count) || 0,
+            capacity: Number(it.capacity) || 0,
+          });
         }
       }
       setHiddenRoomTypeIds(hidden);
+      setCustomRows(customs.filter(c => c.name && c.count > 0));
 
 
       if (roomTypesRes.error) throw roomTypesRes.error;
