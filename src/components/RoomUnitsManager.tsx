@@ -264,7 +264,7 @@ export function RoomUnitsManager({ roomTypeId, accommodationId, roomCount, varia
         <div className="flex justify-end pt-2">
           <Button type="button" onClick={save} disabled={saving || loading}>
             <Save className="h-4 w-4 mr-1" />
-            {saving ? "儲存中…" : "儲存房間設定"}
+            {saving ? "儲存中…" : L.saveBtn}
           </Button>
         </div>
       </CardContent>
