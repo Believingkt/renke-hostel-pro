@@ -368,7 +368,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       const copyIds = Array.isArray(template.room_type_ids) && template.room_type_ids.length > 0
         ? template.room_type_ids
         : (template.room_type_id ? [template.room_type_id] : []);
-      const dataToCopy = {
+      const dataToCopy: any = {
         template_name: `${template.template_name} (複製)`,
         description: template.description,
         weekday_price: template.weekday_price ?? template.price ?? null,
@@ -380,6 +380,9 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         room_type_id: template.room_type_id || copyIds[0] || null,
         room_type_ids: copyIds,
         display_order: templates.length,
+        valid_from: template.valid_from || null,
+        valid_until: template.valid_until || null,
+        room_overrides: getRoomOverrides(template as any),
       };
 
       const { error } = await supabase
