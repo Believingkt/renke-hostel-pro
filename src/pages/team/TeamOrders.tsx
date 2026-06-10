@@ -538,6 +538,9 @@ export default function TeamOrders() {
     }
   }
 
+  const trafficMap = new Map(trafficSources.map((t) => [t.id, t.name]));
+  const bookingMap = new Map(bookingMethods.map((b) => [b.id, b.name]));
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -685,8 +688,8 @@ export default function TeamOrders() {
                       <TableCell className="tabular-nums">${o.final_price?.toLocaleString()}</TableCell>
                       <TableCell>{o.discount_code || "-"}</TableCell>
                       <TableCell>{o.order_source || "-"}</TableCell>
-                      <TableCell className="whitespace-nowrap">{o.meta?.traffic_source || "-"}</TableCell>
-                      <TableCell className="whitespace-nowrap">{o.meta?.booking_method || "-"}</TableCell>
+                      <TableCell className="whitespace-nowrap">{trafficMap.get(o.meta?.traffic_source ?? "") ?? o.meta?.traffic_source ?? "-"}</TableCell>
+                      <TableCell className="whitespace-nowrap">{bookingMap.get(o.meta?.booking_method ?? "") ?? o.meta?.booking_method ?? "-"}</TableCell>
                       <TableCell>
                         {o.meta ? (
                           <Badge variant="default">已填</Badge>
