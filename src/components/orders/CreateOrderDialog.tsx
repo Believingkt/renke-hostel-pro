@@ -168,9 +168,18 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     }));
   }, []);
 
-  // Phase 2: 動態包棟組成（HQ 房型與包棟設定）。null = 走舊邏輯 fallback。
+  // Phase 3: 每個包棟方案各自的房間組成（從 room_types.package_contents 讀取）。
+  // breakdownByPackage[包棟房型 id] = [{ room_type_id: 自訂房間 id, name, count }, ...]
   type BreakdownItem = { room_type_id: string; name: string; count: number };
-  const [customBreakdown, setCustomBreakdown] = useState<BreakdownItem[] | null>(null);
+  const [breakdownByPackage, setBreakdownByPackage] = useState<Record<string, BreakdownItem[]>>({});
+  const getPackageBreakdown = useCallback(
+    (pkgRoomTypeId?: string | null): BreakdownItem[] | null => {
+      if (!pkgRoomTypeId) return null;
+      const arr = breakdownByPackage[pkgRoomTypeId];
+      return arr && arr.length > 0 ? arr : null;
+    },
+    [breakdownByPackage],
+  );
   // 第一棟包棟：room_type_id -> 間數
   const [exclusiveCustomCounts, setExclusiveCustomCounts] = useState<Record<string, number>>({});
   // 額外加棟：selection.id -> { room_type_id -> 間數 }
@@ -306,29 +315,30 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         setPricingTemplates(templatesResult.data);
       }
 
-      // Phase 2: 抓 HQ 設定的包棟組成（新民宿用；舊三家欄位為 null → 走 fallback）
-      const { data: accRow } = await supabase
-        .from("accommodation_info")
-        .select("exclusive_room_breakdown")
-        .eq("id", currentAccommodationId)
-        .maybeSingle();
-      const rawItems = Array.isArray((accRow as any)?.exclusive_room_breakdown)
-        ? ((accRow as any).exclusive_room_breakdown as any[])
-        : null;
-      if (rawItems && rawItems.length > 0) {
-        // 同時納入正式房型行（room_type_id）與自訂房型行（custom_id）
-        const normalized: BreakdownItem[] = rawItems
-          .map((it) => {
-            const key = it?.room_type_id || it?.custom_id;
-            const name = it?.name || it?.custom_name;
-            const count = Number(it?.count) || 0;
-            if (!key || !name || count <= 0) return null;
-            return { room_type_id: key, name, count };
-          })
-          .filter(Boolean) as BreakdownItem[];
-        setCustomBreakdown(normalized.length > 0 ? normalized : null);
+      // Phase 3: 每個包棟方案各自從 room_types.package_contents 讀取房間組成
+      const exclusivePkgs = (roomTypesResult.data || []).filter((r: any) => r.is_exclusive_package);
+      if (exclusivePkgs.length > 0) {
+        const { data: pkgRows } = await supabase
+          .from("room_types")
+          .select("id, package_contents")
+          .in("id", exclusivePkgs.map((r: any) => r.id));
+        const map: Record<string, BreakdownItem[]> = {};
+        for (const row of (pkgRows || []) as any[]) {
+          const contents = Array.isArray(row.package_contents) ? row.package_contents : [];
+          const normalized: BreakdownItem[] = contents
+            .map((it: any) => {
+              const key = it?.id;
+              const name = it?.name;
+              const count = Number(it?.count) || 0;
+              if (!key || !name || count <= 0) return null;
+              return { room_type_id: String(key), name: String(name), count };
+            })
+            .filter(Boolean) as BreakdownItem[];
+          if (normalized.length > 0) map[row.id] = normalized;
+        }
+        setBreakdownByPackage(map);
       } else {
-        setCustomBreakdown(null);
+        setBreakdownByPackage({});
       }
     };
 
@@ -1063,8 +1073,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           let note = form.notes.trim();
           const pkgLines: string[] = [];
           if (bookingMode === 'exclusive') {
-            if (customBreakdown) {
-              const parts = customBreakdown
+            const firstBd = getPackageBreakdown(roomSelections[0]?.room_type_id);
+            if (firstBd) {
+              const parts = firstBd
                 .map(bd => ({ name: bd.name, count: exclusiveCustomCounts[bd.room_type_id] ?? 0 }))
                 .filter(p => p.count > 0);
               if (parts.length > 0) {
@@ -1078,10 +1089,11 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           pricedRoomSelections.slice(1).forEach(sel => {
             const isExc = !!roomTypes.find(r => r.id === sel.room_type_id)?.is_exclusive_package;
             if (!isExc) return;
-            if (customBreakdown) {
+            const bd = getPackageBreakdown(sel.room_type_id);
+            if (bd) {
               const map = extraExclusiveCustomCounts[sel.id] || {};
-              const parts = customBreakdown
-                .map(bd => ({ name: bd.name, count: map[bd.room_type_id] ?? 0 }))
+              const parts = bd
+                .map(bdRow => ({ name: bdRow.name, count: map[bdRow.room_type_id] ?? 0 }))
                 .filter(p => p.count > 0);
               if (parts.length > 0) {
                 pkgLines.push(`【${exclusiveLabel}房間配置】${parts.map(p => `${p.name} ${p.count} 間`).join("、")}`);
@@ -1603,7 +1615,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                     )}
                   </div>
                 </div>
-                {customBreakdown ? (
+                {(() => {
+                  const customBreakdown = getPackageBreakdown(roomSelections[0]?.room_type_id);
+                  return customBreakdown ? (
                   <>
                     <div className={`grid gap-3 ${customBreakdown.length >= 3 ? "grid-cols-2 md:grid-cols-3" : "grid-cols-2"}`}>
                       {customBreakdown.map((bd) => {
@@ -1669,7 +1683,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                       {exclusiveLabel}已鎖定 {MAX_TOTAL_ROOMS} 間房（雙人房 {exclusiveDoubleRooms} 間、四人房 {exclusiveQuadRooms} 間）
                     </div>
                   </>
-                )}
+                );
+                })()}
                 {roomSelections[0]?.roomPrice > 0 && (
                   <div className="text-xs text-right text-muted-foreground">
                     小計：NT$ {roomSelections[0].roomPrice.toLocaleString()}（{exclusiveLabel}）
@@ -1744,7 +1759,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                       {isExclusive && (
                         <div className="p-3 rounded-lg border border-dashed bg-background/50 space-y-2">
                           <div className="text-xs font-medium">{exclusiveLabel}房間配置</div>
-                          {customBreakdown ? (
+                          {(() => {
+                            const customBreakdown = getPackageBreakdown(sel.room_type_id);
+                            return customBreakdown ? (
                             <>
                               <div className={`grid gap-2 ${customBreakdown.length >= 3 ? "grid-cols-2 md:grid-cols-3" : "grid-cols-2"}`}>
                                 {customBreakdown.map(bd => {
@@ -1806,7 +1823,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                               </div>
                               <p className="text-xs text-muted-foreground">將以備註形式儲存：雙人房 {extraExclusiveConfigs[sel.id]?.double ?? 0} 間、四人房 {extraExclusiveConfigs[sel.id]?.quad ?? 0} 間</p>
                             </>
-                          )}
+                          );
+                          })()}
                         </div>
                       )}
                     </div>

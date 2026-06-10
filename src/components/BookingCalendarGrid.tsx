@@ -213,7 +213,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
       const [roomTypesRes, ordersRes, holidaysRes, inventoryRes, templatesRes, accInfoRes] = await Promise.all([
         supabase
           .from("room_types")
-          .select("id, name, capacity, room_count, is_exclusive_package, is_bound_to_exclusive, bound_exclusive_ids")
+          .select("id, name, capacity, room_count, is_exclusive_package, is_bound_to_exclusive, bound_exclusive_ids, package_contents")
           .eq("accommodation_id", accommodationId)
           .order("display_order"),
         supabase
@@ -247,7 +247,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
           .maybeSingle(),
       ]);
 
-      // 從包棟設定取出「顯示在預訂管理」開關
+      // 1) 「其他自訂房型」（accommodation_info.exclusive_room_breakdown 的 custom_id 項目）作為虛擬列
       const accInfo = accInfoRes.data as { exclusive_room_breakdown?: unknown } | null;
       const breakdown: ExclusiveBreakdownItem[] = Array.isArray(accInfo?.exclusive_room_breakdown)
         ? (accInfo.exclusive_room_breakdown as ExclusiveBreakdownItem[])
@@ -256,6 +256,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
       const customs: Array<{ id: string; name: string; count: number; capacity: number }> = [];
       for (const it of breakdown) {
         if (!it) continue;
+        // 舊資料相容：room_type_id 隱藏旗標
         if (it.room_type_id && it.visible_in_booking_grid === false) {
           hidden.add(it.room_type_id);
         }
@@ -268,6 +269,28 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
           });
         }
       }
+
+      // 2) 包棟方案內含房間（room_types.package_contents），visible_in_booking_grid === true 的項目以名稱聚合
+      const aggregated = new Map<string, { id: string; name: string; count: number; capacity: number }>();
+      for (const rt of (roomTypesRes.data || []) as any[]) {
+        if (!rt?.is_exclusive_package) continue;
+        const rows = Array.isArray(rt.package_contents) ? rt.package_contents : [];
+        for (const row of rows) {
+          if (!row || row.visible_in_booking_grid !== true) continue;
+          const name = String(row.name || "").trim();
+          const count = Math.max(0, Number(row.count) || 0);
+          if (!name || count <= 0) continue;
+          const key = `pkg:${name}`;
+          const prev = aggregated.get(key);
+          if (prev) {
+            prev.count += count;
+          } else {
+            aggregated.set(key, { id: key, name, count, capacity: 0 });
+          }
+        }
+      }
+      for (const v of aggregated.values()) customs.push(v);
+
       setHiddenRoomTypeIds(hidden);
       setCustomRows(customs.filter(c => c.name && c.count > 0));
 
