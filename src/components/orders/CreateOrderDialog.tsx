@@ -2059,7 +2059,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                           <SelectItem value="auto">自動安排</SelectItem>
                           {unitsForType.map((u) => {
                             const occupied = occupiedUnitIdsForDates.has(u.id) || usedByOtherRows.has(u.id);
-                            const label = u.unit_label || `房號 ${u.display_order}`;
+                            const label = u.nickname || u.unit_number || `房號 ${u.display_order}`;
                             return (
                               <SelectItem key={u.id} value={u.id} disabled={occupied}>
                                 {label}{occupied ? "（已佔用）" : ""}
