@@ -616,7 +616,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
                                     <TableHead className="text-center py-1.5 px-2 w-[90px]">日期</TableHead>
                                     <TableHead className="text-center py-1.5 px-2 w-[40px]">星期</TableHead>
                                     <TableHead className="text-center py-1.5 px-2 w-[55px]">類別</TableHead>
-                                    <TableHead className="text-center py-1.5 px-2 w-[55px]">住房數</TableHead>
+                                    <TableHead className="text-center py-1.5 px-2 w-[120px] whitespace-nowrap">住房數</TableHead>
                                     <TableHead className="text-center py-1.5 px-2 w-[80px]">營業額</TableHead>
                                     <TableHead className="text-center py-1.5 px-2 w-[70px]">平均房價</TableHead>
                                   </TableRow>
