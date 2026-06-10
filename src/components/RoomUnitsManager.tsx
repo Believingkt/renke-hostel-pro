@@ -43,7 +43,7 @@ export function RoomUnitsManager({ roomTypeId, accommodationId, roomCount, varia
       .eq("room_type_id", roomTypeId)
       .order("display_order", { ascending: true });
     if (error) {
-      toast.error("讀取房間單位失敗");
+      toast.error(L.loadFail);
     } else {
       setUnits((data as any) || []);
     }
