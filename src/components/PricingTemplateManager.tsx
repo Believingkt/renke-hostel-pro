@@ -230,8 +230,9 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       ? (template as any).season_segments
       : [];
     const hasSegs = allSegs.length > 0;
-    const primarySeg = hasSegs ? allSegs[0] : null;
-    const extraSegs = hasSegs ? allSegs.slice(1) : [];
+    const primaryIdx = hasSegs ? allSegs.findIndex(s => s.id === "primary") : -1;
+    const primarySeg = primaryIdx >= 0 ? allSegs[primaryIdx] : (hasSegs ? allSegs[allSegs.length - 1] : null);
+    const extraSegs = hasSegs ? allSegs.filter((_, i) => i !== (primaryIdx >= 0 ? primaryIdx : allSegs.length - 1)) : [];
 
     // 主期間的房型 override：segments 模式取 primarySeg.room_overrides；否則取頂層
     const sourceOverrides: RoomOverride[] = primarySeg && Array.isArray(primarySeg.room_overrides)
