@@ -526,6 +526,7 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
           roomTypeId={roomType.id}
           accommodationId={accommodationId}
           roomCount={parseInt(formData.room_count) || 0}
+          variant={formData.is_exclusive_package ? "villa" : "room"}
         />
       )}
 
