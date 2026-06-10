@@ -224,9 +224,22 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     const existingIds = Array.isArray(template.room_type_ids) && template.room_type_ids.length > 0
       ? template.room_type_ids
       : (template.room_type_id ? [template.room_type_id] : []);
-    const overridesArr = getRoomOverrides(template as any);
+
+    // 處理 season_segments：第一段對應「主期間」（填入上方表單），其餘為額外區段
+    const allSegs: SeasonSegment[] = Array.isArray((template as any).season_segments)
+      ? (template as any).season_segments
+      : [];
+    const hasSegs = allSegs.length > 0;
+    const primarySeg = hasSegs ? allSegs[0] : null;
+    const extraSegs = hasSegs ? allSegs.slice(1) : [];
+
+    // 主期間的房型 override：segments 模式取 primarySeg.room_overrides；否則取頂層
+    const sourceOverrides: RoomOverride[] = primarySeg && Array.isArray(primarySeg.room_overrides)
+      ? primarySeg.room_overrides
+      : getRoomOverrides(template as any);
+
     const overridesMap: Record<string, { weekday_price: number | null; peak_price: number | null; weekend_price: number | null; available_rooms: number; weekday_enabled: boolean; peak_enabled: boolean; weekend_enabled: boolean }> = {};
-    for (const o of overridesArr) {
+    for (const o of sourceOverrides) {
       overridesMap[o.room_type_id] = {
         weekday_price: o.weekday_price ?? null,
         peak_price: o.peak_price ?? null,
@@ -240,20 +253,21 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     setFormData({
       template_name: template.template_name,
       description: template.description || "",
-      weekday_price: template.weekday_price ?? template.price ?? null,
-      peak_price: template.peak_price ?? null,
-      weekend_price: template.weekend_price ?? null,
-      weekday_enabled: template.weekday_enabled !== false,
-      peak_enabled: template.peak_enabled !== false,
-      weekend_enabled: template.weekend_enabled !== false,
+      weekday_price: primarySeg?.weekday_price ?? template.weekday_price ?? template.price ?? null,
+      peak_price: primarySeg?.peak_price ?? template.peak_price ?? null,
+      weekend_price: primarySeg?.weekend_price ?? template.weekend_price ?? null,
+      weekday_enabled: (primarySeg?.weekday_enabled ?? template.weekday_enabled) !== false,
+      peak_enabled: (primarySeg?.peak_enabled ?? template.peak_enabled) !== false,
+      weekend_enabled: (primarySeg?.weekend_enabled ?? template.weekend_enabled) !== false,
       available_rooms: (template as any).available_rooms ?? 1,
       room_type_id: template.room_type_id || existingIds[0] || "",
       room_type_ids: existingIds,
-      valid_from: template.valid_from || "",
-      valid_until: template.valid_until || "",
-      extra_dates: Array.isArray(template.extra_dates) ? template.extra_dates : [],
-      excluded_dates: Array.isArray(template.excluded_dates) ? template.excluded_dates : [],
+      valid_from: primarySeg?.valid_from || template.valid_from || "",
+      valid_until: primarySeg?.valid_until || template.valid_until || "",
+      extra_dates: primarySeg ? (primarySeg.extra_dates || []) : (Array.isArray(template.extra_dates) ? template.extra_dates : []),
+      excluded_dates: primarySeg ? (primarySeg.excluded_dates || []) : (Array.isArray(template.excluded_dates) ? template.excluded_dates : []),
       room_overrides: overridesMap,
+      extra_segments: extraSegs,
     });
     setErrors({});
     setShowForm(true);
