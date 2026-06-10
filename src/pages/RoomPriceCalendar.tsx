@@ -787,18 +787,31 @@ function RoomTypeRows({
             const isPeak = dayType === 'peak';
             const cellData = getCellData(roomType.id, dateStr);
 
-            // 優先使用該專案在該日期的覆寫價，否則回退到專案的「平日/旺日/假日」價
+            // 優先使用該專案在該日期的覆寫價，否則回退到「房型 override → 專案頂層」對應日型價
             const isUnavailable = cellData?.is_available === false;
             const overrideKey = `${roomType.id}_${dateStr}_${template.id}`;
             const overridePrice = templatePriceOverrides.get(overrideKey);
-            // 旺日 fallback 順序：peak_price → weekday_price → weekend_price
+
+            const roomOv = getRoomOverride(template as any, roomType.id);
+            const tier: 'weekday' | 'peak' | 'weekend' = isWeekend ? 'weekend' : isPeak ? 'peak' : 'weekday';
+            const tierSellable = isTierSellable(template as any, roomType.id, tier);
+
+            const ovWeekday = roomOv?.weekday_price ?? null;
+            const ovPeak = roomOv?.peak_price ?? null;
+            const ovWeekend = roomOv?.weekend_price ?? null;
+
+            const weekdayPrice = ovWeekday ?? template.weekday_price;
+            const peakPrice = ovPeak ?? template.peak_price;
+            const weekendPrice = ovWeekend ?? template.weekend_price;
+
             const fallbackPrice = isWeekend
-              ? (template.weekend_price ?? template.peak_price ?? template.weekday_price)
+              ? (weekendPrice ?? peakPrice ?? weekdayPrice)
               : isPeak
-              ? (template.peak_price ?? template.weekday_price ?? template.weekend_price)
-              : (template.weekday_price ?? template.peak_price ?? template.weekend_price);
+              ? (peakPrice ?? weekdayPrice ?? weekendPrice)
+              : (weekdayPrice ?? peakPrice ?? weekendPrice);
             const price = overridePrice ?? fallbackPrice;
             const isOverridden = overridePrice != null;
+            const hideCell = !tierSellable;
 
             return (
               <td
@@ -812,10 +825,10 @@ function RoomTypeRows({
                   isUnavailable && "opacity-60",
                 )}
                 onClick={() => onCellClick(roomType, template, dateStr, price || undefined, cellData?.available_rooms)}
-                title={isUnavailable ? '無法預定（已關閉販售）' : (isOverridden ? '此日已單獨設定價格' : undefined)}
+                title={hideCell ? '此日型已關閉販售' : (isUnavailable ? '無法預定（已關閉販售）' : (isOverridden ? '此日已單獨設定價格' : undefined))}
               >
-                <span className={cn("text-sm", isOverridden && "font-semibold text-primary")}>
-                  {isUnavailable ? '' : formatPrice(price)}
+                <span className={cn("text-sm", isOverridden && "font-semibold text-primary", hideCell && "text-muted-foreground/50")}>
+                  {hideCell ? '—' : (isUnavailable ? '' : formatPrice(price))}
                 </span>
               </td>
             );
