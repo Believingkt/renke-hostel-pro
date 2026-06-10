@@ -2031,6 +2031,49 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                   )}
                 </div>
 
+                {/* 房號選擇（散客房；該房型有配置房號時顯示） */}
+                {(() => {
+                  const rt = roomTypes.find(r => r.id === sel.room_type_id);
+                  if (!rt || rt.is_exclusive_package) return null;
+                  const unitsForType = allRoomUnits.filter(u => u.room_type_id === sel.room_type_id);
+                  if (unitsForType.length === 0) return null;
+                  const usedByOtherRows = new Set(
+                    roomSelections
+                      .filter(o => o.id !== sel.id && o.room_unit_id)
+                      .map(o => o.room_unit_id as string)
+                  );
+                  const disableSelect = sel.quantity !== 1;
+                  return (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">房號（可選）</Label>
+                      <Select
+                        value={sel.room_unit_id || "auto"}
+                        onValueChange={(v) => updateRoomSelection(sel.id, { room_unit_id: v === "auto" ? null : v })}
+                        disabled={disableSelect}
+                      >
+                        <SelectTrigger className="h-10 text-sm">
+                          <SelectValue placeholder="自動安排" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="auto">自動安排</SelectItem>
+                          {unitsForType.map((u) => {
+                            const occupied = occupiedUnitIdsForDates.has(u.id) || usedByOtherRows.has(u.id);
+                            const label = u.unit_label || `房號 ${u.display_order}`;
+                            return (
+                              <SelectItem key={u.id} value={u.id} disabled={occupied}>
+                                {label}{occupied ? "（已佔用）" : ""}
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                      {disableSelect && (
+                        <p className="text-[11px] text-muted-foreground">多間時不指定房號，由系統分配</p>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 {sel.roomPrice > 0 && (
                   <div className="text-xs text-right text-muted-foreground">
                     小計：NT$ {sel.roomPrice.toLocaleString()} ({sel.quantity} 間)
