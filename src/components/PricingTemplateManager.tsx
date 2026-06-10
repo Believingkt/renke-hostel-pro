@@ -773,6 +773,101 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
                   {errors.valid_until && <p className="text-sm text-destructive">{errors.valid_until}</p>}
                 </div>
               </div>
+
+              {/* 額外日期 / 排除日期 */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                <div className="space-y-2 rounded-md border p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="text-sm font-medium">額外日期</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-8">
+                          <Plus className="h-4 w-4 mr-1" />新增
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="end">
+                        <Calendar
+                          mode="single"
+                          onSelect={(d) => {
+                            if (!d) return;
+                            const s = format(d, "yyyy-MM-dd");
+                            if (formData.extra_dates.includes(s)) return;
+                            setFormData({
+                              ...formData,
+                              extra_dates: [...formData.extra_dates, s].sort(),
+                              excluded_dates: formData.excluded_dates.filter(x => x !== s),
+                            });
+                          }}
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <p className="text-xs text-muted-foreground">期限外的特殊日期也納入此專案</p>
+                  <div className="flex flex-wrap gap-1.5 min-h-[28px]">
+                    {formData.extra_dates.length === 0 ? (
+                      <span className="text-xs text-muted-foreground">尚未新增</span>
+                    ) : formData.extra_dates.map((d) => (
+                      <Badge key={d} variant="secondary" className="gap-1">
+                        {d}
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, extra_dates: formData.extra_dates.filter(x => x !== d) })}
+                          className="hover:text-destructive"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2 rounded-md border p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="text-sm font-medium">排除日期</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-8">
+                          <Plus className="h-4 w-4 mr-1" />新增
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="end">
+                        <Calendar
+                          mode="single"
+                          onSelect={(d) => {
+                            if (!d) return;
+                            const s = format(d, "yyyy-MM-dd");
+                            if (formData.excluded_dates.includes(s)) return;
+                            setFormData({
+                              ...formData,
+                              excluded_dates: [...formData.excluded_dates, s].sort(),
+                              extra_dates: formData.extra_dates.filter(x => x !== s),
+                            });
+                          }}
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <p className="text-xs text-muted-foreground">期限內想剔除的特殊日期</p>
+                  <div className="flex flex-wrap gap-1.5 min-h-[28px]">
+                    {formData.excluded_dates.length === 0 ? (
+                      <span className="text-xs text-muted-foreground">尚未新增</span>
+                    ) : formData.excluded_dates.map((d) => (
+                      <Badge key={d} variant="secondary" className="gap-1">
+                        {d}
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, excluded_dates: formData.excluded_dates.filter(x => x !== d) })}
+                          className="hover:text-destructive"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
