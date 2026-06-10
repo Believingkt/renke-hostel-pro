@@ -495,6 +495,8 @@ export default function TeamOrders() {
         closer_id: form.closer_id,
         video_creator_id: form.video_creator_id,
         scout_id: form.scout_id,
+        traffic_source: form.traffic_source,
+        booking_method: form.booking_method,
         ad_id: form.ad_id,
 
         is_excluded: !!form.is_excluded,
