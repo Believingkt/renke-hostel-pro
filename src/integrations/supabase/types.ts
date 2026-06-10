@@ -5668,10 +5668,13 @@ export type Database = {
           created_at: string
           description: string | null
           display_order: number | null
+          excluded_dates: Json
+          extra_dates: Json
           id: string
           is_default: boolean | null
           meal_plans: Json | null
           numeric_code: number | null
+          peak_enabled: boolean
           peak_price: number | null
           price: number | null
           project_description: string | null
@@ -5683,7 +5686,9 @@ export type Database = {
           updated_at: string
           valid_from: string | null
           valid_until: string | null
+          weekday_enabled: boolean
           weekday_price: number | null
+          weekend_enabled: boolean
           weekend_price: number | null
         }
         Insert: {
@@ -5692,10 +5697,13 @@ export type Database = {
           created_at?: string
           description?: string | null
           display_order?: number | null
+          excluded_dates?: Json
+          extra_dates?: Json
           id?: string
           is_default?: boolean | null
           meal_plans?: Json | null
           numeric_code?: number | null
+          peak_enabled?: boolean
           peak_price?: number | null
           price?: number | null
           project_description?: string | null
@@ -5707,7 +5715,9 @@ export type Database = {
           updated_at?: string
           valid_from?: string | null
           valid_until?: string | null
+          weekday_enabled?: boolean
           weekday_price?: number | null
+          weekend_enabled?: boolean
           weekend_price?: number | null
         }
         Update: {
@@ -5716,10 +5726,13 @@ export type Database = {
           created_at?: string
           description?: string | null
           display_order?: number | null
+          excluded_dates?: Json
+          extra_dates?: Json
           id?: string
           is_default?: boolean | null
           meal_plans?: Json | null
           numeric_code?: number | null
+          peak_enabled?: boolean
           peak_price?: number | null
           price?: number | null
           project_description?: string | null
@@ -5731,7 +5744,9 @@ export type Database = {
           updated_at?: string
           valid_from?: string | null
           valid_until?: string | null
+          weekday_enabled?: boolean
           weekday_price?: number | null
+          weekend_enabled?: boolean
           weekend_price?: number | null
         }
         Relationships: [
