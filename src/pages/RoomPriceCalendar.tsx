@@ -692,6 +692,7 @@ function RoomTypeRows({
   const visibleTemplates = useMemo(() => {
     return templates.filter(t => {
       // 模板綁定了特定房型：嚴格以 room_type_id 為準
+      if (Array.isArray(t.room_type_ids) && t.room_type_ids.length > 0) return t.room_type_ids.includes(roomType.id);
       if (t.room_type_id) return t.room_type_id === roomType.id;
       // 通用模板（未綁定房型）：透過名稱匹配
       const templateName = (t.project_name || t.template_name).replace(/\s+/g, '');
