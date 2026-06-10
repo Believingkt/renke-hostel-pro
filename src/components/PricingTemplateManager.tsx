@@ -401,6 +401,48 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         }
       }
 
+      // 建構 season_segments：當有額外區段時，把「主期間」設為 segment[0]，其餘附加
+      const extraSegs = formData.extra_segments || [];
+      let seasonSegments: SeasonSegment[] = [];
+      let topValidFrom = formData.valid_from || null;
+      let topValidUntil = formData.valid_until || null;
+      if (extraSegs.length > 0 && formData.valid_from && formData.valid_until) {
+        const primarySeg: SeasonSegment = {
+          id: "primary",
+          label: "主期間",
+          valid_from: formData.valid_from,
+          valid_until: formData.valid_until,
+          weekday_price: topWeekday ?? null,
+          peak_price: topPeak ?? null,
+          weekend_price: topWeekend ?? null,
+          weekday_enabled: formData.weekday_enabled,
+          peak_enabled: formData.peak_enabled,
+          weekend_enabled: formData.weekend_enabled,
+          extra_dates: formData.extra_dates,
+          excluded_dates: formData.excluded_dates,
+          room_overrides: overridesArray,
+        };
+        const cleanedExtras: SeasonSegment[] = extraSegs.map((s, i) => ({
+          id: s.id || `extra-${i}`,
+          label: s.label || null,
+          valid_from: s.valid_from,
+          valid_until: s.valid_until,
+          weekday_price: s.weekday_price ?? null,
+          peak_price: s.peak_price ?? null,
+          weekend_price: s.weekend_price ?? null,
+          weekday_enabled: s.weekday_enabled !== false,
+          peak_enabled: s.peak_enabled !== false,
+          weekend_enabled: s.weekend_enabled !== false,
+          extra_dates: Array.isArray(s.extra_dates) ? s.extra_dates : [],
+          excluded_dates: Array.isArray(s.excluded_dates) ? s.excluded_dates : [],
+          room_overrides: Array.isArray(s.room_overrides) ? s.room_overrides : [],
+        }));
+        seasonSegments = [primarySeg, ...cleanedExtras];
+        // 頂層 valid_from / until 用 union（向後相容查詢）
+        topValidFrom = seasonSegments.reduce((a, s) => a && a < s.valid_from ? a : s.valid_from, seasonSegments[0].valid_from);
+        topValidUntil = seasonSegments.reduce((a, s) => a && a > s.valid_until ? a : s.valid_until, seasonSegments[0].valid_until);
+      }
+
       const dataToSave: any = {
         template_name: formData.template_name,
         description: formData.description || null,
@@ -415,11 +457,12 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         accommodation_id: accommodationId,
         room_type_id: primaryId,
         room_type_ids: finalIds,
-        valid_from: formData.valid_from || null,
-        valid_until: formData.valid_until || null,
+        valid_from: topValidFrom,
+        valid_until: topValidUntil,
         extra_dates: formData.extra_dates,
         excluded_dates: formData.excluded_dates,
         room_overrides: overridesArray,
+        season_segments: seasonSegments,
       };
 
       if (editingTemplate) {
