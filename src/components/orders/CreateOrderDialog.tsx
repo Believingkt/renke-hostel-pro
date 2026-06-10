@@ -61,7 +61,8 @@ interface RoomUnit {
   room_type_id: string;
   display_order: number;
   is_active: boolean;
-  unit_label?: string | null;
+  unit_number?: string | null;
+  nickname?: string | null;
 }
 
 interface OccupiedRoomUnitRow {
@@ -356,7 +357,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       if (!currentAccommodationId) { setAllRoomUnits([]); return; }
       const { data } = await supabase
         .from("room_units")
-        .select("id, room_type_id, display_order, is_active, unit_label")
+        .select("id, room_type_id, display_order, is_active, unit_number, nickname")
         .eq("accommodation_id", currentAccommodationId)
         .eq("is_active", true)
         .order("display_order", { ascending: true });
@@ -2058,7 +2059,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                           <SelectItem value="auto">自動安排</SelectItem>
                           {unitsForType.map((u) => {
                             const occupied = occupiedUnitIdsForDates.has(u.id) || usedByOtherRows.has(u.id);
-                            const label = u.unit_label || `房號 ${u.display_order}`;
+                            const label = u.nickname || u.unit_number || `房號 ${u.display_order}`;
                             return (
                               <SelectItem key={u.id} value={u.id} disabled={occupied}>
                                 {label}{occupied ? "（已佔用）" : ""}
