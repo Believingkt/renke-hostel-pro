@@ -48,6 +48,11 @@ interface PricingTemplate {
   room_type_ids?: string[] | null;
   available_rooms: number | null;
   room_overrides?: any;
+  season_segments?: any;
+  extra_dates?: string[] | null;
+  excluded_dates?: string[] | null;
+  valid_from?: string | null;
+  valid_until?: string | null;
 }
 
 interface InventoryData {
