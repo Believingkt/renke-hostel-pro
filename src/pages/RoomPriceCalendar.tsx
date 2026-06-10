@@ -579,6 +579,7 @@ export default function RoomPriceCalendar() {
                         const normalizedRoomName = roomType.name.replace(/\s+/g, '');
 
                         const roomTemplates = filteredTemplates.filter(t => {
+                          if (Array.isArray(t.room_type_ids) && t.room_type_ids.length > 0) return t.room_type_ids.includes(roomType.id);
                           if (t.room_type_id) return t.room_type_id === roomType.id;
                           const templateName = (t.project_name || t.template_name).replace(/\s+/g, '');
                           const matchesCurrentRoom = templateName.includes(normalizedRoomName);
