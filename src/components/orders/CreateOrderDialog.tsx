@@ -76,6 +76,7 @@ interface RoomSelection {
   quantity: number;
   roomPrice: number;
   filteredTemplates: PricingTemplate[];
+  room_unit_id?: string | null;
 }
 
 interface InventoryWarning {
