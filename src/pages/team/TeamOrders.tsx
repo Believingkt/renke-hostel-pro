@@ -346,6 +346,7 @@ export default function TeamOrders() {
              final_price, discount_code, order_source, ota_channel, accommodation_id, order_date, created_at`
           )
           .neq("guest_name", "保留單")
+          .gt("final_price", 0)
           .order("created_at", { ascending: false })
           .limit(2000),
         supabase.from("accommodation_info").select("id, name"),
