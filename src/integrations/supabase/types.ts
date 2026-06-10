@@ -5677,6 +5677,7 @@ export type Database = {
           project_description: string | null
           project_name: string | null
           room_type_id: string | null
+          room_type_ids: string[]
           template_name: string
           updated_at: string
           weekday_price: number | null
@@ -5697,6 +5698,7 @@ export type Database = {
           project_description?: string | null
           project_name?: string | null
           room_type_id?: string | null
+          room_type_ids?: string[]
           template_name: string
           updated_at?: string
           weekday_price?: number | null
@@ -5717,6 +5719,7 @@ export type Database = {
           project_description?: string | null
           project_name?: string | null
           room_type_id?: string | null
+          room_type_ids?: string[]
           template_name?: string
           updated_at?: string
           weekday_price?: number | null
