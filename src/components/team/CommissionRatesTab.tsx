@@ -207,8 +207,9 @@ export default function CommissionRatesTab({ readOnly = false }: { readOnly?: bo
                         </Button>
                       </TableCell>
                       <TableCell>{r.name}</TableCell>
-                      <TableCell>{r.closer_rate != null ? `${r.closer_rate}%` : "—"}</TableCell>
-                      <TableCell>{r.video_rate != null ? `${r.video_rate}%` : "—"}</TableCell>
+                      <TableCell>{r.closer_rate != null ? `${Number((r.closer_rate * 100).toFixed(2))}%` : "—"}</TableCell>
+                      <TableCell>{r.video_rate != null ? `${Number((r.video_rate * 100).toFixed(2))}%` : "—"}</TableCell>
+
                       <TableCell>{r.effective_from ?? "—"}</TableCell>
                       {!readOnly && (
                         <TableCell className="text-right">
