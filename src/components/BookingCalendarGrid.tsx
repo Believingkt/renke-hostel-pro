@@ -693,9 +693,16 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                     {/* Individual booking rows - group orders into "rooms" */}
                     {(() => {
                       const YUNXIU_ACC_ID = "7690a606-6bac-4cd5-a3e7-2fa754b318e8";
+                      const TIANSONG_ACC_ID = "4ee31aca-5641-4d05-80e2-1c67626be83d";
                       const isYunxiu = accommodationId === YUNXIU_ACC_ID;
+                      const isTiansong = accommodationId === TIANSONG_ACC_ID;
                       const rtUnits = roomUnits.filter(u => u.room_type_id === roomType.id);
-                      const useUnits = isYunxiu && rtUnits.length > 0 && !roomType.is_exclusive_package;
+                      // 雲岫：僅散客房型用單位顯示
+                      // 天送：散客與包棟皆用單位顯示（房號 / 棟號）
+                      const useUnits = rtUnits.length > 0 && (
+                        (isYunxiu && !roomType.is_exclusive_package) ||
+                        isTiansong
+                      );
 
                       type SlotMeta = { unitId: string | null; label: string; nickname?: string | null };
                       const slots: { meta: SlotMeta; entries: CalendarEntry[] }[] = [];
