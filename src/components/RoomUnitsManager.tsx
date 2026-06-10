@@ -23,9 +23,14 @@ interface RoomUnitsManagerProps {
   roomTypeId: string;
   accommodationId: string;
   roomCount: number;
+  variant?: "room" | "villa";
 }
 
-export function RoomUnitsManager({ roomTypeId, accommodationId, roomCount }: RoomUnitsManagerProps) {
+export function RoomUnitsManager({ roomTypeId, accommodationId, roomCount, variant = "room" }: RoomUnitsManagerProps) {
+  const L = variant === "villa"
+    ? { unit: "棟", title: "棟號單位管理", desc: "為此包棟房型底下的每一棟獨立命名（例：A棟、B棟、面海棟）。設定後，新增訂單時可指定客人入住的棟別。", addBtn: "新增棟別", autoBtn: (n: number) => `依房型數量自動建立 ${n} 棟`, empty: "尚未建立任何棟號單位。可點選右上方按鈕快速建立。", saveBtn: "儲存棟號設定", saved: "已儲存棟號設定", loadFail: "讀取棟號單位失敗", clearFirst: "請先清空現有棟別後再自動建立", dupErr: "棟號編號不可重複", emptyErr: "棟號編號不可空白", mismatch: (a: number, b: number) => `提醒：目前棟號單位數（${a}）與房型數量（${b}）不一致。` }
+    : { unit: "房", title: "房號單位管理", desc: "為此房型底下的每一間房獨立命名（例：1、201、面海第一間）。設定後，新增訂單時可指定客人入住的房間。", addBtn: "新增房間", autoBtn: (n: number) => `依房型數量自動建立 ${n} 間`, empty: "尚未建立任何房號單位。可點選右上方按鈕快速建立。", saveBtn: "儲存房號設定", saved: "已儲存房號設定", loadFail: "讀取房號單位失敗", clearFirst: "請先清空現有房間後再自動建立", dupErr: "房號編號不可重複", emptyErr: "房號編號不可空白", mismatch: (a: number, b: number) => `提醒：目前房號單位數（${a}）與房型數量（${b}）不一致。` };
+
   const [units, setUnits] = useState<RoomUnit[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -38,7 +43,7 @@ export function RoomUnitsManager({ roomTypeId, accommodationId, roomCount }: Roo
       .eq("room_type_id", roomTypeId)
       .order("display_order", { ascending: true });
     if (error) {
-      toast.error("讀取房間單位失敗");
+      toast.error(L.loadFail);
     } else {
       setUnits((data as any) || []);
     }
@@ -68,7 +73,7 @@ export function RoomUnitsManager({ roomTypeId, accommodationId, roomCount }: Roo
 
   const autoFill = () => {
     if (units.length > 0) {
-      toast.error("請先清空現有房間後再自動建立");
+      toast.error(L.clearFirst);
       return;
     }
     const generated: RoomUnit[] = Array.from({ length: roomCount }).map((_, i) => ({
@@ -116,12 +121,12 @@ export function RoomUnitsManager({ roomTypeId, accommodationId, roomCount }: Roo
       // 檢查 unit_number 重複
       const numbers = units.map((u) => u.unit_number.trim());
       if (new Set(numbers).size !== numbers.length) {
-        toast.error("房間編號不可重複");
+        toast.error(L.dupErr);
         setSaving(false);
         return;
       }
       if (numbers.some((n) => !n)) {
-        toast.error("房間編號不可空白");
+        toast.error(L.emptyErr);
         setSaving(false);
         return;
       }
@@ -162,7 +167,7 @@ export function RoomUnitsManager({ roomTypeId, accommodationId, roomCount }: Roo
         if (error) throw error;
       }
 
-      toast.success("已儲存房間設定");
+      toast.success(L.saved);
       await load();
     } catch (e: any) {
       toast.error("儲存失敗：" + (e.message || ""));
@@ -176,21 +181,21 @@ export function RoomUnitsManager({ roomTypeId, accommodationId, roomCount }: Roo
       <CardHeader>
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
-            <CardTitle>房間單位管理</CardTitle>
+            <CardTitle>{L.title}</CardTitle>
             <CardDescription>
-              為此房型底下的每一間房獨立命名（例：1、201、面海第一間）。設定後，新增訂單時可指定客人入住的房間。
+              {L.desc}
             </CardDescription>
           </div>
           <div className="flex gap-2">
             {units.length === 0 && roomCount > 0 && (
               <Button type="button" variant="outline" size="sm" onClick={autoFill}>
                 <RefreshCw className="h-4 w-4 mr-1" />
-                依房型數量自動建立 {roomCount} 間
+                {L.autoBtn(roomCount)}
               </Button>
             )}
             <Button type="button" variant="outline" size="sm" onClick={addUnit}>
               <Plus className="h-4 w-4 mr-1" />
-              新增房間
+              {L.addBtn}
             </Button>
           </div>
         </div>
@@ -200,7 +205,7 @@ export function RoomUnitsManager({ roomTypeId, accommodationId, roomCount }: Roo
           <div className="text-sm text-muted-foreground">載入中…</div>
         ) : units.length === 0 ? (
           <div className="text-sm text-muted-foreground">
-            尚未建立任何房間單位。可點選右上方按鈕快速建立。
+            {L.empty}
           </div>
         ) : (
           <div className="space-y-2">
@@ -252,14 +257,14 @@ export function RoomUnitsManager({ roomTypeId, accommodationId, roomCount }: Roo
 
         {units.length !== roomCount && roomCount > 0 && !loading && (
           <div className="text-xs text-amber-600">
-            提醒：目前房間單位數（{units.length}）與房型數量（{roomCount}）不一致。
+            {L.mismatch(units.length, roomCount)}
           </div>
         )}
 
         <div className="flex justify-end pt-2">
           <Button type="button" onClick={save} disabled={saving || loading}>
             <Save className="h-4 w-4 mr-1" />
-            {saving ? "儲存中…" : "儲存房間設定"}
+            {saving ? "儲存中…" : L.saveBtn}
           </Button>
         </div>
       </CardContent>
