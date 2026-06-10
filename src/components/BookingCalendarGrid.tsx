@@ -4,6 +4,7 @@ import { zhTW } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Lock, Package, CalendarIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getRoomOverride, isTemplateActiveForDates, type TemplateLike } from "@/utils/pricingTemplateHelpers";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
@@ -165,6 +166,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
   const [calendarEntries, setCalendarEntries] = useState<CalendarEntry[]>([]);
   const [holidays, setHolidays] = useState<Map<string, PublicHoliday>>(new Map());
   const [inventory, setInventory] = useState<Map<string, InventoryRecord>>(new Map());
+  const [pricingTemplates, setPricingTemplates] = useState<TemplateLike[]>([]);
   const [expandedRoomTypes, setExpandedRoomTypes] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   
@@ -196,7 +198,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
       const startStr = format(startDate, "yyyy-MM-dd");
       const endStr = format(endDate, "yyyy-MM-dd");
 
-      const [roomTypesRes, ordersRes, holidaysRes, inventoryRes] = await Promise.all([
+      const [roomTypesRes, ordersRes, holidaysRes, inventoryRes, templatesRes] = await Promise.all([
         supabase
           .from("room_types")
           .select("id, name, capacity, room_count, is_exclusive_package, is_bound_to_exclusive, bound_exclusive_ids")
@@ -219,8 +221,13 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
           .from("room_inventory_pricing")
           .select("date, room_type_id, available_rooms, is_available")
           .in("room_type_id", (await supabase.from("room_types").select("id").eq("accommodation_id", accommodationId)).data?.map(r => r.id) || [])
+          .is("pricing_template_id", null)
           .gte("date", startStr)
           .lte("date", endStr),
+        supabase
+          .from("pricing_templates")
+          .select("id, accommodation_id, valid_from, valid_until, room_overrides, weekday_enabled, peak_enabled, weekend_enabled, extra_dates, excluded_dates")
+          .eq("accommodation_id", accommodationId),
       ]);
 
       if (roomTypesRes.error) throw roomTypesRes.error;
@@ -309,6 +316,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
         invMap.set(`${inv.room_type_id}_${inv.date}`, inv);
       });
       setInventory(invMap);
+      setPricingTemplates((templatesRes.data || []) as TemplateLike[]);
     } catch (error) {
       console.error("載入資料失敗:", error);
       toast.error("載入資料失敗");
@@ -318,11 +326,23 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
   };
 
   // Get available rooms for a room type on a date
+  // 以「庫存設定」為主：取 base 與所有 active 專案 override 中的最大值
   const getAvailableRooms = (roomTypeId: string, dateStr: string): number => {
     const inv = inventory.get(`${roomTypeId}_${dateStr}`);
-    if (!inv) return 0; // No inventory record = 0
-    if (inv.is_available === false) return 0;
-    return inv.available_rooms;
+    let base = 0;
+    if (inv) {
+      if (inv.is_available === false) base = 0;
+      else base = inv.available_rooms;
+    }
+    let effective = base;
+    for (const t of pricingTemplates) {
+      if (!isTemplateActiveForDates(t, [dateStr])) continue;
+      const ov = getRoomOverride(t, roomTypeId);
+      if (ov?.available_rooms != null && ov.available_rooms > effective) {
+        effective = ov.available_rooms;
+      }
+    }
+    return effective;
   };
 
   // Get booked count for a room type on a date (using calendar entries for accurate multi-room counting)
