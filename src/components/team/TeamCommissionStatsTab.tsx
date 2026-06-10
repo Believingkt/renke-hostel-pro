@@ -156,18 +156,6 @@ export default function TeamCommissionStatsTab() {
       let validRows = (validData ?? []) as (OrderLite & { order_date: string; cancelled_at: string | null })[];
       let cancelRows = (cancelData ?? []) as (OrderLite & { order_date: string; cancelled_at: string | null })[];
 
-      // 全部年份 + 指定月份 → 客戶端按月份篩選（有效訂單用 order_date、取消訂單用 cancelled_at）
-      const monthFilter = (period as any).monthFilter as number | undefined;
-      if (monthFilter) {
-        validRows = validRows.filter((o) => {
-          const d = o.order_date ? new Date(o.order_date) : null;
-          return d ? d.getMonth() + 1 === monthFilter : false;
-        });
-        cancelRows = cancelRows.filter((o) => {
-          const d = o.cancelled_at ? new Date(o.cancelled_at) : null;
-          return d ? d.getMonth() + 1 === monthFilter : false;
-        });
-      }
       const ords = [...validRows, ...cancelRows];
       setOrders(ords);
 
