@@ -797,35 +797,32 @@ function RoomTypeRows({
             const isPeak = dayType === 'peak';
             const cellData = getCellData(roomType.id, dateStr);
 
-            // 優先使用該專案在該日期的覆寫價，否則回退到「房型 override → 專案頂層」對應日型價
+            // 優先使用該專案在該日期的覆寫價，否則回退到該日所屬 segment（或頂層）的對應日型價
             const isUnavailable = cellData?.is_available === false;
             const overrideKey = `${roomType.id}_${dateStr}_${template.id}`;
             const overridePrice = templatePriceOverrides.get(overrideKey);
 
-            const roomOv = getRoomOverride(template as any, roomType.id);
             const tier: 'weekday' | 'peak' | 'weekend' = isWeekend ? 'weekend' : isPeak ? 'peak' : 'weekday';
-            const tierSellable = isTierSellable(template as any, roomType.id, tier);
+            const tierSellable = isTierSellable(template as any, roomType.id, tier, dateStr);
+            const tierInfo = getTierForDate(template as any, roomType.id, dateStr, tier);
 
-            const ovWeekday = roomOv?.weekday_price ?? null;
-            const ovPeak = roomOv?.peak_price ?? null;
-            const ovWeekend = roomOv?.weekend_price ?? null;
-
-            const weekdayPrice = ovWeekday ?? template.weekday_price;
-            const peakPrice = ovPeak ?? template.peak_price;
-            const weekendPrice = ovWeekend ?? template.weekend_price;
-
+            // 找該日該 tier 價格；若該 tier 無設定，回退同 segment 的其它 tier
+            const weekdayInfo = getTierForDate(template as any, roomType.id, dateStr, 'weekday');
+            const peakInfo = getTierForDate(template as any, roomType.id, dateStr, 'peak');
+            const weekendInfo = getTierForDate(template as any, roomType.id, dateStr, 'weekend');
             const fallbackPrice = isWeekend
-              ? (weekendPrice ?? peakPrice ?? weekdayPrice)
+              ? (weekendInfo.price ?? peakInfo.price ?? weekdayInfo.price)
               : isPeak
-              ? (peakPrice ?? weekdayPrice ?? weekendPrice)
-              : (weekdayPrice ?? peakPrice ?? weekendPrice);
-            const price = overridePrice ?? fallbackPrice;
+              ? (peakInfo.price ?? weekdayInfo.price ?? weekendInfo.price)
+              : (weekdayInfo.price ?? peakInfo.price ?? weekendInfo.price);
+            const price = overridePrice ?? tierInfo.price ?? fallbackPrice;
             const isOverridden = overridePrice != null;
             const hideCell = !tierSellable;
 
-            // 該專案在此日是否有效（valid_from/valid_until/extra/excluded）
+            // 該專案在此日是否有效（segments / valid_from / valid_until / extra / excluded）
             const isActive = isTemplateActiveForDates(template as any, [dateStr]);
-            const overrideInv = roomOv?.available_rooms ?? null;
+            const roomOvForDate = getRoomOverrideForDate(template as any, roomType.id, dateStr);
+            const overrideInv = roomOvForDate?.available_rooms ?? null;
             const showInv = isActive && !hideCell && overrideInv != null;
 
             return (
