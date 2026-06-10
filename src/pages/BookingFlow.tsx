@@ -574,9 +574,17 @@ const BookingFlow = () => {
 
     let filtered: PricingTemplateOption[];
     if (selectedRoom) {
-      filtered = allPricingTemplates.filter(t => t.room_type_id === selectedRoom.id);
+      filtered = allPricingTemplates.filter(t => {
+        const ids = t.room_type_ids;
+        if (Array.isArray(ids) && ids.length > 0) return ids.includes(selectedRoom.id);
+        return t.room_type_id === selectedRoom.id;
+      });
       if (filtered.length === 0) {
-        filtered = allPricingTemplates.filter(t => !t.room_type_id);
+        filtered = allPricingTemplates.filter(t => {
+          const ids = t.room_type_ids;
+          const hasIds = Array.isArray(ids) && ids.length > 0;
+          return !hasIds && !t.room_type_id;
+        });
       }
     } else {
       filtered = allPricingTemplates;
