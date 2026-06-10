@@ -360,6 +360,9 @@ const BookingFlow = () => {
     valid_from?: string | null;
     valid_until?: string | null;
     room_overrides?: any;
+    season_segments?: any;
+    extra_dates?: any;
+    excluded_dates?: any;
   }
   const [allPricingTemplates, setAllPricingTemplates] = useState<PricingTemplateOption[]>([]);
   const [pricingTemplates, setPricingTemplates] = useState<PricingTemplateOption[]>([]);
