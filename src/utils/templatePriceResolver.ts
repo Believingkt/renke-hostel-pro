@@ -1,14 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getRoomOverride } from "@/utils/pricingTemplateHelpers";
 
 /**
- * 共用的「專案價」解析器：
- * 規則：
- *  1) 若該 (room_type_id, date, pricing_template_id=templateId) 在 room_inventory_pricing
- *     有覆寫紀錄，使用該覆寫 price（最高優先）。
- *  2) 否則，若 template 有 weekday_price / weekend_price，依平假日使用對應價格。
- *  3) 否則，若 template.price 有值，使用 template.price。
- *  4) 最後 fallback 到 base row（pricing_template_id IS NULL）對應的價格欄位
- *     （依 template 名稱判斷 price / price_2_meals / price_3_meals）。
+ * 共用的「專案價」解析器（同前邏輯）；新增規則：
+ *  - 若 template.room_overrides 含對應 room_type_id，
+ *    其 weekday/peak/weekend 價會優先取代 template 頂層的對應價。
  */
 
 export interface PricingTemplateLite {
@@ -19,6 +15,7 @@ export interface PricingTemplateLite {
   weekday_price?: number | null;
   peak_price?: number | null;
   weekend_price?: number | null;
+  room_overrides?: any;
 }
 
 export type DayTier = "weekday" | "peak" | "weekend";
@@ -101,19 +98,26 @@ export async function resolveTemplatePricesForDates(
     return "weekday";
   };
 
+  // 取得房型覆寫（若有）
+  const override = template ? getRoomOverride(template as any, roomTypeId) : null;
+  const overrideWeekday = override?.weekday_price ?? null;
+  const overridePeak = override?.peak_price ?? null;
+  const overrideWeekend = override?.weekend_price ?? null;
+
   const hasTemplateTierPrices =
     template &&
     ((template.weekday_price != null && template.weekday_price > 0) ||
       (template.peak_price != null && template.peak_price > 0) ||
-      (template.weekend_price != null && template.weekend_price > 0));
+      (template.weekend_price != null && template.weekend_price > 0) ||
+      overrideWeekday != null || overridePeak != null || overrideWeekend != null);
 
   const stillUnresolved: string[] = [];
 
   if (hasTemplateTierPrices) {
-    const weekdayPrice = template!.weekday_price ?? template!.price ?? 0;
-    const weekendPrice = template!.weekend_price ?? template!.price ?? weekdayPrice;
-    // 旺日 fallback 順序：peak_price → weekday_price → weekend_price
+    const weekdayPrice = overrideWeekday ?? template!.weekday_price ?? template!.price ?? 0;
+    const weekendPrice = overrideWeekend ?? template!.weekend_price ?? template!.price ?? weekdayPrice;
     const peakPrice =
+      overridePeak ??
       template!.peak_price ??
       (template!.weekday_price != null ? template!.weekday_price : weekendPrice);
 

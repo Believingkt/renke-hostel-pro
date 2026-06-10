@@ -5,9 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Pencil, Trash2, Check, X, GripVertical, Copy } from "lucide-react";
+import { Pencil, Trash2, Check, X, GripVertical, Copy, Calendar as CalendarIcon } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format, parseISO } from "date-fns";
+import { cn } from "@/lib/utils";
+import { TIANSONG_ACCOMMODATION_ID, isTianSong, getRoomOverrides, type RoomOverride } from "@/utils/pricingTemplateHelpers";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -53,6 +58,9 @@ interface PricingTemplate {
   display_order: number;
   room_type_id?: string | null;
   room_type_ids?: string[] | null;
+  valid_from?: string | null;
+  valid_until?: string | null;
+  room_overrides?: RoomOverride[] | null;
 }
 
 interface RoomType {
@@ -98,6 +106,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
   const [deletingTemplate, setDeletingTemplate] = useState<PricingTemplate | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const isSingleSelect = SINGLE_SELECT_ACCOMMODATIONS.has(accommodationId);
+  const isTS = isTianSong(accommodationId);
 
   const [formData, setFormData] = useState({
     template_name: "",
@@ -108,6 +117,9 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     available_rooms: 1,
     room_type_id: "" as string,
     room_type_ids: [] as string[],
+    valid_from: "" as string,
+    valid_until: "" as string,
+    room_overrides: {} as Record<string, { weekday_price: number | null; peak_price: number | null; weekend_price: number | null; available_rooms: number }>,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -133,8 +145,9 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       
       const templatesData = (data || []).map(t => ({
         ...t,
-        meal_plans: Array.isArray(t.meal_plans) ? t.meal_plans : []
-      }));
+        meal_plans: Array.isArray(t.meal_plans) ? t.meal_plans : [],
+        room_overrides: Array.isArray((t as any).room_overrides) ? (t as any).room_overrides : [],
+      })) as PricingTemplate[];
       
       setTemplates(templatesData);
     } catch (error) {
@@ -176,6 +189,9 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       available_rooms: 1,
       room_type_id: "",
       room_type_ids: [],
+      valid_from: "",
+      valid_until: "",
+      room_overrides: {},
     });
     setErrors({});
     setShowForm(true);
@@ -186,6 +202,16 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     const existingIds = Array.isArray(template.room_type_ids) && template.room_type_ids.length > 0
       ? template.room_type_ids
       : (template.room_type_id ? [template.room_type_id] : []);
+    const overridesArr = getRoomOverrides(template as any);
+    const overridesMap: Record<string, { weekday_price: number | null; peak_price: number | null; weekend_price: number | null; available_rooms: number }> = {};
+    for (const o of overridesArr) {
+      overridesMap[o.room_type_id] = {
+        weekday_price: o.weekday_price ?? null,
+        peak_price: o.peak_price ?? null,
+        weekend_price: o.weekend_price ?? null,
+        available_rooms: o.available_rooms ?? 1,
+      };
+    }
     setFormData({
       template_name: template.template_name,
       description: template.description || "",
@@ -195,12 +221,43 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       available_rooms: (template as any).available_rooms ?? 1,
       room_type_id: template.room_type_id || existingIds[0] || "",
       room_type_ids: existingIds,
+      valid_from: template.valid_from || "",
+      valid_until: template.valid_until || "",
+      room_overrides: overridesMap,
     });
     setErrors({});
     setShowForm(true);
   };
 
   const validateForm = (): boolean => {
+    if (isTS) {
+      const newErrors: Record<string, string> = {};
+      if (!formData.template_name.trim()) newErrors.template_name = "專案名稱不能為空";
+      if (!formData.valid_from) newErrors.valid_from = "請選擇專案開始日期";
+      if (!formData.valid_until) newErrors.valid_until = "請選擇專案結束日期";
+      if (formData.valid_from && formData.valid_until && formData.valid_from > formData.valid_until) {
+        newErrors.valid_until = "結束日期必須晚於開始日期";
+      }
+      if (formData.room_type_ids.length === 0) {
+        newErrors.room_type_ids = "請至少選擇一個對應房型";
+      } else {
+        for (const id of formData.room_type_ids) {
+          const ov = formData.room_overrides[id];
+          const hasPrice =
+            (ov?.weekday_price != null && ov.weekday_price > 0) ||
+            (ov?.peak_price != null && ov.peak_price > 0) ||
+            (ov?.weekend_price != null && ov.weekend_price > 0);
+          if (!hasPrice) {
+            newErrors[`override_${id}`] = "請至少設定一項價格";
+          }
+          if (ov && ov.available_rooms < 0) {
+            newErrors[`override_${id}_inv`] = "庫存量不能為負數";
+          }
+        }
+      }
+      setErrors(newErrors);
+      return Object.keys(newErrors).length === 0;
+    }
     try {
       templateSchema.parse(formData);
       setErrors({});
@@ -232,17 +289,47 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       const primaryId = isSingleSelect
         ? (formData.room_type_id || null)
         : (finalIds[0] || null);
-      const dataToSave = {
+
+      // 天送：以 room_overrides 為主，頂層 price/inventory 取「第一個房型的設定」做向後兼容
+      let topWeekday = formData.weekday_price;
+      let topPeak = formData.peak_price;
+      let topWeekend = formData.weekend_price;
+      let topInv = formData.available_rooms;
+      let overridesArray: RoomOverride[] = [];
+      if (isTS) {
+        overridesArray = finalIds.map((id) => {
+          const ov = formData.room_overrides[id] || { weekday_price: null, peak_price: null, weekend_price: null, available_rooms: 1 };
+          return {
+            room_type_id: id,
+            weekday_price: ov.weekday_price ?? null,
+            peak_price: ov.peak_price ?? null,
+            weekend_price: ov.weekend_price ?? null,
+            available_rooms: ov.available_rooms ?? 1,
+          };
+        });
+        const first = overridesArray[0];
+        if (first) {
+          topWeekday = first.weekday_price;
+          topPeak = first.peak_price;
+          topWeekend = first.weekend_price;
+          topInv = first.available_rooms;
+        }
+      }
+
+      const dataToSave: any = {
         template_name: formData.template_name,
         description: formData.description || null,
-        weekday_price: formData.weekday_price,
-        peak_price: formData.peak_price,
-        weekend_price: formData.weekend_price,
-        price: formData.weekday_price ?? formData.peak_price ?? formData.weekend_price, // 向後兼容
-        available_rooms: formData.available_rooms,
+        weekday_price: topWeekday,
+        peak_price: topPeak,
+        weekend_price: topWeekend,
+        price: topWeekday ?? topPeak ?? topWeekend, // 向後兼容
+        available_rooms: topInv,
         accommodation_id: accommodationId,
         room_type_id: primaryId,
         room_type_ids: finalIds,
+        valid_from: formData.valid_from || null,
+        valid_until: formData.valid_until || null,
+        room_overrides: overridesArray,
       };
 
       if (editingTemplate) {
@@ -281,7 +368,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       const copyIds = Array.isArray(template.room_type_ids) && template.room_type_ids.length > 0
         ? template.room_type_ids
         : (template.room_type_id ? [template.room_type_id] : []);
-      const dataToCopy = {
+      const dataToCopy: any = {
         template_name: `${template.template_name} (複製)`,
         description: template.description,
         weekday_price: template.weekday_price ?? template.price ?? null,
@@ -293,6 +380,9 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         room_type_id: template.room_type_id || copyIds[0] || null,
         room_type_ids: copyIds,
         display_order: templates.length,
+        valid_from: template.valid_from || null,
+        valid_until: template.valid_until || null,
+        room_overrides: getRoomOverrides(template as any),
       };
 
       const { error } = await supabase
@@ -414,34 +504,57 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
           )}
         </div>
 
-        {/* 價格與庫存資訊 */}
-        <div className="px-4 pb-3 ml-6">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-            <div>
-              <span className="text-muted-foreground text-xs">平日價格</span>
-              <div className="font-semibold text-primary tabular-nums">
-                {weekdayPrice != null ? `NT$ ${weekdayPrice.toLocaleString()}` : '未設定'}
+        {/* 期限 + 價格與庫存資訊 */}
+        <div className="px-4 pb-3 ml-6 space-y-2">
+          {(template.valid_from || template.valid_until) && (
+            <div className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
+              <CalendarIcon className="h-3 w-3" />
+              <span>期限：{template.valid_from || '不限'} ~ {template.valid_until || '不限'}</span>
+            </div>
+          )}
+          {isTS && getRoomOverrides(template as any).length > 0 ? (
+            <div className="space-y-1.5">
+              {getRoomOverrides(template as any).map((ov) => {
+                const name = roomTypes.find(r => r.id === ov.room_type_id)?.name || '未知房型';
+                return (
+                  <div key={ov.room_type_id} className="text-xs flex flex-wrap gap-x-3 gap-y-0.5">
+                    <span className="font-medium">{name}</span>
+                    <span className="text-muted-foreground">平日 <span className="text-primary font-semibold tabular-nums">{ov.weekday_price != null ? `$${ov.weekday_price.toLocaleString()}` : '—'}</span></span>
+                    <span className="text-muted-foreground">旺日 <span className="text-primary font-semibold tabular-nums">{ov.peak_price != null ? `$${ov.peak_price.toLocaleString()}` : '—'}</span></span>
+                    <span className="text-muted-foreground">假日 <span className="text-primary font-semibold tabular-nums">{ov.weekend_price != null ? `$${ov.weekend_price.toLocaleString()}` : '—'}</span></span>
+                    <span className="text-muted-foreground">庫存 <span className="font-semibold tabular-nums">{ov.available_rooms}</span> 間</span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+              <div>
+                <span className="text-muted-foreground text-xs">平日價格</span>
+                <div className="font-semibold text-primary tabular-nums">
+                  {weekdayPrice != null ? `NT$ ${weekdayPrice.toLocaleString()}` : '未設定'}
+                </div>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-xs">旺日價格</span>
+                <div className="font-semibold text-primary tabular-nums">
+                  {peakPrice != null ? `NT$ ${peakPrice.toLocaleString()}` : '未設定'}
+                </div>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-xs">假日價格</span>
+                <div className="font-semibold text-primary tabular-nums">
+                  {weekendPrice != null ? `NT$ ${weekendPrice.toLocaleString()}` : '未設定'}
+                </div>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-xs">庫存量</span>
+                <div className="font-semibold tabular-nums">
+                  {availRooms} 間
+                </div>
               </div>
             </div>
-            <div>
-              <span className="text-muted-foreground text-xs">旺日價格</span>
-              <div className="font-semibold text-primary tabular-nums">
-                {peakPrice != null ? `NT$ ${peakPrice.toLocaleString()}` : '未設定'}
-              </div>
-            </div>
-            <div>
-              <span className="text-muted-foreground text-xs">假日價格</span>
-              <div className="font-semibold text-primary tabular-nums">
-                {weekendPrice != null ? `NT$ ${weekendPrice.toLocaleString()}` : '未設定'}
-              </div>
-            </div>
-            <div>
-              <span className="text-muted-foreground text-xs">庫存量</span>
-              <div className="font-semibold tabular-nums">
-                {availRooms} 間
-              </div>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* 分隔線 */}
@@ -568,90 +681,151 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
             )}
           </div>
 
-          {/* 平日 / 旺日 / 假日價格（擇一必填） */}
-          <div className="space-y-2">
-            <Label>價格設定 <span className="text-xs text-muted-foreground font-normal">（擇一必填）</span></Label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="weekday_price" className="text-sm font-normal text-muted-foreground">平日價格</Label>
-                <Input
-                  id="weekday_price"
-                  type="number"
-                  min="0"
-                  value={formData.weekday_price ?? ""}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    weekday_price: e.target.value ? parseInt(e.target.value) : null
-                  })}
-                  placeholder="請輸入平日價格"
-                  className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
-                  inputMode="numeric"
-                />
-                <p className="text-xs text-muted-foreground">週一至週四的價格</p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="peak_price" className="text-sm font-normal text-muted-foreground">旺日價格</Label>
-                <Input
-                  id="peak_price"
-                  type="number"
-                  min="0"
-                  value={formData.peak_price ?? ""}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    peak_price: e.target.value ? parseInt(e.target.value) : null
-                  })}
-                  placeholder="請輸入旺日價格"
-                  className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
-                  inputMode="numeric"
-                />
-                <p className="text-xs text-muted-foreground">週五及週日的價格</p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="weekend_price" className="text-sm font-normal text-muted-foreground">假日價格</Label>
-                <Input
-                  id="weekend_price"
-                  type="number"
-                  min="0"
-                  value={formData.weekend_price ?? ""}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    weekend_price: e.target.value ? parseInt(e.target.value) : null
-                  })}
-                  placeholder="請輸入假日價格"
-                  className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
-                  inputMode="numeric"
-                />
-                <p className="text-xs text-muted-foreground">週六及國定假日的價格</p>
+          {/* 天送：專案期限 */}
+          {isTS && (
+            <div className="space-y-2">
+              <Label>專案期限 *<span className="text-xs text-muted-foreground font-normal ml-1">（硬性限制：超出期限將無法選用此專案）</span></Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-normal text-muted-foreground">開始日期</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn("w-full h-12 sm:h-10 justify-start text-left font-normal", !formData.valid_from && "text-muted-foreground")}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {formData.valid_from ? formData.valid_from : "選擇開始日期"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={formData.valid_from ? parseISO(formData.valid_from) : undefined}
+                        onSelect={(d) => setFormData({ ...formData, valid_from: d ? format(d, "yyyy-MM-dd") : "" })}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  {errors.valid_from && <p className="text-sm text-destructive">{errors.valid_from}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-normal text-muted-foreground">結束日期</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn("w-full h-12 sm:h-10 justify-start text-left font-normal", !formData.valid_until && "text-muted-foreground")}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {formData.valid_until ? formData.valid_until : "選擇結束日期"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={formData.valid_until ? parseISO(formData.valid_until) : undefined}
+                        onSelect={(d) => setFormData({ ...formData, valid_until: d ? format(d, "yyyy-MM-dd") : "" })}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  {errors.valid_until && <p className="text-sm text-destructive">{errors.valid_until}</p>}
+                </div>
               </div>
             </div>
-            {(errors.weekday_price || errors.peak_price || errors.weekend_price) && (
-              <p className="text-sm text-destructive">{errors.weekday_price || errors.peak_price || errors.weekend_price}</p>
-            )}
-          </div>
+          )}
 
-          {/* 庫存量 */}
-          <div className="space-y-2">
-            <Label htmlFor="available_rooms">庫存量 *</Label>
-            <Input
-              id="available_rooms"
-              type="number"
-              min="0"
-              value={formData.available_rooms}
-              onChange={(e) => setFormData({
-                ...formData,
-                available_rooms: parseInt(e.target.value) || 0
-              })}
-              placeholder="請輸入庫存量"
-              className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
-              inputMode="numeric"
-            />
-            <p className="text-xs text-muted-foreground">設定每天的可用房數</p>
-            {errors.available_rooms && (
-              <p className="text-sm text-destructive">{errors.available_rooms}</p>
-            )}
-          </div>
+          {/* 平日 / 旺日 / 假日價格（擇一必填）— 天送由每房型獨立設定 */}
+          {!isTS && (
+            <div className="space-y-2">
+              <Label>價格設定 <span className="text-xs text-muted-foreground font-normal">（擇一必填）</span></Label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="weekday_price" className="text-sm font-normal text-muted-foreground">平日價格</Label>
+                  <Input
+                    id="weekday_price"
+                    type="number"
+                    min="0"
+                    value={formData.weekday_price ?? ""}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      weekday_price: e.target.value ? parseInt(e.target.value) : null
+                    })}
+                    placeholder="請輸入平日價格"
+                    className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
+                    inputMode="numeric"
+                  />
+                  <p className="text-xs text-muted-foreground">週一至週四的價格</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="peak_price" className="text-sm font-normal text-muted-foreground">旺日價格</Label>
+                  <Input
+                    id="peak_price"
+                    type="number"
+                    min="0"
+                    value={formData.peak_price ?? ""}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      peak_price: e.target.value ? parseInt(e.target.value) : null
+                    })}
+                    placeholder="請輸入旺日價格"
+                    className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
+                    inputMode="numeric"
+                  />
+                  <p className="text-xs text-muted-foreground">週五及週日的價格</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="weekend_price" className="text-sm font-normal text-muted-foreground">假日價格</Label>
+                  <Input
+                    id="weekend_price"
+                    type="number"
+                    min="0"
+                    value={formData.weekend_price ?? ""}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      weekend_price: e.target.value ? parseInt(e.target.value) : null
+                    })}
+                    placeholder="請輸入假日價格"
+                    className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
+                    inputMode="numeric"
+                  />
+                  <p className="text-xs text-muted-foreground">週六及國定假日的價格</p>
+                </div>
+              </div>
+              {(errors.weekday_price || errors.peak_price || errors.weekend_price) && (
+                <p className="text-sm text-destructive">{errors.weekday_price || errors.peak_price || errors.weekend_price}</p>
+              )}
+            </div>
+          )}
+
+          {/* 庫存量 — 天送由每房型獨立設定 */}
+          {!isTS && (
+            <div className="space-y-2">
+              <Label htmlFor="available_rooms">庫存量 *</Label>
+              <Input
+                id="available_rooms"
+                type="number"
+                min="0"
+                value={formData.available_rooms}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  available_rooms: parseInt(e.target.value) || 0
+                })}
+                placeholder="請輸入庫存量"
+                className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
+                inputMode="numeric"
+              />
+              <p className="text-xs text-muted-foreground">設定每天的可用房數</p>
+              {errors.available_rooms && (
+                <p className="text-sm text-destructive">{errors.available_rooms}</p>
+              )}
+            </div>
+          )}
 
           {/* 對應房型 */}
           <div className="space-y-2">
@@ -709,6 +883,94 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
               </>
             )}
           </div>
+
+          {/* 天送：每房型獨立價格與庫存 */}
+          {isTS && formData.room_type_ids.length > 0 && (
+            <div className="space-y-3">
+              <Label>各房型獨立設定 *<span className="text-xs text-muted-foreground font-normal ml-1">（每個已選房型各自設定平日/旺日/假日價與庫存）</span></Label>
+              {errors.room_type_ids && <p className="text-sm text-destructive">{errors.room_type_ids}</p>}
+              <div className="space-y-3">
+                {formData.room_type_ids.map((rtId) => {
+                  const rt = roomTypes.find(r => r.id === rtId);
+                  const ov = formData.room_overrides[rtId] || { weekday_price: null, peak_price: null, weekend_price: null, available_rooms: 1 };
+                  const setOv = (patch: Partial<typeof ov>) => {
+                    setFormData({
+                      ...formData,
+                      room_overrides: {
+                        ...formData.room_overrides,
+                        [rtId]: { ...ov, ...patch },
+                      },
+                    });
+                  };
+                  return (
+                    <div key={rtId} className="rounded-lg border bg-card p-3 sm:p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-semibold">{rt?.name || '未知房型'}</h4>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">平日價格</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={ov.weekday_price ?? ""}
+                            onChange={(e) => setOv({ weekday_price: e.target.value ? parseInt(e.target.value) : null })}
+                            placeholder="平日"
+                            className="h-11 sm:h-9 text-base sm:text-sm"
+                            inputMode="numeric"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">旺日價格</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={ov.peak_price ?? ""}
+                            onChange={(e) => setOv({ peak_price: e.target.value ? parseInt(e.target.value) : null })}
+                            placeholder="旺日"
+                            className="h-11 sm:h-9 text-base sm:text-sm"
+                            inputMode="numeric"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">假日價格</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={ov.weekend_price ?? ""}
+                            onChange={(e) => setOv({ weekend_price: e.target.value ? parseInt(e.target.value) : null })}
+                            placeholder="假日"
+                            className="h-11 sm:h-9 text-base sm:text-sm"
+                            inputMode="numeric"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">庫存量</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={ov.available_rooms}
+                            onChange={(e) => setOv({ available_rooms: parseInt(e.target.value) || 0 })}
+                            placeholder="庫存"
+                            className="h-11 sm:h-9 text-base sm:text-sm"
+                            inputMode="numeric"
+                          />
+                        </div>
+                      </div>
+                      {errors[`override_${rtId}`] && (
+                        <p className="text-sm text-destructive">{errors[`override_${rtId}`]}</p>
+                      )}
+                      {errors[`override_${rtId}_inv`] && (
+                        <p className="text-sm text-destructive">{errors[`override_${rtId}_inv`]}</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+
 
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
             <Button onClick={handleSubmit} className="flex items-center justify-center gap-2 w-full sm:w-auto h-11 sm:h-10 touch-manipulation">

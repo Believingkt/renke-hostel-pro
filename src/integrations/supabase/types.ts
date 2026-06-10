@@ -5676,10 +5676,13 @@ export type Database = {
           price: number | null
           project_description: string | null
           project_name: string | null
+          room_overrides: Json
           room_type_id: string | null
           room_type_ids: string[]
           template_name: string
           updated_at: string
+          valid_from: string | null
+          valid_until: string | null
           weekday_price: number | null
           weekend_price: number | null
         }
@@ -5697,10 +5700,13 @@ export type Database = {
           price?: number | null
           project_description?: string | null
           project_name?: string | null
+          room_overrides?: Json
           room_type_id?: string | null
           room_type_ids?: string[]
           template_name: string
           updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
           weekday_price?: number | null
           weekend_price?: number | null
         }
@@ -5718,10 +5724,13 @@ export type Database = {
           price?: number | null
           project_description?: string | null
           project_name?: string | null
+          room_overrides?: Json
           room_type_id?: string | null
           room_type_ids?: string[]
           template_name?: string
           updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
           weekday_price?: number | null
           weekend_price?: number | null
         }

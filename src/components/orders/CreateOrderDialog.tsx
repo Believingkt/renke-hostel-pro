@@ -285,7 +285,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           .order("created_at", { ascending: true }),
         supabase
           .from("pricing_templates")
-          .select("id, template_name, meal_plans, project_name, room_type_id, room_type_ids, price, weekday_price, peak_price, weekend_price")
+          .select("id, template_name, meal_plans, project_name, room_type_id, room_type_ids, price, weekday_price, peak_price, weekend_price, valid_from, valid_until, room_overrides")
           .eq("accommodation_id", currentAccommodationId)
           .order("display_order")
       ]);
@@ -325,23 +325,48 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     fetchData();
   }, [currentAccommodationId]);
 
-  // Helper: get templates for a room_type_id
+  // Helper: get templates for a room_type_id（含期限硬性限制）
   const getTemplatesForRoomType = useCallback((roomTypeId: string) => {
     if (!roomTypeId || pricingTemplates.length === 0) return [];
+    // 計算當下訂單入住期間
+    const nights = (() => {
+      if (!form.check_in_date || !form.check_out_date) return 0;
+      const ci = new Date(form.check_in_date);
+      const co = new Date(form.check_out_date);
+      return Math.max(0, Math.ceil((co.getTime() - ci.getTime()) / 86400000));
+    })();
+    const dateStrs: string[] = [];
+    if (nights > 0 && form.check_in_date) {
+      const start = new Date(form.check_in_date);
+      for (let i = 0; i < nights; i++) {
+        const d = new Date(start);
+        d.setDate(start.getDate() + i);
+        dateStrs.push(format(d, "yyyy-MM-dd"));
+      }
+    }
+    const inValidRange = (t: any) => {
+      const vf = t?.valid_from || null;
+      const vu = t?.valid_until || null;
+      if (!vf && !vu) return true;
+      if (dateStrs.length === 0) return true;
+      return dateStrs.every(d => (!vf || d >= vf) && (!vu || d <= vu));
+    };
     const filtered = pricingTemplates.filter(t => {
       const ids = (t as any).room_type_ids;
-      if (Array.isArray(ids) && ids.length > 0) return ids.includes(roomTypeId);
-      return (t as any).room_type_id === roomTypeId;
+      const matches = Array.isArray(ids) && ids.length > 0
+        ? ids.includes(roomTypeId)
+        : (t as any).room_type_id === roomTypeId;
+      return matches && inValidRange(t);
     });
     const result = filtered.length > 0
       ? filtered
       : pricingTemplates.filter(t => {
           const ids = (t as any).room_type_ids;
           const hasIds = Array.isArray(ids) && ids.length > 0;
-          return !hasIds && !(t as any).room_type_id;
+          return !hasIds && !(t as any).room_type_id && inValidRange(t);
         });
-    return result.length > 0 ? result : pricingTemplates;
-  }, [pricingTemplates]);
+    return result.length > 0 ? result : pricingTemplates.filter(inValidRange);
+  }, [pricingTemplates, form.check_in_date, form.check_out_date]);
 
   // Keep legacy form.room_type_id in sync (old template filter useEffect kept for compat)
   useEffect(() => {
@@ -910,7 +935,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         if (missingTemplateIds.length > 0) {
           const { data: fetchedTemplates } = await supabase
             .from('pricing_templates')
-            .select('id, template_name, project_name, price, weekday_price, peak_price, weekend_price')
+            .select('id, template_name, project_name, price, weekday_price, peak_price, weekend_price, room_overrides, valid_from, valid_until')
             .in('id', missingTemplateIds);
           (fetchedTemplates || []).forEach((t: any) => templatesById.set(t.id, t));
         }

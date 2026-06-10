@@ -149,7 +149,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
           .order("created_at", { ascending: true }),
         supabase
           .from("pricing_templates")
-          .select("id, template_name, meal_plans, project_name, room_type_id, room_type_ids, price, weekday_price, peak_price, weekend_price")
+          .select("id, template_name, meal_plans, project_name, room_type_id, room_type_ids, price, weekday_price, peak_price, weekend_price, valid_from, valid_until, room_overrides")
           .eq("accommodation_id", currentAccommodationId)
           .order("display_order")
       ]);
@@ -198,19 +198,41 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
       return;
     }
 
+    // 計算編輯中的入住期間，套用「期限硬性限制」
+    const dateStrs: string[] = [];
+    if (editForm.check_in_date && editForm.check_out_date) {
+      const ci = new Date(editForm.check_in_date);
+      const co = new Date(editForm.check_out_date);
+      const nights = Math.max(0, Math.ceil((co.getTime() - ci.getTime()) / 86400000));
+      for (let i = 0; i < nights; i++) {
+        const d = new Date(ci);
+        d.setDate(ci.getDate() + i);
+        dateStrs.push(d.toISOString().slice(0, 10));
+      }
+    }
+    const inValidRange = (t: any) => {
+      const vf = t?.valid_from || null;
+      const vu = t?.valid_until || null;
+      if (!vf && !vu) return true;
+      if (dateStrs.length === 0) return true;
+      return dateStrs.every(d => (!vf || d >= vf) && (!vu || d <= vu));
+    };
+
     const filtered = pricingTemplates.filter(t => {
       const ids = (t as any).room_type_ids;
-      if (Array.isArray(ids) && ids.length > 0) return ids.includes(editForm.room_type_id);
-      return t.room_type_id === editForm.room_type_id;
+      const matches = Array.isArray(ids) && ids.length > 0
+        ? ids.includes(editForm.room_type_id)
+        : t.room_type_id === editForm.room_type_id;
+      return matches && inValidRange(t);
     });
     const result = filtered.length > 0
       ? filtered
       : pricingTemplates.filter(t => {
           const ids = (t as any).room_type_ids;
           const hasIds = Array.isArray(ids) && ids.length > 0;
-          return !hasIds && !t.room_type_id;
+          return !hasIds && !t.room_type_id && inValidRange(t);
         });
-    const finalList = result.length > 0 ? result : pricingTemplates;
+    const finalList = result.length > 0 ? result : pricingTemplates.filter(inValidRange);
 
     setFilteredTemplates(finalList);
     
@@ -222,7 +244,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
       setSelectedTemplateId(finalList[0]?.id || "");
       setEditForm(prev => ({ ...prev, meal_plan: finalList[0]?.template_name || "" }));
     }
-  }, [editForm.room_type_id, pricingTemplates]);
+  }, [editForm.room_type_id, editForm.check_in_date, editForm.check_out_date, pricingTemplates]);
 
   // 當 order 變化時更新表單
   useEffect(() => {
