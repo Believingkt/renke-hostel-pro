@@ -487,6 +487,7 @@ export default function TeamOrders() {
       addon_amount: o.meta?.addon_amount ?? 0,
 
     });
+    setIsEditing(false);
     setEditOpen(true);
   }
 
