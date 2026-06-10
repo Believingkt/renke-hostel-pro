@@ -634,11 +634,11 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
                                         <TableCell className="text-center py-1 px-2">{dd.date.slice(5)}</TableCell>
                                         <TableCell className="text-center py-1 px-2">{dd.dayLabel}</TableCell>
                                         <TableCell className="text-center py-1 px-2">{dayTypeLabel}</TableCell>
-                                        <TableCell className="text-center py-1 px-2 font-medium tabular-nums">
+                                        <TableCell className="text-center py-1 px-2 font-medium tabular-nums whitespace-nowrap">
                                           {splitMode ? (
                                             <>
                                               <span className="text-purple-600 dark:text-purple-300">{dd.exclusiveSold}/{exclusiveCap}棟</span>
-                                              <span className="text-muted-foreground"> + </span>
+                                              <span className="text-muted-foreground mx-1.5">+</span>
                                               <span className="text-sky-600 dark:text-sky-300">{dd.standardSold}/{standardCap}間</span>
                                             </>
                                           ) : (
