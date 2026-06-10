@@ -829,8 +829,9 @@ export default function TeamOrders() {
                   value={`$${editOrder.final_price?.toLocaleString()}`}
                 />
                 <ReadField label="折扣碼" value={editOrder.discount_code || "-"} />
-                <ReadField label="來源" value={editOrder.order_source || "-"} />
-                <ReadField label="訂房方式" value={editOrder.ota_channel || "-"} />
+                <ReadField label="來源" value={(({ 'owner_provided':'業主自帶','kol':'KOL','line':'Line@','agoda':'Agoda','booking':'Booking','trip':'Trip','travel_agency':'旅行社','kol_exchange':'KOL互惠','starlink_member':'星鏈會員','official':'官網訂房' } as Record<string,string>)[editOrder.order_source ?? ''] ?? editOrder.order_source ?? '-')} />
+                <ReadField label="來源管道" value={trafficMap.get(editOrder.meta?.traffic_source ?? '') ?? editOrder.meta?.traffic_source ?? '-'} />
+                <ReadField label="訂房方式" value={bookingMap.get(editOrder.meta?.booking_method ?? '') ?? editOrder.meta?.booking_method ?? '-'} />
                 <ReadField label="下單日" value={editOrder.order_date ? editOrder.order_date.slice(0, 10) : "-"} />
               </div>
 
