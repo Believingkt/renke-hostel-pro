@@ -112,6 +112,19 @@ const BOOKING_OPTIONS = ["官網", "電話", "Line", "現場", "其他"];
 
 const NONE = "__none__";
 
+const ORDER_SOURCE_LABEL: Record<string, string> = {
+  'owner_provided': '業主自帶',
+  'kol': 'KOL',
+  'line': 'Line@',
+  'agoda': 'Agoda',
+  'booking': 'Booking',
+  'trip': 'Trip',
+  'travel_agency': '旅行社',
+  'kol_exchange': 'KOL互惠',
+  'starlink_member': '星鏈會員',
+  'official': '官網訂房',
+};
+
 export default function TeamOrders() {
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
