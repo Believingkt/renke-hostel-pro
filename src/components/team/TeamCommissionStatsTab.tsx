@@ -116,6 +116,8 @@ export default function TeamCommissionStatsTab() {
   );
   const [scoutCodes, setScoutCodes] = useState<ScoutCode[]>([]);
   const [accNameMap, setAccNameMap] = useState<Map<string, string>>(new Map());
+  const [closersList, setClosersList] = useState<{ user_id: string; display_name: string }[]>([]);
+  const [videosList, setVideosList] = useState<{ user_id: string; display_name: string }[]>([]);
 
   // Sheet / expanded state
   const [expandedCloser, setExpandedCloser] = useState<Set<string>>(new Set());
@@ -130,6 +132,15 @@ export default function TeamCommissionStatsTab() {
     validList: OrderLite[];
     cancelList: OrderLite[];
   } | null>(null);
+  const [unfilledOpen, setUnfilledOpen] = useState(false);
+  const [editOrder, setEditOrder] = useState<OrderLite | null>(null);
+  const [editForm, setEditForm] = useState<{
+    closer_id: string | null;
+    video_creator_id: string | null;
+    is_excluded: boolean;
+    exclusion_note: string | null;
+  }>({ closer_id: null, video_creator_id: null, is_excluded: false, exclusion_note: null });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const period = useMemo(() => {
     const allYears = year === "all";
