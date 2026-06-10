@@ -174,6 +174,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       weekend_price: null,
       available_rooms: 1,
       room_type_id: "",
+      room_type_ids: [],
     });
     setErrors({});
     setShowForm(true);
@@ -181,6 +182,9 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
 
   const handleEdit = (template: PricingTemplate) => {
     setEditingTemplate(template);
+    const existingIds = Array.isArray(template.room_type_ids) && template.room_type_ids.length > 0
+      ? template.room_type_ids
+      : (template.room_type_id ? [template.room_type_id] : []);
     setFormData({
       template_name: template.template_name,
       description: template.description || "",
@@ -188,7 +192,8 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       peak_price: template.peak_price ?? null,
       weekend_price: template.weekend_price ?? null,
       available_rooms: (template as any).available_rooms ?? 1,
-      room_type_id: template.room_type_id || "",
+      room_type_id: template.room_type_id || existingIds[0] || "",
+      room_type_ids: existingIds,
     });
     setErrors({});
     setShowForm(true);
