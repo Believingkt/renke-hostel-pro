@@ -1615,7 +1615,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                     )}
                   </div>
                 </div>
-                {customBreakdown ? (
+                {(() => {
+                  const customBreakdown = getPackageBreakdown(roomSelections[0]?.room_type_id);
+                  return customBreakdown ? (
                   <>
                     <div className={`grid gap-3 ${customBreakdown.length >= 3 ? "grid-cols-2 md:grid-cols-3" : "grid-cols-2"}`}>
                       {customBreakdown.map((bd) => {
@@ -1681,7 +1683,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                       {exclusiveLabel}已鎖定 {MAX_TOTAL_ROOMS} 間房（雙人房 {exclusiveDoubleRooms} 間、四人房 {exclusiveQuadRooms} 間）
                     </div>
                   </>
-                )}
+                );
+                })()}
                 {roomSelections[0]?.roomPrice > 0 && (
                   <div className="text-xs text-right text-muted-foreground">
                     小計：NT$ {roomSelections[0].roomPrice.toLocaleString()}（{exclusiveLabel}）
