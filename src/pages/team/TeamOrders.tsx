@@ -143,6 +143,7 @@ export default function TeamOrders() {
 
   const [editOpen, setEditOpen] = useState(false);
   const [editOrder, setEditOrder] = useState<OrderRow | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState<MetaRow>(emptyMeta());
   const [saving, setSaving] = useState(false);
 
