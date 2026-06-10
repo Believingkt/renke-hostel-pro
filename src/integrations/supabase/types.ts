@@ -268,6 +268,8 @@ export type Database = {
           created_at: string
           custom_domain: string | null
           daily_capacity: number | null
+          daily_room_capacity: number | null
+          daily_villa_capacity: number | null
           description: string | null
           display_order: number | null
           email: string | null
@@ -338,6 +340,8 @@ export type Database = {
           created_at?: string
           custom_domain?: string | null
           daily_capacity?: number | null
+          daily_room_capacity?: number | null
+          daily_villa_capacity?: number | null
           description?: string | null
           display_order?: number | null
           email?: string | null
@@ -408,6 +412,8 @@ export type Database = {
           created_at?: string
           custom_domain?: string | null
           daily_capacity?: number | null
+          daily_room_capacity?: number | null
+          daily_villa_capacity?: number | null
           description?: string | null
           display_order?: number | null
           email?: string | null
