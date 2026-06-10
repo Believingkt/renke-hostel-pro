@@ -51,6 +51,7 @@ interface PricingTemplate {
   is_default: boolean;
   display_order: number;
   room_type_id?: string | null;
+  room_type_ids?: string[] | null;
 }
 
 interface RoomType {
@@ -66,6 +67,12 @@ interface PricingTemplateManagerProps {
 export interface PricingTemplateManagerRef {
   openAddDialog: () => void;
 }
+
+// 這些民宿的「對應房型」維持單選（不動）：森山寫照、哈庫納馬塔塔
+const SINGLE_SELECT_ACCOMMODATIONS = new Set([
+  "5f764d55-ae11-4631-80fe-2e611853deae", // 森山寫照
+  "6b6ac0dc-602b-4dec-9167-7791ac412ba3", // 哈庫納馬塔塔
+]);
 
 const templateSchema = z.object({
   template_name: z.string().trim().min(1, "專案名稱不能為空").max(50, "專案名稱最多50字"),
@@ -89,7 +96,8 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingTemplate, setDeletingTemplate] = useState<PricingTemplate | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
-  
+  const isSingleSelect = SINGLE_SELECT_ACCOMMODATIONS.has(accommodationId);
+
   const [formData, setFormData] = useState({
     template_name: "",
     description: "",
@@ -98,6 +106,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     weekend_price: null as number | null,
     available_rooms: 1,
     room_type_id: "" as string,
+    room_type_ids: [] as string[],
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
