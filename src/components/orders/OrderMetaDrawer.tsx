@@ -76,6 +76,8 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [voucherCount, setVoucherCount] = useState<number>(0);
   const [addonNote, setAddonNote] = useState("");
   const [addonAmount, setAddonAmount] = useState<number>(0);
+  const [nickname, setNickname] = useState("");
+  const [depositConfirmDate, setDepositConfirmDate] = useState<string>("");
   const [orderDate, setOrderDate] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
