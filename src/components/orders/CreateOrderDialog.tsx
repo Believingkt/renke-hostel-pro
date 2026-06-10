@@ -1073,8 +1073,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           let note = form.notes.trim();
           const pkgLines: string[] = [];
           if (bookingMode === 'exclusive') {
-            if (customBreakdown) {
-              const parts = customBreakdown
+            const firstBd = getPackageBreakdown(roomSelections[0]?.room_type_id);
+            if (firstBd) {
+              const parts = firstBd
                 .map(bd => ({ name: bd.name, count: exclusiveCustomCounts[bd.room_type_id] ?? 0 }))
                 .filter(p => p.count > 0);
               if (parts.length > 0) {
@@ -1088,10 +1089,11 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           pricedRoomSelections.slice(1).forEach(sel => {
             const isExc = !!roomTypes.find(r => r.id === sel.room_type_id)?.is_exclusive_package;
             if (!isExc) return;
-            if (customBreakdown) {
+            const bd = getPackageBreakdown(sel.room_type_id);
+            if (bd) {
               const map = extraExclusiveCustomCounts[sel.id] || {};
-              const parts = customBreakdown
-                .map(bd => ({ name: bd.name, count: map[bd.room_type_id] ?? 0 }))
+              const parts = bd
+                .map(bdRow => ({ name: bdRow.name, count: map[bdRow.room_type_id] ?? 0 }))
                 .filter(p => p.count > 0);
               if (parts.length > 0) {
                 pkgLines.push(`【${exclusiveLabel}房間配置】${parts.map(p => `${p.name} ${p.count} 間`).join("、")}`);
