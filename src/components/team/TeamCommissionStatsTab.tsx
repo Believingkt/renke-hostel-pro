@@ -67,6 +67,7 @@ export default function TeamCommissionStatsTab() {
     roles.some((r) => r === "scout" || r === "scout_manager");
   const now = new Date();
   const [year, setYear] = useState<string>(String(now.getFullYear()));
+  // month 代表發放期別：「ALL」=全部月份；「M」=M月10日發放（統計上月整月）
   const [month, setMonth] = useState<string>(String(now.getMonth() + 1));
   const [loading, setLoading] = useState(false);
 
