@@ -346,6 +346,8 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         voucher_count: Number.isFinite(voucherCount) ? Math.max(0, Math.trunc(voucherCount)) : 0,
         addon_note: addonNote.trim() || null,
         addon_amount: Number.isFinite(addonAmount) ? addonAmount : 0,
+        nickname: nickname.trim() || null,
+        deposit_confirm_date: depositConfirmDate || null,
         import_source: "manual",
         filled_by: currentUserId,
         filled_at: new Date().toISOString(),
