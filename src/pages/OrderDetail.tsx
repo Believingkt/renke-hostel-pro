@@ -2419,7 +2419,7 @@ const OrderDetailPage = () => {
                 <span className="font-medium text-base md:text-base">{order.guest_count} 人</span>
               )}
             </div>
-            {orderRooms.length === 0 && (order.meal_plan || isEditing) && (
+            {orderRooms.length === 0 && editOrderRooms.length === 0 && (order.meal_plan || isEditing) && (
               <>
                 <Separator />
                 <div className="flex justify-between items-center gap-2">
