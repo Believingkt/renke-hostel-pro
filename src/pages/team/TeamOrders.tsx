@@ -36,6 +36,7 @@ import { Pencil, Check, X, Search } from "lucide-react";
 import ScoutDiscountCodesTab from "@/components/team/ScoutDiscountCodesTab";
 import TeamCommissionStatsTab from "@/components/team/TeamCommissionStatsTab";
 import CommissionRatesTab from "@/components/team/CommissionRatesTab";
+import { getOrderSourceConfig } from "@/utils/orderHelpers";
 
 interface Member {
   user_id: string;
