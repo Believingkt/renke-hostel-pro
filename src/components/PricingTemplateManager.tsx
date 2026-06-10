@@ -1072,43 +1072,68 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">平日價格</Label>
+                          <div className="flex items-center justify-between gap-2">
+                            <Label className="text-xs font-medium">平日價格</Label>
+                            <Switch
+                              checked={ov.weekday_enabled !== false}
+                              onCheckedChange={(v) => setOv({ weekday_enabled: !!v })}
+                            />
+                          </div>
+                          <p className="text-[10px] text-muted-foreground">週一 ~ 週四</p>
                           <Input
                             type="number"
                             min="0"
                             value={ov.weekday_price ?? ""}
                             onChange={(e) => setOv({ weekday_price: e.target.value ? parseInt(e.target.value) : null })}
                             placeholder="平日"
+                            disabled={ov.weekday_enabled === false}
                             className="h-11 sm:h-9 text-base sm:text-sm"
                             inputMode="numeric"
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">旺日價格</Label>
+                          <div className="flex items-center justify-between gap-2">
+                            <Label className="text-xs font-medium">旺日價格</Label>
+                            <Switch
+                              checked={ov.peak_enabled !== false}
+                              onCheckedChange={(v) => setOv({ peak_enabled: !!v })}
+                            />
+                          </div>
+                          <p className="text-[10px] text-muted-foreground">週五、週日</p>
                           <Input
                             type="number"
                             min="0"
                             value={ov.peak_price ?? ""}
                             onChange={(e) => setOv({ peak_price: e.target.value ? parseInt(e.target.value) : null })}
                             placeholder="旺日"
+                            disabled={ov.peak_enabled === false}
                             className="h-11 sm:h-9 text-base sm:text-sm"
                             inputMode="numeric"
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">假日價格</Label>
+                          <div className="flex items-center justify-between gap-2">
+                            <Label className="text-xs font-medium">假日價格</Label>
+                            <Switch
+                              checked={ov.weekend_enabled !== false}
+                              onCheckedChange={(v) => setOv({ weekend_enabled: !!v })}
+                            />
+                          </div>
+                          <p className="text-[10px] text-muted-foreground">週六、國定假日</p>
                           <Input
                             type="number"
                             min="0"
                             value={ov.weekend_price ?? ""}
                             onChange={(e) => setOv({ weekend_price: e.target.value ? parseInt(e.target.value) : null })}
                             placeholder="假日"
+                            disabled={ov.weekend_enabled === false}
                             className="h-11 sm:h-9 text-base sm:text-sm"
                             inputMode="numeric"
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">庫存量</Label>
+                          <Label className="text-xs font-medium">庫存量</Label>
+                          <p className="text-[10px] text-muted-foreground">&nbsp;</p>
                           <Input
                             type="number"
                             min="0"
