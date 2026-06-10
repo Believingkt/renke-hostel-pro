@@ -935,6 +935,160 @@ export default function TeamCommissionStatsTab() {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* 未補填明細 Sheet */}
+      <Sheet open={unfilledOpen} onOpenChange={setUnfilledOpen}>
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-2xl overflow-y-auto overflow-x-hidden"
+        >
+          <SheetHeader>
+            <SheetTitle>未補填行銷資訊的訂單</SheetTitle>
+            <SheetDescription>共 {unfilledOrders.length} 筆未補填</SheetDescription>
+          </SheetHeader>
+          <div className="mt-4">
+            <Table className="fixed-table">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">訂單編號</TableHead>
+                  <TableHead className="whitespace-nowrap">館別</TableHead>
+                  <TableHead className="whitespace-nowrap">房客姓名</TableHead>
+                  <TableHead className="whitespace-nowrap tabular-nums">入住日</TableHead>
+                  <TableHead className="whitespace-nowrap tabular-nums">訂單金額</TableHead>
+                  <TableHead className="whitespace-nowrap">折扣碼</TableHead>
+                  <TableHead className="w-12" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {unfilledOrders.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+                      無未補填訂單
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  unfilledOrders.map((o) => (
+                    <TableRow key={o.id}>
+                      <TableCell className="font-mono">{o.order_number ?? "—"}</TableCell>
+                      <TableCell>{accNameMap.get(o.accommodation_id) ?? "—"}</TableCell>
+                      <TableCell>{o.guest_name ?? "—"}</TableCell>
+                      <TableCell className="tabular-nums">{o.check_in_date ?? "—"}</TableCell>
+                      <TableCell className="tabular-nums">{fmtMoney(o.final_price || 0)}</TableCell>
+                      <TableCell className="font-mono">{o.discount_code ?? "—"}</TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openEditOrder(o)}
+                          aria-label="補填"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* 補填 order_meta Sheet */}
+      <Sheet open={!!editOrder} onOpenChange={(o) => !o && setEditOrder(null)}>
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-md overflow-y-auto overflow-x-hidden"
+        >
+          <SheetHeader>
+            <SheetTitle>補填行銷資訊</SheetTitle>
+            <SheetDescription>
+              {editOrder?.order_number} ・ {editOrder ? accNameMap.get(editOrder.accommodation_id) ?? "—" : ""}
+            </SheetDescription>
+          </SheetHeader>
+          {editOrder && (
+            <div className="mt-4 space-y-4">
+              <div className="space-y-2">
+                <Label>成交人</Label>
+                <Select
+                  value={editForm.closer_id ?? "__none__"}
+                  onValueChange={(v) =>
+                    setEditForm((f) => ({ ...f, closer_id: v === "__none__" ? null : v }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="選擇成交人" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">未指定</SelectItem>
+                    {closersList.map((m) => (
+                      <SelectItem key={m.user_id} value={m.user_id}>
+                        {m.display_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>影音組</Label>
+                <Select
+                  value={editForm.video_creator_id ?? "__none__"}
+                  onValueChange={(v) =>
+                    setEditForm((f) => ({ ...f, video_creator_id: v === "__none__" ? null : v }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="選擇影音組" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">未指定</SelectItem>
+                    {videosList.map((m) => (
+                      <SelectItem key={m.user_id} value={m.user_id}>
+                        {m.display_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="is_excluded"
+                  checked={editForm.is_excluded}
+                  onCheckedChange={(v) =>
+                    setEditForm((f) => ({ ...f, is_excluded: !!v }))
+                  }
+                />
+                <Label htmlFor="is_excluded" className="cursor-pointer">不分潤</Label>
+              </div>
+
+              <div className="space-y-2">
+                <Label>備註</Label>
+                <Textarea
+                  value={editForm.exclusion_note ?? ""}
+                  onChange={(e) =>
+                    setEditForm((f) => ({
+                      ...f,
+                      exclusion_note: e.target.value || null,
+                    }))
+                  }
+                  placeholder="補充說明（選填）"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => setEditOrder(null)}>
+                  取消
+                </Button>
+                <Button onClick={saveEditOrder} disabled={savingEdit}>
+                  {savingEdit ? "儲存中..." : "儲存"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
