@@ -46,6 +46,7 @@ interface MetaLite {
   closer_id: string | null;
   video_creator_id: string | null;
   is_excluded: boolean | null;
+  exclusion_note: string | null;
 }
 interface CommissionRow {
   accommodation_id: string;
