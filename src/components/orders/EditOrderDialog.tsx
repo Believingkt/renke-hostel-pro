@@ -198,10 +198,18 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
       return;
     }
 
-    const filtered = pricingTemplates.filter(t => t.room_type_id === editForm.room_type_id);
+    const filtered = pricingTemplates.filter(t => {
+      const ids = (t as any).room_type_ids;
+      if (Array.isArray(ids) && ids.length > 0) return ids.includes(editForm.room_type_id);
+      return t.room_type_id === editForm.room_type_id;
+    });
     const result = filtered.length > 0
       ? filtered
-      : pricingTemplates.filter(t => !t.room_type_id);
+      : pricingTemplates.filter(t => {
+          const ids = (t as any).room_type_ids;
+          const hasIds = Array.isArray(ids) && ids.length > 0;
+          return !hasIds && !t.room_type_id;
+        });
     const finalList = result.length > 0 ? result : pricingTemplates;
 
     setFilteredTemplates(finalList);
