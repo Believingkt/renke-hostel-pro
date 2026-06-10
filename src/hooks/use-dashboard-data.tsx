@@ -625,6 +625,8 @@ const fetchDashboardData = async (
 
   const finalStats = {
     totalRooms: DAILY_ROOM_CAP,
+    dailyVillaCap,
+    dailyRoomCap,
     monthlyBookings: Number.isFinite(monthlyBookingCount) ? monthlyBookingCount : 0,
     totalGuests: Number.isFinite(monthlyGuestCount) ? monthlyGuestCount : 0,
     monthlyRevenue: Number.isFinite(monthlyRev) ? monthlyRev : 0,
