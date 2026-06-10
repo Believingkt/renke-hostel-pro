@@ -637,10 +637,9 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
                                         <TableCell className="text-center py-1 px-2 font-medium tabular-nums">
                                           {splitMode ? (
                                             <>
-                                              <span className="text-purple-600 dark:text-purple-300">{dd.exclusiveSold}</span>
-                                              <span className="text-muted-foreground">+</span>
-                                              <span className="text-sky-600 dark:text-sky-300">{dd.standardSold}</span>
-                                              <span className="text-muted-foreground">/{allCapacity}</span>
+                                              <span className="text-purple-600 dark:text-purple-300">{dd.exclusiveSold}/{exclusiveCap}棟</span>
+                                              <span className="text-muted-foreground"> + </span>
+                                              <span className="text-sky-600 dark:text-sky-300">{dd.standardSold}/{standardCap}間</span>
                                             </>
                                           ) : (
                                             <>{dd.roomsSold}/{allCapacity}</>
