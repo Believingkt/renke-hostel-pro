@@ -21,7 +21,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { RoomPriceEditDialog } from "@/components/RoomPriceEditDialog";
-import { getRoomOverride, isTierSellable, isTemplateActiveForDates } from "@/utils/pricingTemplateHelpers";
+import { getRoomOverride, isTierSellable, isTemplateActiveForDates, getTierForDate, getRoomOverrideForDate } from "@/utils/pricingTemplateHelpers";
 
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 
