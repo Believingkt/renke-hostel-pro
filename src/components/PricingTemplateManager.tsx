@@ -198,11 +198,16 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       weekday_price: null,
       peak_price: null,
       weekend_price: null,
+      weekday_enabled: true,
+      peak_enabled: true,
+      weekend_enabled: true,
       available_rooms: 1,
       room_type_id: "",
       room_type_ids: [],
       valid_from: "",
       valid_until: "",
+      extra_dates: [],
+      excluded_dates: [],
       room_overrides: {},
     });
     setErrors({});
