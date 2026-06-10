@@ -1,5 +1,5 @@
 // 天送專案範本：每房型獨立價格 + 期限相關工具
-export const TIANSONG_ACCOMMODATION_ID = "4ee31aca-7e26-4ca6-b7b3-cca57b8b2b32";
+export const TIANSONG_ACCOMMODATION_ID = "4ee31aca-5641-4d05-80e2-1c67626be83d";
 
 export interface RoomOverride {
   room_type_id: string;
