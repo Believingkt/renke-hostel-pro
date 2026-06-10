@@ -168,6 +168,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
   const [inventory, setInventory] = useState<Map<string, InventoryRecord>>(new Map());
   const [pricingTemplates, setPricingTemplates] = useState<TemplateLike[]>([]);
   const [expandedRoomTypes, setExpandedRoomTypes] = useState<Set<string>>(new Set());
+  const [hiddenRoomTypeIds, setHiddenRoomTypeIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   
 
