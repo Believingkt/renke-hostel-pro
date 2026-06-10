@@ -4,6 +4,7 @@ import { zhTW } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Lock, Package, CalendarIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getRoomOverride, isTemplateActiveForDates, type TemplateLike } from "@/utils/pricingTemplateHelpers";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
