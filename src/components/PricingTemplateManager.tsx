@@ -121,12 +121,17 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     weekday_price: null as number | null,
     peak_price: null as number | null,
     weekend_price: null as number | null,
+    weekday_enabled: true,
+    peak_enabled: true,
+    weekend_enabled: true,
     available_rooms: 1,
     room_type_id: "" as string,
     room_type_ids: [] as string[],
     valid_from: "" as string,
     valid_until: "" as string,
-    room_overrides: {} as Record<string, { weekday_price: number | null; peak_price: number | null; weekend_price: number | null; available_rooms: number }>,
+    extra_dates: [] as string[],
+    excluded_dates: [] as string[],
+    room_overrides: {} as Record<string, { weekday_price: number | null; peak_price: number | null; weekend_price: number | null; available_rooms: number; weekday_enabled: boolean; peak_enabled: boolean; weekend_enabled: boolean }>,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
