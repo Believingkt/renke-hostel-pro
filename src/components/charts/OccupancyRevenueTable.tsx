@@ -524,7 +524,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
     );
   }
 
-  const { rows, totalsSegments, grandTotalRevenue, splitMode, allCapacity, exclusiveRoomCount, standardRoomCount } = tableData;
+  const { rows, totalsSegments, grandTotalRevenue, splitMode, allCapacity, exclusiveCap, standardCap, exclusiveRoomCount, standardRoomCount } = tableData;
 
   const formatRate = (rate: number) => `${(Math.round(rate * 10) / 10).toFixed(1)}%`;
   const getRateColor = (rate: number) => {
