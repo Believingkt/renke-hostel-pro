@@ -284,13 +284,25 @@ const OrderDetailPage = () => {
   }, [order?.accommodation_id]);
 
   // Load 包棟方案的內含房間清單（room_types.package_contents）
+  // 優先用編輯中的包棟房型；否則 fallback 訂單原本的 room_type_id
+  const exclusiveRoomTypeId = useMemo(() => {
+    const editExclusive = editOrderRooms.find(r => roomTypes.find(t => t.id === r.room_type_id)?.is_exclusive_package);
+    if (editExclusive) return editExclusive.room_type_id;
+    const editFormType = roomTypes.find(t => t.id === editForm.room_type_id);
+    if (editFormType?.is_exclusive_package) return editFormType.id;
+    return order?.room_type_id || null;
+  }, [editOrderRooms, editForm.room_type_id, roomTypes, order?.room_type_id]);
+
   useEffect(() => {
-    if (!order?.room_type_id) return;
+    if (!exclusiveRoomTypeId) {
+      setCustomBreakdown(null);
+      return;
+    }
     (async () => {
       const { data } = await supabase
         .from("room_types")
         .select("package_contents, is_exclusive_package")
-        .eq("id", order.room_type_id)
+        .eq("id", exclusiveRoomTypeId)
         .maybeSingle();
       const items = (data as any)?.package_contents;
       if (Array.isArray(items) && items.length > 0) {
@@ -303,7 +315,7 @@ const OrderDetailPage = () => {
         setCustomBreakdown(null);
       }
     })();
-  }, [order?.room_type_id]);
+  }, [exclusiveRoomTypeId]);
   const getRoomUnitPrice = useCallback((roomPrice: number, quantity: number) => {
     return quantity > 0 ? Math.round(roomPrice / quantity) : roomPrice;
   }, []);
