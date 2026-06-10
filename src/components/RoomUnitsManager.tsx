@@ -181,21 +181,21 @@ export function RoomUnitsManager({ roomTypeId, accommodationId, roomCount, varia
       <CardHeader>
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
-            <CardTitle>房間單位管理</CardTitle>
+            <CardTitle>{L.title}</CardTitle>
             <CardDescription>
-              為此房型底下的每一間房獨立命名（例：1、201、面海第一間）。設定後，新增訂單時可指定客人入住的房間。
+              {L.desc}
             </CardDescription>
           </div>
           <div className="flex gap-2">
             {units.length === 0 && roomCount > 0 && (
               <Button type="button" variant="outline" size="sm" onClick={autoFill}>
                 <RefreshCw className="h-4 w-4 mr-1" />
-                依房型數量自動建立 {roomCount} 間
+                {L.autoBtn(roomCount)}
               </Button>
             )}
             <Button type="button" variant="outline" size="sm" onClick={addUnit}>
               <Plus className="h-4 w-4 mr-1" />
-              新增房間
+              {L.addBtn}
             </Button>
           </div>
         </div>
