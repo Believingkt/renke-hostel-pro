@@ -948,15 +948,14 @@ const OrderDetailPage = () => {
 
         // Insert updated rooms
         const newOrderRooms = editOrderRooms.map(r => {
-          const isPackage = !!roomTypes.find(rt => rt.id === r.room_type_id)?.is_exclusive_package;
           return {
             order_id: order.id,
             room_type_id: r.room_type_id,
             quantity: r.quantity,
             room_price: r.room_price,
             template_name: r.template_name,
-            // 包棟不需指派單一房間;quantity > 1 也不指派(只指派單間)
-            room_unit_id: isPackage || r.quantity !== 1 ? null : (r.room_unit_id || null),
+            // quantity > 1 不指派單一棟/房（只指派單間）；包棟與散客皆可手動指派
+            room_unit_id: r.quantity !== 1 ? null : (r.room_unit_id || null),
           };
         });
         const { error: roomsError } = await supabase.from("order_rooms").insert(newOrderRooms);
@@ -1998,13 +1997,12 @@ const OrderDetailPage = () => {
                         <Badge variant="outline" className="text-xs">
                           共 {editOrderRooms.reduce((sum, r) => sum + r.quantity, 0)} 間
                         </Badge>
-                        {isYunxiu && (
+                        {roomTypes.some(r => !r.is_exclusive_package) && (
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
                           className="h-7 gap-1 text-xs"
-                          disabled={roomTypes.filter(r => !r.is_exclusive_package).length === 0}
                           onClick={async () => {
                             const rt = roomTypes.filter(r => !r.is_exclusive_package)[0];
                             if (!rt) return;
@@ -2024,7 +2022,7 @@ const OrderDetailPage = () => {
                           新增散客房
                         </Button>
                         )}
-                        {isYunxiu && roomTypes.some(r => r.is_exclusive_package) && (
+                        {roomTypes.some(r => r.is_exclusive_package) && (
                           <Button
                             type="button"
                             variant="outline"
@@ -2186,23 +2184,23 @@ const OrderDetailPage = () => {
                               </Select>
                             </div>
                             {(() => {
-                              if (!isYunxiu) return null;
                               const isPackage = !!roomTypes.find(rt => rt.id === or.room_type_id)?.is_exclusive_package;
-                              if (isPackage || or.quantity !== 1) return null;
+                              if (or.quantity !== 1) return null;
                               const availableUnits = roomUnits.filter(u => u.room_type_id === or.room_type_id);
                               if (availableUnits.length === 0) return null;
+                              const labelText = isPackage ? `指派${exclusiveLabel}（棟號）` : "指派房間";
                               return (
                                 <div className="space-y-1">
-                                  <Label className="text-xs">指派房間</Label>
+                                  <Label className="text-xs">{labelText}</Label>
                                   <Select
                                     value={or.room_unit_id || "none"}
                                     onValueChange={(v) => setEditOrderRooms(prev => prev.map(r => r.id === or.id ? { ...r, room_unit_id: v === "none" ? null : v } : r))}
                                   >
                                     <SelectTrigger className="h-8 text-xs">
-                                      <SelectValue placeholder="尚未指派" />
+                                      <SelectValue placeholder="自動安排" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="none">尚未指派</SelectItem>
+                                      <SelectItem value="none">自動安排</SelectItem>
                                       {availableUnits.map(u => {
                                         const occupied = u.occupied_by_order_id && u.id !== or.room_unit_id;
                                         return (
