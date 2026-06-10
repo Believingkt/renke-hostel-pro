@@ -357,7 +357,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       if (!currentAccommodationId) { setAllRoomUnits([]); return; }
       const { data } = await supabase
         .from("room_units")
-        .select("id, room_type_id, display_order, is_active, unit_label")
+        .select("id, room_type_id, display_order, is_active, unit_number, nickname")
         .eq("accommodation_id", currentAccommodationId)
         .eq("is_active", true)
         .order("display_order", { ascending: true });
