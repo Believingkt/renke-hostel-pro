@@ -690,7 +690,14 @@ export default function TeamOrders() {
                       <TableCell className="whitespace-nowrap">{o.check_out_date}</TableCell>
                       <TableCell className="tabular-nums">${o.final_price?.toLocaleString()}</TableCell>
                       <TableCell>{o.discount_code || "-"}</TableCell>
-                      <TableCell>{getOrderSourceConfig(o.order_source ?? '').label}</TableCell>
+                      <TableCell>{(() => {
+                        const cfg = getOrderSourceConfig(o.order_source ?? '');
+                        return (
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${cfg.className}`}>
+                            {cfg.label}
+                          </span>
+                        );
+                      })()}</TableCell>
                       <TableCell className="whitespace-nowrap">{trafficMap.get(o.meta?.traffic_source ?? "") ?? o.meta?.traffic_source ?? "-"}</TableCell>
                       <TableCell className="whitespace-nowrap">{bookingMap.get(o.meta?.booking_method ?? "") ?? o.meta?.booking_method ?? "-"}</TableCell>
                       <TableCell>
