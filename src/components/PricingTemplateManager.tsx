@@ -58,6 +58,9 @@ interface PricingTemplate {
   display_order: number;
   room_type_id?: string | null;
   room_type_ids?: string[] | null;
+  valid_from?: string | null;
+  valid_until?: string | null;
+  room_overrides?: RoomOverride[] | null;
 }
 
 interface RoomType {
