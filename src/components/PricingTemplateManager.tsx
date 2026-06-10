@@ -202,6 +202,16 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     const existingIds = Array.isArray(template.room_type_ids) && template.room_type_ids.length > 0
       ? template.room_type_ids
       : (template.room_type_id ? [template.room_type_id] : []);
+    const overridesArr = getRoomOverrides(template as any);
+    const overridesMap: Record<string, { weekday_price: number | null; peak_price: number | null; weekend_price: number | null; available_rooms: number }> = {};
+    for (const o of overridesArr) {
+      overridesMap[o.room_type_id] = {
+        weekday_price: o.weekday_price ?? null,
+        peak_price: o.peak_price ?? null,
+        weekend_price: o.weekend_price ?? null,
+        available_rooms: o.available_rooms ?? 1,
+      };
+    }
     setFormData({
       template_name: template.template_name,
       description: template.description || "",
@@ -211,6 +221,9 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       available_rooms: (template as any).available_rooms ?? 1,
       room_type_id: template.room_type_id || existingIds[0] || "",
       room_type_ids: existingIds,
+      valid_from: template.valid_from || "",
+      valid_until: template.valid_until || "",
+      room_overrides: overridesMap,
     });
     setErrors({});
     setShowForm(true);
