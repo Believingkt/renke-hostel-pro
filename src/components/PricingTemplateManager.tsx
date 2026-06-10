@@ -504,34 +504,57 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
           )}
         </div>
 
-        {/* 價格與庫存資訊 */}
-        <div className="px-4 pb-3 ml-6">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-            <div>
-              <span className="text-muted-foreground text-xs">平日價格</span>
-              <div className="font-semibold text-primary tabular-nums">
-                {weekdayPrice != null ? `NT$ ${weekdayPrice.toLocaleString()}` : '未設定'}
+        {/* 期限 + 價格與庫存資訊 */}
+        <div className="px-4 pb-3 ml-6 space-y-2">
+          {(template.valid_from || template.valid_until) && (
+            <div className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
+              <CalendarIcon className="h-3 w-3" />
+              <span>期限：{template.valid_from || '不限'} ~ {template.valid_until || '不限'}</span>
+            </div>
+          )}
+          {isTS && getRoomOverrides(template as any).length > 0 ? (
+            <div className="space-y-1.5">
+              {getRoomOverrides(template as any).map((ov) => {
+                const name = roomTypes.find(r => r.id === ov.room_type_id)?.name || '未知房型';
+                return (
+                  <div key={ov.room_type_id} className="text-xs flex flex-wrap gap-x-3 gap-y-0.5">
+                    <span className="font-medium">{name}</span>
+                    <span className="text-muted-foreground">平日 <span className="text-primary font-semibold tabular-nums">{ov.weekday_price != null ? `$${ov.weekday_price.toLocaleString()}` : '—'}</span></span>
+                    <span className="text-muted-foreground">旺日 <span className="text-primary font-semibold tabular-nums">{ov.peak_price != null ? `$${ov.peak_price.toLocaleString()}` : '—'}</span></span>
+                    <span className="text-muted-foreground">假日 <span className="text-primary font-semibold tabular-nums">{ov.weekend_price != null ? `$${ov.weekend_price.toLocaleString()}` : '—'}</span></span>
+                    <span className="text-muted-foreground">庫存 <span className="font-semibold tabular-nums">{ov.available_rooms}</span> 間</span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+              <div>
+                <span className="text-muted-foreground text-xs">平日價格</span>
+                <div className="font-semibold text-primary tabular-nums">
+                  {weekdayPrice != null ? `NT$ ${weekdayPrice.toLocaleString()}` : '未設定'}
+                </div>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-xs">旺日價格</span>
+                <div className="font-semibold text-primary tabular-nums">
+                  {peakPrice != null ? `NT$ ${peakPrice.toLocaleString()}` : '未設定'}
+                </div>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-xs">假日價格</span>
+                <div className="font-semibold text-primary tabular-nums">
+                  {weekendPrice != null ? `NT$ ${weekendPrice.toLocaleString()}` : '未設定'}
+                </div>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-xs">庫存量</span>
+                <div className="font-semibold tabular-nums">
+                  {availRooms} 間
+                </div>
               </div>
             </div>
-            <div>
-              <span className="text-muted-foreground text-xs">旺日價格</span>
-              <div className="font-semibold text-primary tabular-nums">
-                {peakPrice != null ? `NT$ ${peakPrice.toLocaleString()}` : '未設定'}
-              </div>
-            </div>
-            <div>
-              <span className="text-muted-foreground text-xs">假日價格</span>
-              <div className="font-semibold text-primary tabular-nums">
-                {weekendPrice != null ? `NT$ ${weekendPrice.toLocaleString()}` : '未設定'}
-              </div>
-            </div>
-            <div>
-              <span className="text-muted-foreground text-xs">庫存量</span>
-              <div className="font-semibold tabular-nums">
-                {availRooms} 間
-              </div>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* 分隔線 */}
