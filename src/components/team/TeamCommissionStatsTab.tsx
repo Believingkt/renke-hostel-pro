@@ -1178,6 +1178,53 @@ export default function TeamCommissionStatsTab() {
                   </Select>
                 </div>
 
+                {/* 來源管道 */}
+                <div className="space-y-2">
+                  <Label>來源管道</Label>
+                  <Select
+                    value={editForm.traffic_source ?? "__none__"}
+                    onValueChange={(v) =>
+                      setEditForm((f) => ({ ...f, traffic_source: v === "__none__" ? null : v }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="選擇來源管道" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">未指定</SelectItem>
+                      {trafficSources.map((o) => (
+                        <SelectItem key={o.id} value={o.name}>
+                          {o.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* 訂房方式 */}
+                <div className="space-y-2">
+                  <Label>訂房方式</Label>
+                  <Select
+                    value={editForm.booking_method ?? "__none__"}
+                    onValueChange={(v) =>
+                      setEditForm((f) => ({ ...f, booking_method: v === "__none__" ? null : v }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="選擇訂房方式" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">未指定</SelectItem>
+                      {bookingMethods.map((o) => (
+                        <SelectItem key={o.id} value={o.name}>
+                          {o.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+
                 {/* 會員編號 */}
                 <div className="space-y-2">
                   <Label>會員編號</Label>
