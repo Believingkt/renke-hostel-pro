@@ -828,7 +828,7 @@ export default function TeamOrders() {
                 <ReadField label="折扣碼" value={editOrder.discount_code || "-"} />
                 <ReadField label="來源" value={editOrder.order_source || "-"} />
                 <ReadField label="訂房方式" value={editOrder.ota_channel || "-"} />
-                <ReadField label="下單日" value={editOrder.order_date || "-"} />
+                <ReadField label="下單日" value={editOrder.order_date ? editOrder.order_date.slice(0, 10) : "-"} />
               </div>
 
 
@@ -883,27 +883,12 @@ export default function TeamOrders() {
                   />
                 </div>
 
-                {/* 來源管道 */}
+                {/* 影音組(唯讀) */}
                 <div className="space-y-2">
-                  <Label className="text-sm">來源管道</Label>
-                  <Select
-                    value={form.traffic_source ?? NONE}
-                    onValueChange={(v) =>
-                      setForm((f) => ({ ...f, traffic_source: v === NONE ? null : v }))
-                    }
-                  >
-                    <SelectTrigger className="text-base">
-                      <SelectValue placeholder="選擇來源管道" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NONE}>未指定</SelectItem>
-                      {trafficSources.filter((o) => o.is_active).map((o) => (
-                        <SelectItem key={o.id} value={o.name}>
-                          {o.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-sm">影音組</Label>
+                  <div className="min-h-[48px] md:h-10 flex items-center px-4 md:px-3 py-3 md:py-2 rounded-lg border border-input bg-muted/40 text-base md:text-sm">
+                    {videos.find((v) => v.user_id === form.video_creator_id)?.display_name || "-"}
+                  </div>
                 </div>
 
                 {/* 訂房方式 */}
@@ -929,13 +914,27 @@ export default function TeamOrders() {
                   </Select>
                 </div>
 
-
-                {/* 影音組(唯讀) */}
+                {/* 來源管道 */}
                 <div className="space-y-2">
-                  <Label className="text-sm">影音組</Label>
-                  <div className="min-h-[48px] md:h-10 flex items-center px-4 md:px-3 py-3 md:py-2 rounded-lg border border-input bg-muted/40 text-base md:text-sm">
-                    {videos.find((v) => v.user_id === form.video_creator_id)?.display_name || "-"}
-                  </div>
+                  <Label className="text-sm">來源管道</Label>
+                  <Select
+                    value={form.traffic_source ?? NONE}
+                    onValueChange={(v) =>
+                      setForm((f) => ({ ...f, traffic_source: v === NONE ? null : v }))
+                    }
+                  >
+                    <SelectTrigger className="text-base">
+                      <SelectValue placeholder="選擇來源管道" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE}>未指定</SelectItem>
+                      {trafficSources.filter((o) => o.is_active).map((o) => (
+                        <SelectItem key={o.id} value={o.name}>
+                          {o.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* 加盟專案 */}
