@@ -100,15 +100,18 @@ export async function resolveTemplatePricesForDates(
     return "weekday";
   };
 
-  // 取得房型覆寫（若有）
+  // 取得房型覆寫（若有，用於 legacy 非 segments 模式）
   const override = template ? getRoomOverride(template as any, roomTypeId) : null;
   const overrideWeekday = override?.weekday_price ?? null;
   const overridePeak = override?.peak_price ?? null;
   const overrideWeekend = override?.weekend_price ?? null;
 
+  const useSegments = template && hasSegments(template as any);
+
   const hasTemplateTierPrices =
     template &&
-    ((template.weekday_price != null && template.weekday_price > 0) ||
+    (useSegments ||
+      (template.weekday_price != null && template.weekday_price > 0) ||
       (template.peak_price != null && template.peak_price > 0) ||
       (template.weekend_price != null && template.weekend_price > 0) ||
       overrideWeekday != null || overridePeak != null || overrideWeekend != null);
@@ -125,7 +128,19 @@ export async function resolveTemplatePricesForDates(
 
     for (const d of unresolved) {
       const tier = tierFor(d);
-      // 若該日型對應的開關關閉 → 此專案不該販售此日，跳過讓上層 fallback 至 base 價
+
+      if (useSegments) {
+        // segments 模式：逐日取對應 segment 的價格
+        const info = getTierForDate(template as any, roomTypeId, d, tier);
+        if (!info.enabled || info.price == null || info.price <= 0) {
+          stillUnresolved.push(d);
+          continue;
+        }
+        result[d] = info.price;
+        continue;
+      }
+
+      // legacy 模式
       if (template && !isTierSellable(template as any, roomTypeId, tier)) {
         stillUnresolved.push(d);
         continue;
@@ -140,6 +155,7 @@ export async function resolveTemplatePricesForDates(
   } else {
     stillUnresolved.push(...unresolved);
   }
+
 
   // 4) 最終 fallback：查 base row
   if (stillUnresolved.length > 0) {
