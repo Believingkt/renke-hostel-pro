@@ -221,8 +221,13 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
           .from("room_inventory_pricing")
           .select("date, room_type_id, available_rooms, is_available")
           .in("room_type_id", (await supabase.from("room_types").select("id").eq("accommodation_id", accommodationId)).data?.map(r => r.id) || [])
+          .is("pricing_template_id", null)
           .gte("date", startStr)
           .lte("date", endStr),
+        supabase
+          .from("pricing_templates")
+          .select("id, accommodation_id, valid_from, valid_until, room_overrides, weekday_enabled, peak_enabled, weekend_enabled, extra_dates, excluded_dates")
+          .eq("accommodation_id", accommodationId),
       ]);
 
       if (roomTypesRes.error) throw roomTypesRes.error;
