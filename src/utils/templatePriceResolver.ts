@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { getRoomOverride } from "@/utils/pricingTemplateHelpers";
+import { getRoomOverride, isTierSellable } from "@/utils/pricingTemplateHelpers";
 
 /**
  * 共用的「專案價」解析器（同前邏輯）；新增規則：
