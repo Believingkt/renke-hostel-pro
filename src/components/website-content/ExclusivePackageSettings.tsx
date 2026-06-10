@@ -3,10 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Building2, Loader2, Plus, Trash2 } from "lucide-react";
+import { Building2, Loader2, Plus, Trash2, Package } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface RoomType {
@@ -15,29 +14,24 @@ interface RoomType {
   capacity: number;
   room_count: number | null;
   is_exclusive_package: boolean | null;
+  package_contents?: PackageRoomRow[] | null;
 }
 
-// 既有的「房型」行（room_type_id 對應 DB）
-interface RoomBreakdownItem {
-  room_type_id: string;
+// 包棟方案內的房間（自訂行：房名 + 間數 + 是否顯示在預訂管理）
+interface PackageRoomRow {
+  id: string;
   name: string;
-  count: number;
-  visible_in_booking_grid?: boolean; // 預設 true
-}
-
-// 新的「自訂行」（不對應 room_types，純粹用於人數/間數合計與顯示）
-interface CustomBreakdownItem {
-  custom_id: string; // 識別用
-  custom_name: string;
-  capacity: number;
   count: number;
   visible_in_booking_grid?: boolean;
 }
 
-type AnyBreakdownItem = RoomBreakdownItem | CustomBreakdownItem;
-
-function isCustomItem(it: AnyBreakdownItem): it is CustomBreakdownItem {
-  return (it as CustomBreakdownItem).custom_id !== undefined;
+// 不屬於任何包棟方案的自訂房型（仍存在 accommodation_info.exclusive_room_breakdown）
+interface CustomBreakdownItem {
+  custom_id: string;
+  custom_name: string;
+  capacity: number;
+  count: number;
+  visible_in_booking_grid?: boolean;
 }
 
 interface Props {
@@ -59,14 +53,10 @@ export const ExclusivePackageSettings = ({ accommodationId }: Props) => {
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [dailyCapacity, setDailyCapacity] = useState<number | "">("");
 
-  // 每個房型一筆設定：count + 可見性
-  const [roomState, setRoomState] = useState<
-    Record<string, { count: number; visible: boolean; checked: boolean }>
-  >({});
-
-  // 自訂行
+  // 每個包棟方案的房間清單，key = room_type_id
+  const [packageRows, setPackageRows] = useState<Record<string, PackageRoomRow[]>>({});
+  // 不屬於任何包棟方案的自訂房型
   const [customItems, setCustomItems] = useState<CustomBreakdownItem[]>([]);
-
   const [hasInitialSetting, setHasInitialSetting] = useState(false);
 
   const isLocked = LOCKED_IDS.has(accommodationId);
@@ -79,52 +69,58 @@ export const ExclusivePackageSettings = ({ accommodationId }: Props) => {
       const [accRes, rtRes] = await Promise.all([
         supabase
           .from("accommodation_info")
-          .select("daily_capacity, exclusive_room_breakdown, exclusive_total_rooms")
+          .select("daily_capacity, exclusive_room_breakdown")
           .eq("id", accommodationId)
           .maybeSingle(),
         supabase
           .from("room_types")
-          .select("id, name, capacity, room_count, is_exclusive_package")
+          .select("id, name, capacity, room_count, is_exclusive_package, package_contents")
           .eq("accommodation_id", accommodationId)
           .order("created_at", { ascending: true }),
       ]);
       if (cancelled) return;
-      const rts = (rtRes.data as RoomType[]) || [];
+      const rts = ((rtRes.data as any[]) || []) as RoomType[];
       setRoomTypes(rts);
 
       const acc: any = accRes.data || {};
       setDailyCapacity(acc.daily_capacity ?? "");
 
-      const items: AnyBreakdownItem[] = Array.isArray(acc.exclusive_room_breakdown)
+      // 包棟方案 rows ← room_types.package_contents
+      const rowsMap: Record<string, PackageRoomRow[]> = {};
+      for (const rt of rts) {
+        if (!rt.is_exclusive_package) continue;
+        const raw = Array.isArray(rt.package_contents) ? rt.package_contents : [];
+        rowsMap[rt.id] = raw
+          .filter((r: any) => r && (r.name || r.id))
+          .map((r: any) => ({
+            id: String(r.id || makeId()),
+            name: String(r.name || ""),
+            count: Math.max(0, Number(r.count) || 0),
+            visible_in_booking_grid: r.visible_in_booking_grid !== false,
+          }));
+      }
+      setPackageRows(rowsMap);
+
+      // 其他自訂房型 ← accommodation_info.exclusive_room_breakdown 內 custom_id 項目
+      const items: any[] = Array.isArray(acc.exclusive_room_breakdown)
         ? acc.exclusive_room_breakdown
         : [];
-
-      // 初始化每個房型的狀態
-      const rs: Record<string, { count: number; visible: boolean; checked: boolean }> = {};
-      for (const rt of rts) {
-        rs[rt.id] = { count: 0, visible: true, checked: false };
-      }
-      const customs: CustomBreakdownItem[] = [];
-      for (const it of items) {
-        if (isCustomItem(it)) {
-          customs.push({
-            custom_id: it.custom_id || makeId(),
-            custom_name: it.custom_name || "",
-            capacity: Number(it.capacity) || 0,
-            count: Number(it.count) || 0,
-            visible_in_booking_grid: it.visible_in_booking_grid !== false,
-          });
-        } else if (it.room_type_id && rs[it.room_type_id]) {
-          rs[it.room_type_id] = {
-            count: Number(it.count) || 0,
-            visible: it.visible_in_booking_grid !== false,
-            checked: (Number(it.count) || 0) > 0,
-          };
-        }
-      }
-      setRoomState(rs);
+      const customs: CustomBreakdownItem[] = items
+        .filter((it) => it && it.custom_id)
+        .map((it) => ({
+          custom_id: String(it.custom_id),
+          custom_name: String(it.custom_name || it.name || ""),
+          capacity: Number(it.capacity) || 0,
+          count: Number(it.count) || 0,
+          visible_in_booking_grid: it.visible_in_booking_grid !== false,
+        }));
       setCustomItems(customs);
-      setHasInitialSetting(items.length > 0 || acc.daily_capacity != null);
+
+      setHasInitialSetting(
+        items.length > 0 ||
+          acc.daily_capacity != null ||
+          Object.values(rowsMap).some((v) => v.length > 0),
+      );
       setLoading(false);
     })();
     return () => {
@@ -132,27 +128,48 @@ export const ExclusivePackageSettings = ({ accommodationId }: Props) => {
     };
   }, [accommodationId]);
 
+  const exclusivePackages = useMemo(
+    () => roomTypes.filter((rt) => rt.is_exclusive_package),
+    [roomTypes],
+  );
+
   const totals = useMemo(() => {
     let rooms = 0;
     let people = 0;
-    for (const rt of roomTypes) {
-      const s = roomState[rt.id];
-      if (!s || !s.checked) continue;
-      rooms += s.count;
-      people += s.count * (rt.capacity || 0);
+    // 包棟方案總計：以「包棟方案數量」計算棟數；房間總計可參考各方案內的 rows
+    for (const rt of exclusivePackages) {
+      const rows = packageRows[rt.id] || [];
+      const sum = rows.reduce((s, r) => s + (r.count || 0), 0);
+      rooms += sum;
+      people += sum > 0 ? (rt.capacity || 0) : 0;
     }
     for (const c of customItems) {
       rooms += c.count;
       people += c.count * (c.capacity || 0);
     }
     return { rooms, people };
-  }, [roomState, customItems, roomTypes]);
+  }, [exclusivePackages, packageRows, customItems]);
 
-  const updateRoom = (
-    id: string,
-    patch: Partial<{ count: number; visible: boolean; checked: boolean }>,
-  ) => {
-    setRoomState((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }));
+  const updatePackageRow = (pkgId: string, rowId: string, patch: Partial<PackageRoomRow>) => {
+    setPackageRows((prev) => ({
+      ...prev,
+      [pkgId]: (prev[pkgId] || []).map((r) => (r.id === rowId ? { ...r, ...patch } : r)),
+    }));
+  };
+  const addPackageRow = (pkgId: string) => {
+    setPackageRows((prev) => ({
+      ...prev,
+      [pkgId]: [
+        ...(prev[pkgId] || []),
+        { id: makeId(), name: "", count: 1, visible_in_booking_grid: false },
+      ],
+    }));
+  };
+  const removePackageRow = (pkgId: string, rowId: string) => {
+    setPackageRows((prev) => ({
+      ...prev,
+      [pkgId]: (prev[pkgId] || []).filter((r) => r.id !== rowId),
+    }));
   };
 
   const addCustom = () => {
@@ -167,53 +184,66 @@ export const ExclusivePackageSettings = ({ accommodationId }: Props) => {
       },
     ]);
   };
-
   const updateCustom = (id: string, patch: Partial<CustomBreakdownItem>) => {
     setCustomItems((prev) => prev.map((c) => (c.custom_id === id ? { ...c, ...patch } : c)));
   };
-
   const removeCustom = (id: string) => {
     setCustomItems((prev) => prev.filter((c) => c.custom_id !== id));
   };
 
   const handleSave = async () => {
     setSaving(true);
-    const items: AnyBreakdownItem[] = [];
-    for (const rt of roomTypes) {
-      const s = roomState[rt.id];
-      if (!s || !s.checked || s.count <= 0) continue;
-      items.push({
-        room_type_id: rt.id,
-        name: rt.name,
-        count: s.count,
-        visible_in_booking_grid: s.visible,
+    try {
+      // 1) 每個包棟方案 → room_types.package_contents
+      const updates = exclusivePackages.map((rt) => {
+        const rows = (packageRows[rt.id] || [])
+          .filter((r) => r.name.trim() && r.count > 0)
+          .map((r) => ({
+            id: r.id,
+            name: r.name.trim(),
+            count: r.count,
+            visible_in_booking_grid: r.visible_in_booking_grid !== false,
+          }));
+        return supabase
+          .from("room_types")
+          .update({ package_contents: rows.length > 0 ? rows : null } as any)
+          .eq("id", rt.id);
       });
-    }
-    for (const c of customItems) {
-      if (!c.custom_name.trim() || c.count <= 0) continue;
-      items.push({
-        custom_id: c.custom_id,
-        custom_name: c.custom_name.trim(),
-        capacity: c.capacity || 0,
-        count: c.count,
-        visible_in_booking_grid: c.visible_in_booking_grid !== false,
-      } as any);
-    }
-    const payload: any = {
-      daily_capacity: dailyCapacity === "" ? null : Number(dailyCapacity),
-      exclusive_room_breakdown: items.length > 0 ? items : null,
-      exclusive_total_rooms: items.length > 0 ? totals.rooms : null,
-    };
-    const { error } = await supabase
-      .from("accommodation_info")
-      .update(payload)
-      .eq("id", accommodationId);
-    setSaving(false);
-    if (error) {
-      toast({ title: "儲存失敗", description: error.message, variant: "destructive" });
-    } else {
+
+      // 2) 其他自訂房型 → accommodation_info.exclusive_room_breakdown
+      const customPayload = customItems
+        .filter((c) => c.custom_name.trim() && c.count > 0)
+        .map((c) => ({
+          custom_id: c.custom_id,
+          custom_name: c.custom_name.trim(),
+          capacity: c.capacity || 0,
+          count: c.count,
+          visible_in_booking_grid: c.visible_in_booking_grid !== false,
+        }));
+
+      const accUpdate = supabase
+        .from("accommodation_info")
+        .update({
+          daily_capacity: dailyCapacity === "" ? null : Number(dailyCapacity),
+          exclusive_room_breakdown: customPayload.length > 0 ? customPayload : null,
+          exclusive_total_rooms: totals.rooms > 0 ? totals.rooms : null,
+        } as any)
+        .eq("id", accommodationId);
+
+      const results = await Promise.all([...updates, accUpdate]);
+      const firstError = results.find((r) => (r as any).error)?.["error" as any];
+      if (firstError) throw firstError;
+
       toast({ title: "已儲存房型與包棟設定" });
       setHasInitialSetting(true);
+    } catch (e: any) {
+      toast({
+        title: "儲存失敗",
+        description: e?.message || String(e),
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -230,9 +260,9 @@ export const ExclusivePackageSettings = ({ accommodationId }: Props) => {
               房型與包棟設定
             </CardTitle>
             <CardDescription className="mt-1">
-              設定每日總可售房數，以及包棟方案包含哪些房型、各幾間。
+              每個包棟方案各自設定內含房間。房間清單會用於新增/編輯訂單的選擇欄位與備註氣泡。
               <span className="block mt-0.5 text-xs">
-                影響：新增訂單時的包棟欄位 · 營運分析的可售房數 · 預訂管理頁顯示
+                右側「顯示在預訂管理」開關可控制該房間是否額外列為預訂管理頁上的虛擬列。
               </span>
             </CardDescription>
           </div>
@@ -265,78 +295,113 @@ export const ExclusivePackageSettings = ({ accommodationId }: Props) => {
 
         <div className="border-t" />
 
-        {/* 包棟組成 */}
+        {/* 包棟內房間組成（per package） */}
         <div className="space-y-3">
-          <div className="flex items-end justify-between gap-2">
-            <div>
-              <Label className="text-sm font-medium">包棟內房間組成</Label>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                勾選包棟內包含的房型，並填寫各房型間數。沒勾的房型不會出現在新增訂單及編輯的包棟選擇欄位。
-                每一列右側的「顯示在預訂管理」開關可控制該房型是否出現在預訂管理頁面。
-              </p>
-            </div>
+          <div>
+            <Label className="text-sm font-medium">包棟內房間組成</Label>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              每個包棟方案各自填寫內含的房間名稱與間數（例如：雙人房 ×2、四人房 ×1）。
+              這些資料會出現在新增訂單、編輯訂單的房間配置欄位，以及訂單備註氣泡。
+            </p>
           </div>
 
-          {roomTypes.length === 0 ? (
+          {exclusivePackages.length === 0 ? (
             <div className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
-              尚未建立房型。請先到「房型管理」新增房型，再回來設定包棟組成。
+              尚未建立任何「包棟房型」。請先到「房型管理」新增包棟房型，再回來設定組成。
             </div>
           ) : (
-            <div className="space-y-2">
-              {roomTypes.map((rt) => {
-                const s = roomState[rt.id] || { count: 0, visible: true, checked: false };
+            <div className="space-y-3">
+              {exclusivePackages.map((rt) => {
+                const rows = packageRows[rt.id] || [];
                 return (
                   <div
                     key={rt.id}
-                    className={`flex flex-wrap items-center gap-3 rounded-lg border px-3 py-3 transition-colors ${
-                      s.checked ? "border-primary/50 bg-primary/5" : "border-border bg-card"
-                    }`}
+                    className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-3 space-y-3"
                   >
-                    <Checkbox
-                      checked={s.checked}
-                      onCheckedChange={(v) => {
-                        const checked = !!v;
-                        updateRoom(rt.id, {
-                          checked,
-                          count: checked ? Math.max(s.count, 1) : 0,
-                        });
-                      }}
-                    />
-                    <div className="flex-1 min-w-[140px]">
-                      <div className="text-sm font-medium">{rt.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        可容納 {rt.capacity} 人
-                        {rt.is_exclusive_package ? " · 房型已標記為包區房型" : ""}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Package className="h-4 w-4 text-primary shrink-0" />
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium truncate">{rt.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            可容納 {rt.capacity} 人
+                            {rows.length > 0
+                              ? ` · 共 ${rows.reduce((s, r) => s + r.count, 0)} 間`
+                              : " · 尚未設定內含房間"}
+                          </div>
+                        </div>
                       </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addPackageRow(rt.id)}
+                      >
+                        <Plus className="h-3.5 w-3.5 mr-1" /> 新增房間
+                      </Button>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <Label className="text-xs text-muted-foreground">包含</Label>
-                      <Input
-                        type="number"
-                        min={0}
-                        max={20}
-                        disabled={!s.checked}
-                        value={s.checked ? s.count : 0}
-                        onChange={(e) => {
-                          const n = Math.max(0, Number(e.target.value) || 0);
-                          updateRoom(rt.id, {
-                            count: n,
-                            checked: n > 0,
-                          });
-                        }}
-                        className="w-16 h-9 text-center"
-                      />
-                      <span className="text-xs text-muted-foreground">間</span>
-                    </div>
-                    <div className="flex items-center gap-2 pl-2 border-l">
-                      <Switch
-                        checked={s.visible}
-                        onCheckedChange={(v) => updateRoom(rt.id, { visible: !!v })}
-                      />
-                      <Label className="text-xs text-muted-foreground whitespace-nowrap">
-                        顯示在預訂管理
-                      </Label>
-                    </div>
+
+                    {rows.length === 0 ? (
+                      <div className="text-xs text-muted-foreground italic px-1">
+                        尚未新增任何房間。
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {rows.map((r) => (
+                          <div
+                            key={r.id}
+                            className="flex flex-wrap items-center gap-3 rounded-md border bg-card px-3 py-2"
+                          >
+                            <div className="flex-1 min-w-[160px]">
+                              <Input
+                                value={r.name}
+                                onChange={(e) =>
+                                  updatePackageRow(rt.id, r.id, { name: e.target.value })
+                                }
+                                placeholder="例如：雙人房 / 三人房 / 四人房"
+                                className="h-9"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <Label className="text-xs text-muted-foreground">間數</Label>
+                              <Input
+                                type="number"
+                                min={1}
+                                max={20}
+                                value={r.count}
+                                onChange={(e) =>
+                                  updatePackageRow(rt.id, r.id, {
+                                    count: Math.max(1, Number(e.target.value) || 1),
+                                  })
+                                }
+                                className="w-16 h-9 text-center"
+                              />
+                              <span className="text-xs text-muted-foreground">間</span>
+                            </div>
+                            <div className="flex items-center gap-2 pl-2 border-l">
+                              <Switch
+                                checked={r.visible_in_booking_grid === true}
+                                onCheckedChange={(v) =>
+                                  updatePackageRow(rt.id, r.id, { visible_in_booking_grid: !!v })
+                                }
+                              />
+                              <Label className="text-xs text-muted-foreground whitespace-nowrap">
+                                顯示在預訂管理
+                              </Label>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={() => removePackageRow(rt.id, r.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -344,13 +409,13 @@ export const ExclusivePackageSettings = ({ accommodationId }: Props) => {
           )}
         </div>
 
-        {/* 自訂房型 */}
+        {/* 其他自訂房型 */}
         <div className="space-y-3">
           <div className="flex items-end justify-between gap-2">
             <div>
               <Label className="text-sm font-medium">其他自訂房型</Label>
               <p className="text-xs text-muted-foreground mt-0.5">
-                自由新增不屬於上方房型表的項目（例如：雙人房、三人房、四人房等），會一併計入「包棟總計」。
+                不屬於任何包棟方案、但希望在預訂管理頁顯示的房型（例如散客房）。
               </p>
             </div>
             <Button type="button" variant="outline" size="sm" onClick={addCustom}>
@@ -432,7 +497,7 @@ export const ExclusivePackageSettings = ({ accommodationId }: Props) => {
         </div>
 
         <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2">
-          <span className="text-sm text-muted-foreground">包棟總計</span>
+          <span className="text-sm text-muted-foreground">合計</span>
           <span className="text-sm font-semibold tabular-nums">
             {totals.rooms} 間 / {totals.people} 人
           </span>
