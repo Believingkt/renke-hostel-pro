@@ -649,6 +649,11 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
             <div className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
               <CalendarIcon className="h-3 w-3" />
               <span>期限：{template.valid_from || '不限'} ~ {template.valid_until || '不限'}</span>
+              {Array.isArray((template as any).season_segments) && (template as any).season_segments.length > 1 && (
+                <span className="ml-1 px-1.5 py-px rounded bg-amber-200/70 text-[10px] font-semibold">
+                  {(template as any).season_segments.length} 段
+                </span>
+              )}
             </div>
           )}
           {isTS && getRoomOverrides(template as any).length > 0 ? (
