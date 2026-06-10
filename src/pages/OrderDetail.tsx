@@ -1998,13 +1998,12 @@ const OrderDetailPage = () => {
                         <Badge variant="outline" className="text-xs">
                           共 {editOrderRooms.reduce((sum, r) => sum + r.quantity, 0)} 間
                         </Badge>
-                        {isYunxiu && (
+                        {roomTypes.some(r => !r.is_exclusive_package) && (
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
                           className="h-7 gap-1 text-xs"
-                          disabled={roomTypes.filter(r => !r.is_exclusive_package).length === 0}
                           onClick={async () => {
                             const rt = roomTypes.filter(r => !r.is_exclusive_package)[0];
                             if (!rt) return;
@@ -2024,7 +2023,7 @@ const OrderDetailPage = () => {
                           新增散客房
                         </Button>
                         )}
-                        {isYunxiu && roomTypes.some(r => r.is_exclusive_package) && (
+                        {roomTypes.some(r => r.is_exclusive_package) && (
                           <Button
                             type="button"
                             variant="outline"
