@@ -605,7 +605,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
                               {row.label}
                             </button>
                           </HoverCardTrigger>
-                          <HoverCardContent className="w-[420px] p-0" side="right" align="start">
+                          <HoverCardContent className="w-[500px] p-0" side="right" align="start">
                             <div className="p-3 border-b bg-muted/30">
                               <p className="font-semibold text-sm">{row.label} 每日營運明細</p>
                             </div>
