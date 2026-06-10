@@ -979,6 +979,32 @@ export default function TeamOrders() {
                       />
                     </div>
 
+                    {/* 客戶暱稱 */}
+                    <div className="space-y-2">
+                      <Label className="text-sm">客戶暱稱</Label>
+                      <Input
+                        className="text-base"
+                        value={form.nickname ?? ""}
+                        placeholder="輸入客戶暱稱"
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, nickname: e.target.value || null }))
+                        }
+                      />
+                    </div>
+
+                    {/* 訂金確認日 */}
+                    <div className="space-y-2">
+                      <Label className="text-sm">訂金確認日</Label>
+                      <Input
+                        type="date"
+                        className="text-base"
+                        value={form.deposit_confirm_date ?? ""}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, deposit_confirm_date: e.target.value || null }))
+                        }
+                      />
+                    </div>
+
                     {/* 廣告編號 */}
                     <div className="space-y-2">
                       <Label className="text-sm">廣告編號</Label>
