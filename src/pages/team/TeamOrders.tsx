@@ -462,7 +462,8 @@ export default function TeamOrders() {
       voucher_count: o.meta?.voucher_count ?? 0,
       addon_note: o.meta?.addon_note ?? null,
       addon_amount: o.meta?.addon_amount ?? 0,
-
+      nickname: o.meta?.nickname ?? null,
+      deposit_confirm_date: o.meta?.deposit_confirm_date ?? null,
     });
     setIsEditing(false);
     setEditOpen(true);
@@ -505,7 +506,8 @@ export default function TeamOrders() {
           : 0,
         addon_note: form.addon_note,
         addon_amount: form.addon_amount ?? 0,
-
+        nickname: form.nickname ?? null,
+        deposit_confirm_date: form.deposit_confirm_date ?? null,
       };
 
       const exists = !!editOrder.meta;
