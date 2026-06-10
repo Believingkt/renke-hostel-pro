@@ -405,7 +405,14 @@ export default function TeamCommissionStatsTab() {
       <Card>
         <CardContent className="p-4 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <Select value={year} onValueChange={setYear}>
+            <Select
+              value={year}
+              onValueChange={(v) => {
+                setYear(v);
+                // 防呆：全部年份時，期別強制為全部月份
+                if (v === "all") setMonth("ALL");
+              }}
+            >
               <SelectTrigger className="w-28">
                 <SelectValue />
               </SelectTrigger>
@@ -418,16 +425,26 @@ export default function TeamCommissionStatsTab() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={month} onValueChange={setMonth}>
-              <SelectTrigger className="w-28">
+            <Select
+              value={year === "all" ? "ALL" : month}
+              onValueChange={(v) => {
+                // 防呆：若選了特定期別但目前是全部年份，年份自動切回當年
+                if (v !== "ALL" && year === "all") {
+                  setYear(String(now.getFullYear()));
+                }
+                setMonth(v);
+              }}
+              disabled={year === "all"}
+            >
+              <SelectTrigger className="w-40">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">全年</SelectItem>
+                <SelectItem value="ALL">全部月份</SelectItem>
                 {Array.from({ length: 12 }, (_, i) => String(i + 1)).map(
                   (m) => (
                     <SelectItem key={m} value={m}>
-                      {m} 月
+                      {m} 月 10 日
                     </SelectItem>
                   ),
                 )}
@@ -435,7 +452,7 @@ export default function TeamCommissionStatsTab() {
             </Select>
           </div>
           <p className="text-xs text-muted-foreground">
-            統計上個月的訂單，例如選擇 6 月，計算的是 5 月 1 日~5 月 31 日的訂單
+            統計上月的訂單，例如選擇 6 月 10 日，計算的是 5 月 1 日～5 月 31 日的訂單
           </p>
           <div className="text-sm text-muted-foreground">
             目前統計區間：{period.label}
