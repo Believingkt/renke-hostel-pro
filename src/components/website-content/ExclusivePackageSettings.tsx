@@ -52,6 +52,8 @@ export const ExclusivePackageSettings = ({ accommodationId }: Props) => {
   const [saving, setSaving] = useState(false);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [dailyCapacity, setDailyCapacity] = useState<number | "">("");
+  const [dailyVillaCapacity, setDailyVillaCapacity] = useState<number | "">("");
+  const [dailyRoomCapacity, setDailyRoomCapacity] = useState<number | "">("");
 
   // 每個包棟方案的房間清單，key = room_type_id
   const [packageRows, setPackageRows] = useState<Record<string, PackageRoomRow[]>>({});
