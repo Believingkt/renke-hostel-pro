@@ -733,11 +733,20 @@ function RoomTypeRows({
           const isPeak = dayType === 'peak';
           const cellData = getCellData(roomType.id, dateStr);
 
+          // 若該日有「啟用中的專案」設定了 room_overrides.available_rooms，取最大值蓋過基礎庫存
+          let effectiveRooms = cellData ? cellData.available_rooms : 0;
+          for (const t of visibleTemplates) {
+            if (!isTemplateActiveForDates(t as any, [dateStr])) continue;
+            const ov = getRoomOverride(t as any, roomType.id);
+            if (ov?.available_rooms != null && ov.available_rooms > effectiveRooms) {
+              effectiveRooms = ov.available_rooms;
+            }
+          }
+
           // 當日被「關閉販售」時，前台視為不可預定，因此表格庫存顯示為 0
           const isUnavailable = cellData?.is_available === false;
           const bookedCount = cellData?.booked_count || 0;
-          const rawRooms = cellData ? cellData.available_rooms : 0;
-          const remainingRooms = isUnavailable ? 0 : Math.max(0, rawRooms - bookedCount);
+          const remainingRooms = isUnavailable ? 0 : Math.max(0, effectiveRooms - bookedCount);
           const isZeroRooms = remainingRooms === 0;
 
           return (
