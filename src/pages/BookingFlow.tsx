@@ -522,7 +522,7 @@ const BookingFlow = () => {
         // 獲取所有價格方案（專案模板）
         const { data: allTemplatesData } = await supabase
           .from("pricing_templates")
-          .select("id, template_name, project_name, meal_plans, display_order, room_type_id, weekday_price, peak_price, weekend_price, price")
+          .select("id, template_name, project_name, meal_plans, display_order, room_type_id, room_type_ids, weekday_price, peak_price, weekend_price, price")
           .eq("accommodation_id", accommodationId)
           .order("display_order", { ascending: true });
 
