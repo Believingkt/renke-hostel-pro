@@ -3927,6 +3927,7 @@ export type Database = {
           closer_assisted: boolean | null
           closer_commission_rate: number | null
           closer_id: string | null
+          deposit_confirm_date: string | null
           exclusion_note: string | null
           filled_at: string | null
           filled_by: string | null
@@ -3938,6 +3939,7 @@ export type Database = {
           is_excluded: boolean | null
           kol_commission_only: boolean | null
           member_number: string | null
+          nickname: string | null
           order_id: string
           scout_commission_rate: number | null
           scout_id: string | null
@@ -3956,6 +3958,7 @@ export type Database = {
           closer_assisted?: boolean | null
           closer_commission_rate?: number | null
           closer_id?: string | null
+          deposit_confirm_date?: string | null
           exclusion_note?: string | null
           filled_at?: string | null
           filled_by?: string | null
@@ -3967,6 +3970,7 @@ export type Database = {
           is_excluded?: boolean | null
           kol_commission_only?: boolean | null
           member_number?: string | null
+          nickname?: string | null
           order_id: string
           scout_commission_rate?: number | null
           scout_id?: string | null
@@ -3985,6 +3989,7 @@ export type Database = {
           closer_assisted?: boolean | null
           closer_commission_rate?: number | null
           closer_id?: string | null
+          deposit_confirm_date?: string | null
           exclusion_note?: string | null
           filled_at?: string | null
           filled_by?: string | null
@@ -3996,6 +4001,7 @@ export type Database = {
           is_excluded?: boolean | null
           kol_commission_only?: boolean | null
           member_number?: string | null
+          nickname?: string | null
           order_id?: string
           scout_commission_rate?: number | null
           scout_id?: string | null
