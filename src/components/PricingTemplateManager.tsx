@@ -861,6 +861,94 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
             )}
           </div>
 
+          {/* 天送：每房型獨立價格與庫存 */}
+          {isTS && formData.room_type_ids.length > 0 && (
+            <div className="space-y-3">
+              <Label>各房型獨立設定 *<span className="text-xs text-muted-foreground font-normal ml-1">（每個已選房型各自設定平日/旺日/假日價與庫存）</span></Label>
+              {errors.room_type_ids && <p className="text-sm text-destructive">{errors.room_type_ids}</p>}
+              <div className="space-y-3">
+                {formData.room_type_ids.map((rtId) => {
+                  const rt = roomTypes.find(r => r.id === rtId);
+                  const ov = formData.room_overrides[rtId] || { weekday_price: null, peak_price: null, weekend_price: null, available_rooms: 1 };
+                  const setOv = (patch: Partial<typeof ov>) => {
+                    setFormData({
+                      ...formData,
+                      room_overrides: {
+                        ...formData.room_overrides,
+                        [rtId]: { ...ov, ...patch },
+                      },
+                    });
+                  };
+                  return (
+                    <div key={rtId} className="rounded-lg border bg-card p-3 sm:p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-semibold">{rt?.name || '未知房型'}</h4>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">平日價格</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={ov.weekday_price ?? ""}
+                            onChange={(e) => setOv({ weekday_price: e.target.value ? parseInt(e.target.value) : null })}
+                            placeholder="平日"
+                            className="h-11 sm:h-9 text-base sm:text-sm"
+                            inputMode="numeric"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">旺日價格</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={ov.peak_price ?? ""}
+                            onChange={(e) => setOv({ peak_price: e.target.value ? parseInt(e.target.value) : null })}
+                            placeholder="旺日"
+                            className="h-11 sm:h-9 text-base sm:text-sm"
+                            inputMode="numeric"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">假日價格</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={ov.weekend_price ?? ""}
+                            onChange={(e) => setOv({ weekend_price: e.target.value ? parseInt(e.target.value) : null })}
+                            placeholder="假日"
+                            className="h-11 sm:h-9 text-base sm:text-sm"
+                            inputMode="numeric"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">庫存量</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={ov.available_rooms}
+                            onChange={(e) => setOv({ available_rooms: parseInt(e.target.value) || 0 })}
+                            placeholder="庫存"
+                            className="h-11 sm:h-9 text-base sm:text-sm"
+                            inputMode="numeric"
+                          />
+                        </div>
+                      </div>
+                      {errors[`override_${rtId}`] && (
+                        <p className="text-sm text-destructive">{errors[`override_${rtId}`]}</p>
+                      )}
+                      {errors[`override_${rtId}_inv`] && (
+                        <p className="text-sm text-destructive">{errors[`override_${rtId}_inv`]}</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+
+
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
             <Button onClick={handleSubmit} className="flex items-center justify-center gap-2 w-full sm:w-auto h-11 sm:h-10 touch-manipulation">
               <Check className="h-4 w-4" />
