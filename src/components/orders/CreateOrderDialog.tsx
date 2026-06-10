@@ -328,8 +328,18 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   // Helper: get templates for a room_type_id
   const getTemplatesForRoomType = useCallback((roomTypeId: string) => {
     if (!roomTypeId || pricingTemplates.length === 0) return [];
-    const filtered = pricingTemplates.filter(t => (t as any).room_type_id === roomTypeId);
-    const result = filtered.length > 0 ? filtered : pricingTemplates.filter(t => !(t as any).room_type_id);
+    const filtered = pricingTemplates.filter(t => {
+      const ids = (t as any).room_type_ids;
+      if (Array.isArray(ids) && ids.length > 0) return ids.includes(roomTypeId);
+      return (t as any).room_type_id === roomTypeId;
+    });
+    const result = filtered.length > 0
+      ? filtered
+      : pricingTemplates.filter(t => {
+          const ids = (t as any).room_type_ids;
+          const hasIds = Array.isArray(ids) && ids.length > 0;
+          return !hasIds && !(t as any).room_type_id;
+        });
     return result.length > 0 ? result : pricingTemplates;
   }, [pricingTemplates]);
 
