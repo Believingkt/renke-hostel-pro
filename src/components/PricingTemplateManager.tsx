@@ -230,8 +230,9 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       ? (template as any).season_segments
       : [];
     const hasSegs = allSegs.length > 0;
-    const primarySeg = hasSegs ? allSegs[0] : null;
-    const extraSegs = hasSegs ? allSegs.slice(1) : [];
+    const primaryIdx = hasSegs ? allSegs.findIndex(s => s.id === "primary") : -1;
+    const primarySeg = primaryIdx >= 0 ? allSegs[primaryIdx] : (hasSegs ? allSegs[allSegs.length - 1] : null);
+    const extraSegs = hasSegs ? allSegs.filter((_, i) => i !== (primaryIdx >= 0 ? primaryIdx : allSegs.length - 1)) : [];
 
     // 主期間的房型 override：segments 模式取 primarySeg.room_overrides；否則取頂層
     const sourceOverrides: RoomOverride[] = primarySeg && Array.isArray(primarySeg.room_overrides)
@@ -301,11 +302,10 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       }
 
       // 驗證額外期間區段
+      // 規則：額外區段「可以」與主期間重疊（暑期會自動覆蓋主期間），
+      //       但「額外區段之間」不可互相重疊。
       const segs = formData.extra_segments;
-      const ranges: Array<{ from: string; to: string; idx: number }> = [];
-      if (formData.valid_from && formData.valid_until) {
-        ranges.push({ from: formData.valid_from, to: formData.valid_until, idx: -1 });
-      }
+      const extraRanges: Array<{ from: string; to: string; idx: number }> = [];
       segs.forEach((s, i) => {
         if (!s.valid_from || !s.valid_until) {
           newErrors[`seg_${i}_date`] = `額外區段 ${i + 1}：請填寫起訖日期`;
@@ -323,19 +323,27 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         if (!hasAnyPrice) {
           newErrors[`seg_${i}_price`] = `額外區段 ${i + 1}：請至少為一個房型設定一項價格`;
         }
-        ranges.push({ from: s.valid_from, to: s.valid_until, idx: i });
+        extraRanges.push({ from: s.valid_from, to: s.valid_until, idx: i });
       });
-      // 檢查日期重疊
-      for (let i = 0; i < ranges.length; i++) {
-        for (let j = i + 1; j < ranges.length; j++) {
-          const a = ranges[i];
-          const b = ranges[j];
+      // 額外區段彼此不可重疊
+      for (let i = 0; i < extraRanges.length; i++) {
+        for (let j = i + 1; j < extraRanges.length; j++) {
+          const a = extraRanges[i];
+          const b = extraRanges[j];
           if (a.from <= b.to && b.from <= a.to) {
-            const k = b.idx >= 0 ? `seg_${b.idx}_overlap` : `valid_from`;
-            newErrors[k] = `日期區段重疊：${a.from}~${a.to} 與 ${b.from}~${b.to}`;
+            newErrors[`seg_${b.idx}_overlap`] = `額外區段重疊：${a.from}~${a.to} 與 ${b.from}~${b.to}`;
           }
         }
       }
+      // 額外區段必須落在主期間範圍內（若主期間有設定）
+      if (formData.valid_from && formData.valid_until) {
+        extraRanges.forEach((r) => {
+          if (r.from < formData.valid_from || r.to > formData.valid_until) {
+            newErrors[`seg_${r.idx}_range`] = `額外區段 ${r.idx + 1}：日期 ${r.from}~${r.to} 必須落在主期間 ${formData.valid_from}~${formData.valid_until} 內`;
+          }
+        });
+      }
+
 
       setErrors(newErrors);
       return Object.keys(newErrors).length === 0;
@@ -437,7 +445,9 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
           excluded_dates: Array.isArray(s.excluded_dates) ? s.excluded_dates : [],
           room_overrides: Array.isArray(s.room_overrides) ? s.room_overrides : [],
         }));
-        seasonSegments = [primarySeg, ...cleanedExtras];
+        // 額外區段排在前面：findSegmentForDate 以「先匹配者」為準，
+        // 因此暑期/旺季等小範圍會優先覆蓋主期間。
+        seasonSegments = [...cleanedExtras, primarySeg];
         // 頂層 valid_from / until 用 union（向後相容查詢）
         topValidFrom = seasonSegments.reduce((a, s) => a && a < s.valid_from ? a : s.valid_from, seasonSegments[0].valid_from);
         topValidUntil = seasonSegments.reduce((a, s) => a && a > s.valid_until ? a : s.valid_until, seasonSegments[0].valid_until);
