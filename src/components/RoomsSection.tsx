@@ -405,7 +405,7 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
       const [templatesResult, holidaysResult, amenitiesResult, inventoryResult] = await Promise.all([
         supabase
           .from('pricing_templates')
-          .select('template_name, price, display_order, room_type_id')
+          .select('template_name, price, display_order, room_type_id, room_type_ids')
           .eq('accommodation_id', accommodationId)
           .order('display_order', { ascending: true }),
         supabase
