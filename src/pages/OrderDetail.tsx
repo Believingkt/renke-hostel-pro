@@ -2185,23 +2185,23 @@ const OrderDetailPage = () => {
                               </Select>
                             </div>
                             {(() => {
-                              if (!isYunxiu) return null;
                               const isPackage = !!roomTypes.find(rt => rt.id === or.room_type_id)?.is_exclusive_package;
-                              if (isPackage || or.quantity !== 1) return null;
+                              if (or.quantity !== 1) return null;
                               const availableUnits = roomUnits.filter(u => u.room_type_id === or.room_type_id);
                               if (availableUnits.length === 0) return null;
+                              const labelText = isPackage ? `指派${exclusiveLabel}（棟號）` : "指派房間";
                               return (
                                 <div className="space-y-1">
-                                  <Label className="text-xs">指派房間</Label>
+                                  <Label className="text-xs">{labelText}</Label>
                                   <Select
                                     value={or.room_unit_id || "none"}
                                     onValueChange={(v) => setEditOrderRooms(prev => prev.map(r => r.id === or.id ? { ...r, room_unit_id: v === "none" ? null : v } : r))}
                                   >
                                     <SelectTrigger className="h-8 text-xs">
-                                      <SelectValue placeholder="尚未指派" />
+                                      <SelectValue placeholder="自動安排" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="none">尚未指派</SelectItem>
+                                      <SelectItem value="none">自動安排</SelectItem>
                                       {availableUnits.map(u => {
                                         const occupied = u.occupied_by_order_id && u.id !== or.room_unit_id;
                                         return (
