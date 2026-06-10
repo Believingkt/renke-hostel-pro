@@ -69,6 +69,7 @@ interface PricingTemplate {
   room_overrides?: RoomOverride[] | null;
   extra_dates?: string[] | null;
   excluded_dates?: string[] | null;
+  season_segments?: SeasonSegment[] | null;
 }
 
 interface RoomType {
