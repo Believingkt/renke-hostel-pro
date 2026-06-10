@@ -299,6 +299,44 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
           }
         }
       }
+
+      // 驗證額外期間區段
+      const segs = formData.extra_segments;
+      const ranges: Array<{ from: string; to: string; idx: number }> = [];
+      if (formData.valid_from && formData.valid_until) {
+        ranges.push({ from: formData.valid_from, to: formData.valid_until, idx: -1 });
+      }
+      segs.forEach((s, i) => {
+        if (!s.valid_from || !s.valid_until) {
+          newErrors[`seg_${i}_date`] = `額外區段 ${i + 1}：請填寫起訖日期`;
+          return;
+        }
+        if (s.valid_from > s.valid_until) {
+          newErrors[`seg_${i}_date`] = `額外區段 ${i + 1}：結束日期必須晚於開始日期`;
+          return;
+        }
+        const hasAnyPrice = (s.room_overrides || []).some((o) =>
+          (o.weekday_price != null && o.weekday_price > 0) ||
+          (o.peak_price != null && o.peak_price > 0) ||
+          (o.weekend_price != null && o.weekend_price > 0)
+        );
+        if (!hasAnyPrice) {
+          newErrors[`seg_${i}_price`] = `額外區段 ${i + 1}：請至少為一個房型設定一項價格`;
+        }
+        ranges.push({ from: s.valid_from, to: s.valid_until, idx: i });
+      });
+      // 檢查日期重疊
+      for (let i = 0; i < ranges.length; i++) {
+        for (let j = i + 1; j < ranges.length; j++) {
+          const a = ranges[i];
+          const b = ranges[j];
+          if (a.from <= b.to && b.from <= a.to) {
+            const k = b.idx >= 0 ? `seg_${b.idx}_overlap` : `valid_from`;
+            newErrors[k] = `日期區段重疊：${a.from}~${a.to} 與 ${b.from}~${b.to}`;
+          }
+        }
+      }
+
       setErrors(newErrors);
       return Object.keys(newErrors).length === 0;
     }
