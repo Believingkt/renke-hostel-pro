@@ -229,6 +229,8 @@ export const ExclusivePackageSettings = ({ accommodationId }: Props) => {
         .from("accommodation_info")
         .update({
           daily_capacity: dailyCapacity === "" ? null : Number(dailyCapacity),
+          daily_villa_capacity: dailyVillaCapacity === "" ? null : Number(dailyVillaCapacity),
+          daily_room_capacity: dailyRoomCapacity === "" ? null : Number(dailyRoomCapacity),
           exclusive_room_breakdown: customPayload.length > 0 ? customPayload : null,
           exclusive_total_rooms: totals.rooms > 0 ? totals.rooms : null,
         } as any)
