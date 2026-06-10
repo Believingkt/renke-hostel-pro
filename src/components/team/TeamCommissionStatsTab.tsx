@@ -24,7 +24,10 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { ChevronDown, ChevronRight, Eye } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { ChevronDown, ChevronRight, Eye, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { useTeam } from "@/components/team/TeamContext";
 
