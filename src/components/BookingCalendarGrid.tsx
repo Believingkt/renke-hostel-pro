@@ -168,6 +168,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
   const [inventory, setInventory] = useState<Map<string, InventoryRecord>>(new Map());
   const [pricingTemplates, setPricingTemplates] = useState<TemplateLike[]>([]);
   const [expandedRoomTypes, setExpandedRoomTypes] = useState<Set<string>>(new Set());
+  const [hiddenRoomTypeIds, setHiddenRoomTypeIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   
 
@@ -198,7 +199,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
       const startStr = format(startDate, "yyyy-MM-dd");
       const endStr = format(endDate, "yyyy-MM-dd");
 
-      const [roomTypesRes, ordersRes, holidaysRes, inventoryRes, templatesRes] = await Promise.all([
+      const [roomTypesRes, ordersRes, holidaysRes, inventoryRes, templatesRes, accInfoRes] = await Promise.all([
         supabase
           .from("room_types")
           .select("id, name, capacity, room_count, is_exclusive_package, is_bound_to_exclusive, bound_exclusive_ids")
@@ -228,7 +229,25 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
           .from("pricing_templates")
           .select("id, accommodation_id, valid_from, valid_until, room_overrides, weekday_enabled, peak_enabled, weekend_enabled, extra_dates, excluded_dates")
           .eq("accommodation_id", accommodationId),
+        supabase
+          .from("accommodation_info")
+          .select("exclusive_room_breakdown")
+          .eq("id", accommodationId)
+          .maybeSingle(),
       ]);
+
+      // 從包棟設定取出「顯示在預訂管理」開關
+      const breakdown: any[] = Array.isArray((accInfoRes.data as any)?.exclusive_room_breakdown)
+        ? (accInfoRes.data as any).exclusive_room_breakdown
+        : [];
+      const hidden = new Set<string>();
+      for (const it of breakdown) {
+        if (it && it.room_type_id && it.visible_in_booking_grid === false) {
+          hidden.add(it.room_type_id);
+        }
+      }
+      setHiddenRoomTypeIds(hidden);
+
 
       if (roomTypesRes.error) throw roomTypesRes.error;
       setRoomTypes(roomTypesRes.data || []);
@@ -628,7 +647,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
         >
           <div style={{ minWidth: GRID_MIN_WIDTH }}>
             {/* Room type rows */}
-          {roomTypes.map(roomType => {
+          {roomTypes.filter(rt => !hiddenRoomTypeIds.has(rt.id)).map(roomType => {
             const isExpanded = expandedRoomTypes.has(roomType.id);
             const roomCount = roomType.room_count || 0;
 
