@@ -623,19 +623,24 @@ export default function TeamOrders() {
             <Table className="fixed-table">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="whitespace-nowrap">訂單編號</TableHead>
-                  <TableHead className="whitespace-nowrap">訂購時間</TableHead>
-                  <TableHead className="whitespace-nowrap">館別</TableHead>
-                  <TableHead className="whitespace-nowrap">房客姓名</TableHead>
+                  <TableHead className="whitespace-nowrap">詢問日期</TableHead>
                   <TableHead className="whitespace-nowrap">入住日</TableHead>
                   <TableHead className="whitespace-nowrap">退房日</TableHead>
-                  <TableHead className="whitespace-nowrap tabular-nums">
-                    訂單金額
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap">折扣碼</TableHead>
+                  <TableHead className="whitespace-nowrap">客戶暱稱</TableHead>
+                  <TableHead className="whitespace-nowrap">客戶姓名</TableHead>
+                  <TableHead className="whitespace-nowrap">電話</TableHead>
+                  <TableHead className="whitespace-nowrap">訂購時間</TableHead>
+                  <TableHead className="whitespace-nowrap">訂金確認日</TableHead>
+                  <TableHead className="whitespace-nowrap tabular-nums">總金額</TableHead>
+                  <TableHead className="whitespace-nowrap">館別</TableHead>
+                  <TableHead className="whitespace-nowrap">訂房方式</TableHead>
+                  <TableHead className="whitespace-nowrap">備註</TableHead>
                   <TableHead className="whitespace-nowrap">來源</TableHead>
                   <TableHead className="whitespace-nowrap">來源管道</TableHead>
-                  <TableHead className="whitespace-nowrap">訂房方式</TableHead>
+                  <TableHead className="whitespace-nowrap">訂單編號</TableHead>
+                  <TableHead className="whitespace-nowrap">成交組</TableHead>
+                  <TableHead className="whitespace-nowrap">廣告編號</TableHead>
+                  <TableHead className="whitespace-nowrap">影音組</TableHead>
                   <TableHead className="whitespace-nowrap">補充資料</TableHead>
                   <TableHead className="whitespace-nowrap w-16">操作</TableHead>
                 </TableRow>
@@ -643,24 +648,32 @@ export default function TeamOrders() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={20} className="text-center py-8 text-muted-foreground">
                       載入中...
                     </TableCell>
                   </TableRow>
                 ) : pageItems.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={13} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={20} className="text-center py-8 text-muted-foreground">
                       無資料
                     </TableCell>
                   </TableRow>
                 ) : (
-                  pageItems.map((o) => (
+                  pageItems.map((o) => {
+                    const closerName = closers.find((m) => m.user_id === o.meta?.closer_id)?.display_name ?? "-";
+                    const videoName = videos.find((m) => m.user_id === o.meta?.video_creator_id)?.display_name ?? "-";
+                    return (
                     <TableRow
                       key={o.id}
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => openEdit(o)}
                     >
-                      <TableCell className="font-mono text-xs">{o.order_number}</TableCell>
+                      <TableCell className="whitespace-nowrap">{o.meta?.inquiry_date || "-"}</TableCell>
+                      <TableCell className="whitespace-nowrap">{o.check_in_date}</TableCell>
+                      <TableCell className="whitespace-nowrap">{o.check_out_date}</TableCell>
+                      <TableCell className="whitespace-nowrap">{o.meta?.nickname || "-"}</TableCell>
+                      <TableCell className="whitespace-nowrap">{o.guest_name}</TableCell>
+                      <TableCell className="whitespace-nowrap">{o.guest_phone || "-"}</TableCell>
                       <TableCell className="whitespace-nowrap tabular-nums text-xs">
                         {o.created_at
                           ? new Date(o.created_at).toLocaleString("zh-TW", {
@@ -674,12 +687,11 @@ export default function TeamOrders() {
                             })
                           : "-"}
                       </TableCell>
-                      <TableCell className="whitespace-nowrap">{o.accommodation_name}</TableCell>
-                      <TableCell className="whitespace-nowrap">{o.guest_name}</TableCell>
-                      <TableCell className="whitespace-nowrap">{o.check_in_date}</TableCell>
-                      <TableCell className="whitespace-nowrap">{o.check_out_date}</TableCell>
+                      <TableCell className="whitespace-nowrap">{o.meta?.deposit_confirm_date || "-"}</TableCell>
                       <TableCell className="tabular-nums">${o.final_price?.toLocaleString()}</TableCell>
-                      <TableCell>{o.discount_code || "-"}</TableCell>
+                      <TableCell className="whitespace-nowrap">{o.accommodation_name}</TableCell>
+                      <TableCell className="whitespace-nowrap">{bookingMap.get(o.meta?.booking_method ?? "") ?? o.meta?.booking_method ?? "-"}</TableCell>
+                      <TableCell className="whitespace-nowrap max-w-[200px] truncate" title={o.meta?.exclusion_note ?? ""}>{o.meta?.exclusion_note || "-"}</TableCell>
                       <TableCell>{(() => {
                         const cfg = getOrderSourceConfig(o.order_source ?? '');
                         return (
@@ -689,7 +701,10 @@ export default function TeamOrders() {
                         );
                       })()}</TableCell>
                       <TableCell className="whitespace-nowrap">{trafficMap.get(o.meta?.traffic_source ?? "") ?? o.meta?.traffic_source ?? "-"}</TableCell>
-                      <TableCell className="whitespace-nowrap">{bookingMap.get(o.meta?.booking_method ?? "") ?? o.meta?.booking_method ?? "-"}</TableCell>
+                      <TableCell className="font-mono text-xs">{o.order_number}</TableCell>
+                      <TableCell className="whitespace-nowrap">{closerName}</TableCell>
+                      <TableCell className="whitespace-nowrap">{o.meta?.ad_id || "-"}</TableCell>
+                      <TableCell className="whitespace-nowrap">{videoName}</TableCell>
                       <TableCell>
                         {o.meta ? (
                           <Badge variant="default">已填</Badge>
@@ -710,7 +725,8 @@ export default function TeamOrders() {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))
+                  );
+                  })
                 )}
               </TableBody>
             </Table>
