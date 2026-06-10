@@ -112,8 +112,8 @@ export default function CommissionRatesTab({ readOnly = false }: { readOnly?: bo
 
   function openEdit(row: RowView) {
     setEditing(row);
-    setCloserRate(row.closer_rate != null ? String(row.closer_rate) : "");
-    setVideoRate(row.video_rate != null ? String(row.video_rate) : "");
+    setCloserRate(row.closer_rate != null ? String(Number((row.closer_rate * 100).toFixed(4))) : "");
+    setVideoRate(row.video_rate != null ? String(Number((row.video_rate * 100).toFixed(4))) : "");
     setEffectiveFrom(format(new Date(), "yyyy-MM-dd"));
     setEditOpen(true);
   }
@@ -140,11 +140,12 @@ export default function CommissionRatesTab({ readOnly = false }: { readOnly?: bo
         .from("accommodation_commission_settings")
         .insert({
           accommodation_id: editing.id,
-          closer_rate: cr,
-          video_rate: vr,
+          closer_rate: cr / 100,
+          video_rate: vr / 100,
           effective_from: effectiveFrom,
         });
       if (error) throw error;
+
       toast.success("已儲存");
       setEditOpen(false);
       setEditing(null);
