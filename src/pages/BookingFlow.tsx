@@ -550,6 +550,9 @@ const BookingFlow = () => {
               peak_price: t.peak_price ?? null,
               weekend_price: t.weekend_price ?? null,
               price: t.price ?? null,
+              valid_from: (t as any).valid_from ?? null,
+              valid_until: (t as any).valid_until ?? null,
+              room_overrides: (t as any).room_overrides ?? [],
             };
           });
           setAllPricingTemplates(templates);
