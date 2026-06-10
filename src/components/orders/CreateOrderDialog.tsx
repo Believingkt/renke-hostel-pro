@@ -521,6 +521,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         updated.template_name = templates[0]?.template_name || "";
         // 切到包棟時鎖為 1
         if (newRt?.is_exclusive_package) updated.quantity = 1;
+        // 換房型時清掉房號選擇
+        updated.room_unit_id = null;
       }
       return updated;
     }));
