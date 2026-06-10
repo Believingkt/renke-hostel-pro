@@ -351,6 +351,7 @@ const BookingFlow = () => {
     meal_plans: any[] | null;
     mealCount: number; // 0,1 → price, 2 → price_2_meals, 3 → price_3_meals
     room_type_id: string | null;
+    room_type_ids?: string[] | null;
     weekday_price: number | null;
     peak_price: number | null;
     weekend_price: number | null;
