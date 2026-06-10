@@ -230,6 +230,34 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
   };
 
   const validateForm = (): boolean => {
+    if (isTS) {
+      const newErrors: Record<string, string> = {};
+      if (!formData.template_name.trim()) newErrors.template_name = "專案名稱不能為空";
+      if (!formData.valid_from) newErrors.valid_from = "請選擇專案開始日期";
+      if (!formData.valid_until) newErrors.valid_until = "請選擇專案結束日期";
+      if (formData.valid_from && formData.valid_until && formData.valid_from > formData.valid_until) {
+        newErrors.valid_until = "結束日期必須晚於開始日期";
+      }
+      if (formData.room_type_ids.length === 0) {
+        newErrors.room_type_ids = "請至少選擇一個對應房型";
+      } else {
+        for (const id of formData.room_type_ids) {
+          const ov = formData.room_overrides[id];
+          const hasPrice =
+            (ov?.weekday_price != null && ov.weekday_price > 0) ||
+            (ov?.peak_price != null && ov.peak_price > 0) ||
+            (ov?.weekend_price != null && ov.weekend_price > 0);
+          if (!hasPrice) {
+            newErrors[`override_${id}`] = "請至少設定一項價格";
+          }
+          if (ov && ov.available_rooms < 0) {
+            newErrors[`override_${id}_inv`] = "庫存量不能為負數";
+          }
+        }
+      }
+      setErrors(newErrors);
+      return Object.keys(newErrors).length === 0;
+    }
     try {
       templateSchema.parse(formData);
       setErrors({});
@@ -261,17 +289,47 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       const primaryId = isSingleSelect
         ? (formData.room_type_id || null)
         : (finalIds[0] || null);
-      const dataToSave = {
+
+      // 天送：以 room_overrides 為主，頂層 price/inventory 取「第一個房型的設定」做向後兼容
+      let topWeekday = formData.weekday_price;
+      let topPeak = formData.peak_price;
+      let topWeekend = formData.weekend_price;
+      let topInv = formData.available_rooms;
+      let overridesArray: RoomOverride[] = [];
+      if (isTS) {
+        overridesArray = finalIds.map((id) => {
+          const ov = formData.room_overrides[id] || { weekday_price: null, peak_price: null, weekend_price: null, available_rooms: 1 };
+          return {
+            room_type_id: id,
+            weekday_price: ov.weekday_price ?? null,
+            peak_price: ov.peak_price ?? null,
+            weekend_price: ov.weekend_price ?? null,
+            available_rooms: ov.available_rooms ?? 1,
+          };
+        });
+        const first = overridesArray[0];
+        if (first) {
+          topWeekday = first.weekday_price;
+          topPeak = first.peak_price;
+          topWeekend = first.weekend_price;
+          topInv = first.available_rooms;
+        }
+      }
+
+      const dataToSave: any = {
         template_name: formData.template_name,
         description: formData.description || null,
-        weekday_price: formData.weekday_price,
-        peak_price: formData.peak_price,
-        weekend_price: formData.weekend_price,
-        price: formData.weekday_price ?? formData.peak_price ?? formData.weekend_price, // 向後兼容
-        available_rooms: formData.available_rooms,
+        weekday_price: topWeekday,
+        peak_price: topPeak,
+        weekend_price: topWeekend,
+        price: topWeekday ?? topPeak ?? topWeekend, // 向後兼容
+        available_rooms: topInv,
         accommodation_id: accommodationId,
         room_type_id: primaryId,
         room_type_ids: finalIds,
+        valid_from: formData.valid_from || null,
+        valid_until: formData.valid_until || null,
+        room_overrides: overridesArray,
       };
 
       if (editingTemplate) {
