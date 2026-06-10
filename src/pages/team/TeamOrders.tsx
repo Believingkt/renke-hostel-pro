@@ -1169,6 +1169,8 @@ export default function TeamOrders() {
                       voucher_count: editOrder.meta?.voucher_count ?? 0,
                       addon_note: editOrder.meta?.addon_note ?? null,
                       addon_amount: editOrder.meta?.addon_amount ?? 0,
+                      nickname: editOrder.meta?.nickname ?? null,
+                      deposit_confirm_date: editOrder.meta?.deposit_confirm_date ?? null,
                     });
                   }
                   setIsEditing(false);
