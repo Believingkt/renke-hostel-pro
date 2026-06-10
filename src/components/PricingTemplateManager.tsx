@@ -655,19 +655,59 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
 
           {/* 對應房型 */}
           <div className="space-y-2">
-            <Label htmlFor="room_type_id">對應房型 *</Label>
-            <Select value={formData.room_type_id || "none"} onValueChange={(v) => setFormData({ ...formData, room_type_id: v === "none" ? "" : v })}>
-              <SelectTrigger className="h-12 sm:h-10">
-                <SelectValue placeholder="選擇對應房型" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">不指定房型</SelectItem>
-                {roomTypes.map((rt) => (
-                  <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-sm text-muted-foreground">指定房型後，新增訂單時僅顯示該房型對應的專案</p>
+            <Label htmlFor="room_type_id">對應房型 *{!isSingleSelect && <span className="text-xs text-muted-foreground font-normal ml-1">（可複選）</span>}</Label>
+            {isSingleSelect ? (
+              <>
+                <Select value={formData.room_type_id || "none"} onValueChange={(v) => setFormData({ ...formData, room_type_id: v === "none" ? "" : v, room_type_ids: v === "none" ? [] : [v] })}>
+                  <SelectTrigger className="h-12 sm:h-10">
+                    <SelectValue placeholder="選擇對應房型" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">不指定房型</SelectItem>
+                    {roomTypes.map((rt) => (
+                      <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">指定房型後，新增訂單時僅顯示該房型對應的專案</p>
+              </>
+            ) : (
+              <>
+                <div className="rounded-md border bg-background p-3 space-y-2 max-h-64 overflow-y-auto">
+                  {roomTypes.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">尚無房型可選</p>
+                  ) : (
+                    roomTypes.map((rt) => {
+                      const checked = formData.room_type_ids.includes(rt.id);
+                      return (
+                        <label
+                          key={rt.id}
+                          className="flex items-center gap-2 cursor-pointer py-1"
+                        >
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(v) => {
+                              const next = v === true
+                                ? Array.from(new Set([...formData.room_type_ids, rt.id]))
+                                : formData.room_type_ids.filter(id => id !== rt.id);
+                              setFormData({
+                                ...formData,
+                                room_type_ids: next,
+                                room_type_id: next[0] || "",
+                              });
+                            }}
+                          />
+                          <span className="text-sm">{rt.name}</span>
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  可同時指定多個房型；未勾選任何房型則代表「不指定房型（所有房型可用）」
+                </p>
+              </>
+            )}
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
