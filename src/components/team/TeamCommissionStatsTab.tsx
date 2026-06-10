@@ -121,6 +121,8 @@ export default function TeamCommissionStatsTab() {
   const [closersList, setClosersList] = useState<{ user_id: string; display_name: string }[]>([]);
   const [videosList, setVideosList] = useState<{ user_id: string; display_name: string }[]>([]);
   const [franchiseProjects, setFranchiseProjects] = useState<{ id: string; name: string }[]>([]);
+  const [trafficSources, setTrafficSources] = useState<{ id: string; name: string }[]>([]);
+  const [bookingMethods, setBookingMethods] = useState<{ id: string; name: string }[]>([]);
 
   // Sheet / expanded state
   const [expandedCloser, setExpandedCloser] = useState<Set<string>>(new Set());
