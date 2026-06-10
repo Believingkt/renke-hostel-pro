@@ -263,9 +263,13 @@ const Dashboard = () => {
         ) : (
           <>
             <StatCard
-              title="總房間數"
-              value={stats.totalRooms.toString()}
-              change="+0%"
+              title="每日可售"
+              value={
+                (stats.dailyVillaCap > 0 || stats.dailyRoomCap > 0)
+                  ? `${stats.dailyVillaCap}棟 + ${stats.dailyRoomCap}間`
+                  : `${stats.totalRooms}間`
+              }
+              change=""
               icon={Hotel}
               variant="coral"
               isUpdating={isLiveUpdating}
