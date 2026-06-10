@@ -762,14 +762,12 @@ function RoomTypeRows({
               <span
                 className={cn(
                   "inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium leading-none",
-                  // 無法預定：以 destructive 標示
-                  isUnavailable && "bg-destructive/10 text-destructive",
-                  // 售完（庫存 0）
-                  !isUnavailable && isZeroRooms && "bg-destructive/10 text-destructive",
-                  // 有庫存
+                  // 無法預定 / 售完
+                  (isUnavailable || isZeroRooms) && "bg-destructive/10 text-destructive",
+                  // 有庫存（含僅來自專案 override 的情形）
                   !isUnavailable && !isZeroRooms && "bg-primary/10 text-primary",
-                  // 未設定：維持中性顯示
-                  !cellData && "bg-muted text-muted-foreground",
+                  // 完全沒設定且 effective 也為 0：維持中性顯示
+                  !cellData && effectiveRooms === 0 && "bg-muted text-muted-foreground",
                 )}
                 aria-label={isUnavailable ? '無法預定' : undefined}
                 title={isUnavailable ? '無法預定' : undefined}
