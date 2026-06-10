@@ -315,29 +315,30 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         setPricingTemplates(templatesResult.data);
       }
 
-      // Phase 2: 抓 HQ 設定的包棟組成（新民宿用；舊三家欄位為 null → 走 fallback）
-      const { data: accRow } = await supabase
-        .from("accommodation_info")
-        .select("exclusive_room_breakdown")
-        .eq("id", currentAccommodationId)
-        .maybeSingle();
-      const rawItems = Array.isArray((accRow as any)?.exclusive_room_breakdown)
-        ? ((accRow as any).exclusive_room_breakdown as any[])
-        : null;
-      if (rawItems && rawItems.length > 0) {
-        // 同時納入正式房型行（room_type_id）與自訂房型行（custom_id）
-        const normalized: BreakdownItem[] = rawItems
-          .map((it) => {
-            const key = it?.room_type_id || it?.custom_id;
-            const name = it?.name || it?.custom_name;
-            const count = Number(it?.count) || 0;
-            if (!key || !name || count <= 0) return null;
-            return { room_type_id: key, name, count };
-          })
-          .filter(Boolean) as BreakdownItem[];
-        setCustomBreakdown(normalized.length > 0 ? normalized : null);
+      // Phase 3: 每個包棟方案各自從 room_types.package_contents 讀取房間組成
+      const exclusivePkgs = (roomTypesResult.data || []).filter((r: any) => r.is_exclusive_package);
+      if (exclusivePkgs.length > 0) {
+        const { data: pkgRows } = await supabase
+          .from("room_types")
+          .select("id, package_contents")
+          .in("id", exclusivePkgs.map((r: any) => r.id));
+        const map: Record<string, BreakdownItem[]> = {};
+        for (const row of (pkgRows || []) as any[]) {
+          const contents = Array.isArray(row.package_contents) ? row.package_contents : [];
+          const normalized: BreakdownItem[] = contents
+            .map((it: any) => {
+              const key = it?.id;
+              const name = it?.name;
+              const count = Number(it?.count) || 0;
+              if (!key || !name || count <= 0) return null;
+              return { room_type_id: String(key), name: String(name), count };
+            })
+            .filter(Boolean) as BreakdownItem[];
+          if (normalized.length > 0) map[row.id] = normalized;
+        }
+        setBreakdownByPackage(map);
       } else {
-        setCustomBreakdown(null);
+        setBreakdownByPackage({});
       }
     };
 
