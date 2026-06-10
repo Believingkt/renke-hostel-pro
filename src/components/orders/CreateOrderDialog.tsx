@@ -349,6 +349,46 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     fetchData();
   }, [currentAccommodationId]);
 
+  // 載入該民宿所有 active room_units（用於散客房選房號）
+  useEffect(() => {
+    const loadUnits = async () => {
+      if (!currentAccommodationId) { setAllRoomUnits([]); return; }
+      const { data } = await supabase
+        .from("room_units")
+        .select("id, room_type_id, display_order, is_active, unit_label")
+        .eq("accommodation_id", currentAccommodationId)
+        .eq("is_active", true)
+        .order("display_order", { ascending: true });
+      setAllRoomUnits((data as any[]) || []);
+    };
+    loadUnits();
+  }, [currentAccommodationId]);
+
+  // 載入指定入住區間已被其他訂單佔用的 room_units
+  useEffect(() => {
+    const loadOccupied = async () => {
+      if (!currentAccommodationId || !form.check_in_date || !form.check_out_date) {
+        setOccupiedUnitIdsForDates(new Set());
+        return;
+      }
+      const { data } = await supabase
+        .from("order_rooms")
+        .select("room_unit_id, orders!inner(id, accommodation_id, order_status, check_in_date, check_out_date)")
+        .not("room_unit_id", "is", null)
+        .eq("orders.accommodation_id", currentAccommodationId)
+        .neq("orders.order_status", "cancelled")
+        .lt("orders.check_in_date", form.check_out_date)
+        .gt("orders.check_out_date", form.check_in_date);
+      const ids = new Set<string>();
+      ((data as OccupiedRoomUnitRow[] | null) || []).forEach((row) => {
+        if (row.room_unit_id) ids.add(row.room_unit_id);
+      });
+      setOccupiedUnitIdsForDates(ids);
+    };
+    loadOccupied();
+  }, [currentAccommodationId, form.check_in_date, form.check_out_date]);
+
+
   // Helper: get templates for a room_type_id（含期限硬性限制）
   const getTemplatesForRoomType = useCallback((roomTypeId: string) => {
     if (!roomTypeId || pricingTemplates.length === 0) return [];
