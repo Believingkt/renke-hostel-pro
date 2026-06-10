@@ -1197,7 +1197,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           room_price: sel.roomPrice,
           template_id: sel.template_id || null,
           template_name: sel.template_name || null,
-          room_unit_id: automaticRoomUnitAssignments.get(sel.id) || null,
+          // 手動選擇的房號優先；無則使用自動安排（雲岫）
+          room_unit_id: (sel.quantity === 1 ? sel.room_unit_id : null) || automaticRoomUnitAssignments.get(sel.id) || null,
         }));
         const { error: roomsError } = await supabase.from("order_rooms").insert(orderRooms);
         if (roomsError) {
