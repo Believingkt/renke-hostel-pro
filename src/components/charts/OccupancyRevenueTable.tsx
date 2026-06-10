@@ -104,9 +104,11 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         supabase.from('order_rooms')
           .select('order_id, room_type_id, quantity')
           .limit(10000),
-        supabase.from('accommodation_info').select('daily_capacity, name').eq('id', accommodationId).maybeSingle(),
+        supabase.from('accommodation_info').select('daily_capacity, daily_villa_capacity, daily_room_capacity, name').eq('id', accommodationId).maybeSingle(),
       ]);
       const dailyCap = Number((accRes.data as any)?.daily_capacity) > 0 ? Number((accRes.data as any).daily_capacity) : 6;
+      const dailyVillaCap = Number((accRes.data as any)?.daily_villa_capacity) > 0 ? Number((accRes.data as any).daily_villa_capacity) : 0;
+      const dailyRoomCap = Number((accRes.data as any)?.daily_room_capacity) > 0 ? Number((accRes.data as any).daily_room_capacity) : 0;
       const accName: string = (accRes.data as any)?.name || '';
 
       if (roomTypesRes.error) throw roomTypesRes.error;
