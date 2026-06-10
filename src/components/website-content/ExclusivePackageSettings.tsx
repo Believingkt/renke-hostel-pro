@@ -52,6 +52,8 @@ export const ExclusivePackageSettings = ({ accommodationId }: Props) => {
   const [saving, setSaving] = useState(false);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [dailyCapacity, setDailyCapacity] = useState<number | "">("");
+  const [dailyVillaCapacity, setDailyVillaCapacity] = useState<number | "">("");
+  const [dailyRoomCapacity, setDailyRoomCapacity] = useState<number | "">("");
 
   // 每個包棟方案的房間清單，key = room_type_id
   const [packageRows, setPackageRows] = useState<Record<string, PackageRoomRow[]>>({});
@@ -69,7 +71,7 @@ export const ExclusivePackageSettings = ({ accommodationId }: Props) => {
       const [accRes, rtRes] = await Promise.all([
         supabase
           .from("accommodation_info")
-          .select("daily_capacity, exclusive_room_breakdown")
+          .select("daily_capacity, daily_villa_capacity, daily_room_capacity, exclusive_room_breakdown")
           .eq("id", accommodationId)
           .maybeSingle(),
         supabase
@@ -84,6 +86,8 @@ export const ExclusivePackageSettings = ({ accommodationId }: Props) => {
 
       const acc: any = accRes.data || {};
       setDailyCapacity(acc.daily_capacity ?? "");
+      setDailyVillaCapacity(acc.daily_villa_capacity ?? "");
+      setDailyRoomCapacity(acc.daily_room_capacity ?? "");
 
       // 包棟方案 rows ← room_types.package_contents
       const rowsMap: Record<string, PackageRoomRow[]> = {};
@@ -225,6 +229,8 @@ export const ExclusivePackageSettings = ({ accommodationId }: Props) => {
         .from("accommodation_info")
         .update({
           daily_capacity: dailyCapacity === "" ? null : Number(dailyCapacity),
+          daily_villa_capacity: dailyVillaCapacity === "" ? null : Number(dailyVillaCapacity),
+          daily_room_capacity: dailyRoomCapacity === "" ? null : Number(dailyRoomCapacity),
           exclusive_room_breakdown: customPayload.length > 0 ? customPayload : null,
           exclusive_total_rooms: totals.rooms > 0 ? totals.rooms : null,
         } as any)
@@ -275,22 +281,65 @@ export const ExclusivePackageSettings = ({ accommodationId }: Props) => {
           </div>
         )}
 
-        {/* 每日總可售房數 */}
-        <div className="space-y-2 max-w-xs">
-          <Label className="text-sm font-medium">每日總可售房數</Label>
-          <div className="flex items-center gap-2">
-            <Input
-              type="number"
-              min={1}
-              max={50}
-              value={dailyCapacity}
-              onChange={(e) => setDailyCapacity(e.target.value === "" ? "" : Number(e.target.value))}
-              placeholder="預設 6"
-              className="w-24"
-            />
-            <span className="text-sm text-muted-foreground">房</span>
+        {/* 每日可售容量（分流：包棟 / 散客） */}
+        <div className="space-y-3">
+          <div>
+            <Label className="text-sm font-medium">每日可售容量（營運分析住房率計算）</Label>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              分成「包棟」與「散客」兩個分流分別計算住房率。包棟以「棟」為單位（一筆包棟訂單 = 1 棟，不分內含房數），散客以「間」為單位。兩欄都留空時會使用舊版總房數（{dailyCapacity === "" ? 6 : dailyCapacity}）合併計算。
+            </p>
           </div>
-          <p className="text-xs text-muted-foreground">用於營運分析計算住房率。留空 = 6。</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">每日可售包棟數</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={0}
+                  max={50}
+                  value={dailyVillaCapacity}
+                  onChange={(e) =>
+                    setDailyVillaCapacity(e.target.value === "" ? "" : Number(e.target.value))
+                  }
+                  placeholder="例：1"
+                  className="w-24"
+                />
+                <span className="text-sm text-muted-foreground">棟</span>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">每日可售散客房數</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={0}
+                  max={50}
+                  value={dailyRoomCapacity}
+                  onChange={(e) =>
+                    setDailyRoomCapacity(e.target.value === "" ? "" : Number(e.target.value))
+                  }
+                  placeholder="例：8"
+                  className="w-24"
+                />
+                <span className="text-sm text-muted-foreground">間</span>
+              </div>
+            </div>
+          </div>
+          <details className="text-xs text-muted-foreground">
+            <summary className="cursor-pointer hover:text-foreground">舊版「每日總可售房數」（向下相容用，可留空）</summary>
+            <div className="mt-2 flex items-center gap-2">
+              <Input
+                type="number"
+                min={1}
+                max={50}
+                value={dailyCapacity}
+                onChange={(e) => setDailyCapacity(e.target.value === "" ? "" : Number(e.target.value))}
+                placeholder="預設 6"
+                className="w-24"
+              />
+              <span>房（僅在上方兩欄都留空時使用）</span>
+            </div>
+          </details>
         </div>
 
         <div className="border-t" />

@@ -104,9 +104,11 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         supabase.from('order_rooms')
           .select('order_id, room_type_id, quantity')
           .limit(10000),
-        supabase.from('accommodation_info').select('daily_capacity, name').eq('id', accommodationId).maybeSingle(),
+        supabase.from('accommodation_info').select('daily_capacity, daily_villa_capacity, daily_room_capacity, name').eq('id', accommodationId).maybeSingle(),
       ]);
       const dailyCap = Number((accRes.data as any)?.daily_capacity) > 0 ? Number((accRes.data as any).daily_capacity) : 6;
+      const dailyVillaCap = Number((accRes.data as any)?.daily_villa_capacity) > 0 ? Number((accRes.data as any).daily_villa_capacity) : 0;
+      const dailyRoomCap = Number((accRes.data as any)?.daily_room_capacity) > 0 ? Number((accRes.data as any).daily_room_capacity) : 0;
       const accName: string = (accRes.data as any)?.name || '';
 
       if (roomTypesRes.error) throw roomTypesRes.error;
@@ -138,6 +140,8 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         inventoryData,
         orderRoomsMap,
         dailyCap,
+        dailyVillaCap,
+        dailyRoomCap,
         accName,
       };
     },
@@ -148,21 +152,37 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
   const tableData = useMemo(() => {
     if (!data) return null;
 
-    const { roomTypes, orders, holidays, inventoryData, orderRoomsMap, dailyCap, accName } = data;
+    const { roomTypes, orders, holidays, inventoryData, orderRoomsMap, dailyCap, dailyVillaCap, dailyRoomCap, accName } = data;
 
     const exclusiveRoomTypeIds = new Set(roomTypes.filter(rt => rt.is_exclusive_package).map(rt => rt.id));
     const exclusiveRoomCount = roomTypes.filter(rt => rt.is_exclusive_package).reduce((s, rt) => s + (rt.room_count || 0), 0);
     const standardRoomCount = roomTypes.filter(rt => !rt.is_exclusive_package).reduce((s, rt) => s + (rt.room_count || 0), 0);
 
-    // Split mode 僅啟用於雲岫（包棟與散客分流計算）；其他民宿（如森山）維持原本合併邏輯
+    // Split mode:
+    //  1) 管理員在「房型與包棟設定」設定了「每日可售包棟數/散客房數」→ 啟用 split 並以該值為容量上限
+    //  2) 沿用既有的雲岫硬編碼分流（向下相容）
     const isYunxiu = (accName || '').includes('雲岫');
     const isSensan = (accName || '').includes('森山');
-    const splitMode = isYunxiu && exclusiveRoomCount > 0 && standardRoomCount > 0;
+    const adminSplit = dailyVillaCap > 0 || dailyRoomCap > 0;
+    const splitMode = adminSplit || (isYunxiu && exclusiveRoomCount > 0 && standardRoomCount > 0);
+    // 管理員啟用分流時，包棟訂單一律視為 1 棟（不分內含房數）
+    const villaAsSingleUnit = adminSplit;
 
-    // 容量：split 模式以實際 room_count 為準；單一模式延用 daily_capacity 上限
+    let exclusiveCap: number;
+    let standardCap: number;
+    if (adminSplit) {
+      exclusiveCap = dailyVillaCap;
+      standardCap = dailyRoomCap;
+    } else if (splitMode) {
+      exclusiveCap = exclusiveRoomCount;
+      standardCap = standardRoomCount;
+    } else {
+      exclusiveCap = 0;
+      standardCap = 0;
+    }
     let allCapacity: number;
     if (splitMode) {
-      allCapacity = exclusiveRoomCount + standardRoomCount;
+      allCapacity = exclusiveCap + standardCap;
     } else {
       const total = roomTypes.reduce((s, rt) => s + (rt.room_count || 0), 0);
       allCapacity = Math.min(total, dailyCap);
@@ -171,8 +191,8 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
 
     const segmentCapacity: Record<SegmentKey, number> = {
       all: allCapacity,
-      exclusive: exclusiveRoomCount,
-      standard: standardRoomCount,
+      exclusive: exclusiveCap,
+      standard: standardCap,
     };
 
     const pricingMap = buildPricingMap(inventoryData);
@@ -273,8 +293,12 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
 
           // 森山：包棟訂單一筆即視為整館滿房（allCapacity 間），散客則一間一間照算
           const sensanExclusiveFull = isSensan && exclusiveQty > 0;
-          const effectiveTotalQty = sensanExclusiveFull ? allCapacity : totalQty;
-          const effectiveExclusiveQty = sensanExclusiveFull ? allCapacity : exclusiveQty;
+          // 管理員啟用分流（adminSplit）時，任何包棟訂單一律算 1 棟
+          const villaUnitQty = villaAsSingleUnit && exclusiveQty > 0 ? 1 : exclusiveQty;
+          const effectiveTotalQty = sensanExclusiveFull
+            ? allCapacity
+            : (villaAsSingleUnit ? villaUnitQty + standardQty : totalQty);
+          const effectiveExclusiveQty = sensanExclusiveFull ? allCapacity : villaUnitQty;
           const effectiveStandardQty = sensanExclusiveFull ? 0 : standardQty;
 
           if (splitMode) {
