@@ -121,12 +121,12 @@ export function RoomUnitsManager({ roomTypeId, accommodationId, roomCount, varia
       // 檢查 unit_number 重複
       const numbers = units.map((u) => u.unit_number.trim());
       if (new Set(numbers).size !== numbers.length) {
-        toast.error("房間編號不可重複");
+        toast.error(L.dupErr);
         setSaving(false);
         return;
       }
       if (numbers.some((n) => !n)) {
-        toast.error("房間編號不可空白");
+        toast.error(L.emptyErr);
         setSaving(false);
         return;
       }
