@@ -647,7 +647,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
         >
           <div style={{ minWidth: GRID_MIN_WIDTH }}>
             {/* Room type rows */}
-          {roomTypes.map(roomType => {
+          {roomTypes.filter(rt => !hiddenRoomTypeIds.has(rt.id)).map(roomType => {
             const isExpanded = expandedRoomTypes.has(roomType.id);
             const roomCount = roomType.room_count || 0;
 
