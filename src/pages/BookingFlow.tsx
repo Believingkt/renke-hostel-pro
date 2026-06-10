@@ -356,6 +356,9 @@ const BookingFlow = () => {
     peak_price: number | null;
     weekend_price: number | null;
     price: number | null;
+    valid_from?: string | null;
+    valid_until?: string | null;
+    room_overrides?: any;
   }
   const [allPricingTemplates, setAllPricingTemplates] = useState<PricingTemplateOption[]>([]);
   const [pricingTemplates, setPricingTemplates] = useState<PricingTemplateOption[]>([]);
