@@ -97,6 +97,7 @@ export default function RoomPriceCalendar() {
   const availableTemplatesForRoom = useMemo(() => {
     if (selectedRoomTypeId === 'all') return [];
     return templates.filter(t => {
+      if (Array.isArray(t.room_type_ids) && t.room_type_ids.length > 0) return t.room_type_ids.includes(selectedRoomTypeId);
       if (t.room_type_id) return t.room_type_id === selectedRoomTypeId;
       // 通用模板：名稱不含任何房型名稱
       const normalizedName = (t.project_name || t.template_name).replace(/\s+/g, '');
