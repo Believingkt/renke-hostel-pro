@@ -127,7 +127,7 @@ export default function TeamCommissionStatsTab() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period.startIso, period.nextIso, period.label, (period as any).monthFilter]);
+  }, [period.startIso, period.nextIso, period.label]);
 
   async function load() {
     setLoading(true);
