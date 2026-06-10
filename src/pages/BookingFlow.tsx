@@ -542,6 +542,7 @@ const BookingFlow = () => {
               meal_plans: meals,
               mealCount,
               room_type_id: t.room_type_id,
+              room_type_ids: (t as any).room_type_ids ?? null,
               weekday_price: t.weekday_price ?? null,
               peak_price: t.peak_price ?? null,
               weekend_price: t.weekend_price ?? null,
