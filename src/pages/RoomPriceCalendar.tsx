@@ -145,7 +145,7 @@ export default function RoomPriceCalendar() {
           .order('display_order', { ascending: true }),
         supabase
           .from('pricing_templates')
-          .select('id, template_name, project_name, price, weekday_price, peak_price, weekend_price, room_type_id, available_rooms')
+          .select('id, template_name, project_name, price, weekday_price, peak_price, weekend_price, room_type_id, room_type_ids, available_rooms')
           .eq('accommodation_id', currentAccommodationId)
           .order('display_order', { ascending: true }),
         supabase
