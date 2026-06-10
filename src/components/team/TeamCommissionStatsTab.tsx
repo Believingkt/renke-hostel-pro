@@ -24,7 +24,10 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { ChevronDown, ChevronRight, Eye } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { ChevronDown, ChevronRight, Eye, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { useTeam } from "@/components/team/TeamContext";
 
@@ -43,6 +46,7 @@ interface MetaLite {
   closer_id: string | null;
   video_creator_id: string | null;
   is_excluded: boolean | null;
+  exclusion_note: string | null;
 }
 interface CommissionRow {
   accommodation_id: string;
@@ -113,6 +117,8 @@ export default function TeamCommissionStatsTab() {
   );
   const [scoutCodes, setScoutCodes] = useState<ScoutCode[]>([]);
   const [accNameMap, setAccNameMap] = useState<Map<string, string>>(new Map());
+  const [closersList, setClosersList] = useState<{ user_id: string; display_name: string }[]>([]);
+  const [videosList, setVideosList] = useState<{ user_id: string; display_name: string }[]>([]);
 
   // Sheet / expanded state
   const [expandedCloser, setExpandedCloser] = useState<Set<string>>(new Set());
@@ -127,6 +133,15 @@ export default function TeamCommissionStatsTab() {
     validList: OrderLite[];
     cancelList: OrderLite[];
   } | null>(null);
+  const [unfilledOpen, setUnfilledOpen] = useState(false);
+  const [editOrder, setEditOrder] = useState<OrderLite | null>(null);
+  const [editForm, setEditForm] = useState<{
+    closer_id: string | null;
+    video_creator_id: string | null;
+    is_excluded: boolean;
+    exclusion_note: string | null;
+  }>({ closer_id: null, video_creator_id: null, is_excluded: false, exclusion_note: null });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const period = useMemo(() => {
     const allYears = year === "all";
@@ -173,6 +188,61 @@ export default function TeamCommissionStatsTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period.startIso, period.nextIso, period.label]);
 
+  useEffect(() => {
+    (async () => {
+      const [c, v] = await Promise.all([
+        supabase.rpc("get_team_role_members", { p_role: "closer" as any }),
+        supabase.rpc("get_team_role_members", { p_role: "video" as any }),
+      ]);
+      setClosersList((c.data as any[]) || []);
+      setVideosList((v.data as any[]) || []);
+    })();
+  }, []);
+
+  function openEditOrder(o: OrderLite) {
+    const m = metaMap.get(o.id);
+    setEditForm({
+      closer_id: m?.closer_id ?? null,
+      video_creator_id: m?.video_creator_id ?? null,
+      is_excluded: !!m?.is_excluded,
+      exclusion_note: (m as any)?.exclusion_note ?? null,
+    });
+    setEditOrder(o);
+  }
+
+  async function saveEditOrder() {
+    if (!editOrder) return;
+    setSavingEdit(true);
+    try {
+      const payload = {
+        order_id: editOrder.id,
+        accommodation_id: editOrder.accommodation_id,
+        closer_id: editForm.closer_id,
+        video_creator_id: editForm.video_creator_id,
+        is_excluded: editForm.is_excluded,
+        exclusion_note: editForm.exclusion_note,
+      };
+      const exists = metaMap.has(editOrder.id);
+      if (exists) {
+        const { error } = await supabase
+          .from("order_meta")
+          .update(payload)
+          .eq("order_id", editOrder.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("order_meta").insert(payload);
+        if (error) throw error;
+      }
+      toast.success("已儲存");
+      setEditOrder(null);
+      await load();
+    } catch (e: any) {
+      toast.error("儲存失敗：" + (e.message || ""));
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
   async function load() {
     setLoading(true);
     try {
@@ -207,7 +277,7 @@ export default function TeamCommissionStatsTab() {
       if (ids.length) {
         const { data: metaData } = await supabase
           .from("order_meta")
-          .select("order_id, closer_id, video_creator_id, is_excluded")
+          .select("order_id, closer_id, video_creator_id, is_excluded, exclusion_note")
           .in("order_id", ids);
         (metaData ?? []).forEach((m: any) =>
           mMap.set(m.order_id, m as MetaLite),
@@ -615,46 +685,22 @@ export default function TeamCommissionStatsTab() {
       {/* 未補填行銷資訊的訂單 */}
       {isPrivileged && (
         <Card>
-          <CardContent className="p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">未補填行銷資訊的訂單</h2>
-              <span className="text-sm text-muted-foreground">
-                共 {unfilledOrders.length} 筆未補填
-              </span>
-            </div>
-            <div className="overflow-x-auto">
-              <Table className="fixed-table">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="whitespace-nowrap">訂單編號</TableHead>
-                    <TableHead className="whitespace-nowrap">館別</TableHead>
-                    <TableHead className="whitespace-nowrap">房客姓名</TableHead>
-                    <TableHead className="whitespace-nowrap tabular-nums">入住日</TableHead>
-                    <TableHead className="whitespace-nowrap tabular-nums">訂單金額</TableHead>
-                    <TableHead className="whitespace-nowrap">折扣碼</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {unfilledOrders.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
-                        無未補填訂單
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    unfilledOrders.map((o) => (
-                      <TableRow key={o.id}>
-                        <TableCell className="font-mono">{o.order_number ?? "—"}</TableCell>
-                        <TableCell>{accNameMap.get(o.accommodation_id) ?? "—"}</TableCell>
-                        <TableCell>{o.guest_name ?? "—"}</TableCell>
-                        <TableCell className="tabular-nums">{o.check_in_date ?? "—"}</TableCell>
-                        <TableCell className="tabular-nums">{fmtMoney(o.final_price || 0)}</TableCell>
-                        <TableCell className="font-mono">{o.discount_code ?? "—"}</TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h2 className="text-lg font-semibold">未補填行銷資訊的訂單</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  共 {unfilledOrders.length} 筆未補填
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setUnfilledOpen(true)}
+                disabled={unfilledOrders.length === 0}
+              >
+                查看明細
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -885,6 +931,160 @@ export default function TeamCommissionStatsTab() {
                   </Table>
                 </div>
               )}
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* 未補填明細 Sheet */}
+      <Sheet open={unfilledOpen} onOpenChange={setUnfilledOpen}>
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-2xl overflow-y-auto overflow-x-hidden"
+        >
+          <SheetHeader>
+            <SheetTitle>未補填行銷資訊的訂單</SheetTitle>
+            <SheetDescription>共 {unfilledOrders.length} 筆未補填</SheetDescription>
+          </SheetHeader>
+          <div className="mt-4">
+            <Table className="fixed-table">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">訂單編號</TableHead>
+                  <TableHead className="whitespace-nowrap">館別</TableHead>
+                  <TableHead className="whitespace-nowrap">房客姓名</TableHead>
+                  <TableHead className="whitespace-nowrap tabular-nums">入住日</TableHead>
+                  <TableHead className="whitespace-nowrap tabular-nums">訂單金額</TableHead>
+                  <TableHead className="whitespace-nowrap">折扣碼</TableHead>
+                  <TableHead className="w-12" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {unfilledOrders.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+                      無未補填訂單
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  unfilledOrders.map((o) => (
+                    <TableRow key={o.id}>
+                      <TableCell className="font-mono">{o.order_number ?? "—"}</TableCell>
+                      <TableCell>{accNameMap.get(o.accommodation_id) ?? "—"}</TableCell>
+                      <TableCell>{o.guest_name ?? "—"}</TableCell>
+                      <TableCell className="tabular-nums">{o.check_in_date ?? "—"}</TableCell>
+                      <TableCell className="tabular-nums">{fmtMoney(o.final_price || 0)}</TableCell>
+                      <TableCell className="font-mono">{o.discount_code ?? "—"}</TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openEditOrder(o)}
+                          aria-label="補填"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* 補填 order_meta Sheet */}
+      <Sheet open={!!editOrder} onOpenChange={(o) => !o && setEditOrder(null)}>
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-md overflow-y-auto overflow-x-hidden"
+        >
+          <SheetHeader>
+            <SheetTitle>補填行銷資訊</SheetTitle>
+            <SheetDescription>
+              {editOrder?.order_number} ・ {editOrder ? accNameMap.get(editOrder.accommodation_id) ?? "—" : ""}
+            </SheetDescription>
+          </SheetHeader>
+          {editOrder && (
+            <div className="mt-4 space-y-4">
+              <div className="space-y-2">
+                <Label>成交人</Label>
+                <Select
+                  value={editForm.closer_id ?? "__none__"}
+                  onValueChange={(v) =>
+                    setEditForm((f) => ({ ...f, closer_id: v === "__none__" ? null : v }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="選擇成交人" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">未指定</SelectItem>
+                    {closersList.map((m) => (
+                      <SelectItem key={m.user_id} value={m.user_id}>
+                        {m.display_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>影音組</Label>
+                <Select
+                  value={editForm.video_creator_id ?? "__none__"}
+                  onValueChange={(v) =>
+                    setEditForm((f) => ({ ...f, video_creator_id: v === "__none__" ? null : v }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="選擇影音組" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">未指定</SelectItem>
+                    {videosList.map((m) => (
+                      <SelectItem key={m.user_id} value={m.user_id}>
+                        {m.display_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="is_excluded"
+                  checked={editForm.is_excluded}
+                  onCheckedChange={(v) =>
+                    setEditForm((f) => ({ ...f, is_excluded: !!v }))
+                  }
+                />
+                <Label htmlFor="is_excluded" className="cursor-pointer">不分潤</Label>
+              </div>
+
+              <div className="space-y-2">
+                <Label>備註</Label>
+                <Textarea
+                  value={editForm.exclusion_note ?? ""}
+                  onChange={(e) =>
+                    setEditForm((f) => ({
+                      ...f,
+                      exclusion_note: e.target.value || null,
+                    }))
+                  }
+                  placeholder="補充說明（選填）"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => setEditOrder(null)}>
+                  取消
+                </Button>
+                <Button onClick={saveEditOrder} disabled={savingEdit}>
+                  {savingEdit ? "儲存中..." : "儲存"}
+                </Button>
+              </div>
             </div>
           )}
         </SheetContent>
