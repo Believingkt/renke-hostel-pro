@@ -169,6 +169,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
   const [pricingTemplates, setPricingTemplates] = useState<TemplateLike[]>([]);
   const [expandedRoomTypes, setExpandedRoomTypes] = useState<Set<string>>(new Set());
   const [hiddenRoomTypeIds, setHiddenRoomTypeIds] = useState<Set<string>>(new Set());
+  const [customRows, setCustomRows] = useState<Array<{ id: string; name: string; count: number; capacity: number }>>([]);
   const [loading, setLoading] = useState(true);
   
 
@@ -241,12 +242,23 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
         ? (accInfoRes.data as any).exclusive_room_breakdown
         : [];
       const hidden = new Set<string>();
+      const customs: Array<{ id: string; name: string; count: number; capacity: number }> = [];
       for (const it of breakdown) {
-        if (it && it.room_type_id && it.visible_in_booking_grid === false) {
+        if (!it) continue;
+        if (it.room_type_id && it.visible_in_booking_grid === false) {
           hidden.add(it.room_type_id);
+        }
+        if (!it.room_type_id && it.custom_id && it.visible_in_booking_grid !== false) {
+          customs.push({
+            id: String(it.custom_id),
+            name: String(it.custom_name || it.name || ""),
+            count: Number(it.count) || 0,
+            capacity: Number(it.capacity) || 0,
+          });
         }
       }
       setHiddenRoomTypeIds(hidden);
+      setCustomRows(customs.filter(c => c.name && c.count > 0));
 
 
       if (roomTypesRes.error) throw roomTypesRes.error;
@@ -998,8 +1010,44 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                   </Tooltip>
                                 </TooltipProvider>
                               );
-                            })}
-                          </div>
+          })}
+
+          {/* 自訂房型虛擬列（僅顯示間數，不可預訂） */}
+          {customRows.map(cr => (
+            <div key={`custom_${cr.id}`} className="flex border-b hover:bg-muted/20">
+              <div
+                className="shrink-0 border-r p-2 flex items-center gap-1 sticky left-0 bg-card z-20"
+                style={{ width: LEFT_COL_WIDTH, minWidth: LEFT_COL_WIDTH }}
+              >
+                <span className="w-4" />
+                <span className="font-semibold text-sm truncate">{cr.name}</span>
+                <span className="text-xs text-muted-foreground ml-auto">{cr.count}間</span>
+              </div>
+              <div className="flex flex-1">
+                {dates.map((date, i) => {
+                  const dateStr = dateStrings[i];
+                  const holiday = holidays.get(dateStr);
+                  const isHoliday = holiday && (holiday.holiday_type === "holiday" || holiday.holiday_type === "compensatory_day_off");
+                  const isSatSun = isWeekend(date);
+                  const isRedDay = (isSatSun || isHoliday) && holiday?.holiday_type !== "work_on_weekend";
+                  return (
+                    <div
+                      key={dateStr}
+                      className={cn(
+                        "flex-1 border-r last:border-r-0 p-2 text-center text-sm",
+                        isRedDay && "bg-destructive/5",
+                        isToday(date) && "bg-primary/5",
+                      )}
+                      style={{ minWidth: DAY_COL_MIN_WIDTH }}
+                    >
+                      <span className="font-medium text-foreground">{cr.count}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+          </div>
                         </div>
                       ));
                     })()}
