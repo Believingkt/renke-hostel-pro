@@ -103,6 +103,8 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setVoucherCount(0);
       setAddonNote("");
       setAddonAmount(0);
+      setNickname("");
+      setDepositConfirmDate("");
       setOrderDate(null);
       setNewTrafficSource("");
       setNewBookingMethod("");
