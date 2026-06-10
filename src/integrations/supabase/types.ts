@@ -6036,6 +6036,7 @@ export type Database = {
           name: string
           name_en: string | null
           numeric_code: number | null
+          package_contents: Json | null
           quad_room_count: number | null
           room_count: number | null
           size_sqm: number | null
@@ -6057,6 +6058,7 @@ export type Database = {
           name: string
           name_en?: string | null
           numeric_code?: number | null
+          package_contents?: Json | null
           quad_room_count?: number | null
           room_count?: number | null
           size_sqm?: number | null
@@ -6078,6 +6080,7 @@ export type Database = {
           name?: string
           name_en?: string | null
           numeric_code?: number | null
+          package_contents?: Json | null
           quad_room_count?: number | null
           room_count?: number | null
           size_sqm?: number | null
