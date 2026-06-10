@@ -189,6 +189,9 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       available_rooms: 1,
       room_type_id: "",
       room_type_ids: [],
+      valid_from: "",
+      valid_until: "",
+      room_overrides: {},
     });
     setErrors({});
     setShowForm(true);
