@@ -106,6 +106,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
   const [deletingTemplate, setDeletingTemplate] = useState<PricingTemplate | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const isSingleSelect = SINGLE_SELECT_ACCOMMODATIONS.has(accommodationId);
+  const isTS = isTianSong(accommodationId);
 
   const [formData, setFormData] = useState({
     template_name: "",
@@ -116,6 +117,9 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     available_rooms: 1,
     room_type_id: "" as string,
     room_type_ids: [] as string[],
+    valid_from: "" as string,
+    valid_until: "" as string,
+    room_overrides: {} as Record<string, { weekday_price: number | null; peak_price: number | null; weekend_price: number | null; available_rooms: number }>,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
