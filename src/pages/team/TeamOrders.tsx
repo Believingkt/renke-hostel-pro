@@ -636,6 +636,8 @@ export default function TeamOrders() {
                   </TableHead>
                   <TableHead className="whitespace-nowrap">折扣碼</TableHead>
                   <TableHead className="whitespace-nowrap">來源</TableHead>
+                  <TableHead className="whitespace-nowrap">來源管道</TableHead>
+                  <TableHead className="whitespace-nowrap">訂房方式</TableHead>
                   <TableHead className="whitespace-nowrap">補充資料</TableHead>
                   <TableHead className="whitespace-nowrap w-16">操作</TableHead>
                 </TableRow>
