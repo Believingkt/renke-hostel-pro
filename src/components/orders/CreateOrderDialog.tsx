@@ -312,11 +312,21 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         .select("exclusive_room_breakdown")
         .eq("id", currentAccommodationId)
         .maybeSingle();
-      const items = Array.isArray((accRow as any)?.exclusive_room_breakdown)
-        ? ((accRow as any).exclusive_room_breakdown as BreakdownItem[])
+      const rawItems = Array.isArray((accRow as any)?.exclusive_room_breakdown)
+        ? ((accRow as any).exclusive_room_breakdown as any[])
         : null;
-      if (items && items.length > 0) {
-        setCustomBreakdown(items.filter(it => it?.room_type_id));
+      if (rawItems && rawItems.length > 0) {
+        // 同時納入正式房型行（room_type_id）與自訂房型行（custom_id）
+        const normalized: BreakdownItem[] = rawItems
+          .map((it) => {
+            const key = it?.room_type_id || it?.custom_id;
+            const name = it?.name || it?.custom_name;
+            const count = Number(it?.count) || 0;
+            if (!key || !name || count <= 0) return null;
+            return { room_type_id: key, name, count };
+          })
+          .filter(Boolean) as BreakdownItem[];
+        setCustomBreakdown(normalized.length > 0 ? normalized : null);
       } else {
         setCustomBreakdown(null);
       }

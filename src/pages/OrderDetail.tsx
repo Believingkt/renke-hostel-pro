@@ -294,7 +294,7 @@ const OrderDetailPage = () => {
         .maybeSingle();
       const items = (data as any)?.exclusive_room_breakdown;
       if (Array.isArray(items) && items.length > 0) {
-        setCustomBreakdown(items.map((it: any) => ({ name: String(it.name || ""), count: Number(it.count) || 0 })).filter(it => it.name));
+        setCustomBreakdown(items.map((it: any) => ({ name: String(it.name || it.custom_name || ""), count: Number(it.count) || 0 })).filter(it => it.name && it.count > 0));
       } else {
         setCustomBreakdown(null);
       }
