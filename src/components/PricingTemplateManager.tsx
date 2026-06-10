@@ -917,7 +917,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
               <div className="space-y-3">
                 {formData.room_type_ids.map((rtId) => {
                   const rt = roomTypes.find(r => r.id === rtId);
-                  const ov = formData.room_overrides[rtId] || { weekday_price: null, peak_price: null, weekend_price: null, available_rooms: 1 };
+                  const ov = formData.room_overrides[rtId] || { weekday_price: null, peak_price: null, weekend_price: null, available_rooms: 1, weekday_enabled: true, peak_enabled: true, weekend_enabled: true };
                   const setOv = (patch: Partial<typeof ov>) => {
                     setFormData({
                       ...formData,
