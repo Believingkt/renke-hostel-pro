@@ -316,6 +316,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
         invMap.set(`${inv.room_type_id}_${inv.date}`, inv);
       });
       setInventory(invMap);
+      setPricingTemplates((templatesRes.data || []) as TemplateLike[]);
     } catch (error) {
       console.error("載入資料失敗:", error);
       toast.error("載入資料失敗");
@@ -325,11 +326,23 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
   };
 
   // Get available rooms for a room type on a date
+  // 以「庫存設定」為主：取 base 與所有 active 專案 override 中的最大值
   const getAvailableRooms = (roomTypeId: string, dateStr: string): number => {
     const inv = inventory.get(`${roomTypeId}_${dateStr}`);
-    if (!inv) return 0; // No inventory record = 0
-    if (inv.is_available === false) return 0;
-    return inv.available_rooms;
+    let base = 0;
+    if (inv) {
+      if (inv.is_available === false) base = 0;
+      else base = inv.available_rooms;
+    }
+    let effective = base;
+    for (const t of pricingTemplates) {
+      if (!isTemplateActiveForDates(t, [dateStr])) continue;
+      const ov = getRoomOverride(t, roomTypeId);
+      if (ov?.available_rooms != null && ov.available_rooms > effective) {
+        effective = ov.available_rooms;
+      }
+    }
+    return effective;
   };
 
   // Get booked count for a room type on a date (using calendar entries for accurate multi-room counting)
