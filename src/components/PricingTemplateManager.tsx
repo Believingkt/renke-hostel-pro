@@ -14,7 +14,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
-import { TIANSONG_ACCOMMODATION_ID, isTianSong, getRoomOverrides, getExtraDates, getExcludedDates, type RoomOverride } from "@/utils/pricingTemplateHelpers";
+import { TIANSONG_ACCOMMODATION_ID, isTianSong, getRoomOverrides, getExtraDates, getExcludedDates, type RoomOverride, type SeasonSegment } from "@/utils/pricingTemplateHelpers";
+import { SeasonSegmentsEditor } from "@/components/SeasonSegmentsEditor";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
