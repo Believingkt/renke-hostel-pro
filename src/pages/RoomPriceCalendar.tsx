@@ -21,7 +21,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { RoomPriceEditDialog } from "@/components/RoomPriceEditDialog";
-import { getRoomOverride, isTierSellable } from "@/utils/pricingTemplateHelpers";
+import { getRoomOverride, isTierSellable, isTemplateActiveForDates } from "@/utils/pricingTemplateHelpers";
 
 import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 
@@ -813,6 +813,11 @@ function RoomTypeRows({
             const isOverridden = overridePrice != null;
             const hideCell = !tierSellable;
 
+            // 該專案在此日是否有效（valid_from/valid_until/extra/excluded）
+            const isActive = isTemplateActiveForDates(template as any, [dateStr]);
+            const overrideInv = roomOv?.available_rooms ?? null;
+            const showInv = isActive && !hideCell && overrideInv != null;
+
             return (
               <td
                 key={dateStr}
@@ -824,12 +829,17 @@ function RoomTypeRows({
                   !isWeekend && !isPeak && "hover:bg-muted/50",
                   isUnavailable && "opacity-60",
                 )}
-                onClick={() => onCellClick(roomType, template, dateStr, price || undefined, cellData?.available_rooms)}
-                title={hideCell ? '此日型已關閉販售' : (isUnavailable ? '無法預定（已關閉販售）' : (isOverridden ? '此日已單獨設定價格' : undefined))}
+                onClick={() => onCellClick(roomType, template, dateStr, price || undefined, overrideInv ?? cellData?.available_rooms)}
+                title={hideCell ? '此日型已關閉販售' : (!isActive ? '此日不在專案期限內' : (isUnavailable ? '無法預定（已關閉販售）' : (isOverridden ? '此日已單獨設定價格' : undefined)))}
               >
-                <span className={cn("text-sm", isOverridden && "font-semibold text-primary", hideCell && "text-muted-foreground/50")}>
-                  {hideCell ? '—' : (isUnavailable ? '' : formatPrice(price))}
-                </span>
+                <div className="flex flex-col items-center gap-0.5 leading-tight">
+                  <span className={cn("text-sm", isOverridden && "font-semibold text-primary", (hideCell || !isActive) && "text-muted-foreground/50")}>
+                    {hideCell ? '—' : (!isActive ? '—' : (isUnavailable ? '' : formatPrice(price)))}
+                  </span>
+                  {showInv && (
+                    <span className="text-[10px] text-muted-foreground">庫{overrideInv}</span>
+                  )}
+                </div>
               </td>
             );
           })}
