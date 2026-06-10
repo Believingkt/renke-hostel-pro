@@ -220,6 +220,8 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         setVoucherCount(Number(m.voucher_count ?? 0));
         setAddonNote((m.addon_note as string) ?? "");
         setAddonAmount(Number(m.addon_amount ?? 0));
+        setNickname((m.nickname as string) ?? "");
+        setDepositConfirmDate((m.deposit_confirm_date as string) ?? "");
       } else if (uid && closerIds.includes(uid)) {
         // 預設成交人為目前登入者(若身分為 closer)
         setCloserId(uid);
