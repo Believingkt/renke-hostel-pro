@@ -54,6 +54,9 @@ interface PricingTemplate {
   weekday_price: number | null;
   peak_price: number | null;
   weekend_price: number | null;
+  weekday_enabled?: boolean | null;
+  peak_enabled?: boolean | null;
+  weekend_enabled?: boolean | null;
   available_rooms: number;
   meal_plans: any[];
   is_default: boolean;
@@ -63,6 +66,8 @@ interface PricingTemplate {
   valid_from?: string | null;
   valid_until?: string | null;
   room_overrides?: RoomOverride[] | null;
+  extra_dates?: string[] | null;
+  excluded_dates?: string[] | null;
 }
 
 interface RoomType {
