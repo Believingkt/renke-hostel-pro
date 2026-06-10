@@ -521,6 +521,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         extra_dates: Array.isArray(template.extra_dates) ? template.extra_dates : [],
         excluded_dates: Array.isArray(template.excluded_dates) ? template.excluded_dates : [],
         room_overrides: getRoomOverrides(template as any),
+        season_segments: Array.isArray((template as any).season_segments) ? (template as any).season_segments : [],
       };
 
       const { error } = await supabase
