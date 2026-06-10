@@ -781,8 +781,15 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
             <div className="space-y-2">
               <Label>價格設定 <span className="text-xs text-muted-foreground font-normal">（擇一必填）</span></Label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="weekday_price" className="text-sm font-normal text-muted-foreground">平日價格</Label>
+                <div className="space-y-2 rounded-md border p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label htmlFor="weekday_price" className="text-sm font-medium">平日價格</Label>
+                    <Switch
+                      checked={formData.weekday_enabled}
+                      onCheckedChange={(v) => setFormData({ ...formData, weekday_enabled: !!v })}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">週一 ~ 週四</p>
                   <Input
                     id="weekday_price"
                     type="number"
@@ -793,14 +800,24 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
                       weekday_price: e.target.value ? parseInt(e.target.value) : null
                     })}
                     placeholder="請輸入平日價格"
+                    disabled={!formData.weekday_enabled}
                     className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
                     inputMode="numeric"
                   />
-                  <p className="text-xs text-muted-foreground">週一至週四的價格</p>
+                  {!formData.weekday_enabled && (
+                    <p className="text-xs text-amber-700">已關閉：平日不會販售此專案</p>
+                  )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="peak_price" className="text-sm font-normal text-muted-foreground">旺日價格</Label>
+                <div className="space-y-2 rounded-md border p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label htmlFor="peak_price" className="text-sm font-medium">旺日價格</Label>
+                    <Switch
+                      checked={formData.peak_enabled}
+                      onCheckedChange={(v) => setFormData({ ...formData, peak_enabled: !!v })}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">週五、週日</p>
                   <Input
                     id="peak_price"
                     type="number"
@@ -811,14 +828,24 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
                       peak_price: e.target.value ? parseInt(e.target.value) : null
                     })}
                     placeholder="請輸入旺日價格"
+                    disabled={!formData.peak_enabled}
                     className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
                     inputMode="numeric"
                   />
-                  <p className="text-xs text-muted-foreground">週五及週日的價格</p>
+                  {!formData.peak_enabled && (
+                    <p className="text-xs text-amber-700">已關閉：旺日不會販售此專案</p>
+                  )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="weekend_price" className="text-sm font-normal text-muted-foreground">假日價格</Label>
+                <div className="space-y-2 rounded-md border p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label htmlFor="weekend_price" className="text-sm font-medium">假日價格</Label>
+                    <Switch
+                      checked={formData.weekend_enabled}
+                      onCheckedChange={(v) => setFormData({ ...formData, weekend_enabled: !!v })}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">週六、國定假日</p>
                   <Input
                     id="weekend_price"
                     type="number"
@@ -829,10 +856,13 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
                       weekend_price: e.target.value ? parseInt(e.target.value) : null
                     })}
                     placeholder="請輸入假日價格"
+                    disabled={!formData.weekend_enabled}
                     className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
                     inputMode="numeric"
                   />
-                  <p className="text-xs text-muted-foreground">週六及國定假日的價格</p>
+                  {!formData.weekend_enabled && (
+                    <p className="text-xs text-amber-700">已關閉：假日不會販售此專案</p>
+                  )}
                 </div>
               </div>
               {(errors.weekday_price || errors.peak_price || errors.weekend_price) && (
