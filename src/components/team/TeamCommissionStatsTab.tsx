@@ -27,6 +27,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { ChevronDown, ChevronRight, Eye, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { useTeam } from "@/components/team/TeamContext";
@@ -119,6 +120,7 @@ export default function TeamCommissionStatsTab() {
   const [accNameMap, setAccNameMap] = useState<Map<string, string>>(new Map());
   const [closersList, setClosersList] = useState<{ user_id: string; display_name: string }[]>([]);
   const [videosList, setVideosList] = useState<{ user_id: string; display_name: string }[]>([]);
+  const [franchiseProjects, setFranchiseProjects] = useState<{ id: string; name: string }[]>([]);
 
   // Sheet / expanded state
   const [expandedCloser, setExpandedCloser] = useState<Set<string>>(new Set());
@@ -137,10 +139,29 @@ export default function TeamCommissionStatsTab() {
   const [editOrder, setEditOrder] = useState<OrderLite | null>(null);
   const [editForm, setEditForm] = useState<{
     closer_id: string | null;
+    inquiry_date: string | null;
+    ad_id: string | null;
     video_creator_id: string | null;
+    franchise_project: string | null;
+    member_number: string | null;
+    addon_note: string | null;
+    addon_amount: number;
+    voucher_count: number;
     is_excluded: boolean;
     exclusion_note: string | null;
-  }>({ closer_id: null, video_creator_id: null, is_excluded: false, exclusion_note: null });
+  }>({
+    closer_id: null,
+    inquiry_date: null,
+    ad_id: null,
+    video_creator_id: null,
+    franchise_project: null,
+    member_number: null,
+    addon_note: null,
+    addon_amount: 0,
+    voucher_count: 0,
+    is_excluded: false,
+    exclusion_note: null,
+  });
   const [savingEdit, setSavingEdit] = useState(false);
 
   const period = useMemo(() => {
@@ -190,22 +211,44 @@ export default function TeamCommissionStatsTab() {
 
   useEffect(() => {
     (async () => {
-      const [c, v] = await Promise.all([
+      const [c, v, fp] = await Promise.all([
         supabase.rpc("get_team_role_members", { p_role: "closer" as any }),
         supabase.rpc("get_team_role_members", { p_role: "video" as any }),
+        supabase
+          .from("franchise_projects")
+          .select("id, name")
+          .eq("is_active", true)
+          .order("name"),
       ]);
       setClosersList((c.data as any[]) || []);
       setVideosList((v.data as any[]) || []);
+      setFranchiseProjects((fp.data as any[]) || []);
     })();
   }, []);
 
-  function openEditOrder(o: OrderLite) {
-    const m = metaMap.get(o.id);
+  async function openEditOrder(o: OrderLite) {
+    const m = metaMap.get(o.id) as any;
+    // Fetch full row so we get all extra fields
+    const { data: full } = await supabase
+      .from("order_meta")
+      .select(
+        "closer_id, video_creator_id, is_excluded, exclusion_note, ad_id, franchise_project, member_number, inquiry_date, voucher_count, addon_note, addon_amount",
+      )
+      .eq("order_id", o.id)
+      .maybeSingle();
+    const src: any = full ?? m ?? {};
     setEditForm({
-      closer_id: m?.closer_id ?? null,
-      video_creator_id: m?.video_creator_id ?? null,
-      is_excluded: !!m?.is_excluded,
-      exclusion_note: (m as any)?.exclusion_note ?? null,
+      closer_id: src.closer_id ?? null,
+      inquiry_date: src.inquiry_date ?? null,
+      ad_id: src.ad_id ?? null,
+      video_creator_id: src.video_creator_id ?? null,
+      franchise_project: src.franchise_project ?? null,
+      member_number: src.member_number ?? null,
+      addon_note: src.addon_note ?? null,
+      addon_amount: Number(src.addon_amount ?? 0),
+      voucher_count: Number(src.voucher_count ?? 0),
+      is_excluded: !!src.is_excluded,
+      exclusion_note: src.exclusion_note ?? null,
     });
     setEditOrder(o);
   }
@@ -219,6 +262,15 @@ export default function TeamCommissionStatsTab() {
         accommodation_id: editOrder.accommodation_id,
         closer_id: editForm.closer_id,
         video_creator_id: editForm.video_creator_id,
+        inquiry_date: editForm.inquiry_date,
+        ad_id: editForm.ad_id,
+        franchise_project: editForm.franchise_project,
+        member_number: editForm.member_number,
+        addon_note: editForm.addon_note,
+        addon_amount: Number.isFinite(editForm.addon_amount) ? editForm.addon_amount : 0,
+        voucher_count: Number.isFinite(editForm.voucher_count)
+          ? Math.max(0, Math.trunc(editForm.voucher_count))
+          : 0,
         is_excluded: editForm.is_excluded,
         exclusion_note: editForm.exclusion_note,
       };
