@@ -1010,8 +1010,44 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                   </Tooltip>
                                 </TooltipProvider>
                               );
-                            })}
-                          </div>
+          })}
+
+          {/* 自訂房型虛擬列（僅顯示間數，不可預訂） */}
+          {customRows.map(cr => (
+            <div key={`custom_${cr.id}`} className="flex border-b hover:bg-muted/20">
+              <div
+                className="shrink-0 border-r p-2 flex items-center gap-1 sticky left-0 bg-card z-20"
+                style={{ width: LEFT_COL_WIDTH, minWidth: LEFT_COL_WIDTH }}
+              >
+                <span className="w-4" />
+                <span className="font-semibold text-sm truncate">{cr.name}</span>
+                <span className="text-xs text-muted-foreground ml-auto">{cr.count}間</span>
+              </div>
+              <div className="flex flex-1">
+                {dates.map((date, i) => {
+                  const dateStr = dateStrings[i];
+                  const holiday = holidays.get(dateStr);
+                  const isHoliday = holiday && (holiday.holiday_type === "holiday" || holiday.holiday_type === "compensatory_day_off");
+                  const isSatSun = isWeekend(date);
+                  const isRedDay = (isSatSun || isHoliday) && holiday?.holiday_type !== "work_on_weekend";
+                  return (
+                    <div
+                      key={dateStr}
+                      className={cn(
+                        "flex-1 border-r last:border-r-0 p-2 text-center text-sm",
+                        isRedDay && "bg-destructive/5",
+                        isToday(date) && "bg-primary/5",
+                      )}
+                      style={{ minWidth: DAY_COL_MIN_WIDTH }}
+                    >
+                      <span className="font-medium text-foreground">{cr.count}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+          </div>
                         </div>
                       ));
                     })()}
