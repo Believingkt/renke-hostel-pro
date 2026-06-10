@@ -80,14 +80,14 @@ export default function TeamCommissionStatsTab() {
   const [scoutCodes, setScoutCodes] = useState<ScoutCode[]>([]);
   const [accNameMap, setAccNameMap] = useState<Map<string, string>>(new Map());
 
-  // 統計區間
+  // 統計區間（發放期別語意：選 X 月10日 → 統計上月整月）
   const period = useMemo(() => {
     const allYears = year === "all";
-    const allMonths = month === "all";
+    const allMonths = month === "ALL" || month === "all";
     const todayStr = new Date().toISOString().slice(0, 10);
 
-    // 全部年份 + 全年 → 全部歷史
-    if (allYears && allMonths) {
+    // 全部年份 → 強制全部月份 → 全部歷史
+    if (allYears) {
       return {
         startIso: null as string | null,
         nextIso: null as string | null,
@@ -96,21 +96,9 @@ export default function TeamCommissionStatsTab() {
       };
     }
 
-    // 全部年份 + 指定月份 → 跨年度取該月（用 SQL 的 extract(month) 過濾，無 startIso/nextIso）
-    if (allYears && !allMonths) {
-      const m = Number(month);
-      return {
-        startIso: null,
-        nextIso: null,
-        monthFilter: m,
-        startDate: todayStr,
-        label: `所有年份 ${m} 月`,
-      };
-    }
-
     const y = Number(year);
 
-    // 指定年份 + 全年 → 該年度實際資料
+    // 指定年份 + 全部月份 → 該年度實際資料
     if (allMonths) {
       const startIso = new Date(y, 0, 1).toISOString();
       const nextIso = new Date(y + 1, 0, 1).toISOString();
@@ -122,18 +110,17 @@ export default function TeamCommissionStatsTab() {
       };
     }
 
-    // 指定年份 + 指定月份 → 維持原本「上個月」邏輯
-    const m = Number(month);
-    const prevM = m === 1 ? 12 : m - 1;
-    const prevY = m === 1 ? y - 1 : y;
-    const endDay = lastDayOfMonth(prevY, prevM);
-    const startIso = new Date(prevY, prevM - 1, 1).toISOString();
-    const nextIso = new Date(prevY, prevM - 1, endDay + 1).toISOString();
+    // 指定年份 + 指定期別（X 月10日發放）→ 統計上月整月
+    const X = Number(month);
+    const targetYear = X === 1 ? y - 1 : y;
+    const targetMonth = X === 1 ? 12 : X - 1;
+    const startIso = new Date(targetYear, targetMonth - 1, 1).toISOString();
+    const nextIso = new Date(targetYear, targetMonth, 1).toISOString();
     return {
       startIso,
       nextIso,
-      startDate: `${prevY}-${String(prevM).padStart(2, "0")}-01`,
-      label: `${prevY}/${prevM}`,
+      startDate: `${targetYear}-${String(targetMonth).padStart(2, "0")}-01`,
+      label: `${targetYear}年${targetMonth}月（${y}年${X}月10日發放）`,
     };
   }, [year, month]);
 
