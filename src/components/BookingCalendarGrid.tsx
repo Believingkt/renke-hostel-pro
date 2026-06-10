@@ -198,7 +198,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
       const startStr = format(startDate, "yyyy-MM-dd");
       const endStr = format(endDate, "yyyy-MM-dd");
 
-      const [roomTypesRes, ordersRes, holidaysRes, inventoryRes] = await Promise.all([
+      const [roomTypesRes, ordersRes, holidaysRes, inventoryRes, templatesRes] = await Promise.all([
         supabase
           .from("room_types")
           .select("id, name, capacity, room_count, is_exclusive_package, is_bound_to_exclusive, bound_exclusive_ids")
