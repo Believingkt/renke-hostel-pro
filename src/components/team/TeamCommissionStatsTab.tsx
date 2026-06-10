@@ -281,6 +281,8 @@ export default function TeamCommissionStatsTab() {
           : 0,
         is_excluded: editForm.is_excluded,
         exclusion_note: editForm.exclusion_note,
+        traffic_source: editForm.traffic_source,
+        booking_method: editForm.booking_method,
       };
       const exists = metaMap.has(editOrder.id);
       if (exists) {
