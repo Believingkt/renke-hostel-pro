@@ -67,6 +67,7 @@ export default function TeamCommissionStatsTab() {
     roles.some((r) => r === "scout" || r === "scout_manager");
   const now = new Date();
   const [year, setYear] = useState<string>(String(now.getFullYear()));
+  // month 代表發放期別：「ALL」=全部月份；「M」=M月10日發放（統計上月整月）
   const [month, setMonth] = useState<string>(String(now.getMonth() + 1));
   const [loading, setLoading] = useState(false);
 
@@ -79,14 +80,14 @@ export default function TeamCommissionStatsTab() {
   const [scoutCodes, setScoutCodes] = useState<ScoutCode[]>([]);
   const [accNameMap, setAccNameMap] = useState<Map<string, string>>(new Map());
 
-  // 統計區間
+  // 統計區間（發放期別語意：選 X 月10日 → 統計上月整月）
   const period = useMemo(() => {
     const allYears = year === "all";
-    const allMonths = month === "all";
+    const allMonths = month === "ALL" || month === "all";
     const todayStr = new Date().toISOString().slice(0, 10);
 
-    // 全部年份 + 全年 → 全部歷史
-    if (allYears && allMonths) {
+    // 全部年份 → 強制全部月份 → 全部歷史
+    if (allYears) {
       return {
         startIso: null as string | null,
         nextIso: null as string | null,
@@ -95,21 +96,9 @@ export default function TeamCommissionStatsTab() {
       };
     }
 
-    // 全部年份 + 指定月份 → 跨年度取該月（用 SQL 的 extract(month) 過濾，無 startIso/nextIso）
-    if (allYears && !allMonths) {
-      const m = Number(month);
-      return {
-        startIso: null,
-        nextIso: null,
-        monthFilter: m,
-        startDate: todayStr,
-        label: `所有年份 ${m} 月`,
-      };
-    }
-
     const y = Number(year);
 
-    // 指定年份 + 全年 → 該年度實際資料
+    // 指定年份 + 全部月份 → 該年度實際資料
     if (allMonths) {
       const startIso = new Date(y, 0, 1).toISOString();
       const nextIso = new Date(y + 1, 0, 1).toISOString();
@@ -121,25 +110,24 @@ export default function TeamCommissionStatsTab() {
       };
     }
 
-    // 指定年份 + 指定月份 → 維持原本「上個月」邏輯
-    const m = Number(month);
-    const prevM = m === 1 ? 12 : m - 1;
-    const prevY = m === 1 ? y - 1 : y;
-    const endDay = lastDayOfMonth(prevY, prevM);
-    const startIso = new Date(prevY, prevM - 1, 1).toISOString();
-    const nextIso = new Date(prevY, prevM - 1, endDay + 1).toISOString();
+    // 指定年份 + 指定期別（X 月10日發放）→ 統計上月整月
+    const X = Number(month);
+    const targetYear = X === 1 ? y - 1 : y;
+    const targetMonth = X === 1 ? 12 : X - 1;
+    const startIso = new Date(targetYear, targetMonth - 1, 1).toISOString();
+    const nextIso = new Date(targetYear, targetMonth, 1).toISOString();
     return {
       startIso,
       nextIso,
-      startDate: `${prevY}-${String(prevM).padStart(2, "0")}-01`,
-      label: `${prevY}/${prevM}`,
+      startDate: `${targetYear}-${String(targetMonth).padStart(2, "0")}-01`,
+      label: `${targetYear}年${targetMonth}月（${y}年${X}月10日發放）`,
     };
   }, [year, month]);
 
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period.startIso, period.nextIso, period.label, (period as any).monthFilter]);
+  }, [period.startIso, period.nextIso, period.label]);
 
   async function load() {
     setLoading(true);
@@ -168,18 +156,6 @@ export default function TeamCommissionStatsTab() {
       let validRows = (validData ?? []) as (OrderLite & { order_date: string; cancelled_at: string | null })[];
       let cancelRows = (cancelData ?? []) as (OrderLite & { order_date: string; cancelled_at: string | null })[];
 
-      // 全部年份 + 指定月份 → 客戶端按月份篩選（有效訂單用 order_date、取消訂單用 cancelled_at）
-      const monthFilter = (period as any).monthFilter as number | undefined;
-      if (monthFilter) {
-        validRows = validRows.filter((o) => {
-          const d = o.order_date ? new Date(o.order_date) : null;
-          return d ? d.getMonth() + 1 === monthFilter : false;
-        });
-        cancelRows = cancelRows.filter((o) => {
-          const d = o.cancelled_at ? new Date(o.cancelled_at) : null;
-          return d ? d.getMonth() + 1 === monthFilter : false;
-        });
-      }
       const ords = [...validRows, ...cancelRows];
       setOrders(ords);
 
@@ -307,7 +283,7 @@ export default function TeamCommissionStatsTab() {
       );
       row.validCount += 1;
       row.validAmount += o.final_price || 0;
-      row.commission += ((o.final_price || 0) * rate) / 100;
+      row.commission += (o.final_price || 0) * rate;
     });
     cancelOrders.forEach((o) => {
       const m = metaMap.get(o.id);
@@ -357,7 +333,7 @@ export default function TeamCommissionStatsTab() {
       );
       row.validCount += 1;
       row.validAmount += o.final_price || 0;
-      row.commission += ((o.final_price || 0) * rate) / 100;
+      row.commission += (o.final_price || 0) * rate;
     });
     cancelOrders.forEach((o) => {
       const m = metaMap.get(o.id);
@@ -429,7 +405,14 @@ export default function TeamCommissionStatsTab() {
       <Card>
         <CardContent className="p-4 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <Select value={year} onValueChange={setYear}>
+            <Select
+              value={year}
+              onValueChange={(v) => {
+                setYear(v);
+                // 防呆：全部年份時，期別強制為全部月份
+                if (v === "all") setMonth("ALL");
+              }}
+            >
               <SelectTrigger className="w-28">
                 <SelectValue />
               </SelectTrigger>
@@ -442,16 +425,26 @@ export default function TeamCommissionStatsTab() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={month} onValueChange={setMonth}>
-              <SelectTrigger className="w-28">
+            <Select
+              value={year === "all" ? "ALL" : month}
+              onValueChange={(v) => {
+                // 防呆：若選了特定期別但目前是全部年份，年份自動切回當年
+                if (v !== "ALL" && year === "all") {
+                  setYear(String(now.getFullYear()));
+                }
+                setMonth(v);
+              }}
+              disabled={year === "all"}
+            >
+              <SelectTrigger className="w-40">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">全年</SelectItem>
+                <SelectItem value="ALL">全部月份</SelectItem>
                 {Array.from({ length: 12 }, (_, i) => String(i + 1)).map(
                   (m) => (
                     <SelectItem key={m} value={m}>
-                      {m} 月
+                      {m} 月 10 日
                     </SelectItem>
                   ),
                 )}
@@ -459,7 +452,7 @@ export default function TeamCommissionStatsTab() {
             </Select>
           </div>
           <p className="text-xs text-muted-foreground">
-            統計上個月的訂單，例如選擇 6 月，計算的是 5 月 1 日~5 月 31 日的訂單
+            統計上月的訂單，例如選擇 6 月 10 日，計算的是 5 月 1 日～5 月 31 日的訂單
           </p>
           <div className="text-sm text-muted-foreground">
             目前統計區間：{period.label}
