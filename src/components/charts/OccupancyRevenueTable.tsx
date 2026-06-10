@@ -482,6 +482,8 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
       grandTotalRevenue,
       splitMode,
       allCapacity,
+      exclusiveCap,
+      standardCap,
       exclusiveRoomCount,
       standardRoomCount,
     };
