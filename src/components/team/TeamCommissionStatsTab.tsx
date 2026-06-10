@@ -333,7 +333,7 @@ export default function TeamCommissionStatsTab() {
       );
       row.validCount += 1;
       row.validAmount += o.final_price || 0;
-      row.commission += ((o.final_price || 0) * rate) / 100;
+      row.commission += (o.final_price || 0) * rate;
     });
     cancelOrders.forEach((o) => {
       const m = metaMap.get(o.id);
