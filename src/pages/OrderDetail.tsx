@@ -714,6 +714,24 @@ const OrderDetailPage = () => {
     setEditForm(f => ({ ...f, total_price: roomsTotal }));
   }, [isEditing, orderRooms]);
 
+  // Legacy fallback: if editing an order that has no order_rooms but has a chosen room_type_id,
+  // auto-populate a synthetic editOrderRoom so the new UI (with 棟號/房號 selector) is shown.
+  useEffect(() => {
+    if (!isEditing || !order) return;
+    if (editOrderRooms.length > 0 || orderRooms.length > 0) return;
+    if (!editForm.room_type_id) return;
+    const syntheticPrice = Number(order.total_price || 0);
+    setEditOrderRooms([{
+      id: `synthetic-${order.id}`,
+      room_type_id: editForm.room_type_id,
+      quantity: 1,
+      room_price: syntheticPrice,
+      unit_price: syntheticPrice,
+      template_name: null,
+      room_unit_id: null,
+    }]);
+  }, [isEditing, order, editForm.room_type_id, orderRooms.length, editOrderRooms.length]);
+
   useEffect(() => {
     if (searchParams.get("editing") === "true" && order && !isEditing) {
       // Wait for orderRooms to be loaded before starting edit
