@@ -21,8 +21,11 @@ const variantStyles = {
 };
 
 export function StatCard({ title, value, change, icon: Icon, variant, isUpdating }: StatCardProps) {
+  const isMultiline = value.includes('\n');
+
   // 解析數字部分進行動畫
   const { numericValue, prefix, suffix } = useMemo(() => {
+    if (isMultiline) return { numericValue: 0, prefix: '', suffix: value };
     const match = value.match(/^([^\d]*)([\d,]+)(.*)$/);
     if (match) {
       const numStr = match[2].replace(/,/g, '');
@@ -33,18 +36,19 @@ export function StatCard({ title, value, change, icon: Icon, variant, isUpdating
       };
     }
     return { numericValue: 0, prefix: '', suffix: value };
-  }, [value]);
+  }, [value, isMultiline]);
 
   const animatedValue = useCounterAnimation(numericValue, 1000, true);
 
   // 格式化顯示值
   const displayValue = useMemo(() => {
+    if (isMultiline) return value;
     if (numericValue === 0 && !prefix) {
       return value;
     }
     const formatted = animatedValue.toLocaleString();
     return `${prefix}${formatted}${suffix}`;
-  }, [animatedValue, prefix, suffix, value, numericValue]);
+  }, [animatedValue, prefix, suffix, value, numericValue, isMultiline]);
 
   return (
     <Card className={cn(
