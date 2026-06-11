@@ -345,13 +345,6 @@ export default function TeamCommissionStatsTab() {
     return { validOrders: valid, cancelOrders: cancel };
   }, [orders, metaMap]);
 
-  // 未補填行銷資訊的訂單：沒有 order_meta 或 closer_id 為空
-  const unfilledOrders = useMemo(() => {
-    return validOrders.filter((o) => {
-      const m = metaMap.get(o.id);
-      return !m || !m.closer_id;
-    });
-  }, [validOrders, metaMap]);
 
   // 通用：依成交人/影音 + 館別 聚合
   function buildMemberStats(field: "closer_id" | "video_creator_id", rateKey: "closer_rate" | "video_rate"): MemberStats[] {
