@@ -137,38 +137,6 @@ export default function TeamCommissionStatsTab() {
     validList: OrderLite[];
     cancelList: OrderLite[];
   } | null>(null);
-  const [unfilledOpen, setUnfilledOpen] = useState(false);
-  const [editOrder, setEditOrder] = useState<OrderLite | null>(null);
-  const [editForm, setEditForm] = useState<{
-    closer_id: string | null;
-    inquiry_date: string | null;
-    ad_id: string | null;
-    video_creator_id: string | null;
-    franchise_project: string | null;
-    member_number: string | null;
-    addon_note: string | null;
-    addon_amount: number;
-    voucher_count: number;
-    is_excluded: boolean;
-    exclusion_note: string | null;
-    traffic_source: string | null;
-    booking_method: string | null;
-  }>({
-    closer_id: null,
-    inquiry_date: null,
-    ad_id: null,
-    video_creator_id: null,
-    franchise_project: null,
-    member_number: null,
-    addon_note: null,
-    addon_amount: 0,
-    voucher_count: 0,
-    is_excluded: false,
-    exclusion_note: null,
-    traffic_source: null,
-    booking_method: null,
-  });
-  const [savingEdit, setSavingEdit] = useState(false);
 
   const period = useMemo(() => {
     const allYears = year === "all";
