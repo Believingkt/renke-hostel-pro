@@ -639,7 +639,7 @@ export default function TeamCommissionStatsTab() {
             （
             {loading
               ? "載入中..."
-              : `共 ${validOrders.length} 筆有效訂單 / ${cancelOrders.length} 筆取消訂單`}
+              : `共 ${validOrders.filter((o) => metaMap.get(o.id)?.closer_id).length} 筆有效訂單 / ${cancelOrders.filter((o) => metaMap.get(o.id)?.closer_id).length} 筆取消訂單`}
             ）
           </div>
         </CardContent>
