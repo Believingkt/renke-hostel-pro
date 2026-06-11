@@ -493,7 +493,12 @@ const KolDiscount = () => {
       return;
     }
 
-    if (!name.trim()) {
+    // 編輯 Dialog 的欄位皆綁定 editingCode，因此以 editingCode 為唯一資料來源
+    const nextName = (editingCode.name ?? "").toString().trim();
+    const nextDiscountValue = Number(editingCode.discount_value);
+    const nextUsageLimit = Number(editingCode.usage_limit);
+
+    if (!nextName) {
       toast({
         title: "請填寫折扣碼名稱",
         variant: "destructive",
@@ -501,7 +506,7 @@ const KolDiscount = () => {
       return;
     }
 
-    if (!discountValue || parseFloat(discountValue) <= 0) {
+    if (!nextDiscountValue || nextDiscountValue <= 0) {
       toast({
         title: "請填寫有效的折扣值",
         description: "折扣值必須大於 0",
@@ -510,7 +515,7 @@ const KolDiscount = () => {
       return;
     }
 
-    if (!usageLimit || parseInt(usageLimit) <= 0) {
+    if (!nextUsageLimit || nextUsageLimit <= 0) {
       toast({
         title: "請填寫有效的使用次數上限",
         description: "使用次數上限必須大於 0",
@@ -528,21 +533,29 @@ const KolDiscount = () => {
           .join('')}`;
       }
 
+      const validFromIso = new Date(editingCode.valid_from).toISOString();
+      const validUntilIso = editingCode.valid_until
+        ? new Date(editingCode.valid_until).toISOString()
+        : null;
+      const commissionRateNum = editingCode.commission_rate != null
+        ? Number(editingCode.commission_rate)
+        : 0;
+
       // Update discount code WITHOUT sensitive fields
       const { error } = await supabase
         .from("discount_codes")
         .update({
-          name,
-          discount_type: discountType,
-          discount_value: parseFloat(discountValue),
-          usage_limit: parseInt(usageLimit),
-          valid_from: validFrom.toISOString(),
-          valid_until: validUntil ? validUntil.toISOString() : null,
-          min_order_amount: minOrderAmount ? parseInt(minOrderAmount) : 0,
-          applicable_room_types: selectedRoomTypes,
-          applicable_date_from: applicableDateFrom ? applicableDateFrom.toISOString().split('T')[0] : null,
-          applicable_date_to: applicableDateTo ? applicableDateTo.toISOString().split('T')[0] : null,
-          commission_rate: commissionRate ? parseFloat(commissionRate) : 0,
+          name: nextName,
+          discount_type: editingCode.discount_type,
+          discount_value: nextDiscountValue,
+          usage_limit: nextUsageLimit,
+          valid_from: validFromIso,
+          valid_until: validUntilIso,
+          min_order_amount: editingCode.min_order_amount ? Number(editingCode.min_order_amount) : 0,
+          applicable_room_types: editingCode.applicable_room_types || [],
+          applicable_date_from: editingCode.applicable_date_from || null,
+          applicable_date_to: editingCode.applicable_date_to || null,
+          commission_rate: isNaN(commissionRateNum) ? 0 : commissionRateNum,
         })
         .eq("id", editingCode.id);
 
