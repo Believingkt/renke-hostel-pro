@@ -1105,6 +1105,10 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                   const isHoliday = holiday && (holiday.holiday_type === "holiday" || holiday.holiday_type === "compensatory_day_off");
                   const isSatSun = isWeekend(date);
                   const isRedDay = (isSatSun || isHoliday) && holiday?.holiday_type !== "work_on_weekend";
+                  const cfg = exclusiveConfigByDate.get(dateStr);
+                  const hasExclusiveOrder = !!cfg;
+                  const lockedCount = cfg?.get(cr.name) ?? 0;
+                  const remaining = Math.max(0, cr.count - lockedCount);
                   return (
                     <div
                       key={dateStr}
@@ -1113,9 +1117,25 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                         isRedDay && "bg-destructive/5",
                         isToday(date) && "bg-primary/5",
                       )}
-                      style={{ minWidth: DAY_COL_MIN_WIDTH }}
+                      style={{
+                        minWidth: DAY_COL_MIN_WIDTH,
+                        ...(hasExclusiveOrder
+                          ? {
+                              backgroundColor: "hsl(var(--muted) / 0.28)",
+                              backgroundImage:
+                                "repeating-linear-gradient(-45deg, transparent, transparent 6px, hsl(var(--border) / 0.8) 6px, hsl(var(--border) / 0.8) 8px)",
+                            }
+                          : {}),
+                      }}
                     >
-                      <span className="font-medium text-foreground">{cr.count}</span>
+                      {hasExclusiveOrder ? (
+                        <span className="inline-flex items-center justify-center gap-0.5 text-muted-foreground">
+                          <Lock className="h-3 w-3" />
+                          <span className="font-medium">{remaining}/{cr.count}</span>
+                        </span>
+                      ) : (
+                        <span className="font-medium text-foreground">{cr.count}</span>
+                      )}
                     </div>
                   );
                 })}
