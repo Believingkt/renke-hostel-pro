@@ -641,7 +641,7 @@ export default function TeamOrders() {
                   <TableHead className="whitespace-nowrap">詢問日期</TableHead>
                   <TableHead className="whitespace-nowrap">入住日</TableHead>
                   <TableHead className="whitespace-nowrap">退房日</TableHead>
-                  <TableHead className="whitespace-nowrap">客戶暱稱</TableHead>
+                  <TableHead className="whitespace-nowrap w-32">客戶暱稱</TableHead>
                   <TableHead className="whitespace-nowrap">客戶姓名</TableHead>
                   <TableHead className="whitespace-nowrap">電話</TableHead>
                   <TableHead className="whitespace-nowrap">訂購時間</TableHead>
