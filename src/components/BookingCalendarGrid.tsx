@@ -458,6 +458,38 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
     }
     return map;
   }, [roomTypes, calendarEntries, dateStrings]);
+
+  // 解析「包棟訂單」notes 內【包棟/包區房間配置】，建立每日 -> { 房型名稱: 鎖房數量 }
+  // 同天只會有一筆包棟訂單（不含雲岫/天送/旅行日場景）
+  const exclusiveConfigByDate = useMemo(() => {
+    const result = new Map<string, Map<string, number>>();
+    const exclusiveTypeIds = new Set(roomTypes.filter(r => r.is_exclusive_package).map(r => r.id));
+    const pkgLineRegex = /【\s*(?:包區|包棟)\s*房間配置\s*】\s*([^\n]+)/g;
+    const partRegex = /([\u4e00-\u9fff\w]+?)\s*(\d+)\s*間/g;
+    for (const dateStr of dateStrings) {
+      const order = orders.find(o =>
+        exclusiveTypeIds.has(o.room_type_id) &&
+        o.check_in_date <= dateStr && o.check_out_date > dateStr
+      );
+      if (!order) continue;
+      const cfg = new Map<string, number>();
+      if (order.notes) {
+        const lineRe = new RegExp(pkgLineRegex.source, 'g');
+        let lm: RegExpExecArray | null;
+        while ((lm = lineRe.exec(order.notes)) !== null) {
+          const partRe = new RegExp(partRegex.source, 'g');
+          let m: RegExpExecArray | null;
+          while ((m = partRe.exec(lm[1])) !== null) {
+            const name = m[1].trim();
+            const n = parseInt(m[2], 10) || 0;
+            if (name) cfg.set(name, (cfg.get(name) || 0) + n);
+          }
+        }
+      }
+      result.set(dateStr, cfg);
+    }
+    return result;
+  }, [orders, roomTypes, dateStrings]);
   const toggleRoomType = (id: string) => {
     setExpandedRoomTypes(prev => {
       const next = new Set(prev);
@@ -1073,6 +1105,10 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                   const isHoliday = holiday && (holiday.holiday_type === "holiday" || holiday.holiday_type === "compensatory_day_off");
                   const isSatSun = isWeekend(date);
                   const isRedDay = (isSatSun || isHoliday) && holiday?.holiday_type !== "work_on_weekend";
+                  const cfg = exclusiveConfigByDate.get(dateStr);
+                  const hasExclusiveOrder = !!cfg;
+                  const lockedCount = cfg?.get(cr.name) ?? 0;
+                  const remaining = Math.max(0, cr.count - lockedCount);
                   return (
                     <div
                       key={dateStr}
@@ -1081,9 +1117,25 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                         isRedDay && "bg-destructive/5",
                         isToday(date) && "bg-primary/5",
                       )}
-                      style={{ minWidth: DAY_COL_MIN_WIDTH }}
+                      style={{
+                        minWidth: DAY_COL_MIN_WIDTH,
+                        ...(hasExclusiveOrder
+                          ? {
+                              backgroundColor: "hsl(var(--muted) / 0.28)",
+                              backgroundImage:
+                                "repeating-linear-gradient(-45deg, transparent, transparent 6px, hsl(var(--border) / 0.8) 6px, hsl(var(--border) / 0.8) 8px)",
+                            }
+                          : {}),
+                      }}
                     >
-                      <span className="font-medium text-foreground">{cr.count}</span>
+                      {hasExclusiveOrder ? (
+                        <span className="inline-flex items-center justify-center gap-0.5 text-muted-foreground">
+                          <Lock className="h-3 w-3" />
+                          <span className="font-medium">{remaining}/{cr.count}</span>
+                        </span>
+                      ) : (
+                        <span className="font-medium text-foreground">{cr.count}</span>
+                      )}
                     </div>
                   );
                 })}
