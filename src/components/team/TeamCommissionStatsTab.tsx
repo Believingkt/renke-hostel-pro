@@ -652,29 +652,6 @@ export default function TeamCommissionStatsTab() {
         </CardContent>
       </Card>
 
-      {/* 未補填行銷資訊的訂單 */}
-      {isPrivileged && (
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between gap-2">
-              <div>
-                <h2 className="text-lg font-semibold">未補填行銷資訊的訂單</h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  共 {unfilledOrders.length} 筆未補填
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setUnfilledOpen(true)}
-                disabled={unfilledOrders.length === 0}
-              >
-                查看明細
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* 成交組 / 影音組業績 */}
       {!isScoutOnly && (
