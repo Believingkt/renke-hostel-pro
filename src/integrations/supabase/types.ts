@@ -7434,6 +7434,13 @@ export type Database = {
           role: Database["public"]["Enums"]["app_role"]
         }[]
       }
+      import_ryoan_order_bypass: {
+        Args: { p_meta: Json; p_order: Json; p_rooms: Json }
+        Returns: {
+          order_id: string
+          was_update: boolean
+        }[]
+      }
       is_admin: { Args: { user_id_param: string }; Returns: boolean }
       is_admin_or_super: { Args: never; Returns: boolean }
       is_super_admin: { Args: { user_uuid: string }; Returns: boolean }
