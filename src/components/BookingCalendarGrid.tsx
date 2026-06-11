@@ -458,6 +458,38 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
     }
     return map;
   }, [roomTypes, calendarEntries, dateStrings]);
+
+  // 解析「包棟訂單」notes 內【包棟/包區房間配置】，建立每日 -> { 房型名稱: 鎖房數量 }
+  // 同天只會有一筆包棟訂單（不含雲岫/天送/旅行日場景）
+  const exclusiveConfigByDate = useMemo(() => {
+    const result = new Map<string, Map<string, number>>();
+    const exclusiveTypeIds = new Set(roomTypes.filter(r => r.is_exclusive_package).map(r => r.id));
+    const pkgLineRegex = /【\s*(?:包區|包棟)\s*房間配置\s*】\s*([^\n]+)/g;
+    const partRegex = /([\u4e00-\u9fff\w]+?)\s*(\d+)\s*間/g;
+    for (const dateStr of dateStrings) {
+      const order = orders.find(o =>
+        exclusiveTypeIds.has(o.room_type_id) &&
+        o.check_in_date <= dateStr && o.check_out_date > dateStr
+      );
+      if (!order) continue;
+      const cfg = new Map<string, number>();
+      if (order.notes) {
+        const lineRe = new RegExp(pkgLineRegex.source, 'g');
+        let lm: RegExpExecArray | null;
+        while ((lm = lineRe.exec(order.notes)) !== null) {
+          const partRe = new RegExp(partRegex.source, 'g');
+          let m: RegExpExecArray | null;
+          while ((m = partRe.exec(lm[1])) !== null) {
+            const name = m[1].trim();
+            const n = parseInt(m[2], 10) || 0;
+            if (name) cfg.set(name, (cfg.get(name) || 0) + n);
+          }
+        }
+      }
+      result.set(dateStr, cfg);
+    }
+    return result;
+  }, [orders, roomTypes, dateStrings]);
   const toggleRoomType = (id: string) => {
     setExpandedRoomTypes(prev => {
       const next = new Set(prev);
