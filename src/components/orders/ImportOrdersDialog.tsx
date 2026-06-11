@@ -100,6 +100,240 @@ function matchMember(phone: string, email: string, members: Member[]): Member | 
   return null;
 }
 
+// ============== 旅安格式相關常數與工具 ==============
+const RYAN_ACCOMMODATION_ID = "4ee31aca-5641-4d05-80e2-1c67626be83d";
+
+const RYAN_ROOM_TYPE_MAP: Record<string, string> = {
+  "A區8人包棟": "0258df76-f7bb-40eb-a3e5-98e5339f32c6",
+  "A區10人包棟": "bb111e1d-8127-4b38-be7b-db920b052b13",
+  "A區12人包棟": "b10ecdcf-8cd8-47c7-9d17-745f1f8d0165",
+  "B區16人": "bfac245a-bddf-432e-b0f3-80d2b09af8a7",
+  "B5 16人包棟": "c52ae481-bc0e-444b-bf4c-095cbe01ee2a",
+  "B8包棟": "533df560-7a9f-4008-b183-ea9d4147f82d",
+  "乘風雙人房": "c1e50e78-5de7-40e3-894e-7ca6aab216dc",
+  "山隅雙人房": "985ff2cf-629b-416d-a5af-c0030318e969",
+  "和洋家庭房": "f9a1a879-d632-402f-b76c-1d9513510cbd",
+};
+
+const RYAN_ROOM_UNIT_MAP: Record<string, string> = {
+  "A9": "4a44bdf3-0591-4c05-8925-7619e94d8d88",
+  "B8": "9263521b-7a61-4d0d-809a-05f0c221bc6a",
+  "B6-202": "5ae1ecf8-2ea0-4ad7-b862-822108aed2fd",
+  "B6-302": "e7153820-bc34-4b88-928f-5ca0643ddc61",
+  "A3": "cc5d5619-7a04-456c-8806-9c0b85a6a4ba",
+  "A5": "1dafa138-466a-4f37-acc9-472815753121",
+  "A10": "f9a6a4c5-96c2-46d6-82db-f90c2c19737d",
+  "A11": "0a7d81bf-e87e-4ab7-8277-123fd1bbb869",
+  "B1": "a9e36007-e0d7-455d-b084-a7bf9de47a7c",
+  "B2": "bf3a829d-f0f4-4e56-b041-2ba0f5eb14bc",
+  "B3": "07598157-a83f-4c09-946a-311771fdfd54",
+  "B7": "e79d93fb-8b62-49f7-b0ce-a72ff467d801",
+  "B6-401": "b5bf7bd5-9c49-40c4-b448-10a13bafeb29",
+  "B6-402": "fc834439-409d-49cb-8274-0487d901c935",
+  "B5": "24ef79cd-312c-47a6-ac61-bb91a8d67c85",
+  "B6-201": "ebc91231-ed43-4e6c-ae59-c4b99df0d607",
+  "B6-301": "be209a09-f99f-4892-b95b-ca8c1bd82ce1",
+};
+
+const RYAN_STATUS_MAP: Record<string, { order_status: string; payment_status: string }> = {
+  "已結清": { order_status: "confirmed", payment_status: "paid" },
+  "待結清": { order_status: "confirmed", payment_status: "unpaid" },
+  "訂金未付": { order_status: "pending", payment_status: "unpaid" },
+  "已取消": { order_status: "cancelled", payment_status: "unpaid" },
+};
+
+function ryanToDateString(v: unknown): string {
+  if (!v && v !== 0) return "";
+  if (v instanceof Date) {
+    const y = v.getFullYear();
+    const m = String(v.getMonth() + 1).padStart(2, "0");
+    const d = String(v.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+  const s = String(v).trim();
+  const m = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+  if (m) return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+  return s.slice(0, 10);
+}
+
+function isRyanFormat(headerRow: unknown[]): boolean {
+  const set = new Set(headerRow.map((h) => String(h ?? "").trim()));
+  return ["訂單編號", "訂房日", "入住日", "入住房型"].every((k) => set.has(k));
+}
+
+interface RyanImportResult {
+  created: number;
+  updated: number;
+  warnings: string[];
+}
+
+async function importRyanOrders(
+  rows: Record<string, unknown>[],
+  onProgress: (pct: number) => void,
+): Promise<RyanImportResult> {
+  const groups = new Map<string, Record<string, unknown>[]>();
+  for (const r of rows) {
+    const num = String(r["訂單編號"] ?? "").trim();
+    if (!num) continue;
+    if (!groups.has(num)) groups.set(num, []);
+    groups.get(num)!.push(r);
+  }
+
+  const orderNumbers = Array.from(groups.keys());
+  const warnings: string[] = [];
+  let created = 0;
+  let updated = 0;
+
+  const existingMap = new Map<string, string>();
+  if (orderNumbers.length > 0) {
+    const { data: existing } = await supabase
+      .from("orders")
+      .select("id, order_number")
+      .in("order_number", orderNumbers);
+    (existing ?? []).forEach((o) => existingMap.set(o.order_number, o.id));
+  }
+
+  let processed = 0;
+  for (const [orderNumber, rowsInGroup] of groups) {
+    const first = rowsInGroup[0];
+    const finalPrice = rowsInGroup.reduce(
+      (s, r) => s + (Number(r["客房總價"]) || 0),
+      0,
+    );
+
+    // 取客房總價最高那行的房型
+    let pickRow = first;
+    let maxPrice = -1;
+    for (const r of rowsInGroup) {
+      const p = Number(r["客房總價"]) || 0;
+      if (p > maxPrice) {
+        maxPrice = p;
+        pickRow = r;
+      }
+    }
+    if (maxPrice <= 0) pickRow = first;
+    const orderLevelRoomTypeId =
+      RYAN_ROOM_TYPE_MAP[String(pickRow["入住房型"] ?? "").trim()] ?? null;
+
+    const statusKey = String(first["訂單狀態"] ?? "").trim();
+    const mapped =
+      RYAN_STATUS_MAP[statusKey] ?? { order_status: "pending", payment_status: "unpaid" };
+
+    const orderType = String(first["訂單類型"] ?? "").trim();
+    const projectName = String(first["專案"] ?? "").trim();
+    const rawNote = String(first["備註"] ?? "").trim();
+
+    const noteParts: string[] = [`[匯入自旅安: ${orderNumber}]`];
+    if (orderType) noteParts.push(`【訂單類型：${orderType}】`);
+    if (projectName) noteParts.push(`【專案：${projectName}】`);
+    if (rawNote) noteParts.push(rawNote);
+    const notes = noteParts.join("\n");
+
+    let discountCode: string | null = null;
+    if (rawNote) {
+      const m = rawNote.match(/折扣碼[：:]\s*(\S+)/);
+      if (m) discountCode = m[1];
+    }
+
+    const guestName = String(first["入住人"] ?? "").trim() || "未填";
+    const existingId = existingMap.get(orderNumber);
+
+    const orderPayload: Record<string, unknown> = {
+      order_number: orderNumber,
+      accommodation_id: RYAN_ACCOMMODATION_ID,
+      guest_name: guestName,
+      order_date: ryanToDateString(first["訂房日"]),
+      check_in_date: ryanToDateString(first["入住日"]),
+      check_out_date: ryanToDateString(first["退房日"]),
+      final_price: finalPrice,
+      order_source: String(first["通路"] ?? "").trim(),
+      room_type_id: orderLevelRoomTypeId,
+      order_status: mapped.order_status,
+      payment_status: mapped.payment_status,
+      notes,
+      discount_code: discountCode,
+    };
+
+    if (!existingId) {
+      orderPayload.guest_phone = "0000000000";
+      orderPayload.guest_count = 1;
+      orderPayload.total_price = finalPrice;
+      orderPayload.paid_amount = mapped.payment_status === "paid" ? finalPrice : 0;
+      orderPayload.deposit_amount = 0;
+    }
+
+    const { data: upserted, error: upErr } = await supabase
+      .from("orders")
+      .upsert(orderPayload as never, { onConflict: "order_number" })
+      .select("id")
+      .single();
+
+    if (upErr || !upserted) {
+      warnings.push(`訂單 ${orderNumber} 寫入失敗：${upErr?.message ?? "未知錯誤"}`);
+      processed++;
+      onProgress(Math.round((processed / groups.size) * 100));
+      continue;
+    }
+    const orderId = (upserted as { id: string }).id;
+    if (existingId) updated++;
+    else created++;
+
+    // order_rooms：先刪後插
+    await supabase.from("order_rooms").delete().eq("order_id", orderId);
+
+    let skippedRoomRows = 0;
+    const orderRoomInserts: Record<string, unknown>[] = [];
+    for (const r of rowsInGroup) {
+      const rtName = String(r["入住房型"] ?? "").trim();
+      const rtId = RYAN_ROOM_TYPE_MAP[rtName];
+      if (!rtId) {
+        skippedRoomRows++;
+        continue;
+      }
+      const unitName = String(r["房號"] ?? "").trim();
+      const unitId = RYAN_ROOM_UNIT_MAP[unitName] ?? null;
+      orderRoomInserts.push({
+        order_id: orderId,
+        room_type_id: rtId,
+        room_unit_id: unitId,
+        quantity: 1,
+        room_price: Number(r["客房總價"]) || 0,
+        template_id: null,
+        template_name: null,
+      });
+    }
+    if (orderRoomInserts.length) {
+      const { error: orErr } = await supabase
+        .from("order_rooms")
+        .insert(orderRoomInserts as never);
+      if (orErr) warnings.push(`訂單 ${orderNumber} 房間明細寫入失敗：${orErr.message}`);
+    }
+    if (skippedRoomRows > 0) {
+      warnings.push(`訂單 ${orderNumber} 有 ${skippedRoomRows} 行因找不到房型對應而跳過`);
+    }
+
+    const addonAmount = rowsInGroup.reduce(
+      (s, r) => s + (Number(r["其他營收(不含取消費)"]) || 0),
+      0,
+    );
+    await supabase.from("order_meta").upsert(
+      {
+        order_id: orderId,
+        accommodation_id: RYAN_ACCOMMODATION_ID,
+        addon_amount: addonAmount,
+        import_source: "旅安",
+      } as never,
+      { onConflict: "order_id" },
+    );
+
+    processed++;
+    onProgress(Math.round((processed / groups.size) * 100));
+  }
+
+  return { created, updated, warnings };
+}
+
+
 export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSuccess }: ImportOrdersDialogProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
