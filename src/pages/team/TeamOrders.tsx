@@ -565,6 +565,7 @@ export default function TeamOrders() {
                 className="pl-10 md:pl-10"
               />
             </div>
+            <span className="text-sm text-muted-foreground">目前顯示：</span>
             <Button
               type="button"
               size="sm"
@@ -574,9 +575,6 @@ export default function TeamOrders() {
             >
               {closerOnly ? "成交大師訂單" : "全部訂單"}
             </Button>
-            <span className="text-sm text-muted-foreground">
-              目前顯示：{closerOnly ? "成交大師訂單" : "全部訂單"}
-            </span>
           </div>
           <div className="flex flex-wrap gap-2">
             <Select value={accFilter} onValueChange={setAccFilter}>
