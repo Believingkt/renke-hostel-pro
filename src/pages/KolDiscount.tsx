@@ -2165,7 +2165,16 @@ const KolDiscount = () => {
                     id="edit-enableDateRange"
                     checked={!!(editingCode?.applicable_date_from || editingCode?.applicable_date_to)}
                     onCheckedChange={(checked) => {
-                      if (!checked && editingCode) {
+                      if (!editingCode) return;
+                      if (checked) {
+                        // 開啟限制時，若尚未有任何日期，預設帶今日為起始日，方便使用者調整
+                        if (!editingCode.applicable_date_from && !editingCode.applicable_date_to) {
+                          setEditingCode({
+                            ...editingCode,
+                            applicable_date_from: format(new Date(), "yyyy-MM-dd"),
+                          });
+                        }
+                      } else {
                         setEditingCode({
                           ...editingCode,
                           applicable_date_from: null,
