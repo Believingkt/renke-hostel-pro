@@ -215,13 +215,9 @@ async function importRyanOrders(
     // 同訂單編號內，房號完全相同（含空字串/null）的行只保留第一筆
     const seenRoomNumbers = new Set<string>();
     const rowsInGroup: Record<string, unknown>[] = [];
-    let dedupedCount = 0;
     for (const r of rawRows) {
       const key = String(r["房號"] ?? "").trim();
-      if (seenRoomNumbers.has(key)) {
-        dedupedCount++;
-        continue;
-      }
+      if (seenRoomNumbers.has(key)) continue;
       seenRoomNumbers.add(key);
       rowsInGroup.push(r);
     }
