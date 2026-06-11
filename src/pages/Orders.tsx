@@ -555,6 +555,7 @@ const Orders = () => {
                   orderStatus={orderStatus}
                   orderSource={orderSource}
                   searchKeyword={searchKeyword}
+                  accommodationId={accommodationId}
                   onDateTypeChange={setDateType}
                   onStartDateChange={setStartDate}
                   onEndDateChange={setEndDate}
@@ -597,6 +598,7 @@ const Orders = () => {
                         orderStatus={orderStatus}
                         orderSource={orderSource}
                         searchKeyword={searchKeyword}
+                        accommodationId={accommodationId}
                         onDateTypeChange={setDateType}
                         onStartDateChange={setStartDate}
                         onEndDateChange={setEndDate}
@@ -812,6 +814,7 @@ const Orders = () => {
         open={orderSourceDialogOpen}
         onOpenChange={setOrderSourceDialogOpen}
         onSuccess={fetchOrders}
+        accommodationId={accommodationId}
       />
 
       {/* 匯入訂單對話框 */}
