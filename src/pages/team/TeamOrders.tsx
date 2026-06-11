@@ -686,7 +686,9 @@ export default function TeamOrders() {
                       <TableCell className="whitespace-nowrap">{o.meta?.inquiry_date || "-"}</TableCell>
                       <TableCell className="whitespace-nowrap">{o.check_in_date}</TableCell>
                       <TableCell className="whitespace-nowrap">{o.check_out_date}</TableCell>
-                      <TableCell className="whitespace-nowrap w-32 truncate">{o.meta?.nickname || "-"}</TableCell>
+                      <TableCell className="w-32 min-w-32 max-w-32">
+                        <div className="w-32 truncate" title={o.meta?.nickname || ""}>{o.meta?.nickname || "-"}</div>
+                      </TableCell>
                       <TableCell className="whitespace-nowrap">{o.guest_name}</TableCell>
                       <TableCell className="whitespace-nowrap">{o.guest_phone || "-"}</TableCell>
                       <TableCell className="whitespace-nowrap tabular-nums text-xs">
