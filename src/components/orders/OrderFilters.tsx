@@ -7,6 +7,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, parse } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useOrderSources } from "@/hooks/use-order-sources";
 
 interface OrderFiltersProps {
   dateType: string;
@@ -16,6 +17,7 @@ interface OrderFiltersProps {
   orderStatus: string;
   orderSource: string;
   searchKeyword: string;
+  accommodationId?: string | null;
   onDateTypeChange: (value: string) => void;
   onStartDateChange: (value: string) => void;
   onEndDateChange: (value: string) => void;
@@ -72,6 +74,7 @@ export function OrderFilters({
   orderStatus,
   orderSource,
   searchKeyword,
+  accommodationId,
   onDateTypeChange,
   onStartDateChange,
   onEndDateChange,
@@ -82,6 +85,7 @@ export function OrderFilters({
   onClear,
   onSubmit,
 }: OrderFiltersProps) {
+  const orderSources = useOrderSources(accommodationId);
   return (
     <div className="space-y-4">
       {/* 日期區間 */}
@@ -147,18 +151,9 @@ export function OrderFilters({
             onChange={(e) => onOrderSourceChange(e.target.value)}
           >
             <option value="">(全部)</option>
-            <option value="website">官網訂房</option>
-            <option value="manual">現場訂房</option>
-            <option value="line">Line@</option>
-            <option value="agoda">Agoda</option>
-            <option value="booking">Booking</option>
-            <option value="trip">Trip</option>
-             <option value="travel_agency">旅行社</option>
-             <option value="kol">KOL互惠</option>
-             <option value="points_starchain">星鏈會員</option>
-             <option value="official_use">公務使用</option>
-             <option value="franchise_diff">加盟價差</option>
-             <option value="owner_provided">業主自帶</option>
+            {orderSources.map((s) => (
+              <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
           </select>
         </div>
 
