@@ -167,6 +167,35 @@ interface RyanImportResult {
   warnings: string[];
 }
 
+interface RyanEdgePayload {
+  order: {
+    order_number: string;
+    guest_name: string;
+    order_date: string;
+    check_in_date: string;
+    check_out_date: string;
+    final_price: number;
+    order_source: string;
+    order_status: string;
+    payment_status: string;
+    notes: string;
+    discount_code: string | null;
+    room_type_id: string | null;
+    accommodation_id: string;
+  };
+  order_rooms: Array<{
+    room_type_id: string;
+    room_unit_id: string | null;
+    quantity: number;
+    room_price: number;
+  }>;
+  order_meta: {
+    addon_amount: number;
+    import_source: string;
+    accommodation_id: string;
+  };
+}
+
 async function importRyanOrders(
   rows: Record<string, unknown>[],
   onProgress: (pct: number) => void,
@@ -179,21 +208,9 @@ async function importRyanOrders(
     groups.get(num)!.push(r);
   }
 
-  const orderNumbers = Array.from(groups.keys());
   const warnings: string[] = [];
-  let created = 0;
-  let updated = 0;
+  const payload: RyanEdgePayload[] = [];
 
-  const existingMap = new Map<string, string>();
-  if (orderNumbers.length > 0) {
-    const { data: existing } = await supabase
-      .from("orders")
-      .select("id, order_number")
-      .in("order_number", orderNumbers);
-    (existing ?? []).forEach((o) => existingMap.set(o.order_number, o.id));
-  }
-
-  let processed = 0;
   for (const [orderNumber, rowsInGroup] of groups) {
     const first = rowsInGroup[0];
     const finalPrice = rowsInGroup.reduce(
@@ -236,53 +253,9 @@ async function importRyanOrders(
     }
 
     const guestName = String(first["入住人"] ?? "").trim() || "未填";
-    const existingId = existingMap.get(orderNumber);
-
-    const orderPayload: Record<string, unknown> = {
-      order_number: orderNumber,
-      accommodation_id: RYAN_ACCOMMODATION_ID,
-      guest_name: guestName,
-      order_date: ryanToDateString(first["訂房日"]),
-      check_in_date: ryanToDateString(first["入住日"]),
-      check_out_date: ryanToDateString(first["退房日"]),
-      final_price: finalPrice,
-      order_source: String(first["通路"] ?? "").trim(),
-      room_type_id: orderLevelRoomTypeId,
-      order_status: mapped.order_status,
-      payment_status: mapped.payment_status,
-      notes,
-      discount_code: discountCode,
-    };
-
-    if (!existingId) {
-      orderPayload.guest_phone = "0000000000";
-      orderPayload.guest_count = 1;
-      orderPayload.total_price = finalPrice;
-      orderPayload.paid_amount = mapped.payment_status === "paid" ? finalPrice : 0;
-      orderPayload.deposit_amount = 0;
-    }
-
-    const { data: upserted, error: upErr } = await supabase
-      .from("orders")
-      .upsert(orderPayload as never, { onConflict: "order_number" })
-      .select("id")
-      .single();
-
-    if (upErr || !upserted) {
-      warnings.push(`訂單 ${orderNumber} 寫入失敗：${upErr?.message ?? "未知錯誤"}`);
-      processed++;
-      onProgress(Math.round((processed / groups.size) * 100));
-      continue;
-    }
-    const orderId = (upserted as { id: string }).id;
-    if (existingId) updated++;
-    else created++;
-
-    // order_rooms：先刪後插
-    await supabase.from("order_rooms").delete().eq("order_id", orderId);
 
     let skippedRoomRows = 0;
-    const orderRoomInserts: Record<string, unknown>[] = [];
+    const orderRooms: RyanEdgePayload["order_rooms"] = [];
     for (const r of rowsInGroup) {
       const rtName = String(r["入住房型"] ?? "").trim();
       const rtId = RYAN_ROOM_TYPE_MAP[rtName];
@@ -292,21 +265,12 @@ async function importRyanOrders(
       }
       const unitName = String(r["房號"] ?? "").trim();
       const unitId = RYAN_ROOM_UNIT_MAP[unitName] ?? null;
-      orderRoomInserts.push({
-        order_id: orderId,
+      orderRooms.push({
         room_type_id: rtId,
         room_unit_id: unitId,
         quantity: 1,
         room_price: Number(r["客房總價"]) || 0,
-        template_id: null,
-        template_name: null,
       });
-    }
-    if (orderRoomInserts.length) {
-      const { error: orErr } = await supabase
-        .from("order_rooms")
-        .insert(orderRoomInserts as never);
-      if (orErr) warnings.push(`訂單 ${orderNumber} 房間明細寫入失敗：${orErr.message}`);
     }
     if (skippedRoomRows > 0) {
       warnings.push(`訂單 ${orderNumber} 有 ${skippedRoomRows} 行因找不到房型對應而跳過`);
@@ -316,21 +280,57 @@ async function importRyanOrders(
       (s, r) => s + (Number(r["其他營收(不含取消費)"]) || 0),
       0,
     );
-    await supabase.from("order_meta").upsert(
-      {
-        order_id: orderId,
+
+    payload.push({
+      order: {
+        order_number: orderNumber,
+        guest_name: guestName,
+        order_date: ryanToDateString(first["訂房日"]),
+        check_in_date: ryanToDateString(first["入住日"]),
+        check_out_date: ryanToDateString(first["退房日"]),
+        final_price: finalPrice,
+        order_source: String(first["通路"] ?? "").trim(),
+        order_status: mapped.order_status,
+        payment_status: mapped.payment_status,
+        notes,
+        discount_code: discountCode,
+        room_type_id: orderLevelRoomTypeId,
         accommodation_id: RYAN_ACCOMMODATION_ID,
+      },
+      order_rooms: orderRooms,
+      order_meta: {
         addon_amount: addonAmount,
         import_source: "旅安",
-      } as never,
-      { onConflict: "order_id" },
-    );
-
-    processed++;
-    onProgress(Math.round((processed / groups.size) * 100));
+        accommodation_id: RYAN_ACCOMMODATION_ID,
+      },
+    });
   }
 
-  return { created, updated, warnings };
+  onProgress(20);
+  const { data, error } = await supabase.functions.invoke("import-ryoan-orders", {
+    body: payload,
+  });
+  onProgress(100);
+
+  if (error) {
+    throw new Error(error.message || "Edge Function 呼叫失敗");
+  }
+
+  const result = data as {
+    inserted: number;
+    updated: number;
+    errors: Array<{ order_number: string; message: string }>;
+  };
+
+  for (const e of result.errors ?? []) {
+    warnings.push(`訂單 ${e.order_number} 寫入失敗：${e.message}`);
+  }
+
+  return {
+    created: result.inserted ?? 0,
+    updated: result.updated ?? 0,
+    warnings,
+  };
 }
 
 
