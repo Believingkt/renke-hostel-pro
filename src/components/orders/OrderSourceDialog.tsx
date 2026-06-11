@@ -8,31 +8,19 @@ import { useToast } from "@/hooks/use-toast";
 import { Order } from "@/types/order";
 import { getOrderSourceConfig } from "@/utils/orderHelpers";
 import { Globe, UserPlus } from "lucide-react";
+import { useOrderSources } from "@/hooks/use-order-sources";
 
 interface OrderSourceDialogProps {
   order: Order | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  accommodationId?: string | null;
 }
 
-const ORDER_SOURCES = [
-  { value: "website", label: "官網訂房" },
-  { value: "manual", label: "現場訂房" },
-  { value: "line", label: "Line@" },
-  { value: "agoda", label: "Agoda" },
-  { value: "booking", label: "Booking" },
-  { value: "trip", label: "Trip" },
-  { value: "travel_agency", label: "旅行社" },
-  { value: "kol", label: "KOL互惠" },
-  { value: "points_starchain", label: "星鏈會員" },
-  { value: "official_use", label: "公務使用" },
-  { value: "franchise_diff", label: "加盟價差" },
-  { value: "owner_provided", label: "業主自帶" },
-];
-
-export function OrderSourceDialog({ order, open, onOpenChange, onSuccess }: OrderSourceDialogProps) {
+export function OrderSourceDialog({ order, open, onOpenChange, onSuccess, accommodationId }: OrderSourceDialogProps) {
   const { toast } = useToast();
+  const orderSources = useOrderSources(accommodationId ?? null);
   const [selectedSource, setSelectedSource] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
@@ -122,7 +110,7 @@ export function OrderSourceDialog({ order, open, onOpenChange, onSuccess }: Orde
         </DialogHeader>
         <div className="space-y-4 py-2">
           <RadioGroup value={selectedSource} onValueChange={setSelectedSource}>
-            {ORDER_SOURCES.map((source) => {
+            {orderSources.map((source) => {
               const config = getOrderSourceConfig(source.value);
               return (
                 <div key={source.value} className="flex items-center space-x-3 py-1.5">
