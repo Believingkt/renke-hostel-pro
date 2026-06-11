@@ -113,6 +113,7 @@ export default function TeamOrders() {
   const [franchiseFilter, setFranchiseFilter] = useState<string>("ALL");
   const [franchiseProjects, setFranchiseProjects] = useState<{ id: string; name: string }[]>([]);
   const [search, setSearch] = useState<string>("");
+  const [closerOnly, setCloserOnly] = useState(true);
   const [page, setPage] = useState(1);
 
   const [editOpen, setEditOpen] = useState(false);
@@ -420,6 +421,7 @@ export default function TeamOrders() {
       if (year !== "ALL" && String(d.getFullYear()) !== year) return false;
       if (month !== "ALL" && String(d.getMonth() + 1) !== month) return false;
       if (franchiseFilter !== "ALL" && (o.meta?.franchise_project ?? "") !== franchiseFilter) return false;
+      if (closerOnly && !o.meta?.closer_id) return false;
       if (q) {
         const closerName = closers.find((m) => m.user_id === o.meta?.closer_id)?.display_name ?? "";
         const videoName = videos.find((m) => m.user_id === o.meta?.video_creator_id)?.display_name ?? "";
@@ -437,7 +439,7 @@ export default function TeamOrders() {
       }
       return true;
     });
-  }, [orders, accFilter, year, month, franchiseFilter, search, closers, videos]);
+  }, [orders, accFilter, year, month, franchiseFilter, search, closers, videos, closerOnly]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -553,14 +555,25 @@ export default function TeamOrders() {
         <TabsContent value="orders" className="space-y-4">
           <Card>
         <CardContent className="p-4 space-y-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <Input
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              placeholder="搜尋訂單編號、房客姓名、折扣碼、成交人、影音組、會員編號"
-              className="pl-10 md:pl-10"
-            />
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                placeholder="搜尋訂單編號、房客姓名、折扣碼、成交人、影音組、會員編號"
+                className="pl-10 md:pl-10"
+              />
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant={closerOnly ? "default" : "outline"}
+              className={closerOnly ? "bg-orange-500 hover:bg-orange-600 text-white" : "text-muted-foreground"}
+              onClick={() => { setCloserOnly((v) => !v); setPage(1); }}
+            >
+              {closerOnly ? "成交大師訂單" : "全部訂單"}
+            </Button>
           </div>
           <div className="flex flex-wrap gap-2">
             <Select value={accFilter} onValueChange={setAccFilter}>
