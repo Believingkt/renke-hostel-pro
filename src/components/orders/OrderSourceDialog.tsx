@@ -18,8 +18,9 @@ interface OrderSourceDialogProps {
   accommodationId?: string | null;
 }
 
-export function OrderSourceDialog({ order, open, onOpenChange, onSuccess }: OrderSourceDialogProps) {
+export function OrderSourceDialog({ order, open, onOpenChange, onSuccess, accommodationId }: OrderSourceDialogProps) {
   const { toast } = useToast();
+  const orderSources = useOrderSources(accommodationId ?? null);
   const [selectedSource, setSelectedSource] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
@@ -109,7 +110,7 @@ export function OrderSourceDialog({ order, open, onOpenChange, onSuccess }: Orde
         </DialogHeader>
         <div className="space-y-4 py-2">
           <RadioGroup value={selectedSource} onValueChange={setSelectedSource}>
-            {ORDER_SOURCES.map((source) => {
+            {orderSources.map((source) => {
               const config = getOrderSourceConfig(source.value);
               return (
                 <div key={source.value} className="flex items-center space-x-3 py-1.5">
