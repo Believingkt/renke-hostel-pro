@@ -113,6 +113,7 @@ export default function TeamOrders() {
   const [franchiseFilter, setFranchiseFilter] = useState<string>("ALL");
   const [franchiseProjects, setFranchiseProjects] = useState<{ id: string; name: string }[]>([]);
   const [search, setSearch] = useState<string>("");
+  const [closerOnly, setCloserOnly] = useState(true);
   const [page, setPage] = useState(1);
 
   const [editOpen, setEditOpen] = useState(false);
