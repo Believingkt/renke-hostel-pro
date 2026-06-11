@@ -323,7 +323,10 @@ async function importRyanOrders(
   };
 
   for (const e of result.errors ?? []) {
-    warnings.push(`訂單 ${e.order_number} 寫入失敗：${e.message}`);
+    const msg = typeof e.message === "string"
+      ? e.message
+      : (() => { try { return JSON.stringify(e.message); } catch { return String(e.message); } })();
+    warnings.push(`訂單 ${e.order_number} 寫入失敗：${msg}`);
   }
 
   return {

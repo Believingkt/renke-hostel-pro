@@ -88,10 +88,18 @@ Deno.serve(async (req) => {
         if (row?.was_update) updated++;
         else inserted++;
       } catch (err) {
-        errors.push({
-          order_number: orderNumber,
-          message: err instanceof Error ? err.message : String(err),
-        });
+        const e = err as Record<string, unknown> | null;
+        const message =
+          (e && typeof e === "object" && (
+            (e.message as string) ||
+            (e.details as string) ||
+            (e.hint as string) ||
+            (e.code as string)
+          )) ||
+          (err instanceof Error ? err.message : "") ||
+          (() => { try { return JSON.stringify(err); } catch { return String(err); } })();
+        console.error(`[import-ryoan-orders] ${orderNumber} failed:`, err);
+        errors.push({ order_number: orderNumber, message: String(message) });
       }
     }
 
