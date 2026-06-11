@@ -300,7 +300,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           .order("created_at", { ascending: true }),
         supabase
           .from("pricing_templates")
-          .select("id, template_name, meal_plans, project_name, room_type_id, room_type_ids, price, weekday_price, peak_price, weekend_price, valid_from, valid_until, room_overrides")
+          .select("id, template_name, meal_plans, project_name, room_type_id, room_type_ids, price, weekday_price, peak_price, weekend_price, weekday_enabled, peak_enabled, weekend_enabled, valid_from, valid_until, room_overrides, season_segments, extra_dates, excluded_dates")
           .eq("accommodation_id", currentAccommodationId)
           .order("display_order")
       ]);
