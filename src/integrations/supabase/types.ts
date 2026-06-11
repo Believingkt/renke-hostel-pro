@@ -7437,8 +7437,8 @@ export type Database = {
       import_ryoan_order_bypass: {
         Args: { p_meta: Json; p_order: Json; p_rooms: Json }
         Returns: {
-          order_id: string
-          was_update: boolean
+          out_order_id: string
+          out_was_update: boolean
         }[]
       }
       is_admin: { Args: { user_id_param: string }; Returns: boolean }
