@@ -556,7 +556,7 @@ export default function TeamOrders() {
           <Card>
         <CardContent className="p-4 space-y-4">
           <div className="flex items-center gap-2">
-            <div className="relative flex-1">
+            <div className="relative flex-1 min-w-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
                 value={search}
@@ -565,12 +565,12 @@ export default function TeamOrders() {
                 className="pl-10 md:pl-10"
               />
             </div>
-            <span className="text-sm text-muted-foreground">目前顯示：</span>
+            <span className="text-sm text-muted-foreground shrink-0">目前顯示：</span>
             <Button
               type="button"
               size="sm"
               variant={closerOnly ? "default" : "outline"}
-              className={closerOnly ? "bg-orange-500 hover:bg-orange-600 text-white" : "text-muted-foreground"}
+              className={`shrink-0 w-32 justify-center ${closerOnly ? "bg-orange-500 hover:bg-orange-600 text-white" : "text-muted-foreground"}`}
               onClick={() => { setCloserOnly((v) => !v); setPage(1); }}
             >
               {closerOnly ? "成交大師訂單" : "全部訂單"}
@@ -641,7 +641,7 @@ export default function TeamOrders() {
                   <TableHead className="whitespace-nowrap">詢問日期</TableHead>
                   <TableHead className="whitespace-nowrap">入住日</TableHead>
                   <TableHead className="whitespace-nowrap">退房日</TableHead>
-                  <TableHead className="whitespace-nowrap">客戶暱稱</TableHead>
+                  <TableHead className="whitespace-nowrap w-32">客戶暱稱</TableHead>
                   <TableHead className="whitespace-nowrap">客戶姓名</TableHead>
                   <TableHead className="whitespace-nowrap">電話</TableHead>
                   <TableHead className="whitespace-nowrap">訂購時間</TableHead>
@@ -686,7 +686,7 @@ export default function TeamOrders() {
                       <TableCell className="whitespace-nowrap">{o.meta?.inquiry_date || "-"}</TableCell>
                       <TableCell className="whitespace-nowrap">{o.check_in_date}</TableCell>
                       <TableCell className="whitespace-nowrap">{o.check_out_date}</TableCell>
-                      <TableCell className="whitespace-nowrap">{o.meta?.nickname || "-"}</TableCell>
+                      <TableCell className="whitespace-nowrap w-32 truncate">{o.meta?.nickname || "-"}</TableCell>
                       <TableCell className="whitespace-nowrap">{o.guest_name}</TableCell>
                       <TableCell className="whitespace-nowrap">{o.guest_phone || "-"}</TableCell>
                       <TableCell className="whitespace-nowrap tabular-nums text-xs">
