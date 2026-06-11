@@ -686,19 +686,25 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
               <div>
                 <span className="text-muted-foreground text-xs">平日價格</span>
                 <div className="font-semibold text-primary tabular-nums">
-                  {weekdayPrice != null ? `NT$ ${weekdayPrice.toLocaleString()}` : '未設定'}
+                  {template.weekday_enabled === false
+                    ? <span className="text-muted-foreground font-normal">已關閉</span>
+                    : weekdayPrice != null ? `NT$ ${weekdayPrice.toLocaleString()}` : '未設定'}
                 </div>
               </div>
               <div>
                 <span className="text-muted-foreground text-xs">旺日價格</span>
                 <div className="font-semibold text-primary tabular-nums">
-                  {peakPrice != null ? `NT$ ${peakPrice.toLocaleString()}` : '未設定'}
+                  {template.peak_enabled === false
+                    ? <span className="text-muted-foreground font-normal">已關閉</span>
+                    : peakPrice != null ? `NT$ ${peakPrice.toLocaleString()}` : '未設定'}
                 </div>
               </div>
               <div>
                 <span className="text-muted-foreground text-xs">假日價格</span>
                 <div className="font-semibold text-primary tabular-nums">
-                  {weekendPrice != null ? `NT$ ${weekendPrice.toLocaleString()}` : '未設定'}
+                  {template.weekend_enabled === false
+                    ? <span className="text-muted-foreground font-normal">已關閉</span>
+                    : weekendPrice != null ? `NT$ ${weekendPrice.toLocaleString()}` : '未設定'}
                 </div>
               </div>
               <div>
