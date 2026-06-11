@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
         });
         if (error) throw error;
         const row = Array.isArray(data) ? data[0] : data;
-        if (row?.was_update) updated++;
+        if (row?.out_was_update) updated++;
         else inserted++;
       } catch (err) {
         const e = err as Record<string, unknown> | null;
