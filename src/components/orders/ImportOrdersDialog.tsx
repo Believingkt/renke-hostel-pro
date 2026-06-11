@@ -417,11 +417,6 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
       const rows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(ws);
 
 
-      // Parse XLSX
-      const data = await file.arrayBuffer();
-      const wb = XLSX.read(data);
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(ws);
 
       const parsed: ParsedOrder[] = rows.map(row => {
         const originalOrderNumber = String(row["訂單編號"] || "");
