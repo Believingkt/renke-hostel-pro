@@ -360,7 +360,44 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
     if (fileInputRef.current) fileInputRef.current.value = "";
 
     try {
-      // Load room types, existing order numbers & platform members in parallel
+      // Parse XLSX first to detect format
+      const data = await file.arrayBuffer();
+      const wb = XLSX.read(data, { cellDates: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rawAoa = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1 });
+      const headerRow = (rawAoa[0] ?? []) as unknown[];
+
+      // 旅安格式偵測 → 走獨立流程
+      if (isRyanFormat(headerRow)) {
+        const ryanRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws);
+        setStep("importing");
+        setImportProgress(0);
+        try {
+          const result = await importRyanOrders(ryanRows, setImportProgress);
+          handleOpenChange(false);
+          const baseDesc = `新增 ${result.created} 筆、更新 ${result.updated} 筆`;
+          const warnDesc = result.warnings.length
+            ? `\n警告：\n${result.warnings.join("\n")}`
+            : "";
+          toast({
+            title: "旅安匯入完成",
+            description: baseDesc + warnDesc,
+            variant: result.warnings.length > 0 ? "destructive" : "default",
+          });
+          setTimeout(() => onSuccess(), 300);
+        } catch (err) {
+          console.error("Ryan import error:", err);
+          toast({
+            title: "旅安匯入失敗",
+            description: err instanceof Error ? err.message : "未知錯誤",
+            variant: "destructive",
+          });
+          setStep("upload");
+        }
+        return;
+      }
+
+      // 奧丁丁原流程
       const [rtRes, existingRes, membersRes] = await Promise.all([
         supabase.from("room_types").select("id, name").eq("accommodation_id", accommodationId),
         supabase.from("orders").select("notes").eq("accommodation_id", accommodationId).not("notes", "is", null),
@@ -376,6 +413,9 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
         const match = o.notes?.match(/\[匯入自奧丁丁: ([^\]]+)\]/);
         if (match) existingImportedNumbers.add(match[1]);
       });
+
+      const rows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(ws);
+
 
       // Parse XLSX
       const data = await file.arrayBuffer();
