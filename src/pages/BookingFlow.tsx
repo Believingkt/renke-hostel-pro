@@ -529,7 +529,7 @@ const BookingFlow = () => {
         // 獲取所有價格方案（專案模板）
         const { data: allTemplatesData } = await supabase
           .from("pricing_templates")
-          .select("id, template_name, project_name, meal_plans, display_order, room_type_id, room_type_ids, weekday_price, peak_price, weekend_price, price, valid_from, valid_until, room_overrides, season_segments, extra_dates, excluded_dates")
+          .select("id, template_name, project_name, meal_plans, display_order, room_type_id, room_type_ids, weekday_price, peak_price, weekend_price, weekday_enabled, peak_enabled, weekend_enabled, price, valid_from, valid_until, room_overrides, season_segments, extra_dates, excluded_dates")
           .eq("accommodation_id", accommodationId)
           .order("display_order", { ascending: true });
 
@@ -658,7 +658,13 @@ const BookingFlow = () => {
             (ov?.peak_price ?? 0) > 0 ||
             (ov?.weekend_price ?? 0) > 0;
           if (!hasAnyTierPrice) return true;
-          return tiers.every(tier => legacyTierPrice(t, tier) > 0);
+          // 同時檢查每個 tier 的 enabled 開關：被關閉者視為不可販售
+          const tierEnabled = (tier: 'weekday' | 'peak' | 'weekend') => {
+            const enKey = tier === 'weekday' ? 'weekday_enabled' : tier === 'peak' ? 'peak_enabled' : 'weekend_enabled';
+            if (ov && (ov as any)[enKey] !== undefined) return (ov as any)[enKey] !== false;
+            return (t as any)[enKey] !== false;
+          };
+          return tiers.every(tier => tierEnabled(tier) && legacyTierPrice(t, tier) > 0);
         });
       }
     }
