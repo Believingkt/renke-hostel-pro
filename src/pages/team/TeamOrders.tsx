@@ -22,6 +22,7 @@ import {
   SheetTitle,
   SheetFooter,
 } from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
