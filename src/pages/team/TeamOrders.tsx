@@ -723,7 +723,7 @@ export default function TeamOrders() {
               </SelectContent>
             </Select>
 
-            <Select value={closerFilter} onValueChange={setCloserFilter}>
+            <Select value={closerFilter} onValueChange={setCloserFilter} disabled={!closerOnly}>
               <SelectTrigger className="w-44">
                 <SelectValue placeholder="成交組" />
               </SelectTrigger>
