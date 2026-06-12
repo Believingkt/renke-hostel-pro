@@ -586,7 +586,7 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
             匯入訂單
           </DialogTitle>
           <DialogDescription>
-            支援從奧丁丁訂房系統匯出的 Excel 檔案
+            {isRyoan ? '支援從旅安系統匯出的 Excel 檔案' : '支援從奧丁丁訂房系統匯出的 Excel 檔案'}
           </DialogDescription>
         </DialogHeader>
 
