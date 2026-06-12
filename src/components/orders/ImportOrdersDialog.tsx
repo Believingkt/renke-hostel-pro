@@ -196,9 +196,11 @@ interface RyanEdgePayload {
   };
 }
 
+const RYAN_BATCH_SIZE = 20;
+
 async function importRyanOrders(
   rows: Record<string, unknown>[],
-  onProgress: (pct: number) => void,
+  onProgress: (pct: number, statusText?: string) => void,
 ): Promise<RyanImportResult> {
   const groups = new Map<string, Record<string, unknown>[]>();
   for (const r of rows) {
@@ -258,7 +260,6 @@ async function importRyanOrders(
     if (orderType) noteParts.push(`【訂單類型：${orderType}】`);
     if (projectName) noteParts.push(`【專案：${projectName}】`);
     if (rawNote) noteParts.push(rawNote);
-    const notes = noteParts.join("\n");
 
     let discountCode: string | null = null;
     if (rawNote) {
@@ -339,35 +340,66 @@ async function importRyanOrders(
     });
   }
 
-  onProgress(20);
-  const { data, error } = await supabase.functions.invoke("import-ryoan-orders", {
-    body: payload,
-  });
-  onProgress(100);
-
-  if (error) {
-    throw new Error(error.message || "Edge Function 呼叫失敗");
+  // 分批呼叫 Edge Function
+  const batches: RyanEdgePayload[][] = [];
+  for (let i = 0; i < payload.length; i += RYAN_BATCH_SIZE) {
+    batches.push(payload.slice(i, i + RYAN_BATCH_SIZE));
   }
 
-  const result = data as {
-    inserted: number;
-    updated: number;
-    errors: Array<{ order_number: string; message: string }>;
-  };
+  let totalInserted = 0;
+  let totalUpdated = 0;
+  let processed = 0;
 
-  for (const e of result.errors ?? []) {
-    const msg = typeof e.message === "string"
-      ? e.message
-      : (() => { try { return JSON.stringify(e.message); } catch { return String(e.message); } })();
-    warnings.push(`訂單 ${e.order_number} 寫入失敗：${msg}`);
+  if (batches.length === 0) {
+    onProgress(100, "沒有可匯入的訂單");
+    return { created: 0, updated: 0, warnings };
+  }
+
+  for (let bi = 0; bi < batches.length; bi++) {
+    const batch = batches[bi];
+    onProgress(
+      Math.round((bi / batches.length) * 100),
+      `正在匯入第 ${bi + 1} 批 / 共 ${batches.length} 批（已處理 ${processed} 筆）`,
+    );
+
+    try {
+      const { data, error } = await supabase.functions.invoke("import-ryoan-orders", {
+        body: batch,
+      });
+      if (error) throw new Error(error.message || "Edge Function 呼叫失敗");
+
+      const result = data as {
+        inserted: number;
+        updated: number;
+        errors: Array<{ order_number: string; message: unknown }>;
+      };
+      totalInserted += result.inserted ?? 0;
+      totalUpdated += result.updated ?? 0;
+      for (const e of result.errors ?? []) {
+        const msg = typeof e.message === "string"
+          ? e.message
+          : (() => { try { return JSON.stringify(e.message); } catch { return String(e.message); } })();
+        warnings.push(`訂單 ${e.order_number} 寫入失敗：${msg}`);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      warnings.push(`第 ${bi + 1} 批（${batch.length} 筆）失敗：${msg}`);
+    }
+
+    processed += batch.length;
+    onProgress(
+      Math.round(((bi + 1) / batches.length) * 100),
+      `已完成第 ${bi + 1} 批 / 共 ${batches.length} 批（已處理 ${processed} 筆）`,
+    );
   }
 
   return {
-    created: result.inserted ?? 0,
-    updated: result.updated ?? 0,
+    created: totalInserted,
+    updated: totalUpdated,
     warnings,
   };
 }
+
 
 
 export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSuccess }: ImportOrdersDialogProps) {
