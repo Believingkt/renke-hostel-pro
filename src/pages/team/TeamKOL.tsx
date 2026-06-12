@@ -1333,7 +1333,7 @@ function InvitationsTab({
                       <TableCell>{r.check_in_date ?? "-"}</TableCell>
                       <TableCell>{r.day_of_week ?? "-"}</TableCell>
                       <TableCell>{r._scout_name}</TableCell>
-                      <TableCell>{renderBookingStatusBadge(r.booking_status)}</TableCell>
+                      <TableCell>{renderBookingStatusBadge(r._effective_booking_status ?? r.booking_status)}</TableCell>
                       <TableCell>
                         {contractStatus && !contractStatus.empty ? (
                           contractStatus.plain ? (
