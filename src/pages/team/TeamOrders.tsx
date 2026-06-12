@@ -986,8 +986,8 @@ export default function TeamOrders() {
               {/* ===== 訂單基本資訊 ===== */}
               <section className="space-y-3">
                 <SectionTitle>訂單基本資訊</SectionTitle>
-                <ReadField label="訂單編號" value={editOrder.order_number} />
                 <div className="grid grid-cols-2 gap-3">
+                  <ReadField label="訂單編號" value={editOrder.order_number} />
                   <ReadField label="館別" value={editOrder.accommodation_name} />
                   <ReadField label="房客姓名" value={editOrder.guest_name} />
                   <ReadField label="客戶暱稱" value={form.nickname || "-"} />
