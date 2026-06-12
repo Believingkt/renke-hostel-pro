@@ -135,6 +135,7 @@ interface KolRow {
   // 顯示用
   _accommodation_name?: string;
   _scout_name?: string;
+  _effective_booking_status?: string | null;
 }
 
 interface FormState {
