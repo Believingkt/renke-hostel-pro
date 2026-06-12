@@ -28,7 +28,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, ChevronRight, Eye, Pencil } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { ChevronDown, ChevronRight, Eye, Pencil, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useTeam } from "@/components/team/TeamContext";
 
@@ -107,8 +115,13 @@ export default function TeamCommissionStatsTab() {
     !isPrivileged &&
     roles.some((r) => r === "scout" || r === "scout_manager");
   const now = new Date();
+  const [mode, setMode] = useState<"period" | "custom">("period");
   const [year, setYear] = useState<string>(String(now.getFullYear()));
   const [month, setMonth] = useState<string>(String(now.getMonth() + 1));
+  const [customStart, setCustomStart] = useState<Date>(
+    new Date(now.getFullYear(), now.getMonth(), 1),
+  );
+  const [customEnd, setCustomEnd] = useState<Date>(now);
   const [loading, setLoading] = useState(false);
 
   const [orders, setOrders] = useState<OrderLite[]>([]);
@@ -145,32 +158,20 @@ export default function TeamCommissionStatsTab() {
   } | null>(null);
 
   const period = useMemo(() => {
-    const allYears = year === "all";
-    const allMonths = month === "ALL" || month === "all";
-    const todayStr = new Date().toISOString().slice(0, 10);
-
-    if (allYears) {
+    if (mode === "custom") {
+      const s = new Date(customStart.getFullYear(), customStart.getMonth(), customStart.getDate());
+      const eNext = new Date(customEnd.getFullYear(), customEnd.getMonth(), customEnd.getDate() + 1);
+      const startDateStr = format(s, "yyyy-MM-dd");
       return {
-        startIso: null as string | null,
-        nextIso: null as string | null,
-        startDate: todayStr,
-        label: "全部資料",
+        startIso: s.toISOString(),
+        nextIso: eNext.toISOString(),
+        startDate: startDateStr,
+        label: `${format(customStart, "yyyy-MM-dd")} ~ ${format(customEnd, "yyyy-MM-dd")}（自訂區間）`,
+        cancelField: "order_date" as "order_date" | "cancelled_at",
       };
     }
 
     const y = Number(year);
-
-    if (allMonths) {
-      const startIso = new Date(y, 0, 1).toISOString();
-      const nextIso = new Date(y + 1, 0, 1).toISOString();
-      return {
-        startIso,
-        nextIso,
-        startDate: `${y}-01-01`,
-        label: `${y} 全年`,
-      };
-    }
-
     const X = Number(month);
     const targetYear = X === 1 ? y - 1 : y;
     const targetMonth = X === 1 ? 12 : X - 1;
@@ -181,8 +182,9 @@ export default function TeamCommissionStatsTab() {
       nextIso,
       startDate: `${targetYear}-${String(targetMonth).padStart(2, "0")}-01`,
       label: `${targetYear}年${targetMonth}月（${y}年${X}月10日發放）`,
+      cancelField: "cancelled_at" as "order_date" | "cancelled_at",
     };
-  }, [year, month]);
+  }, [mode, year, month, customStart, customEnd]);
 
   useEffect(() => {
     load();
@@ -238,8 +240,9 @@ export default function TeamCommissionStatsTab() {
         .select(selectCols)
         .eq("order_status", "cancelled")
         .not("cancelled_at", "is", null);
-      if (period.startIso) cancelQ = cancelQ.gte("cancelled_at", period.startIso);
-      if (period.nextIso) cancelQ = cancelQ.lt("cancelled_at", period.nextIso);
+      const cancelField = period.cancelField;
+      if (period.startIso) cancelQ = cancelQ.gte(cancelField, period.startIso);
+      if (period.nextIso) cancelQ = cancelQ.lt(cancelField, period.nextIso);
       const { data: cancelData, error: ce } = await cancelQ;
       if (ce) throw ce;
 
@@ -610,54 +613,112 @@ export default function TeamCommissionStatsTab() {
     <div className="space-y-4">
       <Card>
         <CardContent className="p-4 space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <Select
-              value={year}
-              onValueChange={(v) => {
-                setYear(v);
-                if (v === "all") setMonth("ALL");
-              }}
+          {/* 模式切換 */}
+          <div className="inline-flex rounded-md border p-0.5 bg-muted/40">
+            <Button
+              type="button"
+              size="sm"
+              variant={mode === "period" ? "default" : "ghost"}
+              className="h-8"
+              onClick={() => setMode("period")}
             >
-              <SelectTrigger className="w-28">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全部年份</SelectItem>
-                {years.map((y) => (
-                  <SelectItem key={y} value={y}>
-                    {y} 年
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={year === "all" ? "ALL" : month}
-              onValueChange={(v) => {
-                if (v !== "ALL" && year === "all") {
-                  setYear(String(now.getFullYear()));
-                }
-                setMonth(v);
-              }}
-              disabled={year === "all"}
+              期別模式
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={mode === "custom" ? "default" : "ghost"}
+              className="h-8"
+              onClick={() => setMode("custom")}
             >
-              <SelectTrigger className="w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">全部月份</SelectItem>
-                {Array.from({ length: 12 }, (_, i) => String(i + 1)).map(
-                  (m) => (
-                    <SelectItem key={m} value={m}>
-                      {m} 月 10 日
-                    </SelectItem>
-                  ),
-                )}
-              </SelectContent>
-            </Select>
+              自訂區間
+            </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
-            統計上月的訂單，例如選擇 6 月 10 日，計算的是 5 月 1 日～5 月 31 日的訂單
-          </p>
+
+          {mode === "period" ? (
+            <>
+              <div className="flex flex-wrap items-center gap-2">
+                <Select value={year} onValueChange={setYear}>
+                  <SelectTrigger className="w-28">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map((y) => (
+                      <SelectItem key={y} value={y}>
+                        {y} 年
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={month} onValueChange={setMonth}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 12 }, (_, i) => String(i + 1)).map(
+                      (m) => (
+                        <SelectItem key={m} value={m}>
+                          {m} 月 10 日
+                        </SelectItem>
+                      ),
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                統計上月的訂單，例如選擇 6 月 10 日，計算的是 5 月 1 日～5 月 31 日的訂單
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn("w-[180px] justify-start text-left font-normal")}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {format(customStart, "yyyy-MM-dd")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={customStart}
+                      onSelect={(d) => d && setCustomStart(d)}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <span className="text-muted-foreground">～</span>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn("w-[180px] justify-start text-left font-normal")}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {format(customEnd, "yyyy-MM-dd")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={customEnd}
+                      onSelect={(d) => d && setCustomEnd(d)}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                依下單日 (order_date) 篩選，包含起訖兩日；有效訂單與取消訂單皆套用此區間
+              </p>
+            </>
+          )}
           <div className="text-sm text-muted-foreground">
             目前統計區間：{period.label}
             （
