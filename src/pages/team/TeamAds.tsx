@@ -46,10 +46,12 @@ interface MetaAd {
   id: string;
   ad_id: string;
   ad_name: string | null;
+  campaign_id: string | null;
   campaign_name: string | null;
   status: string | null;
   start_date: string | null;
   stop_date: string | null;
+  created_time: string | null;
   synced_at: string | null;
 }
 
