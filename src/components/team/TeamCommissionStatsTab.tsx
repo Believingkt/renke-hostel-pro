@@ -40,6 +40,61 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useTeam } from "@/components/team/TeamContext";
 
+function DateYMDPicker({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: Date;
+  onChange: (d: Date) => void;
+}) {
+  const currentYear = new Date().getFullYear();
+  const years: number[] = [];
+  for (let y = 2023; y <= currentYear + 1; y++) years.push(y);
+  const months = Array.from({ length: 12 }, (_, i) => i + 1);
+  const daysInMonth = new Date(value.getFullYear(), value.getMonth() + 1, 0).getDate();
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+  const update = (y: number, m: number, d: number) => {
+    const lastDay = new Date(y, m, 0).getDate();
+    const safeD = Math.min(d, lastDay);
+    onChange(new Date(y, m - 1, safeD));
+  };
+
+  return (
+    <div className="flex items-center gap-1" aria-label={label}>
+      <Select
+        value={String(value.getFullYear())}
+        onValueChange={(v) => update(Number(v), value.getMonth() + 1, value.getDate())}
+      >
+        <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {years.map((y) => <SelectItem key={y} value={String(y)}>{y} 年</SelectItem>)}
+        </SelectContent>
+      </Select>
+      <Select
+        value={String(value.getMonth() + 1)}
+        onValueChange={(v) => update(value.getFullYear(), Number(v), value.getDate())}
+      >
+        <SelectTrigger className="w-20"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {months.map((m) => <SelectItem key={m} value={String(m)}>{m} 月</SelectItem>)}
+        </SelectContent>
+      </Select>
+      <Select
+        value={String(value.getDate())}
+        onValueChange={(v) => update(value.getFullYear(), value.getMonth() + 1, Number(v))}
+      >
+        <SelectTrigger className="w-20"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {days.map((d) => <SelectItem key={d} value={String(d)}>{d} 日</SelectItem>)}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
 interface OrderLite {
   id: string;
   accommodation_id: string;
@@ -229,7 +284,8 @@ export default function TeamCommissionStatsTab() {
       let validQ = supabase
         .from("orders")
         .select(selectCols)
-        .neq("order_status", "cancelled");
+        .neq("order_status", "cancelled")
+        .limit(10000);
       if (period.startIso) validQ = validQ.gte("order_date", period.startIso);
       if (period.nextIso) validQ = validQ.lt("order_date", period.nextIso);
       const { data: validData, error: oe } = await validQ;
@@ -239,7 +295,8 @@ export default function TeamCommissionStatsTab() {
         .from("orders")
         .select(selectCols)
         .eq("order_status", "cancelled")
-        .not("cancelled_at", "is", null);
+        .not("cancelled_at", "is", null)
+        .limit(10000);
       const cancelField = period.cancelField;
       if (period.startIso) cancelQ = cancelQ.gte(cancelField, period.startIso);
       if (period.nextIso) cancelQ = cancelQ.lt(cancelField, period.nextIso);
@@ -257,7 +314,8 @@ export default function TeamCommissionStatsTab() {
         const { data: metaData } = await supabase
           .from("order_meta")
           .select("order_id, closer_id, video_creator_id, is_excluded, exclusion_note, booking_method, traffic_source")
-          .in("order_id", ids);
+          .in("order_id", ids)
+          .limit(10000);
         (metaData ?? []).forEach((m: any) =>
           mMap.set(m.order_id, m as MetaLite),
         );
@@ -672,47 +730,9 @@ export default function TeamCommissionStatsTab() {
           ) : (
             <>
               <div className="flex flex-wrap items-center gap-2">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn("w-[180px] justify-start text-left font-normal")}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(customStart, "yyyy-MM-dd")}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={customStart}
-                      onSelect={(d) => d && setCustomStart(d)}
-                      initialFocus
-                      className={cn("p-3 pointer-events-auto")}
-                    />
-                  </PopoverContent>
-                </Popover>
-                <span className="text-muted-foreground">～</span>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn("w-[180px] justify-start text-left font-normal")}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(customEnd, "yyyy-MM-dd")}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={customEnd}
-                      onSelect={(d) => d && setCustomEnd(d)}
-                      initialFocus
-                      className={cn("p-3 pointer-events-auto")}
-                    />
-                  </PopoverContent>
-                </Popover>
+              <DateYMDPicker label="起始日期" value={customStart} onChange={setCustomStart} />
+                <span className="text-muted-foreground hidden sm:inline">～</span>
+              <DateYMDPicker label="結束日期" value={customEnd} onChange={setCustomEnd} />
               </div>
               <p className="text-xs text-muted-foreground">
                 依下單日 (order_date) 篩選，包含起訖兩日；有效訂單與取消訂單皆套用此區間
