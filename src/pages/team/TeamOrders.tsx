@@ -722,7 +722,6 @@ export default function TeamOrders() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">全部成交組</SelectItem>
-                <SelectItem value="NONE">未指派成交組</SelectItem>
                 {closers.map((c) => (
                   <SelectItem key={c.user_id} value={c.user_id}>
                     {c.display_name}
