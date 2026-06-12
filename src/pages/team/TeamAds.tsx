@@ -248,7 +248,11 @@ function AdsListTab() {
               </TableRow>
             ) : (
               pageRows.map((r) => (
-                <TableRow key={r.id}>
+                <TableRow
+                  key={r.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => setAdDetail(r)}
+                >
                   <TableCell className="font-mono text-xs">{r.ad_id}</TableCell>
                   <TableCell>{r.ad_name ?? "—"}</TableCell>
                   <TableCell>{r.campaign_name ?? "—"}</TableCell>
