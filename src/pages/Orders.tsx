@@ -563,8 +563,8 @@ const Orders = () => {
               </div>
 
               {/* 訂單表格 */}
-              {filteredOrders.length === 0 ? (
-                orders.length === 0 ? (
+              {total === 0 ? (
+                !hasAnyOrder ? (
                   // 完全沒有訂單的空狀態
                   <EmptyState
                     icon={ShoppingCart}
