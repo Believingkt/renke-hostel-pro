@@ -224,8 +224,12 @@ async function importRyanOrders(
     }
 
     const first = rowsInGroup[0];
-    const finalPrice = rowsInGroup.reduce(
+    const totalPrice = rowsInGroup.reduce(
       (s, r) => s + (Number(r["客房總價"]) || 0),
+      0,
+    );
+    const finalPrice = rowsInGroup.reduce(
+      (s, r) => s + (Number(r["應收總計"]) || 0),
       0,
     );
 
@@ -259,7 +263,7 @@ async function importRyanOrders(
 
     let discountCode: string | null = null;
     if (rawNote) {
-      const m = rawNote.match(/折扣碼[：:]\s*(\S+)/);
+      const m = rawNote.match(/\[.*?:(\S+?)\]折扣/);
       if (m) discountCode = m[1];
     }
 
