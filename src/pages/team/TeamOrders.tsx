@@ -1447,6 +1447,14 @@ export default function TeamOrders() {
   );
 }
 
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="text-sm font-semibold text-muted-foreground tracking-wide">
+      {children}
+    </h3>
+  );
+}
+
 function ReadField({ label, value }: { label: string; value: string }) {
   return (
     <div>
