@@ -371,12 +371,12 @@ const Orders = () => {
     }
   };
 
-  // 計算分頁
-  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  // 計算分頁（後端分頁，total 從後端取得）
+  const totalPages = Math.ceil(total / itemsPerPage);
   const safeCurrentPage = totalPages > 0 ? Math.min(currentPage, totalPages) : 1;
   const startIndex = (safeCurrentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
+  const endIndex = startIndex + orders.length;
+  const paginatedOrders = orders;
 
   useEffect(() => {
     if (currentPage !== safeCurrentPage) {
@@ -384,30 +384,9 @@ const Orders = () => {
     }
   }, [currentPage, safeCurrentPage]);
 
-  // 計算快速篩選的數量
-  const getQuickFilterCount = (filter: string) => {
-    const today = format(new Date(), "yyyy-MM-dd");
-    const next7Days = format(addDays(new Date(), 7), "yyyy-MM-dd");
+  // 計算快速篩選的數量（後端 head:true count）
+  const getQuickFilterCount = (filter: string) => quickCounts[filter] ?? 0;
 
-    switch (filter) {
-      case "pending":
-        return orders.filter(order => order.order_status === "pending").length;
-      case "today_checkin":
-        return orders.filter(order => order.check_in_date === today && order.order_status !== "cancelled").length;
-      case "today_checkout":
-        return orders.filter(order => order.check_out_date === today && order.order_status !== "cancelled").length;
-      case "unpaid":
-        return orders.filter(order => order.payment_status === "unpaid" && order.order_status !== "cancelled").length;
-      case "upcoming":
-        return orders.filter(order => 
-          order.check_in_date >= today && 
-          order.check_in_date <= next7Days &&
-          order.order_status !== "cancelled"
-        ).length;
-      default:
-        return 0;
-    }
-  };
 
   const handleEditPrice = (order: Order) => {
     setPriceEditingOrder(order);
