@@ -398,13 +398,20 @@ export default function TeamOrders() {
   async function fetchAllOrderIdsFromMeta(filters: {
     closerOnly: boolean;
     franchiseProject: string;
+    closerFilter: string; // "ALL" | "NONE" | <user_id>
   }): Promise<string[]> {
     const ids: string[] = [];
     const SIZE = 1000;
     let from = 0;
     while (true) {
       let q = supabase.from("order_meta").select("order_id");
-      if (filters.closerOnly) q = q.not("closer_id", "is", null);
+      if (filters.closerFilter === "NONE") {
+        q = q.is("closer_id", null);
+      } else if (filters.closerFilter !== "ALL") {
+        q = q.eq("closer_id", filters.closerFilter);
+      } else if (filters.closerOnly) {
+        q = q.not("closer_id", "is", null);
+      }
       if (filters.franchiseProject !== "ALL") q = q.eq("franchise_project", filters.franchiseProject);
       const { data, error } = await q.range(from, from + SIZE - 1);
       if (error) throw error;
@@ -419,13 +426,14 @@ export default function TeamOrders() {
   async function loadOrders() {
     setLoading(true);
     try {
-      // Step 1: meta-side prefilter (closerOnly / franchiseFilter)
-      const needsMetaPrefilter = closerOnly || franchiseFilter !== "ALL";
+      // Step 1: meta-side prefilter (closerOnly / franchiseFilter / closerFilter)
+      const needsMetaPrefilter = closerOnly || franchiseFilter !== "ALL" || closerFilter !== "ALL";
       let metaOrderIds: string[] | null = null;
       if (needsMetaPrefilter) {
         metaOrderIds = await fetchAllOrderIdsFromMeta({
           closerOnly,
           franchiseProject: franchiseFilter,
+          closerFilter,
         });
         if (metaOrderIds.length === 0) {
           setOrders([]);
