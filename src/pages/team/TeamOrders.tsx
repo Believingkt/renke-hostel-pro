@@ -1107,6 +1107,14 @@ export default function TeamOrders() {
                         </div>
                       </div>
 
+                      {/* 折扣碼（唯讀） */}
+                      <div className="space-y-2">
+                        <Label className="text-sm">折扣碼</Label>
+                        <div className="min-h-[48px] md:h-10 flex items-center px-4 md:px-3 py-3 md:py-2 rounded-lg border border-input bg-muted/40 text-base md:text-sm">
+                          {editOrder.discount_code || "-"}
+                        </div>
+                      </div>
+
                       {/* 訂房方式 */}
                       <div className="space-y-2">
                         <Label className="text-sm">訂房方式</Label>
@@ -1153,14 +1161,6 @@ export default function TeamOrders() {
                         </Select>
                       </div>
 
-                      {/* 折扣碼（唯讀） */}
-                      <div className="space-y-2">
-                        <Label className="text-sm">折扣碼</Label>
-                        <div className="min-h-[48px] md:h-10 flex items-center px-4 md:px-3 py-3 md:py-2 rounded-lg border border-input bg-muted/40 text-base md:text-sm">
-                          {editOrder.discount_code || "-"}
-                        </div>
-                      </div>
-
                       {/* 成交人 */}
                       <div className="space-y-2">
                         <Label className="text-sm">成交人</Label>
@@ -1192,8 +1192,8 @@ export default function TeamOrders() {
                         </div>
                       </div>
 
-                      {/* 廣告編號 */}
-                      <div className="space-y-2">
+                      {/* 廣告編號 全寬 */}
+                      <div className="space-y-2 md:col-span-2">
                         <Label className="text-sm">廣告編號</Label>
                         <Input
                           className="text-base"
