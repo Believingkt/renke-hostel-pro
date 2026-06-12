@@ -663,7 +663,7 @@ export default function TeamOrders() {
               <Input
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="搜尋訂單編號、房客姓名、電話、折扣碼"
+                placeholder="搜尋訂單編號、客戶姓名、電話、折扣碼"
                 className="pl-10 md:pl-10"
               />
             </div>
