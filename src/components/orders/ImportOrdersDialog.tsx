@@ -174,6 +174,7 @@ interface RyanEdgePayload {
     order_date: string;
     check_in_date: string;
     check_out_date: string;
+    total_price: number;
     final_price: number;
     order_source: string;
     order_status: string;
@@ -223,8 +224,12 @@ async function importRyanOrders(
     }
 
     const first = rowsInGroup[0];
-    const finalPrice = rowsInGroup.reduce(
+    const totalPrice = rowsInGroup.reduce(
       (s, r) => s + (Number(r["客房總價"]) || 0),
+      0,
+    );
+    const finalPrice = rowsInGroup.reduce(
+      (s, r) => s + (Number(r["應收總計"]) || 0),
       0,
     );
 
@@ -258,7 +263,7 @@ async function importRyanOrders(
 
     let discountCode: string | null = null;
     if (rawNote) {
-      const m = rawNote.match(/折扣碼[：:]\s*(\S+)/);
+      const m = rawNote.match(/\[.*?:(\S+?)\]折扣/);
       if (m) discountCode = m[1];
     }
 
@@ -298,6 +303,7 @@ async function importRyanOrders(
         order_date: ryanToDateString(first["訂房日"]),
         check_in_date: ryanToDateString(first["入住日"]),
         check_out_date: ryanToDateString(first["退房日"]),
+        total_price: totalPrice,
         final_price: finalPrice,
         order_source: String(first["通路"] ?? "").trim(),
         order_status: mapped.order_status,
