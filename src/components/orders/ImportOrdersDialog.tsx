@@ -371,6 +371,7 @@ async function importRyanOrders(
 
 
 export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSuccess }: ImportOrdersDialogProps) {
+  const isRyoan = accommodationId === '4ee31aca-5641-4d05-80e2-1c67626be83d';
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<"upload" | "preview" | "importing">("upload");
@@ -585,7 +586,7 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
             匯入訂單
           </DialogTitle>
           <DialogDescription>
-            支援從奧丁丁訂房系統匯出的 Excel 檔案
+            {isRyoan ? '支援從旅安系統匯出的 Excel 檔案' : '支援從奧丁丁訂房系統匯出的 Excel 檔案'}
           </DialogDescription>
         </DialogHeader>
 
@@ -594,7 +595,7 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
             <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center">
               <Upload className="h-8 w-8 text-muted-foreground" />
             </div>
-            <p className="text-sm text-muted-foreground">選擇從奧丁丁匯出的 .xlsx 檔案</p>
+            <p className="text-sm text-muted-foreground">{isRyoan ? '選擇從旅安匯出的 .xlsx 檔案' : '選擇從奧丁丁匯出的 .xlsx 檔案'}</p>
             <input
               ref={fileInputRef}
               type="file"
