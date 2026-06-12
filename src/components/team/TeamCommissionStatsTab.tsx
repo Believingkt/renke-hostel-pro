@@ -554,39 +554,47 @@ export default function TeamCommissionStatsTab() {
                         <TableCell />
                       </TableRow>
                       {isOpen &&
-                        r.byAcc.map((b) => (
-                          <TableRow key={`${r.uid}-${b.accId}`} className="bg-muted/30">
-                            <TableCell />
-                            <TableCell className="pl-8 text-sm text-muted-foreground">
-                              ↳ {b.accName}（{pct(b.rate)}）
-                            </TableCell>
-                            <TableCell className="tabular-nums">{b.validCount}</TableCell>
-                            <TableCell className="tabular-nums">{fmtMoney(b.validAmount)}</TableCell>
-                            <TableCell className="tabular-nums">{fmtMoney(b.commission)}</TableCell>
-                            <TableCell className="tabular-nums">{b.cancelCount}</TableCell>
-                            <TableCell className="tabular-nums text-muted-foreground">
-                              {fmtMoney(b.cancelAmount)}
-                            </TableCell>
-                            <TableCell className="tabular-nums text-muted-foreground">
-                              {fmtMoney(b.cancelCommission)}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setAccSheet({
-                                    title: `${r.name} ・ ${b.accName}`,
-                                    breakdown: b,
-                                  });
-                                }}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                        r.byAcc.map((b) => {
+                          const openSheet = () =>
+                            setAccSheet({
+                              title: `${r.name} ・ ${b.accName}`,
+                              breakdown: b,
+                            });
+                          return (
+                            <TableRow
+                              key={`${r.uid}-${b.accId}`}
+                              className="bg-muted/30 cursor-pointer hover:bg-muted/60"
+                              onClick={openSheet}
+                            >
+                              <TableCell />
+                              <TableCell className="pl-8 text-sm text-muted-foreground">
+                                ↳ {b.accName}（{pct(b.rate)}）
+                              </TableCell>
+                              <TableCell className="tabular-nums">{b.validCount}</TableCell>
+                              <TableCell className="tabular-nums">{fmtMoney(b.validAmount)}</TableCell>
+                              <TableCell className="tabular-nums">{fmtMoney(b.commission)}</TableCell>
+                              <TableCell className="tabular-nums">{b.cancelCount}</TableCell>
+                              <TableCell className="tabular-nums text-muted-foreground">
+                                {fmtMoney(b.cancelAmount)}
+                              </TableCell>
+                              <TableCell className="tabular-nums text-muted-foreground">
+                                {fmtMoney(b.cancelCommission)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openSheet();
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
                     </Fragment>
                   );
                 })
