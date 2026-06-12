@@ -192,13 +192,22 @@ export default function TeamOrders() {
     loadMembers();
   }, []);
 
+  // Debounce search input → search (server query keyword)
   useEffect(() => {
-    loadOrders();
-  }, []);
+    const t = setTimeout(() => setSearch(searchInput.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
+  // Reset to page 1 whenever any filter changes
   useEffect(() => {
     setPage(1);
-  }, [accFilter, year, month, franchiseFilter]);
+  }, [accFilter, year, month, franchiseFilter, search, closerOnly, pageSize]);
+
+  // Re-query whenever filters or pagination change
+  useEffect(() => {
+    loadOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accFilter, year, month, franchiseFilter, search, closerOnly, page, pageSize]);
 
   useEffect(() => {
     (async () => {
