@@ -164,6 +164,10 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           .eq("is_active", true)
           .order("name", { ascending: true }),
         supabase
+          .from("ad_video_creator_rules")
+          .select("keyword, video_creator_id, sort_order")
+          .order("sort_order", { ascending: true }),
+        supabase
           .from("order_meta")
           .select("*")
           .eq("order_id", orderId)
