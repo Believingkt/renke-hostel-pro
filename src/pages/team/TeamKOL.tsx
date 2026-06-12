@@ -748,7 +748,7 @@ function InvitationsTab({
         case "accommodation": return (r as any)._accommodation_name ?? null;
         case "check_in_date": return r.check_in_date ?? null;
         case "scout": return (r as any)._scout_name ?? null;
-        case "booking_status": return r.booking_status ?? null;
+        case "booking_status": return (r as any)._effective_booking_status ?? r.booking_status ?? null;
         case "contract_progress": {
           const cs = computeContractProgress(r.publish_url, r.publish_date, r.contract_file_url);
           return cs?.empty ? null : (cs?.label ?? null);
