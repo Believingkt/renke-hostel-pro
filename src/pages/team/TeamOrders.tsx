@@ -445,7 +445,7 @@ export default function TeamOrders() {
 
       if (accFilter !== "ALL") q = q.eq("accommodation_id", accFilter);
 
-      // Year / month filter on check_in_date
+      // Year / month filter on order_date (下單日)
       if (year !== "ALL") {
         const y = Number(year);
         if (month !== "ALL") {
@@ -453,9 +453,9 @@ export default function TeamOrders() {
           const startDay = `${y}-${String(m).padStart(2, "0")}-01`;
           const lastDay = new Date(y, m, 0).getDate();
           const endDay = `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-          q = q.gte("check_in_date", startDay).lte("check_in_date", endDay);
+          q = q.gte("order_date", startDay).lte("order_date", endDay);
         } else {
-          q = q.gte("check_in_date", `${y}-01-01`).lte("check_in_date", `${y}-12-31`);
+          q = q.gte("order_date", `${y}-01-01`).lte("order_date", `${y}-12-31`);
         }
       }
 
@@ -677,7 +677,7 @@ export default function TeamOrders() {
               {closerOnly ? "成交大師訂單" : "全部訂單"}
             </Button>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Select value={accFilter} onValueChange={setAccFilter}>
               <SelectTrigger className="w-44">
                 <SelectValue placeholder="館別" />
@@ -691,6 +691,22 @@ export default function TeamOrders() {
                 ))}
               </SelectContent>
             </Select>
+
+            <Select value={franchiseFilter} onValueChange={setFranchiseFilter}>
+              <SelectTrigger className="w-44">
+                <SelectValue placeholder="加盟專案" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">全部加盟專案</SelectItem>
+                {franchiseProjects.map((p) => (
+                  <SelectItem key={p.id} value={p.name}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <span className="text-sm text-muted-foreground ml-2">下單日：</span>
 
             <Select value={year} onValueChange={setYear}>
               <SelectTrigger className="w-32">
@@ -719,20 +735,6 @@ export default function TeamOrders() {
                 ))}
               </SelectContent>
             </Select>
-
-            <Select value={franchiseFilter} onValueChange={setFranchiseFilter}>
-              <SelectTrigger className="w-44">
-                <SelectValue placeholder="加盟專案" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">全部加盟專案</SelectItem>
-                {franchiseProjects.map((p) => (
-                  <SelectItem key={p.id} value={p.name}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="overflow-x-auto">
@@ -745,7 +747,7 @@ export default function TeamOrders() {
                   <TableHead className="whitespace-nowrap w-32 min-w-32 max-w-32">客戶暱稱</TableHead>
                   <TableHead className="whitespace-nowrap">客戶姓名</TableHead>
                   <TableHead className="whitespace-nowrap">電話</TableHead>
-                  <TableHead className="whitespace-nowrap">訂購時間</TableHead>
+                  <TableHead className="whitespace-nowrap">訂購時間 (下單日)</TableHead>
                   <TableHead className="whitespace-nowrap">訂金確認日</TableHead>
                   <TableHead className="whitespace-nowrap tabular-nums">總金額</TableHead>
                   <TableHead className="whitespace-nowrap">館別</TableHead>
@@ -1022,7 +1024,7 @@ export default function TeamOrders() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <ReadField label="折扣碼" value={editOrder.discount_code || "-"} />
-                  <ReadField label="下單日" value={editOrder.order_date ? editOrder.order_date.slice(0, 10) : "-"} />
+                  <ReadField label="訂購時間 (下單日)" value={editOrder.order_date ? editOrder.order_date.slice(0, 10) : "-"} />
                 </div>
               </div>
 
