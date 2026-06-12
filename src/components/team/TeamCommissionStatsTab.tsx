@@ -326,6 +326,20 @@ export default function TeamCommissionStatsTab() {
       }
       setMetaMap(mMap);
 
+      if (mode === "custom") {
+        const withCloser = ords.filter((o) => !!mMap.get(o.id)?.closer_id).length;
+        console.log("[TeamCommissionStats/custom]", {
+          startIso: period.startIso,
+          nextIso: period.nextIso,
+          startDate: period.startDate,
+          validOrdersLength: validRows.length,
+          cancelOrdersLength: cancelRows.length,
+          totalOrders: ords.length,
+          metaMapSize: mMap.size,
+          ordersWithCloserId: withCloser,
+        });
+      }
+
       const { data: csData } = await supabase
         .from("accommodation_commission_settings")
         .select("accommodation_id, closer_rate, video_rate, effective_from")
