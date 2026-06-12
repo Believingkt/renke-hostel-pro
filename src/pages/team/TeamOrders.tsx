@@ -716,6 +716,22 @@ export default function TeamOrders() {
               </SelectContent>
             </Select>
 
+            <Select value={closerFilter} onValueChange={setCloserFilter}>
+              <SelectTrigger className="w-44">
+                <SelectValue placeholder="成交組" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">全部成交組</SelectItem>
+                <SelectItem value="NONE">未指派成交組</SelectItem>
+                {closers.map((c) => (
+                  <SelectItem key={c.user_id} value={c.user_id}>
+                    {c.display_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+
             <span className="text-sm text-muted-foreground ml-2">下單日：</span>
 
             <Select value={year} onValueChange={setYear}>
