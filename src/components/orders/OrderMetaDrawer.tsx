@@ -265,7 +265,9 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
     setAdId(nextAdId);
     if (videoCreatorId && videoCreatorId !== NONE) return;
     if (!nextAdId) return;
-    const lower = nextAdId.toLowerCase();
+    const adName = adNameByAdId[nextAdId];
+    if (!adName) return;
+    const lower = adName.toLowerCase();
     for (const r of adVideoRules) {
       if (r.keyword && lower.includes(r.keyword.toLowerCase())) {
         setVideoCreatorId(r.video_creator_id);
@@ -273,6 +275,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       }
     }
   };
+
 
 
   const handleAddTrafficSource = async () => {
