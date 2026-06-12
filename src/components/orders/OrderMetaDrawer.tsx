@@ -129,6 +129,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         { data: tsRows },
         { data: bmRows },
         { data: fpRows },
+        { data: ruleRows },
         { data: existingMeta },
         { data: orderRow },
       ] = await Promise.all([
