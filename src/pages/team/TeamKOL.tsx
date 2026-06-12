@@ -1574,7 +1574,7 @@ function InvitationsTab({
                   <Row label="入住日期">{r.check_in_date ?? "-"}</Row>
                   <Row label="星期">{r.day_of_week ?? "-"}</Row>
                   <Row label="邀約人">{r._scout_name ?? "-"}</Row>
-                  <Row label="狀態">{renderBookingStatusBadge(r.booking_status)}</Row>
+                  <Row label="狀態">{renderBookingStatusBadge(r._effective_booking_status ?? r.booking_status)}</Row>
                   <Row label="訂單編號">{r.order_number ?? "-"}</Row>
                   <Row label="折扣碼 / CID">{(() => {
                     const v = r.cid_code ?? r.short_url ?? null;
