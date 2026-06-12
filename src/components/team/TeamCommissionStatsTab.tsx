@@ -41,6 +41,8 @@ interface OrderLite {
   order_number: string | null;
   guest_name: string | null;
   check_in_date: string | null;
+  order_date: string | null;
+  order_source: string | null;
 }
 interface MetaLite {
   order_id: string;
@@ -48,6 +50,8 @@ interface MetaLite {
   video_creator_id: string | null;
   is_excluded: boolean | null;
   exclusion_note: string | null;
+  booking_method: string | null;
+  traffic_source: string | null;
 }
 interface CommissionRow {
   accommodation_id: string;
@@ -78,6 +82,7 @@ interface AccBreakdown {
   commission: number;
   cancelCount: number;
   cancelAmount: number;
+  cancelCommission: number;
   validOrders: OrderLite[];
   cancelOrders: OrderLite[];
 }
@@ -89,6 +94,7 @@ interface MemberStats {
   commission: number;
   cancelCount: number;
   cancelAmount: number;
+  cancelCommission: number;
   byAcc: AccBreakdown[];
 }
 
@@ -217,7 +223,7 @@ export default function TeamCommissionStatsTab() {
     setLoading(true);
     try {
       const selectCols =
-        "id, accommodation_id, final_price, order_status, discount_code, order_number, guest_name, check_in_date, order_date, cancelled_at";
+        "id, accommodation_id, final_price, order_status, discount_code, order_number, guest_name, check_in_date, order_date, order_source, cancelled_at";
       let validQ = supabase
         .from("orders")
         .select(selectCols)
@@ -247,7 +253,7 @@ export default function TeamCommissionStatsTab() {
       if (ids.length) {
         const { data: metaData } = await supabase
           .from("order_meta")
-          .select("order_id, closer_id, video_creator_id, is_excluded, exclusion_note")
+          .select("order_id, closer_id, video_creator_id, is_excluded, exclusion_note, booking_method, traffic_source")
           .in("order_id", ids);
         (metaData ?? []).forEach((m: any) =>
           mMap.set(m.order_id, m as MetaLite),
@@ -364,6 +370,7 @@ export default function TeamCommissionStatsTab() {
           commission: 0,
           cancelCount: 0,
           cancelAmount: 0,
+          cancelCommission: 0,
           validOrders: [],
           cancelOrders: [],
         });
@@ -387,6 +394,7 @@ export default function TeamCommissionStatsTab() {
       const b = getBucket(uid, o.accommodation_id);
       b.cancelCount += 1;
       b.cancelAmount += o.final_price || 0;
+      b.cancelCommission += (o.final_price || 0) * b.rate;
       b.cancelOrders.push(o);
     });
     return Array.from(agg.entries())
@@ -401,9 +409,10 @@ export default function TeamCommissionStatsTab() {
             acc.commission += b.commission;
             acc.cancelCount += b.cancelCount;
             acc.cancelAmount += b.cancelAmount;
+            acc.cancelCommission += b.cancelCommission;
             return acc;
           },
-          { validCount: 0, validAmount: 0, commission: 0, cancelCount: 0, cancelAmount: 0 },
+          { validCount: 0, validAmount: 0, commission: 0, cancelCount: 0, cancelAmount: 0, cancelCommission: 0 },
         );
         return {
           uid,
@@ -504,13 +513,14 @@ export default function TeamCommissionStatsTab() {
                 <TableHead className="whitespace-nowrap tabular-nums">分潤金額</TableHead>
                 <TableHead className="whitespace-nowrap tabular-nums">取消訂單數</TableHead>
                 <TableHead className="whitespace-nowrap tabular-nums">取消訂單總金額</TableHead>
+                <TableHead className="whitespace-nowrap tabular-nums">取消分潤金額</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
             <TableBody>
               {stats.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center py-6 text-muted-foreground">
                     無資料
                   </TableCell>
                 </TableRow>
@@ -538,6 +548,9 @@ export default function TeamCommissionStatsTab() {
                         <TableCell className="tabular-nums text-muted-foreground">
                           {fmtMoney(r.cancelAmount)}
                         </TableCell>
+                        <TableCell className="tabular-nums text-muted-foreground">
+                          {fmtMoney(r.cancelCommission)}
+                        </TableCell>
                         <TableCell />
                       </TableRow>
                       {isOpen &&
@@ -553,6 +566,9 @@ export default function TeamCommissionStatsTab() {
                             <TableCell className="tabular-nums">{b.cancelCount}</TableCell>
                             <TableCell className="tabular-nums text-muted-foreground">
                               {fmtMoney(b.cancelAmount)}
+                            </TableCell>
+                            <TableCell className="tabular-nums text-muted-foreground">
+                              {fmtMoney(b.cancelCommission)}
                             </TableCell>
                             <TableCell className="text-right">
                               <Button
@@ -746,7 +762,10 @@ export default function TeamCommissionStatsTab() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>訂單編號</TableHead>
-                      <TableHead className="tabular-nums">入住日</TableHead>
+                      <TableHead className="tabular-nums">訂單日期</TableHead>
+                      <TableHead>訂房方式</TableHead>
+                      <TableHead>來源</TableHead>
+                      <TableHead>來源管道</TableHead>
                       <TableHead className="tabular-nums">訂單金額</TableHead>
                       <TableHead className="tabular-nums">分潤金額</TableHead>
                     </TableRow>
@@ -754,19 +773,25 @@ export default function TeamCommissionStatsTab() {
                   <TableBody>
                     {accSheet.breakdown.validOrders.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center text-muted-foreground py-4">無</TableCell>
+                        <TableCell colSpan={7} className="text-center text-muted-foreground py-4">無</TableCell>
                       </TableRow>
                     ) : (
-                      accSheet.breakdown.validOrders.map((o) => (
-                        <TableRow key={o.id}>
-                          <TableCell className="font-mono">{o.order_number ?? "—"}</TableCell>
-                          <TableCell className="tabular-nums">{o.check_in_date ?? "—"}</TableCell>
-                          <TableCell className="tabular-nums">{fmtMoney(o.final_price || 0)}</TableCell>
-                          <TableCell className="tabular-nums">
-                            {fmtMoney((o.final_price || 0) * accSheet.breakdown.rate)}
-                          </TableCell>
-                        </TableRow>
-                      ))
+                      accSheet.breakdown.validOrders.map((o) => {
+                        const m = metaMap.get(o.id);
+                        return (
+                          <TableRow key={o.id}>
+                            <TableCell className="font-mono">{o.order_number ?? "—"}</TableCell>
+                            <TableCell className="tabular-nums">{o.order_date ?? "—"}</TableCell>
+                            <TableCell>{m?.booking_method ?? "—"}</TableCell>
+                            <TableCell>{o.order_source ?? "—"}</TableCell>
+                            <TableCell>{m?.traffic_source ?? "—"}</TableCell>
+                            <TableCell className="tabular-nums">{fmtMoney(o.final_price || 0)}</TableCell>
+                            <TableCell className="tabular-nums">
+                              {fmtMoney((o.final_price || 0) * accSheet.breakdown.rate)}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
                     )}
                   </TableBody>
                 </Table>
@@ -778,18 +803,31 @@ export default function TeamCommissionStatsTab() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>訂單編號</TableHead>
-                        <TableHead className="tabular-nums">入住日</TableHead>
+                        <TableHead className="tabular-nums">訂單日期</TableHead>
+                        <TableHead>訂房方式</TableHead>
+                        <TableHead>來源</TableHead>
+                        <TableHead>來源管道</TableHead>
                         <TableHead className="tabular-nums">訂單金額</TableHead>
+                        <TableHead className="tabular-nums">分潤金額</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {accSheet.breakdown.cancelOrders.map((o) => (
-                        <TableRow key={o.id}>
-                          <TableCell className="font-mono">{o.order_number ?? "—"}</TableCell>
-                          <TableCell className="tabular-nums">{o.check_in_date ?? "—"}</TableCell>
-                          <TableCell className="tabular-nums">{fmtMoney(o.final_price || 0)}</TableCell>
-                        </TableRow>
-                      ))}
+                      {accSheet.breakdown.cancelOrders.map((o) => {
+                        const m = metaMap.get(o.id);
+                        return (
+                          <TableRow key={o.id}>
+                            <TableCell className="font-mono">{o.order_number ?? "—"}</TableCell>
+                            <TableCell className="tabular-nums">{o.order_date ?? "—"}</TableCell>
+                            <TableCell>{m?.booking_method ?? "—"}</TableCell>
+                            <TableCell>{o.order_source ?? "—"}</TableCell>
+                            <TableCell>{m?.traffic_source ?? "—"}</TableCell>
+                            <TableCell className="tabular-nums">{fmtMoney(o.final_price || 0)}</TableCell>
+                            <TableCell className="tabular-nums text-muted-foreground">
+                              {fmtMoney((o.final_price || 0) * accSheet.breakdown.rate)}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
