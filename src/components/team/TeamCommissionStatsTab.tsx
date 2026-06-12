@@ -675,47 +675,9 @@ export default function TeamCommissionStatsTab() {
           ) : (
             <>
               <div className="flex flex-wrap items-center gap-2">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn("w-[180px] justify-start text-left font-normal")}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(customStart, "yyyy-MM-dd")}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={customStart}
-                      onSelect={(d) => d && setCustomStart(d)}
-                      initialFocus
-                      className={cn("p-3 pointer-events-auto")}
-                    />
-                  </PopoverContent>
-                </Popover>
-                <span className="text-muted-foreground">～</span>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn("w-[180px] justify-start text-left font-normal")}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(customEnd, "yyyy-MM-dd")}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={customEnd}
-                      onSelect={(d) => d && setCustomEnd(d)}
-                      initialFocus
-                      className={cn("p-3 pointer-events-auto")}
-                    />
-                  </PopoverContent>
-                </Popover>
+              <DateYMDPicker label="起始日期" value={customStart} onChange={setCustomStart} />
+                <span className="text-muted-foreground hidden sm:inline">～</span>
+              <DateYMDPicker label="結束日期" value={customEnd} onChange={setCustomEnd} />
               </div>
               <p className="text-xs text-muted-foreground">
                 依下單日 (order_date) 篩選，包含起訖兩日；有效訂單與取消訂單皆套用此區間
