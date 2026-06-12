@@ -1075,15 +1075,14 @@ export default function TeamOrders() {
                         value={form.ad_id ?? ""}
                         onChange={(e) => {
                           const nextAdId = e.target.value || null;
-                          setForm((f) => {
-                            const next = { ...f, ad_id: nextAdId };
-                            if (!f.video_creator_id) {
-                              const matched = matchVideoCreatorByAdId(nextAdId);
-                              if (matched) next.video_creator_id = matched;
-                            }
-                            return next;
-                          });
+                          const matched = matchVideoCreatorByAdId(nextAdId);
+                          setForm((f) => ({
+                            ...f,
+                            ad_id: nextAdId,
+                            video_creator_id: matched,
+                          }));
                         }}
+
                       />
                     </div>
 
