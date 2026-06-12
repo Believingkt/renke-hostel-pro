@@ -143,10 +143,13 @@ export default function TeamOrders() {
   const [adVideoRules, setAdVideoRules] = useState<
     { keyword: string; video_creator_id: string; sort_order: number | null }[]
   >([]);
+  const [adNameByAdId, setAdNameByAdId] = useState<Record<string, string>>({});
 
   function matchVideoCreatorByAdId(adId: string | null): string | null {
     if (!adId) return null;
-    const lower = adId.toLowerCase();
+    const adName = adNameByAdId[adId];
+    if (!adName) return null;
+    const lower = adName.toLowerCase();
     for (const r of adVideoRules) {
       if (r.keyword && lower.includes(r.keyword.toLowerCase())) {
         return r.video_creator_id;
@@ -154,6 +157,7 @@ export default function TeamOrders() {
     }
     return null;
   }
+
 
   function emptyMeta(): MetaRow {
     return {
@@ -215,6 +219,20 @@ export default function TeamOrders() {
       );
     })();
   }, []);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("meta_ads")
+        .select("ad_id, ad_name");
+      const map: Record<string, string> = {};
+      for (const a of ((data ?? []) as Array<{ ad_id: string; ad_name: string | null }>)) {
+        if (a.ad_id && a.ad_name) map[a.ad_id] = a.ad_name;
+      }
+      setAdNameByAdId(map);
+    })();
+  }, []);
+
 
 
   // Load admin role + options for settings tab

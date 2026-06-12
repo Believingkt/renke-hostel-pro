@@ -65,6 +65,8 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [adVideoRules, setAdVideoRules] = useState<
     { keyword: string; video_creator_id: string; sort_order: number | null }[]
   >([]);
+  const [adNameByAdId, setAdNameByAdId] = useState<Record<string, string>>({});
+
 
   const [closerId, setCloserId] = useState<string>(NONE);
   const [videoCreatorId, setVideoCreatorId] = useState<string>(NONE);
@@ -130,8 +132,10 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         { data: bmRows },
         { data: fpRows },
         { data: ruleRows },
+        { data: metaAdsRows },
         { data: existingMeta },
         { data: orderRow },
+
       ] = await Promise.all([
         supabase.auth.getSession(),
         supabase
@@ -168,6 +172,9 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           .select("keyword, video_creator_id, sort_order")
           .order("sort_order", { ascending: true }),
         supabase
+          .from("meta_ads")
+          .select("ad_id, ad_name"),
+        supabase
           .from("order_meta")
           .select("*")
           .eq("order_id", orderId)
@@ -178,6 +185,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           .eq("id", orderId)
           .maybeSingle(),
       ]) as any;
+
 
       const closerIds = (closerRoles ?? []).map((r) => r.user_id);
       const videoIds = (videoRoles ?? []).map((r) => r.user_id);
@@ -215,6 +223,12 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           (r) => r.keyword && r.video_creator_id,
         ),
       );
+      const nameMap: Record<string, string> = {};
+      for (const a of (metaAdsRows ?? []) as Array<{ ad_id: string; ad_name: string | null }>) {
+        if (a.ad_id && a.ad_name) nameMap[a.ad_id] = a.ad_name;
+      }
+      setAdNameByAdId(nameMap);
+
 
       setOrderDate((orderRow as { order_date?: string | null } | null)?.order_date ?? null);
 
@@ -251,7 +265,9 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
     setAdId(nextAdId);
     if (videoCreatorId && videoCreatorId !== NONE) return;
     if (!nextAdId) return;
-    const lower = nextAdId.toLowerCase();
+    const adName = adNameByAdId[nextAdId];
+    if (!adName) return;
+    const lower = adName.toLowerCase();
     for (const r of adVideoRules) {
       if (r.keyword && lower.includes(r.keyword.toLowerCase())) {
         setVideoCreatorId(r.video_creator_id);
@@ -259,6 +275,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       }
     }
   };
+
 
 
   const handleAddTrafficSource = async () => {

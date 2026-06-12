@@ -169,13 +169,14 @@ function AdsListTab() {
     setVideoMembers(map);
   };
 
-  const matchVideoCreatorName = (adId: string | null | undefined): string => {
-    if (!adId) return "—";
-    const lower = adId.toLowerCase();
+  const matchVideoCreatorName = (adName: string | null | undefined): string => {
+    if (!adName) return "—";
+    const lower = adName.toLowerCase();
     const rule = videoRules.find((r) => r.keyword && lower.includes(r.keyword.toLowerCase()));
     if (!rule) return "—";
     return videoMembers[rule.video_creator_id] || "—";
   };
+
 
 
   const handleSync = async () => {
@@ -339,7 +340,7 @@ function AdsListTab() {
                   )}
                 </span>
               </div>
-              <DetailRow label="影音組" value={matchVideoCreatorName(adDetail.ad_id)} />
+              <DetailRow label="影音組" value={matchVideoCreatorName(adDetail.ad_name)} />
               <DetailRow label="起始日期" value={fmtDate(adDetail.start_date)} />
 
               <DetailRow label="截止日期" value={fmtDate(adDetail.stop_date)} />
