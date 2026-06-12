@@ -990,8 +990,23 @@ export default function TeamOrders() {
                   <ReadField label="訂單編號" value={editOrder.order_number} />
                   <ReadField label="館別" value={editOrder.accommodation_name} />
                   <ReadField label="房客姓名" value={editOrder.guest_name} />
-                  <ReadField label="客戶暱稱" value={form.nickname || "-"} />
+                  {isEditing ? (
+                    <div className="space-y-2">
+                      <Label className="text-sm">客戶暱稱</Label>
+                      <Input
+                        className="text-base"
+                        value={form.nickname ?? ""}
+                        placeholder="輸入客戶暱稱"
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, nickname: e.target.value || null }))
+                        }
+                      />
+                    </div>
+                  ) : (
+                    <ReadField label="客戶暱稱" value={form.nickname || "-"} />
+                  )}
                 </div>
+                <ReadField label="電話" value={editOrder.guest_phone || "-"} />
                 <ReadField
                   label="入住區間"
                   value={`${editOrder.check_in_date} ~ ${editOrder.check_out_date}`}
