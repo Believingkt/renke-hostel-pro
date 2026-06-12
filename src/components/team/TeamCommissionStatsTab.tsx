@@ -115,8 +115,13 @@ export default function TeamCommissionStatsTab() {
     !isPrivileged &&
     roles.some((r) => r === "scout" || r === "scout_manager");
   const now = new Date();
+  const [mode, setMode] = useState<"period" | "custom">("period");
   const [year, setYear] = useState<string>(String(now.getFullYear()));
   const [month, setMonth] = useState<string>(String(now.getMonth() + 1));
+  const [customStart, setCustomStart] = useState<Date>(
+    new Date(now.getFullYear(), now.getMonth(), 1),
+  );
+  const [customEnd, setCustomEnd] = useState<Date>(now);
   const [loading, setLoading] = useState(false);
 
   const [orders, setOrders] = useState<OrderLite[]>([]);
@@ -153,32 +158,20 @@ export default function TeamCommissionStatsTab() {
   } | null>(null);
 
   const period = useMemo(() => {
-    const allYears = year === "all";
-    const allMonths = month === "ALL" || month === "all";
-    const todayStr = new Date().toISOString().slice(0, 10);
-
-    if (allYears) {
+    if (mode === "custom") {
+      const s = new Date(customStart.getFullYear(), customStart.getMonth(), customStart.getDate());
+      const eNext = new Date(customEnd.getFullYear(), customEnd.getMonth(), customEnd.getDate() + 1);
+      const startDateStr = format(s, "yyyy-MM-dd");
       return {
-        startIso: null as string | null,
-        nextIso: null as string | null,
-        startDate: todayStr,
-        label: "全部資料",
+        startIso: s.toISOString(),
+        nextIso: eNext.toISOString(),
+        startDate: startDateStr,
+        label: `${format(customStart, "yyyy-MM-dd")} ~ ${format(customEnd, "yyyy-MM-dd")}（自訂區間）`,
+        cancelField: "order_date" as "order_date" | "cancelled_at",
       };
     }
 
     const y = Number(year);
-
-    if (allMonths) {
-      const startIso = new Date(y, 0, 1).toISOString();
-      const nextIso = new Date(y + 1, 0, 1).toISOString();
-      return {
-        startIso,
-        nextIso,
-        startDate: `${y}-01-01`,
-        label: `${y} 全年`,
-      };
-    }
-
     const X = Number(month);
     const targetYear = X === 1 ? y - 1 : y;
     const targetMonth = X === 1 ? 12 : X - 1;
@@ -189,8 +182,9 @@ export default function TeamCommissionStatsTab() {
       nextIso,
       startDate: `${targetYear}-${String(targetMonth).padStart(2, "0")}-01`,
       label: `${targetYear}年${targetMonth}月（${y}年${X}月10日發放）`,
+      cancelField: "cancelled_at" as "order_date" | "cancelled_at",
     };
-  }, [year, month]);
+  }, [mode, year, month, customStart, customEnd]);
 
   useEffect(() => {
     load();
