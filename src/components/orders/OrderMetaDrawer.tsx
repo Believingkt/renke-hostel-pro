@@ -223,6 +223,12 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           (r) => r.keyword && r.video_creator_id,
         ),
       );
+      const nameMap: Record<string, string> = {};
+      for (const a of (metaAdsRows ?? []) as Array<{ ad_id: string; ad_name: string | null }>) {
+        if (a.ad_id && a.ad_name) nameMap[a.ad_id] = a.ad_name;
+      }
+      setAdNameByAdId(nameMap);
+
 
       setOrderDate((orderRow as { order_date?: string | null } | null)?.order_date ?? null);
 
