@@ -1055,9 +1055,17 @@ export default function TeamOrders() {
                       <Input
                         className="text-base"
                         value={form.ad_id ?? ""}
-                        onChange={(e) =>
-                          setForm((f) => ({ ...f, ad_id: e.target.value || null }))
-                        }
+                        onChange={(e) => {
+                          const nextAdId = e.target.value || null;
+                          setForm((f) => {
+                            const next = { ...f, ad_id: nextAdId };
+                            if (!f.video_creator_id) {
+                              const matched = matchVideoCreatorByAdId(nextAdId);
+                              if (matched) next.video_creator_id = matched;
+                            }
+                            return next;
+                          });
+                        }}
                       />
                     </div>
 
