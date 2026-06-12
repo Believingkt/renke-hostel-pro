@@ -220,6 +220,20 @@ export default function TeamOrders() {
     })();
   }, []);
 
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("meta_ads")
+        .select("ad_id, ad_name");
+      const map: Record<string, string> = {};
+      for (const a of ((data ?? []) as Array<{ ad_id: string; ad_name: string | null }>)) {
+        if (a.ad_id && a.ad_name) map[a.ad_id] = a.ad_name;
+      }
+      setAdNameByAdId(map);
+    })();
+  }, []);
+
+
 
   // Load admin role + options for settings tab
   useEffect(() => {
