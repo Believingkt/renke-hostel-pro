@@ -204,6 +204,18 @@ export default function TeamOrders() {
     })();
   }, []);
 
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("ad_video_creator_rules")
+        .select("keyword, video_creator_id, sort_order")
+        .order("sort_order", { ascending: true });
+      setAdVideoRules(
+        ((data ?? []) as any[]).filter((r) => r.keyword && r.video_creator_id),
+      );
+    })();
+  }, []);
+
 
   // Load admin role + options for settings tab
   useEffect(() => {
