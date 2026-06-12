@@ -170,6 +170,9 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           .select("keyword, video_creator_id, sort_order")
           .order("sort_order", { ascending: true }),
         supabase
+          .from("meta_ads")
+          .select("ad_id, ad_name"),
+        supabase
           .from("order_meta")
           .select("*")
           .eq("order_id", orderId)
@@ -180,6 +183,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           .eq("id", orderId)
           .maybeSingle(),
       ]) as any;
+
 
       const closerIds = (closerRoles ?? []).map((r) => r.user_id);
       const videoIds = (videoRoles ?? []).map((r) => r.user_id);
