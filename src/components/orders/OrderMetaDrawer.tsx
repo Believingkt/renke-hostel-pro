@@ -132,8 +132,10 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         { data: bmRows },
         { data: fpRows },
         { data: ruleRows },
+        { data: metaAdsRows },
         { data: existingMeta },
         { data: orderRow },
+
       ] = await Promise.all([
         supabase.auth.getSession(),
         supabase
