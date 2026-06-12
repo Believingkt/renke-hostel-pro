@@ -1010,6 +1010,7 @@ export default function TeamOrders() {
                   <section className="space-y-3">
                     <SectionTitle>行銷資訊</SectionTitle>
                     <div className="grid grid-cols-2 gap-3">
+                      {/* 來源 / 折扣碼 */}
                       <div>
                         <div className="text-xs text-muted-foreground">來源</div>
                         <div className="mt-1">
@@ -1023,6 +1024,8 @@ export default function TeamOrders() {
                           })()}
                         </div>
                       </div>
+                      <ReadField label="折扣碼" value={editOrder.discount_code || "-"} />
+                      {/* 訂房方式 / 來源管道 */}
                       <ReadField
                         label="訂房方式"
                         value={bookingMap.get(form.booking_method ?? '') ?? form.booking_method ?? '-'}
@@ -1031,7 +1034,7 @@ export default function TeamOrders() {
                         label="來源管道"
                         value={trafficMap.get(form.traffic_source ?? '') ?? form.traffic_source ?? '-'}
                       />
-                      <ReadField label="折扣碼" value={editOrder.discount_code || "-"} />
+                      {/* 成交人 / 影音組 */}
                       <ReadField
                         label="成交人"
                         value={closers.find((m) => m.user_id === form.closer_id)?.display_name || "-"}
@@ -1040,8 +1043,9 @@ export default function TeamOrders() {
                         label="影音組"
                         value={videos.find((v) => v.user_id === form.video_creator_id)?.display_name || "-"}
                       />
-                      <ReadField label="廣告編號" value={form.ad_id || "-"} />
                     </div>
+                    {/* 廣告編號 全寬 */}
+                    <ReadField label="廣告編號" value={form.ad_id || "-"} />
                   </section>
 
                   <Separator />
