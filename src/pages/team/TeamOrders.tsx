@@ -682,7 +682,14 @@ export default function TeamOrders() {
               size="sm"
               variant={closerOnly ? "default" : "outline"}
               className={`shrink-0 w-32 justify-center ${closerOnly ? "bg-orange-500 hover:bg-orange-600 text-white" : "text-muted-foreground"}`}
-              onClick={() => { setCloserOnly((v) => !v); setPage(1); }}
+              onClick={() => {
+                setCloserOnly((v) => {
+                  const next = !v;
+                  if (!next) setCloserFilter("ALL");
+                  return next;
+                });
+                setPage(1);
+              }}
             >
               {closerOnly ? "成交大師訂單" : "全部訂單"}
             </Button>
@@ -716,7 +723,7 @@ export default function TeamOrders() {
               </SelectContent>
             </Select>
 
-            <Select value={closerFilter} onValueChange={setCloserFilter}>
+            <Select value={closerFilter} onValueChange={setCloserFilter} disabled={!closerOnly}>
               <SelectTrigger className="w-44">
                 <SelectValue placeholder="成交組" />
               </SelectTrigger>
