@@ -90,8 +90,8 @@ interface MetaRow {
   deposit_confirm_date?: string | null;
 }
 
-const PAGE_SIZE = 50;
-const META_BATCH_SIZE = 100;
+const DEFAULT_PAGE_SIZE = 50;
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 const TRAFFIC_OPTIONS = ["自然流量", "廣告", "KOL", "星探", "其他"];
 const BOOKING_OPTIONS = ["官網", "電話", "Line", "現場", "其他"];
