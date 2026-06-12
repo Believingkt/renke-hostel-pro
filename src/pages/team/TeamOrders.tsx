@@ -116,6 +116,7 @@ export default function TeamOrders() {
   const [searchInput, setSearchInput] = useState<string>("");
   const [search, setSearch] = useState<string>("");
   const [closerOnly, setCloserOnly] = useState(true);
+  const [closerFilter, setCloserFilter] = useState<string>("ALL"); // "ALL" | "NONE" | <user_id>
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
   const [total, setTotal] = useState<number>(0);
@@ -202,13 +203,13 @@ export default function TeamOrders() {
   // Reset to page 1 whenever any filter changes
   useEffect(() => {
     setPage(1);
-  }, [accFilter, year, month, franchiseFilter, search, closerOnly, pageSize]);
+  }, [accFilter, year, month, franchiseFilter, search, closerOnly, closerFilter, pageSize]);
 
   // Re-query whenever filters or pagination change
   useEffect(() => {
     loadOrders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accFilter, year, month, franchiseFilter, search, closerOnly, page, pageSize]);
+  }, [accFilter, year, month, franchiseFilter, search, closerOnly, closerFilter, page, pageSize]);
 
   useEffect(() => {
     (async () => {
@@ -397,13 +398,20 @@ export default function TeamOrders() {
   async function fetchAllOrderIdsFromMeta(filters: {
     closerOnly: boolean;
     franchiseProject: string;
+    closerFilter: string; // "ALL" | "NONE" | <user_id>
   }): Promise<string[]> {
     const ids: string[] = [];
     const SIZE = 1000;
     let from = 0;
     while (true) {
       let q = supabase.from("order_meta").select("order_id");
-      if (filters.closerOnly) q = q.not("closer_id", "is", null);
+      if (filters.closerFilter === "NONE") {
+        q = q.is("closer_id", null);
+      } else if (filters.closerFilter !== "ALL") {
+        q = q.eq("closer_id", filters.closerFilter);
+      } else if (filters.closerOnly) {
+        q = q.not("closer_id", "is", null);
+      }
       if (filters.franchiseProject !== "ALL") q = q.eq("franchise_project", filters.franchiseProject);
       const { data, error } = await q.range(from, from + SIZE - 1);
       if (error) throw error;
@@ -418,13 +426,14 @@ export default function TeamOrders() {
   async function loadOrders() {
     setLoading(true);
     try {
-      // Step 1: meta-side prefilter (closerOnly / franchiseFilter)
-      const needsMetaPrefilter = closerOnly || franchiseFilter !== "ALL";
+      // Step 1: meta-side prefilter (closerOnly / franchiseFilter / closerFilter)
+      const needsMetaPrefilter = closerOnly || franchiseFilter !== "ALL" || closerFilter !== "ALL";
       let metaOrderIds: string[] | null = null;
       if (needsMetaPrefilter) {
         metaOrderIds = await fetchAllOrderIdsFromMeta({
           closerOnly,
           franchiseProject: franchiseFilter,
+          closerFilter,
         });
         if (metaOrderIds.length === 0) {
           setOrders([]);
@@ -706,6 +715,22 @@ export default function TeamOrders() {
                 ))}
               </SelectContent>
             </Select>
+
+            <Select value={closerFilter} onValueChange={setCloserFilter}>
+              <SelectTrigger className="w-44">
+                <SelectValue placeholder="成交組" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">全部成交組</SelectItem>
+                <SelectItem value="NONE">未指派成交組</SelectItem>
+                {closers.map((c) => (
+                  <SelectItem key={c.user_id} value={c.user_id}>
+                    {c.display_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
 
             <span className="text-sm text-muted-foreground ml-2">下單日：</span>
 
