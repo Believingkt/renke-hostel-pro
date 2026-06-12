@@ -513,13 +513,14 @@ export default function TeamCommissionStatsTab() {
                 <TableHead className="whitespace-nowrap tabular-nums">分潤金額</TableHead>
                 <TableHead className="whitespace-nowrap tabular-nums">取消訂單數</TableHead>
                 <TableHead className="whitespace-nowrap tabular-nums">取消訂單總金額</TableHead>
+                <TableHead className="whitespace-nowrap tabular-nums">取消分潤金額</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
             <TableBody>
               {stats.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center py-6 text-muted-foreground">
                     無資料
                   </TableCell>
                 </TableRow>
