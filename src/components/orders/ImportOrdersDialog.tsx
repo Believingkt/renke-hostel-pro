@@ -443,8 +443,12 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
         const ryanRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws);
         setStep("importing");
         setImportProgress(0);
+        setImportStatus("準備匯入...");
         try {
-          const result = await importRyanOrders(ryanRows, setImportProgress);
+          const result = await importRyanOrders(ryanRows, (pct, text) => {
+            setImportProgress(pct);
+            if (text) setImportStatus(text);
+          });
           handleOpenChange(false);
           const baseDesc = `新增 ${result.created} 筆、更新 ${result.updated} 筆`;
           const warnDesc = result.warnings.length
