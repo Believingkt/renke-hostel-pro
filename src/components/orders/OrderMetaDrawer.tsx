@@ -62,6 +62,9 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [trafficSources, setTrafficSources] = useState<OptionRow[]>([]);
   const [bookingMethods, setBookingMethods] = useState<OptionRow[]>([]);
   const [franchiseProjects, setFranchiseProjects] = useState<FranchiseProject[]>([]);
+  const [adVideoRules, setAdVideoRules] = useState<
+    { keyword: string; video_creator_id: string; sort_order: number | null }[]
+  >([]);
 
   const [closerId, setCloserId] = useState<string>(NONE);
   const [videoCreatorId, setVideoCreatorId] = useState<string>(NONE);
@@ -126,6 +129,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         { data: tsRows },
         { data: bmRows },
         { data: fpRows },
+        { data: ruleRows },
         { data: existingMeta },
         { data: orderRow },
       ] = await Promise.all([
@@ -159,6 +163,10 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           .select("id, name")
           .eq("is_active", true)
           .order("name", { ascending: true }),
+        supabase
+          .from("ad_video_creator_rules")
+          .select("keyword, video_creator_id, sort_order")
+          .order("sort_order", { ascending: true }),
         supabase
           .from("order_meta")
           .select("*")
@@ -202,6 +210,11 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setTrafficSources((tsRows ?? []) as OptionRow[]);
       setBookingMethods((bmRows ?? []) as OptionRow[]);
       setFranchiseProjects((fpRows ?? []) as FranchiseProject[]);
+      setAdVideoRules(
+        ((ruleRows ?? []) as any[]).filter(
+          (r) => r.keyword && r.video_creator_id,
+        ),
+      );
 
       setOrderDate((orderRow as { order_date?: string | null } | null)?.order_date ?? null);
 
@@ -233,6 +246,20 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       cancelled = true;
     };
   }, [open, orderId]);
+
+  const applyAdIdWithAutoVideo = (nextAdId: string) => {
+    setAdId(nextAdId);
+    if (videoCreatorId && videoCreatorId !== NONE) return;
+    if (!nextAdId) return;
+    const lower = nextAdId.toLowerCase();
+    for (const r of adVideoRules) {
+      if (r.keyword && lower.includes(r.keyword.toLowerCase())) {
+        setVideoCreatorId(r.video_creator_id);
+        return;
+      }
+    }
+  };
+
 
   const handleAddTrafficSource = async () => {
     const name = newTrafficSource.trim();
@@ -445,7 +472,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
               <Label>廣告編號</Label>
               <Input
                 value={adId}
-                onChange={(e) => setAdId(e.target.value)}
+                onChange={(e) => applyAdIdWithAutoVideo(e.target.value)}
                 placeholder="輸入或點擊下方常用編號"
               />
               {commonAds.length > 0 && (
@@ -456,7 +483,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => setAdId(a.ad_id)}
+                      onClick={() => applyAdIdWithAutoVideo(a.ad_id)}
                     >
                       {a.label}
                     </Button>

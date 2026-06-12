@@ -140,6 +140,20 @@ export default function TeamOrders() {
   const [editingTrafficName, setEditingTrafficName] = useState("");
   const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
   const [editingBookingName, setEditingBookingName] = useState("");
+  const [adVideoRules, setAdVideoRules] = useState<
+    { keyword: string; video_creator_id: string; sort_order: number | null }[]
+  >([]);
+
+  function matchVideoCreatorByAdId(adId: string | null): string | null {
+    if (!adId) return null;
+    const lower = adId.toLowerCase();
+    for (const r of adVideoRules) {
+      if (r.keyword && lower.includes(r.keyword.toLowerCase())) {
+        return r.video_creator_id;
+      }
+    }
+    return null;
+  }
 
   function emptyMeta(): MetaRow {
     return {
@@ -187,6 +201,18 @@ export default function TeamOrders() {
         .eq("is_active", true)
         .order("name", { ascending: true });
       setFranchiseProjects((data ?? []) as { id: string; name: string }[]);
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("ad_video_creator_rules")
+        .select("keyword, video_creator_id, sort_order")
+        .order("sort_order", { ascending: true });
+      setAdVideoRules(
+        ((data ?? []) as any[]).filter((r) => r.keyword && r.video_creator_id),
+      );
     })();
   }, []);
 
@@ -1029,9 +1055,17 @@ export default function TeamOrders() {
                       <Input
                         className="text-base"
                         value={form.ad_id ?? ""}
-                        onChange={(e) =>
-                          setForm((f) => ({ ...f, ad_id: e.target.value || null }))
-                        }
+                        onChange={(e) => {
+                          const nextAdId = e.target.value || null;
+                          setForm((f) => {
+                            const next = { ...f, ad_id: nextAdId };
+                            if (!f.video_creator_id) {
+                              const matched = matchVideoCreatorByAdId(nextAdId);
+                              if (matched) next.video_creator_id = matched;
+                            }
+                            return next;
+                          });
+                        }}
                       />
                     </div>
 
