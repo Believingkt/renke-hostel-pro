@@ -22,6 +22,7 @@ import {
   SheetTitle,
   SheetFooter,
 } from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -981,358 +982,420 @@ export default function TeamOrders() {
           </SheetHeader>
 
           {editOrder && (
-            <div className="overflow-y-auto px-4 pb-4 space-y-4">
-              {/* 訂單基本資訊 */}
-              <div className="p-3 rounded-md bg-muted/40 space-y-3">
-                <div className="grid grid-cols-3 gap-3">
-                  <ReadField label="訂單編號" value={editOrder.order_number} />
+            <div className="overflow-y-auto px-4 pb-4 space-y-6">
+              {/* ===== 訂單基本資訊 ===== */}
+              <section className="space-y-3">
+                <SectionTitle>訂單基本資訊</SectionTitle>
+                <ReadField label="訂單編號" value={editOrder.order_number} />
+                <div className="grid grid-cols-2 gap-3">
                   <ReadField label="館別" value={editOrder.accommodation_name} />
                   <ReadField label="房客姓名" value={editOrder.guest_name} />
+                  <ReadField label="客戶暱稱" value={form.nickname || "-"} />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <ReadField
-                    label="入住區間"
-                    value={`${editOrder.check_in_date} ~ ${editOrder.check_out_date}`}
-                  />
-                  <ReadField
-                    label="金額"
-                    value={`$${editOrder.final_price?.toLocaleString()}`}
-                  />
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <div className="text-xs text-muted-foreground">來源</div>
-                    <div className="mt-1">
-                      {(() => {
-                        const cfg = getOrderSourceConfig(editOrder.order_source ?? '');
-                        return (
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${cfg.className}`}>
-                            {cfg.label}
-                          </span>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                  <ReadField
-                    label="訂房方式"
-                    value={bookingMap.get(editOrder.meta?.booking_method ?? '') ?? editOrder.meta?.booking_method ?? '-'}
-                  />
-                  <ReadField
-                    label="來源管道"
-                    value={trafficMap.get(editOrder.meta?.traffic_source ?? '') ?? editOrder.meta?.traffic_source ?? '-'}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <ReadField label="折扣碼" value={editOrder.discount_code || "-"} />
-                  <ReadField label="訂購時間 (下單日)" value={editOrder.order_date ? editOrder.order_date.slice(0, 10) : "-"} />
-                </div>
-              </div>
+                <ReadField
+                  label="入住區間"
+                  value={`${editOrder.check_in_date} ~ ${editOrder.check_out_date}`}
+                />
+                <ReadField
+                  label="金額"
+                  value={`$${editOrder.final_price?.toLocaleString()}`}
+                />
+              </section>
+
+              <Separator />
 
               {!isEditing ? (
-                /* 唯讀模式：補充行銷資訊摘要 */
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    {/* 1. 成交人 / 詢問日期 */}
-                    <ReadField
-                      label="成交人"
-                      value={closers.find((m) => m.user_id === form.closer_id)?.display_name || "-"}
-                    />
-                    <ReadField label="詢問日期" value={form.inquiry_date || "-"} />
-                    {/* 2. 客戶暱稱 / 訂金確認日 */}
-                    <ReadField label="客戶暱稱" value={form.nickname || "-"} />
-                    <ReadField label="訂金確認日" value={form.deposit_confirm_date || "-"} />
-                    {/* 3. 廣告編號 / 影音組 */}
-                    <ReadField label="廣告編號" value={form.ad_id || "-"} />
-                    <ReadField
-                      label="影音組"
-                      value={videos.find((v) => v.user_id === form.video_creator_id)?.display_name || "-"}
-                    />
-                    {/* 4. 訂房方式 / 來源管道 */}
-                    <ReadField
-                      label="訂房方式"
-                      value={bookingMap.get(form.booking_method ?? '') ?? form.booking_method ?? '-'}
-                    />
-                    <ReadField
-                      label="來源管道"
-                      value={trafficMap.get(form.traffic_source ?? '') ?? form.traffic_source ?? '-'}
-                    />
-                    {/* 5. 加盟專案 / 會員編號 */}
-                    <ReadField label="加盟專案" value={form.franchise_project || "-"} />
-                    <ReadField label="會員編號" value={form.member_number || "-"} />
-                    {/* 6. 加購備註 / 加購金額 */}
-                    <ReadField label="加購備註" value={form.addon_note || "-"} />
-                    <ReadField
-                      label="加購金額"
-                      value={form.addon_amount ? `$${Number(form.addon_amount).toLocaleString()}` : "-"}
-                    />
-                  </div>
-                  {/* 7. 使用住宿券張數 */}
-                  <ReadField label="使用住宿券張數" value={String(form.voucher_count ?? 0)} />
-                  {/* 8. 不分潤 */}
-                  <ReadField label="不分潤" value={form.is_excluded ? "是" : "否"} />
-                  {/* 9. 備註 */}
-                  <ReadField label="備註" value={form.exclusion_note || "-"} />
-                </div>
+                <>
+                  {/* ===== 行銷資訊（唯讀） ===== */}
+                  <section className="space-y-3">
+                    <SectionTitle>行銷資訊</SectionTitle>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <div className="text-xs text-muted-foreground">來源</div>
+                        <div className="mt-1">
+                          {(() => {
+                            const cfg = getOrderSourceConfig(editOrder.order_source ?? '');
+                            return (
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${cfg.className}`}>
+                                {cfg.label}
+                              </span>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                      <ReadField
+                        label="訂房方式"
+                        value={bookingMap.get(form.booking_method ?? '') ?? form.booking_method ?? '-'}
+                      />
+                      <ReadField
+                        label="來源管道"
+                        value={trafficMap.get(form.traffic_source ?? '') ?? form.traffic_source ?? '-'}
+                      />
+                      <ReadField label="折扣碼" value={editOrder.discount_code || "-"} />
+                      <ReadField
+                        label="成交人"
+                        value={closers.find((m) => m.user_id === form.closer_id)?.display_name || "-"}
+                      />
+                      <ReadField
+                        label="影音組"
+                        value={videos.find((v) => v.user_id === form.video_creator_id)?.display_name || "-"}
+                      />
+                      <ReadField label="廣告編號" value={form.ad_id || "-"} />
+                    </div>
+                  </section>
+
+                  <Separator />
+
+                  {/* ===== 時間資訊（唯讀） ===== */}
+                  <section className="space-y-3">
+                    <SectionTitle>時間資訊</SectionTitle>
+                    <div className="grid grid-cols-2 gap-3">
+                      <ReadField label="詢問日期" value={form.inquiry_date || "-"} />
+                      <ReadField label="訂購時間 (下單日)" value={editOrder.order_date ? editOrder.order_date.slice(0, 10) : "-"} />
+                      <ReadField label="訂金確認日" value={form.deposit_confirm_date || "-"} />
+                    </div>
+                  </section>
+
+                  <Separator />
+
+                  {/* ===== 特許加盟（唯讀） ===== */}
+                  <section className="space-y-3">
+                    <SectionTitle>特許加盟</SectionTitle>
+                    <div className="grid grid-cols-2 gap-3">
+                      <ReadField label="加盟專案" value={form.franchise_project || "-"} />
+                      <ReadField label="會員編號" value={form.member_number || "-"} />
+                      <ReadField label="加購備註" value={form.addon_note || "-"} />
+                      <ReadField
+                        label="加購金額"
+                        value={form.addon_amount ? `$${Number(form.addon_amount).toLocaleString()}` : "-"}
+                      />
+                      <ReadField label="使用住宿券張數" value={String(form.voucher_count ?? 0)} />
+                    </div>
+                  </section>
+
+                  <Separator />
+
+                  {/* ===== 其他（唯讀） ===== */}
+                  <section className="space-y-3">
+                    <SectionTitle>其他</SectionTitle>
+                    <ReadField label="不分潤" value={form.is_excluded ? "是" : "否"} />
+                    <ReadField label="備註" value={form.exclusion_note || "-"} />
+                  </section>
+                </>
               ) : (
                 <>
-                  {/* 編輯欄位 */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* 成交人 */}
+                  {/* ===== 行銷資訊（編輯） ===== */}
+                  <section className="space-y-3">
+                    <SectionTitle>行銷資訊</SectionTitle>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* 來源（唯讀標籤） */}
+                      <div className="space-y-2">
+                        <Label className="text-sm">來源</Label>
+                        <div className="min-h-[48px] md:h-10 flex items-center px-4 md:px-3 py-3 md:py-2 rounded-lg border border-input bg-muted/40">
+                          {(() => {
+                            const cfg = getOrderSourceConfig(editOrder.order_source ?? '');
+                            return (
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${cfg.className}`}>
+                                {cfg.label}
+                              </span>
+                            );
+                          })()}
+                        </div>
+                      </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-sm">成交人</Label>
-                      <Select
-                        value={form.closer_id ?? NONE}
-                        onValueChange={(v) =>
-                          setForm((f) => ({ ...f, closer_id: v === NONE ? null : v }))
-                        }
-                      >
-                        <SelectTrigger className="text-base">
-                          <SelectValue placeholder="選擇成交人" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={NONE}>未指定</SelectItem>
-                          {closers.map((m) => (
-                            <SelectItem key={m.user_id} value={m.user_id}>
-                              {m.display_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                      {/* 訂房方式 */}
+                      <div className="space-y-2">
+                        <Label className="text-sm">訂房方式</Label>
+                        <Select
+                          value={form.booking_method ?? NONE}
+                          onValueChange={(v) =>
+                            setForm((f) => ({ ...f, booking_method: v === NONE ? null : v }))
+                          }
+                        >
+                          <SelectTrigger className="text-base">
+                            <SelectValue placeholder="選擇訂房方式" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={NONE}>未指定</SelectItem>
+                            {bookingMethods.filter((o) => o.is_active).map((o) => (
+                              <SelectItem key={o.id} value={o.name}>
+                                {o.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                    {/* 詢問日期 */}
-                    <div className="space-y-2">
-                      <Label className="text-sm">詢問日期</Label>
-                      <Input
-                        type="date"
-                        className="text-base"
-                        value={form.inquiry_date ?? ""}
-                        onChange={(e) =>
-                          setForm((f) => ({ ...f, inquiry_date: e.target.value || null }))
-                        }
-                      />
-                    </div>
+                      {/* 來源管道 */}
+                      <div className="space-y-2">
+                        <Label className="text-sm">來源管道</Label>
+                        <Select
+                          value={form.traffic_source ?? NONE}
+                          onValueChange={(v) =>
+                            setForm((f) => ({ ...f, traffic_source: v === NONE ? null : v }))
+                          }
+                        >
+                          <SelectTrigger className="text-base">
+                            <SelectValue placeholder="選擇來源管道" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={NONE}>未指定</SelectItem>
+                            {trafficSources.filter((o) => o.is_active).map((o) => (
+                              <SelectItem key={o.id} value={o.name}>
+                                {o.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                    {/* 客戶暱稱 */}
-                    <div className="space-y-2">
-                      <Label className="text-sm">客戶暱稱</Label>
-                      <Input
-                        className="text-base"
-                        value={form.nickname ?? ""}
-                        placeholder="輸入客戶暱稱"
-                        onChange={(e) =>
-                          setForm((f) => ({ ...f, nickname: e.target.value || null }))
-                        }
-                      />
-                    </div>
+                      {/* 折扣碼（唯讀） */}
+                      <div className="space-y-2">
+                        <Label className="text-sm">折扣碼</Label>
+                        <div className="min-h-[48px] md:h-10 flex items-center px-4 md:px-3 py-3 md:py-2 rounded-lg border border-input bg-muted/40 text-base md:text-sm">
+                          {editOrder.discount_code || "-"}
+                        </div>
+                      </div>
 
-                    {/* 訂金確認日 */}
-                    <div className="space-y-2">
-                      <Label className="text-sm">訂金確認日</Label>
-                      <Input
-                        type="date"
-                        className="text-base"
-                        value={form.deposit_confirm_date ?? ""}
-                        onChange={(e) =>
-                          setForm((f) => ({ ...f, deposit_confirm_date: e.target.value || null }))
-                        }
-                      />
-                    </div>
+                      {/* 成交人 */}
+                      <div className="space-y-2">
+                        <Label className="text-sm">成交人</Label>
+                        <Select
+                          value={form.closer_id ?? NONE}
+                          onValueChange={(v) =>
+                            setForm((f) => ({ ...f, closer_id: v === NONE ? null : v }))
+                          }
+                        >
+                          <SelectTrigger className="text-base">
+                            <SelectValue placeholder="選擇成交人" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={NONE}>未指定</SelectItem>
+                            {closers.map((m) => (
+                              <SelectItem key={m.user_id} value={m.user_id}>
+                                {m.display_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                    {/* 廣告編號 */}
-                    <div className="space-y-2">
-                      <Label className="text-sm">廣告編號</Label>
-                      <Input
-                        className="text-base"
-                        value={form.ad_id ?? ""}
-                        onChange={(e) => {
-                          const nextAdId = e.target.value || null;
-                          const matched = matchVideoCreatorByAdId(nextAdId);
-                          setForm((f) => ({
-                            ...f,
-                            ad_id: nextAdId,
-                            video_creator_id: matched,
-                          }));
-                        }}
+                      {/* 影音組(唯讀) */}
+                      <div className="space-y-2">
+                        <Label className="text-sm">影音組</Label>
+                        <div className="min-h-[48px] md:h-10 flex items-center px-4 md:px-3 py-3 md:py-2 rounded-lg border border-input bg-muted/40 text-base md:text-sm">
+                          {videos.find((v) => v.user_id === form.video_creator_id)?.display_name || "-"}
+                        </div>
+                      </div>
 
-                      />
-                    </div>
-
-                    {/* 影音組(唯讀) */}
-                    <div className="space-y-2">
-                      <Label className="text-sm">影音組</Label>
-                      <div className="min-h-[48px] md:h-10 flex items-center px-4 md:px-3 py-3 md:py-2 rounded-lg border border-input bg-muted/40 text-base md:text-sm">
-                        {videos.find((v) => v.user_id === form.video_creator_id)?.display_name || "-"}
+                      {/* 廣告編號 */}
+                      <div className="space-y-2">
+                        <Label className="text-sm">廣告編號</Label>
+                        <Input
+                          className="text-base"
+                          value={form.ad_id ?? ""}
+                          onChange={(e) => {
+                            const nextAdId = e.target.value || null;
+                            const matched = matchVideoCreatorByAdId(nextAdId);
+                            setForm((f) => ({
+                              ...f,
+                              ad_id: nextAdId,
+                              video_creator_id: matched,
+                            }));
+                          }}
+                        />
                       </div>
                     </div>
+                  </section>
 
-                    {/* 訂房方式 */}
-                    <div className="space-y-2">
-                      <Label className="text-sm">訂房方式</Label>
-                      <Select
-                        value={form.booking_method ?? NONE}
-                        onValueChange={(v) =>
-                          setForm((f) => ({ ...f, booking_method: v === NONE ? null : v }))
+                  <Separator />
+
+                  {/* ===== 時間資訊（編輯） ===== */}
+                  <section className="space-y-3">
+                    <SectionTitle>時間資訊</SectionTitle>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* 詢問日期 */}
+                      <div className="space-y-2">
+                        <Label className="text-sm">詢問日期</Label>
+                        <Input
+                          type="date"
+                          className="text-base"
+                          value={form.inquiry_date ?? ""}
+                          onChange={(e) =>
+                            setForm((f) => ({ ...f, inquiry_date: e.target.value || null }))
+                          }
+                        />
+                      </div>
+
+                      {/* 訂購時間（唯讀） */}
+                      <div className="space-y-2">
+                        <Label className="text-sm">訂購時間 (下單日)</Label>
+                        <div className="min-h-[48px] md:h-10 flex items-center px-4 md:px-3 py-3 md:py-2 rounded-lg border border-input bg-muted/40 text-base md:text-sm">
+                          {editOrder.order_date ? editOrder.order_date.slice(0, 10) : "-"}
+                        </div>
+                      </div>
+
+                      {/* 訂金確認日 */}
+                      <div className="space-y-2">
+                        <Label className="text-sm">訂金確認日</Label>
+                        <Input
+                          type="date"
+                          className="text-base"
+                          value={form.deposit_confirm_date ?? ""}
+                          onChange={(e) =>
+                            setForm((f) => ({ ...f, deposit_confirm_date: e.target.value || null }))
+                          }
+                        />
+                      </div>
+                    </div>
+                  </section>
+
+                  <Separator />
+
+                  {/* ===== 特許加盟（編輯） ===== */}
+                  <section className="space-y-3">
+                    <SectionTitle>特許加盟</SectionTitle>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* 加盟專案 */}
+                      <div className="space-y-2">
+                        <Label className="text-sm">加盟專案</Label>
+                        <Select
+                          value={form.franchise_project ?? NONE}
+                          onValueChange={(v) =>
+                            setForm((f) => ({
+                              ...f,
+                              franchise_project: v === NONE ? null : v,
+                            }))
+                          }
+                        >
+                          <SelectTrigger className="text-base">
+                            <SelectValue placeholder="選擇加盟專案" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={NONE}>未指定</SelectItem>
+                            {franchiseProjects.map((p) => (
+                              <SelectItem key={p.id} value={p.name}>
+                                {p.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* 會員編號 */}
+                      <div className="space-y-2">
+                        <Label className="text-sm">會員編號</Label>
+                        <Input
+                          className="text-base"
+                          value={form.member_number ?? ""}
+                          placeholder="輸入會員編號"
+                          onChange={(e) =>
+                            setForm((f) => ({
+                              ...f,
+                              member_number: e.target.value || null,
+                            }))
+                          }
+                        />
+                      </div>
+
+                      {/* 加購備註 */}
+                      <div className="space-y-2">
+                        <Label className="text-sm">加購備註</Label>
+                        <Input
+                          className="text-base"
+                          value={form.addon_note ?? ""}
+                          placeholder="輸入加購備註"
+                          onChange={(e) =>
+                            setForm((f) => ({ ...f, addon_note: e.target.value || null }))
+                          }
+                        />
+                      </div>
+
+                      {/* 加購金額 */}
+                      <div className="space-y-2">
+                        <Label className="text-sm">加購金額</Label>
+                        <Input
+                          type="number"
+                          className="text-base"
+                          value={form.addon_amount ?? 0}
+                          onChange={(e) =>
+                            setForm((f) => ({
+                              ...f,
+                              addon_amount: e.target.value === "" ? 0 : Number(e.target.value),
+                            }))
+                          }
+                        />
+                      </div>
+
+                      {/* 使用住宿券張數 */}
+                      <div className="space-y-2">
+                        <Label htmlFor="voucher_count" className="text-sm">使用住宿券張數</Label>
+                        <Input
+                          id="voucher_count"
+                          type="number"
+                          min={0}
+                          step={1}
+                          className="text-base"
+                          value={form.voucher_count ?? 0}
+                          onChange={(e) =>
+                            setForm((f) => ({
+                              ...f,
+                              voucher_count:
+                                e.target.value === ""
+                                  ? 0
+                                  : Math.max(0, Math.trunc(Number(e.target.value))),
+                            }))
+                          }
+                        />
+                      </div>
+
+                      {/* 客戶暱稱 */}
+                      <div className="space-y-2">
+                        <Label className="text-sm">客戶暱稱</Label>
+                        <Input
+                          className="text-base"
+                          value={form.nickname ?? ""}
+                          placeholder="輸入客戶暱稱"
+                          onChange={(e) =>
+                            setForm((f) => ({ ...f, nickname: e.target.value || null }))
+                          }
+                        />
+                      </div>
+                    </div>
+                  </section>
+
+                  <Separator />
+
+                  {/* ===== 其他（編輯） ===== */}
+                  <section className="space-y-3">
+                    <SectionTitle>其他</SectionTitle>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="is_excluded"
+                        checked={!!form.is_excluded}
+                        onCheckedChange={(v) =>
+                          setForm((f) => ({ ...f, is_excluded: !!v }))
                         }
-                      >
-                        <SelectTrigger className="text-base">
-                          <SelectValue placeholder="選擇訂房方式" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={NONE}>未指定</SelectItem>
-                          {bookingMethods.filter((o) => o.is_active).map((o) => (
-                            <SelectItem key={o.id} value={o.name}>
-                              {o.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      />
+                      <Label htmlFor="is_excluded" className="cursor-pointer text-sm">
+                        不分潤
+                      </Label>
                     </div>
 
-                    {/* 來源管道 */}
                     <div className="space-y-2">
-                      <Label className="text-sm">來源管道</Label>
-                      <Select
-                        value={form.traffic_source ?? NONE}
-                        onValueChange={(v) =>
-                          setForm((f) => ({ ...f, traffic_source: v === NONE ? null : v }))
-                        }
-                      >
-                        <SelectTrigger className="text-base">
-                          <SelectValue placeholder="選擇來源管道" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={NONE}>未指定</SelectItem>
-                          {trafficSources.filter((o) => o.is_active).map((o) => (
-                            <SelectItem key={o.id} value={o.name}>
-                              {o.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* 加盟專案 */}
-                    <div className="space-y-2">
-                      <Label className="text-sm">加盟專案</Label>
-                      <Select
-                        value={form.franchise_project ?? NONE}
-                        onValueChange={(v) =>
-                          setForm((f) => ({
-                            ...f,
-                            franchise_project: v === NONE ? null : v,
-                          }))
-                        }
-                      >
-                        <SelectTrigger className="text-base">
-                          <SelectValue placeholder="選擇加盟專案" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={NONE}>未指定</SelectItem>
-                          {franchiseProjects.map((p) => (
-                            <SelectItem key={p.id} value={p.name}>
-                              {p.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* 會員編號 */}
-                    <div className="space-y-2">
-                      <Label className="text-sm">會員編號</Label>
-                      <Input
-                        className="text-base"
-                        value={form.member_number ?? ""}
-                        placeholder="輸入會員編號"
+                      <Label className="text-sm">備註</Label>
+                      <Textarea
+                        rows={3}
+                        value={form.exclusion_note ?? ""}
                         onChange={(e) =>
                           setForm((f) => ({
                             ...f,
-                            member_number: e.target.value || null,
+                            exclusion_note: e.target.value || null,
                           }))
                         }
                       />
                     </div>
-
-                    {/* 加購備註 */}
-                    <div className="space-y-2">
-                      <Label className="text-sm">加購備註</Label>
-                      <Input
-                        className="text-base"
-                        value={form.addon_note ?? ""}
-                        placeholder="輸入加購備註"
-                        onChange={(e) =>
-                          setForm((f) => ({ ...f, addon_note: e.target.value || null }))
-                        }
-                      />
-                    </div>
-
-                    {/* 加購金額 */}
-                    <div className="space-y-2">
-                      <Label className="text-sm">加購金額</Label>
-                      <Input
-                        type="number"
-                        className="text-base"
-                        value={form.addon_amount ?? 0}
-                        onChange={(e) =>
-                          setForm((f) => ({
-                            ...f,
-                            addon_amount: e.target.value === "" ? 0 : Number(e.target.value),
-                          }))
-                        }
-                      />
-                    </div>
-                  </div>
-
-                  {/* 使用住宿券張數 */}
-                  <div className="space-y-2">
-                    <Label htmlFor="voucher_count" className="text-sm">使用住宿券張數</Label>
-                    <Input
-                      id="voucher_count"
-                      type="number"
-                      min={0}
-                      step={1}
-                      className="text-base"
-                      value={form.voucher_count ?? 0}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          voucher_count:
-                            e.target.value === ""
-                              ? 0
-                              : Math.max(0, Math.trunc(Number(e.target.value))),
-                        }))
-                      }
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="is_excluded"
-                      checked={!!form.is_excluded}
-                      onCheckedChange={(v) =>
-                        setForm((f) => ({ ...f, is_excluded: !!v }))
-                      }
-                    />
-                    <Label htmlFor="is_excluded" className="cursor-pointer text-sm">
-                      不分潤
-                    </Label>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm">備註</Label>
-                    <Textarea
-                      rows={3}
-                      value={form.exclusion_note ?? ""}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          exclusion_note: e.target.value || null,
-                        }))
-                      }
-                    />
-                  </div>
+                  </section>
                 </>
               )}
             </div>
@@ -1381,6 +1444,14 @@ export default function TeamOrders() {
         </SheetContent>
       </Sheet>
     </div>
+  );
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="text-sm font-semibold text-muted-foreground tracking-wide">
+      {children}
+    </h3>
   );
 }
 
