@@ -240,8 +240,9 @@ export default function TeamCommissionStatsTab() {
         .select(selectCols)
         .eq("order_status", "cancelled")
         .not("cancelled_at", "is", null);
-      if (period.startIso) cancelQ = cancelQ.gte("cancelled_at", period.startIso);
-      if (period.nextIso) cancelQ = cancelQ.lt("cancelled_at", period.nextIso);
+      const cancelField = period.cancelField;
+      if (period.startIso) cancelQ = cancelQ.gte(cancelField, period.startIso);
+      if (period.nextIso) cancelQ = cancelQ.lt(cancelField, period.nextIso);
       const { data: cancelData, error: ce } = await cancelQ;
       if (ce) throw ce;
 
