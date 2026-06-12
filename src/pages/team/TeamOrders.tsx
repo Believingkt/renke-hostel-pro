@@ -90,8 +90,8 @@ interface MetaRow {
   deposit_confirm_date?: string | null;
 }
 
-const PAGE_SIZE = 50;
-const META_BATCH_SIZE = 100;
+const DEFAULT_PAGE_SIZE = 50;
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 const TRAFFIC_OPTIONS = ["自然流量", "廣告", "KOL", "星探", "其他"];
 const BOOKING_OPTIONS = ["官網", "電話", "Line", "現場", "其他"];
@@ -112,9 +112,12 @@ export default function TeamOrders() {
   const [month, setMonth] = useState<string>("ALL");
   const [franchiseFilter, setFranchiseFilter] = useState<string>("ALL");
   const [franchiseProjects, setFranchiseProjects] = useState<{ id: string; name: string }[]>([]);
+  const [searchInput, setSearchInput] = useState<string>("");
   const [search, setSearch] = useState<string>("");
   const [closerOnly, setCloserOnly] = useState(true);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
+  const [total, setTotal] = useState<number>(0);
 
   const [editOpen, setEditOpen] = useState(false);
   const [editOrder, setEditOrder] = useState<OrderRow | null>(null);
@@ -189,13 +192,22 @@ export default function TeamOrders() {
     loadMembers();
   }, []);
 
+  // Debounce search input → search (server query keyword)
   useEffect(() => {
-    loadOrders();
-  }, []);
+    const t = setTimeout(() => setSearch(searchInput.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
+  // Reset to page 1 whenever any filter changes
   useEffect(() => {
     setPage(1);
-  }, [accFilter, year, month, franchiseFilter]);
+  }, [accFilter, year, month, franchiseFilter, search, closerOnly, pageSize]);
+
+  // Re-query whenever filters or pagination change
+  useEffect(() => {
+    loadOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accFilter, year, month, franchiseFilter, search, closerOnly, page, pageSize]);
 
   useEffect(() => {
     (async () => {
@@ -380,51 +392,123 @@ export default function TeamOrders() {
     setScouts((s.data as Member[]) || []);
   }
 
+  // Helper: page through a Supabase query to collect all rows (used for meta-side prefilter)
+  async function fetchAllOrderIdsFromMeta(filters: {
+    closerOnly: boolean;
+    franchiseProject: string;
+  }): Promise<string[]> {
+    const ids: string[] = [];
+    const SIZE = 1000;
+    let from = 0;
+    while (true) {
+      let q = supabase.from("order_meta").select("order_id");
+      if (filters.closerOnly) q = q.not("closer_id", "is", null);
+      if (filters.franchiseProject !== "ALL") q = q.eq("franchise_project", filters.franchiseProject);
+      const { data, error } = await q.range(from, from + SIZE - 1);
+      if (error) throw error;
+      const batch = (data ?? []) as Array<{ order_id: string }>;
+      for (const r of batch) if (r.order_id) ids.push(r.order_id);
+      if (batch.length < SIZE) break;
+      from += SIZE;
+    }
+    return ids;
+  }
+
   async function loadOrders() {
     setLoading(true);
     try {
-      const [ordersRes, accRes] = await Promise.all([
-        supabase
-          .from("orders")
-          .select(
-            `id, order_number, guest_name, guest_phone, check_in_date, check_out_date,
-             final_price, discount_code, order_source, ota_channel, accommodation_id, order_date, created_at`
-          )
-          .neq("guest_name", "保留單")
-          .gt("final_price", 0)
-          .order("created_at", { ascending: false })
-          .limit(2000),
+      // Step 1: meta-side prefilter (closerOnly / franchiseFilter)
+      const needsMetaPrefilter = closerOnly || franchiseFilter !== "ALL";
+      let metaOrderIds: string[] | null = null;
+      if (needsMetaPrefilter) {
+        metaOrderIds = await fetchAllOrderIdsFromMeta({
+          closerOnly,
+          franchiseProject: franchiseFilter,
+        });
+        if (metaOrderIds.length === 0) {
+          setOrders([]);
+          setTotal(0);
+          return;
+        }
+      }
+
+      // Step 2: build paged orders query with exact count
+      let q = supabase
+        .from("orders")
+        .select(
+          `id, order_number, guest_name, guest_phone, check_in_date, check_out_date,
+           final_price, discount_code, order_source, ota_channel, accommodation_id, order_date, created_at`,
+          { count: "exact" }
+        )
+        .neq("guest_name", "保留單")
+        .gt("final_price", 0);
+
+      if (accFilter !== "ALL") q = q.eq("accommodation_id", accFilter);
+
+      // Year / month filter on check_in_date
+      if (year !== "ALL") {
+        const y = Number(year);
+        if (month !== "ALL") {
+          const m = Number(month);
+          const startDay = `${y}-${String(m).padStart(2, "0")}-01`;
+          const lastDay = new Date(y, m, 0).getDate();
+          const endDay = `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+          q = q.gte("check_in_date", startDay).lte("check_in_date", endDay);
+        } else {
+          q = q.gte("check_in_date", `${y}-01-01`).lte("check_in_date", `${y}-12-31`);
+        }
+      }
+
+      // Keyword search (server-side) on order_number / guest_name / guest_phone / discount_code
+      const s = search.trim();
+      if (s) {
+        const esc = s.replace(/[,()]/g, " ").trim();
+        if (esc) {
+          q = q.or(
+            `order_number.ilike.%${esc}%,guest_name.ilike.%${esc}%,guest_phone.ilike.%${esc}%,discount_code.ilike.%${esc}%`
+          );
+        }
+      }
+
+      if (metaOrderIds) q = q.in("id", metaOrderIds);
+
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      const ordersRes = await q
+        .order("created_at", { ascending: false })
+        .range(from, to);
+      if (ordersRes.error) throw ordersRes.error;
+
+      const pageRows = ordersRes.data || [];
+      const totalCount = ordersRes.count ?? 0;
+
+      // Step 3: fetch meta + accommodations for this page
+      const orderIds = pageRows.map((o: any) => o.id);
+      const [metaRes, accRes] = await Promise.all([
+        orderIds.length
+          ? supabase
+              .from("order_meta")
+              .select(
+                `order_id, closer_id, video_creator_id, scout_id, traffic_source,
+                 booking_method, ad_id, is_excluded, closer_assisted,
+                 scout_commission_rate, closer_commission_rate, exclusion_note,
+                 franchise_project, member_number, inquiry_date, voucher_used, voucher_count, addon_note, addon_amount,
+                 nickname, deposit_confirm_date`
+              )
+              .in("order_id", orderIds)
+          : Promise.resolve({ data: [], error: null } as any),
         supabase.from("accommodation_info").select("id, name"),
       ]);
-      if (ordersRes.error) throw ordersRes.error;
+      if (metaRes.error) throw metaRes.error;
       if (accRes.error) throw accRes.error;
 
-      const orderIds = (ordersRes.data || []).map((o: any) => o.id);
-      let metaMap = new Map<string, MetaRow>();
-      if (orderIds.length > 0) {
-        const metaRows: any[] = [];
-        for (let i = 0; i < orderIds.length; i += META_BATCH_SIZE) {
-          const batchIds = orderIds.slice(i, i + META_BATCH_SIZE);
-          const { data: metaData, error: metaErr } = await supabase
-            .from("order_meta")
-            .select(
-              `order_id, closer_id, video_creator_id, scout_id, traffic_source,
-               booking_method, ad_id, is_excluded, closer_assisted,
-               scout_commission_rate, closer_commission_rate, exclusion_note,
-               franchise_project, member_number, inquiry_date, voucher_used, voucher_count, addon_note, addon_amount,
-               nickname, deposit_confirm_date`
-            )
-            .in("order_id", batchIds);
-          if (metaErr) throw metaErr;
-          metaRows.push(...(metaData || []));
-        }
-        metaRows.forEach((m: any) => metaMap.set(m.order_id, m));
-      }
+      const metaMap = new Map<string, MetaRow>();
+      ((metaRes.data || []) as any[]).forEach((m) => metaMap.set(m.order_id, m));
 
       const accMap = new Map<string, string>();
       (accRes.data || []).forEach((a: any) => accMap.set(a.id, a.name));
 
-      const rows: OrderRow[] = (ordersRes.data || []).map((o: any) => ({
+      const rows: OrderRow[] = pageRows.map((o: any) => ({
         id: o.id,
         order_number: o.order_number,
         guest_name: o.guest_name,
@@ -442,6 +526,7 @@ export default function TeamOrders() {
         meta: metaMap.get(o.id) || null,
       }));
       setOrders(rows);
+      setTotal(totalCount);
     } catch (e: any) {
       toast.error("載入訂單失敗：" + (e.message || ""));
     } finally {
@@ -449,44 +534,16 @@ export default function TeamOrders() {
     }
   }
 
+  // Static year options (2023 .. nextYear)
   const years = useMemo(() => {
-    const set = new Set<string>();
-    orders.forEach((o) =>
-      set.add(String(new Date(o.check_in_date).getFullYear()))
-    );
-    return Array.from(set).sort((a, b) => Number(b) - Number(a));
-  }, [orders]);
+    const cur = new Date().getFullYear();
+    const arr: string[] = [];
+    for (let y = cur + 1; y >= 2023; y--) arr.push(String(y));
+    return arr;
+  }, []);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return orders.filter((o) => {
-      if (accFilter !== "ALL" && o.accommodation_id !== accFilter) return false;
-      const d = new Date(o.check_in_date);
-      if (year !== "ALL" && String(d.getFullYear()) !== year) return false;
-      if (month !== "ALL" && String(d.getMonth() + 1) !== month) return false;
-      if (franchiseFilter !== "ALL" && (o.meta?.franchise_project ?? "") !== franchiseFilter) return false;
-      if (closerOnly && !o.meta?.closer_id) return false;
-      if (q) {
-        const closerName = closers.find((m) => m.user_id === o.meta?.closer_id)?.display_name ?? "";
-        const videoName = videos.find((m) => m.user_id === o.meta?.video_creator_id)?.display_name ?? "";
-        const hay = [
-          o.order_number,
-          o.guest_name,
-          o.discount_code ?? "",
-          closerName,
-          videoName,
-          o.meta?.member_number ?? "",
-        ]
-          .join(" ")
-          .toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    });
-  }, [orders, accFilter, year, month, franchiseFilter, search, closers, videos, closerOnly]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const pageItems = orders;
 
   function openEdit(o: OrderRow) {
     setEditOrder(o);
@@ -603,9 +660,9 @@ export default function TeamOrders() {
             <div className="relative flex-1 min-w-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                placeholder="搜尋訂單編號、房客姓名、折扣碼、成交人、影音組、會員編號"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="搜尋訂單編號、房客姓名、電話、折扣碼"
                 className="pl-10 md:pl-10"
               />
             </div>
@@ -794,24 +851,38 @@ export default function TeamOrders() {
             </Table>
           </div>
 
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
             <div className="text-sm text-muted-foreground">
-              共 {filtered.length} 筆，第 {page} / {totalPages} 頁
+              共 {total} 筆，第 {page} / {totalPages} 頁
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">每頁</span>
+              <Select
+                value={String(pageSize)}
+                onValueChange={(v) => setPageSize(Number(v))}
+              >
+                <SelectTrigger className="w-20 h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAGE_SIZE_OPTIONS.map((n) => (
+                    <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button
                 variant="outline"
                 size="sm"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
+                disabled={page <= 1 || loading}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
               >
                 上一頁
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
+                disabled={page >= totalPages || loading}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               >
                 下一頁
               </Button>
