@@ -82,6 +82,7 @@ interface AccBreakdown {
   commission: number;
   cancelCount: number;
   cancelAmount: number;
+  cancelCommission: number;
   validOrders: OrderLite[];
   cancelOrders: OrderLite[];
 }
@@ -93,6 +94,7 @@ interface MemberStats {
   commission: number;
   cancelCount: number;
   cancelAmount: number;
+  cancelCommission: number;
   byAcc: AccBreakdown[];
 }
 
