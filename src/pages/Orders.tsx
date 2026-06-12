@@ -122,63 +122,130 @@ const Orders = () => {
   }, [searchParams]);
 
   // 載入訂單資料
+  // 將篩選條件套到 Supabase query builder 上（後端 query）
+  const applyServerFilters = useCallback((q: any) => {
+    const today = format(new Date(), "yyyy-MM-dd");
+    const next7Days = format(addDays(new Date(), 7), "yyyy-MM-dd");
+
+    if (quickFilter === "pending") {
+      q = q.eq("order_status", "pending");
+    } else if (quickFilter === "today_checkin") {
+      q = q.eq("check_in_date", today).neq("order_status", "cancelled");
+    } else if (quickFilter === "today_checkout") {
+      q = q.eq("check_out_date", today).neq("order_status", "cancelled");
+    } else if (quickFilter === "unpaid") {
+      q = q.eq("payment_status", "unpaid").neq("order_status", "cancelled");
+    } else if (quickFilter === "upcoming") {
+      q = q.gte("check_in_date", today).lte("check_in_date", next7Days).neq("order_status", "cancelled");
+    }
+
+    if (startDate || endDate) {
+      if (dateType === "order") {
+        if (startDate) q = q.gte("order_date", startDate);
+        if (endDate) q = q.lte("order_date", `${endDate}T23:59:59.999Z`);
+      } else {
+        if (startDate) q = q.gte("check_in_date", startDate);
+        if (endDate) q = q.lte("check_in_date", endDate);
+      }
+    }
+    if (paymentStatus) q = q.eq("payment_status", paymentStatus);
+    if (orderStatus) q = q.eq("order_status", orderStatus);
+    if (orderSource) q = q.eq("order_source", orderSource);
+    if (searchKeyword) {
+      const kw = searchKeyword.replace(/[%,()]/g, "").trim();
+      if (kw) {
+        q = q.or(
+          `order_number.ilike.%${kw}%,guest_name.ilike.%${kw}%,guest_phone.ilike.%${kw}%`,
+        );
+      }
+    }
+    return q;
+  }, [quickFilter, dateType, startDate, endDate, paymentStatus, orderStatus, orderSource, searchKeyword]);
+
+  // 後端分頁載入訂單
   const fetchOrders = useCallback(async ({ showLoading = false }: { showLoading?: boolean } = {}) => {
     if (!accommodationId) return;
-    
     try {
       if (showLoading) {
         setLoading(true);
         setError(null);
       }
-      
-      // 同時獲取訂單和自訂餐食方案
+      const from = (currentPage - 1) * itemsPerPage;
+      const to = from + itemsPerPage - 1;
+
+      let q: any = supabase
+        .from("orders")
+        .select(`*, room_types ( id, name )`, { count: "exact" })
+        .eq("accommodation_id", accommodationId);
+      q = applyServerFilters(q);
+      const sf = (sortField || "order_date") as string;
+      q = q.order(sf, { ascending: sortDirection === "asc" }).range(from, to);
+
       const [ordersResult, templatesResult] = await Promise.all([
-        supabase
-          .from("orders")
-          .select(`
-            *,
-            room_types (
-              id,
-              name
-            )
-          `)
-          .eq("accommodation_id", accommodationId)
-          .order("order_date", { ascending: false }),
+        q,
         supabase
           .from("pricing_templates")
           .select("meal_plans")
           .eq("accommodation_id", accommodationId)
           .eq("is_default", true)
-          .maybeSingle()
+          .maybeSingle(),
       ]);
 
       if (ordersResult.error) throw ordersResult.error;
-      
-      if (ordersResult.data) {
-        setOrders(ordersResult.data);
-        setFilteredOrders(ordersResult.data);
-      }
+      setOrders((ordersResult.data ?? []) as Order[]);
+      setTotal(ordersResult.count ?? 0);
 
       if (templatesResult.data?.meal_plans && Array.isArray(templatesResult.data.meal_plans)) {
         setCustomMealPlans(templatesResult.data.meal_plans as unknown as CustomMealPlan[]);
       }
-
       setError(null);
-    } catch (error) {
-      console.error("Error fetching orders:", error);
+    } catch (e) {
+      console.error("Error fetching orders:", e);
       if (showLoading) {
-        setError(error instanceof Error ? error.message : "載入訂單時發生錯誤");
+        setError(e instanceof Error ? e.message : "載入訂單時發生錯誤");
       }
     } finally {
-      if (showLoading) {
-        setLoading(false);
-      }
+      if (showLoading) setLoading(false);
     }
-  }, [accommodationId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accommodationId, currentPage, itemsPerPage, sortField, sortDirection, quickFilter, filterTrigger]);
 
   useEffect(() => {
     fetchOrders({ showLoading: true });
   }, [fetchOrders]);
+
+  // 載入快速篩選的計數（不受其他篩選影響）
+  const fetchQuickCounts = useCallback(async () => {
+    if (!accommodationId) return;
+    const today = format(new Date(), "yyyy-MM-dd");
+    const next7Days = format(addDays(new Date(), 7), "yyyy-MM-dd");
+    const base = () =>
+      supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("accommodation_id", accommodationId);
+
+    const [pendingR, ciR, coR, unpaidR, upcomingR, anyR] = await Promise.all([
+      base().eq("order_status", "pending"),
+      base().eq("check_in_date", today).neq("order_status", "cancelled"),
+      base().eq("check_out_date", today).neq("order_status", "cancelled"),
+      base().eq("payment_status", "unpaid").neq("order_status", "cancelled"),
+      base().gte("check_in_date", today).lte("check_in_date", next7Days).neq("order_status", "cancelled"),
+      base(),
+    ]);
+    setQuickCounts({
+      pending: pendingR.count ?? 0,
+      today_checkin: ciR.count ?? 0,
+      today_checkout: coR.count ?? 0,
+      unpaid: unpaidR.count ?? 0,
+      upcoming: upcomingR.count ?? 0,
+    });
+    setHasAnyOrder((anyR.count ?? 0) > 0);
+  }, [accommodationId]);
+
+  useEffect(() => {
+    fetchQuickCounts();
+  }, [fetchQuickCounts]);
 
   // Set up real-time subscription to refetch orders on changes
   useEffect(() => {
@@ -196,6 +263,7 @@ const Orders = () => {
         },
         () => {
           fetchOrders();
+          fetchQuickCounts();
         }
       )
       .subscribe();
@@ -203,121 +271,9 @@ const Orders = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [accommodationId, fetchOrders]);
+  }, [accommodationId, fetchOrders, fetchQuickCounts]);
 
-  // 套用篩選
-  const applyFilters = () => {
-    let filtered = [...orders];
 
-    // 快速篩選
-    const today = format(new Date(), "yyyy-MM-dd");
-    const next7Days = format(addDays(new Date(), 7), "yyyy-MM-dd");
-
-    if (quickFilter) {
-      switch (quickFilter) {
-        case "pending":
-          filtered = filtered.filter(order => order.order_status === "pending");
-          break;
-        case "today_checkin":
-          filtered = filtered.filter(order => order.check_in_date === today && order.order_status !== "cancelled");
-          break;
-        case "today_checkout":
-          filtered = filtered.filter(order => order.check_out_date === today && order.order_status !== "cancelled");
-          break;
-        case "unpaid":
-          filtered = filtered.filter(order => order.payment_status === "unpaid" && order.order_status !== "cancelled");
-          break;
-        case "upcoming":
-          filtered = filtered.filter(order => 
-            order.check_in_date >= today && 
-            order.check_in_date <= next7Days &&
-            order.order_status !== "cancelled"
-          );
-          break;
-      }
-    }
-
-    // 日期篩選（支援只填開始或只填結束）
-    if (startDate || endDate) {
-      if (dateType === "check_in") {
-        filtered = filtered.filter(order => {
-          if (startDate && endDate) return order.check_in_date >= startDate && order.check_in_date <= endDate;
-          if (startDate) return order.check_in_date >= startDate;
-          return order.check_in_date <= endDate;
-        });
-      } else if (dateType === "order") {
-        filtered = filtered.filter(order => {
-          const orderDateStr = format(new Date(order.order_date), "yyyy-MM-dd");
-          if (startDate && endDate) return orderDateStr >= startDate && orderDateStr <= endDate;
-          if (startDate) return orderDateStr >= startDate;
-          return orderDateStr <= endDate;
-        });
-      }
-    }
-
-    // 付款狀態篩選
-    if (paymentStatus) {
-      filtered = filtered.filter(order => order.payment_status === paymentStatus);
-    }
-
-    // 訂單狀態篩選
-    if (orderStatus) {
-      filtered = filtered.filter(order => order.order_status === orderStatus);
-    }
-
-    // 訂單來源篩選
-    if (orderSource) {
-      filtered = filtered.filter(order => order.order_source === orderSource);
-    }
-
-    // 關鍵字搜尋
-    if (searchKeyword) {
-      const keyword = searchKeyword.toLowerCase();
-      filtered = filtered.filter(order =>
-        order.order_number.toLowerCase().includes(keyword) ||
-        order.guest_name.toLowerCase().includes(keyword) ||
-        order.guest_phone.includes(keyword)
-      );
-    }
-
-    // 排序
-    if (sortField) {
-      filtered.sort((a, b) => {
-        let aValue = a[sortField];
-        let bValue = b[sortField];
-
-        // 處理特殊欄位
-        if (sortField === "order_date" || sortField === "check_in_date" || sortField === "check_out_date") {
-          aValue = new Date(aValue as string).getTime();
-          bValue = new Date(bValue as string).getTime();
-        }
-
-        if (aValue === null || aValue === undefined) return 1;
-        if (bValue === null || bValue === undefined) return -1;
-
-        if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
-        if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
-        return 0;
-      });
-    }
-
-    setFilteredOrders(filtered);
-  };
-
-  useEffect(() => {
-    applyFilters();
-    if (!hasInitialFilters || initialFilterApplied) {
-      setCurrentPage(1);
-    }
-  }, [orders, quickFilter, sortField, sortDirection, filterTrigger]);
-
-  // 初次載入時，如果 URL 有篩選參數，自動觸發一次篩選
-  useEffect(() => {
-    if (hasInitialFilters && orders.length > 0 && !initialFilterApplied) {
-      setInitialFilterApplied(true);
-      applyFilters();
-    }
-  }, [orders, hasInitialFilters, initialFilterApplied]);
 
   // 將篩選狀態同步到 URL
   const syncFiltersToUrl = () => {
