@@ -339,7 +339,9 @@ function AdsListTab() {
                   )}
                 </span>
               </div>
+              <DetailRow label="影音組" value={matchVideoCreatorName(adDetail.ad_id)} />
               <DetailRow label="起始日期" value={fmtDate(adDetail.start_date)} />
+
               <DetailRow label="截止日期" value={fmtDate(adDetail.stop_date)} />
               <DetailRow label="建立時間" value={fmtDate(adDetail.created_time)} />
               <DetailRow
