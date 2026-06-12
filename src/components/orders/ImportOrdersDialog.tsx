@@ -174,6 +174,7 @@ interface RyanEdgePayload {
     order_date: string;
     check_in_date: string;
     check_out_date: string;
+    total_price: number;
     final_price: number;
     order_source: string;
     order_status: string;
