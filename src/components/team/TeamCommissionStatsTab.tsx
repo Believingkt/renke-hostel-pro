@@ -41,6 +41,8 @@ interface OrderLite {
   order_number: string | null;
   guest_name: string | null;
   check_in_date: string | null;
+  order_date: string | null;
+  order_source: string | null;
 }
 interface MetaLite {
   order_id: string;
@@ -48,6 +50,8 @@ interface MetaLite {
   video_creator_id: string | null;
   is_excluded: boolean | null;
   exclusion_note: string | null;
+  booking_method: string | null;
+  traffic_source: string | null;
 }
 interface CommissionRow {
   accommodation_id: string;
