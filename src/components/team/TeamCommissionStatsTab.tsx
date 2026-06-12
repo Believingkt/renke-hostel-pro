@@ -567,6 +567,9 @@ export default function TeamCommissionStatsTab() {
                             <TableCell className="tabular-nums text-muted-foreground">
                               {fmtMoney(b.cancelAmount)}
                             </TableCell>
+                            <TableCell className="tabular-nums text-muted-foreground">
+                              {fmtMoney(b.cancelCommission)}
+                            </TableCell>
                             <TableCell className="text-right">
                               <Button
                                 variant="ghost"
