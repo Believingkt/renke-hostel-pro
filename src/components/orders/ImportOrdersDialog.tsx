@@ -191,7 +191,6 @@ interface RyanEdgePayload {
     room_price: number;
   }>;
   order_meta: {
-    addon_amount: number;
     import_source: string;
     accommodation_id: string;
   };
