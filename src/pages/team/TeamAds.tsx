@@ -46,10 +46,12 @@ interface MetaAd {
   id: string;
   ad_id: string;
   ad_name: string | null;
+  campaign_id: string | null;
   campaign_name: string | null;
   status: string | null;
   start_date: string | null;
   stop_date: string | null;
+  created_time: string | null;
   synced_at: string | null;
 }
 
@@ -135,6 +137,7 @@ function AdsListTab() {
   const [status, setStatus] = useState<string>("ALL");
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [adDetail, setAdDetail] = useState<MetaAd | null>(null);
 
   useEffect(() => {
     void load();
@@ -143,7 +146,7 @@ function AdsListTab() {
   const load = async () => {
     const { data, error } = await supabase
       .from("meta_ads")
-      .select("id,ad_id,ad_name,campaign_name,status,start_date,stop_date,synced_at")
+      .select("id,ad_id,ad_name,campaign_id,campaign_name,status,start_date,stop_date,created_time,synced_at")
       .order("synced_at", { ascending: false });
     if (error) return toast.error("載入失敗：" + error.message);
     const list = (data || []) as MetaAd[];
@@ -245,7 +248,11 @@ function AdsListTab() {
               </TableRow>
             ) : (
               pageRows.map((r) => (
-                <TableRow key={r.id}>
+                <TableRow
+                  key={r.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => setAdDetail(r)}
+                >
                   <TableCell className="font-mono text-xs">{r.ad_id}</TableCell>
                   <TableCell>{r.ad_name ?? "—"}</TableCell>
                   <TableCell>{r.campaign_name ?? "—"}</TableCell>
@@ -282,6 +289,51 @@ function AdsListTab() {
           </div>
         </div>
       </CardContent>
+      <Sheet open={!!adDetail} onOpenChange={(o) => !o && setAdDetail(null)}>
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto overflow-x-hidden">
+          <SheetHeader>
+            <SheetTitle>{adDetail?.ad_name ?? "—"}</SheetTitle>
+            <p className="text-xs text-muted-foreground font-mono break-all">
+              {adDetail?.ad_id}
+            </p>
+          </SheetHeader>
+          {adDetail && (
+            <div className="mt-4 space-y-3 text-sm">
+              <DetailRow label="廣告編號" value={adDetail.ad_id} mono />
+              <DetailRow label="廣告名稱" value={adDetail.ad_name ?? "—"} />
+              <DetailRow label="行銷活動" value={adDetail.campaign_name ?? "—"} />
+              <DetailRow label="行銷活動 ID" value={adDetail.campaign_id ?? "—"} mono />
+              <div className="flex justify-between items-start gap-4">
+                <span className="text-muted-foreground shrink-0">狀態</span>
+                <span className="text-right">
+                  {adDetail.status ? (
+                    <Badge variant={STATUS_VARIANT[adDetail.status] ?? "outline"}>
+                      {adDetail.status}
+                    </Badge>
+                  ) : (
+                    "—"
+                  )}
+                </span>
+              </div>
+              <DetailRow label="起始日期" value={fmtDate(adDetail.start_date)} />
+              <DetailRow label="截止日期" value={fmtDate(adDetail.stop_date)} />
+              <DetailRow label="建立時間" value={fmtDate(adDetail.created_time)} />
+              <DetailRow
+                label="最後同步"
+                value={
+                  adDetail.synced_at
+                    ? (() => {
+                        const d = new Date(adDetail.synced_at);
+                        const pad = (n: number) => String(n).padStart(2, "0");
+                        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                      })()
+                    : "—"
+                }
+              />
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </Card>
   );
 }
