@@ -756,7 +756,7 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
         {step === "importing" && (
           <div className="flex flex-col items-center justify-center py-12 gap-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">正在匯入訂單...</p>
+            <p className="text-sm text-muted-foreground">{importStatus || "正在匯入訂單..."}</p>
             <div className="w-64 h-2 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full bg-primary transition-all duration-300 rounded-full"
