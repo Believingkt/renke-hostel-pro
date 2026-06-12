@@ -483,7 +483,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => setAdId(a.ad_id)}
+                      onClick={() => applyAdIdWithAutoVideo(a.ad_id)}
                     >
                       {a.label}
                     </Button>
