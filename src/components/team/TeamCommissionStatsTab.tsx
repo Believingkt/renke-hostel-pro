@@ -741,6 +741,12 @@ export default function TeamCommissionStatsTab() {
               <p className="text-xs text-muted-foreground">
                 依下單日 (order_date) 篩選，包含起訖兩日；有效訂單與取消訂單皆套用此區間
               </p>
+              <p className="text-xs font-medium text-primary">
+                查詢區間：{period.startDate} ～ {format(new Date(new Date(period.nextIso).getTime() - 86400000), "yyyy-MM-dd")}
+                {customStart.getTime() > customEnd.getTime() && (
+                  <span className="ml-2 text-amber-600">（已自動對調起訖日期）</span>
+                )}
+              </p>
             </>
           )}
           <div className="text-sm text-muted-foreground">
