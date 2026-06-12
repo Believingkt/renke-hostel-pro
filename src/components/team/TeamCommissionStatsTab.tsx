@@ -394,6 +394,7 @@ export default function TeamCommissionStatsTab() {
       const b = getBucket(uid, o.accommodation_id);
       b.cancelCount += 1;
       b.cancelAmount += o.final_price || 0;
+      b.cancelCommission += (o.final_price || 0) * b.rate;
       b.cancelOrders.push(o);
     });
     return Array.from(agg.entries())
@@ -408,9 +409,10 @@ export default function TeamCommissionStatsTab() {
             acc.commission += b.commission;
             acc.cancelCount += b.cancelCount;
             acc.cancelAmount += b.cancelAmount;
+            acc.cancelCommission += b.cancelCommission;
             return acc;
           },
-          { validCount: 0, validAmount: 0, commission: 0, cancelCount: 0, cancelAmount: 0 },
+          { validCount: 0, validAmount: 0, commission: 0, cancelCount: 0, cancelAmount: 0, cancelCommission: 0 },
         );
         return {
           uid,
