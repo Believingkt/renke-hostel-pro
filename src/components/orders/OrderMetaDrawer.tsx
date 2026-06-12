@@ -472,7 +472,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
               <Label>廣告編號</Label>
               <Input
                 value={adId}
-                onChange={(e) => setAdId(e.target.value)}
+                onChange={(e) => applyAdIdWithAutoVideo(e.target.value)}
                 placeholder="輸入或點擊下方常用編號"
               />
               {commonAds.length > 0 && (
