@@ -786,13 +786,19 @@ export default function TeamCommissionStatsTab() {
                     ) : (
                       accSheet.breakdown.validOrders.map((o) => {
                         const m = metaMap.get(o.id);
+                        const bmName = m?.booking_method
+                          ? bookingMethods.find((x) => x.id === m.booking_method)?.name ?? m.booking_method
+                          : "—";
+                        const tsName = m?.traffic_source
+                          ? trafficSources.find((x) => x.id === m.traffic_source)?.name ?? m.traffic_source
+                          : "—";
                         return (
                           <TableRow key={o.id}>
                             <TableCell className="font-mono">{o.order_number ?? "—"}</TableCell>
-                            <TableCell className="tabular-nums">{o.order_date ?? "—"}</TableCell>
-                            <TableCell>{m?.booking_method ?? "—"}</TableCell>
+                            <TableCell className="tabular-nums">{o.order_date ? o.order_date.slice(0, 10) : "—"}</TableCell>
+                            <TableCell>{bmName}</TableCell>
                             <TableCell>{o.order_source ?? "—"}</TableCell>
-                            <TableCell>{m?.traffic_source ?? "—"}</TableCell>
+                            <TableCell>{tsName}</TableCell>
                             <TableCell className="tabular-nums">{fmtMoney(o.final_price || 0)}</TableCell>
                             <TableCell className="tabular-nums">
                               {fmtMoney((o.final_price || 0) * accSheet.breakdown.rate)}
@@ -822,13 +828,19 @@ export default function TeamCommissionStatsTab() {
                     <TableBody>
                       {accSheet.breakdown.cancelOrders.map((o) => {
                         const m = metaMap.get(o.id);
+                        const bmName = m?.booking_method
+                          ? bookingMethods.find((x) => x.id === m.booking_method)?.name ?? m.booking_method
+                          : "—";
+                        const tsName = m?.traffic_source
+                          ? trafficSources.find((x) => x.id === m.traffic_source)?.name ?? m.traffic_source
+                          : "—";
                         return (
                           <TableRow key={o.id}>
                             <TableCell className="font-mono">{o.order_number ?? "—"}</TableCell>
-                            <TableCell className="tabular-nums">{o.order_date ?? "—"}</TableCell>
-                            <TableCell>{m?.booking_method ?? "—"}</TableCell>
+                            <TableCell className="tabular-nums">{o.order_date ? o.order_date.slice(0, 10) : "—"}</TableCell>
+                            <TableCell>{bmName}</TableCell>
                             <TableCell>{o.order_source ?? "—"}</TableCell>
-                            <TableCell>{m?.traffic_source ?? "—"}</TableCell>
+                            <TableCell>{tsName}</TableCell>
                             <TableCell className="tabular-nums">{fmtMoney(o.final_price || 0)}</TableCell>
                             <TableCell className="tabular-nums text-muted-foreground">
                               {fmtMoney((o.final_price || 0) * accSheet.breakdown.rate)}
