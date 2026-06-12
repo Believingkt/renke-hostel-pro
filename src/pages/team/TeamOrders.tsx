@@ -1006,11 +1006,13 @@ export default function TeamOrders() {
                     <ReadField label="客戶暱稱" value={form.nickname || "-"} />
                   )}
                 </div>
-                <ReadField label="電話" value={editOrder.guest_phone || "-"} />
-                <ReadField
-                  label="入住區間"
-                  value={`${editOrder.check_in_date} ~ ${editOrder.check_out_date}`}
-                />
+                <div className="grid grid-cols-2 gap-3">
+                  <ReadField label="電話" value={editOrder.guest_phone || "-"} />
+                  <ReadField
+                    label="入住區間"
+                    value={`${editOrder.check_in_date} ~ ${editOrder.check_out_date}`}
+                  />
+                </div>
                 <ReadField
                   label="金額"
                   value={`$${editOrder.final_price?.toLocaleString()}`}
