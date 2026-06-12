@@ -140,6 +140,20 @@ export default function TeamOrders() {
   const [editingTrafficName, setEditingTrafficName] = useState("");
   const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
   const [editingBookingName, setEditingBookingName] = useState("");
+  const [adVideoRules, setAdVideoRules] = useState<
+    { keyword: string; video_creator_id: string; sort_order: number | null }[]
+  >([]);
+
+  function matchVideoCreatorByAdId(adId: string | null): string | null {
+    if (!adId) return null;
+    const lower = adId.toLowerCase();
+    for (const r of adVideoRules) {
+      if (r.keyword && lower.includes(r.keyword.toLowerCase())) {
+        return r.video_creator_id;
+      }
+    }
+    return null;
+  }
 
   function emptyMeta(): MetaRow {
     return {
