@@ -295,26 +295,44 @@ async function importRyanOrders(
       0,
     );
 
+    const finalNoteParts = [...noteParts];
+    if (addonAmount !== 0) {
+      finalNoteParts.push(`【其他營收：${addonAmount}】`);
+    }
+    const finalNotes = finalNoteParts.join("\n");
+
+    // 同一訂單最早入住日 / 最晚退房日
+    const checkInDates = rowsInGroup
+      .map((r) => ryanToDateString(r["入住日"]))
+      .filter((d): d is string => !!d)
+      .sort();
+    const checkOutDates = rowsInGroup
+      .map((r) => ryanToDateString(r["退房日"]))
+      .filter((d): d is string => !!d)
+      .sort();
+    const checkInDate = checkInDates[0] ?? ryanToDateString(first["入住日"]);
+    const checkOutDate =
+      checkOutDates[checkOutDates.length - 1] ?? ryanToDateString(first["退房日"]);
+
     payload.push({
       order: {
         order_number: orderNumber,
         guest_name: guestName,
         order_date: ryanToDateString(first["訂房日"]),
-        check_in_date: ryanToDateString(first["入住日"]),
-        check_out_date: ryanToDateString(first["退房日"]),
+        check_in_date: checkInDate,
+        check_out_date: checkOutDate,
         total_price: totalPrice,
         final_price: finalPrice,
         order_source: String(first["通路"] ?? "").trim(),
         order_status: mapped.order_status,
         payment_status: mapped.payment_status,
-        notes,
+        notes: finalNotes,
         discount_code: discountCode,
         room_type_id: orderLevelRoomTypeId,
         accommodation_id: RYAN_ACCOMMODATION_ID,
       },
       order_rooms: orderRooms,
       order_meta: {
-        addon_amount: addonAmount,
         import_source: "旅安",
         accommodation_id: RYAN_ACCOMMODATION_ID,
       },
