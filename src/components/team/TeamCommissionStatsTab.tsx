@@ -315,16 +315,28 @@ export default function TeamCommissionStatsTab() {
       const ids = ords.map((o) => o.id);
       const mMap = new Map<string, MetaLite>();
       if (ids.length) {
-        const { data: metaData } = await supabase
-          .from("order_meta")
-          .select("order_id, closer_id, video_creator_id, is_excluded, exclusion_note, booking_method, traffic_source")
-          .in("order_id", ids)
-          .limit(10000);
-        (metaData ?? []).forEach((m: any) =>
-          mMap.set(m.order_id, m as MetaLite),
+        // 分批查詢 order_meta，每批 100 筆，避免 URL 過長導致 400
+        const BATCH = 100;
+        const batches: string[][] = [];
+        for (let i = 0; i < ids.length; i += BATCH) {
+          batches.push(ids.slice(i, i + BATCH));
+        }
+        const results = await Promise.all(
+          batches.map((chunk) =>
+            supabase
+              .from("order_meta")
+              .select(
+                "order_id, closer_id, video_creator_id, is_excluded, exclusion_note, booking_method, traffic_source",
+              )
+              .in("order_id", chunk),
+          ),
         );
+        results.forEach(({ data }) => {
+          (data ?? []).forEach((m: any) => mMap.set(m.order_id, m as MetaLite));
+        });
       }
       setMetaMap(mMap);
+
 
       if (mode === "custom") {
         const withCloser = ords.filter((o) => !!mMap.get(o.id)?.closer_id).length;
