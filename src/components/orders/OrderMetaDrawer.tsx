@@ -65,6 +65,8 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [adVideoRules, setAdVideoRules] = useState<
     { keyword: string; video_creator_id: string; sort_order: number | null }[]
   >([]);
+  const [adNameByAdId, setAdNameByAdId] = useState<Record<string, string>>({});
+
 
   const [closerId, setCloserId] = useState<string>(NONE);
   const [videoCreatorId, setVideoCreatorId] = useState<string>(NONE);
