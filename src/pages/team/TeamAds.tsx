@@ -289,6 +289,51 @@ function AdsListTab() {
           </div>
         </div>
       </CardContent>
+      <Sheet open={!!adDetail} onOpenChange={(o) => !o && setAdDetail(null)}>
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto overflow-x-hidden">
+          <SheetHeader>
+            <SheetTitle>{adDetail?.ad_name ?? "—"}</SheetTitle>
+            <p className="text-xs text-muted-foreground font-mono break-all">
+              {adDetail?.ad_id}
+            </p>
+          </SheetHeader>
+          {adDetail && (
+            <div className="mt-4 space-y-3 text-sm">
+              <DetailRow label="廣告編號" value={adDetail.ad_id} mono />
+              <DetailRow label="廣告名稱" value={adDetail.ad_name ?? "—"} />
+              <DetailRow label="行銷活動" value={adDetail.campaign_name ?? "—"} />
+              <DetailRow label="行銷活動 ID" value={adDetail.campaign_id ?? "—"} mono />
+              <div className="flex justify-between items-start gap-4">
+                <span className="text-muted-foreground shrink-0">狀態</span>
+                <span className="text-right">
+                  {adDetail.status ? (
+                    <Badge variant={STATUS_VARIANT[adDetail.status] ?? "outline"}>
+                      {adDetail.status}
+                    </Badge>
+                  ) : (
+                    "—"
+                  )}
+                </span>
+              </div>
+              <DetailRow label="起始日期" value={fmtDate(adDetail.start_date)} />
+              <DetailRow label="截止日期" value={fmtDate(adDetail.stop_date)} />
+              <DetailRow label="建立時間" value={fmtDate(adDetail.created_time)} />
+              <DetailRow
+                label="最後同步"
+                value={
+                  adDetail.synced_at
+                    ? (() => {
+                        const d = new Date(adDetail.synced_at);
+                        const pad = (n: number) => String(n).padStart(2, "0");
+                        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                      })()
+                    : "—"
+                }
+              />
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </Card>
   );
 }
