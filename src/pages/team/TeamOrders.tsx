@@ -116,6 +116,7 @@ export default function TeamOrders() {
   const [searchInput, setSearchInput] = useState<string>("");
   const [search, setSearch] = useState<string>("");
   const [closerOnly, setCloserOnly] = useState(true);
+  const [closerFilter, setCloserFilter] = useState<string>("ALL"); // "ALL" | "NONE" | <user_id>
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
   const [total, setTotal] = useState<number>(0);
