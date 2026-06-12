@@ -214,14 +214,18 @@ export default function TeamCommissionStatsTab() {
 
   const period = useMemo(() => {
     if (mode === "custom") {
-      const s = new Date(customStart.getFullYear(), customStart.getMonth(), customStart.getDate());
-      const eNext = new Date(customEnd.getFullYear(), customEnd.getMonth(), customEnd.getDate() + 1);
+      // 防呆：若起始 > 結束，自動 swap
+      const a = new Date(customStart.getFullYear(), customStart.getMonth(), customStart.getDate());
+      const b = new Date(customEnd.getFullYear(), customEnd.getMonth(), customEnd.getDate());
+      const [s, e] = a.getTime() <= b.getTime() ? [a, b] : [b, a];
+      const eNext = new Date(e.getFullYear(), e.getMonth(), e.getDate() + 1);
       const startDateStr = format(s, "yyyy-MM-dd");
+      const endDateStr = format(e, "yyyy-MM-dd");
       return {
         startIso: s.toISOString(),
         nextIso: eNext.toISOString(),
         startDate: startDateStr,
-        label: `${format(customStart, "yyyy-MM-dd")} ~ ${format(customEnd, "yyyy-MM-dd")}（自訂區間）`,
+        label: `${startDateStr} ～ ${endDateStr}（自訂區間）`,
         cancelField: "order_date" as "order_date" | "cancelled_at",
       };
     }
@@ -736,6 +740,12 @@ export default function TeamCommissionStatsTab() {
               </div>
               <p className="text-xs text-muted-foreground">
                 依下單日 (order_date) 篩選，包含起訖兩日；有效訂單與取消訂單皆套用此區間
+              </p>
+              <p className="text-xs font-medium text-primary">
+                查詢區間：{period.startDate} ～ {format(new Date(new Date(period.nextIso).getTime() - 86400000), "yyyy-MM-dd")}
+                {customStart.getTime() > customEnd.getTime() && (
+                  <span className="ml-2 text-amber-600">（已自動對調起訖日期）</span>
+                )}
               </p>
             </>
           )}
