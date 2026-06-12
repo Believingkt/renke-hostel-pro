@@ -796,8 +796,8 @@ export default function TeamOrders() {
                       <TableCell className="whitespace-nowrap">{o.guest_name}</TableCell>
                       <TableCell className="whitespace-nowrap">{o.guest_phone || "-"}</TableCell>
                       <TableCell className="whitespace-nowrap tabular-nums text-xs">
-                        {o.created_at
-                          ? new Date(o.created_at).toLocaleString("zh-TW", {
+                        {o.order_date
+                          ? new Date(o.order_date).toLocaleString("zh-TW", {
                               timeZone: "Asia/Taipei",
                               year: "numeric",
                               month: "2-digit",
