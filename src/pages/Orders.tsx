@@ -58,7 +58,9 @@ const Orders = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
+  const [total, setTotal] = useState(0);
+  const [hasAnyOrder, setHasAnyOrder] = useState(false);
+  const [quickCounts, setQuickCounts] = useState<Record<string, number>>({});
   const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
   
   // 新增對話框狀態
@@ -106,11 +108,8 @@ const Orders = () => {
   const [currentPage, setCurrentPage] = useState(Number(searchParams.get("page")) || 1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
   
-  // 篩選觸發計數器（點擊查詢按鈕時遞增）
+  // 篩選觸發計數器（點擊查詢按鈕時遞增）— 觸發後端重新 query
   const [filterTrigger, setFilterTrigger] = useState(0);
-  // 如果 URL 中已有篩選參數，初始載入時也要觸發一次篩選
-  const hasInitialFilters = !!(searchParams.get("sd") || searchParams.get("ps") || searchParams.get("os") || searchParams.get("src") || searchParams.get("kw"));
-  const [initialFilterApplied, setInitialFilterApplied] = useState(false);
   
   // 篩選抽屜狀態
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
