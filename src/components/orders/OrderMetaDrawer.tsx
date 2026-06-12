@@ -62,6 +62,9 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [trafficSources, setTrafficSources] = useState<OptionRow[]>([]);
   const [bookingMethods, setBookingMethods] = useState<OptionRow[]>([]);
   const [franchiseProjects, setFranchiseProjects] = useState<FranchiseProject[]>([]);
+  const [adVideoRules, setAdVideoRules] = useState<
+    { keyword: string; video_creator_id: string; sort_order: number | null }[]
+  >([]);
 
   const [closerId, setCloserId] = useState<string>(NONE);
   const [videoCreatorId, setVideoCreatorId] = useState<string>(NONE);
