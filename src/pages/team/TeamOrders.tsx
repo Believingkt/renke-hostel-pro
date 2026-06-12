@@ -660,9 +660,9 @@ export default function TeamOrders() {
             <div className="relative flex-1 min-w-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                placeholder="搜尋訂單編號、房客姓名、折扣碼、成交人、影音組、會員編號"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="搜尋訂單編號、房客姓名、電話、折扣碼"
                 className="pl-10 md:pl-10"
               />
             </div>
