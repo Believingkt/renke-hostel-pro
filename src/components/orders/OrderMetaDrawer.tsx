@@ -210,6 +210,11 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setTrafficSources((tsRows ?? []) as OptionRow[]);
       setBookingMethods((bmRows ?? []) as OptionRow[]);
       setFranchiseProjects((fpRows ?? []) as FranchiseProject[]);
+      setAdVideoRules(
+        ((ruleRows ?? []) as any[]).filter(
+          (r) => r.keyword && r.video_creator_id,
+        ),
+      );
 
       setOrderDate((orderRow as { order_date?: string | null } | null)?.order_date ?? null);
 
