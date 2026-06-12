@@ -410,12 +410,14 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
   const [parsedOrders, setParsedOrders] = useState<ParsedOrder[]>([]);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [importProgress, setImportProgress] = useState(0);
+  const [importStatus, setImportStatus] = useState<string>("");
 
   const resetState = useCallback(() => {
     setStep("upload");
     setParsedOrders([]);
     setRoomTypes([]);
     setImportProgress(0);
+    setImportStatus("");
   }, []);
 
   const handleOpenChange = (open: boolean) => {
