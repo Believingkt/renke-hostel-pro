@@ -40,6 +40,61 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useTeam } from "@/components/team/TeamContext";
 
+function DateYMDPicker({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: Date;
+  onChange: (d: Date) => void;
+}) {
+  const currentYear = new Date().getFullYear();
+  const years: number[] = [];
+  for (let y = 2023; y <= currentYear + 1; y++) years.push(y);
+  const months = Array.from({ length: 12 }, (_, i) => i + 1);
+  const daysInMonth = new Date(value.getFullYear(), value.getMonth() + 1, 0).getDate();
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+  const update = (y: number, m: number, d: number) => {
+    const lastDay = new Date(y, m, 0).getDate();
+    const safeD = Math.min(d, lastDay);
+    onChange(new Date(y, m - 1, safeD));
+  };
+
+  return (
+    <div className="flex items-center gap-1" aria-label={label}>
+      <Select
+        value={String(value.getFullYear())}
+        onValueChange={(v) => update(Number(v), value.getMonth() + 1, value.getDate())}
+      >
+        <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {years.map((y) => <SelectItem key={y} value={String(y)}>{y} 年</SelectItem>)}
+        </SelectContent>
+      </Select>
+      <Select
+        value={String(value.getMonth() + 1)}
+        onValueChange={(v) => update(value.getFullYear(), Number(v), value.getDate())}
+      >
+        <SelectTrigger className="w-20"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {months.map((m) => <SelectItem key={m} value={String(m)}>{m} 月</SelectItem>)}
+        </SelectContent>
+      </Select>
+      <Select
+        value={String(value.getDate())}
+        onValueChange={(v) => update(value.getFullYear(), value.getMonth() + 1, Number(v))}
+      >
+        <SelectTrigger className="w-20"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {days.map((d) => <SelectItem key={d} value={String(d)}>{d} 日</SelectItem>)}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
 interface OrderLite {
   id: string;
   accommodation_id: string;
