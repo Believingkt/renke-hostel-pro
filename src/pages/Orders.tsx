@@ -436,16 +436,27 @@ const Orders = () => {
           <div className="flex gap-2">
             <Button
               variant="outline"
-              onClick={() => {
-              if (filteredOrders.length === 0) {
+              onClick={async () => {
+                if (total === 0) {
                   toast({ title: "無資料可匯出", description: "目前沒有符合條件的訂單", variant: "destructive" });
                   return;
                 }
-                exportOrdersToExcel(filteredOrders).then(() => {
-                  toast({ title: "匯出成功", description: `已匯出 ${filteredOrders.length} 筆訂單` });
-                }).catch(() => {
+                try {
+                  let q: any = supabase
+                    .from("orders")
+                    .select(`*, room_types ( id, name )`)
+                    .eq("accommodation_id", accommodationId!);
+                  q = applyServerFilters(q);
+                  const sf = (sortField || "order_date") as string;
+                  q = q.order(sf, { ascending: sortDirection === "asc" });
+                  const { data, error: exErr } = await q;
+                  if (exErr) throw exErr;
+                  const list = (data ?? []) as Order[];
+                  await exportOrdersToExcel(list);
+                  toast({ title: "匯出成功", description: `已匯出 ${list.length} 筆訂單` });
+                } catch {
                   toast({ title: "匯出失敗", description: "匯出過程中發生錯誤", variant: "destructive" });
-                });
+                }
               }}
               className="gap-2"
             >
