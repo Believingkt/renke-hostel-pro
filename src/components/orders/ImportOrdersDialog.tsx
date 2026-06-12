@@ -303,6 +303,7 @@ async function importRyanOrders(
         order_date: ryanToDateString(first["訂房日"]),
         check_in_date: ryanToDateString(first["入住日"]),
         check_out_date: ryanToDateString(first["退房日"]),
+        total_price: totalPrice,
         final_price: finalPrice,
         order_source: String(first["通路"] ?? "").trim(),
         order_status: mapped.order_status,
