@@ -223,7 +223,7 @@ export default function TeamCommissionStatsTab() {
     setLoading(true);
     try {
       const selectCols =
-        "id, accommodation_id, final_price, order_status, discount_code, order_number, guest_name, check_in_date, order_date, cancelled_at";
+        "id, accommodation_id, final_price, order_status, discount_code, order_number, guest_name, check_in_date, order_date, order_source, cancelled_at";
       let validQ = supabase
         .from("orders")
         .select(selectCols)
