@@ -762,7 +762,10 @@ export default function TeamCommissionStatsTab() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>訂單編號</TableHead>
-                      <TableHead className="tabular-nums">入住日</TableHead>
+                      <TableHead className="tabular-nums">訂單日期</TableHead>
+                      <TableHead>訂房方式</TableHead>
+                      <TableHead>來源</TableHead>
+                      <TableHead>來源管道</TableHead>
                       <TableHead className="tabular-nums">訂單金額</TableHead>
                       <TableHead className="tabular-nums">分潤金額</TableHead>
                     </TableRow>
@@ -770,19 +773,25 @@ export default function TeamCommissionStatsTab() {
                   <TableBody>
                     {accSheet.breakdown.validOrders.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center text-muted-foreground py-4">無</TableCell>
+                        <TableCell colSpan={7} className="text-center text-muted-foreground py-4">無</TableCell>
                       </TableRow>
                     ) : (
-                      accSheet.breakdown.validOrders.map((o) => (
-                        <TableRow key={o.id}>
-                          <TableCell className="font-mono">{o.order_number ?? "—"}</TableCell>
-                          <TableCell className="tabular-nums">{o.check_in_date ?? "—"}</TableCell>
-                          <TableCell className="tabular-nums">{fmtMoney(o.final_price || 0)}</TableCell>
-                          <TableCell className="tabular-nums">
-                            {fmtMoney((o.final_price || 0) * accSheet.breakdown.rate)}
-                          </TableCell>
-                        </TableRow>
-                      ))
+                      accSheet.breakdown.validOrders.map((o) => {
+                        const m = metaMap.get(o.id);
+                        return (
+                          <TableRow key={o.id}>
+                            <TableCell className="font-mono">{o.order_number ?? "—"}</TableCell>
+                            <TableCell className="tabular-nums">{o.order_date ?? "—"}</TableCell>
+                            <TableCell>{m?.booking_method ?? "—"}</TableCell>
+                            <TableCell>{o.order_source ?? "—"}</TableCell>
+                            <TableCell>{m?.traffic_source ?? "—"}</TableCell>
+                            <TableCell className="tabular-nums">{fmtMoney(o.final_price || 0)}</TableCell>
+                            <TableCell className="tabular-nums">
+                              {fmtMoney((o.final_price || 0) * accSheet.breakdown.rate)}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
                     )}
                   </TableBody>
                 </Table>
@@ -794,18 +803,31 @@ export default function TeamCommissionStatsTab() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>訂單編號</TableHead>
-                        <TableHead className="tabular-nums">入住日</TableHead>
+                        <TableHead className="tabular-nums">訂單日期</TableHead>
+                        <TableHead>訂房方式</TableHead>
+                        <TableHead>來源</TableHead>
+                        <TableHead>來源管道</TableHead>
                         <TableHead className="tabular-nums">訂單金額</TableHead>
+                        <TableHead className="tabular-nums">分潤金額</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {accSheet.breakdown.cancelOrders.map((o) => (
-                        <TableRow key={o.id}>
-                          <TableCell className="font-mono">{o.order_number ?? "—"}</TableCell>
-                          <TableCell className="tabular-nums">{o.check_in_date ?? "—"}</TableCell>
-                          <TableCell className="tabular-nums">{fmtMoney(o.final_price || 0)}</TableCell>
-                        </TableRow>
-                      ))}
+                      {accSheet.breakdown.cancelOrders.map((o) => {
+                        const m = metaMap.get(o.id);
+                        return (
+                          <TableRow key={o.id}>
+                            <TableCell className="font-mono">{o.order_number ?? "—"}</TableCell>
+                            <TableCell className="tabular-nums">{o.order_date ?? "—"}</TableCell>
+                            <TableCell>{m?.booking_method ?? "—"}</TableCell>
+                            <TableCell>{o.order_source ?? "—"}</TableCell>
+                            <TableCell>{m?.traffic_source ?? "—"}</TableCell>
+                            <TableCell className="tabular-nums">{fmtMoney(o.final_price || 0)}</TableCell>
+                            <TableCell className="tabular-nums text-muted-foreground">
+                              {fmtMoney((o.final_price || 0) * accSheet.breakdown.rate)}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
