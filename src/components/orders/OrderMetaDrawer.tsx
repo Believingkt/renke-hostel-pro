@@ -247,6 +247,20 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
     };
   }, [open, orderId]);
 
+  const applyAdIdWithAutoVideo = (nextAdId: string) => {
+    setAdId(nextAdId);
+    if (videoCreatorId && videoCreatorId !== NONE) return;
+    if (!nextAdId) return;
+    const lower = nextAdId.toLowerCase();
+    for (const r of adVideoRules) {
+      if (r.keyword && lower.includes(r.keyword.toLowerCase())) {
+        setVideoCreatorId(r.video_creator_id);
+        return;
+      }
+    }
+  };
+
+
   const handleAddTrafficSource = async () => {
     const name = newTrafficSource.trim();
     if (!name) return;
