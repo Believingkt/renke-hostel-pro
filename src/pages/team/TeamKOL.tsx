@@ -654,10 +654,39 @@ function InvitationsTab({
       profs?.forEach((p) => scoutMap.set(p.user_id, p.display_name ?? p.user_id));
     }
     const accMap = new Map(accommodations.map((a) => [a.id, a.name]));
+
+    // 依 order_number 批次查 orders.order_status，自動連動「狀態」欄位
+    const orderNumbers = Array.from(
+      new Set(
+        (data ?? [])
+          .map((r: any) => (r.order_number ?? "").trim())
+          .filter((s: string) => s.length > 0)
+      )
+    );
+    const orderStatusMap = new Map<string, string>();
+    if (orderNumbers.length > 0) {
+      const { data: ordRows } = await supabase
+        .from("orders")
+        .select("order_number, order_status")
+        .in("order_number", orderNumbers);
+      (ordRows ?? []).forEach((o: any) => {
+        if (o.order_number) orderStatusMap.set(o.order_number, o.order_status);
+      });
+    }
+    const deriveBookingStatus = (orderNumber: string | null, fallback: string | null) => {
+      const key = (orderNumber ?? "").trim();
+      if (!key) return fallback;
+      const os = orderStatusMap.get(key);
+      if (os === "confirmed") return "成功訂房";
+      if (os === "cancelled") return "已取消";
+      return "訂房確認中";
+    };
+
     const enriched = (data ?? []).map((r: any) => ({
       ...r,
       _accommodation_name: r.accommodation_id ? (accMap.get(r.accommodation_id) ?? "-") : (r.venue_name ?? "-"),
       _scout_name: r.scout_id ? (scoutMap.get(r.scout_id) ?? "-") : "-",
+      _effective_booking_status: deriveBookingStatus(r.order_number, r.booking_status),
     })) as KolRow[];
     setRows(enriched);
     // 取得 PMS 已建立的折扣碼集合
