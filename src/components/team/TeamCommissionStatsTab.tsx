@@ -370,6 +370,7 @@ export default function TeamCommissionStatsTab() {
           commission: 0,
           cancelCount: 0,
           cancelAmount: 0,
+          cancelCommission: 0,
           validOrders: [],
           cancelOrders: [],
         });
