@@ -616,12 +616,12 @@ const Orders = () => {
                   />
 
                   {/* 分頁資訊和控制 */}
-                  {filteredOrders.length > 0 && (
+                  {total > 0 && (
                   <div className="mt-6 p-4 bg-muted/30 rounded-lg">
                     <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
                       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full lg:w-auto">
                         <div className="text-sm text-muted-foreground whitespace-nowrap">
-                          顯示 {startIndex + 1} 至 {Math.min(endIndex, filteredOrders.length)} 筆，共 {filteredOrders.length} 筆訂單
+                          顯示 {startIndex + 1} 至 {Math.min(endIndex, total)} 筆，共 {total} 筆訂單
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="text-sm text-muted-foreground whitespace-nowrap">每頁顯示</span>
