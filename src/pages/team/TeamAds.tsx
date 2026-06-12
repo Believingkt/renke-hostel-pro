@@ -138,21 +138,45 @@ function AdsListTab() {
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [adDetail, setAdDetail] = useState<MetaAd | null>(null);
+  const [videoRules, setVideoRules] = useState<Array<{ keyword: string; video_creator_id: string; sort_order: number | null }>>([]);
+  const [videoMembers, setVideoMembers] = useState<Record<string, string>>({});
 
   useEffect(() => {
     void load();
   }, []);
 
   const load = async () => {
-    const { data, error } = await supabase
-      .from("meta_ads")
-      .select("id,ad_id,ad_name,campaign_id,campaign_name,status,start_date,stop_date,created_time,synced_at")
-      .order("synced_at", { ascending: false });
-    if (error) return toast.error("載入失敗：" + error.message);
-    const list = (data || []) as MetaAd[];
+    const [adsRes, rulesRes, membersRes] = await Promise.all([
+      supabase
+        .from("meta_ads")
+        .select("id,ad_id,ad_name,campaign_id,campaign_name,status,start_date,stop_date,created_time,synced_at")
+        .order("synced_at", { ascending: false }),
+      supabase
+        .from("ad_video_creator_rules")
+        .select("keyword,video_creator_id,sort_order")
+        .order("sort_order", { ascending: true }),
+      supabase.from("team_member_profiles").select("user_id,display_name"),
+    ]);
+    if (adsRes.error) return toast.error("載入失敗：" + adsRes.error.message);
+    const list = (adsRes.data || []) as MetaAd[];
     setRows(list);
     setLastSync(list[0]?.synced_at ?? null);
+    setVideoRules((rulesRes.data || []) as any);
+    const map: Record<string, string> = {};
+    for (const m of (membersRes.data || []) as Array<{ user_id: string; display_name: string | null }>) {
+      if (m.user_id) map[m.user_id] = m.display_name ?? "";
+    }
+    setVideoMembers(map);
   };
+
+  const matchVideoCreatorName = (adId: string | null | undefined): string => {
+    if (!adId) return "—";
+    const lower = adId.toLowerCase();
+    const rule = videoRules.find((r) => r.keyword && lower.includes(r.keyword.toLowerCase()));
+    if (!rule) return "—";
+    return videoMembers[rule.video_creator_id] || "—";
+  };
+
 
   const handleSync = async () => {
     setSyncing(true);
@@ -315,7 +339,9 @@ function AdsListTab() {
                   )}
                 </span>
               </div>
+              <DetailRow label="影音組" value={matchVideoCreatorName(adDetail.ad_id)} />
               <DetailRow label="起始日期" value={fmtDate(adDetail.start_date)} />
+
               <DetailRow label="截止日期" value={fmtDate(adDetail.stop_date)} />
               <DetailRow label="建立時間" value={fmtDate(adDetail.created_time)} />
               <DetailRow
