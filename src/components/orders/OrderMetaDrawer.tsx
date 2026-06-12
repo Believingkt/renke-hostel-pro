@@ -263,18 +263,19 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
 
   const applyAdIdWithAutoVideo = (nextAdId: string) => {
     setAdId(nextAdId);
-    if (videoCreatorId && videoCreatorId !== NONE) return;
-    if (!nextAdId) return;
-    const adName = adNameByAdId[nextAdId];
-    if (!adName) return;
-    const lower = adName.toLowerCase();
-    for (const r of adVideoRules) {
-      if (r.keyword && lower.includes(r.keyword.toLowerCase())) {
-        setVideoCreatorId(r.video_creator_id);
-        return;
+    const adName = nextAdId ? adNameByAdId[nextAdId] : "";
+    if (adName) {
+      const lower = adName.toLowerCase();
+      for (const r of adVideoRules) {
+        if (r.keyword && lower.includes(r.keyword.toLowerCase())) {
+          setVideoCreatorId(r.video_creator_id);
+          return;
+        }
       }
     }
+    setVideoCreatorId(NONE);
   };
+
 
 
 
