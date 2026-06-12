@@ -135,6 +135,7 @@ interface KolRow {
   // 顯示用
   _accommodation_name?: string;
   _scout_name?: string;
+  _effective_booking_status?: string | null;
 }
 
 interface FormState {
@@ -653,10 +654,39 @@ function InvitationsTab({
       profs?.forEach((p) => scoutMap.set(p.user_id, p.display_name ?? p.user_id));
     }
     const accMap = new Map(accommodations.map((a) => [a.id, a.name]));
+
+    // 依 order_number 批次查 orders.order_status，自動連動「狀態」欄位
+    const orderNumbers = Array.from(
+      new Set(
+        (data ?? [])
+          .map((r: any) => (r.order_number ?? "").trim())
+          .filter((s: string) => s.length > 0)
+      )
+    );
+    const orderStatusMap = new Map<string, string>();
+    if (orderNumbers.length > 0) {
+      const { data: ordRows } = await supabase
+        .from("orders")
+        .select("order_number, order_status")
+        .in("order_number", orderNumbers);
+      (ordRows ?? []).forEach((o: any) => {
+        if (o.order_number) orderStatusMap.set(o.order_number, o.order_status);
+      });
+    }
+    const deriveBookingStatus = (orderNumber: string | null, fallback: string | null) => {
+      const key = (orderNumber ?? "").trim();
+      if (!key) return fallback;
+      const os = orderStatusMap.get(key);
+      if (os === "confirmed") return "成功訂房";
+      if (os === "cancelled") return "已取消";
+      return "訂房確認中";
+    };
+
     const enriched = (data ?? []).map((r: any) => ({
       ...r,
       _accommodation_name: r.accommodation_id ? (accMap.get(r.accommodation_id) ?? "-") : (r.venue_name ?? "-"),
       _scout_name: r.scout_id ? (scoutMap.get(r.scout_id) ?? "-") : "-",
+      _effective_booking_status: deriveBookingStatus(r.order_number, r.booking_status),
     })) as KolRow[];
     setRows(enriched);
     // 取得 PMS 已建立的折扣碼集合
@@ -718,7 +748,7 @@ function InvitationsTab({
         case "accommodation": return (r as any)._accommodation_name ?? null;
         case "check_in_date": return r.check_in_date ?? null;
         case "scout": return (r as any)._scout_name ?? null;
-        case "booking_status": return r.booking_status ?? null;
+        case "booking_status": return (r as any)._effective_booking_status ?? r.booking_status ?? null;
         case "contract_progress": {
           const cs = computeContractProgress(r.publish_url, r.publish_date, r.contract_file_url);
           return cs?.empty ? null : (cs?.label ?? null);
@@ -1303,7 +1333,7 @@ function InvitationsTab({
                       <TableCell>{r.check_in_date ?? "-"}</TableCell>
                       <TableCell>{r.day_of_week ?? "-"}</TableCell>
                       <TableCell>{r._scout_name}</TableCell>
-                      <TableCell>{renderBookingStatusBadge(r.booking_status)}</TableCell>
+                      <TableCell>{renderBookingStatusBadge(r._effective_booking_status ?? r.booking_status)}</TableCell>
                       <TableCell>
                         {contractStatus && !contractStatus.empty ? (
                           contractStatus.plain ? (
@@ -1544,7 +1574,7 @@ function InvitationsTab({
                   <Row label="入住日期">{r.check_in_date ?? "-"}</Row>
                   <Row label="星期">{r.day_of_week ?? "-"}</Row>
                   <Row label="邀約人">{r._scout_name ?? "-"}</Row>
-                  <Row label="狀態">{renderBookingStatusBadge(r.booking_status)}</Row>
+                  <Row label="狀態">{renderBookingStatusBadge(r._effective_booking_status ?? r.booking_status)}</Row>
                   <Row label="訂單編號">{r.order_number ?? "-"}</Row>
                   <Row label="折扣碼 / CID">{(() => {
                     const v = r.cid_code ?? r.short_url ?? null;
