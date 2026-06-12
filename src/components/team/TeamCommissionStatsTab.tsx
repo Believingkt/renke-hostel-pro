@@ -229,7 +229,8 @@ export default function TeamCommissionStatsTab() {
       let validQ = supabase
         .from("orders")
         .select(selectCols)
-        .neq("order_status", "cancelled");
+        .neq("order_status", "cancelled")
+        .limit(10000);
       if (period.startIso) validQ = validQ.gte("order_date", period.startIso);
       if (period.nextIso) validQ = validQ.lt("order_date", period.nextIso);
       const { data: validData, error: oe } = await validQ;
@@ -239,7 +240,8 @@ export default function TeamCommissionStatsTab() {
         .from("orders")
         .select(selectCols)
         .eq("order_status", "cancelled")
-        .not("cancelled_at", "is", null);
+        .not("cancelled_at", "is", null)
+        .limit(10000);
       const cancelField = period.cancelField;
       if (period.startIso) cancelQ = cancelQ.gte(cancelField, period.startIso);
       if (period.nextIso) cancelQ = cancelQ.lt(cancelField, period.nextIso);
@@ -257,7 +259,8 @@ export default function TeamCommissionStatsTab() {
         const { data: metaData } = await supabase
           .from("order_meta")
           .select("order_id, closer_id, video_creator_id, is_excluded, exclusion_note, booking_method, traffic_source")
-          .in("order_id", ids);
+          .in("order_id", ids)
+          .limit(10000);
         (metaData ?? []).forEach((m: any) =>
           mMap.set(m.order_id, m as MetaLite),
         );
