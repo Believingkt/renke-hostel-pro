@@ -371,6 +371,7 @@ async function importRyanOrders(
 
 
 export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSuccess }: ImportOrdersDialogProps) {
+  const isRyoan = accommodationId === '4ee31aca-5641-4d05-80e2-1c67626be83d';
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<"upload" | "preview" | "importing">("upload");
