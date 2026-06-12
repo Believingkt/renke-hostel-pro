@@ -595,7 +595,7 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
             <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center">
               <Upload className="h-8 w-8 text-muted-foreground" />
             </div>
-            <p className="text-sm text-muted-foreground">選擇從奧丁丁匯出的 .xlsx 檔案</p>
+            <p className="text-sm text-muted-foreground">{isRyoan ? '選擇從旅安匯出的 .xlsx 檔案' : '選擇從奧丁丁匯出的 .xlsx 檔案'}</p>
             <input
               ref={fileInputRef}
               type="file"
