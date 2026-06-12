@@ -137,6 +137,7 @@ function AdsListTab() {
   const [status, setStatus] = useState<string>("ALL");
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [adDetail, setAdDetail] = useState<MetaAd | null>(null);
 
   useEffect(() => {
     void load();
@@ -145,7 +146,7 @@ function AdsListTab() {
   const load = async () => {
     const { data, error } = await supabase
       .from("meta_ads")
-      .select("id,ad_id,ad_name,campaign_name,status,start_date,stop_date,synced_at")
+      .select("id,ad_id,ad_name,campaign_id,campaign_name,status,start_date,stop_date,created_time,synced_at")
       .order("synced_at", { ascending: false });
     if (error) return toast.error("載入失敗：" + error.message);
     const list = (data || []) as MetaAd[];
