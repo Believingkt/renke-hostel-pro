@@ -314,6 +314,8 @@ export default function TeamCommissionStatsTab() {
 
       const ids = ords.map((o) => o.id);
       const mMap = new Map<string, MetaLite>();
+      const batchSizes: number[] = [];
+      let batchCount = 0;
       if (ids.length) {
         // 分批查詢 order_meta，每批 100 筆，避免 URL 過長導致 400
         const BATCH = 100;
@@ -321,6 +323,7 @@ export default function TeamCommissionStatsTab() {
         for (let i = 0; i < ids.length; i += BATCH) {
           batches.push(ids.slice(i, i + BATCH));
         }
+        batchCount = batches.length;
         const results = await Promise.all(
           batches.map((chunk) =>
             supabase
@@ -332,7 +335,9 @@ export default function TeamCommissionStatsTab() {
           ),
         );
         results.forEach(({ data }) => {
-          (data ?? []).forEach((m: any) => mMap.set(m.order_id, m as MetaLite));
+          const rows = data ?? [];
+          batchSizes.push(rows.length);
+          rows.forEach((m: any) => mMap.set(m.order_id, m as MetaLite));
         });
       }
       setMetaMap(mMap);
@@ -349,6 +354,8 @@ export default function TeamCommissionStatsTab() {
           totalOrders: ords.length,
           metaMapSize: mMap.size,
           ordersWithCloserId: withCloser,
+          orderMetaBatchCount: batchCount,
+          orderMetaBatchSizes: batchSizes,
         });
       }
 
