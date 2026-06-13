@@ -2196,6 +2196,7 @@ interface ExternalOrder {
 }
 
 const CONTRACT_PROGRESS_OPTIONS = ["進行中", "已完成", "取消"];
+const INVOICE_PROGRESS_OPTIONS = ["尚未", "已完成"];
 
 const emptyExternalForm = (): Partial<ExternalOrder> => ({
   project_name: "森山第一期",
@@ -2211,7 +2212,7 @@ const emptyExternalForm = (): Partial<ExternalOrder> => ({
   payment_at: null,
   contract_progress: "進行中",
   tax_id: "",
-  invoice_progress: "",
+  invoice_progress: "尚未",
   invoice_number: "",
   invoice_carrier: true,
   invoice_address: "",
@@ -2307,6 +2308,35 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
   const salesOptions = useMemo(() => {
     const set = new Set<string>();
     rows.forEach((r) => r.sales_name && set.add(r.sales_name));
+    return Array.from(set).sort();
+  }, [rows]);
+
+  // 開發業務聯絡資訊對照：name -> { email, phone }（取最新非空值）
+  const salesContacts = useMemo(() => {
+    const map = new Map<string, { email: string; phone: string }>();
+    // rows 已按 signed_at desc 排序，反向迭代讓最新的覆蓋舊的
+    for (let i = rows.length - 1; i >= 0; i--) {
+      const r = rows[i];
+      const n = r.sales_name?.trim();
+      if (!n) continue;
+      const prev = map.get(n) ?? { email: "", phone: "" };
+      map.set(n, {
+        email: r.sales_email?.trim() || prev.email,
+        phone: r.sales_phone?.trim() || prev.phone,
+      });
+    }
+    return map;
+  }, [rows]);
+
+  // 所有業務名稱（含協同）供自動完成
+  const allSalesNames = useMemo(() => {
+    const set = new Set<string>();
+    rows.forEach((r) => {
+      [r.sales_name, r.co_sales_name, r.co_sales_name2].forEach((n) => {
+        const t = n?.trim();
+        if (t) set.add(t);
+      });
+    });
     return Array.from(set).sort();
   }, [rows]);
 
@@ -2660,7 +2690,22 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
             <div className="grid grid-cols-3 gap-2">
               <div className="space-y-1">
                 <Label>開發業務姓名</Label>
-                <Input value={form.sales_name ?? ""} onChange={(e) => onChange("sales_name", e.target.value)} />
+                <Input
+                  list="ext-sales-names"
+                  value={form.sales_name ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    const contact = salesContacts.get(v.trim());
+                    setForm((prev) => ({
+                      ...prev,
+                      sales_name: v,
+                      ...(contact ? { sales_email: contact.email, sales_phone: contact.phone } : {}),
+                    }));
+                  }}
+                />
+                <datalist id="ext-sales-names">
+                  {allSalesNames.map((n) => (<option key={n} value={n} />))}
+                </datalist>
               </div>
               <div className="space-y-1">
                 <Label>業務 Email</Label>
@@ -2728,7 +2773,12 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
               </div>
               <div className="space-y-1">
                 <Label>發票進度</Label>
-                <Input value={form.invoice_progress ?? ""} onChange={(e) => onChange("invoice_progress", e.target.value)} />
+                <Select value={form.invoice_progress || "尚未"} onValueChange={(v) => onChange("invoice_progress", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {INVOICE_PROGRESS_OPTIONS.map((o) => (<SelectItem key={o} value={o}>{o}</SelectItem>))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="space-y-1">
@@ -2754,7 +2804,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>協同業務1 姓名</Label>
-                <Input value={form.co_sales_name ?? ""} onChange={(e) => onChange("co_sales_name", e.target.value)} />
+                <Input list="ext-sales-names" value={form.co_sales_name ?? ""} onChange={(e) => onChange("co_sales_name", e.target.value)} />
               </div>
               {(form.co_sales_name ?? "").trim() && (
                 <div className="space-y-1">
@@ -2766,7 +2816,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>協同業務2 姓名</Label>
-                <Input value={form.co_sales_name2 ?? ""} onChange={(e) => onChange("co_sales_name2", e.target.value)} />
+                <Input list="ext-sales-names" value={form.co_sales_name2 ?? ""} onChange={(e) => onChange("co_sales_name2", e.target.value)} />
               </div>
               {(form.co_sales_name2 ?? "").trim() && (
                 <div className="space-y-1">
