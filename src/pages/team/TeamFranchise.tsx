@@ -2798,7 +2798,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
                 checked={!!form.invoice_carrier}
                 onCheckedChange={(v) => onChange("invoice_carrier", !!v)}
               />
-              <Label htmlFor="ext_invoice_carrier">發票使用載具</Label>
+              <Label htmlFor="ext_invoice_carrier">發票使用載具 ({form.invoice_carrier ? "是" : "否"})</Label>
             </div>
             <div className="space-y-1">
               <Label>發票寄送地址 / Email</Label>
