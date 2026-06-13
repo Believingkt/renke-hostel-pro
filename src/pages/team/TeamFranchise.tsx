@@ -2328,11 +2328,18 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
     return map;
   }, [rows]);
 
-  // 所有業務名稱（含協同）供自動完成
-  const allSalesNames = useMemo(() => {
+  // 開發業務姓名 datalist 來源
+  const salesNameOptions = useMemo(() => {
+    const set = new Set<string>();
+    rows.forEach((r) => { const t = r.sales_name?.trim(); if (t) set.add(t); });
+    return Array.from(set).sort();
+  }, [rows]);
+
+  // 協同業務 datalist 來源（co_sales_name + co_sales_name2 合併）
+  const coSalesNameOptions = useMemo(() => {
     const set = new Set<string>();
     rows.forEach((r) => {
-      [r.sales_name, r.co_sales_name, r.co_sales_name2].forEach((n) => {
+      [r.co_sales_name, r.co_sales_name2].forEach((n) => {
         const t = n?.trim();
         if (t) set.add(t);
       });
@@ -2704,7 +2711,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
                   }}
                 />
                 <datalist id="ext-sales-names">
-                  {allSalesNames.map((n) => (<option key={n} value={n} />))}
+                  {salesNameOptions.map((n) => (<option key={n} value={n} />))}
                 </datalist>
               </div>
               <div className="space-y-1">
@@ -2791,7 +2798,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
                 checked={!!form.invoice_carrier}
                 onCheckedChange={(v) => onChange("invoice_carrier", !!v)}
               />
-              <Label htmlFor="ext_invoice_carrier">發票使用載具</Label>
+              <Label htmlFor="ext_invoice_carrier">發票使用載具 ({form.invoice_carrier ? "是" : "否"})</Label>
             </div>
             <div className="space-y-1">
               <Label>發票寄送地址 / Email</Label>
@@ -2804,7 +2811,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>協同業務1 姓名</Label>
-                <Input list="ext-sales-names" value={form.co_sales_name ?? ""} onChange={(e) => onChange("co_sales_name", e.target.value)} />
+                <Input list="ext-co-sales-names" value={form.co_sales_name ?? ""} onChange={(e) => onChange("co_sales_name", e.target.value)} />
               </div>
               {(form.co_sales_name ?? "").trim() && (
                 <div className="space-y-1">
@@ -2816,7 +2823,10 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>協同業務2 姓名</Label>
-                <Input list="ext-sales-names" value={form.co_sales_name2 ?? ""} onChange={(e) => onChange("co_sales_name2", e.target.value)} />
+                <Input list="ext-co-sales-names" value={form.co_sales_name2 ?? ""} onChange={(e) => onChange("co_sales_name2", e.target.value)} />
+                <datalist id="ext-co-sales-names">
+                  {coSalesNameOptions.map((n) => (<option key={n} value={n} />))}
+                </datalist>
               </div>
               {(form.co_sales_name2 ?? "").trim() && (
                 <div className="space-y-1">
