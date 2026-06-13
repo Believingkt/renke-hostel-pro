@@ -415,6 +415,7 @@ async function importRyanOrders(
     created: totalInserted,
     updated: totalUpdated,
     warnings,
+    needsDiscountReview,
   };
 }
 
