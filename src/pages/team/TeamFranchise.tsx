@@ -883,12 +883,22 @@ function OrdersTab({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>會員編號</TableHead>
+                <SortableHead
+                  label="會員編號"
+                  active={sort?.key === "member"}
+                  dir={sort?.key === "member" ? sort.dir : "asc"}
+                  onClick={() => setSort((s) => cycleSort(s, "member"))}
+                />
                 <TableHead>會員姓名</TableHead>
                 <TableHead>銷售人</TableHead>
                 <TableHead>專案名稱</TableHead>
                 <TableHead className="text-right">金額</TableHead>
-                <TableHead>簽約日期</TableHead>
+                <SortableHead
+                  label="簽約日期"
+                  active={sort?.key === "date"}
+                  dir={sort?.key === "date" ? sort.dir : "asc"}
+                  onClick={() => setSort((s) => cycleSort(s, "date"))}
+                />
                 <TableHead>付款</TableHead>
               </TableRow>
             </TableHeader>
