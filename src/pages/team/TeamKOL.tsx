@@ -355,15 +355,17 @@ export default function TeamKOL() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="invitations">正式邀約</TabsTrigger>
-          <TabsTrigger value="prospects">潛在名單</TabsTrigger>
-          {canSeeFulltimeTargets && <TabsTrigger value="fulltime_targets">邀約目標（正職）</TabsTrigger>}
-          {canSeeParttimeTargets && <TabsTrigger value="targets">邀約目標（兼職）</TabsTrigger>}
-          {canSeeStats && <TabsTrigger value="stats">業績統計</TabsTrigger>}
-          <TabsTrigger value="venues">場域邀約管理</TabsTrigger>
-          <TabsTrigger value="settings">設定</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList className="w-max min-w-full">
+            <TabsTrigger value="invitations">正式邀約</TabsTrigger>
+            <TabsTrigger value="prospects">潛在名單</TabsTrigger>
+            {canSeeFulltimeTargets && <TabsTrigger value="fulltime_targets">邀約目標（正職）</TabsTrigger>}
+            {canSeeParttimeTargets && <TabsTrigger value="targets">邀約目標（兼職）</TabsTrigger>}
+            {canSeeStats && <TabsTrigger value="stats">業績統計</TabsTrigger>}
+            <TabsTrigger value="venues">場域邀約管理</TabsTrigger>
+            <TabsTrigger value="settings">設定</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="invitations" className="mt-4">
           <InvitationsTab
