@@ -2690,7 +2690,22 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
             <div className="grid grid-cols-3 gap-2">
               <div className="space-y-1">
                 <Label>開發業務姓名</Label>
-                <Input value={form.sales_name ?? ""} onChange={(e) => onChange("sales_name", e.target.value)} />
+                <Input
+                  list="ext-sales-names"
+                  value={form.sales_name ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    const contact = salesContacts.get(v.trim());
+                    setForm((prev) => ({
+                      ...prev,
+                      sales_name: v,
+                      ...(contact ? { sales_email: contact.email, sales_phone: contact.phone } : {}),
+                    }));
+                  }}
+                />
+                <datalist id="ext-sales-names">
+                  {allSalesNames.map((n) => (<option key={n} value={n} />))}
+                </datalist>
               </div>
               <div className="space-y-1">
                 <Label>業務 Email</Label>
