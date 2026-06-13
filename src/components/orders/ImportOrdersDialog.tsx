@@ -162,10 +162,17 @@ function isRyanFormat(headerRow: unknown[]): boolean {
   return ["訂單編號", "訂房日", "入住日", "入住房型"].every((k) => set.has(k));
 }
 
+interface RyanDiscountReviewItem {
+  order_number: string;
+  guest_name: string;
+  notes: string;
+}
+
 interface RyanImportResult {
   created: number;
   updated: number;
   warnings: string[];
+  needsDiscountReview: RyanDiscountReviewItem[];
 }
 
 interface RyanEdgePayload {
