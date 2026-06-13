@@ -219,6 +219,7 @@ async function importRyanOrders(
   }
 
   const warnings: string[] = [];
+  const needsDiscountReview: RyanDiscountReviewItem[] = [];
   const payload: RyanEdgePayload[] = [];
 
   for (const [orderNumber, rawRows] of groups) {
