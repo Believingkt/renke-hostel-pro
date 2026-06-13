@@ -370,7 +370,7 @@ async function importRyanOrders(
 
   if (batches.length === 0) {
     onProgress(100, "沒有可匯入的訂單");
-    return { created: 0, updated: 0, warnings };
+    return { created: 0, updated: 0, warnings, needsDiscountReview };
   }
 
   for (let bi = 0; bi < batches.length; bi++) {
