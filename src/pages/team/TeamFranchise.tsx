@@ -234,7 +234,49 @@ function useProjectOrderMap(): Record<string, number> {
 }
 
 
-function ProjectSelect({
+// ---- Sortable table header helper ----
+type SortDir = "asc" | "desc";
+function SortableHead({
+  label,
+  active,
+  dir,
+  onClick,
+  className,
+}: {
+  label: string;
+  active: boolean;
+  dir: SortDir;
+  onClick: () => void;
+  className?: string;
+}) {
+  return (
+    <TableHead className={className}>
+      <button
+        type="button"
+        onClick={onClick}
+        className="inline-flex items-center gap-1 hover:text-foreground select-none"
+      >
+        <span>{label}</span>
+        {active ? (
+          dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+        ) : (
+          <ArrowUpDown className="h-3 w-3 opacity-50" />
+        )}
+      </button>
+    </TableHead>
+  );
+}
+
+function cycleSort<K extends string>(
+  current: { key: K; dir: SortDir } | null,
+  key: K,
+): { key: K; dir: SortDir } | null {
+  if (!current || current.key !== key) return { key, dir: "asc" };
+  if (current.dir === "asc") return { key, dir: "desc" };
+  return null;
+}
+
+
   value,
   onChange,
   placeholder = "選擇專案",
