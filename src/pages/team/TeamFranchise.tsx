@@ -2311,6 +2311,35 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
     return Array.from(set).sort();
   }, [rows]);
 
+  // 開發業務聯絡資訊對照：name -> { email, phone }（取最新非空值）
+  const salesContacts = useMemo(() => {
+    const map = new Map<string, { email: string; phone: string }>();
+    // rows 已按 signed_at desc 排序，反向迭代讓最新的覆蓋舊的
+    for (let i = rows.length - 1; i >= 0; i--) {
+      const r = rows[i];
+      const n = r.sales_name?.trim();
+      if (!n) continue;
+      const prev = map.get(n) ?? { email: "", phone: "" };
+      map.set(n, {
+        email: r.sales_email?.trim() || prev.email,
+        phone: r.sales_phone?.trim() || prev.phone,
+      });
+    }
+    return map;
+  }, [rows]);
+
+  // 所有業務名稱（含協同）供自動完成
+  const allSalesNames = useMemo(() => {
+    const set = new Set<string>();
+    rows.forEach((r) => {
+      [r.sales_name, r.co_sales_name, r.co_sales_name2].forEach((n) => {
+        const t = n?.trim();
+        if (t) set.add(t);
+      });
+    });
+    return Array.from(set).sort();
+  }, [rows]);
+
   const years = useMemo(() => {
     const cur = new Date().getFullYear();
     return Array.from({ length: 5 }, (_, i) => String(cur - i));
