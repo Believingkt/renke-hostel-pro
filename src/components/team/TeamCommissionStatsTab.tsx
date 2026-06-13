@@ -807,7 +807,7 @@ export default function TeamCommissionStatsTab() {
             </>
           )}
           <div className="text-sm text-muted-foreground space-y-1">
-            <div>目前統計區間：{period.label}</div>
+            
             {loading ? (
               <div>載入中...</div>
             ) : (
