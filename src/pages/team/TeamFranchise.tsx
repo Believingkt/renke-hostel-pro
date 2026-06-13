@@ -675,8 +675,18 @@ function OrdersTab({
         if (salesFilter !== "ALL" && o.sold_by !== salesFilter) return false;
         return true;
       })
-      .sort((a, b) => (b.sold_at ?? "").localeCompare(a.sold_at ?? ""));
-  }, [orders, year, month, projectFilter, statusFilter, salesFilter, canManage, viewAll, currentUserId]);
+      .sort((a, b) => {
+        if (sort?.key === "member") {
+          const cmp = (a.member_number ?? "").localeCompare(b.member_number ?? "", undefined, { numeric: true });
+          return sort.dir === "asc" ? cmp : -cmp;
+        }
+        if (sort?.key === "date") {
+          const cmp = (a.sold_at ?? "").localeCompare(b.sold_at ?? "");
+          return sort.dir === "asc" ? cmp : -cmp;
+        }
+        return (b.sold_at ?? "").localeCompare(a.sold_at ?? "");
+      });
+  }, [orders, year, month, projectFilter, statusFilter, salesFilter, canManage, viewAll, currentUserId, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = useMemo(
