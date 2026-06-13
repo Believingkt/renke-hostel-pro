@@ -2711,7 +2711,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
                   }}
                 />
                 <datalist id="ext-sales-names">
-                  {allSalesNames.map((n) => (<option key={n} value={n} />))}
+                  {salesNameOptions.map((n) => (<option key={n} value={n} />))}
                 </datalist>
               </div>
               <div className="space-y-1">
