@@ -3458,19 +3458,30 @@ function TargetsTab({ isManager, currentUserId }: { isManager: boolean; currentU
     setSaving(true);
     // 嘗試解析 accommodation_id
     const { data: acc } = await supabase.from("accommodation_info").select("id").eq("name", name).maybeSingle();
-    const { error } = await (supabase.from("scout_team_targets" as any) as any).insert({
-      year,
-      month,
-      venue_name: name,
-      target_count: t,
-      personal_min: pm,
-      is_starlink: addStarlink,
-      accommodation_id: acc?.id ?? null,
-      created_by: currentUserId,
-    });
+    if (!acc?.id) {
+      setSaving(false);
+      toast.error("找不到對應的場域，請確認館別名稱");
+      return;
+    }
+    const { error } = await (supabase.from("scout_team_targets" as any) as any).upsert(
+      {
+        year,
+        month,
+        venue_name: name,
+        target_count: t,
+        personal_min: pm,
+        is_starlink: addStarlink,
+        accommodation_id: acc.id,
+        created_by: currentUserId,
+      },
+      { onConflict: "year,month,accommodation_id" },
+    );
     setSaving(false);
     if (error) {
-      toast.error(error.message);
+      const msg = /duplicate key|unique/i.test(error.message)
+        ? "該月份此場域目標已存在，已自動更新為最新設定"
+        : error.message;
+      toast.error(msg);
       return;
     }
     toast.success("已新增目標");
