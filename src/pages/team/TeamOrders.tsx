@@ -914,6 +914,19 @@ export default function TeamOrders() {
             </Table>
           </div>
 
+          <div className="mt-2 rounded-md bg-muted/60 border px-3 py-2 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
+            <span>
+              有效訂單：<span className="font-semibold text-foreground">{summary.validCount.toLocaleString()}</span> 筆
+              <span className="text-muted-foreground">（排除取消）</span>
+            </span>
+            <span>
+              有效訂單總金額：<span className="font-semibold text-primary">NT$ {summary.validSum.toLocaleString()}</span>
+            </span>
+            <span className="text-muted-foreground">
+              取消訂單：<span className="font-semibold text-foreground">{summary.cancelledCount.toLocaleString()}</span> 筆
+            </span>
+          </div>
+
           <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
             <div className="text-sm text-muted-foreground">
               共 {total} 筆，第 {page} / {totalPages} 頁
