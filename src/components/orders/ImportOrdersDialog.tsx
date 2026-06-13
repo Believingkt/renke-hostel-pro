@@ -1,11 +1,12 @@
 import { useState, useRef, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Upload, FileSpreadsheet, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
+import { Upload, FileSpreadsheet, AlertTriangle, CheckCircle2, Loader2, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
@@ -161,10 +162,17 @@ function isRyanFormat(headerRow: unknown[]): boolean {
   return ["訂單編號", "訂房日", "入住日", "入住房型"].every((k) => set.has(k));
 }
 
+interface RyanDiscountReviewItem {
+  order_number: string;
+  guest_name: string;
+  notes: string;
+}
+
 interface RyanImportResult {
   created: number;
   updated: number;
   warnings: string[];
+  needsDiscountReview: RyanDiscountReviewItem[];
 }
 
 interface RyanEdgePayload {
@@ -211,6 +219,7 @@ async function importRyanOrders(
   }
 
   const warnings: string[] = [];
+  const needsDiscountReview: RyanDiscountReviewItem[] = [];
   const payload: RyanEdgePayload[] = [];
 
   for (const [orderNumber, rawRows] of groups) {
@@ -268,6 +277,15 @@ async function importRyanOrders(
     }
 
     const guestName = String(first["入住人"] ?? "").trim() || "未填";
+
+    // 備註含「折扣碼」但無法自動解析 → 列入人工確認清單
+    if (rawNote.includes("折扣碼") && !discountCode) {
+      needsDiscountReview.push({
+        order_number: orderNumber,
+        guest_name: guestName,
+        notes: rawNote,
+      });
+    }
 
     let skippedRoomRows = 0;
     const orderRooms: RyanEdgePayload["order_rooms"] = [];
@@ -352,7 +370,7 @@ async function importRyanOrders(
 
   if (batches.length === 0) {
     onProgress(100, "沒有可匯入的訂單");
-    return { created: 0, updated: 0, warnings };
+    return { created: 0, updated: 0, warnings, needsDiscountReview };
   }
 
   for (let bi = 0; bi < batches.length; bi++) {
@@ -397,6 +415,7 @@ async function importRyanOrders(
     created: totalInserted,
     updated: totalUpdated,
     warnings,
+    needsDiscountReview,
   };
 }
 
@@ -406,11 +425,15 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
   const isRyoan = accommodationId === '4ee31aca-5641-4d05-80e2-1c67626be83d';
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [step, setStep] = useState<"upload" | "preview" | "importing">("upload");
+  const [step, setStep] = useState<"upload" | "preview" | "importing" | "result">("upload");
   const [parsedOrders, setParsedOrders] = useState<ParsedOrder[]>([]);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [importProgress, setImportProgress] = useState(0);
   const [importStatus, setImportStatus] = useState<string>("");
+  const [ryanResult, setRyanResult] = useState<RyanImportResult | null>(null);
+  const [discountInputs, setDiscountInputs] = useState<Record<string, string>>({});
+  const [savedDiscounts, setSavedDiscounts] = useState<Record<string, string>>({});
+  const [savingDiscounts, setSavingDiscounts] = useState(false);
 
   const resetState = useCallback(() => {
     setStep("upload");
@@ -418,11 +441,61 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
     setRoomTypes([]);
     setImportProgress(0);
     setImportStatus("");
+    setRyanResult(null);
+    setDiscountInputs({});
+    setSavedDiscounts({});
+    setSavingDiscounts(false);
   }, []);
 
   const handleOpenChange = (open: boolean) => {
     if (!open) resetState();
     onOpenChange(open);
+  };
+
+  const handleCloseResult = () => {
+    handleOpenChange(false);
+    setTimeout(() => onSuccess(), 300);
+  };
+
+  const handleSaveDiscounts = async () => {
+    const entries = Object.entries(discountInputs)
+      .map(([k, v]) => [k, v.trim()] as const)
+      .filter(([k, v]) => v.length > 0 && !savedDiscounts[k]);
+    if (entries.length === 0) {
+      toast({ title: "沒有可儲存的折扣碼", variant: "destructive" });
+      return;
+    }
+    setSavingDiscounts(true);
+    try {
+      const results = await Promise.all(
+        entries.map(([orderNumber, code]) =>
+          supabase
+            .from("orders")
+            .update({ discount_code: code })
+            .eq("accommodation_id", RYAN_ACCOMMODATION_ID)
+            .eq("order_number", orderNumber)
+            .then((r) => ({ orderNumber, code, error: r.error })),
+        ),
+      );
+      const ok: Record<string, string> = {};
+      const failed: string[] = [];
+      for (const r of results) {
+        if (r.error) failed.push(`${r.orderNumber}: ${r.error.message}`);
+        else ok[r.orderNumber] = r.code;
+      }
+      if (Object.keys(ok).length > 0) {
+        setSavedDiscounts((prev) => ({ ...prev, ...ok }));
+      }
+      toast({
+        title: failed.length === 0 ? "折扣碼已儲存" : "部分折扣碼儲存失敗",
+        description:
+          `成功 ${Object.keys(ok).length} 筆` +
+          (failed.length ? `\n失敗：\n${failed.join("\n")}` : ""),
+        variant: failed.length > 0 ? "destructive" : "default",
+      });
+    } finally {
+      setSavingDiscounts(false);
+    }
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -449,17 +522,15 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
             setImportProgress(pct);
             if (text) setImportStatus(text);
           });
-          handleOpenChange(false);
-          const baseDesc = `新增 ${result.created} 筆、更新 ${result.updated} 筆`;
-          const warnDesc = result.warnings.length
-            ? `\n警告：\n${result.warnings.join("\n")}`
-            : "";
+          setRyanResult(result);
+          setDiscountInputs({});
+          setSavedDiscounts({});
+          setStep("result");
           toast({
             title: "旅安匯入完成",
-            description: baseDesc + warnDesc,
+            description: `新增 ${result.created} 筆、更新 ${result.updated} 筆`,
             variant: result.warnings.length > 0 ? "destructive" : "default",
           });
-          setTimeout(() => onSuccess(), 300);
         } catch (err) {
           console.error("Ryan import error:", err);
           toast({
@@ -764,6 +835,93 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
               />
             </div>
             <p className="text-xs text-muted-foreground">{importProgress}%</p>
+          </div>
+        )}
+
+        {step === "result" && ryanResult && (
+          <div className="flex flex-1 min-h-0 flex-col gap-4">
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
+                <Badge className="bg-primary/10 text-primary border-primary/20">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  新增 {ryanResult.created} 筆
+                </Badge>
+                <Badge className="bg-blue-100 text-blue-800 border-blue-200">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  更新 {ryanResult.updated} 筆
+                </Badge>
+                {ryanResult.warnings.length > 0 && (
+                  <Badge variant="destructive">
+                    <AlertTriangle className="h-3 w-3 mr-1" />
+                    警告 {ryanResult.warnings.length} 則
+                  </Badge>
+                )}
+              </div>
+              {ryanResult.warnings.length > 0 && (
+                <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 max-h-40 overflow-y-auto text-sm space-y-1">
+                  {ryanResult.warnings.map((w, i) => (
+                    <div key={i} className="text-destructive whitespace-pre-wrap break-all">• {w}</div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {ryanResult.needsDiscountReview.length > 0 && (
+              <div className="flex-1 min-h-0 flex flex-col gap-2 border-t pt-3">
+                <div>
+                  <h4 className="font-semibold text-base">需人工確認折扣碼</h4>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    以下訂單備註含有折扣碼相關資訊，請人工確認後填入。如不需要填寫可直接忽略。
+                  </p>
+                </div>
+                <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1">
+                  {ryanResult.needsDiscountReview.map((item) => {
+                    const saved = savedDiscounts[item.order_number];
+                    return (
+                      <div key={item.order_number} className="rounded-md border p-3 space-y-2 bg-card">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="font-medium">#{item.order_number}</span>
+                            <span className="text-muted-foreground">{item.guest_name}</span>
+                          </div>
+                          {saved && (
+                            <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">
+                              <Check className="h-3 w-3 mr-1" />
+                              已儲存：{saved}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground whitespace-pre-wrap break-all bg-muted/40 rounded p-2">
+                          {item.notes}
+                        </div>
+                        <Input
+                          placeholder="輸入折扣碼"
+                          value={discountInputs[item.order_number] ?? saved ?? ""}
+                          disabled={!!saved}
+                          onChange={(e) =>
+                            setDiscountInputs((prev) => ({
+                              ...prev,
+                              [item.order_number]: e.target.value,
+                            }))
+                          }
+                          className="h-9"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex justify-end border-t pt-2">
+                  <Button onClick={handleSaveDiscounts} disabled={savingDiscounts}>
+                    {savingDiscounts && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    儲存折扣碼
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 border-t pt-2">
+              <Button variant="outline" onClick={handleCloseResult}>關閉</Button>
+            </div>
           </div>
         )}
       </DialogContent>
