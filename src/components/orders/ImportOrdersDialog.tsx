@@ -425,11 +425,15 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
   const isRyoan = accommodationId === '4ee31aca-5641-4d05-80e2-1c67626be83d';
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [step, setStep] = useState<"upload" | "preview" | "importing">("upload");
+  const [step, setStep] = useState<"upload" | "preview" | "importing" | "result">("upload");
   const [parsedOrders, setParsedOrders] = useState<ParsedOrder[]>([]);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [importProgress, setImportProgress] = useState(0);
   const [importStatus, setImportStatus] = useState<string>("");
+  const [ryanResult, setRyanResult] = useState<RyanImportResult | null>(null);
+  const [discountInputs, setDiscountInputs] = useState<Record<string, string>>({});
+  const [savedDiscounts, setSavedDiscounts] = useState<Record<string, string>>({});
+  const [savingDiscounts, setSavingDiscounts] = useState(false);
 
   const resetState = useCallback(() => {
     setStep("upload");
@@ -437,11 +441,61 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
     setRoomTypes([]);
     setImportProgress(0);
     setImportStatus("");
+    setRyanResult(null);
+    setDiscountInputs({});
+    setSavedDiscounts({});
+    setSavingDiscounts(false);
   }, []);
 
   const handleOpenChange = (open: boolean) => {
     if (!open) resetState();
     onOpenChange(open);
+  };
+
+  const handleCloseResult = () => {
+    handleOpenChange(false);
+    setTimeout(() => onSuccess(), 300);
+  };
+
+  const handleSaveDiscounts = async () => {
+    const entries = Object.entries(discountInputs)
+      .map(([k, v]) => [k, v.trim()] as const)
+      .filter(([k, v]) => v.length > 0 && !savedDiscounts[k]);
+    if (entries.length === 0) {
+      toast({ title: "沒有可儲存的折扣碼", variant: "destructive" });
+      return;
+    }
+    setSavingDiscounts(true);
+    try {
+      const results = await Promise.all(
+        entries.map(([orderNumber, code]) =>
+          supabase
+            .from("orders")
+            .update({ discount_code: code })
+            .eq("accommodation_id", RYAN_ACCOMMODATION_ID)
+            .eq("order_number", orderNumber)
+            .then((r) => ({ orderNumber, code, error: r.error })),
+        ),
+      );
+      const ok: Record<string, string> = {};
+      const failed: string[] = [];
+      for (const r of results) {
+        if (r.error) failed.push(`${r.orderNumber}: ${r.error.message}`);
+        else ok[r.orderNumber] = r.code;
+      }
+      if (Object.keys(ok).length > 0) {
+        setSavedDiscounts((prev) => ({ ...prev, ...ok }));
+      }
+      toast({
+        title: failed.length === 0 ? "折扣碼已儲存" : "部分折扣碼儲存失敗",
+        description:
+          `成功 ${Object.keys(ok).length} 筆` +
+          (failed.length ? `\n失敗：\n${failed.join("\n")}` : ""),
+        variant: failed.length > 0 ? "destructive" : "default",
+      });
+    } finally {
+      setSavingDiscounts(false);
+    }
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
