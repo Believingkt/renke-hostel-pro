@@ -837,6 +837,93 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
             <p className="text-xs text-muted-foreground">{importProgress}%</p>
           </div>
         )}
+
+        {step === "result" && ryanResult && (
+          <div className="flex flex-1 min-h-0 flex-col gap-4">
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
+                <Badge className="bg-primary/10 text-primary border-primary/20">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  新增 {ryanResult.created} 筆
+                </Badge>
+                <Badge className="bg-blue-100 text-blue-800 border-blue-200">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  更新 {ryanResult.updated} 筆
+                </Badge>
+                {ryanResult.warnings.length > 0 && (
+                  <Badge variant="destructive">
+                    <AlertTriangle className="h-3 w-3 mr-1" />
+                    警告 {ryanResult.warnings.length} 則
+                  </Badge>
+                )}
+              </div>
+              {ryanResult.warnings.length > 0 && (
+                <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 max-h-40 overflow-y-auto text-sm space-y-1">
+                  {ryanResult.warnings.map((w, i) => (
+                    <div key={i} className="text-destructive whitespace-pre-wrap break-all">• {w}</div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {ryanResult.needsDiscountReview.length > 0 && (
+              <div className="flex-1 min-h-0 flex flex-col gap-2 border-t pt-3">
+                <div>
+                  <h4 className="font-semibold text-base">需人工確認折扣碼</h4>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    以下訂單備註含有折扣碼相關資訊，請人工確認後填入。如不需要填寫可直接忽略。
+                  </p>
+                </div>
+                <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1">
+                  {ryanResult.needsDiscountReview.map((item) => {
+                    const saved = savedDiscounts[item.order_number];
+                    return (
+                      <div key={item.order_number} className="rounded-md border p-3 space-y-2 bg-card">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="font-medium">#{item.order_number}</span>
+                            <span className="text-muted-foreground">{item.guest_name}</span>
+                          </div>
+                          {saved && (
+                            <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">
+                              <Check className="h-3 w-3 mr-1" />
+                              已儲存：{saved}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground whitespace-pre-wrap break-all bg-muted/40 rounded p-2">
+                          {item.notes}
+                        </div>
+                        <Input
+                          placeholder="輸入折扣碼"
+                          value={discountInputs[item.order_number] ?? saved ?? ""}
+                          disabled={!!saved}
+                          onChange={(e) =>
+                            setDiscountInputs((prev) => ({
+                              ...prev,
+                              [item.order_number]: e.target.value,
+                            }))
+                          }
+                          className="h-9"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex justify-end border-t pt-2">
+                  <Button onClick={handleSaveDiscounts} disabled={savingDiscounts}>
+                    {savingDiscounts && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    儲存折扣碼
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 border-t pt-2">
+              <Button variant="outline" onClick={handleCloseResult}>關閉</Button>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
