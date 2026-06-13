@@ -806,13 +806,26 @@ export default function TeamCommissionStatsTab() {
               </p>
             </>
           )}
-          <div className="text-sm text-muted-foreground">
-            目前統計區間：{period.label}
-            （
-            {loading
-              ? "載入中..."
-              : `共 ${validOrders.filter((o) => !!metaMap.get(o.id)?.closer_id).length} 筆有效訂單 / ${cancelOrders.filter((o) => !!metaMap.get(o.id)?.closer_id).length} 筆取消訂單`}
-            ）
+          <div className="text-sm text-muted-foreground space-y-1">
+            <div>目前統計區間：{period.label}</div>
+            {loading ? (
+              <div>載入中...</div>
+            ) : (
+              <>
+                <div>
+                  {validOrders.filter((o) => !!metaMap.get(o.id)?.closer_id).length} 筆成交組有效訂單 /{" "}
+                  {cancelOrders.filter((o) => !!metaMap.get(o.id)?.closer_id).length} 筆取消訂單
+                </div>
+                <div>
+                  {validOrders.filter((o) => !!metaMap.get(o.id)?.video_creator_id).length} 筆影音組有效訂單 /{" "}
+                  {cancelOrders.filter((o) => !!metaMap.get(o.id)?.video_creator_id).length} 筆取消訂單
+                </div>
+                <div>
+                  {validOrders.filter((o) => !!o.discount_code).length} 筆星探折扣碼有效訂單 /{" "}
+                  {cancelOrders.filter((o) => !!o.discount_code).length} 筆取消訂單
+                </div>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
