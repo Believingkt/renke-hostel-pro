@@ -120,6 +120,11 @@ export default function TeamOrders() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
   const [total, setTotal] = useState<number>(0);
+  const [summary, setSummary] = useState<{ validCount: number; validSum: number; cancelledCount: number }>({
+    validCount: 0,
+    validSum: 0,
+    cancelledCount: 0,
+  });
 
   const [editOpen, setEditOpen] = useState(false);
   const [editOrder, setEditOrder] = useState<OrderRow | null>(null);
