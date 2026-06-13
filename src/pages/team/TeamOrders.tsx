@@ -443,59 +443,83 @@ export default function TeamOrders() {
         if (metaOrderIds.length === 0) {
           setOrders([]);
           setTotal(0);
+          setSummary({ validCount: 0, validSum: 0, cancelledCount: 0 });
           return;
         }
       }
 
+      // Helper: apply shared filters to any orders query
+      const applyFilters = <T extends any>(qb: T): T => {
+        let q: any = qb;
+        q = q.neq("guest_name", "保留單").gt("final_price", 0);
+        if (accFilter !== "ALL") q = q.eq("accommodation_id", accFilter);
+        if (year !== "ALL") {
+          const y = Number(year);
+          if (month !== "ALL") {
+            const m = Number(month);
+            const startDay = `${y}-${String(m).padStart(2, "0")}-01`;
+            const lastDay = new Date(y, m, 0).getDate();
+            const endDay = `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+            q = q.gte("order_date", startDay).lte("order_date", endDay);
+          } else {
+            q = q.gte("order_date", `${y}-01-01`).lte("order_date", `${y}-12-31`);
+          }
+        }
+        const s = search.trim();
+        if (s) {
+          const esc = s.replace(/[,()]/g, " ").trim();
+          if (esc) {
+            q = q.or(
+              `order_number.ilike.%${esc}%,guest_name.ilike.%${esc}%,guest_phone.ilike.%${esc}%,discount_code.ilike.%${esc}%`
+            );
+          }
+        }
+        if (metaOrderIds) q = q.in("id", metaOrderIds);
+        return q as T;
+      };
+
       // Step 2: build paged orders query with exact count
-      let q = supabase
-        .from("orders")
-        .select(
-          `id, order_number, guest_name, guest_phone, check_in_date, check_out_date,
-           final_price, discount_code, order_source, ota_channel, accommodation_id, order_date, created_at`,
-          { count: "exact" }
-        )
-        .neq("guest_name", "保留單")
-        .gt("final_price", 0);
-
-      if (accFilter !== "ALL") q = q.eq("accommodation_id", accFilter);
-
-      // Year / month filter on order_date (下單日)
-      if (year !== "ALL") {
-        const y = Number(year);
-        if (month !== "ALL") {
-          const m = Number(month);
-          const startDay = `${y}-${String(m).padStart(2, "0")}-01`;
-          const lastDay = new Date(y, m, 0).getDate();
-          const endDay = `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-          q = q.gte("order_date", startDay).lte("order_date", endDay);
-        } else {
-          q = q.gte("order_date", `${y}-01-01`).lte("order_date", `${y}-12-31`);
-        }
-      }
-
-      // Keyword search (server-side) on order_number / guest_name / guest_phone / discount_code
-      const s = search.trim();
-      if (s) {
-        const esc = s.replace(/[,()]/g, " ").trim();
-        if (esc) {
-          q = q.or(
-            `order_number.ilike.%${esc}%,guest_name.ilike.%${esc}%,guest_phone.ilike.%${esc}%,discount_code.ilike.%${esc}%`
-          );
-        }
-      }
-
-      if (metaOrderIds) q = q.in("id", metaOrderIds);
+      let q = applyFilters(
+        supabase
+          .from("orders")
+          .select(
+            `id, order_number, guest_name, guest_phone, check_in_date, check_out_date,
+             final_price, discount_code, order_source, ota_channel, accommodation_id, order_date, created_at`,
+            { count: "exact" }
+          )
+      );
 
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
-      const ordersRes = await q
-        .order("created_at", { ascending: false })
-        .range(from, to);
+
+      // Summary queries (run in parallel with list query)
+      const validSumQ = applyFilters(
+        supabase.from("orders").select("final_price", { count: "exact" })
+      ).neq("order_status", "cancelled");
+      const cancelledQ = applyFilters(
+        supabase.from("orders").select("id", { count: "exact", head: true })
+      ).eq("order_status", "cancelled");
+
+      const [ordersRes, validRes, cancelledRes] = await Promise.all([
+        q.order("created_at", { ascending: false }).range(from, to),
+        validSumQ,
+        cancelledQ,
+      ]);
       if (ordersRes.error) throw ordersRes.error;
+      if (validRes.error) throw validRes.error;
+      if (cancelledRes.error) throw cancelledRes.error;
 
       const pageRows = ordersRes.data || [];
       const totalCount = ordersRes.count ?? 0;
+      const validSum = ((validRes.data || []) as any[]).reduce(
+        (s, r) => s + Number(r.final_price || 0),
+        0
+      );
+      setSummary({
+        validCount: validRes.count ?? 0,
+        validSum,
+        cancelledCount: cancelledRes.count ?? 0,
+      });
 
       // Step 3: fetch meta + accommodations for this page
       const orderIds = pageRows.map((o: any) => o.id);
