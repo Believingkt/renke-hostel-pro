@@ -2823,7 +2823,10 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>協同業務2 姓名</Label>
-                <Input list="ext-sales-names" value={form.co_sales_name2 ?? ""} onChange={(e) => onChange("co_sales_name2", e.target.value)} />
+                <Input list="ext-co-sales-names" value={form.co_sales_name2 ?? ""} onChange={(e) => onChange("co_sales_name2", e.target.value)} />
+                <datalist id="ext-co-sales-names">
+                  {coSalesNameOptions.map((n) => (<option key={n} value={n} />))}
+                </datalist>
               </div>
               {(form.co_sales_name2 ?? "").trim() && (
                 <div className="space-y-1">
