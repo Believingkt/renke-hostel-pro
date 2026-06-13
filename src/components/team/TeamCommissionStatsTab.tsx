@@ -285,32 +285,56 @@ export default function TeamCommissionStatsTab() {
     try {
       const selectCols =
         "id, accommodation_id, final_price, order_status, discount_code, order_number, guest_name, check_in_date, order_date, order_source, cancelled_at";
-      let validQ = supabase
-        .from("orders")
-        .select(selectCols)
-        .neq("order_status", "cancelled")
-        .limit(10000);
-      if (period.startIso) validQ = validQ.gte("order_date", period.startIso);
-      if (period.nextIso) validQ = validQ.lt("order_date", period.nextIso);
-      const { data: validData, error: oe } = await validQ;
-      if (oe) throw oe;
 
-      let cancelQ = supabase
-        .from("orders")
-        .select(selectCols)
-        .eq("order_status", "cancelled")
-        .not("cancelled_at", "is", null)
-        .limit(10000);
+      // 分頁抓取以繞過 PostgREST 1000 筆上限
+      async function fetchAllPaged(
+        build: (from: number, to: number) => any,
+      ): Promise<any[]> {
+        const PAGE = 1000;
+        const all: any[] = [];
+        let from = 0;
+        // 安全上限：最多 50 頁（50000 筆）
+        for (let p = 0; p < 50; p++) {
+          const to = from + PAGE - 1;
+          const { data, error } = await build(from, to);
+          if (error) throw error;
+          const rows = (data ?? []) as any[];
+          all.push(...rows);
+          if (rows.length < PAGE) break;
+          from += PAGE;
+        }
+        return all;
+      }
+
+      const validRows = await fetchAllPaged((from, to) => {
+        let q = supabase
+          .from("orders")
+          .select(selectCols)
+          .neq("order_status", "cancelled")
+          .order("order_date", { ascending: true })
+          .range(from, to);
+        if (period.startIso) q = q.gte("order_date", period.startIso);
+        if (period.nextIso) q = q.lt("order_date", period.nextIso);
+        return q;
+      });
+
       const cancelField = period.cancelField;
-      if (period.startIso) cancelQ = cancelQ.gte(cancelField, period.startIso);
-      if (period.nextIso) cancelQ = cancelQ.lt(cancelField, period.nextIso);
-      const { data: cancelData, error: ce } = await cancelQ;
-      if (ce) throw ce;
+      const cancelRows = await fetchAllPaged((from, to) => {
+        let q = supabase
+          .from("orders")
+          .select(selectCols)
+          .eq("order_status", "cancelled")
+          .not("cancelled_at", "is", null)
+          .order(cancelField, { ascending: true })
+          .range(from, to);
+        if (period.startIso) q = q.gte(cancelField, period.startIso);
+        if (period.nextIso) q = q.lt(cancelField, period.nextIso);
+        return q;
+      });
 
-      const validRows = (validData ?? []) as any[];
-      const cancelRows = (cancelData ?? []) as any[];
       const ords = [...validRows, ...cancelRows] as OrderLite[];
       setOrders(ords);
+
 
       const ids = ords.map((o) => o.id);
       const mMap = new Map<string, MetaLite>();
