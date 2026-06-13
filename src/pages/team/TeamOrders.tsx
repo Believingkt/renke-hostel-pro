@@ -740,13 +740,15 @@ export default function TeamOrders() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-        <TabsList>
-          {!isScout && <TabsTrigger value="orders">訂單列表</TabsTrigger>}
-          <TabsTrigger value="scout-codes">星探專屬折扣碼</TabsTrigger>
-          <TabsTrigger value="stats">成交統計</TabsTrigger>
-          {(isAdmin || isCloser || isVideo) && <TabsTrigger value="commission-rates">民宿分潤比例</TabsTrigger>}
-          {!isScout && <TabsTrigger value="settings">設定</TabsTrigger>}
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList>
+            {!isScout && <TabsTrigger value="orders">訂單列表</TabsTrigger>}
+            <TabsTrigger value="scout-codes">星探專屬折扣碼</TabsTrigger>
+            <TabsTrigger value="stats">成交統計</TabsTrigger>
+            {(isAdmin || isCloser || isVideo) && <TabsTrigger value="commission-rates">民宿分潤比例</TabsTrigger>}
+            {!isScout && <TabsTrigger value="settings">設定</TabsTrigger>}
+          </TabsList>
+        </div>
 
         <TabsContent value="orders" className="space-y-4">
           <Card>

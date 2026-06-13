@@ -100,11 +100,13 @@ export default function TeamCommission() {
     <div className="space-y-4">
       <h2 className="text-2xl font-bold">獎金管理</h2>
       <Tabs defaultValue="payouts">
-        <TabsList>
-          <TabsTrigger value="payouts">發放管理</TabsTrigger>
-          {showAdminTabs && <TabsTrigger value="payout">結算規則</TabsTrigger>}
-          {showAdminTabs && <TabsTrigger value="multiplier">獎金加倍活動</TabsTrigger>}
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList>
+            <TabsTrigger value="payouts">發放管理</TabsTrigger>
+            {showAdminTabs && <TabsTrigger value="payout">結算規則</TabsTrigger>}
+            {showAdminTabs && <TabsTrigger value="multiplier">獎金加倍活動</TabsTrigger>}
+          </TabsList>
+        </div>
         <TabsContent value="payouts">
           <PayoutsBlock scoutManagerOnly={scoutManagerOnly} readOnly={financeReadOnly} />
         </TabsContent>
