@@ -278,6 +278,15 @@ async function importRyanOrders(
 
     const guestName = String(first["入住人"] ?? "").trim() || "未填";
 
+    // 備註含「折扣碼」但無法自動解析 → 列入人工確認清單
+    if (rawNote.includes("折扣碼") && !discountCode) {
+      needsDiscountReview.push({
+        order_number: orderNumber,
+        guest_name: guestName,
+        notes: rawNote,
+      });
+    }
+
     let skippedRoomRows = 0;
     const orderRooms: RyanEdgePayload["order_rooms"] = [];
     for (const r of rowsInGroup) {
