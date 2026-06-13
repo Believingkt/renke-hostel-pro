@@ -2773,7 +2773,12 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
               </div>
               <div className="space-y-1">
                 <Label>發票進度</Label>
-                <Input value={form.invoice_progress ?? ""} onChange={(e) => onChange("invoice_progress", e.target.value)} />
+                <Select value={form.invoice_progress || "尚未"} onValueChange={(v) => onChange("invoice_progress", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {INVOICE_PROGRESS_OPTIONS.map((o) => (<SelectItem key={o} value={o}>{o}</SelectItem>))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="space-y-1">
