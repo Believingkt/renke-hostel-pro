@@ -496,6 +496,7 @@ function OrdersTab({
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [salesFilter, setSalesFilter] = useState<string>("ALL");
   const [page, setPage] = useState(1);
+  const [sort, setSort] = useState<{ key: "member" | "date"; dir: SortDir } | null>(null);
   const PAGE_SIZE = 50;
 
   useEffect(() => {
