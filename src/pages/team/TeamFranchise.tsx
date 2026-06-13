@@ -2517,12 +2517,24 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="whitespace-nowrap">會員編號</TableHead>
+                <SortableHead
+                  className="whitespace-nowrap"
+                  label="會員編號"
+                  active={sort?.key === "member"}
+                  dir={sort?.key === "member" ? sort.dir : "asc"}
+                  onClick={() => setSort((s) => cycleSort(s, "member"))}
+                />
                 <TableHead className="whitespace-nowrap">會員姓名</TableHead>
                 <TableHead className="whitespace-nowrap">開發業務</TableHead>
                 <TableHead className="whitespace-nowrap">專案名稱</TableHead>
                 <TableHead className="whitespace-nowrap text-right">金額</TableHead>
-                <TableHead className="whitespace-nowrap">簽約日期</TableHead>
+                <SortableHead
+                  className="whitespace-nowrap"
+                  label="簽約日期"
+                  active={sort?.key === "date"}
+                  dir={sort?.key === "date" ? sort.dir : "asc"}
+                  onClick={() => setSort((s) => cycleSort(s, "date"))}
+                />
                 <TableHead className="whitespace-nowrap">合約進度</TableHead>
               </TableRow>
             </TableHeader>
