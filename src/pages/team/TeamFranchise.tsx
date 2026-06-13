@@ -2315,8 +2315,10 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
     return Array.from({ length: 5 }, (_, i) => String(cur - i));
   }, []);
 
+  const [sort, setSort] = useState<{ key: "member" | "date"; dir: SortDir } | null>(null);
+
   const filtered = useMemo(() => {
-    return rows.filter((r) => {
+    const list = rows.filter((r) => {
       if (projectFilter !== "ALL" && r.project_name !== projectFilter) return false;
       if (salesFilter !== "ALL" && (r.sales_name ?? "") !== salesFilter) return false;
       if (progressFilter !== "ALL" && (r.contract_progress ?? "") !== progressFilter) return false;
@@ -2329,7 +2331,16 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
       }
       return true;
     });
-  }, [rows, projectFilter, salesFilter, progressFilter, year, month]);
+    if (sort) {
+      list.sort((a, b) => {
+        const cmp = sort.key === "member"
+          ? (a.member_number ?? "").localeCompare(b.member_number ?? "", undefined, { numeric: true })
+          : (a.signed_at ?? "").localeCompare(b.signed_at ?? "");
+        return sort.dir === "asc" ? cmp : -cmp;
+      });
+    }
+    return list;
+  }, [rows, projectFilter, salesFilter, progressFilter, year, month, sort]);
 
   const checkExtMemberNumberDup = async (val: string) => {
     const v = val.trim();
