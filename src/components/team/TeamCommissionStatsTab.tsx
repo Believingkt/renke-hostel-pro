@@ -820,10 +820,19 @@ export default function TeamCommissionStatsTab() {
                   {validOrders.filter((o) => !!metaMap.get(o.id)?.video_creator_id).length} 筆影音組有效訂單 /{" "}
                   {cancelOrders.filter((o) => !!metaMap.get(o.id)?.video_creator_id).length} 筆取消訂單
                 </div>
-                <div>
-                  {validOrders.filter((o) => !!o.discount_code).length} 筆星探折扣碼有效訂單 /{" "}
-                  {cancelOrders.filter((o) => !!o.discount_code).length} 筆取消訂單
-                </div>
+                {(() => {
+                  const scoutCodeSet = new Set(
+                    scoutCodes.map((c) => (c.discount_code || "").toUpperCase()).filter(Boolean)
+                  );
+                  const isScoutCode = (code: string | null | undefined) =>
+                    !!code && scoutCodeSet.has(code.toUpperCase());
+                  return (
+                    <div>
+                      {validOrders.filter((o) => isScoutCode(o.discount_code)).length} 筆星探折扣碼有效訂單 /{" "}
+                      {cancelOrders.filter((o) => isScoutCode(o.discount_code)).length} 筆取消訂單
+                    </div>
+                  );
+                })()}
               </>
             )}
           </div>
