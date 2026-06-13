@@ -109,8 +109,8 @@ export default function TeamOrders() {
 
   const [loading, setLoading] = useState(false);
   const [accFilter, setAccFilter] = useState<string>("ALL");
-  const [year, setYear] = useState<string>("ALL");
-  const [month, setMonth] = useState<string>("ALL");
+  const [year, setYear] = useState<string>(String(new Date().getFullYear()));
+  const [month, setMonth] = useState<string>(String(new Date().getMonth() + 1));
   const [franchiseFilter, setFranchiseFilter] = useState<string>("ALL");
   const [franchiseProjects, setFranchiseProjects] = useState<{ id: string; name: string }[]>([]);
   const [searchInput, setSearchInput] = useState<string>("");
