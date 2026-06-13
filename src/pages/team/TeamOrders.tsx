@@ -858,15 +858,15 @@ export default function TeamOrders() {
             <Table className="fixed-table">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="whitespace-nowrap">詢問日期</TableHead>
-                  <TableHead className="whitespace-nowrap">入住日</TableHead>
-                  <TableHead className="whitespace-nowrap">退房日</TableHead>
+                  <SortableHead k="inquiry" label="詢問日期" className="whitespace-nowrap" />
+                  <SortableHead k="checkIn" label="入住日" className="whitespace-nowrap" />
+                  <SortableHead k="checkOut" label="退房日" className="whitespace-nowrap" />
                   <TableHead className="whitespace-nowrap w-32 min-w-32 max-w-32">客戶暱稱</TableHead>
                   <TableHead className="whitespace-nowrap">客戶姓名</TableHead>
                   <TableHead className="whitespace-nowrap">電話</TableHead>
-                  <TableHead className="whitespace-nowrap">訂購時間 (下單日)</TableHead>
-                  <TableHead className="whitespace-nowrap">訂金確認日</TableHead>
-                  <TableHead className="whitespace-nowrap tabular-nums">總金額</TableHead>
+                  <SortableHead k="orderDate" label="訂購時間 (下單日)" className="whitespace-nowrap" />
+                  <SortableHead k="depositConfirm" label="訂金確認日" className="whitespace-nowrap" />
+                  <SortableHead k="finalPrice" label="總金額" className="whitespace-nowrap tabular-nums" />
                   <TableHead className="whitespace-nowrap">館別</TableHead>
                   <TableHead className="whitespace-nowrap">訂房方式</TableHead>
                   <TableHead className="whitespace-nowrap">備註</TableHead>
