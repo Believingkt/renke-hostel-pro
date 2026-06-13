@@ -111,11 +111,13 @@ export default function TeamAds() {
     <div className="space-y-4">
       <h2 className="text-2xl font-bold">廣告追蹤</h2>
       <Tabs defaultValue="ads">
-        <TabsList>
-          <TabsTrigger value="ads">廣告清單</TabsTrigger>
-          <TabsTrigger value="weekly">週報表</TabsTrigger>
-          <TabsTrigger value="settings">設定</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList>
+            <TabsTrigger value="ads">廣告清單</TabsTrigger>
+            <TabsTrigger value="weekly">週報表</TabsTrigger>
+            <TabsTrigger value="settings">設定</TabsTrigger>
+          </TabsList>
+        </div>
         <TabsContent value="ads" className="mt-4">
           <AdsListTab />
         </TabsContent>

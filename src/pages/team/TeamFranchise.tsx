@@ -425,15 +425,17 @@ export default function TeamFranchise() {
     <div className="space-y-4">
       <h2 className="text-2xl font-bold">特許加盟</h2>
       <Tabs defaultValue={defaultTab}>
-        <TabsList>
-          {showOrders && <TabsTrigger value="orders">內部銷售</TabsTrigger>}
-          {showExternal && <TabsTrigger value="external">外部銷售</TabsTrigger>}
-          {showStats && <TabsTrigger value="stats">業績統計</TabsTrigger>}
-          {showDistributions && <TabsTrigger value="payouts">分潤結算</TabsTrigger>}
-          {showDistributions && <TabsTrigger value="distributions">會員分潤</TabsTrigger>}
-          {showVouchers && <TabsTrigger value="vouchers">住宿券進度</TabsTrigger>}
-          <TabsTrigger value="settings">分潤設定</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList>
+            {showOrders && <TabsTrigger value="orders">內部銷售</TabsTrigger>}
+            {showExternal && <TabsTrigger value="external">外部銷售</TabsTrigger>}
+            {showStats && <TabsTrigger value="stats">業績統計</TabsTrigger>}
+            {showDistributions && <TabsTrigger value="payouts">分潤結算</TabsTrigger>}
+            {showDistributions && <TabsTrigger value="distributions">會員分潤</TabsTrigger>}
+            {showVouchers && <TabsTrigger value="vouchers">住宿券進度</TabsTrigger>}
+            <TabsTrigger value="settings">分潤設定</TabsTrigger>
+          </TabsList>
+        </div>
         {showOrders && (
           <TabsContent value="orders" className="mt-4">
             <OrdersTab canManage={ordersCanManage} viewAll={ordersViewAll} currentUserId={userId} />

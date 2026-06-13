@@ -123,13 +123,15 @@ export default function TeamStarlink() {
     <div className="space-y-4">
       <h2 className="text-2xl font-bold">星鏈</h2>
       <Tabs defaultValue="orders">
-        <TabsList>
-          <TabsTrigger value="orders">訂單列表</TabsTrigger>
-          <TabsTrigger value="stats">業績統計</TabsTrigger>
-          <TabsTrigger value="payouts">分潤結算</TabsTrigger>
-          <TabsTrigger value="plans">方案設定</TabsTrigger>
-          <TabsTrigger value="tiers">等級設定</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList>
+            <TabsTrigger value="orders">訂單列表</TabsTrigger>
+            <TabsTrigger value="stats">業績統計</TabsTrigger>
+            <TabsTrigger value="payouts">分潤結算</TabsTrigger>
+            <TabsTrigger value="plans">方案設定</TabsTrigger>
+            <TabsTrigger value="tiers">等級設定</TabsTrigger>
+          </TabsList>
+        </div>
         <TabsContent value="orders" className="mt-4">
           <OrdersTab canManage={canManage} currentUserId={userId} />
         </TabsContent>

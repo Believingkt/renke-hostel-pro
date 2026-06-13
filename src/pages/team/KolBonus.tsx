@@ -579,11 +579,13 @@ export default function KolBonus() {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="bonus" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="bonus">進單管理</TabsTrigger>
-          <TabsTrigger value="settlement">分潤結算</TabsTrigger>
-          <TabsTrigger value="rates">分潤設定</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList>
+            <TabsTrigger value="bonus">進單管理</TabsTrigger>
+            <TabsTrigger value="settlement">分潤結算</TabsTrigger>
+            <TabsTrigger value="rates">分潤設定</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="bonus" className="mt-0">
           <Card>
