@@ -33,7 +33,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Pencil, Check, X, Search } from "lucide-react";
+import { Pencil, Check, X, Search, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import ScoutDiscountCodesTab from "@/components/team/ScoutDiscountCodesTab";
 import TeamCommissionStatsTab from "@/components/team/TeamCommissionStatsTab";
 import CommissionRatesTab from "@/components/team/CommissionRatesTab";
@@ -582,7 +582,63 @@ export default function TeamOrders() {
   }, []);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const pageItems = orders;
+  type SortKey = "inquiry" | "checkIn" | "checkOut" | "orderDate" | "depositConfirm" | "finalPrice";
+  type SortDir = "asc" | "desc";
+  const [sort, setSort] = useState<{ key: SortKey; dir: SortDir } | null>(null);
+
+  const cycleSort = (key: SortKey) => {
+    setSort((prev) => {
+      if (!prev || prev.key !== key) return { key, dir: "asc" };
+      if (prev.dir === "asc") return { key, dir: "desc" };
+      return null;
+    });
+  };
+
+  const getSortVal = (o: OrderRow, key: SortKey): string | number | null => {
+    switch (key) {
+      case "inquiry": return o.meta?.inquiry_date ?? null;
+      case "checkIn": return o.check_in_date ?? null;
+      case "checkOut": return o.check_out_date ?? null;
+      case "orderDate": return o.order_date ?? null;
+      case "depositConfirm": return o.meta?.deposit_confirm_date ?? null;
+      case "finalPrice": return Number(o.final_price || 0);
+    }
+  };
+
+  const pageItems = useMemo(() => {
+    if (!sort) return orders;
+    const arr = [...orders];
+    const dir = sort.dir === "asc" ? 1 : -1;
+    arr.sort((a, b) => {
+      const va = getSortVal(a, sort.key);
+      const vb = getSortVal(b, sort.key);
+      const aEmpty = va === null || va === undefined || va === "";
+      const bEmpty = vb === null || vb === undefined || vb === "";
+      if (aEmpty && bEmpty) return 0;
+      if (aEmpty) return 1; // empty 永遠排最後
+      if (bEmpty) return -1;
+      if (typeof va === "number" && typeof vb === "number") return (va - vb) * dir;
+      return String(va).localeCompare(String(vb)) * dir;
+    });
+    return arr;
+  }, [orders, sort]);
+
+  const SortableHead = ({ k, label, className }: { k: SortKey; label: string; className?: string }) => {
+    const active = sort?.key === k;
+    const Icon = !active ? ArrowUpDown : sort!.dir === "asc" ? ArrowUp : ArrowDown;
+    return (
+      <TableHead className={className}>
+        <button
+          type="button"
+          onClick={() => cycleSort(k)}
+          className="inline-flex items-center gap-1 hover:text-foreground"
+        >
+          {label}
+          <Icon className={`h-3.5 w-3.5 ${active ? "text-foreground" : "text-muted-foreground/60"}`} />
+        </button>
+      </TableHead>
+    );
+  };
 
   function openEdit(o: OrderRow) {
     setEditOrder(o);
@@ -802,15 +858,15 @@ export default function TeamOrders() {
             <Table className="fixed-table">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="whitespace-nowrap">詢問日期</TableHead>
-                  <TableHead className="whitespace-nowrap">入住日</TableHead>
-                  <TableHead className="whitespace-nowrap">退房日</TableHead>
+                  <SortableHead k="inquiry" label="詢問日期" className="whitespace-nowrap" />
+                  <SortableHead k="checkIn" label="入住日" className="whitespace-nowrap" />
+                  <SortableHead k="checkOut" label="退房日" className="whitespace-nowrap" />
                   <TableHead className="whitespace-nowrap w-32 min-w-32 max-w-32">客戶暱稱</TableHead>
                   <TableHead className="whitespace-nowrap">客戶姓名</TableHead>
                   <TableHead className="whitespace-nowrap">電話</TableHead>
-                  <TableHead className="whitespace-nowrap">訂購時間 (下單日)</TableHead>
-                  <TableHead className="whitespace-nowrap">訂金確認日</TableHead>
-                  <TableHead className="whitespace-nowrap tabular-nums">總金額</TableHead>
+                  <SortableHead k="orderDate" label="訂購時間 (下單日)" className="whitespace-nowrap" />
+                  <SortableHead k="depositConfirm" label="訂金確認日" className="whitespace-nowrap" />
+                  <SortableHead k="finalPrice" label="總金額" className="whitespace-nowrap tabular-nums" />
                   <TableHead className="whitespace-nowrap">館別</TableHead>
                   <TableHead className="whitespace-nowrap">訂房方式</TableHead>
                   <TableHead className="whitespace-nowrap">備註</TableHead>
