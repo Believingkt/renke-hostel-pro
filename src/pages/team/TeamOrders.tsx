@@ -91,7 +91,7 @@ interface MetaRow {
   deposit_confirm_date?: string | null;
 }
 
-const DEFAULT_PAGE_SIZE = 50;
+const DEFAULT_PAGE_SIZE = 20;
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 const TRAFFIC_OPTIONS = ["自然流量", "廣告", "KOL", "星探", "其他"];
