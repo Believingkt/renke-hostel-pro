@@ -2328,11 +2328,18 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
     return map;
   }, [rows]);
 
-  // 所有業務名稱（含協同）供自動完成
-  const allSalesNames = useMemo(() => {
+  // 開發業務姓名 datalist 來源
+  const salesNameOptions = useMemo(() => {
+    const set = new Set<string>();
+    rows.forEach((r) => { const t = r.sales_name?.trim(); if (t) set.add(t); });
+    return Array.from(set).sort();
+  }, [rows]);
+
+  // 協同業務 datalist 來源（co_sales_name + co_sales_name2 合併）
+  const coSalesNameOptions = useMemo(() => {
     const set = new Set<string>();
     rows.forEach((r) => {
-      [r.sales_name, r.co_sales_name, r.co_sales_name2].forEach((n) => {
+      [r.co_sales_name, r.co_sales_name2].forEach((n) => {
         const t = n?.trim();
         if (t) set.add(t);
       });
