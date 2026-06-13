@@ -356,7 +356,7 @@ export default function TeamKOL() {
 
       <Tabs value={tab} onValueChange={setTab}>
         <div className="overflow-x-auto">
-          <TabsList className="w-max min-w-full md:justify-start">
+          <TabsList className="w-max min-w-full md:justify-start md:min-w-0 md:w-auto md:bg-transparent md:p-0">
             <TabsTrigger value="invitations">正式邀約</TabsTrigger>
             <TabsTrigger value="prospects">潛在名單</TabsTrigger>
             {canSeeFulltimeTargets && <TabsTrigger value="fulltime_targets">邀約目標（正職）</TabsTrigger>}
