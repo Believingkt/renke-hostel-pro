@@ -2196,6 +2196,7 @@ interface ExternalOrder {
 }
 
 const CONTRACT_PROGRESS_OPTIONS = ["進行中", "已完成", "取消"];
+const INVOICE_PROGRESS_OPTIONS = ["尚未", "已完成"];
 
 const emptyExternalForm = (): Partial<ExternalOrder> => ({
   project_name: "森山第一期",
@@ -2211,7 +2212,7 @@ const emptyExternalForm = (): Partial<ExternalOrder> => ({
   payment_at: null,
   contract_progress: "進行中",
   tax_id: "",
-  invoice_progress: "",
+  invoice_progress: "尚未",
   invoice_number: "",
   invoice_carrier: true,
   invoice_address: "",
