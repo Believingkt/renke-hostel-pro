@@ -32,7 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -233,6 +233,48 @@ function useProjectOrderMap(): Record<string, number> {
   }, [all]);
 }
 
+
+// ---- Sortable table header helper ----
+type SortDir = "asc" | "desc";
+function SortableHead({
+  label,
+  active,
+  dir,
+  onClick,
+  className,
+}: {
+  label: string;
+  active: boolean;
+  dir: SortDir;
+  onClick: () => void;
+  className?: string;
+}) {
+  return (
+    <TableHead className={className}>
+      <button
+        type="button"
+        onClick={onClick}
+        className="inline-flex items-center gap-1 hover:text-foreground select-none"
+      >
+        <span>{label}</span>
+        {active ? (
+          dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+        ) : (
+          <ArrowUpDown className="h-3 w-3 opacity-50" />
+        )}
+      </button>
+    </TableHead>
+  );
+}
+
+function cycleSort<K extends string>(
+  current: { key: K; dir: SortDir } | null,
+  key: K,
+): { key: K; dir: SortDir } | null {
+  if (!current || current.key !== key) return { key, dir: "asc" };
+  if (current.dir === "asc") return { key, dir: "desc" };
+  return null;
+}
 
 function ProjectSelect({
   value,
@@ -454,6 +496,7 @@ function OrdersTab({
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [salesFilter, setSalesFilter] = useState<string>("ALL");
   const [page, setPage] = useState(1);
+  const [sort, setSort] = useState<{ key: "member" | "date"; dir: SortDir } | null>(null);
   const PAGE_SIZE = 50;
 
   useEffect(() => {
@@ -632,8 +675,18 @@ function OrdersTab({
         if (salesFilter !== "ALL" && o.sold_by !== salesFilter) return false;
         return true;
       })
-      .sort((a, b) => (b.sold_at ?? "").localeCompare(a.sold_at ?? ""));
-  }, [orders, year, month, projectFilter, statusFilter, salesFilter, canManage, viewAll, currentUserId]);
+      .sort((a, b) => {
+        if (sort?.key === "member") {
+          const cmp = (a.member_number ?? "").localeCompare(b.member_number ?? "", undefined, { numeric: true });
+          return sort.dir === "asc" ? cmp : -cmp;
+        }
+        if (sort?.key === "date") {
+          const cmp = (a.sold_at ?? "").localeCompare(b.sold_at ?? "");
+          return sort.dir === "asc" ? cmp : -cmp;
+        }
+        return (b.sold_at ?? "").localeCompare(a.sold_at ?? "");
+      });
+  }, [orders, year, month, projectFilter, statusFilter, salesFilter, canManage, viewAll, currentUserId, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = useMemo(
@@ -830,12 +883,22 @@ function OrdersTab({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>會員編號</TableHead>
+                <SortableHead
+                  label="會員編號"
+                  active={sort?.key === "member"}
+                  dir={sort?.key === "member" ? sort.dir : "asc"}
+                  onClick={() => setSort((s) => cycleSort(s, "member"))}
+                />
                 <TableHead>會員姓名</TableHead>
                 <TableHead>銷售人</TableHead>
                 <TableHead>專案名稱</TableHead>
                 <TableHead className="text-right">金額</TableHead>
-                <TableHead>簽約日期</TableHead>
+                <SortableHead
+                  label="簽約日期"
+                  active={sort?.key === "date"}
+                  dir={sort?.key === "date" ? sort.dir : "asc"}
+                  onClick={() => setSort((s) => cycleSort(s, "date"))}
+                />
                 <TableHead>付款</TableHead>
               </TableRow>
             </TableHeader>
@@ -2252,8 +2315,10 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
     return Array.from({ length: 5 }, (_, i) => String(cur - i));
   }, []);
 
+  const [sort, setSort] = useState<{ key: "member" | "date"; dir: SortDir } | null>(null);
+
   const filtered = useMemo(() => {
-    return rows.filter((r) => {
+    const list = rows.filter((r) => {
       if (projectFilter !== "ALL" && r.project_name !== projectFilter) return false;
       if (salesFilter !== "ALL" && (r.sales_name ?? "") !== salesFilter) return false;
       if (progressFilter !== "ALL" && (r.contract_progress ?? "") !== progressFilter) return false;
@@ -2266,7 +2331,16 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
       }
       return true;
     });
-  }, [rows, projectFilter, salesFilter, progressFilter, year, month]);
+    if (sort) {
+      list.sort((a, b) => {
+        const cmp = sort.key === "member"
+          ? (a.member_number ?? "").localeCompare(b.member_number ?? "", undefined, { numeric: true })
+          : (a.signed_at ?? "").localeCompare(b.signed_at ?? "");
+        return sort.dir === "asc" ? cmp : -cmp;
+      });
+    }
+    return list;
+  }, [rows, projectFilter, salesFilter, progressFilter, year, month, sort]);
 
   const checkExtMemberNumberDup = async (val: string) => {
     const v = val.trim();
@@ -2443,12 +2517,24 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="whitespace-nowrap">會員編號</TableHead>
+                <SortableHead
+                  className="whitespace-nowrap"
+                  label="會員編號"
+                  active={sort?.key === "member"}
+                  dir={sort?.key === "member" ? sort.dir : "asc"}
+                  onClick={() => setSort((s) => cycleSort(s, "member"))}
+                />
                 <TableHead className="whitespace-nowrap">會員姓名</TableHead>
                 <TableHead className="whitespace-nowrap">開發業務</TableHead>
                 <TableHead className="whitespace-nowrap">專案名稱</TableHead>
                 <TableHead className="whitespace-nowrap text-right">金額</TableHead>
-                <TableHead className="whitespace-nowrap">簽約日期</TableHead>
+                <SortableHead
+                  className="whitespace-nowrap"
+                  label="簽約日期"
+                  active={sort?.key === "date"}
+                  dir={sort?.key === "date" ? sort.dir : "asc"}
+                  onClick={() => setSort((s) => cycleSort(s, "date"))}
+                />
                 <TableHead className="whitespace-nowrap">合約進度</TableHead>
               </TableRow>
             </TableHeader>
@@ -3934,13 +4020,25 @@ function VoucherProgressTab({ canEdit = true, forcedSource, hideSourceFilter = f
   useEffect(() => { load(); }, []);
 
   const effectiveSource = forcedSource ?? filterSource;
-  const filtered = useMemo(() => rows.filter((r) => {
-    if (effectiveSource !== "ALL" && r.source !== effectiveSource) return false;
-    if (filterProject !== "ALL" && r.project_name !== filterProject) return false;
-    if (filterStatus !== "ALL" && (r.voucher_status ?? "未寄出") !== filterStatus) return false;
-    if (filterCard !== "ALL" && (r.card_status ?? "未完成") !== filterCard) return false;
-    return true;
-  }), [rows, effectiveSource, filterProject, filterStatus, filterCard]);
+  const [sort, setSort] = useState<{ key: "member" | "date"; dir: SortDir } | null>(null);
+  const filtered = useMemo(() => {
+    const list = rows.filter((r) => {
+      if (effectiveSource !== "ALL" && r.source !== effectiveSource) return false;
+      if (filterProject !== "ALL" && r.project_name !== filterProject) return false;
+      if (filterStatus !== "ALL" && (r.voucher_status ?? "未寄出") !== filterStatus) return false;
+      if (filterCard !== "ALL" && (r.card_status ?? "未完成") !== filterCard) return false;
+      return true;
+    });
+    if (sort) {
+      list.sort((a, b) => {
+        const cmp = sort.key === "member"
+          ? (a.member_number ?? "").localeCompare(b.member_number ?? "", undefined, { numeric: true })
+          : (a.signed_at ?? "").localeCompare(b.signed_at ?? "");
+        return sort.dir === "asc" ? cmp : -cmp;
+      });
+    }
+    return list;
+  }, [rows, effectiveSource, filterProject, filterStatus, filterCard, sort]);
 
   const projectOptions = useMemo(() => {
     const set = new Set<string>();
@@ -4079,8 +4177,20 @@ function VoucherProgressTab({ canEdit = true, forcedSource, hideSourceFilter = f
           <Table className="fixed-table">
             <TableHeader>
               <TableRow>
-                <TableHead className="whitespace-nowrap">簽約日期</TableHead>
-                <TableHead className="whitespace-nowrap">會員編號</TableHead>
+                <SortableHead
+                  className="whitespace-nowrap"
+                  label="簽約日期"
+                  active={sort?.key === "date"}
+                  dir={sort?.key === "date" ? sort.dir : "asc"}
+                  onClick={() => setSort((s) => cycleSort(s, "date"))}
+                />
+                <SortableHead
+                  className="whitespace-nowrap"
+                  label="會員編號"
+                  active={sort?.key === "member"}
+                  dir={sort?.key === "member" ? sort.dir : "asc"}
+                  onClick={() => setSort((s) => cycleSort(s, "member"))}
+                />
                 <TableHead className="whitespace-nowrap">會員姓名</TableHead>
                 <TableHead className="whitespace-nowrap">名片製作</TableHead>
                 <TableHead className="whitespace-nowrap">發放張數</TableHead>
