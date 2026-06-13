@@ -33,7 +33,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Pencil, Check, X, Search } from "lucide-react";
+import { Pencil, Check, X, Search, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import ScoutDiscountCodesTab from "@/components/team/ScoutDiscountCodesTab";
 import TeamCommissionStatsTab from "@/components/team/TeamCommissionStatsTab";
 import CommissionRatesTab from "@/components/team/CommissionRatesTab";
