@@ -4177,8 +4177,20 @@ function VoucherProgressTab({ canEdit = true, forcedSource, hideSourceFilter = f
           <Table className="fixed-table">
             <TableHeader>
               <TableRow>
-                <TableHead className="whitespace-nowrap">簽約日期</TableHead>
-                <TableHead className="whitespace-nowrap">會員編號</TableHead>
+                <SortableHead
+                  className="whitespace-nowrap"
+                  label="簽約日期"
+                  active={sort?.key === "date"}
+                  dir={sort?.key === "date" ? sort.dir : "asc"}
+                  onClick={() => setSort((s) => cycleSort(s, "date"))}
+                />
+                <SortableHead
+                  className="whitespace-nowrap"
+                  label="會員編號"
+                  active={sort?.key === "member"}
+                  dir={sort?.key === "member" ? sort.dir : "asc"}
+                  onClick={() => setSort((s) => cycleSort(s, "member"))}
+                />
                 <TableHead className="whitespace-nowrap">會員姓名</TableHead>
                 <TableHead className="whitespace-nowrap">名片製作</TableHead>
                 <TableHead className="whitespace-nowrap">發放張數</TableHead>
