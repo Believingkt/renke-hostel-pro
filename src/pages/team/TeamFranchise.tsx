@@ -4020,13 +4020,25 @@ function VoucherProgressTab({ canEdit = true, forcedSource, hideSourceFilter = f
   useEffect(() => { load(); }, []);
 
   const effectiveSource = forcedSource ?? filterSource;
-  const filtered = useMemo(() => rows.filter((r) => {
-    if (effectiveSource !== "ALL" && r.source !== effectiveSource) return false;
-    if (filterProject !== "ALL" && r.project_name !== filterProject) return false;
-    if (filterStatus !== "ALL" && (r.voucher_status ?? "未寄出") !== filterStatus) return false;
-    if (filterCard !== "ALL" && (r.card_status ?? "未完成") !== filterCard) return false;
-    return true;
-  }), [rows, effectiveSource, filterProject, filterStatus, filterCard]);
+  const [sort, setSort] = useState<{ key: "member" | "date"; dir: SortDir } | null>(null);
+  const filtered = useMemo(() => {
+    const list = rows.filter((r) => {
+      if (effectiveSource !== "ALL" && r.source !== effectiveSource) return false;
+      if (filterProject !== "ALL" && r.project_name !== filterProject) return false;
+      if (filterStatus !== "ALL" && (r.voucher_status ?? "未寄出") !== filterStatus) return false;
+      if (filterCard !== "ALL" && (r.card_status ?? "未完成") !== filterCard) return false;
+      return true;
+    });
+    if (sort) {
+      list.sort((a, b) => {
+        const cmp = sort.key === "member"
+          ? (a.member_number ?? "").localeCompare(b.member_number ?? "", undefined, { numeric: true })
+          : (a.signed_at ?? "").localeCompare(b.signed_at ?? "");
+        return sort.dir === "asc" ? cmp : -cmp;
+      });
+    }
+    return list;
+  }, [rows, effectiveSource, filterProject, filterStatus, filterCard, sort]);
 
   const projectOptions = useMemo(() => {
     const set = new Set<string>();
