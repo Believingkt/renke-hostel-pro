@@ -522,17 +522,15 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
             setImportProgress(pct);
             if (text) setImportStatus(text);
           });
-          handleOpenChange(false);
-          const baseDesc = `新增 ${result.created} 筆、更新 ${result.updated} 筆`;
-          const warnDesc = result.warnings.length
-            ? `\n警告：\n${result.warnings.join("\n")}`
-            : "";
+          setRyanResult(result);
+          setDiscountInputs({});
+          setSavedDiscounts({});
+          setStep("result");
           toast({
             title: "旅安匯入完成",
-            description: baseDesc + warnDesc,
+            description: `新增 ${result.created} 筆、更新 ${result.updated} 筆`,
             variant: result.warnings.length > 0 ? "destructive" : "default",
           });
-          setTimeout(() => onSuccess(), 300);
         } catch (err) {
           console.error("Ryan import error:", err);
           toast({
