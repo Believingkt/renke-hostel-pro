@@ -56,6 +56,18 @@ const PortalAIChatPanel = () => {
   const focusRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { isRecording, isTranscribing, playingMessageIndex, startRecording, stopRecording, playTTS, stopPlayback } = useVoiceChat();
+  const [autoSpeak, setAutoSpeak] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("portal_ai_auto_speak") === "1";
+  });
+  const toggleAutoSpeak = () => {
+    setAutoSpeak((prev) => {
+      const next = !prev;
+      try { window.localStorage.setItem("portal_ai_auto_speak", next ? "1" : "0"); } catch {}
+      if (!next) stopPlayback();
+      return next;
+    });
+  };
 
   // 取得當前焦點訊息（最新一則 assistant + 最新一則 user）
   const focusMessages = useMemo(() => {
