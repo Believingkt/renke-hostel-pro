@@ -56,14 +56,11 @@ const PortalAIChatPanel = () => {
   const focusRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { isRecording, isTranscribing, playingMessageIndex, startRecording, stopRecording, playTTS, stopPlayback } = useVoiceChat();
-  const [autoSpeak, setAutoSpeak] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return window.localStorage.getItem("portal_ai_auto_speak") === "1";
-  });
+  // 朗讀預設關閉，每次進入皆為關閉狀態（不持久化）
+  const [autoSpeak, setAutoSpeak] = useState<boolean>(false);
   const toggleAutoSpeak = () => {
     setAutoSpeak((prev) => {
       const next = !prev;
-      try { window.localStorage.setItem("portal_ai_auto_speak", next ? "1" : "0"); } catch {}
       if (!next) {
         lastSpokenIndexRef.current = -1;
         stopPlayback();
