@@ -518,6 +518,10 @@ const BookingPortal = () => {
       console.error("Availability check failed:", error);
     } finally {
       setSearching(false);
+      // Scroll to results so the user sees the filter took effect
+      setTimeout(() => {
+        document.getElementById("room-list-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
     }
   }, [checkIn, checkOut, isStayRangeAvailable, roomTypes]);
 
