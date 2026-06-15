@@ -203,16 +203,22 @@ const PortalAIChatPanel = () => {
   };
 
   // 自動播放最新 AI 回覆（需使用者開啟朗讀）
+  const lastSpokenIndexRef = useRef<number>(-1);
   useEffect(() => {
-    if (!autoSpeak) return;
-    if (messages.length === 0) return;
-    const last = messages[messages.length - 1];
-    if (last.role === "assistant" && last.content && !isLoading) {
-      const idx = messages.length - 1;
-      const timer = setTimeout(() => playTTS(last.content, idx), 300);
-      return () => clearTimeout(timer);
+    if (!autoSpeak) {
+      stopPlayback();
+      return;
     }
-  }, [isLoading, autoSpeak]);
+    if (isLoading) return;
+    if (messages.length === 0) return;
+    const idx = messages.length - 1;
+    const last = messages[idx];
+    if (last.role !== "assistant" || !last.content) return;
+    if (lastSpokenIndexRef.current === idx) return;
+    lastSpokenIndexRef.current = idx;
+    const timer = setTimeout(() => playTTS(last.content, idx), 300);
+    return () => clearTimeout(timer);
+  }, [isLoading, autoSpeak, messages.length]);
 
   const isAssistantSpeaking = playingMessageIndex !== null;
 

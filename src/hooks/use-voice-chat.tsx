@@ -12,6 +12,8 @@ export function useVoiceChat() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const playTokenRef = useRef(0);
+  const currentAbortRef = useRef<AbortController | null>(null);
   const { toast } = useToast();
 
   const startRecording = useCallback(async (): Promise<void> => {
@@ -87,27 +89,39 @@ export function useVoiceChat() {
   }, [toast]);
 
   const playTTS = useCallback(async (text: string, messageIndex: number) => {
-    // Stop current playback if any
+    // Always cancel any in-flight/playing audio first
+    const wasPlayingSame = playingMessageIndex === messageIndex;
+    playTokenRef.current += 1;
+    if (currentAbortRef.current) {
+      try { currentAbortRef.current.abort(); } catch {}
+      currentAbortRef.current = null;
+    }
     if (currentAudioRef.current) {
-      currentAudioRef.current.pause();
+      try { currentAudioRef.current.pause(); } catch {}
       currentAudioRef.current = null;
-      if (playingMessageIndex === messageIndex) {
-        setPlayingMessageIndex(null);
-        return; // Toggle off
-      }
+    }
+    if (wasPlayingSame) {
+      // Toggle off: don't start a new one
+      setPlayingMessageIndex(null);
+      return;
     }
 
+    const myToken = playTokenRef.current;
+    const abort = new AbortController();
+    currentAbortRef.current = abort;
     setPlayingMessageIndex(messageIndex);
 
     try {
-      // Strip markdown for cleaner speech
       const cleanText = text
         .replace(/[#*_~`>]/g, "")
         .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
         .replace(/\n+/g, "。")
         .trim();
 
-      if (!cleanText) return;
+      if (!cleanText) {
+        setPlayingMessageIndex(null);
+        return;
+      }
 
       const resp = await fetch(TTS_URL, {
         method: "POST",
@@ -116,26 +130,37 @@ export function useVoiceChat() {
           Authorization: `Bearer ${AUTH_KEY}`,
         },
         body: JSON.stringify({ text: cleanText.slice(0, 500) }),
+        signal: abort.signal,
       });
 
+      if (myToken !== playTokenRef.current) return; // superseded
       if (!resp.ok) throw new Error("語音合成失敗");
       const data = await resp.json();
+      if (myToken !== playTokenRef.current) return;
 
       const audioUrl = `data:audio/mpeg;base64,${data.audioContent}`;
       const audio = new Audio(audioUrl);
       currentAudioRef.current = audio;
 
       audio.onended = () => {
-        setPlayingMessageIndex(null);
-        currentAudioRef.current = null;
+        if (currentAudioRef.current === audio) {
+          setPlayingMessageIndex(null);
+          currentAudioRef.current = null;
+        }
       };
       audio.onerror = () => {
-        setPlayingMessageIndex(null);
-        currentAudioRef.current = null;
+        if (currentAudioRef.current === audio) {
+          setPlayingMessageIndex(null);
+          currentAudioRef.current = null;
+        }
       };
 
       await audio.play();
-    } catch (e) {
+      if (myToken !== playTokenRef.current) {
+        try { audio.pause(); } catch {}
+      }
+    } catch (e: any) {
+      if (e?.name === "AbortError") return;
       console.error("TTS error:", e);
       toast({ title: "語音播放失敗", description: "請稍後再試", variant: "destructive" });
       setPlayingMessageIndex(null);
@@ -143,8 +168,13 @@ export function useVoiceChat() {
   }, [playingMessageIndex, toast]);
 
   const stopPlayback = useCallback(() => {
+    playTokenRef.current += 1;
+    if (currentAbortRef.current) {
+      try { currentAbortRef.current.abort(); } catch {}
+      currentAbortRef.current = null;
+    }
     if (currentAudioRef.current) {
-      currentAudioRef.current.pause();
+      try { currentAudioRef.current.pause(); } catch {}
       currentAudioRef.current = null;
     }
     setPlayingMessageIndex(null);
