@@ -225,9 +225,7 @@ const PortalAIChatPanel = () => {
     }
   }, [isLoading, autoSpeak]);
 
-  const currentAssistant = focusMessages.find((m) => m.role === "assistant");
-  const currentUser = focusMessages.find((m) => m.role === "user");
-  const isAssistantSpeaking = currentAssistant && playingMessageIndex === messages.length - 1;
+  const isAssistantSpeaking = playingMessageIndex !== null;
 
   return (
     <div className="max-w-2xl mx-auto px-2 sm:px-0">
