@@ -56,6 +56,18 @@ const PortalAIChatPanel = () => {
   const focusRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { isRecording, isTranscribing, playingMessageIndex, startRecording, stopRecording, playTTS, stopPlayback } = useVoiceChat();
+  const [autoSpeak, setAutoSpeak] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("portal_ai_auto_speak") === "1";
+  });
+  const toggleAutoSpeak = () => {
+    setAutoSpeak((prev) => {
+      const next = !prev;
+      try { window.localStorage.setItem("portal_ai_auto_speak", next ? "1" : "0"); } catch {}
+      if (!next) stopPlayback();
+      return next;
+    });
+  };
 
   // 取得當前焦點訊息（最新一則 assistant + 最新一則 user）
   const focusMessages = useMemo(() => {
@@ -201,17 +213,17 @@ const PortalAIChatPanel = () => {
     }
   };
 
-  // 自動播放最新 AI 回覆（語音優先體驗）
+  // 自動播放最新 AI 回覆（需使用者開啟朗讀）
   useEffect(() => {
+    if (!autoSpeak) return;
     if (messages.length === 0) return;
     const last = messages[messages.length - 1];
     if (last.role === "assistant" && last.content && !isLoading) {
-      // 自動朗讀最新回覆
       const idx = messages.length - 1;
       const timer = setTimeout(() => playTTS(last.content, idx), 300);
       return () => clearTimeout(timer);
     }
-  }, [isLoading]);
+  }, [isLoading, autoSpeak]);
 
   const currentAssistant = focusMessages.find((m) => m.role === "assistant");
   const currentUser = focusMessages.find((m) => m.role === "user");
@@ -240,10 +252,22 @@ const PortalAIChatPanel = () => {
               </p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleReset} className="h-8 text-xs text-muted-foreground hover:text-foreground" title="重新開始">
-            <RotateCcw className="h-3.5 w-3.5 mr-1" />
-            重來
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleAutoSpeak}
+              className="h-8 text-xs text-muted-foreground hover:text-foreground"
+              title={autoSpeak ? "關閉自動朗讀" : "開啟自動朗讀"}
+            >
+              {autoSpeak ? <Volume2 className="h-3.5 w-3.5 mr-1 text-[hsl(25,70%,55%)]" /> : <VolumeX className="h-3.5 w-3.5 mr-1" />}
+              {autoSpeak ? "朗讀開" : "朗讀關"}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleReset} className="h-8 text-xs text-muted-foreground hover:text-foreground" title="重新開始">
+              <RotateCcw className="h-3.5 w-3.5 mr-1" />
+              重來
+            </Button>
+          </div>
         </div>
 
         {/* Main interaction area */}
