@@ -445,7 +445,7 @@ const PortalAIChatPanel = () => {
                 const speaking = playingMessageIndex === mi;
                 return (
                   <div key={mi} className="flex flex-col items-center gap-3">
-                    {isLatestAssistant && msg.content && (
+                    {autoSpeak && isLatestAssistant && msg.content && (
                       <button
                         onClick={() => playTTS(msg.content, mi)}
                         className="relative group"
@@ -459,7 +459,7 @@ const PortalAIChatPanel = () => {
                     )}
 
                     <div className="w-full bg-white/90 backdrop-blur rounded-2xl px-4 py-3 shadow-sm border border-[hsl(25,30%,92%)] relative">
-                      {!isLatestAssistant && msg.content && (
+                      {autoSpeak && !isLatestAssistant && msg.content && (
                         <button
                           onClick={() => playTTS(msg.content, mi)}
                           className="absolute top-2 right-2 h-7 w-7 rounded-full flex items-center justify-center text-[hsl(25,70%,50%)] hover:bg-[hsl(25,80%,95%)] transition"
