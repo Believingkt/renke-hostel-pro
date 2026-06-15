@@ -445,29 +445,8 @@ const PortalAIChatPanel = () => {
                 const speaking = playingMessageIndex === mi;
                 return (
                   <div key={mi} className="flex flex-col items-center gap-3">
-                    {autoSpeak && isLatestAssistant && msg.content && (
-                      <button
-                        onClick={() => playTTS(msg.content, mi)}
-                        className="relative group"
-                        title={speaking ? "停止" : "重新播放"}
-                      >
-                        <div className={`absolute inset-0 rounded-full bg-gradient-to-br from-[hsl(25,80%,60%)] to-[hsl(15,75%,50%)] blur-xl ${speaking ? "animate-pulse opacity-60 scale-110" : "opacity-30"} transition-all`} />
-                        <div className={`relative h-20 w-20 rounded-full bg-gradient-to-br from-[hsl(25,80%,60%)] to-[hsl(15,75%,50%)] flex items-center justify-center shadow-lg ${speaking ? "animate-pulse" : ""}`}>
-                          {speaking ? <VolumeX className="h-8 w-8 text-white" /> : <Volume2 className="h-8 w-8 text-white" />}
-                        </div>
-                      </button>
-                    )}
-
                     <div className="w-full bg-white/90 backdrop-blur rounded-2xl px-4 py-3 shadow-sm border border-[hsl(25,30%,92%)] relative">
-                      {autoSpeak && !isLatestAssistant && msg.content && (
-                        <button
-                          onClick={() => playTTS(msg.content, mi)}
-                          className="absolute top-2 right-2 h-7 w-7 rounded-full flex items-center justify-center text-[hsl(25,70%,50%)] hover:bg-[hsl(25,80%,95%)] transition"
-                          title={speaking ? "停止" : "播放"}
-                        >
-                          {speaking ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
-                        </button>
-                      )}
+
                       {msg.content ? (
                         (() => {
                           const parsed = parseRoomListings(msg.content);
