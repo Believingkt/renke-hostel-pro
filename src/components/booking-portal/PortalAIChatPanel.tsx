@@ -64,7 +64,10 @@ const PortalAIChatPanel = () => {
     setAutoSpeak((prev) => {
       const next = !prev;
       try { window.localStorage.setItem("portal_ai_auto_speak", next ? "1" : "0"); } catch {}
-      if (!next) stopPlayback();
+      if (!next) {
+        lastSpokenIndexRef.current = -1;
+        stopPlayback();
+      }
       return next;
     });
   };
@@ -216,7 +219,7 @@ const PortalAIChatPanel = () => {
     if (last.role !== "assistant" || !last.content) return;
     if (lastSpokenIndexRef.current === idx) return;
     lastSpokenIndexRef.current = idx;
-    const timer = setTimeout(() => playTTS(last.content, idx), 300);
+    const timer = setTimeout(() => playTTS(last.content, idx, { forceRestart: true }), 300);
     return () => clearTimeout(timer);
   }, [isLoading, autoSpeak, messages.length]);
 
