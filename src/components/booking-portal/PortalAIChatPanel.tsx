@@ -69,24 +69,13 @@ const PortalAIChatPanel = () => {
     });
   };
 
-  // 取得當前焦點訊息（最新一則 assistant + 最新一則 user）
-  const focusMessages = useMemo(() => {
-    if (messages.length === 0) return [];
-    const result: Message[] = [];
-    // 找最後一則 user
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === "user") {
-        result.push(messages[i]);
-        break;
-      }
-    }
-    // 最後一則 assistant
-    const lastAssistant = messages[messages.length - 1];
-    if (lastAssistant?.role === "assistant") {
-      result.push(lastAssistant);
-    }
-    return result;
-  }, [messages]);
+  // 自動捲到底部
+  useEffect(() => {
+    const el = focusRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages, isLoading]);
+
+
 
   const sendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return;
