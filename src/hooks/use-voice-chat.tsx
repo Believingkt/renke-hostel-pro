@@ -12,6 +12,8 @@ export function useVoiceChat() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const playTokenRef = useRef(0);
+  const currentAbortRef = useRef<AbortController | null>(null);
   const { toast } = useToast();
 
   const startRecording = useCallback(async (): Promise<void> => {
