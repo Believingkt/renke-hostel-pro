@@ -252,10 +252,22 @@ const PortalAIChatPanel = () => {
               </p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleReset} className="h-8 text-xs text-muted-foreground hover:text-foreground" title="重新開始">
-            <RotateCcw className="h-3.5 w-3.5 mr-1" />
-            重來
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleAutoSpeak}
+              className="h-8 text-xs text-muted-foreground hover:text-foreground"
+              title={autoSpeak ? "關閉自動朗讀" : "開啟自動朗讀"}
+            >
+              {autoSpeak ? <Volume2 className="h-3.5 w-3.5 mr-1 text-[hsl(25,70%,55%)]" /> : <VolumeX className="h-3.5 w-3.5 mr-1" />}
+              {autoSpeak ? "朗讀開" : "朗讀關"}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleReset} className="h-8 text-xs text-muted-foreground hover:text-foreground" title="重新開始">
+              <RotateCcw className="h-3.5 w-3.5 mr-1" />
+              重來
+            </Button>
+          </div>
         </div>
 
         {/* Main interaction area */}
