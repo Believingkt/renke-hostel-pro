@@ -213,17 +213,17 @@ const PortalAIChatPanel = () => {
     }
   };
 
-  // 自動播放最新 AI 回覆（語音優先體驗）
+  // 自動播放最新 AI 回覆（需使用者開啟朗讀）
   useEffect(() => {
+    if (!autoSpeak) return;
     if (messages.length === 0) return;
     const last = messages[messages.length - 1];
     if (last.role === "assistant" && last.content && !isLoading) {
-      // 自動朗讀最新回覆
       const idx = messages.length - 1;
       const timer = setTimeout(() => playTTS(last.content, idx), 300);
       return () => clearTimeout(timer);
     }
-  }, [isLoading]);
+  }, [isLoading, autoSpeak]);
 
   const currentAssistant = focusMessages.find((m) => m.role === "assistant");
   const currentUser = focusMessages.find((m) => m.role === "user");
