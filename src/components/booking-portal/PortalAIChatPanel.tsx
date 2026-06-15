@@ -445,7 +445,7 @@ const PortalAIChatPanel = () => {
                 const speaking = playingMessageIndex === mi;
                 return (
                   <div key={mi} className="flex flex-col items-center gap-3">
-                    {isLatestAssistant && msg.content && (
+                    {autoSpeak && isLatestAssistant && msg.content && (
                       <button
                         onClick={() => playTTS(msg.content, mi)}
                         className="relative group"
