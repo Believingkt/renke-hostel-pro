@@ -270,17 +270,14 @@ const PortalAIChatPanel = () => {
         <div ref={focusRef} className="flex-1 flex flex-col items-center justify-center px-4 py-6 overflow-y-auto">
           {showWelcome && messages.length === 0 ? (
             <div className="w-full flex flex-col items-center text-center gap-5 animate-in fade-in duration-500">
-              {/* Voice orb */}
+              {/* Mic button (compact) */}
               <button
                 onClick={handleMicToggle}
                 disabled={isLoading || isTranscribing}
-                className="relative group"
+                className={`relative h-14 w-14 rounded-full bg-gradient-to-br from-[hsl(25,80%,60%)] to-[hsl(15,75%,50%)] flex items-center justify-center shadow-md transition-transform hover:scale-105 ${isRecording ? "animate-pulse" : ""}`}
                 aria-label="開始語音對話"
               >
-                <div className={`absolute inset-0 rounded-full bg-gradient-to-br from-[hsl(25,80%,60%)] to-[hsl(15,75%,50%)] blur-2xl opacity-40 ${isRecording ? "animate-pulse scale-125" : "group-hover:opacity-60 group-hover:scale-110"} transition-all`} />
-                <div className={`relative h-32 w-32 rounded-full bg-gradient-to-br from-[hsl(25,80%,60%)] via-[hsl(20,80%,55%)] to-[hsl(15,75%,50%)] flex items-center justify-center shadow-xl ${isRecording ? "animate-pulse" : ""}`}>
-                  <Mic className="h-12 w-12 text-white drop-shadow-lg" strokeWidth={2.2} />
-                </div>
+                <Mic className="h-6 w-6 text-white" strokeWidth={2.2} />
                 {isRecording && (
                   <span className="absolute inset-0 rounded-full ring-4 ring-red-400/60 animate-ping" />
                 )}
