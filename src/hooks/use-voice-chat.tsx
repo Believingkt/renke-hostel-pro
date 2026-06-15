@@ -88,7 +88,7 @@ export function useVoiceChat() {
     });
   }, [toast]);
 
-  const playTTS = useCallback(async (text: string, messageIndex: number) => {
+  const playTTS = useCallback(async (text: string, messageIndex: number, options?: { forceRestart?: boolean }) => {
     // Always cancel any in-flight/playing audio first
     const wasPlayingSame = playingMessageIndex === messageIndex;
     playTokenRef.current += 1;
@@ -100,7 +100,7 @@ export function useVoiceChat() {
       try { currentAudioRef.current.pause(); } catch {}
       currentAudioRef.current = null;
     }
-    if (wasPlayingSame) {
+    if (wasPlayingSame && !options?.forceRestart) {
       // Toggle off: don't start a new one
       setPlayingMessageIndex(null);
       return;
