@@ -135,20 +135,26 @@ export function useVoiceChat() {
 
       if (myToken !== playTokenRef.current) return; // superseded
       if (!resp.ok) throw new Error("語音合成失敗");
-      const data = await resp.json();
+
+      const blob = await resp.blob();
       if (myToken !== playTokenRef.current) return;
 
-      const audioUrl = `data:audio/mpeg;base64,${data.audioContent}`;
+      const audioUrl = URL.createObjectURL(blob);
       const audio = new Audio(audioUrl);
       currentAudioRef.current = audio;
 
+      const cleanup = () => {
+        try { URL.revokeObjectURL(audioUrl); } catch {}
+      };
       audio.onended = () => {
+        cleanup();
         if (currentAudioRef.current === audio) {
           setPlayingMessageIndex(null);
           currentAudioRef.current = null;
         }
       };
       audio.onerror = () => {
+        cleanup();
         if (currentAudioRef.current === audio) {
           setPlayingMessageIndex(null);
           currentAudioRef.current = null;
@@ -158,6 +164,7 @@ export function useVoiceChat() {
       await audio.play();
       if (myToken !== playTokenRef.current) {
         try { audio.pause(); } catch {}
+        cleanup();
       }
     } catch (e: any) {
       if (e?.name === "AbortError") return;

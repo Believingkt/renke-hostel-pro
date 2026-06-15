@@ -68,7 +68,7 @@ serve(async (req) => {
     // 使用 nova 作為預設，適合中文語音
     const selectedVoice = voice || 'nova'
     
-    // 使用 OpenAI Text-to-Speech API
+    // 使用 OpenAI Text-to-Speech API（串流回傳，降低首字延遲）
     const response = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',
       headers: {
@@ -89,29 +89,16 @@ serve(async (req) => {
       throw new Error(`OpenAI TTS API error: ${errorText}`)
     }
 
-    // 將音頻轉換為 base64（分塊處理避免堆疊溢位）
-    const arrayBuffer = await response.arrayBuffer()
-    const bytes = new Uint8Array(arrayBuffer)
-    
-    // 分塊處理 base64 編碼，避免 Maximum call stack size exceeded
-    let binaryString = ''
-    const chunkSize = 8192 // 每次處理 8KB
-    
-    for (let i = 0; i < bytes.length; i += chunkSize) {
-      const chunk = bytes.slice(i, i + chunkSize)
-      binaryString += String.fromCharCode.apply(null, Array.from(chunk))
-    }
-    
-    const base64Audio = btoa(binaryString)
+    console.log('OpenAI 語音串流開始')
 
-    console.log('OpenAI 語音生成成功，音頻大小:', arrayBuffer.byteLength, 'bytes')
-
-    return new Response(
-      JSON.stringify({ audioContent: base64Audio }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    // 直接把 MP3 串流回前端，省掉 buffer + base64
+    return new Response(response.body, {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'audio/mpeg',
+        'Cache-Control': 'no-store',
       },
-    )
+    })
   } catch (error) {
     console.error('文字轉語音錯誤:', error)
     const errorMessage = error instanceof Error ? error.message : '未知錯誤'
