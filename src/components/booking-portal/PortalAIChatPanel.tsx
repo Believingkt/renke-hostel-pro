@@ -443,89 +443,101 @@ const PortalAIChatPanel = () => {
             </div>
           ) : (
             <div className="w-full max-w-xl space-y-4 animate-in fade-in duration-300">
-              {/* User's last message — small bubble at top */}
-              {currentUser && (
-                <div className="flex justify-end">
-                  <div className="max-w-[85%] bg-[hsl(25,70%,50%)] text-white rounded-2xl rounded-br-md px-3 py-2 text-sm shadow-sm">
-                    {currentUser.content}
-                  </div>
-                </div>
-              )}
-
-              {/* AI response — focused card */}
-              {currentAssistant && (
-                <div className="flex flex-col items-center gap-3">
-                  {/* Voice orb */}
-                  <button
-                    onClick={() => currentAssistant.content && playTTS(currentAssistant.content, messages.length - 1)}
-                    className="relative group"
-                    title={isAssistantSpeaking ? "停止" : "重新播放"}
-                  >
-                    <div className={`absolute inset-0 rounded-full bg-gradient-to-br from-[hsl(25,80%,60%)] to-[hsl(15,75%,50%)] blur-xl ${isAssistantSpeaking ? "animate-pulse opacity-60 scale-110" : "opacity-30"} transition-all`} />
-                    <div className={`relative h-20 w-20 rounded-full bg-gradient-to-br from-[hsl(25,80%,60%)] to-[hsl(15,75%,50%)] flex items-center justify-center shadow-lg ${isAssistantSpeaking ? "animate-pulse" : ""}`}>
-                      {isAssistantSpeaking ? <VolumeX className="h-8 w-8 text-white" /> : <Volume2 className="h-8 w-8 text-white" />}
+              {messages.map((msg, mi) => {
+                const isLatestAssistant = msg.role === "assistant" && mi === messages.length - 1;
+                if (msg.role === "user") {
+                  return (
+                    <div key={mi} className="flex justify-end">
+                      <div className="max-w-[85%] bg-[hsl(25,70%,50%)] text-white rounded-2xl rounded-br-md px-3 py-2 text-sm shadow-sm whitespace-pre-wrap break-words">
+                        {msg.content}
+                      </div>
                     </div>
-                  </button>
+                  );
+                }
+                // assistant
+                const speaking = playingMessageIndex === mi;
+                return (
+                  <div key={mi} className="flex flex-col items-center gap-3">
+                    {isLatestAssistant && msg.content && (
+                      <button
+                        onClick={() => playTTS(msg.content, mi)}
+                        className="relative group"
+                        title={speaking ? "停止" : "重新播放"}
+                      >
+                        <div className={`absolute inset-0 rounded-full bg-gradient-to-br from-[hsl(25,80%,60%)] to-[hsl(15,75%,50%)] blur-xl ${speaking ? "animate-pulse opacity-60 scale-110" : "opacity-30"} transition-all`} />
+                        <div className={`relative h-20 w-20 rounded-full bg-gradient-to-br from-[hsl(25,80%,60%)] to-[hsl(15,75%,50%)] flex items-center justify-center shadow-lg ${speaking ? "animate-pulse" : ""}`}>
+                          {speaking ? <VolumeX className="h-8 w-8 text-white" /> : <Volume2 className="h-8 w-8 text-white" />}
+                        </div>
+                      </button>
+                    )}
 
-                  {/* Compact AI text */}
-                  <div className="w-full bg-white/90 backdrop-blur rounded-2xl px-4 py-3 shadow-sm border border-[hsl(25,30%,92%)]">
-                    {currentAssistant.content ? (
-                      (() => {
-                        const parsed = parseRoomListings(currentAssistant.content);
-                        if (parsed) {
-                          return (
-                            <div className="space-y-2">
-                              {parsed.beforeText && (
-                                <div className="prose prose-sm max-w-none [&>p]:my-0 text-foreground text-sm leading-relaxed">
-                                  <ReactMarkdown>{parsed.beforeText}</ReactMarkdown>
+                    <div className="w-full bg-white/90 backdrop-blur rounded-2xl px-4 py-3 shadow-sm border border-[hsl(25,30%,92%)] relative">
+                      {!isLatestAssistant && msg.content && (
+                        <button
+                          onClick={() => playTTS(msg.content, mi)}
+                          className="absolute top-2 right-2 h-7 w-7 rounded-full flex items-center justify-center text-[hsl(25,70%,50%)] hover:bg-[hsl(25,80%,95%)] transition"
+                          title={speaking ? "停止" : "播放"}
+                        >
+                          {speaking ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+                        </button>
+                      )}
+                      {msg.content ? (
+                        (() => {
+                          const parsed = parseRoomListings(msg.content);
+                          if (parsed) {
+                            return (
+                              <div className="space-y-2">
+                                {parsed.beforeText && (
+                                  <div className="prose prose-sm max-w-none [&>p]:my-0 text-foreground text-sm leading-relaxed">
+                                    <ReactMarkdown>{parsed.beforeText}</ReactMarkdown>
+                                  </div>
+                                )}
+                                <div className="grid gap-2">
+                                  {parsed.rooms.slice(0, 3).map((room, ri) => (
+                                    <ChatRoomCard key={ri} room={room} />
+                                  ))}
                                 </div>
-                              )}
-                              <div className="grid gap-2">
-                                {parsed.rooms.slice(0, 3).map((room, ri) => (
-                                  <ChatRoomCard key={ri} room={room} />
-                                ))}
+                                {parsed.afterText && (
+                                  <div className="prose prose-sm max-w-none [&>p]:my-0 text-foreground text-sm">
+                                    <ReactMarkdown>{parsed.afterText}</ReactMarkdown>
+                                  </div>
+                                )}
                               </div>
-                              {parsed.afterText && (
-                                <div className="prose prose-sm max-w-none [&>p]:my-0 text-foreground text-sm">
-                                  <ReactMarkdown>{parsed.afterText}</ReactMarkdown>
-                                </div>
-                              )}
+                            );
+                          }
+                          return (
+                            <div className={`prose prose-sm max-w-none [&>p]:my-0 text-foreground leading-relaxed ${isLatestAssistant ? "text-base text-center" : "text-sm"}`}>
+                              <ReactMarkdown>{msg.content}</ReactMarkdown>
                             </div>
                           );
-                        }
-                        return (
-                          <div className="prose prose-sm max-w-none [&>p]:my-0 text-foreground text-base leading-relaxed text-center">
-                            <ReactMarkdown>{currentAssistant.content}</ReactMarkdown>
-                          </div>
-                        );
-                      })()
-                    ) : (
-                      <div className="flex justify-center py-2">
-                        <Loader2 className="h-5 w-5 animate-spin text-[hsl(25,70%,50%)]" />
+                        })()
+                      ) : (
+                        <div className="flex justify-center py-2">
+                          <Loader2 className="h-5 w-5 animate-spin text-[hsl(25,70%,50%)]" />
+                        </div>
+                      )}
+                    </div>
+
+                    {isLatestAssistant && msg.quickReplies && msg.quickReplies.length > 0 && (
+                      <div className="flex flex-wrap gap-2 justify-center w-full">
+                        {msg.quickReplies.map((qr, qi) => (
+                          <button
+                            key={qi}
+                            onClick={() => sendMessage(qr)}
+                            disabled={isLoading}
+                            className="px-4 py-2 rounded-full bg-white border-2 border-[hsl(25,60%,75%)] text-[hsl(25,70%,40%)] text-sm font-medium hover:bg-[hsl(25,80%,95%)] hover:border-[hsl(25,70%,55%)] hover:scale-105 transition-all shadow-sm disabled:opacity-50"
+                          >
+                            {qr}
+                          </button>
+                        ))}
                       </div>
                     )}
                   </div>
+                );
+              })}
 
-                  {/* Quick replies */}
-                  {currentAssistant.quickReplies && currentAssistant.quickReplies.length > 0 && (
-                    <div className="flex flex-wrap gap-2 justify-center w-full">
-                      {currentAssistant.quickReplies.map((qr, qi) => (
-                        <button
-                          key={qi}
-                          onClick={() => sendMessage(qr)}
-                          disabled={isLoading}
-                          className="px-4 py-2 rounded-full bg-white border-2 border-[hsl(25,60%,75%)] text-[hsl(25,70%,40%)] text-sm font-medium hover:bg-[hsl(25,80%,95%)] hover:border-[hsl(25,70%,55%)] hover:scale-105 transition-all shadow-sm disabled:opacity-50"
-                        >
-                          {qr}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Loading state */}
-              {isLoading && !currentAssistant?.content && (
+              {/* Loading state when waiting for first token */}
+              {isLoading && messages[messages.length - 1]?.role === "user" && (
                 <div className="flex justify-center">
                   <div className="bg-white rounded-full px-4 py-2 shadow-sm flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin text-[hsl(25,70%,50%)]" />
@@ -538,6 +550,7 @@ const PortalAIChatPanel = () => {
         </div>
 
         {/* Bottom input bar */}
+
         <div className="border-t border-[hsl(25,30%,90%)]/60 bg-white/80 backdrop-blur px-3 py-2.5 flex gap-2 items-center">
           <Input
             placeholder="或輸入文字..."
