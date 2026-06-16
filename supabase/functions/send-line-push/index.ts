@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
   if (body.roles && body.roles.length > 0) {
     const { data: roleTargets, error: rtErr } = await supabase
       .from("line_push_targets")
-      .select("target_id, roles")
+      .select("target_id, roles, accommodation_ids, custom_venue_names")
       .eq("is_active", true)
       .overlaps("roles", body.roles);
     if (rtErr) {
@@ -102,8 +102,24 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    (roleTargets ?? []).forEach((t: any) => t.target_id && targetSet.add(t.target_id));
+    (roleTargets ?? []).forEach((t: any) => {
+      if (!t.target_id) return;
+      const accIds: string[] = t.accommodation_ids ?? [];
+      const venueNames: string[] = t.custom_venue_names ?? [];
+      const isAllVenues = accIds.length === 0 && venueNames.length === 0;
+      const hasVenueFilter = body.accommodation_id || body.venue_name;
+      if (!isAllVenues && hasVenueFilter) {
+        const accMatch = body.accommodation_id && accIds.includes(body.accommodation_id);
+        const venueMatch = body.venue_name && venueNames.includes(body.venue_name);
+        if (!accMatch && !venueMatch) return;
+      } else if (!isAllVenues && !hasVenueFilter) {
+        // target restricted to specific venues but caller didn't specify any → skip
+        return;
+      }
+      targetSet.add(t.target_id);
+    });
   }
+
 
   if (targetSet.size === 0) {
     return new Response(
