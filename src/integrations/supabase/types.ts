@@ -3590,6 +3590,33 @@ export type Database = {
           },
         ]
       }
+      line_event_types: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          label: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+        }
+        Relationships: []
+      }
       line_oa_channels: {
         Row: {
           channel_access_token: string
@@ -3625,9 +3652,12 @@ export type Database = {
       }
       line_push_targets: {
         Row: {
+          accommodation_ids: string[]
           channel_id: string | null
           created_at: string
+          custom_venue_names: string[]
           display_name: string | null
+          event_types: string[]
           id: string
           is_active: boolean
           roles: string[]
@@ -3637,9 +3667,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          accommodation_ids?: string[]
           channel_id?: string | null
           created_at?: string
+          custom_venue_names?: string[]
           display_name?: string | null
+          event_types?: string[]
           id?: string
           is_active?: boolean
           roles?: string[]
@@ -3649,9 +3682,12 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          accommodation_ids?: string[]
           channel_id?: string | null
           created_at?: string
+          custom_venue_names?: string[]
           display_name?: string | null
+          event_types?: string[]
           id?: string
           is_active?: boolean
           roles?: string[]
