@@ -411,7 +411,7 @@ Deno.serve(async (req) => {
             body: JSON.stringify({
               event_type: "daily_performance",
               accommodation_id: accId,
-              message: `${subject}\n\n${body}`,
+              message: body,
             }),
           });
           if (!pushRes.ok) {
