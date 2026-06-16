@@ -753,6 +753,11 @@ function GroupsTab() {
                 </div>
               </div>
 
+              <p className="text-xs text-muted-foreground">
+                若不選擇館別，則接收所有館別的通知
+              </p>
+
+
               <div>
                 <Label>對應角色（多選）</Label>
                 <div className="flex flex-wrap gap-2 mt-2">
