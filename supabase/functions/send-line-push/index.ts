@@ -10,8 +10,11 @@ interface PushRequest {
   channel_id?: string;
   targets?: string[];
   roles?: string[];
+  accommodation_id?: string;
+  venue_name?: string;
   message: string;
 }
+
 
 async function pushOne(token: string, to: string, message: string) {
   const r = await fetch("https://api.line.me/v2/bot/message/push", {
