@@ -44,6 +44,7 @@ type LineChannel = {
   channel_name: string;
   channel_access_token: string;
   channel_secret: string;
+  line_oa_id: string | null;
   is_active: boolean;
 };
 
