@@ -10,6 +10,7 @@ interface PushRequest {
   channel_id?: string;
   targets?: string[];
   roles?: string[];
+  event_type?: string;
   accommodation_id?: string;
   venue_name?: string;
   message: string;
@@ -115,6 +116,33 @@ Deno.serve(async (req) => {
       } else if (!isAllVenues && !hasVenueFilter) {
         // target restricted to specific venues but caller didn't specify any → skip
         return;
+      }
+      targetSet.add(t.target_id);
+    });
+  }
+
+  // 2b. resolve targets by event_type
+  if (body.event_type) {
+    const { data: evTargets, error: evErr } = await supabase
+      .from("line_push_targets")
+      .select("target_id, event_types, accommodation_ids, custom_venue_names")
+      .eq("is_active", true)
+      .contains("event_types", [body.event_type]);
+    if (evErr) {
+      return new Response(JSON.stringify({ error: evErr.message }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    (evTargets ?? []).forEach((t: any) => {
+      if (!t.target_id) return;
+      const accIds: string[] = t.accommodation_ids ?? [];
+      const venueNames: string[] = t.custom_venue_names ?? [];
+      const isAllVenues = accIds.length === 0 && venueNames.length === 0;
+      if (!isAllVenues) {
+        const accMatch = body.accommodation_id && accIds.includes(body.accommodation_id);
+        const venueMatch = body.venue_name && venueNames.includes(body.venue_name);
+        if (!accMatch && !venueMatch) return;
       }
       targetSet.add(t.target_id);
     });
