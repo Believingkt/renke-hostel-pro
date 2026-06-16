@@ -171,6 +171,7 @@ function ChannelsTab() {
       channel_name: editing.channel_name,
       channel_access_token: editing.channel_access_token ?? "",
       channel_secret: editing.channel_secret ?? "",
+      line_oa_id: editing.line_oa_id ?? null,
       is_active: editing.is_active ?? true,
     };
     let error;
