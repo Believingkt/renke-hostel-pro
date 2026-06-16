@@ -96,6 +96,7 @@ const TeamNotification = lazy(() => import("./pages/team/TeamNotification"));
 const TeamAds = lazy(() => import("./pages/team/TeamAds"));
 const TeamFranchise = lazy(() => import("./pages/team/TeamFranchise"));
 const TeamStarlink = lazy(() => import("./pages/team/TeamStarlink"));
+const TeamLineOA = lazy(() => import("./pages/team/TeamLineOA"));
 const Customers = lazy(() => import("./pages/Customers"));
 const CustomerOrders = lazy(() => import("./pages/CustomerOrders"));
 const PublicHolidays = lazy(() => import("./pages/PublicHolidays"));
