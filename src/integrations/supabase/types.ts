@@ -3555,6 +3555,41 @@ export type Database = {
         }
         Relationships: []
       }
+      line_binding_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          team_member_id: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          team_member_id: string
+          token: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          team_member_id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "line_binding_tokens_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       line_oa_channels: {
         Row: {
           channel_access_token: string
@@ -3563,6 +3598,7 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          line_oa_id: string | null
           updated_at: string
         }
         Insert: {
@@ -3572,6 +3608,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          line_oa_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -3581,6 +3618,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          line_oa_id?: string | null
           updated_at?: string
         }
         Relationships: []
