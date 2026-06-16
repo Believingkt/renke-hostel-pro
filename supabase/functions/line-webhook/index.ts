@@ -104,6 +104,12 @@ async function handleEvents(channel: any, events: any[]) {
             is_active: true,
           });
         }
+      } else if (ev.type === "message" && ev.message?.type === "text" && ev.source?.type === "user") {
+        const text: string = (ev.message.text ?? "").trim();
+        const m = text.match(/^bind:([a-f0-9-]+)$/i);
+        if (m && ev.replyToken) {
+          await handleBind(channel, m[1], ev.source.userId, ev.replyToken);
+        }
       }
     } catch (e) {
       console.error("event handle error", e);
