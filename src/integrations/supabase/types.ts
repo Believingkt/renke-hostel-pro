@@ -3555,6 +3555,90 @@ export type Database = {
         }
         Relationships: []
       }
+      line_oa_channels: {
+        Row: {
+          channel_access_token: string
+          channel_name: string
+          channel_secret: string
+          created_at: string
+          id: string
+          is_active: boolean
+          updated_at: string
+        }
+        Insert: {
+          channel_access_token?: string
+          channel_name: string
+          channel_secret?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Update: {
+          channel_access_token?: string
+          channel_name?: string
+          channel_secret?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      line_push_targets: {
+        Row: {
+          channel_id: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          is_active: boolean
+          roles: string[]
+          target_id: string
+          target_type: string
+          team_member_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          channel_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_active?: boolean
+          roles?: string[]
+          target_id: string
+          target_type: string
+          team_member_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          channel_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_active?: boolean
+          roles?: string[]
+          target_id?: string
+          target_type?: string
+          team_member_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "line_push_targets_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "line_oa_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "line_push_targets_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       location_info: {
         Row: {
           accommodation_id: string | null
@@ -7078,6 +7162,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           is_scout_team_member: boolean
+          line_user_id: string | null
           managed_venue: string[] | null
           scout_tier: string | null
           updated_at: string | null
@@ -7092,6 +7177,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_scout_team_member?: boolean
+          line_user_id?: string | null
           managed_venue?: string[] | null
           scout_tier?: string | null
           updated_at?: string | null
@@ -7106,6 +7192,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_scout_team_member?: boolean
+          line_user_id?: string | null
           managed_venue?: string[] | null
           scout_tier?: string | null
           updated_at?: string | null

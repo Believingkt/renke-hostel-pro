@@ -96,6 +96,7 @@ const TeamNotification = lazy(() => import("./pages/team/TeamNotification"));
 const TeamAds = lazy(() => import("./pages/team/TeamAds"));
 const TeamFranchise = lazy(() => import("./pages/team/TeamFranchise"));
 const TeamStarlink = lazy(() => import("./pages/team/TeamStarlink"));
+const TeamLineOA = lazy(() => import("./pages/team/TeamLineOA"));
 const Customers = lazy(() => import("./pages/Customers"));
 const CustomerOrders = lazy(() => import("./pages/CustomerOrders"));
 const PublicHolidays = lazy(() => import("./pages/PublicHolidays"));
@@ -531,6 +532,9 @@ function App() {
                         } />
                         <Route path="starlink" element={
                           <Suspense fallback={null}><TeamStarlink /></Suspense>
+                        } />
+                        <Route path="lineoa" element={
+                          <Suspense fallback={null}><TeamLineOA /></Suspense>
                         } />
                       </Route>
                       <Route path="/headquarters/change-password" element={
