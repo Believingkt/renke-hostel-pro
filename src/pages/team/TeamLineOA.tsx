@@ -323,6 +323,17 @@ function ChannelsTab() {
                   type="text"
                 />
               </div>
+              <div>
+                <Label>LINE OA ID（Basic ID，例如 @abc1234）</Label>
+                <Input
+                  value={editing.line_oa_id ?? ""}
+                  onChange={(e) => setEditing({ ...editing, line_oa_id: e.target.value })}
+                  placeholder="@abc1234"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  用於產生成員綁定連結。可在 LINE Official Account Manager 查看。
+                </p>
+              </div>
               <div className="flex items-center gap-2">
                 <Switch
                   checked={editing.is_active ?? true}
