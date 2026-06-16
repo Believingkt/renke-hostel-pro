@@ -358,15 +358,23 @@ function GroupsTab() {
   const [list, setList] = useState<(PushTarget & { channel_name?: string })[]>([]);
   const [channels, setChannels] = useState<LineChannel[]>([]);
   const [editing, setEditing] = useState<PushTarget | null>(null);
+  const [roleOptions, setRoleOptions] = useState<string[]>(ROLE_OPTIONS);
+  const [adding, setAdding] = useState<{
+    display_name: string;
+    target_id: string;
+    channel_id: string | null;
+    roles: string[];
+  } | null>(null);
 
   const load = async () => {
-    const [{ data: targets }, { data: chans }] = await Promise.all([
+    const [{ data: targets }, { data: chans }, { data: roleRows }] = await Promise.all([
       supabase
         .from("line_push_targets")
         .select("*")
         .eq("target_type", "group")
         .order("created_at", { ascending: false }),
       supabase.from("line_oa_channels").select("*"),
+      supabase.from("user_roles").select("role"),
     ]);
     setChannels((chans ?? []) as LineChannel[]);
     const chanMap = new Map((chans ?? []).map((c: any) => [c.id, c.channel_name]));
@@ -376,6 +384,11 @@ function GroupsTab() {
         channel_name: t.channel_id ? chanMap.get(t.channel_id) : undefined,
       }))
     );
+    const uniq = Array.from(new Set([
+      ...ROLE_OPTIONS,
+      ...((roleRows ?? []).map((r: any) => r.role).filter(Boolean) as string[]),
+    ]));
+    setRoleOptions(uniq);
   };
 
   useEffect(() => {
@@ -408,15 +421,61 @@ function GroupsTab() {
     setEditing({ ...editing, roles });
   };
 
+  const toggleAddRole = (role: string) => {
+    if (!adding) return;
+    const roles = adding.roles.includes(role)
+      ? adding.roles.filter((r) => r !== role)
+      : [...adding.roles, role];
+    setAdding({ ...adding, roles });
+  };
+
+  const saveNew = async () => {
+    if (!adding) return;
+    if (!adding.target_id.trim()) {
+      toast.error("請輸入 groupId");
+      return;
+    }
+    const { error } = await supabase
+      .from("line_push_targets")
+      .upsert(
+        {
+          target_type: "group",
+          target_id: adding.target_id.trim(),
+          display_name: adding.display_name.trim() || null,
+          channel_id: adding.channel_id,
+          roles: adding.roles,
+          is_active: true,
+        },
+        { onConflict: "target_type,target_id" }
+      );
+    if (error) toast.error(error.message);
+    else {
+      toast.success("已儲存");
+      setAdding(null);
+      load();
+    }
+  };
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-base">推播群組管理</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          將 LINE OA 機器人加入群組後，系統會自動記錄群組資訊
-        </p>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle className="text-base">推播群組管理</CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">
+            將 LINE OA 機器人加入群組後，系統會自動記錄群組資訊
+          </p>
+        </div>
+        <Button
+          size="sm"
+          onClick={() =>
+            setAdding({ display_name: "", target_id: "", channel_id: null, roles: [] })
+          }
+        >
+          <Plus className="h-4 w-4 mr-1" /> 手動新增群組
+        </Button>
       </CardHeader>
       <CardContent>
+
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -506,7 +565,7 @@ function GroupsTab() {
               <div>
                 <Label>對應角色（多選）</Label>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {ROLE_OPTIONS.map((r) => (
+                  {roleOptions.map((r) => (
                     <Badge
                       key={r}
                       variant={editing.roles.includes(r) ? "default" : "outline"}
@@ -533,7 +592,75 @@ function GroupsTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!adding} onOpenChange={(o) => !o && setAdding(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>手動新增群組</DialogTitle>
+          </DialogHeader>
+          {adding && (
+            <div className="space-y-4">
+              <div>
+                <Label>群組名稱</Label>
+                <Input
+                  value={adding.display_name}
+                  onChange={(e) => setAdding({ ...adding, display_name: e.target.value })}
+                  placeholder="例如：行銷團隊群組"
+                />
+              </div>
+              <div>
+                <Label>groupId</Label>
+                <Input
+                  value={adding.target_id}
+                  onChange={(e) => setAdding({ ...adding, target_id: e.target.value })}
+                  placeholder="C..."
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  若 groupId 已存在則會更新該筆資料
+                </p>
+              </div>
+              <div>
+                <Label>使用 OA</Label>
+                <select
+                  className="w-full border rounded-md h-10 px-3 bg-background"
+                  value={adding.channel_id ?? ""}
+                  onChange={(e) =>
+                    setAdding({ ...adding, channel_id: e.target.value || null })
+                  }
+                >
+                  <option value="">未指定</option>
+                  {channels.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.channel_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label>對應角色（多選）</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {roleOptions.map((r) => (
+                    <Badge
+                      key={r}
+                      variant={adding.roles.includes(r) ? "default" : "outline"}
+                      className="cursor-pointer"
+                      onClick={() => toggleAddRole(r)}
+                    >
+                      {r}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAdding(null)}>取消</Button>
+            <Button onClick={saveNew}>儲存</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
+
   );
 }
 

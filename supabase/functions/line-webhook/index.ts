@@ -114,32 +114,26 @@ async function handleEvents(channel: any, events: any[]) {
         const summary = await fetchGroupSummary(channel.channel_access_token, groupId);
         const displayName = summary?.groupName ?? null;
 
-        const { data: existing } = await supabase
+        const { error: upsertErr } = await supabase
           .from("line_push_targets")
-          .select("id")
-          .eq("target_type", "group")
-          .eq("target_id", groupId)
-          .maybeSingle();
-
-        if (existing) {
-          await supabase
-            .from("line_push_targets")
-            .update({
+          .upsert(
+            {
+              target_type: "group",
+              target_id: groupId,
               display_name: displayName,
               channel_id: channel.id,
               is_active: true,
-            })
-            .eq("id", existing.id);
-        } else {
-          await supabase.from("line_push_targets").insert({
-            target_type: "group",
-            target_id: groupId,
-            display_name: displayName,
-            channel_id: channel.id,
-            roles: [],
-            is_active: true,
-          });
-        }
+            },
+            { onConflict: "target_type,target_id", ignoreDuplicates: false },
+          );
+        if (upsertErr) console.error("join upsert error", upsertErr);
+      } else if (ev.type === "leave" && ev.source?.type === "group") {
+        const groupId = ev.source.groupId;
+        await supabase
+          .from("line_push_targets")
+          .update({ is_active: false })
+          .eq("target_type", "group")
+          .eq("target_id", groupId);
       } else if (ev.type === "follow" && ev.source?.type === "user") {
         const userId = ev.source.userId;
         const { data: existing } = await supabase
