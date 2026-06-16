@@ -542,16 +542,27 @@ function MembersTab() {
   const [members, setMembers] = useState<
     (MemberProfile & { roles: string[] })[]
   >([]);
-  const [edits, setEdits] = useState<Record<string, string>>({});
+  const [oaId, setOaId] = useState<string | null>(null);
+  const [linkDialog, setLinkDialog] = useState<{ memberName: string; url: string } | null>(null);
 
   const load = async () => {
-    const { data: profiles } = await supabase
-      .from("team_member_profiles")
-      .select("id, user_id, display_name, line_user_id")
-      .order("display_name", { ascending: true });
+    const [{ data: profiles }, { data: chans }] = await Promise.all([
+      supabase
+        .from("team_member_profiles")
+        .select("id, user_id, display_name, line_user_id")
+        .order("display_name", { ascending: true }),
+      supabase
+        .from("line_oa_channels")
+        .select("line_oa_id")
+        .eq("is_active", true)
+        .order("created_at", { ascending: true })
+        .limit(1),
+    ]);
+
+    setOaId((chans?.[0] as any)?.line_oa_id ?? null);
 
     const userIds = (profiles ?? []).map((p: any) => p.user_id);
-    let roleMap = new Map<string, string[]>();
+    const roleMap = new Map<string, string[]>();
     if (userIds.length > 0) {
       const { data: roles } = await supabase
         .from("user_roles")
@@ -575,20 +586,36 @@ function MembersTab() {
     load();
   }, []);
 
-  const save = async (id: string) => {
-    const value = edits[id];
+  const generateLink = async (m: MemberProfile) => {
+    if (!oaId) {
+      toast.error("請先到「OA 設定」填入 LINE OA ID");
+      return;
+    }
+    const token = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const { error } = await supabase.from("line_binding_tokens").insert({
+      team_member_id: m.id,
+      token,
+      expires_at: expiresAt,
+    });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    const oa = oaId.startsWith("@") ? oaId.slice(1) : oaId;
+    const url = `https://line.me/R/oaMessage/@${oa}/?${encodeURIComponent(`text=bind:${token}`)}`;
+    setLinkDialog({ memberName: m.display_name || "—", url });
+  };
+
+  const unbind = async (m: MemberProfile) => {
+    if (!confirm(`確定要解除 ${m.display_name || ""} 的 LINE 綁定嗎？`)) return;
     const { error } = await supabase
       .from("team_member_profiles")
-      .update({ line_user_id: value || null })
-      .eq("id", id);
+      .update({ line_user_id: null })
+      .eq("id", m.id);
     if (error) toast.error(error.message);
     else {
-      toast.success("已更新");
-      setEdits((s) => {
-        const n = { ...s };
-        delete n[id];
-        return n;
-      });
+      toast.success("已解除綁定");
       load();
     }
   };
@@ -598,7 +625,7 @@ function MembersTab() {
       <CardHeader>
         <CardTitle className="text-base">成員 LINE 帳號綁定</CardTitle>
         <p className="text-sm text-muted-foreground">
-          手動填入成員的 LINE userId 以啟用個人推播
+          產生綁定連結傳給成員，他點開後傳送預填訊息即可完成綁定（連結 24 小時內有效）
         </p>
       </CardHeader>
       <CardContent>
@@ -608,8 +635,8 @@ function MembersTab() {
               <TableRow>
                 <TableHead>姓名</TableHead>
                 <TableHead>角色</TableHead>
-                <TableHead>LINE userId</TableHead>
-                <TableHead className="w-20">操作</TableHead>
+                <TableHead>綁定狀態</TableHead>
+                <TableHead className="w-48">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -621,8 +648,7 @@ function MembersTab() {
                 </TableRow>
               ) : (
                 members.map((m) => {
-                  const editing = edits[m.id] !== undefined;
-                  const value = editing ? edits[m.id] : m.line_user_id ?? "";
+                  const bound = !!m.line_user_id;
                   return (
                     <TableRow key={m.id}>
                       <TableCell className="font-medium">{m.display_name || "—"}</TableCell>
@@ -640,22 +666,22 @@ function MembersTab() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Input
-                          value={value}
-                          placeholder="U xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                          onChange={(e) =>
-                            setEdits((s) => ({ ...s, [m.id]: e.target.value }))
-                          }
-                        />
+                        {bound ? (
+                          <Badge className="bg-green-600 hover:bg-green-600">已綁定</Badge>
+                        ) : (
+                          <Badge variant="outline">未綁定</Badge>
+                        )}
                       </TableCell>
                       <TableCell>
-                        <Button
-                          size="sm"
-                          disabled={!editing}
-                          onClick={() => save(m.id)}
-                        >
-                          儲存
-                        </Button>
+                        {bound ? (
+                          <Button size="sm" variant="outline" onClick={() => unbind(m)}>
+                            解除綁定
+                          </Button>
+                        ) : (
+                          <Button size="sm" onClick={() => generateLink(m)}>
+                            產生綁定連結
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   );
@@ -665,6 +691,41 @@ function MembersTab() {
           </Table>
         </div>
       </CardContent>
+
+      <Dialog open={!!linkDialog} onOpenChange={(o) => !o && setLinkDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>綁定連結：{linkDialog?.memberName}</DialogTitle>
+          </DialogHeader>
+          {linkDialog && (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                請將以下連結傳給成員。成員點開後會自動帶入綁定訊息，按下傳送即可完成綁定。連結 24 小時內有效。
+              </p>
+              <div className="p-3 bg-muted rounded-md break-all text-xs font-mono">
+                {linkDialog.url}
+              </div>
+              <Button
+                onClick={() => {
+                  navigator.clipboard.writeText(linkDialog.url);
+                  toast.success("已複製連結");
+                }}
+                className="w-full"
+              >
+                <Copy className="h-4 w-4 mr-1" /> 複製連結
+              </Button>
+              <img
+                alt="QR Code"
+                className="mx-auto"
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(linkDialog.url)}`}
+              />
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLinkDialog(null)}>關閉</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
