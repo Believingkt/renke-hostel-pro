@@ -553,7 +553,21 @@ function GroupsTab() {
             <div className="space-y-4">
               <div>
                 <Label>群組名稱</Label>
-                <p className="text-sm">{editing.display_name || "—"}</p>
+                <Input
+                  value={editing.display_name ?? ""}
+                  onChange={(e) =>
+                    setEditing({ ...editing, display_name: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <Label>groupId</Label>
+                <Input
+                  value={editing.target_id ?? ""}
+                  onChange={(e) =>
+                    setEditing({ ...editing, target_id: e.target.value })
+                  }
+                />
               </div>
               <div>
                 <Label>使用 OA</Label>
