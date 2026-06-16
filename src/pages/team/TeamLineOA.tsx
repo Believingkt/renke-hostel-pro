@@ -358,15 +358,23 @@ function GroupsTab() {
   const [list, setList] = useState<(PushTarget & { channel_name?: string })[]>([]);
   const [channels, setChannels] = useState<LineChannel[]>([]);
   const [editing, setEditing] = useState<PushTarget | null>(null);
+  const [roleOptions, setRoleOptions] = useState<string[]>(ROLE_OPTIONS);
+  const [adding, setAdding] = useState<{
+    display_name: string;
+    target_id: string;
+    channel_id: string | null;
+    roles: string[];
+  } | null>(null);
 
   const load = async () => {
-    const [{ data: targets }, { data: chans }] = await Promise.all([
+    const [{ data: targets }, { data: chans }, { data: roleRows }] = await Promise.all([
       supabase
         .from("line_push_targets")
         .select("*")
         .eq("target_type", "group")
         .order("created_at", { ascending: false }),
       supabase.from("line_oa_channels").select("*"),
+      supabase.from("user_roles").select("role"),
     ]);
     setChannels((chans ?? []) as LineChannel[]);
     const chanMap = new Map((chans ?? []).map((c: any) => [c.id, c.channel_name]));
@@ -376,6 +384,11 @@ function GroupsTab() {
         channel_name: t.channel_id ? chanMap.get(t.channel_id) : undefined,
       }))
     );
+    const uniq = Array.from(new Set([
+      ...ROLE_OPTIONS,
+      ...((roleRows ?? []).map((r: any) => r.role).filter(Boolean) as string[]),
+    ]));
+    setRoleOptions(uniq);
   };
 
   useEffect(() => {
@@ -408,15 +421,61 @@ function GroupsTab() {
     setEditing({ ...editing, roles });
   };
 
+  const toggleAddRole = (role: string) => {
+    if (!adding) return;
+    const roles = adding.roles.includes(role)
+      ? adding.roles.filter((r) => r !== role)
+      : [...adding.roles, role];
+    setAdding({ ...adding, roles });
+  };
+
+  const saveNew = async () => {
+    if (!adding) return;
+    if (!adding.target_id.trim()) {
+      toast.error("請輸入 groupId");
+      return;
+    }
+    const { error } = await supabase
+      .from("line_push_targets")
+      .upsert(
+        {
+          target_type: "group",
+          target_id: adding.target_id.trim(),
+          display_name: adding.display_name.trim() || null,
+          channel_id: adding.channel_id,
+          roles: adding.roles,
+          is_active: true,
+        },
+        { onConflict: "target_type,target_id" }
+      );
+    if (error) toast.error(error.message);
+    else {
+      toast.success("已儲存");
+      setAdding(null);
+      load();
+    }
+  };
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-base">推播群組管理</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          將 LINE OA 機器人加入群組後，系統會自動記錄群組資訊
-        </p>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle className="text-base">推播群組管理</CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">
+            將 LINE OA 機器人加入群組後，系統會自動記錄群組資訊
+          </p>
+        </div>
+        <Button
+          size="sm"
+          onClick={() =>
+            setAdding({ display_name: "", target_id: "", channel_id: null, roles: [] })
+          }
+        >
+          <Plus className="h-4 w-4 mr-1" /> 手動新增群組
+        </Button>
       </CardHeader>
       <CardContent>
+
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
