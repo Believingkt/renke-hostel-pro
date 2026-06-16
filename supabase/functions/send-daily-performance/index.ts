@@ -398,6 +398,30 @@ Deno.serve(async (req) => {
         const subject = `【${accName}紀錄報表】${dateLabel}`;
 
         await sendEmail(subject, body);
+
+        // Also push to LINE (failure does not affect email flow)
+        try {
+          const pushRes = await fetch(`${supabaseUrl}/functions/v1/send-line-push`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${serviceKey}`,
+              apikey: serviceKey,
+            },
+            body: JSON.stringify({
+              event_type: "daily_performance",
+              accommodation_id: accId,
+              message: `${subject}\n\n${body}`,
+            }),
+          });
+          if (!pushRes.ok) {
+            const t = await pushRes.text().catch(() => "");
+            console.error(`[send-daily-performance] line-push ${accId} failed: ${pushRes.status} ${t}`);
+          }
+        } catch (pushErr) {
+          console.error(`[send-daily-performance] line-push ${accId} error:`, pushErr);
+        }
+
         results.push({ accommodation_id: accId, ok: true });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
