@@ -10,6 +10,7 @@ interface PushRequest {
   channel_id?: string;
   targets?: string[];
   roles?: string[];
+  event_type?: string;
   accommodation_id?: string;
   venue_name?: string;
   message: string;
