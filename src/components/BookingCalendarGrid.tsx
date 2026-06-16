@@ -270,26 +270,23 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
         }
       }
 
-      // 2) 包棟方案內含房間（room_types.package_contents），visible_in_booking_grid === true 的項目以名稱聚合
-      const aggregated = new Map<string, { id: string; name: string; count: number; capacity: number }>();
+      // 2) 包棟方案內含房間（room_types.package_contents），visible_in_booking_grid === true
+      //    依「包棟房型」分組，顯示為該房型展開後的子列（不再合併到底部）
+      const pkgRowsByRtId = new Map<string, Array<{ id: string; name: string; count: number }>>();
       for (const rt of (roomTypesRes.data || []) as any[]) {
         if (!rt?.is_exclusive_package) continue;
         const rows = Array.isArray(rt.package_contents) ? rt.package_contents : [];
+        const list: Array<{ id: string; name: string; count: number }> = [];
         for (const row of rows) {
           if (!row || row.visible_in_booking_grid !== true) continue;
           const name = String(row.name || "").trim();
           const count = Math.max(0, Number(row.count) || 0);
           if (!name || count <= 0) continue;
-          const key = `pkg:${name}`;
-          const prev = aggregated.get(key);
-          if (prev) {
-            prev.count += count;
-          } else {
-            aggregated.set(key, { id: key, name, count, capacity: 0 });
-          }
+          list.push({ id: String(row.id || `${rt.id}_${name}`), name, count });
         }
+        if (list.length > 0) pkgRowsByRtId.set(rt.id, list);
       }
-      for (const v of aggregated.values()) customs.push(v);
+      setPackageRowsByRt(pkgRowsByRtId);
 
       setHiddenRoomTypeIds(hidden);
       setCustomRows(customs.filter(c => c.name && c.count > 0));
