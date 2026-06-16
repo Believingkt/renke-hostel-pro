@@ -54,6 +54,7 @@ async function fetchGroupSummary(token: string, groupId: string) {
 async function handleEvents(channel: any, events: any[]) {
   for (const ev of events) {
     try {
+      console.log('[line-webhook] event:', ev.type, JSON.stringify(ev.source));
       if (ev.type === "join" && ev.source?.type === "group") {
         const groupId = ev.source.groupId;
         const summary = await fetchGroupSummary(channel.channel_access_token, groupId);
