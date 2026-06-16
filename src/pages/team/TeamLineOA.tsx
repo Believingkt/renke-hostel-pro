@@ -565,7 +565,7 @@ function GroupsTab() {
               <div>
                 <Label>對應角色（多選）</Label>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {ROLE_OPTIONS.map((r) => (
+                  {roleOptions.map((r) => (
                     <Badge
                       key={r}
                       variant={editing.roles.includes(r) ? "default" : "outline"}
