@@ -592,7 +592,75 @@ function GroupsTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!adding} onOpenChange={(o) => !o && setAdding(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>手動新增群組</DialogTitle>
+          </DialogHeader>
+          {adding && (
+            <div className="space-y-4">
+              <div>
+                <Label>群組名稱</Label>
+                <Input
+                  value={adding.display_name}
+                  onChange={(e) => setAdding({ ...adding, display_name: e.target.value })}
+                  placeholder="例如：行銷團隊群組"
+                />
+              </div>
+              <div>
+                <Label>groupId</Label>
+                <Input
+                  value={adding.target_id}
+                  onChange={(e) => setAdding({ ...adding, target_id: e.target.value })}
+                  placeholder="C..."
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  若 groupId 已存在則會更新該筆資料
+                </p>
+              </div>
+              <div>
+                <Label>使用 OA</Label>
+                <select
+                  className="w-full border rounded-md h-10 px-3 bg-background"
+                  value={adding.channel_id ?? ""}
+                  onChange={(e) =>
+                    setAdding({ ...adding, channel_id: e.target.value || null })
+                  }
+                >
+                  <option value="">未指定</option>
+                  {channels.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.channel_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label>對應角色（多選）</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {roleOptions.map((r) => (
+                    <Badge
+                      key={r}
+                      variant={adding.roles.includes(r) ? "default" : "outline"}
+                      className="cursor-pointer"
+                      onClick={() => toggleAddRole(r)}
+                    >
+                      {r}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAdding(null)}>取消</Button>
+            <Button onClick={saveNew}>儲存</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
+
   );
 }
 
