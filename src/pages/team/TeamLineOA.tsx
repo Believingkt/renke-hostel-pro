@@ -397,14 +397,24 @@ function GroupsTab() {
 
   const save = async () => {
     if (!editing) return;
+    if (!editing.target_id?.trim()) {
+      toast.error("請輸入 groupId");
+      return;
+    }
     const { error } = await supabase
       .from("line_push_targets")
-      .update({
-        roles: editing.roles,
-        is_active: editing.is_active,
-        channel_id: editing.channel_id,
-      })
-      .eq("id", editing.id);
+      .upsert(
+        {
+          id: editing.id,
+          target_type: editing.target_type,
+          target_id: editing.target_id.trim(),
+          display_name: editing.display_name?.trim() || null,
+          channel_id: editing.channel_id,
+          roles: editing.roles,
+          is_active: editing.is_active,
+        },
+        { onConflict: "id" }
+      );
     if (error) toast.error(error.message);
     else {
       toast.success("已儲存");
@@ -543,7 +553,21 @@ function GroupsTab() {
             <div className="space-y-4">
               <div>
                 <Label>群組名稱</Label>
-                <p className="text-sm">{editing.display_name || "—"}</p>
+                <Input
+                  value={editing.display_name ?? ""}
+                  onChange={(e) =>
+                    setEditing({ ...editing, display_name: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <Label>groupId</Label>
+                <Input
+                  value={editing.target_id ?? ""}
+                  onChange={(e) =>
+                    setEditing({ ...editing, target_id: e.target.value })
+                  }
+                />
               </div>
               <div>
                 <Label>使用 OA</Label>
