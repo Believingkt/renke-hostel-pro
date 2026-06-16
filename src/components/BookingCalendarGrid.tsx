@@ -180,6 +180,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
   const [expandedRoomTypes, setExpandedRoomTypes] = useState<Set<string>>(new Set());
   const [hiddenRoomTypeIds, setHiddenRoomTypeIds] = useState<Set<string>>(new Set());
   const [customRows, setCustomRows] = useState<Array<{ id: string; name: string; count: number; capacity: number }>>([]);
+  const [packageRowsByRt, setPackageRowsByRt] = useState<Map<string, Array<{ id: string; name: string; count: number }>>>(new Map());
   const [loading, setLoading] = useState(true);
   
 
