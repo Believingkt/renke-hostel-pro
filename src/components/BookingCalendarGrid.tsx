@@ -1079,6 +1079,61 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                         </div>
                       ));
                     })()}
+
+                    {/* 包棟內房間組成（依房型分組顯示，僅資訊用，不可預訂） */}
+                    {(packageRowsByRt.get(roomType.id) || []).map(pr => (
+                      <div key={`pkgrow_${roomType.id}_${pr.id}`} className="flex border-b last:border-b-0 hover:bg-muted/20">
+                        <div
+                          className="shrink-0 border-r p-2 pl-10 text-sm flex items-center gap-1 sticky left-0 bg-card z-20"
+                          style={{ width: LEFT_COL_WIDTH, minWidth: LEFT_COL_WIDTH }}
+                        >
+                          <span className="font-medium text-foreground truncate">{pr.name}</span>
+                          <span className="text-xs text-muted-foreground ml-auto">{pr.count}間</span>
+                        </div>
+                        <div className="flex flex-1">
+                          {dates.map((date, i) => {
+                            const dateStr = dateStrings[i];
+                            const holiday = holidays.get(dateStr);
+                            const isHoliday = holiday && (holiday.holiday_type === "holiday" || holiday.holiday_type === "compensatory_day_off");
+                            const isSatSun = isWeekend(date);
+                            const isRedDay = (isSatSun || isHoliday) && holiday?.holiday_type !== "work_on_weekend";
+                            const cfg = exclusiveConfigByDate.get(dateStr);
+                            const hasExclusiveOrder = !!cfg;
+                            const lockedCount = cfg?.get(pr.name) ?? 0;
+                            const remaining = Math.max(0, pr.count - lockedCount);
+                            return (
+                              <div
+                                key={dateStr}
+                                className={cn(
+                                  "flex-1 border-r last:border-r-0 p-2 text-center text-sm",
+                                  isRedDay && "bg-destructive/5",
+                                  isToday(date) && "bg-primary/5",
+                                )}
+                                style={{
+                                  minWidth: DAY_COL_MIN_WIDTH,
+                                  ...(hasExclusiveOrder
+                                    ? {
+                                        backgroundColor: "hsl(var(--muted) / 0.28)",
+                                        backgroundImage:
+                                          "repeating-linear-gradient(-45deg, transparent, transparent 6px, hsl(var(--border) / 0.8) 6px, hsl(var(--border) / 0.8) 8px)",
+                                      }
+                                    : {}),
+                                }}
+                              >
+                                {hasExclusiveOrder ? (
+                                  <span className="inline-flex items-center justify-center gap-0.5 text-muted-foreground">
+                                    <Lock className="h-3 w-3" />
+                                    <span className="font-medium">{remaining}/{pr.count}</span>
+                                  </span>
+                                ) : (
+                                  <span className="font-medium text-foreground">{pr.count}</span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
                   </>
                 )}
               </div>
