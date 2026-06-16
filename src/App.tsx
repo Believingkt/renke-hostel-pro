@@ -533,6 +533,9 @@ function App() {
                         <Route path="starlink" element={
                           <Suspense fallback={null}><TeamStarlink /></Suspense>
                         } />
+                        <Route path="lineoa" element={
+                          <Suspense fallback={null}><TeamLineOA /></Suspense>
+                        } />
                       </Route>
                       <Route path="/headquarters/change-password" element={
                         <Suspense fallback={<FrontendSkeleton />}><ChangePassword /></Suspense>
