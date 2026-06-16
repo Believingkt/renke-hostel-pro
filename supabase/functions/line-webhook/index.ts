@@ -51,6 +51,60 @@ async function fetchGroupSummary(token: string, groupId: string) {
   }
 }
 
+async function replyLine(token: string, replyToken: string, text: string) {
+  try {
+    await fetch("https://api.line.me/v2/bot/message/reply", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        replyToken,
+        messages: [{ type: "text", text }],
+      }),
+    });
+  } catch (e) {
+    console.error("replyLine error", e);
+  }
+}
+
+async function handleBind(channel: any, token: string, lineUserId: string, replyToken: string) {
+  const { data: row } = await supabase
+    .from("line_binding_tokens")
+    .select("id, team_member_id, expires_at, used_at")
+    .eq("token", token)
+    .maybeSingle();
+
+  if (!row || row.used_at || new Date(row.expires_at) <= new Date()) {
+    await replyLine(channel.channel_access_token, replyToken,
+      "❌ 綁定失敗，連結已過期或無效，請請管理員重新產生。");
+    return;
+  }
+
+  const { error: upErr } = await supabase
+    .from("team_member_profiles")
+    .update({ line_user_id: lineUserId })
+    .eq("id", row.team_member_id);
+
+  if (upErr) {
+    console.error("bind update profile error", upErr);
+    await replyLine(channel.channel_access_token, replyToken,
+      "❌ 綁定失敗，系統錯誤，請稍後再試。");
+    return;
+  }
+
+  await supabase
+    .from("line_binding_tokens")
+    .update({ used_at: new Date().toISOString() })
+    .eq("id", row.id);
+
+  await replyLine(channel.channel_access_token, replyToken,
+    "✅ 綁定成功！您的 LINE 帳號已與 PMS 成員帳號綁定。");
+}
+
+
+
 async function handleEvents(channel: any, events: any[]) {
   for (const ev of events) {
     try {
