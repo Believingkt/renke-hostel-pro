@@ -9,13 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Table,
@@ -37,6 +37,8 @@ import {
   Copy,
   Plus,
   Pencil,
+  Tags,
+  X,
 } from "lucide-react";
 
 type LineChannel = {
@@ -57,6 +59,9 @@ type PushTarget = {
   roles: string[];
   team_member_id: string | null;
   is_active: boolean;
+  event_types: string[];
+  accommodation_ids: string[];
+  custom_venue_names: string[];
 };
 
 type MemberProfile = {
@@ -64,6 +69,19 @@ type MemberProfile = {
   user_id: string;
   display_name: string | null;
   line_user_id: string | null;
+};
+
+type EventType = {
+  id: string;
+  code: string;
+  label: string;
+  description: string | null;
+  is_active: boolean;
+};
+
+type AccommodationOption = {
+  id: string;
+  name: string;
 };
 
 const WEBHOOK_URL =
@@ -90,6 +108,7 @@ const TABS = [
   { value: "channels", label: "OA 設定", icon: Cable },
   { value: "groups", label: "群組管理", icon: Users },
   { value: "members", label: "成員 LINE 帳號", icon: UserCheck },
+  { value: "events", label: "事件類型", icon: Tags },
 ];
 
 export default function TeamLineOA() {
@@ -119,7 +138,7 @@ export default function TeamLineOA() {
     <div className="space-y-6 max-w-6xl">
       <PageHeader
         title="LINE OA 推播設定"
-        description="管理 LINE 官方帳號、推播群組與成員 LINE 帳號綁定"
+        description="管理 LINE 官方帳號、推播群組、成員綁定與事件類型"
         icon={Cable}
       />
       <Tabs value={tab} onValueChange={setTab}>
@@ -132,6 +151,9 @@ export default function TeamLineOA() {
         </TabsContent>
         <TabsContent value="members" className="mt-4">
           <MembersTab />
+        </TabsContent>
+        <TabsContent value="events" className="mt-4">
+          <EventsTab />
         </TabsContent>
       </Tabs>
     </div>
@@ -354,20 +376,48 @@ function ChannelsTab() {
 }
 
 // ============== Groups Tab ==============
+type GroupFormState = {
+  id?: string;
+  display_name: string;
+  target_id: string;
+  channel_id: string | null;
+  roles: string[];
+  event_types: string[];
+  accommodation_ids: string[];
+  custom_venue_names: string[];
+  is_active: boolean;
+};
+
+function emptyGroupForm(): GroupFormState {
+  return {
+    display_name: "",
+    target_id: "",
+    channel_id: null,
+    roles: [],
+    event_types: [],
+    accommodation_ids: [],
+    custom_venue_names: [],
+    is_active: true,
+  };
+}
+
 function GroupsTab() {
   const [list, setList] = useState<(PushTarget & { channel_name?: string })[]>([]);
   const [channels, setChannels] = useState<LineChannel[]>([]);
-  const [editing, setEditing] = useState<PushTarget | null>(null);
   const [roleOptions, setRoleOptions] = useState<string[]>(ROLE_OPTIONS);
-  const [adding, setAdding] = useState<{
-    display_name: string;
-    target_id: string;
-    channel_id: string | null;
-    roles: string[];
-  } | null>(null);
+  const [eventTypes, setEventTypes] = useState<EventType[]>([]);
+  const [accommodations, setAccommodations] = useState<AccommodationOption[]>([]);
+  const [form, setForm] = useState<GroupFormState | null>(null);
+  const [venueInput, setVenueInput] = useState("");
 
   const load = async () => {
-    const [{ data: targets }, { data: chans }, { data: roleRows }] = await Promise.all([
+    const [
+      { data: targets },
+      { data: chans },
+      { data: roleRows },
+      { data: evts },
+      { data: accs },
+    ] = await Promise.all([
       supabase
         .from("line_push_targets")
         .select("*")
@@ -375,14 +425,21 @@ function GroupsTab() {
         .order("created_at", { ascending: false }),
       supabase.from("line_oa_channels").select("*"),
       supabase.from("user_roles").select("role"),
+      supabase.from("line_event_types").select("*").eq("is_active", true).order("label"),
+      supabase.from("accommodation_info").select("id, name").order("name"),
     ]);
     setChannels((chans ?? []) as LineChannel[]);
+    setEventTypes((evts ?? []) as EventType[]);
+    setAccommodations((accs ?? []) as AccommodationOption[]);
     const chanMap = new Map((chans ?? []).map((c: any) => [c.id, c.channel_name]));
     setList(
-      ((targets ?? []) as PushTarget[]).map((t) => ({
+      ((targets ?? []) as any[]).map((t) => ({
         ...t,
+        event_types: t.event_types ?? [],
+        accommodation_ids: t.accommodation_ids ?? [],
+        custom_venue_names: t.custom_venue_names ?? [],
         channel_name: t.channel_id ? chanMap.get(t.channel_id) : undefined,
-      }))
+      })) as (PushTarget & { channel_name?: string })[]
     );
     const uniq = Array.from(new Set([
       ...ROLE_OPTIONS,
@@ -395,76 +452,85 @@ function GroupsTab() {
     load();
   }, []);
 
+  const openEdit = (g: PushTarget) => {
+    setForm({
+      id: g.id,
+      display_name: g.display_name ?? "",
+      target_id: g.target_id,
+      channel_id: g.channel_id,
+      roles: g.roles ?? [],
+      event_types: g.event_types ?? [],
+      accommodation_ids: g.accommodation_ids ?? [],
+      custom_venue_names: g.custom_venue_names ?? [],
+      is_active: g.is_active,
+    });
+    setVenueInput("");
+  };
+
+  const openAdd = () => {
+    setForm(emptyGroupForm());
+    setVenueInput("");
+  };
+
   const save = async () => {
-    if (!editing) return;
-    if (!editing.target_id?.trim()) {
+    if (!form) return;
+    if (!form.target_id.trim()) {
       toast.error("請輸入 groupId");
       return;
     }
+    const payload: any = {
+      target_type: "group",
+      target_id: form.target_id.trim(),
+      display_name: form.display_name.trim() || null,
+      channel_id: form.channel_id,
+      roles: form.roles,
+      event_types: form.event_types,
+      accommodation_ids: form.accommodation_ids,
+      custom_venue_names: form.custom_venue_names,
+      is_active: form.is_active,
+    };
+    if (form.id) payload.id = form.id;
+
     const { error } = await supabase
       .from("line_push_targets")
-      .upsert(
-        {
-          id: editing.id,
-          target_type: editing.target_type,
-          target_id: editing.target_id.trim(),
-          display_name: editing.display_name?.trim() || null,
-          channel_id: editing.channel_id,
-          roles: editing.roles,
-          is_active: editing.is_active,
-        },
-        { onConflict: "id" }
-      );
+      .upsert(payload, { onConflict: form.id ? "id" : "target_type,target_id" });
     if (error) toast.error(error.message);
     else {
       toast.success("已儲存");
-      setEditing(null);
+      setForm(null);
       load();
     }
   };
 
-  const toggleRole = (role: string) => {
-    if (!editing) return;
-    const roles = editing.roles.includes(role)
-      ? editing.roles.filter((r) => r !== role)
-      : [...editing.roles, role];
-    setEditing({ ...editing, roles });
+  const toggleItem = (key: keyof GroupFormState, value: string) => {
+    if (!form) return;
+    const arr = (form[key] as string[]) ?? [];
+    const next = arr.includes(value) ? arr.filter((x) => x !== value) : [...arr, value];
+    setForm({ ...form, [key]: next } as GroupFormState);
   };
 
-  const toggleAddRole = (role: string) => {
-    if (!adding) return;
-    const roles = adding.roles.includes(role)
-      ? adding.roles.filter((r) => r !== role)
-      : [...adding.roles, role];
-    setAdding({ ...adding, roles });
-  };
-
-  const saveNew = async () => {
-    if (!adding) return;
-    if (!adding.target_id.trim()) {
-      toast.error("請輸入 groupId");
+  const addVenueTag = () => {
+    if (!form) return;
+    const v = venueInput.trim();
+    if (!v) return;
+    if (form.custom_venue_names.includes(v)) {
+      setVenueInput("");
       return;
     }
-    const { error } = await supabase
-      .from("line_push_targets")
-      .upsert(
-        {
-          target_type: "group",
-          target_id: adding.target_id.trim(),
-          display_name: adding.display_name.trim() || null,
-          channel_id: adding.channel_id,
-          roles: adding.roles,
-          is_active: true,
-        },
-        { onConflict: "target_type,target_id" }
-      );
-    if (error) toast.error(error.message);
-    else {
-      toast.success("已儲存");
-      setAdding(null);
-      load();
-    }
+    setForm({ ...form, custom_venue_names: [...form.custom_venue_names, v] });
+    setVenueInput("");
   };
+
+  const removeVenueTag = (v: string) => {
+    if (!form) return;
+    setForm({
+      ...form,
+      custom_venue_names: form.custom_venue_names.filter((x) => x !== v),
+    });
+  };
+
+  const accMap = new Map(accommodations.map((a) => [a.id, a.name]));
+  const evtMap = new Map(eventTypes.map((e) => [e.code, e.label]));
 
   return (
     <Card>
@@ -475,17 +541,11 @@ function GroupsTab() {
             將 LINE OA 機器人加入群組後，系統會自動記錄群組資訊
           </p>
         </div>
-        <Button
-          size="sm"
-          onClick={() =>
-            setAdding({ display_name: "", target_id: "", channel_id: null, roles: [] })
-          }
-        >
+        <Button size="sm" onClick={openAdd}>
           <Plus className="h-4 w-4 mr-1" /> 手動新增群組
         </Button>
       </CardHeader>
       <CardContent>
-
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -493,15 +553,17 @@ function GroupsTab() {
                 <TableHead>群組名稱</TableHead>
                 <TableHead>groupId</TableHead>
                 <TableHead>使用 OA</TableHead>
-                <TableHead>對應角色</TableHead>
+                <TableHead>事件</TableHead>
+                <TableHead>館別</TableHead>
+                <TableHead>角色</TableHead>
                 <TableHead>啟用</TableHead>
-                <TableHead className="w-24">操作</TableHead>
+                <TableHead className="w-16">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {list.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                     尚無群組，請將 OA 加入 LINE 群組以自動建立
                   </TableCell>
                 </TableRow>
@@ -514,9 +576,40 @@ function GroupsTab() {
                     </TableCell>
                     <TableCell>{g.channel_name || "—"}</TableCell>
                     <TableCell>
-                      <div className="flex flex-wrap gap-1">
+                      <div className="flex flex-wrap gap-1 max-w-[180px]">
+                        {(g.event_types ?? []).length === 0 ? (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        ) : (
+                          g.event_types.map((c) => (
+                            <Badge key={c} variant="secondary" className="text-xs">
+                              {evtMap.get(c) ?? c}
+                            </Badge>
+                          ))
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1 max-w-[180px]">
+                        {(g.accommodation_ids ?? []).map((id) => (
+                          <Badge key={id} variant="outline" className="text-xs">
+                            {accMap.get(id) ?? id.slice(0, 6)}
+                          </Badge>
+                        ))}
+                        {(g.custom_venue_names ?? []).map((n) => (
+                          <Badge key={n} variant="outline" className="text-xs">
+                            {n}
+                          </Badge>
+                        ))}
+                        {(g.accommodation_ids ?? []).length === 0 &&
+                          (g.custom_venue_names ?? []).length === 0 && (
+                            <span className="text-muted-foreground text-xs">—</span>
+                          )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1 max-w-[160px]">
                         {g.roles.length === 0 ? (
-                          <span className="text-muted-foreground text-xs">未設定</span>
+                          <span className="text-muted-foreground text-xs">—</span>
                         ) : (
                           g.roles.map((r) => (
                             <Badge key={r} variant="secondary" className="text-xs">
@@ -532,7 +625,7 @@ function GroupsTab() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" onClick={() => setEditing(g)}>
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(g)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
                     </TableCell>
@@ -544,38 +637,39 @@ function GroupsTab() {
         </div>
       </CardContent>
 
-      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent>
+      <Dialog open={!!form} onOpenChange={(o) => !o && setForm(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>編輯群組推播設定</DialogTitle>
+            <DialogTitle>{form?.id ? "編輯群組推播設定" : "手動新增群組"}</DialogTitle>
           </DialogHeader>
-          {editing && (
+          {form && (
             <div className="space-y-4">
-              <div>
-                <Label>群組名稱</Label>
-                <Input
-                  value={editing.display_name ?? ""}
-                  onChange={(e) =>
-                    setEditing({ ...editing, display_name: e.target.value })
-                  }
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>群組名稱</Label>
+                  <Input
+                    value={form.display_name}
+                    onChange={(e) => setForm({ ...form, display_name: e.target.value })}
+                    placeholder="例如：行銷團隊群組"
+                  />
+                </div>
+                <div>
+                  <Label>groupId</Label>
+                  <Input
+                    value={form.target_id}
+                    onChange={(e) => setForm({ ...form, target_id: e.target.value })}
+                    placeholder="C..."
+                  />
+                </div>
               </div>
-              <div>
-                <Label>groupId</Label>
-                <Input
-                  value={editing.target_id ?? ""}
-                  onChange={(e) =>
-                    setEditing({ ...editing, target_id: e.target.value })
-                  }
-                />
-              </div>
+
               <div>
                 <Label>使用 OA</Label>
                 <select
                   className="w-full border rounded-md h-10 px-3 bg-background"
-                  value={editing.channel_id ?? ""}
+                  value={form.channel_id ?? ""}
                   onChange={(e) =>
-                    setEditing({ ...editing, channel_id: e.target.value || null })
+                    setForm({ ...form, channel_id: e.target.value || null })
                   }
                 >
                   <option value="">未指定</option>
@@ -586,105 +680,111 @@ function GroupsTab() {
                   ))}
                 </select>
               </div>
+
+              <div>
+                <Label>接收事件類型（多選）</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {eventTypes.length === 0 && (
+                    <span className="text-xs text-muted-foreground">尚未設定事件類型</span>
+                  )}
+                  {eventTypes.map((e) => (
+                    <Badge
+                      key={e.code}
+                      variant={form.event_types.includes(e.code) ? "default" : "outline"}
+                      className="cursor-pointer"
+                      onClick={() => toggleItem("event_types", e.code)}
+                    >
+                      {e.label}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <Label>對應館別（已建立，多選）</Label>
+                <div className="flex flex-wrap gap-2 mt-2 max-h-32 overflow-y-auto p-2 border rounded-md">
+                  {accommodations.length === 0 && (
+                    <span className="text-xs text-muted-foreground">無館別</span>
+                  )}
+                  {accommodations.map((a) => (
+                    <Badge
+                      key={a.id}
+                      variant={form.accommodation_ids.includes(a.id) ? "default" : "outline"}
+                      className="cursor-pointer"
+                      onClick={() => toggleItem("accommodation_ids", a.id)}
+                    >
+                      {a.name}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <Label>自訂館別名稱（尚未建立的館別）</Label>
+                <div className="flex gap-2 mt-2">
+                  <Input
+                    value={venueInput}
+                    onChange={(e) => setVenueInput(e.target.value)}
+                    placeholder="輸入名稱後按 Enter 或新增"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addVenueTag();
+                      }
+                    }}
+                  />
+                  <Button type="button" variant="outline" onClick={addVenueTag}>
+                    新增
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {form.custom_venue_names.map((v) => (
+                    <Badge key={v} variant="secondary" className="cursor-pointer">
+                      {v}
+                      <button
+                        type="button"
+                        className="ml-1"
+                        onClick={() => removeVenueTag(v)}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
               <div>
                 <Label>對應角色（多選）</Label>
                 <div className="flex flex-wrap gap-2 mt-2">
                   {roleOptions.map((r) => (
                     <Badge
                       key={r}
-                      variant={editing.roles.includes(r) ? "default" : "outline"}
+                      variant={form.roles.includes(r) ? "default" : "outline"}
                       className="cursor-pointer"
-                      onClick={() => toggleRole(r)}
+                      onClick={() => toggleItem("roles", r)}
                     >
                       {r}
                     </Badge>
                   ))}
                 </div>
               </div>
+
               <div className="flex items-center gap-2">
                 <Switch
-                  checked={editing.is_active}
-                  onCheckedChange={(v) => setEditing({ ...editing, is_active: v })}
+                  checked={form.is_active}
+                  onCheckedChange={(v) => setForm({ ...form, is_active: v })}
                 />
                 <Label>啟用</Label>
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditing(null)}>取消</Button>
+            <Button variant="outline" onClick={() => setForm(null)}>取消</Button>
             <Button onClick={save}>儲存</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <Dialog open={!!adding} onOpenChange={(o) => !o && setAdding(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>手動新增群組</DialogTitle>
-          </DialogHeader>
-          {adding && (
-            <div className="space-y-4">
-              <div>
-                <Label>群組名稱</Label>
-                <Input
-                  value={adding.display_name}
-                  onChange={(e) => setAdding({ ...adding, display_name: e.target.value })}
-                  placeholder="例如：行銷團隊群組"
-                />
-              </div>
-              <div>
-                <Label>groupId</Label>
-                <Input
-                  value={adding.target_id}
-                  onChange={(e) => setAdding({ ...adding, target_id: e.target.value })}
-                  placeholder="C..."
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  若 groupId 已存在則會更新該筆資料
-                </p>
-              </div>
-              <div>
-                <Label>使用 OA</Label>
-                <select
-                  className="w-full border rounded-md h-10 px-3 bg-background"
-                  value={adding.channel_id ?? ""}
-                  onChange={(e) =>
-                    setAdding({ ...adding, channel_id: e.target.value || null })
-                  }
-                >
-                  <option value="">未指定</option>
-                  {channels.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.channel_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <Label>對應角色（多選）</Label>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {roleOptions.map((r) => (
-                    <Badge
-                      key={r}
-                      variant={adding.roles.includes(r) ? "default" : "outline"}
-                      className="cursor-pointer"
-                      onClick={() => toggleAddRole(r)}
-                    >
-                      {r}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAdding(null)}>取消</Button>
-            <Button onClick={saveNew}>儲存</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Card>
-
   );
 }
 
@@ -874,6 +974,180 @@ function MembersTab() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setLinkDialog(null)}>關閉</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
+
+// ============== Events Tab ==============
+function EventsTab() {
+  const [list, setList] = useState<EventType[]>([]);
+  const [editing, setEditing] = useState<Partial<EventType> | null>(null);
+
+  const load = async () => {
+    const { data, error } = await supabase
+      .from("line_event_types")
+      .select("*")
+      .order("created_at", { ascending: true });
+    if (error) toast.error(error.message);
+    else setList((data ?? []) as EventType[]);
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const save = async () => {
+    if (!editing) return;
+    if (!editing.code?.trim() || !editing.label?.trim()) {
+      toast.error("請輸入事件代碼與中文名稱");
+      return;
+    }
+    const payload = {
+      code: editing.code.trim(),
+      label: editing.label.trim(),
+      description: editing.description ?? null,
+      is_active: editing.is_active ?? true,
+    };
+    let error;
+    if (editing.id) {
+      ({ error } = await supabase
+        .from("line_event_types")
+        .update(payload)
+        .eq("id", editing.id));
+    } else {
+      ({ error } = await supabase.from("line_event_types").insert(payload));
+    }
+    if (error) toast.error(error.message);
+    else {
+      toast.success("已儲存");
+      setEditing(null);
+      load();
+    }
+  };
+
+  const toggleActive = async (row: EventType) => {
+    const { error } = await supabase
+      .from("line_event_types")
+      .update({ is_active: !row.is_active })
+      .eq("id", row.id);
+    if (error) toast.error(error.message);
+    else load();
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle className="text-base">事件類型管理</CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">
+            管理 LINE 推播可用的事件類型，群組可選擇要接收哪些事件
+          </p>
+        </div>
+        <Button size="sm" onClick={() => setEditing({ is_active: true })}>
+          <Plus className="h-4 w-4 mr-1" /> 新增事件
+        </Button>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>事件代碼</TableHead>
+                <TableHead>中文名稱</TableHead>
+                <TableHead>說明</TableHead>
+                <TableHead>啟用</TableHead>
+                <TableHead className="w-24">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {list.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    尚無資料
+                  </TableCell>
+                </TableRow>
+              ) : (
+                list.map((e) => (
+                  <TableRow key={e.id}>
+                    <TableCell>
+                      <code className="text-xs">{e.code}</code>
+                    </TableCell>
+                    <TableCell className="font-medium">{e.label}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {e.description || "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Switch
+                        checked={e.is_active}
+                        onCheckedChange={() => toggleActive(e)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="icon" onClick={() => setEditing(e)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editing?.id ? "編輯事件" : "新增事件"}</DialogTitle>
+          </DialogHeader>
+          {editing && (
+            <div className="space-y-3">
+              <div>
+                <Label>事件代碼（英文，唯一）</Label>
+                <Input
+                  value={editing.code ?? ""}
+                  onChange={(e) =>
+                    setEditing({ ...editing, code: e.target.value })
+                  }
+                  placeholder="例如：kol_order"
+                  disabled={!!editing.id}
+                />
+              </div>
+              <div>
+                <Label>中文名稱</Label>
+                <Input
+                  value={editing.label ?? ""}
+                  onChange={(e) =>
+                    setEditing({ ...editing, label: e.target.value })
+                  }
+                  placeholder="例如：KOL 訂單通知"
+                />
+              </div>
+              <div>
+                <Label>說明</Label>
+                <Textarea
+                  value={editing.description ?? ""}
+                  onChange={(e) =>
+                    setEditing({ ...editing, description: e.target.value })
+                  }
+                  rows={3}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={editing.is_active ?? true}
+                  onCheckedChange={(v) => setEditing({ ...editing, is_active: v })}
+                />
+                <Label>啟用</Label>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)}>取消</Button>
+            <Button onClick={save}>儲存</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
