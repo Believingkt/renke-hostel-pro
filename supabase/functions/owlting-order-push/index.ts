@@ -1,389 +1,352 @@
-/**
- * OwlTing Order Push (Outbound OTA_HotelResNotifRQ)
- *
- * 推送訂單通知 (Commit / Modify / Cancel) 到 OwlTing endpoint。
- * 透過 VPS Relay 走固定 IP，符合 OwlTing IP 白名單需求。
- *
- * Request body (JSON):
- *   {
- *     accommodation_id: string,        // 必填，用來查 hotel_code / endpoint / 權限
- *     res_status: "Commit" | "Modify" | "Cancel",
- *     reservation: {
- *       unique_id: string,             // 訂單編號 (我方 ResID)
- *       create_datetime?: string,      // ISO，Commit 必填
- *       last_modify_datetime?: string, // ISO，Modify/Cancel 必填
- *       echo_token?: string,
- *       room_type_code: string,        // 對應 OwlTing numeric_code (RoomType)
- *       rate_plan_code: string,        // 對應 OwlTing numeric_code (RatePlan)
- *       number_of_units?: number,      // default 1
- *       check_in: string,              // YYYY-MM-DD
- *       check_out: string,             // YYYY-MM-DD
- *       guest_count?: number,          // default 1
- *       total_amount: number,
- *       currency?: string,             // default TWD
- *       guest: {
- *         given_name: string,
- *         surname: string,
- *         phone?: string,
- *         email?: string,
- *       },
- *     },
- *   }
- *
- * Endpoint URL 來源（依序）：
- *   1. OWLTING_ORDER_PUSH_URL secret（佔位用，奧丁丁正式 URL 拿到後填入）
- *   2. owlting_ari_endpoints.endpoint_url（沿用 ARI 同個接收端，若奧丁丁同 endpoint）
- */
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { buildCorsHeaders } from "../_shared/cors.ts";
+// owlting-order-push
+// Worker invoked every minute by pg_cron. Drains owlting_order_push_queue
+// (status='pending', next_retry_at<=now()) up to 50 rows per run.
+//
+// SAFETY: defaults to dryrun. Set Supabase secret OWLTING_PUSH_MODE='live'
+// to actually POST to OwlTing. In dryrun we ONLY assemble the XML and write
+// it to owlting_order_push_log with the password masked — no fetch at all.
+
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 import {
-  assertValidOutboundResNotifXml,
+  buildResNotifXml,
+  maskPasswordInXml,
+  type OwlOrderInput,
+  type OwlConfig,
   type ResStatus,
-} from "../_shared/owltingResValidator.ts";
+} from "./xml.ts";
 
-const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
 
-function xmlEscape(s: string | number | null | undefined): string {
-  if (s === null || s === undefined) return "";
-  return String(s)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
+const MODE = (Deno.env.get("OWLTING_PUSH_MODE") ?? "dryrun").toLowerCase();
+const BATCH_SIZE = 50;
+const BACKOFF_MIN = [1, 5, 15, 60, 360]; // minutes
+const MAX_ATTEMPTS = 5;
+
+interface QueueRow {
+  id: string;
+  accommodation_id: string;
+  order_id: string;
+  res_status: ResStatus;
+  echo_token: string;
+  status: string;
+  attempt_count: number;
 }
 
-function buildWsSecurityHeader(username: string | null, password: string | null): string {
-  if (!username) return "";
-  return `<soap:Header>
-    <wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">
-      <wsse:UsernameToken>
-        <wsse:Username>${xmlEscape(username)}</wsse:Username>
-        <wsse:Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText">${xmlEscape(password || "")}</wsse:Password>
-      </wsse:UsernameToken>
-    </wsse:Security>
-  </soap:Header>`;
-}
-
-/**
- * 與 owlting-ari-push 共用的 Relay forwarder（line 109-141 pattern）。
- * 走 VPS 固定 IP，符合 OwlTing IP 白名單。
- */
-async function fetchViaRelay(
-  targetUrl: string,
-  options: { method: string; headers: Record<string, string>; body: string }
-): Promise<Response> {
-  const proxyUrl = Deno.env.get("STATIC_IP_PROXY_URL");
-  const proxyToken = Deno.env.get("STATIC_IP_PROXY_TOKEN");
-
-  if (!proxyUrl) {
-    console.warn("[OwlTing OrderPush] STATIC_IP_PROXY_URL not set, using direct connection");
-    return fetch(targetUrl, { method: options.method, headers: options.headers, body: options.body });
-  }
-
-  const relayHeaders: Record<string, string> = {
-    "X-Target-Url": targetUrl,
-    "X-Target-Method": options.method,
-    "Content-Type": "application/octet-stream",
-  };
-  if (proxyToken) relayHeaders["X-Relay-Token"] = proxyToken;
-  for (const [key, value] of Object.entries(options.headers)) {
-    relayHeaders[`X-Forward-Header-${key}`] = value;
-  }
-
-  console.log(`[OwlTing OrderPush] ${options.method} via ${proxyUrl} → ${targetUrl}`);
-  return fetch(`${proxyUrl}/relay`, {
+// --- Single fetch wrapper: only place that talks to OwlTing externally.
+async function sendToOwlting(
+  endpoint: string,
+  xml: string,
+): Promise<{ status: number; text: string; durationMs: number }> {
+  const t0 = Date.now();
+  const resp = await fetch(endpoint, {
     method: "POST",
-    headers: relayHeaders,
-    body: options.body,
+    headers: {
+      "Content-Type": "text/xml; charset=utf-8",
+      "SOAPAction": "",
+    },
+    body: xml,
   });
+  const text = await resp.text();
+  return { status: resp.status, text, durationMs: Date.now() - t0 };
 }
 
-function hotelReservationAttrs(resStatus: ResStatus, ts: string, createDt?: string, modifyDt?: string): string {
-  if (resStatus === "Commit") {
-    return `CreateDateTime="${xmlEscape(createDt ?? ts)}" ResStatus="Commit"`;
-  }
-  return `LastModifyDateTime="${xmlEscape(modifyDt ?? ts)}" ResStatus="${resStatus}"`;
+function parseOwlNestMd5(xml: string): string | null {
+  const m = xml.match(/owlnest_md5\s*=\s*["']([^"']+)["']/i)
+    ?? xml.match(/<owlnest_md5>([^<]+)<\/owlnest_md5>/i);
+  return m ? m[1] : null;
 }
 
-interface ReservationPayload {
-  unique_id: string;
-  create_datetime?: string;
-  last_modify_datetime?: string;
-  echo_token?: string;
-  room_type_code: string;
-  rate_plan_code: string;
-  number_of_units?: number;
-  check_in: string;
-  check_out: string;
-  guest_count?: number;
-  total_amount: number;
-  currency?: string;
-  guest: { given_name: string; surname: string; phone?: string; email?: string };
+function isSuccessRs(xml: string): boolean {
+  return /<Success\b/i.test(xml) && !/<Errors\b/i.test(xml);
 }
 
-function buildResNotifXml(
-  resStatus: ResStatus,
-  hotelCode: string,
-  username: string | null,
-  password: string | null,
-  r: ReservationPayload,
-): string {
-  const ts = new Date().toISOString();
-  const echo = r.echo_token ?? `order-push-${Date.now()}`;
-  const units = r.number_of_units ?? 1;
-  const guests = r.guest_count ?? 1;
-  const currency = r.currency ?? "TWD";
-  const reservAttrs = hotelReservationAttrs(resStatus, ts, r.create_datetime, r.last_modify_datetime);
-
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-  ${buildWsSecurityHeader(username, password)}
-  <soap:Body>
-    <OTA_HotelResNotifRQ xmlns="http://www.opentravel.org/OTA/2003/05" Version="1.0" TimeStamp="${ts}" EchoToken="${xmlEscape(echo)}" ResStatus="${resStatus}">
-      <POS>
-        <Source>
-          <RequestorID Type="22" ID="LAKEZE"/>
-          <BookingChannel Type="7" Primary="true">
-            <CompanyName Code="LAKEZE">人客多</CompanyName>
-          </BookingChannel>
-        </Source>
-      </POS>
-      <HotelReservations>
-        <HotelReservation ${reservAttrs}>
-          <UniqueID Type="14" ID="${xmlEscape(r.unique_id)}"/>
-          <RoomStays>
-            <RoomStay>
-              <RoomTypes>
-                <RoomType RoomTypeCode="${xmlEscape(r.room_type_code)}" NumberOfUnits="${units}"/>
-              </RoomTypes>
-              <RatePlans>
-                <RatePlan RatePlanCode="${xmlEscape(r.rate_plan_code)}"/>
-              </RatePlans>
-              <RoomRates>
-                <RoomRate RoomTypeCode="${xmlEscape(r.room_type_code)}" RatePlanCode="${xmlEscape(r.rate_plan_code)}" NumberOfUnits="${units}">
-                  <Rates>
-                    <Rate EffectiveDate="${xmlEscape(r.check_in)}" ExpireDate="${xmlEscape(r.check_out)}">
-                      <Base AmountAfterTax="${xmlEscape(r.total_amount)}" CurrencyCode="${xmlEscape(currency)}"/>
-                    </Rate>
-                  </Rates>
-                </RoomRate>
-              </RoomRates>
-              <GuestCounts>
-                <GuestCount AgeQualifyingCode="10" Count="${guests}"/>
-              </GuestCounts>
-              <TimeSpan Start="${xmlEscape(r.check_in)}" End="${xmlEscape(r.check_out)}"/>
-              <Total AmountAfterTax="${xmlEscape(r.total_amount)}" CurrencyCode="${xmlEscape(currency)}"/>
-              <BasicPropertyInfo HotelCode="${xmlEscape(hotelCode)}"/>
-              <ResGuestRPHs>
-                <ResGuestRPH RPH="1"/>
-              </ResGuestRPHs>
-            </RoomStay>
-          </RoomStays>
-          <ResGuests>
-            <ResGuest ResGuestRPH="1" PrimaryIndicator="true">
-              <Profiles>
-                <ProfileInfo>
-                  <Profile ProfileType="1">
-                    <Customer>
-                      <PersonName>
-                        <GivenName>${xmlEscape(r.guest.given_name)}</GivenName>
-                        <Surname>${xmlEscape(r.guest.surname)}</Surname>
-                      </PersonName>
-                      ${r.guest.phone ? `<Telephone PhoneTechType="1" PhoneNumber="${xmlEscape(r.guest.phone)}"/>` : ""}
-                      ${r.guest.email ? `<Email>${xmlEscape(r.guest.email)}</Email>` : ""}
-                    </Customer>
-                  </Profile>
-                </ProfileInfo>
-              </Profiles>
-            </ResGuest>
-          </ResGuests>
-          <ResGlobalInfo>
-            <HotelReservationIDs>
-              <HotelReservationID ResID_Type="14" ResID_Value="${xmlEscape(r.unique_id)}" ResID_Source="LAKEZE"/>
-            </HotelReservationIDs>
-            <Total AmountAfterTax="${xmlEscape(r.total_amount)}" CurrencyCode="${xmlEscape(currency)}"/>
-            <Profiles>
-              <ProfileInfo>
-                <Profile ProfileType="1">
-                  <Customer>
-                    <PersonName>
-                      <GivenName>${xmlEscape(r.guest.given_name)}</GivenName>
-                      <Surname>${xmlEscape(r.guest.surname)}</Surname>
-                    </PersonName>
-                    ${r.guest.phone ? `<Telephone PhoneTechType="1" PhoneNumber="${xmlEscape(r.guest.phone)}"/>` : ""}
-                    ${r.guest.email ? `<Email>${xmlEscape(r.guest.email)}</Email>` : ""}
-                  </Customer>
-                </Profile>
-              </ProfileInfo>
-            </Profiles>
-          </ResGlobalInfo>
-        </HotelReservation>
-      </HotelReservations>
-    </OTA_HotelResNotifRQ>
-  </soap:Body>
-</soap:Envelope>`;
+function computeNextRetry(attempt: number): { iso: string | null; failedFinal: boolean } {
+  if (attempt >= MAX_ATTEMPTS) return { iso: null, failedFinal: true };
+  const minutes = BACKOFF_MIN[Math.min(attempt, BACKOFF_MIN.length - 1)];
+  return { iso: new Date(Date.now() + minutes * 60_000).toISOString(), failedFinal: false };
 }
 
 Deno.serve(async (req) => {
-  const corsHeaders = buildCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
 
-  // Auth
-  const authHeader = req.headers.get("Authorization") || "";
-  const supabaseUser = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const { data: userRes, error: userErr } = await supabaseUser.auth.getUser();
-  if (userErr || !userRes.user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  let payload: {
-    accommodation_id?: string;
-    res_status?: ResStatus;
-    reservation?: ReservationPayload;
-  };
-  try {
-    payload = await req.json();
-  } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  const { accommodation_id, res_status, reservation } = payload;
-  if (!accommodation_id || !res_status || !reservation) {
-    return new Response(
-      JSON.stringify({ error: "accommodation_id, res_status, reservation are required" }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
-  }
-  if (!["Commit", "Modify", "Cancel"].includes(res_status)) {
-    return new Response(JSON.stringify({ error: "res_status must be Commit|Modify|Cancel" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-  // Permission check
-  const { data: roleRows } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userRes.user.id)
-    .eq("accommodation_id", accommodation_id)
-    .in("role", ["super_admin", "hotel_admin"]);
-  if (!roleRows || roleRows.length === 0) {
-    return new Response(JSON.stringify({ error: "Forbidden" }), {
-      status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  // Load credentials & endpoint
-  const [credRes, endpointRes] = await Promise.all([
-    supabase.from("owlting_credentials").select("hotel_code").eq("accommodation_id", accommodation_id).maybeSingle(),
-    supabase.from("owlting_ari_endpoints").select("*").eq("accommodation_id", accommodation_id).maybeSingle(),
-  ]);
-  if (!credRes.data) {
-    return new Response(JSON.stringify({ error: "OwlTing credentials not configured" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  const hotelCode = credRes.data.hotel_code as string;
-  // Endpoint resolution: prefer secret OWLTING_ORDER_PUSH_URL (placeholder), fallback to ARI endpoint row.
-  const endpoint =
-    Deno.env.get("OWLTING_ORDER_PUSH_URL") ||
-    (endpointRes.data?.endpoint_url as string | undefined);
-  if (!endpoint) {
-    return new Response(
-      JSON.stringify({
-        error:
-          "OwlTing order-push endpoint not configured. Set OWLTING_ORDER_PUSH_URL secret or owlting_ari_endpoints.endpoint_url.",
-      }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
-  }
-  const remoteUser = (endpointRes.data?.remote_username as string | undefined) || null;
-  const remotePass = (endpointRes.data?.remote_password as string | undefined) || null;
-
-  // Build + validate XML
-  const xml = buildResNotifXml(res_status, hotelCode, remoteUser, remotePass, reservation);
-  try {
-    assertValidOutboundResNotifXml(xml);
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    await supabase.from("owlting_message_logs").insert({
-      accommodation_id,
-      direction: "outbound",
-      message_type: "OTA_HotelResNotifRQ",
-      http_status: null,
-      request_body: xml.slice(0, 50000),
-      response_body: "",
-      error_message: `validator rejected: ${msg}`,
-    });
-    return new Response(JSON.stringify({ error: "Invalid outbound XML", detail: msg }), {
-      status: 422,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  // Dispatch via VPS relay
-  let status = 0;
-  let respText = "";
-  let err: string | null = null;
-  const startedAt = Date.now();
-  try {
-    const r = await fetchViaRelay(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "text/xml; charset=utf-8",
-        "SOAPAction": '"OTA_HotelResNotifRQ"',
-      },
-      body: xml,
-    });
-    status = r.status;
-    respText = await r.text();
-  } catch (e) {
-    err = e instanceof Error ? e.message : String(e);
-  }
-  const elapsed_ms = Date.now() - startedAt;
-
-  await supabase.from("owlting_message_logs").insert({
-    accommodation_id,
-    direction: "outbound",
-    message_type: `OTA_HotelResNotifRQ:${res_status}`,
-    http_status: status || null,
-    request_body: xml.slice(0, 50000),
-    response_body: respText.slice(0, 50000),
-    error_message: err,
-  });
-
-  return new Response(
-    JSON.stringify({
-      success: !err && status >= 200 && status < 300,
-      res_status,
-      endpoint,
-      http_status: status,
-      elapsed_ms,
-      error: err,
-      response_preview: respText.slice(0, 500),
-    }),
-    { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+  const admin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    { auth: { persistSession: false } },
   );
+
+  const username = Deno.env.get("OWLTING_WS_USERNAME") ?? "";
+  const password = Deno.env.get("OWLTING_WS_PASSWORD") ?? "";
+  const haveCreds = !!username && !!password;
+
+  // 1) Claim queue rows
+  const nowIso = new Date().toISOString();
+  const { data: queue, error: qErr } = await admin
+    .from("owlting_order_push_queue")
+    .select("id, accommodation_id, order_id, res_status, echo_token, status, attempt_count")
+    .eq("status", "pending")
+    .lte("next_retry_at", nowIso)
+    .order("created_at", { ascending: true })
+    .limit(BATCH_SIZE);
+
+  if (qErr) {
+    return new Response(JSON.stringify({ error: qErr.message }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const results: any[] = [];
+
+  for (const row of (queue ?? []) as QueueRow[]) {
+    const r = await processRow(admin, row, { username, password, haveCreds });
+    results.push(r);
+  }
+
+  return new Response(JSON.stringify({
+    mode: MODE,
+    processed: results.length,
+    haveCreds,
+    results,
+  }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 });
+
+async function processRow(
+  admin: any,
+  row: QueueRow,
+  ctx: { username: string; password: string; haveCreds: boolean },
+) {
+  const baseLog: any = {
+    queue_id: row.id,
+    accommodation_id: row.accommodation_id,
+    res_status: row.res_status,
+  };
+
+  // Mark sending
+  await admin.from("owlting_order_push_queue").update({
+    status: "sending",
+    attempt_count: row.attempt_count + 1,
+  }).eq("id", row.id);
+
+  // Load config
+  const { data: cfg } = await admin
+    .from("accommodation_owlting_config")
+    .select("owlting_hotel_code, cm_api_endpoint_url, sync_enabled")
+    .eq("accommodation_id", row.accommodation_id)
+    .maybeSingle();
+
+  if (!cfg || !cfg.sync_enabled) {
+    await admin.from("owlting_order_push_queue").update({
+      status: "skipped",
+      last_error: "sync disabled or no config",
+    }).eq("id", row.id);
+    await admin.from("owlting_order_push_log").insert({
+      ...baseLog, success: false, error_message: "skipped: sync disabled or no config",
+    });
+    return { id: row.id, outcome: "skipped" };
+  }
+
+  // Load order with rooms
+  const { data: order } = await admin
+    .from("orders")
+    .select("id, order_number, accommodation_id, check_in_date, check_out_date, guest_count, guest_name, guest_phone, guest_email, total_price, final_price, notes, room_type_id, meal_plan, owlting_unique_id, order_status")
+    .eq("id", row.order_id)
+    .maybeSingle();
+
+  if (!order) {
+    await finalizeFail(admin, row, baseLog, "order not found", true);
+    return { id: row.id, outcome: "failed", reason: "order not found" };
+  }
+
+  // Build room stays from order_rooms; fall back to single (room_type_id, qty=1)
+  const { data: orRooms } = await admin
+    .from("order_rooms")
+    .select("room_type_id, quantity, room_price")
+    .eq("order_id", order.id);
+
+  const stayInputs = (orRooms && orRooms.length > 0)
+    ? orRooms.map((r: any) => ({
+        room_type_id: r.room_type_id,
+        quantity: r.quantity ?? 1,
+        unit_amount: Math.round(Number(r.room_price ?? 0)),
+      }))
+    : (order.room_type_id ? [{
+        room_type_id: order.room_type_id,
+        quantity: 1,
+        unit_amount: Math.round(Number(order.final_price ?? order.total_price ?? 0)),
+      }] : []);
+
+  if (stayInputs.length === 0) {
+    await finalizeFail(admin, row, baseLog, "no rooms on order", true);
+    return { id: row.id, outcome: "failed", reason: "no rooms" };
+  }
+
+  // Resolve numeric codes for room types
+  const roomTypeIds = Array.from(new Set(stayInputs.map((s) => s.room_type_id).filter(Boolean)));
+  const { data: rts } = await admin
+    .from("room_types")
+    .select("id, name, numeric_code")
+    .in("id", roomTypeIds);
+  const rtMap = new Map<string, { name: string; numeric_code: number | null }>(
+    (rts ?? []).map((r: any) => [r.id, { name: r.name, numeric_code: r.numeric_code }]),
+  );
+
+  // Resolve a RatePlanCode: try package by meal_plan name on this acc; else fallback to lowest numeric_code package.
+  const { data: pkgs } = await admin
+    .from("accommodation_packages")
+    .select("id, name, numeric_code")
+    .eq("accommodation_id", order.accommodation_id)
+    .order("numeric_code", { ascending: true });
+  let ratePlan = (pkgs ?? []).find((p: any) => order.meal_plan && p.name === order.meal_plan)
+              ?? (pkgs ?? [])[0]
+              ?? null;
+  if (!ratePlan || ratePlan.numeric_code == null) {
+    await finalizeFail(admin, row, baseLog, "no rate plan numeric_code for accommodation", true);
+    return { id: row.id, outcome: "failed", reason: "no rate plan" };
+  }
+
+  // Build OwlOrderInput
+  const stays = [];
+  for (const s of stayInputs) {
+    const rt = s.room_type_id ? rtMap.get(s.room_type_id) : undefined;
+    if (!rt || rt.numeric_code == null) {
+      await finalizeFail(admin, row, baseLog, `room_type ${s.room_type_id} missing numeric_code`, true);
+      return { id: row.id, outcome: "failed", reason: "no room_type code" };
+    }
+    stays.push({
+      roomTypeCode: rt.numeric_code,
+      ratePlanCode: ratePlan.numeric_code,
+      roomTypeName: rt.name,
+      ratePlanName: ratePlan.name,
+      quantity: s.quantity,
+      unitAmount: s.unit_amount,
+      adults: Math.max(1, order.guest_count ?? 2),
+    });
+  }
+
+  const owlOrder: OwlOrderInput = {
+    order_number: order.order_number,
+    check_in_date: order.check_in_date,
+    check_out_date: order.check_out_date,
+    guest_name: order.guest_name,
+    guest_phone: order.guest_phone,
+    guest_email: order.guest_email,
+    total_amount: Math.round(Number(order.final_price ?? order.total_price ?? 0)),
+    notes: order.notes ?? null,
+    roomStays: stays,
+  };
+  const owlCfg: OwlConfig = { owlting_hotel_code: cfg.owlting_hotel_code };
+
+  const uniqueId = order.owlting_unique_id ?? order.order_number;
+  const xml = buildResNotifXml(owlOrder, owlCfg, {
+    resStatus: row.res_status,
+    echoToken: row.echo_token,
+    uniqueId,
+  }, { username: ctx.username || "(missing)", password: ctx.password || "(missing)" });
+
+  const maskedXml = maskPasswordInXml(xml);
+
+  // ============ DRYRUN ============
+  if (MODE !== "live") {
+    await admin.from("owlting_order_push_log").insert({
+      ...baseLog,
+      request_xml: maskedXml,
+      response_xml: null,
+      http_status: null,
+      duration_ms: null,
+      success: null,
+      error_message: "dryrun — not sent",
+    });
+    await admin.from("owlting_order_push_queue").update({
+      status: "sent",
+      sent_at: new Date().toISOString(),
+      last_error: "dryrun",
+    }).eq("id", row.id);
+    await admin.from("orders").update({
+      owlting_sync_state: {
+        mode: "dryrun",
+        last_action: row.res_status,
+        last_echo_token: row.echo_token,
+        at: new Date().toISOString(),
+      },
+    }).eq("id", order.id);
+    return { id: row.id, outcome: "dryrun_logged" };
+  }
+
+  // ============ LIVE ============ (only when OWLTING_PUSH_MODE=live)
+  if (!ctx.haveCreds) {
+    await finalizeFail(admin, row, baseLog, "missing OWLTING_WS_USERNAME/PASSWORD", true);
+    return { id: row.id, outcome: "failed", reason: "no creds" };
+  }
+  try {
+    const { status, text, durationMs } = await sendToOwlting(cfg.cm_api_endpoint_url, xml);
+    const ok = status >= 200 && status < 300 && isSuccessRs(text);
+    const md5 = parseOwlNestMd5(text);
+    await admin.from("owlting_order_push_log").insert({
+      ...baseLog,
+      request_xml: maskedXml,
+      response_xml: text,
+      http_status: status,
+      duration_ms: durationMs,
+      success: ok,
+      owlnest_md5: md5,
+      error_message: ok ? null : "non-success response",
+    });
+    if (ok) {
+      await admin.from("owlting_order_push_queue").update({
+        status: "sent",
+        sent_at: new Date().toISOString(),
+        last_error: null,
+      }).eq("id", row.id);
+      await admin.from("accommodation_owlting_config").update({
+        last_successful_sync_at: new Date().toISOString(),
+      }).eq("accommodation_id", row.accommodation_id);
+      await admin.from("orders").update({
+        owlting_unique_id: uniqueId,
+        owlting_sync_state: {
+          mode: "live",
+          last_action: row.res_status,
+          last_echo_token: row.echo_token,
+          owlnest_md5: md5,
+          at: new Date().toISOString(),
+        },
+      }).eq("id", order.id);
+      return { id: row.id, outcome: "sent" };
+    }
+    const { iso, failedFinal } = computeNextRetry(row.attempt_count + 1);
+    await admin.from("owlting_order_push_queue").update({
+      status: failedFinal ? "failed" : "pending",
+      next_retry_at: iso,
+      last_error: `http ${status}`,
+    }).eq("id", row.id);
+    return { id: row.id, outcome: failedFinal ? "failed" : "retry" };
+  } catch (e) {
+    const msg = (e as Error).message ?? String(e);
+    await admin.from("owlting_order_push_log").insert({
+      ...baseLog,
+      request_xml: maskedXml,
+      success: false,
+      error_message: msg,
+    });
+    const { iso, failedFinal } = computeNextRetry(row.attempt_count + 1);
+    await admin.from("owlting_order_push_queue").update({
+      status: failedFinal ? "failed" : "pending",
+      next_retry_at: iso,
+      last_error: msg,
+    }).eq("id", row.id);
+    return { id: row.id, outcome: failedFinal ? "failed" : "retry", error: msg };
+  }
+}
+
+async function finalizeFail(admin: any, row: QueueRow, baseLog: any, msg: string, final: boolean) {
+  await admin.from("owlting_order_push_log").insert({
+    ...baseLog, success: false, error_message: msg,
+  });
+  await admin.from("owlting_order_push_queue").update({
+    status: final ? "failed" : "pending",
+    last_error: msg,
+  }).eq("id", row.id);
+}
