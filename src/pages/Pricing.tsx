@@ -197,29 +197,30 @@ const Pricing = () => {
 
       if (error) throw error;
       
-      // 確保所有房型的 display_order 至少為 1
-      const roomTypesWithOrder = (data || []).map((room, index) => ({
+      // 依目前排序自動重新編號為 1..N，確保顯示順序連續
+      const sourceRooms = data || [];
+      const roomTypesWithOrder = sourceRooms.map((room, index) => ({
         ...room,
-        display_order: room.display_order < 1 ? index + 1 : room.display_order
+        display_order: index + 1,
       }));
-      
+
       setRoomTypes(roomTypesWithOrder);
-      
-      // 如果有需要更新的房型（display_order < 1），更新數據庫
-      const needsUpdate = roomTypesWithOrder.some((room, index) => 
-        data![index].display_order < 1
+
+      // 任何原始 display_order 與重編號後不一致時，寫回資料庫
+      const needsUpdate = roomTypesWithOrder.some(
+        (room, index) => sourceRooms[index].display_order !== room.display_order
       );
-      
+
       if (needsUpdate) {
         const updates = roomTypesWithOrder
-          .filter((room, index) => data![index].display_order < 1)
-          .map((room) => 
+          .filter((room, index) => sourceRooms[index].display_order !== room.display_order)
+          .map((room) =>
             supabase
               .from('room_types')
               .update({ display_order: room.display_order })
               .eq('id', room.id)
           );
-        
+
         await Promise.all(updates);
       }
     } catch (error) {
