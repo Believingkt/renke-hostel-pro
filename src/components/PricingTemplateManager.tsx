@@ -500,6 +500,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         excluded_dates: formData.excluded_dates,
         room_overrides: overridesArray,
         season_segments: seasonSegments,
+        default_package_id: formData.default_package_id || null,
       };
 
       if (editingTemplate) {
