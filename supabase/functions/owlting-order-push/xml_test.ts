@@ -74,8 +74,8 @@ Deno.test("UniqueID consistent across Commit / Modify / Cancel", () => {
   const m = buildResNotifRq(order, config, { resStatus: "Modify", echoToken: "x", uniqueId: u, nowIso: NOW });
   const x = buildResNotifRq(order, config, { resStatus: "Cancel", echoToken: "x", uniqueId: u, nowIso: NOW });
   for (const xml of [c, m, x]) {
-    const matches = xml.match(/ID="ABC12345"/g) ?? [];
-    assert(matches.length >= 2, "uniqueId appears in UniqueID and HotelReservationID");
+    assertStringIncludes(xml, `<UniqueID Type="14" ID="ABC12345"/>`);
+    assertStringIncludes(xml, `ResID_Value="ABC12345"`);
   }
 });
 
