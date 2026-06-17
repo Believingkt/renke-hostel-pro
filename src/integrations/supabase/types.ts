@@ -6045,6 +6045,7 @@ export type Database = {
           accommodation_id: string
           available_rooms: number
           created_at: string
+          default_package_id: string | null
           description: string | null
           display_order: number | null
           excluded_dates: Json
@@ -6075,6 +6076,7 @@ export type Database = {
           accommodation_id: string
           available_rooms?: number
           created_at?: string
+          default_package_id?: string | null
           description?: string | null
           display_order?: number | null
           excluded_dates?: Json
@@ -6105,6 +6107,7 @@ export type Database = {
           accommodation_id?: string
           available_rooms?: number
           created_at?: string
+          default_package_id?: string | null
           description?: string | null
           display_order?: number | null
           excluded_dates?: Json
@@ -6137,6 +6140,13 @@ export type Database = {
             columns: ["accommodation_id"]
             isOneToOne: false
             referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_templates_default_package_id_fkey"
+            columns: ["default_package_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_packages"
             referencedColumns: ["id"]
           },
           {

@@ -70,6 +70,13 @@ interface PricingTemplate {
   extra_dates?: string[] | null;
   excluded_dates?: string[] | null;
   season_segments?: SeasonSegment[] | null;
+  default_package_id?: string | null;
+}
+
+interface AccommodationPackage {
+  id: string;
+  name: string;
+  numeric_code: number | null;
 }
 
 interface RoomType {
@@ -114,6 +121,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingTemplate, setDeletingTemplate] = useState<PricingTemplate | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+  const [packages, setPackages] = useState<AccommodationPackage[]>([]);
   const isSingleSelect = SINGLE_SELECT_ACCOMMODATIONS.has(accommodationId);
   const isTS = isTianSong(accommodationId);
 
@@ -135,7 +143,9 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     excluded_dates: [] as string[],
     room_overrides: {} as Record<string, { weekday_price: number | null; peak_price: number | null; weekend_price: number | null; available_rooms: number; weekday_enabled: boolean; peak_enabled: boolean; weekend_enabled: boolean }>,
     extra_segments: [] as SeasonSegment[],
+    default_package_id: "" as string,
   });
+
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -143,8 +153,23 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     if (accommodationId) {
       loadTemplates();
       loadRoomTypes();
+      loadPackages();
     }
   }, [accommodationId]);
+
+  const loadPackages = async () => {
+    try {
+      const { data, error } = await (supabase as any)
+        .from('accommodation_packages')
+        .select('id, name, numeric_code')
+        .eq('accommodation_id', accommodationId)
+        .order('numeric_code', { ascending: true });
+      if (error) throw error;
+      setPackages((data || []) as AccommodationPackage[]);
+    } catch (e) {
+      console.error('載入 OwlTing 方案失敗:', e);
+    }
+  };
 
   const loadTemplates = async () => {
     try {
@@ -214,6 +239,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       excluded_dates: [],
       room_overrides: {},
       extra_segments: [],
+      default_package_id: "",
     });
     setErrors({});
     setShowForm(true);
@@ -269,6 +295,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       excluded_dates: primarySeg ? (primarySeg.excluded_dates || []) : (Array.isArray(template.excluded_dates) ? template.excluded_dates : []),
       room_overrides: overridesMap,
       extra_segments: extraSegs,
+      default_package_id: (template as any).default_package_id || "",
     });
     setErrors({});
     setShowForm(true);
@@ -473,6 +500,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         excluded_dates: formData.excluded_dates,
         room_overrides: overridesArray,
         season_segments: seasonSegments,
+        default_package_id: formData.default_package_id || null,
       };
 
       if (editingTemplate) {
@@ -841,7 +869,36 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
             )}
           </div>
 
-          {/* 天送：專案期限 */}
+          {/* OwlTing 對應方案（template -> accommodation_packages 的單一真實來源） */}
+          {packages.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="default_package_id">
+                OwlTing 對應方案
+                <span className="text-xs text-muted-foreground font-normal ml-1">
+                  （訂單建立時會自動帶入此方案，作為通路推送的 RatePlanCode）
+                </span>
+              </Label>
+              <Select
+                value={formData.default_package_id || "none"}
+                onValueChange={(v) =>
+                  setFormData({ ...formData, default_package_id: v === "none" ? "" : v })
+                }
+              >
+                <SelectTrigger id="default_package_id" className="h-12 sm:h-10">
+                  <SelectValue placeholder="未對應 OwlTing 方案" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">未對應（不推送到 OwlTing）</SelectItem>
+                  {packages.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.numeric_code != null ? `${p.numeric_code} · ` : ""}{p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {isTS && (
             <div className="space-y-2">
               <Label>專案期限 *<span className="text-xs text-muted-foreground font-normal ml-1">（硬性限制：超出期限將無法選用此專案）</span></Label>
