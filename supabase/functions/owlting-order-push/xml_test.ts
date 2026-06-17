@@ -85,3 +85,48 @@ Deno.test("maskPasswordInXml hides the password", () => {
   assert(!masked.includes("p@ss"), "real password leaked");
   assertMatch(masked, /<wsse:Password[^>]*>\*{8}<\/wsse:Password>/);
 });
+
+// ---- Step 3.5: resolveRatePlan strictly uses order.package_id ----
+const pkgs = [
+  { id: "pkg-a", name: "6人包區",  numeric_code: 1001 },
+  { id: "pkg-b", name: "8人包區",  numeric_code: 1002 },
+  { id: "pkg-c", name: "未編號方案", numeric_code: null },
+];
+
+Deno.test("resolveRatePlan: package_id present -> returns correct code", () => {
+  const r = resolveRatePlan("pkg-b", pkgs);
+  assert(r.ok);
+  if (r.ok) {
+    assertEquals(r.code, 1002);
+    assertEquals(r.name, "8人包區");
+  }
+});
+
+Deno.test("resolveRatePlan: package_id null -> fail (no guessing)", () => {
+  const r = resolveRatePlan(null, pkgs);
+  assertEquals(r.ok, false);
+  if (!r.ok) assertStringIncludes(r.reason, "no rate plan");
+});
+
+Deno.test("resolveRatePlan: package_id undefined -> fail", () => {
+  const r = resolveRatePlan(undefined, pkgs);
+  assertEquals(r.ok, false);
+});
+
+Deno.test("resolveRatePlan: package_id not in accommodation packages -> fail", () => {
+  const r = resolveRatePlan("pkg-other", pkgs);
+  assertEquals(r.ok, false);
+  if (!r.ok) assertStringIncludes(r.reason, "not found");
+});
+
+Deno.test("resolveRatePlan: package without numeric_code -> fail", () => {
+  const r = resolveRatePlan("pkg-c", pkgs);
+  assertEquals(r.ok, false);
+  if (!r.ok) assertStringIncludes(r.reason, "numeric_code");
+});
+
+Deno.test("resolveRatePlan: does NOT fall back to lowest numeric_code when missing", () => {
+  // Even though pkg-a (1001) exists, a null package_id must NOT return 1001.
+  const r = resolveRatePlan(null, pkgs);
+  assertEquals(r.ok, false);
+});
