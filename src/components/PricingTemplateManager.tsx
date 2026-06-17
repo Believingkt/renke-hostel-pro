@@ -224,6 +224,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       excluded_dates: [],
       room_overrides: {},
       extra_segments: [],
+      default_package_id: "",
     });
     setErrors({});
     setShowForm(true);
