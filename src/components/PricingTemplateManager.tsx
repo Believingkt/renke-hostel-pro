@@ -153,8 +153,23 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     if (accommodationId) {
       loadTemplates();
       loadRoomTypes();
+      loadPackages();
     }
   }, [accommodationId]);
+
+  const loadPackages = async () => {
+    try {
+      const { data, error } = await (supabase as any)
+        .from('accommodation_packages')
+        .select('id, name, numeric_code')
+        .eq('accommodation_id', accommodationId)
+        .order('numeric_code', { ascending: true });
+      if (error) throw error;
+      setPackages((data || []) as AccommodationPackage[]);
+    } catch (e) {
+      console.error('載入 OwlTing 方案失敗:', e);
+    }
+  };
 
   const loadTemplates = async () => {
     try {
