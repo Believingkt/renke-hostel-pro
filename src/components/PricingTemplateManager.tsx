@@ -143,7 +143,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     excluded_dates: [] as string[],
     room_overrides: {} as Record<string, { weekday_price: number | null; peak_price: number | null; weekend_price: number | null; available_rooms: number; weekday_enabled: boolean; peak_enabled: boolean; weekend_enabled: boolean }>,
     extra_segments: [] as SeasonSegment[],
-  });
+    default_package_id: "" as string,
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
