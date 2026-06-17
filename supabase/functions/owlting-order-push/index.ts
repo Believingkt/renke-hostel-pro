@@ -195,17 +195,16 @@ async function processRow(
     (rts ?? []).map((r: any) => [r.id, { name: r.name, numeric_code: r.numeric_code }]),
   );
 
-  // Resolve a RatePlanCode: try package by meal_plan name on this acc; else fallback to lowest numeric_code package.
+  // Resolve RatePlanCode strictly from orders.package_id.
+  // NO fallback to "lowest numeric_code" — guessing the rate plan would push
+  // wrong data to OwlNest. Missing package_id => fail with reason "no rate plan".
   const { data: pkgs } = await admin
     .from("accommodation_packages")
     .select("id, name, numeric_code")
-    .eq("accommodation_id", order.accommodation_id)
-    .order("numeric_code", { ascending: true });
-  let ratePlan = (pkgs ?? []).find((p: any) => order.meal_plan && p.name === order.meal_plan)
-              ?? (pkgs ?? [])[0]
-              ?? null;
-  if (!ratePlan || ratePlan.numeric_code == null) {
-    await finalizeFail(admin, row, baseLog, "no rate plan numeric_code for accommodation", true);
+    .eq("accommodation_id", order.accommodation_id);
+  const rp = resolveRatePlan(order.package_id, pkgs ?? []);
+  if (!rp.ok) {
+    await finalizeFail(admin, row, baseLog, rp.reason, true);
     return { id: row.id, outcome: "failed", reason: "no rate plan" };
   }
 
@@ -219,9 +218,9 @@ async function processRow(
     }
     stays.push({
       roomTypeCode: rt.numeric_code,
-      ratePlanCode: ratePlan.numeric_code,
+      ratePlanCode: rp.code,
       roomTypeName: rt.name,
-      ratePlanName: ratePlan.name,
+      ratePlanName: rp.name,
       quantity: s.quantity,
       unitAmount: s.unit_amount,
       adults: Math.max(1, order.guest_count ?? 2),
