@@ -70,6 +70,13 @@ interface PricingTemplate {
   extra_dates?: string[] | null;
   excluded_dates?: string[] | null;
   season_segments?: SeasonSegment[] | null;
+  default_package_id?: string | null;
+}
+
+interface AccommodationPackage {
+  id: string;
+  name: string;
+  numeric_code: number | null;
 }
 
 interface RoomType {
