@@ -280,6 +280,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       excluded_dates: primarySeg ? (primarySeg.excluded_dates || []) : (Array.isArray(template.excluded_dates) ? template.excluded_dates : []),
       room_overrides: overridesMap,
       extra_segments: extraSegs,
+      default_package_id: (template as any).default_package_id || "",
     });
     setErrors({});
     setShowForm(true);
