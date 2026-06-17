@@ -121,6 +121,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingTemplate, setDeletingTemplate] = useState<PricingTemplate | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+  const [packages, setPackages] = useState<AccommodationPackage[]>([]);
   const isSingleSelect = SINGLE_SELECT_ACCOMMODATIONS.has(accommodationId);
   const isTS = isTianSong(accommodationId);
 
