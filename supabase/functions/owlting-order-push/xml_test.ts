@@ -1,5 +1,5 @@
 import { assertEquals, assertStringIncludes, assertMatch, assert } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { buildResNotifXml, buildResNotifRq, maskPasswordInXml, type OwlOrderInput, type OwlConfig } from "./xml.ts";
+import { buildResNotifXml, buildResNotifRq, maskPasswordInXml, resolveRatePlan, type OwlOrderInput, type OwlConfig } from "./xml.ts";
 
 const order: OwlOrderInput = {
   order_number: "ABC12345",
