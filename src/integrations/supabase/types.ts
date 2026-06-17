@@ -4410,6 +4410,7 @@ export type Database = {
           owlting_sync_state: Json | null
           owlting_unique_id: string | null
           owner_direct: boolean
+          package_id: string | null
           paid_amount: number | null
           payment_link_created_at: string | null
           payment_method: string | null
@@ -4476,6 +4477,7 @@ export type Database = {
           owlting_sync_state?: Json | null
           owlting_unique_id?: string | null
           owner_direct?: boolean
+          package_id?: string | null
           paid_amount?: number | null
           payment_link_created_at?: string | null
           payment_method?: string | null
@@ -4542,6 +4544,7 @@ export type Database = {
           owlting_sync_state?: Json | null
           owlting_unique_id?: string | null
           owner_direct?: boolean
+          package_id?: string | null
           paid_amount?: number | null
           payment_link_created_at?: string | null
           payment_method?: string | null
@@ -4567,6 +4570,13 @@ export type Database = {
             columns: ["member_id"]
             isOneToOne: false
             referencedRelation: "platform_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_packages"
             referencedColumns: ["id"]
           },
           {

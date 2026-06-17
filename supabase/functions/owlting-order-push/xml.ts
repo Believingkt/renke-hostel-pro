@@ -205,3 +205,27 @@ export function maskPasswordInXml(xml: string): string {
     `$1********$3`,
   );
 }
+
+/**
+ * Resolve the RatePlanCode for an order from its package_id.
+ * Pure helper — unit-tested.
+ *
+ * We deliberately do NOT fall back to "the lowest numeric_code package":
+ * guessing a rate plan would push wrong data to OwlNest. If the order has
+ * no package_id (or it points at a package without numeric_code), the
+ * caller must fail the queue row with reason "no rate plan".
+ */
+export type RatePlanResolution =
+  | { ok: true; code: number; name: string; id: string }
+  | { ok: false; reason: string };
+
+export function resolveRatePlan(
+  packageId: string | null | undefined,
+  packages: { id: string; name: string; numeric_code: number | null }[],
+): RatePlanResolution {
+  if (!packageId) return { ok: false, reason: "no rate plan: order.package_id is null" };
+  const pkg = packages.find((p) => p.id === packageId);
+  if (!pkg) return { ok: false, reason: `no rate plan: package_id ${packageId} not found for accommodation` };
+  if (pkg.numeric_code == null) return { ok: false, reason: `no rate plan: package ${pkg.name} has no numeric_code` };
+  return { ok: true, code: pkg.numeric_code, name: pkg.name, id: pkg.id };
+}
