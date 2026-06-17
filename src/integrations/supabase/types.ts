@@ -611,6 +611,47 @@ export type Database = {
           },
         ]
       }
+      accommodation_owlting_config: {
+        Row: {
+          accommodation_id: string
+          cm_api_endpoint_url: string
+          created_at: string
+          id: string
+          last_successful_sync_at: string | null
+          owlting_hotel_code: string
+          sync_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          cm_api_endpoint_url?: string
+          created_at?: string
+          id?: string
+          last_successful_sync_at?: string | null
+          owlting_hotel_code: string
+          sync_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          cm_api_endpoint_url?: string
+          created_at?: string
+          id?: string
+          last_successful_sync_at?: string | null
+          owlting_hotel_code?: string
+          sync_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodation_owlting_config_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: true
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accommodation_owners: {
         Row: {
           accommodation_id: string
@@ -674,6 +715,7 @@ export type Database = {
           id: string
           includes: Json
           name: string
+          numeric_code: number | null
           original_price: number | null
           primary_room_type_id: string | null
           room_allocation: string | null
@@ -699,6 +741,7 @@ export type Database = {
           id?: string
           includes?: Json
           name: string
+          numeric_code?: number | null
           original_price?: number | null
           primary_room_type_id?: string | null
           room_allocation?: string | null
@@ -724,6 +767,7 @@ export type Database = {
           id?: string
           includes?: Json
           name?: string
+          numeric_code?: number | null
           original_price?: number | null
           primary_room_type_id?: string | null
           room_allocation?: string | null
@@ -4363,6 +4407,8 @@ export type Database = {
           order_status: string
           ota_channel: string | null
           owlting_reservation_id: string | null
+          owlting_sync_state: Json | null
+          owlting_unique_id: string | null
           owner_direct: boolean
           paid_amount: number | null
           payment_link_created_at: string | null
@@ -4427,6 +4473,8 @@ export type Database = {
           order_status?: string
           ota_channel?: string | null
           owlting_reservation_id?: string | null
+          owlting_sync_state?: Json | null
+          owlting_unique_id?: string | null
           owner_direct?: boolean
           paid_amount?: number | null
           payment_link_created_at?: string | null
@@ -4491,6 +4539,8 @@ export type Database = {
           order_status?: string
           ota_channel?: string | null
           owlting_reservation_id?: string | null
+          owlting_sync_state?: Json | null
+          owlting_unique_id?: string | null
           owner_direct?: boolean
           paid_amount?: number | null
           payment_link_created_at?: string | null
@@ -5197,6 +5247,123 @@ export type Database = {
           response_body?: string | null
         }
         Relationships: []
+      }
+      owlting_order_push_log: {
+        Row: {
+          accommodation_id: string | null
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          http_status: number | null
+          id: string
+          owlnest_md5: string | null
+          queue_id: string | null
+          request_xml: string | null
+          res_status: string | null
+          response_xml: string | null
+          success: boolean | null
+        }
+        Insert: {
+          accommodation_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          http_status?: number | null
+          id?: string
+          owlnest_md5?: string | null
+          queue_id?: string | null
+          request_xml?: string | null
+          res_status?: string | null
+          response_xml?: string | null
+          success?: boolean | null
+        }
+        Update: {
+          accommodation_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          http_status?: number | null
+          id?: string
+          owlnest_md5?: string | null
+          queue_id?: string | null
+          request_xml?: string | null
+          res_status?: string | null
+          response_xml?: string | null
+          success?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owlting_order_push_log_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owlting_order_push_log_queue_id_fkey"
+            columns: ["queue_id"]
+            isOneToOne: false
+            referencedRelation: "owlting_order_push_queue"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      owlting_order_push_queue: {
+        Row: {
+          accommodation_id: string
+          attempt_count: number
+          created_at: string
+          echo_token: string
+          id: string
+          last_error: string | null
+          next_retry_at: string | null
+          order_id: string | null
+          res_status: Database["public"]["Enums"]["owlting_res_status"]
+          sent_at: string | null
+          status: Database["public"]["Enums"]["owlting_push_status"]
+        }
+        Insert: {
+          accommodation_id: string
+          attempt_count?: number
+          created_at?: string
+          echo_token: string
+          id?: string
+          last_error?: string | null
+          next_retry_at?: string | null
+          order_id?: string | null
+          res_status: Database["public"]["Enums"]["owlting_res_status"]
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["owlting_push_status"]
+        }
+        Update: {
+          accommodation_id?: string
+          attempt_count?: number
+          created_at?: string
+          echo_token?: string
+          id?: string
+          last_error?: string | null
+          next_retry_at?: string | null
+          order_id?: string | null
+          res_status?: Database["public"]["Enums"]["owlting_res_status"]
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["owlting_push_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owlting_order_push_queue_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owlting_order_push_queue_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       owlting_service_accounts: {
         Row: {
@@ -6241,6 +6408,7 @@ export type Database = {
           name: string
           name_en: string | null
           numeric_code: number | null
+          owlting_sync_active: boolean
           package_contents: Json | null
           quad_room_count: number | null
           room_count: number | null
@@ -6263,6 +6431,7 @@ export type Database = {
           name: string
           name_en?: string | null
           numeric_code?: number | null
+          owlting_sync_active?: boolean
           package_contents?: Json | null
           quad_room_count?: number | null
           room_count?: number | null
@@ -6285,6 +6454,7 @@ export type Database = {
           name?: string
           name_en?: string | null
           numeric_code?: number | null
+          owlting_sync_active?: boolean
           package_contents?: Json | null
           quad_room_count?: number | null
           room_count?: number | null
@@ -7765,6 +7935,8 @@ export type Database = {
         | "expire"
         | "admin_adjust"
       module_permission_level: "hidden" | "readonly" | "editable"
+      owlting_push_status: "pending" | "sending" | "sent" | "failed" | "skipped"
+      owlting_res_status: "Commit" | "Modify" | "Cancel"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -7931,6 +8103,8 @@ export const Constants = {
         "admin_adjust",
       ],
       module_permission_level: ["hidden", "readonly", "editable"],
+      owlting_push_status: ["pending", "sending", "sent", "failed", "skipped"],
+      owlting_res_status: ["Commit", "Modify", "Cancel"],
     },
   },
 } as const
