@@ -189,7 +189,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
 
       return {
         roomTypes: roomTypesRes.data || [],
-        orders: ordersRes.data || [],
+        orders,
         holidays: holidaysRes.data || [],
         inventoryData,
         orderRoomsMap,
