@@ -968,6 +968,8 @@ function InvitationsTab({
       kol_tags: row.kol_tags ?? [],
       kpi_qualified: !!row.kpi_qualified,
       kol_direct_ticket_link: row.kol_direct_ticket_link ?? "",
+      follower_count_input: row.follower_count != null ? String(row.follower_count) : "",
+      follower_count_original: row.follower_count ?? null,
     });
     setDupWarning(null);
     setSheetOpen(true);
