@@ -998,11 +998,18 @@ function InvitationsTab({
       if (!ok) return;
     }
 
+    // 粉絲數驗證
+    const followerParsed = parseFollowerInput(form.follower_count_input);
+    if (!followerParsed.ok) {
+      setFollowerError("粉絲數格式錯誤，請依照範例輸入（例如:57.7萬、57.7k 或 1226）");
+      return;
+    }
 
     setSaving(true);
     const kpiEligible = !!form.check_in_date;
     const kpiMonth = form.check_in_date ? form.check_in_date.slice(0, 7) + "-01" : null;
     const tags = form.kol_tags;
+
 
     const resolvedVenueName = form.accommodation_id
       ? (accommodations.find((a) => a.id === form.accommodation_id)?.name ?? null)
