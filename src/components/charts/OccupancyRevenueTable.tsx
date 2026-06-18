@@ -81,6 +81,25 @@ const SEGMENT_LABEL: Record<SegmentKey, string> = {
   standard: '散客',
 };
 
+// Paginated fetch helper to bypass PostgREST's default 1000-row cap.
+async function fetchAllPaginated<T>(
+  buildQuery: () => any,
+  pageSize = 1000
+): Promise<T[]> {
+  const all: T[] = [];
+  let from = 0;
+  // Safety cap to avoid runaway loops
+  for (let i = 0; i < 1000; i++) {
+    const { data, error } = await buildQuery().range(from, from + pageSize - 1);
+    if (error) throw error;
+    const batch = (data || []) as T[];
+    all.push(...batch);
+    if (batch.length < pageSize) break;
+    from += pageSize;
+  }
+  return all;
+}
+
 export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: OccupancyRevenueTableProps) => {
   const { data, isLoading } = useQuery({
     queryKey: ['occupancy-revenue-table', accommodationId, selectedYear],
@@ -88,23 +107,24 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
       const startDate = `${selectedYear - 1}-01-01`;
       const endDate = `${selectedYear}-12-31`;
 
-      const [roomTypesRes, ordersRes, holidaysRes, orderRoomsRes, accRes] = await Promise.all([
+      const [roomTypesRes, holidaysRes, accRes, ordersAll] = await Promise.all([
         supabase.from('room_types').select('id, name, room_count, is_exclusive_package').eq('accommodation_id', accommodationId),
-        supabase.from('orders')
-          .select('id, check_in_date, check_out_date, room_type_id, final_price, meal_plan, order_status, order_source')
-          .eq('accommodation_id', accommodationId)
-          .in('order_status', ['confirmed', 'hold'])
-          .or(`check_in_date.lte.${endDate},check_out_date.gte.${startDate}`)
-          .limit(5000),
         supabase.from('public_holidays')
           .select('holiday_date, holiday_type')
           .eq('accommodation_id', accommodationId)
           .gte('holiday_date', startDate)
           .lte('holiday_date', endDate),
-        supabase.from('order_rooms')
-          .select('order_id, room_type_id, quantity')
-          .limit(10000),
         supabase.from('accommodation_info').select('daily_capacity, daily_villa_capacity, daily_room_capacity, name').eq('id', accommodationId).maybeSingle(),
+        // Orders: stay-range overlap = check_in <= endDate AND check_out >= startDate (both AND)
+        fetchAllPaginated<any>(() =>
+          supabase.from('orders')
+            .select('id, check_in_date, check_out_date, room_type_id, final_price, meal_plan, order_status, order_source')
+            .eq('accommodation_id', accommodationId)
+            .in('order_status', ['confirmed', 'hold'])
+            .lte('check_in_date', endDate)
+            .gte('check_out_date', startDate)
+            .order('id', { ascending: true })
+        ),
       ]);
       const dailyCap = Number((accRes.data as any)?.daily_capacity) > 0 ? Number((accRes.data as any).daily_capacity) : 6;
       const dailyVillaCap = Number((accRes.data as any)?.daily_villa_capacity) > 0 ? Number((accRes.data as any).daily_villa_capacity) : 0;
@@ -112,30 +132,64 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
       const accName: string = (accRes.data as any)?.name || '';
 
       if (roomTypesRes.error) throw roomTypesRes.error;
-      if (ordersRes.error) throw ordersRes.error;
+
+      const orders = ordersAll;
+      const orderIds = orders.map((o: any) => o.id);
 
       const roomTypeIds = (roomTypesRes.data || []).map(rt => rt.id);
-      let inventoryData: any[] = [];
-      if (roomTypeIds.length > 0) {
-        const { data: inv } = await supabase
-          .from('room_inventory_pricing')
-          .select('room_type_id, date, price, price_2_meals, price_3_meals')
-          .in('room_type_id', roomTypeIds)
-          .gte('date', startDate)
-          .lte('date', endDate)
-          .limit(10000);
-        inventoryData = inv || [];
-      }
+
+      // Fetch inventory pricing + order_rooms in parallel, both paginated and scoped.
+      const CHUNK = 300;
+      const [inventoryData, orderRoomsAll] = await Promise.all([
+        roomTypeIds.length > 0
+          ? fetchAllPaginated<any>(() =>
+              supabase
+                .from('room_inventory_pricing')
+                .select('room_type_id, date, price, price_2_meals, price_3_meals')
+                .in('room_type_id', roomTypeIds)
+                .gte('date', startDate)
+                .lte('date', endDate)
+                .order('date', { ascending: true })
+            )
+          : Promise.resolve([] as any[]),
+        (async () => {
+          if (orderIds.length === 0) return [] as any[];
+          const out: any[] = [];
+          for (let i = 0; i < orderIds.length; i += CHUNK) {
+            const slice = orderIds.slice(i, i + CHUNK);
+            const batch = await fetchAllPaginated<any>(() =>
+              supabase.from('order_rooms')
+                .select('order_id, room_type_id, quantity')
+                .in('order_id', slice)
+                .order('order_id', { ascending: true })
+            );
+            out.push(...batch);
+          }
+          return out;
+        })(),
+      ]);
 
       const orderRoomsMap = new Map<string, { room_type_id: string; quantity: number }[]>();
-      (orderRoomsRes.data || []).forEach(or => {
+      orderRoomsAll.forEach((or: any) => {
         if (!orderRoomsMap.has(or.order_id)) orderRoomsMap.set(or.order_id, []);
         orderRoomsMap.get(or.order_id)!.push({ room_type_id: or.room_type_id, quantity: or.quantity });
       });
 
+      if (typeof window !== 'undefined') {
+        // Lightweight diagnostics for verification; harmless in production.
+        // eslint-disable-next-line no-console
+        console.debug('[OccupancyRevenueTable] fetch counts', {
+          accommodationId,
+          selectedYear,
+          orders: orders.length,
+          orderRooms: orderRoomsAll.length,
+          inventory: inventoryData.length,
+        });
+      }
+
       return {
         roomTypes: roomTypesRes.data || [],
-        orders: ordersRes.data || [],
+        orders,
         holidays: holidaysRes.data || [],
         inventoryData,
         orderRoomsMap,
