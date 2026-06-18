@@ -1459,6 +1459,8 @@ function InvitationsTab({
               <TableHeader>
                 <TableRow>
                   <TableHead>KOL 名稱</TableHead>
+                  <TableHead>粉絲數</TableHead>
+                  <TableHead>KOL連結</TableHead>
                   <TableHead>折扣碼 / CID</TableHead>
                   <SortableHead field="rarity">稀有度</SortableHead>
                   <SortableHead field="qualified">符合資格</SortableHead>
