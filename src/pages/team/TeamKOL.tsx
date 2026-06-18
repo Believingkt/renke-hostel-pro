@@ -171,6 +171,8 @@ interface FormState {
   kol_tags: string[];
   kpi_qualified: boolean;
   kol_direct_ticket_link: string;
+  follower_count_input: string;
+  follower_count_original: number | null;
 }
 
 const EMPTY_FORM: FormState = {
