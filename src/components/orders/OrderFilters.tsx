@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Calendar as CalendarIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,38 +31,88 @@ interface OrderFiltersProps {
 
 function DatePickerInput({ value, onChange, placeholder }: { value: string; onChange: (val: string) => void; placeholder?: string }) {
   const [open, setOpen] = useState(false);
+  const [text, setText] = useState(value);
   const dateObj = value ? parse(value, "yyyy-MM-dd", new Date()) : undefined;
   const isValidDate = dateObj && !isNaN(dateObj.getTime());
 
+  // Keep local text in sync with external prop value
+  useEffect(() => {
+    setText(value);
+  }, [value]);
+
+  const normalize = (raw: string): string | null => {
+    const s = raw.trim().replace(/[./]/g, "-");
+    const m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (!m) return null;
+    const [, y, mo, d] = m;
+    const iso = `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
+    const parsed = parse(iso, "yyyy-MM-dd", new Date());
+    if (isNaN(parsed.getTime())) return null;
+    return iso;
+  };
+
+  const commit = () => {
+    if (text === "") {
+      onChange("");
+      return;
+    }
+    const iso = normalize(text);
+    if (iso) {
+      onChange(iso);
+      setText(iso);
+    } else {
+      setText(value);
+    }
+  };
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          className={cn(
-            "h-12 md:h-10 flex-1 md:w-[160px] justify-start text-left font-normal text-base md:text-sm touch-manipulation",
-            !value && "text-muted-foreground"
-          )}
-        >
-          <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
-          {isValidDate ? format(dateObj, "yyyy/MM/dd") : <span>{placeholder || "選擇日期"}</span>}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <Calendar
-          mode="single"
-          selected={isValidDate ? dateObj : undefined}
-          onSelect={(date) => {
-            if (date) {
-              onChange(format(date, "yyyy-MM-dd"));
-            }
-            setOpen(false);
-          }}
-          initialFocus
-          className={cn("p-3 pointer-events-auto")}
-        />
-      </PopoverContent>
-    </Popover>
+    <div className="relative flex-1 md:w-[180px]">
+      <Input
+        type="text"
+        inputMode="numeric"
+        placeholder={placeholder || "YYYY-MM-DD"}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            commit();
+            (e.target as HTMLInputElement).blur();
+          }
+        }}
+        className="h-12 md:h-10 pr-10 text-base md:text-sm"
+      />
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground hover:text-foreground"
+            aria-label="開啟日曆"
+          >
+            <CalendarIcon className="h-4 w-4" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={isValidDate ? dateObj : undefined}
+            onSelect={(date) => {
+              if (date) {
+                const iso = format(date, "yyyy-MM-dd");
+                onChange(iso);
+                setText(iso);
+              }
+              setOpen(false);
+            }}
+            initialFocus
+            className={cn("p-3 pointer-events-auto")}
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
   );
 }
 
