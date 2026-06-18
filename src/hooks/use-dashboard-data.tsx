@@ -68,6 +68,24 @@ interface DashboardData {
   monthlyAveragePrice: MonthlyMetrics[];
 }
 
+// Paginate via PostgREST .range() to bypass the 1000-row server-side cap.
+async function fetchAllPaginated<T>(
+  buildQuery: () => any,
+  pageSize = 1000
+): Promise<T[]> {
+  const all: T[] = [];
+  let from = 0;
+  for (let i = 0; i < 1000; i++) {
+    const { data, error } = await buildQuery().range(from, from + pageSize - 1);
+    if (error) throw error;
+    const batch = (data || []) as T[];
+    all.push(...batch);
+    if (batch.length < pageSize) break;
+    from += pageSize;
+  }
+  return all;
+}
+
 const fetchDashboardData = async (
   accommodationId: string,
   comparisonMode: 'lastYear' | 'lastMonth',
@@ -102,36 +120,48 @@ const fetchDashboardData = async (
     endDate = now;
   }
   
-  // Step 1: Fetch room types, orders, and order_rooms in parallel
-  const [roomTypesResult, ordersResult, orderRoomsResult] = await Promise.all([
+  // Step 1: Fetch room types + orders in parallel (orders paginated to bypass 1000-row cap)
+  const [roomTypesResult, ordersData] = await Promise.all([
     supabase
       .from("room_types")
       .select("id, name, room_count, is_exclusive_package")
       .eq("accommodation_id", accommodationId),
-    supabase
-      .from("orders")
-      .select("*, room_types(name)")
-      .eq("accommodation_id", accommodationId)
-      .gte("order_date", startDate.toISOString())
-      .lte("order_date", endDate.toISOString())
-      .order("order_date", { ascending: false }),
-    supabase
-      .from("order_rooms")
-      .select("order_id, room_type_id, quantity")
-      .limit(10000),
+    fetchAllPaginated<any>(() =>
+      supabase
+        .from("orders")
+        .select("*, room_types(name)")
+        .eq("accommodation_id", accommodationId)
+        .gte("order_date", startDate.toISOString())
+        .lte("order_date", endDate.toISOString())
+        .order("id", { ascending: true })
+    ),
   ]);
-  
+
   if (roomTypesResult.error) throw roomTypesResult.error;
-  if (ordersResult.error) throw ordersResult.error;
-  
+
   const roomTypesData = roomTypesResult.data || [];
-  const ordersData = ordersResult.data || [];
-  
+
+  // Step 1b: Fetch order_rooms scoped to the orders we actually loaded, in batches.
+  const orderIds = ordersData.map((o: any) => o.id);
+  const CHUNK = 300;
+  const orderRoomsAll: any[] = [];
+  for (let i = 0; i < orderIds.length; i += CHUNK) {
+    const slice = orderIds.slice(i, i + CHUNK);
+    const batch = await fetchAllPaginated<any>(() =>
+      supabase
+        .from("order_rooms")
+        .select("order_id, room_type_id, quantity")
+        .in("order_id", slice)
+        .order("order_id", { ascending: true })
+    );
+    orderRoomsAll.push(...batch);
+  }
+
   // Build order_rooms lookup: order_id -> total room quantity
   const orderRoomsMap = new Map<string, number>();
   const orderRoomsExclusive = new Map<string, boolean>();
   const exclusiveSetForLookup = new Set(roomTypesData.filter(rt => rt.is_exclusive_package).map(rt => rt.id));
-  (orderRoomsResult.data || []).forEach(or => {
+  orderRoomsAll.forEach((or: any) => {
     const current = orderRoomsMap.get(or.order_id) || 0;
     orderRoomsMap.set(or.order_id, current + (or.quantity || 1));
     if (exclusiveSetForLookup.has(or.room_type_id)) {
@@ -155,14 +185,16 @@ const fetchDashboardData = async (
       if (o.check_out_date > maxDate) maxDate = o.check_out_date;
     });
     
-    const { data: inventoryData } = await supabase
-      .from('room_inventory_pricing')
-      .select('room_type_id, date, price, price_2_meals, price_3_meals')
-      .in('room_type_id', roomTypeIds)
-      .gte('date', minDate)
-      .lte('date', maxDate)
-      .limit(10000);
-    
+    const inventoryData = await fetchAllPaginated<any>(() =>
+      supabase
+        .from('room_inventory_pricing')
+        .select('room_type_id, date, price, price_2_meals, price_3_meals')
+        .in('room_type_id', roomTypeIds)
+        .gte('date', minDate)
+        .lte('date', maxDate)
+        .order('date', { ascending: true })
+    );
+
     pricingMap = buildPricingMap(inventoryData || []);
   }
 
@@ -486,7 +518,7 @@ const fetchDashboardData = async (
           const orRooms = orderRoomsMap.get(order.id);
           if (orRooms && roomTypeId) {
             // Get quantity for this specific room type from order_rooms
-            const orderRoomEntries = (orderRoomsResult.data || []).filter(
+            const orderRoomEntries = orderRoomsAll.filter(
               or => or.order_id === order.id && or.room_type_id === roomTypeId
             );
             multiplier = orderRoomEntries.reduce((sum, or) => sum + (or.quantity || 1), 0) || 1;
@@ -513,7 +545,7 @@ const fetchDashboardData = async (
       
       // Include orders that have this room type via order_rooms OR via room_type_id
       const orderIdsWithRoomType = new Set(
-        (orderRoomsResult.data || [])
+        orderRoomsAll
           .filter(or => or.room_type_id === roomType.id)
           .map(or => or.order_id)
       );
