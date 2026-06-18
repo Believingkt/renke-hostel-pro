@@ -516,7 +516,7 @@ const fetchDashboardData = async (
           const orRooms = orderRoomsMap.get(order.id);
           if (orRooms && roomTypeId) {
             // Get quantity for this specific room type from order_rooms
-            const orderRoomEntries = (orderRoomsResult.data || []).filter(
+            const orderRoomEntries = orderRoomsAll.filter(
               or => or.order_id === order.id && or.room_type_id === roomTypeId
             );
             multiplier = orderRoomEntries.reduce((sum, or) => sum + (or.quantity || 1), 0) || 1;
