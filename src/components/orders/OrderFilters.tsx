@@ -36,7 +36,7 @@ function DatePickerInput({ value, onChange, placeholder }: { value: string; onCh
   const isValidDate = dateObj && !isNaN(dateObj.getTime());
 
   // Keep local text in sync with external prop value
-  React.useEffect(() => {
+  useEffect(() => {
     setText(value);
   }, [value]);
 
