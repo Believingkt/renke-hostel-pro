@@ -222,6 +222,30 @@ function toNullable(v: string): string | null {
   return t.length === 0 ? null : t;
 }
 
+// 解析粉絲數輸入。支援：純數字 / 含 k 或 K / 含「萬」
+// 回傳 { ok, value }；value 為 null 表示空字串（清空）
+function parseFollowerInput(raw: string): { ok: boolean; value: number | null } {
+  const s = (raw ?? "").trim();
+  if (s === "") return { ok: true, value: null };
+  // 萬
+  const wanMatch = s.match(/^([0-9]+(?:\.[0-9]+)?)\s*萬$/);
+  if (wanMatch) return { ok: true, value: Math.round(parseFloat(wanMatch[1]) * 10000) };
+  // k / K
+  const kMatch = s.match(/^([0-9]+(?:\.[0-9]+)?)\s*[kK]$/);
+  if (kMatch) return { ok: true, value: Math.round(parseFloat(kMatch[1]) * 1000) };
+  // 純數字
+  const numMatch = s.match(/^([0-9]+(?:\.[0-9]+)?)$/);
+  if (numMatch) return { ok: true, value: Math.round(parseFloat(numMatch[1])) };
+  return { ok: false, value: null };
+}
+
+// 顯示粉絲數：>=1000 → 四捨五入到整數 K，否則原始數字；空值 "-"
+function formatFollowerCount(n: number | null | undefined): string {
+  if (n == null) return "-";
+  if (n < 1000) return String(n);
+  return `${Math.round(n / 1000)}K`;
+}
+
 // 依 publish_url / publish_date / contract_file_url 自動計算合約進度狀態
 function computeContractProgress(
   publishUrl: string | null | undefined,
