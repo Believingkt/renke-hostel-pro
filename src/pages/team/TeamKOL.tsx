@@ -132,6 +132,8 @@ interface KolRow {
   error_note: string | null;
   created_by: string | null;
   created_at: string | null;
+  follower_count: number | null;
+  follower_count_updated_at: string | null;
   // 顯示用
   _accommodation_name?: string;
   _scout_name?: string;
