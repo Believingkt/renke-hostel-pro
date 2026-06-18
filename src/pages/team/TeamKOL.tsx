@@ -2321,6 +2321,19 @@ function InvitationsTab({
         </SheetContent>
       </Sheet>
 
+      {/* 粉絲數格式錯誤 Dialog */}
+      <AlertDialog open={!!followerError} onOpenChange={(o) => !o && setFollowerError(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>粉絲數格式錯誤</AlertDialogTitle>
+            <AlertDialogDescription>{followerError}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setFollowerError(null)}>知道了</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* 填錯 Dialog */}
       <Dialog open={!!errorTarget} onOpenChange={(o) => !o && setErrorTarget(null)}>
         <DialogContent className="overflow-x-hidden">
