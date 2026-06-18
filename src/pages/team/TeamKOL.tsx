@@ -2017,6 +2017,18 @@ function InvitationsTab({
               </Field>
             </div>
 
+            <Field label="粉絲數">
+              <Input
+                value={form.follower_count_input}
+                placeholder="例如：57.7萬 或 57.7k 或 1226"
+                onChange={(e) => setForm({ ...form, follower_count_input: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                請依照 IG 顯示的粉絲數輸入，例如「57.7萬」「57.7k」「57.7K」或純數字「1226」
+              </p>
+            </Field>
+
+
             <Field label="邀約人">
               {isManager ? (
                 <Select
