@@ -408,6 +408,12 @@ export default function TeamKOL() {
           />
         </TabsContent>
 
+        {canSeeStats && (
+          <TabsContent value="weekly_report" className="mt-4">
+            <WeeklyReportTab canCopy={isManager} />
+          </TabsContent>
+        )}
+
 
         <TabsContent value="prospects" className="mt-4">
           <ProspectsTab currentUserId={userId} isManager={isManager} onConvert={handleConvertFromProspect} />
