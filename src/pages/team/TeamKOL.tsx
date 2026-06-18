@@ -6908,7 +6908,7 @@ function WeeklyReportTab({ canCopy }: { canCopy: boolean }) {
         <CardTitle>入住週報</CardTitle>
         {canCopy && (
           <Button size="sm" onClick={handleCopy} disabled={loading}>
-            一鍵產生文字
+            一鍵複製文字
           </Button>
         )}
       </CardHeader>
