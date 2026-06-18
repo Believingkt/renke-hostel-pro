@@ -1517,6 +1517,23 @@ function InvitationsTab({
                           )}
                         </div>
                       </TableCell>
+                      <TableCell className="tabular-nums">{formatFollowerCount(r.follower_count)}</TableCell>
+                      <TableCell className="max-w-[240px]">
+                        {r.ig_handle ? (
+                          <a
+                            href={r.ig_handle}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-primary hover:underline truncate inline-block max-w-[240px] align-bottom"
+                            title={r.ig_handle}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {r.ig_handle}
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
                       <TableCell className={codeOrCidClass}>{codeOrCid}</TableCell>
                       <TableCell>
                         {r.rarity && (
