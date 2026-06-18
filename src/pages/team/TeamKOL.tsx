@@ -1044,6 +1044,12 @@ function InvitationsTab({
       kpi_eligible: kpiEligible,
       kpi_month: kpiMonth,
     };
+    // 粉絲數：值有變動才更新 follower_count_updated_at
+    payload.follower_count = followerParsed.value;
+    if (followerParsed.value !== form.follower_count_original) {
+      payload.follower_count_updated_at = new Date().toISOString();
+    }
+
     if (isManager) {
       payload.kpi_qualified = form.kpi_qualified;
     }
