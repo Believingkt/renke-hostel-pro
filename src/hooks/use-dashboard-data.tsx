@@ -185,14 +185,16 @@ const fetchDashboardData = async (
       if (o.check_out_date > maxDate) maxDate = o.check_out_date;
     });
     
-    const { data: inventoryData } = await supabase
-      .from('room_inventory_pricing')
-      .select('room_type_id, date, price, price_2_meals, price_3_meals')
-      .in('room_type_id', roomTypeIds)
-      .gte('date', minDate)
-      .lte('date', maxDate)
-      .limit(10000);
-    
+    const inventoryData = await fetchAllPaginated<any>(() =>
+      supabase
+        .from('room_inventory_pricing')
+        .select('room_type_id, date, price, price_2_meals, price_3_meals')
+        .in('room_type_id', roomTypeIds)
+        .gte('date', minDate)
+        .lte('date', maxDate)
+        .order('date', { ascending: true })
+    );
+
     pricingMap = buildPricingMap(inventoryData || []);
   }
 
