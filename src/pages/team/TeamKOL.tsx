@@ -1525,13 +1525,13 @@ function InvitationsTab({
                         </div>
                       </TableCell>
                       <TableCell className="tabular-nums">{formatFollowerCount(r.follower_count)}</TableCell>
-                      <TableCell className="max-w-[200px] align-top">
+                      <TableCell className="min-w-[240px] max-w-[280px] align-top">
                         {r.ig_handle ? (
                           <a
                             href={r.ig_handle}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-primary hover:underline break-all whitespace-normal block max-w-[200px]"
+                            className="text-primary hover:underline break-all whitespace-normal block max-w-[280px]"
                             title={r.ig_handle}
                             onClick={(e) => e.stopPropagation()}
                           >
