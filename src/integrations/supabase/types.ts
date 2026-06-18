@@ -3186,6 +3186,8 @@ export type Database = {
           created_by: string | null
           day_of_week: string | null
           error_note: string | null
+          follower_count: number | null
+          follower_count_updated_at: string | null
           id: string
           ig_handle: string | null
           ig_url: string | null
@@ -3234,6 +3236,8 @@ export type Database = {
           created_by?: string | null
           day_of_week?: string | null
           error_note?: string | null
+          follower_count?: number | null
+          follower_count_updated_at?: string | null
           id?: string
           ig_handle?: string | null
           ig_url?: string | null
@@ -3282,6 +3286,8 @@ export type Database = {
           created_by?: string | null
           day_of_week?: string | null
           error_note?: string | null
+          follower_count?: number | null
+          follower_count_updated_at?: string | null
           id?: string
           ig_handle?: string | null
           ig_url?: string | null

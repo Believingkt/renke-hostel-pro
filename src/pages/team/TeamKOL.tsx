@@ -132,6 +132,8 @@ interface KolRow {
   error_note: string | null;
   created_by: string | null;
   created_at: string | null;
+  follower_count: number | null;
+  follower_count_updated_at: string | null;
   // 顯示用
   _accommodation_name?: string;
   _scout_name?: string;
@@ -169,6 +171,8 @@ interface FormState {
   kol_tags: string[];
   kpi_qualified: boolean;
   kol_direct_ticket_link: string;
+  follower_count_input: string;
+  follower_count_original: number | null;
 }
 
 const EMPTY_FORM: FormState = {
@@ -200,6 +204,8 @@ const EMPTY_FORM: FormState = {
   kol_tags: [],
   kpi_qualified: false,
   kol_direct_ticket_link: "",
+  follower_count_input: "",
+  follower_count_original: null,
 };
 
 interface RaritySetting {
@@ -220,6 +226,30 @@ function todayStr(): string {
 function toNullable(v: string): string | null {
   const t = v.trim();
   return t.length === 0 ? null : t;
+}
+
+// 解析粉絲數輸入。支援：純數字 / 含 k 或 K / 含「萬」
+// 回傳 { ok, value }；value 為 null 表示空字串（清空）
+function parseFollowerInput(raw: string): { ok: boolean; value: number | null } {
+  const s = (raw ?? "").trim();
+  if (s === "") return { ok: true, value: null };
+  // 萬
+  const wanMatch = s.match(/^([0-9]+(?:\.[0-9]+)?)\s*萬$/);
+  if (wanMatch) return { ok: true, value: Math.round(parseFloat(wanMatch[1]) * 10000) };
+  // k / K
+  const kMatch = s.match(/^([0-9]+(?:\.[0-9]+)?)\s*[kK]$/);
+  if (kMatch) return { ok: true, value: Math.round(parseFloat(kMatch[1]) * 1000) };
+  // 純數字
+  const numMatch = s.match(/^([0-9]+(?:\.[0-9]+)?)$/);
+  if (numMatch) return { ok: true, value: Math.round(parseFloat(numMatch[1])) };
+  return { ok: false, value: null };
+}
+
+// 顯示粉絲數：>=1000 → 四捨五入到整數 K，否則原始數字；空值 "-"
+function formatFollowerCount(n: number | null | undefined): string {
+  if (n == null) return "-";
+  if (n < 1000) return String(n);
+  return `${Math.round(n / 1000)}K`;
 }
 
 // 依 publish_url / publish_date / contract_file_url 自動計算合約進度狀態
@@ -500,6 +530,7 @@ function InvitationsTab({
   const [saving, setSaving] = useState(false);
   const [dupWarning, setDupWarning] = useState<string | null>(null);
   const [newTagInput, setNewTagInput] = useState("");
+  const [followerError, setFollowerError] = useState<string | null>(null);
 
   // 填錯 Dialog
   const [errorTarget, setErrorTarget] = useState<KolRow | null>(null);
@@ -938,6 +969,8 @@ function InvitationsTab({
       kol_tags: row.kol_tags ?? [],
       kpi_qualified: !!row.kpi_qualified,
       kol_direct_ticket_link: row.kol_direct_ticket_link ?? "",
+      follower_count_input: row.follower_count != null ? String(row.follower_count) : "",
+      follower_count_original: row.follower_count ?? null,
     });
     setDupWarning(null);
     setSheetOpen(true);
@@ -965,11 +998,18 @@ function InvitationsTab({
       if (!ok) return;
     }
 
+    // 粉絲數驗證
+    const followerParsed = parseFollowerInput(form.follower_count_input);
+    if (!followerParsed.ok) {
+      setFollowerError("粉絲數格式錯誤，請依照範例輸入（例如:57.7萬、57.7k 或 1226）");
+      return;
+    }
 
     setSaving(true);
     const kpiEligible = !!form.check_in_date;
     const kpiMonth = form.check_in_date ? form.check_in_date.slice(0, 7) + "-01" : null;
     const tags = form.kol_tags;
+
 
     const resolvedVenueName = form.accommodation_id
       ? (accommodations.find((a) => a.id === form.accommodation_id)?.name ?? null)
@@ -1004,6 +1044,12 @@ function InvitationsTab({
       kpi_eligible: kpiEligible,
       kpi_month: kpiMonth,
     };
+    // 粉絲數：值有變動才更新 follower_count_updated_at
+    payload.follower_count = followerParsed.value;
+    if (followerParsed.value !== form.follower_count_original) {
+      payload.follower_count_updated_at = new Date().toISOString();
+    }
+
     if (isManager) {
       payload.kpi_qualified = form.kpi_qualified;
     }
@@ -1413,6 +1459,8 @@ function InvitationsTab({
               <TableHeader>
                 <TableRow>
                   <TableHead>KOL 名稱</TableHead>
+                  <TableHead>粉絲數</TableHead>
+                  <TableHead>KOL連結</TableHead>
                   <TableHead>折扣碼 / CID</TableHead>
                   <SortableHead field="rarity">稀有度</SortableHead>
                   <SortableHead field="qualified">符合資格</SortableHead>
@@ -1468,6 +1516,23 @@ function InvitationsTab({
                             </Badge>
                           )}
                         </div>
+                      </TableCell>
+                      <TableCell className="tabular-nums">{formatFollowerCount(r.follower_count)}</TableCell>
+                      <TableCell className="max-w-[240px]">
+                        {r.ig_handle ? (
+                          <a
+                            href={r.ig_handle}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-primary hover:underline truncate inline-block max-w-[240px] align-bottom"
+                            title={r.ig_handle}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {r.ig_handle}
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
                       </TableCell>
                       <TableCell className={codeOrCidClass}>{codeOrCid}</TableCell>
                       <TableCell>
@@ -1985,6 +2050,18 @@ function InvitationsTab({
               </Field>
             </div>
 
+            <Field label="粉絲數">
+              <Input
+                value={form.follower_count_input}
+                placeholder="例如：57.7萬 或 57.7k 或 1226"
+                onChange={(e) => setForm({ ...form, follower_count_input: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                請依照 IG 顯示的粉絲數輸入，例如「57.7萬」「57.7k」「57.7K」或純數字「1226」
+              </p>
+            </Field>
+
+
             <Field label="邀約人">
               {isManager ? (
                 <Select
@@ -2243,6 +2320,19 @@ function InvitationsTab({
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      {/* 粉絲數格式錯誤 Dialog */}
+      <AlertDialog open={!!followerError} onOpenChange={(o) => !o && setFollowerError(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>粉絲數格式錯誤</AlertDialogTitle>
+            <AlertDialogDescription>{followerError}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setFollowerError(null)}>知道了</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* 填錯 Dialog */}
       <Dialog open={!!errorTarget} onOpenChange={(o) => !o && setErrorTarget(null)}>
