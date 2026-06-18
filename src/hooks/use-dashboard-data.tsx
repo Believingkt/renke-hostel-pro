@@ -68,6 +68,24 @@ interface DashboardData {
   monthlyAveragePrice: MonthlyMetrics[];
 }
 
+// Paginate via PostgREST .range() to bypass the 1000-row server-side cap.
+async function fetchAllPaginated<T>(
+  buildQuery: () => any,
+  pageSize = 1000
+): Promise<T[]> {
+  const all: T[] = [];
+  let from = 0;
+  for (let i = 0; i < 1000; i++) {
+    const { data, error } = await buildQuery().range(from, from + pageSize - 1);
+    if (error) throw error;
+    const batch = (data || []) as T[];
+    all.push(...batch);
+    if (batch.length < pageSize) break;
+    from += pageSize;
+  }
+  return all;
+}
+
 const fetchDashboardData = async (
   accommodationId: string,
   comparisonMode: 'lastYear' | 'lastMonth',
