@@ -530,6 +530,7 @@ function InvitationsTab({
   const [saving, setSaving] = useState(false);
   const [dupWarning, setDupWarning] = useState<string | null>(null);
   const [newTagInput, setNewTagInput] = useState("");
+  const [followerError, setFollowerError] = useState<string | null>(null);
 
   // 填錯 Dialog
   const [errorTarget, setErrorTarget] = useState<KolRow | null>(null);
