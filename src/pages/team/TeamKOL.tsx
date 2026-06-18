@@ -204,6 +204,8 @@ const EMPTY_FORM: FormState = {
   kol_tags: [],
   kpi_qualified: false,
   kol_direct_ticket_link: "",
+  follower_count_input: "",
+  follower_count_original: null,
 };
 
 interface RaritySetting {
