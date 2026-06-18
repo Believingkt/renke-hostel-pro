@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTeam } from "@/components/team/TeamContext";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -388,6 +388,7 @@ export default function TeamKOL() {
         <div className="overflow-x-auto">
           <TabsList>
             <TabsTrigger value="invitations">正式邀約</TabsTrigger>
+            {canSeeStats && <TabsTrigger value="weekly_report">週報</TabsTrigger>}
             <TabsTrigger value="prospects">潛在名單</TabsTrigger>
             {canSeeFulltimeTargets && <TabsTrigger value="fulltime_targets">邀約目標（正職）</TabsTrigger>}
             {canSeeParttimeTargets && <TabsTrigger value="targets">邀約目標（兼職）</TabsTrigger>}
@@ -406,6 +407,12 @@ export default function TeamKOL() {
             onPrefillConsumed={() => setPrefill(null)}
           />
         </TabsContent>
+
+        {canSeeStats && (
+          <TabsContent value="weekly_report" className="mt-4">
+            <WeeklyReportTab canCopy={isManager} />
+          </TabsContent>
+        )}
 
 
         <TabsContent value="prospects" className="mt-4">
@@ -6788,3 +6795,131 @@ function InvitationTargetsSettingsBlock({ isManager }: { isManager: boolean }) {
     </Card>
   );
 }
+
+// ====== 週報 Tab ======
+interface WeeklyReportRow {
+  name: string;
+  follower_count: number | null;
+  venue_name: string | null;
+  ig_url: string | null;
+  check_in_date: string;
+  created_at: string;
+}
+
+function getWeekRange(base: Date, offsetWeeks = 0): { start: Date; end: Date } {
+  const d = new Date(base);
+  d.setHours(0, 0, 0, 0);
+  // 週日為一週起點
+  const day = d.getDay();
+  const sunday = new Date(d);
+  sunday.setDate(d.getDate() - day + offsetWeeks * 7);
+  const saturday = new Date(sunday);
+  saturday.setDate(sunday.getDate() + 6);
+  return { start: sunday, end: saturday };
+}
+
+function fmtYMD(d: Date | string): string {
+  const x = typeof d === "string" ? new Date(d) : d;
+  return `${x.getFullYear()}/${x.getMonth() + 1}/${x.getDate()}`;
+}
+
+function toLocalDateOnly(s: string): Date {
+  // s 為 YYYY-MM-DD，視為當地日期
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y, (m ?? 1) - 1, d ?? 1);
+}
+
+function WeeklyReportTab({ canCopy }: { canCopy: boolean }) {
+  const [rows, setRows] = useState<WeeklyReportRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const thisWeek = useMemo(() => getWeekRange(new Date(), 0), []);
+  const nextWeek = useMemo(() => getWeekRange(new Date(), 1), []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const startStr = thisWeek.start.toISOString().slice(0, 10);
+      const endStr = nextWeek.end.toISOString().slice(0, 10);
+      const { data } = await supabase
+        .from("kol_profiles")
+        .select("name, follower_count, venue_name, ig_url, check_in_date, created_at")
+        .eq("booking_status", "成功訂房")
+        .gte("check_in_date", startStr)
+        .lte("check_in_date", endStr)
+        .order("check_in_date", { ascending: true })
+        .order("created_at", { ascending: true });
+      if (!cancelled) {
+        setRows((data ?? []) as WeeklyReportRow[]);
+        setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [thisWeek.start.getTime(), nextWeek.end.getTime()]);
+
+  const reportText = useMemo(() => {
+    const inRange = (s: string, start: Date, end: Date) => {
+      const d = toLocalDateOnly(s);
+      return d.getTime() >= start.getTime() && d.getTime() <= end.getTime();
+    };
+
+    const buildSection = (label: string, start: Date, end: Date) => {
+      const items = rows.filter((r) => r.check_in_date && inRange(r.check_in_date, start, end));
+      const header = `【 ${label} 】${fmtYMD(start)}-${fmtYMD(end)} 網紅入住清單`;
+      if (items.length === 0) {
+        return `${header}\n（無）`;
+      }
+      const lines: string[] = [header];
+      let lastDate = "";
+      for (const r of items) {
+        if (r.check_in_date !== lastDate) {
+          lines.push("");
+          lines.push(`📅 ${fmtYMD(toLocalDateOnly(r.check_in_date))}`);
+          lastDate = r.check_in_date;
+        }
+        const fans = r.follower_count != null ? `｜${formatFollowerCount(r.follower_count)}` : "";
+        const venue = r.venue_name ?? "";
+        lines.push(`${r.name}${fans}｜${venue}`);
+        if (r.ig_url) lines.push(r.ig_url);
+      }
+      return lines.join("\n");
+    };
+
+    return `${buildSection("本週", thisWeek.start, thisWeek.end)}\n\n${buildSection("下週", nextWeek.start, nextWeek.end)}`;
+  }, [rows, thisWeek, nextWeek]);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(reportText);
+      toast.success("已複製到剪貼簿");
+    } catch {
+      toast.error("複製失敗");
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between gap-2">
+        <CardTitle>網紅入住週報</CardTitle>
+        {canCopy && (
+          <Button size="sm" onClick={handleCopy} disabled={loading}>
+            一鍵產生文字
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="text-sm text-muted-foreground">載入中…</div>
+        ) : (
+          <pre className="whitespace-pre-wrap break-words text-sm font-mono bg-muted/30 p-4 rounded-md">
+            {reportText}
+          </pre>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
