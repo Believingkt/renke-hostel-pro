@@ -388,6 +388,7 @@ export default function TeamKOL() {
         <div className="overflow-x-auto">
           <TabsList>
             <TabsTrigger value="invitations">正式邀約</TabsTrigger>
+            {canSeeStats && <TabsTrigger value="weekly_report">週報</TabsTrigger>}
             <TabsTrigger value="prospects">潛在名單</TabsTrigger>
             {canSeeFulltimeTargets && <TabsTrigger value="fulltime_targets">邀約目標（正職）</TabsTrigger>}
             {canSeeParttimeTargets && <TabsTrigger value="targets">邀約目標（兼職）</TabsTrigger>}
