@@ -543,7 +543,7 @@ const fetchDashboardData = async (
       
       // Include orders that have this room type via order_rooms OR via room_type_id
       const orderIdsWithRoomType = new Set(
-        (orderRoomsResult.data || [])
+        orderRoomsAll
           .filter(or => or.room_type_id === roomType.id)
           .map(or => or.order_id)
       );
