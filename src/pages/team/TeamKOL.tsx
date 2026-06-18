@@ -388,7 +388,7 @@ export default function TeamKOL() {
         <div className="overflow-x-auto">
           <TabsList>
             <TabsTrigger value="invitations">正式邀約</TabsTrigger>
-            {canSeeStats && <TabsTrigger value="weekly_report">週報</TabsTrigger>}
+            {canSeeStats && <TabsTrigger value="weekly_report">入住週報</TabsTrigger>}
             <TabsTrigger value="prospects">潛在名單</TabsTrigger>
             {canSeeFulltimeTargets && <TabsTrigger value="fulltime_targets">邀約目標（正職）</TabsTrigger>}
             {canSeeParttimeTargets && <TabsTrigger value="targets">邀約目標（兼職）</TabsTrigger>}
@@ -1525,13 +1525,13 @@ function InvitationsTab({
                         </div>
                       </TableCell>
                       <TableCell className="tabular-nums">{formatFollowerCount(r.follower_count)}</TableCell>
-                      <TableCell className="max-w-[240px]">
+                      <TableCell className="max-w-[200px] align-top">
                         {r.ig_handle ? (
                           <a
                             href={r.ig_handle}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-primary hover:underline truncate inline-block max-w-[240px] align-bottom"
+                            className="text-primary hover:underline break-all whitespace-normal block max-w-[200px]"
                             title={r.ig_handle}
                             onClick={(e) => e.stopPropagation()}
                           >
@@ -6802,6 +6802,7 @@ interface WeeklyReportRow {
   follower_count: number | null;
   venue_name: string | null;
   ig_url: string | null;
+  ig_handle: string | null;
   check_in_date: string;
   created_at: string;
 }
@@ -6844,7 +6845,7 @@ function WeeklyReportTab({ canCopy }: { canCopy: boolean }) {
       const endStr = nextWeek.end.toISOString().slice(0, 10);
       const { data } = await supabase
         .from("kol_profiles")
-        .select("name, follower_count, venue_name, ig_url, check_in_date, created_at")
+        .select("name, follower_count, venue_name, ig_url, ig_handle, check_in_date, created_at")
         .eq("booking_status", "成功訂房")
         .gte("check_in_date", startStr)
         .lte("check_in_date", endStr)
@@ -6883,7 +6884,8 @@ function WeeklyReportTab({ canCopy }: { canCopy: boolean }) {
         const fans = r.follower_count != null ? `｜${formatFollowerCount(r.follower_count)}` : "";
         const venue = r.venue_name ?? "";
         lines.push(`${r.name}${fans}｜${venue}`);
-        if (r.ig_url) lines.push(r.ig_url);
+        const link = r.ig_url || r.ig_handle;
+        if (link) lines.push(link);
       }
       return lines.join("\n");
     };
@@ -6903,7 +6905,7 @@ function WeeklyReportTab({ canCopy }: { canCopy: boolean }) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-2">
-        <CardTitle>網紅入住週報</CardTitle>
+        <CardTitle>入住週報</CardTitle>
         {canCopy && (
           <Button size="sm" onClick={handleCopy} disabled={loading}>
             一鍵產生文字
