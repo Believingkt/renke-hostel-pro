@@ -416,7 +416,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
     }).length;
   };
 
-  // 只有「共用包棟」(is_exclusive_package && is_bound_to_exclusive) 的訂單會鎖定其他房型。
+  // 「共用包棟」(is_exclusive_package && is_bound_to_exclusive) 的訂單會鎖定其他共用包棟與所有綁定包棟的散客房型。
   // 獨立包棟 (is_exclusive_package && !is_bound_to_exclusive) 不會影響其他房型。
   const sharedExclusiveBookedDates = useMemo(() => {
     const blockedDates = new Set<string>();
@@ -430,16 +430,43 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
     return blockedDates;
   }, [roomTypes, calendarEntries, dateStrings]);
 
+  // 反向：散客房型 (is_bound_to_exclusive && !is_exclusive_package) 有訂單時，
+  // 會鎖定它所綁定的包棟房型。bound_exclusive_ids 為 null/空 → 視為綁定全部共用包棟。
+  const exclusiveBlockedByBoundRoom = useMemo(() => {
+    const map = new Map<string, Set<string>>(); // exclusiveRoomTypeId -> dates
+    const boundRooms = roomTypes.filter(r => !r.is_exclusive_package && r.is_bound_to_exclusive);
+    const allSharedExclusiveIds = roomTypes
+      .filter(r => r.is_exclusive_package && r.is_bound_to_exclusive)
+      .map(r => r.id);
+    for (const room of boundRooms) {
+      const targets = (room.bound_exclusive_ids && room.bound_exclusive_ids.length > 0)
+        ? room.bound_exclusive_ids
+        : allSharedExclusiveIds;
+      for (const dateStr of dateStrings) {
+        const hasBooking = calendarEntries.some(e =>
+          e.room_type_id === room.id && e.check_in_date <= dateStr && e.check_out_date > dateStr
+        );
+        if (!hasBooking) continue;
+        for (const exId of targets) {
+          if (!map.has(exId)) map.set(exId, new Set());
+          map.get(exId)!.add(dateStr);
+        }
+      }
+    }
+    return map;
+  }, [roomTypes, calendarEntries, dateStrings]);
+
   const isBlockedByExclusive = (roomTypeId: string, dateStr: string): boolean => {
-    if (!sharedExclusiveBookedDates.has(dateStr)) return false;
     const rt = roomTypes.find(r => r.id === roomTypeId);
     if (!rt) return false;
-    // 共用包棟之間互鎖,以及綁定包棟的房型受鎖。
-    // 獨立包棟 / 獨立房間 不受影響。
     if (rt.is_exclusive_package) {
-      return rt.is_bound_to_exclusive === true; // 只有共用包棟才被其他共用包棟鎖
+      if (!rt.is_bound_to_exclusive) return false; // 獨立包棟不受影響
+      // 被其他共用包棟鎖,或被綁定的散客房間訂單鎖
+      if (sharedExclusiveBookedDates.has(dateStr)) return true;
+      return exclusiveBlockedByBoundRoom.get(rt.id)?.has(dateStr) === true;
     }
-    return rt.is_bound_to_exclusive === true; // 綁定包棟的房間
+    // 散客房型：綁定包棟 → 被共用包棟訂單鎖
+    return rt.is_bound_to_exclusive === true && sharedExclusiveBookedDates.has(dateStr);
   };
 
   // Get the set of dates where an exclusive package room type has bookings
