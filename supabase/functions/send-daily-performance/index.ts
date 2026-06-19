@@ -145,9 +145,34 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    const tp = getTaipeiParts();
+    const realTp = getTaipeiParts();
+    const hhmm = `${pad2(realTp.hour)}:${pad2(realTp.minute)}`;
+
+    // Parse optional test_mode / test_date body
+    let testMode = false;
+    let testAccId: string | null = null;
+    let testDate: string | null = null; // "YYYY-MM-DD" in Taipei
+    if (req.method === "POST") {
+      try {
+        const body = await req.json();
+        if (body && body.test_mode === true && typeof body.accommodation_id === "string") {
+          testMode = true;
+          testAccId = body.accommodation_id;
+        }
+        if (body && typeof body.test_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.test_date)) {
+          testDate = body.test_date;
+        }
+      } catch { /* no body */ }
+    }
+
+    // Effective "today" — overridden by test_date when provided
+    const tp = testDate
+      ? (() => {
+          const [yy, mm, dd] = testDate.split("-").map(Number);
+          return { y: yy, m: mm, day: dd, hour: realTp.hour, minute: realTp.minute };
+        })()
+      : realTp;
     const today = taipeiDateStr(tp.y, tp.m, tp.day);
-    const hhmm = `${pad2(tp.hour)}:${pad2(tp.minute)}`;
 
     // UTC ISO boundaries for timestamptz columns (orders.order_date / updated_at)
     const todayStartUtc = taipeiMidnightUtcISO(tp.y, tp.m, tp.day);
@@ -164,20 +189,6 @@ Deno.serve(async (req) => {
     const prevMonth = { start: taipeiDateStr(tp.y, tp.m - 1, 1), end: month.start };
     const year = { start: `${tp.y}-01-01`, end: `${tp.y + 1}-01-01` };
     const dateLabel = todayLabel(tp.y, tp.m, tp.day);
-
-
-    // Parse optional test_mode body
-    let testMode = false;
-    let testAccId: string | null = null;
-    if (req.method === "POST") {
-      try {
-        const body = await req.json();
-        if (body && body.test_mode === true && typeof body.accommodation_id === "string") {
-          testMode = true;
-          testAccId = body.accommodation_id;
-        }
-      } catch { /* no body */ }
-    }
 
     let settings: any[] = [];
     if (testMode && testAccId) {
