@@ -13,38 +13,50 @@ const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
 const FROM_EMAIL = "noreply@sensaninn.lakeze.com";
 const TO_EMAIL = "service@lakeze.com";
 
-// ── Time helpers (Taipei = UTC+8) ──────────────────────────
-function taipeiNow(): Date {
-  return new Date(Date.now() + 8 * 60 * 60 * 1000);
+// ── Time helpers (Taipei = UTC+8, via Intl) ────────────────
+// Returns Taipei wall-clock parts for a given UTC instant.
+function getTaipeiParts(d: Date = new Date()): {
+  y: number; m: number; day: number; hour: number; minute: number;
+} {
+  const f = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Taipei",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  });
+  const parts: Record<string, string> = {};
+  for (const p of f.formatToParts(d)) parts[p.type] = p.value;
+  return {
+    y: Number(parts.year),
+    m: Number(parts.month),
+    day: Number(parts.day),
+    hour: Number(parts.hour === "24" ? "00" : parts.hour),
+    minute: Number(parts.minute),
+  };
 }
-function ymd(d: Date): string {
-  return d.toISOString().slice(0, 10);
+const pad2 = (n: number) => String(n).padStart(2, "0");
+// Date string "YYYY-MM-DD" from Taipei (y,m,d); month/day overflow handled by Date.UTC.
+function taipeiDateStr(y: number, m: number, d: number): string {
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return `${dt.getUTCFullYear()}-${pad2(dt.getUTCMonth() + 1)}-${pad2(dt.getUTCDate())}`;
+}
+// UTC ISO of the instant when Taipei wall-clock is (y,m,d) 00:00:00.
+// Taipei 00:00 == UTC of previous day 16:00 → use hour=-8 in Date.UTC.
+function taipeiMidnightUtcISO(y: number, m: number, d: number): string {
+  return new Date(Date.UTC(y, m - 1, d, -8, 0, 0)).toISOString();
+}
+// Convert a timestamptz ISO string to Taipei date string "YYYY-MM-DD".
+function isoToTaipeiDateStr(iso: string): string {
+  const p = getTaipeiParts(new Date(iso));
+  return `${p.y}-${pad2(p.m)}-${pad2(p.day)}`;
 }
 function currentHHMM(): string {
-  const d = taipeiNow();
-  return d.toISOString().slice(11, 16); // HH:MM
+  const p = getTaipeiParts();
+  return `${pad2(p.hour)}:${pad2(p.minute)}`;
 }
 const WEEK_ZH = ["日", "一", "二", "三", "四", "五", "六"];
-function todayLabel(d: Date): string {
-  return `${d.getUTCMonth() + 1}/${d.getUTCDate()}（${WEEK_ZH[d.getUTCDay()]}）`;
-}
-function monthRange(d: Date): { start: string; end: string } {
-  const y = d.getUTCFullYear();
-  const m = d.getUTCMonth();
-  const start = new Date(Date.UTC(y, m, 1));
-  const end = new Date(Date.UTC(y, m + 1, 1));
-  return { start: ymd(start), end: ymd(end) };
-}
-function prevMonthRange(d: Date): { start: string; end: string } {
-  const y = d.getUTCFullYear();
-  const m = d.getUTCMonth();
-  const start = new Date(Date.UTC(y, m - 1, 1));
-  const end = new Date(Date.UTC(y, m, 1));
-  return { start: ymd(start), end: ymd(end) };
-}
-function yearRange(d: Date): { start: string; end: string } {
-  const y = d.getUTCFullYear();
-  return { start: `${y}-01-01`, end: `${y + 1}-01-01` };
+function todayLabel(y: number, m: number, d: number): string {
+  const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  return `${m}/${d}（${WEEK_ZH[dow]}）`;
 }
 
 // ── Format helpers ─────────────────────────────────────────
@@ -133,13 +145,26 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    const now = taipeiNow();
-    const today = ymd(now);
-    const hhmm = currentHHMM();
-    const month = monthRange(now);
-    const prevMonth = prevMonthRange(now);
-    const year = yearRange(now);
-    const dateLabel = todayLabel(now);
+    const tp = getTaipeiParts();
+    const today = taipeiDateStr(tp.y, tp.m, tp.day);
+    const hhmm = `${pad2(tp.hour)}:${pad2(tp.minute)}`;
+
+    // UTC ISO boundaries for timestamptz columns (orders.order_date / updated_at)
+    const todayStartUtc = taipeiMidnightUtcISO(tp.y, tp.m, tp.day);
+    const tomorrowStartUtc = taipeiMidnightUtcISO(tp.y, tp.m, tp.day + 1);
+    const monthStartUtc = taipeiMidnightUtcISO(tp.y, tp.m, 1);
+    const monthEndUtc = taipeiMidnightUtcISO(tp.y, tp.m + 1, 1);
+    const prevMonthStartUtc = taipeiMidnightUtcISO(tp.y, tp.m - 1, 1);
+    const prevMonthEndUtc = monthStartUtc;
+    const yearStartUtc = taipeiMidnightUtcISO(tp.y, 1, 1);
+    const yearEndUtc = taipeiMidnightUtcISO(tp.y + 1, 1, 1);
+
+    // Plain date strings (for `date`-typed columns like franchise sold_at/signed_at)
+    const month = { start: taipeiDateStr(tp.y, tp.m, 1), end: taipeiDateStr(tp.y, tp.m + 1, 1) };
+    const prevMonth = { start: taipeiDateStr(tp.y, tp.m - 1, 1), end: month.start };
+    const year = { start: `${tp.y}-01-01`, end: `${tp.y + 1}-01-01` };
+    const dateLabel = todayLabel(tp.y, tp.m, tp.day);
+
 
     // Parse optional test_mode body
     let testMode = false;
@@ -215,12 +240,13 @@ Deno.serve(async (req) => {
         const hasFranchise = !!flags?.has_franchise;
 
         // ── General booking metrics ────────────────────────
-        // Today orders (non-cancelled)
+        // Today orders (non-cancelled) — order_date is timestamptz, use Taipei-day UTC range
         const { data: todayOrders } = await supabase
           .from("orders")
           .select("final_price, order_status")
           .eq("accommodation_id", accId)
-          .eq("order_date", today)
+          .gte("order_date", todayStartUtc)
+          .lt("order_date", tomorrowStartUtc)
           .neq("order_status", "cancelled");
         const todaySales = (todayOrders ?? []).reduce(
           (sum, o: any) => sum + Number(o.final_price || 0),
@@ -228,33 +254,27 @@ Deno.serve(async (req) => {
         );
 
         // Today cancellations (by updated_at within Taipei day)
-        const todayStartUtc = new Date(
-          Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - 8 * 60 * 60 * 1000,
-        ).toISOString();
-        const todayEndUtc = new Date(
-          Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1) - 8 * 60 * 60 * 1000,
-        ).toISOString();
         const { data: cancelOrders } = await supabase
           .from("orders")
           .select("final_price")
           .eq("accommodation_id", accId)
           .eq("order_status", "cancelled")
           .gte("updated_at", todayStartUtc)
-          .lt("updated_at", todayEndUtc);
+          .lt("updated_at", tomorrowStartUtc);
         const cancelCount = (cancelOrders ?? []).length;
         const cancelAmount = (cancelOrders ?? []).reduce(
           (sum, o: any) => sum + Number(o.final_price || 0),
           0,
         );
 
-        // Month accumulated
+        // Month accumulated (Taipei month → UTC range)
         const { data: monthOrders } = await supabase
           .from("orders")
           .select("final_price")
           .eq("accommodation_id", accId)
           .neq("order_status", "cancelled")
-          .gte("order_date", month.start)
-          .lt("order_date", month.end);
+          .gte("order_date", monthStartUtc)
+          .lt("order_date", monthEndUtc);
         const monthSales = (monthOrders ?? []).reduce(
           (s, o: any) => s + Number(o.final_price || 0),
           0,
@@ -266,8 +286,8 @@ Deno.serve(async (req) => {
           .select("final_price")
           .eq("accommodation_id", accId)
           .neq("order_status", "cancelled")
-          .gte("order_date", prevMonth.start)
-          .lt("order_date", prevMonth.end);
+          .gte("order_date", prevMonthStartUtc)
+          .lt("order_date", prevMonthEndUtc);
         const prevMonthSales = (prevMonthOrders ?? []).reduce(
           (s, o: any) => s + Number(o.final_price || 0),
           0,
@@ -279,12 +299,13 @@ Deno.serve(async (req) => {
           .select("final_price")
           .eq("accommodation_id", accId)
           .neq("order_status", "cancelled")
-          .gte("order_date", year.start)
-          .lt("order_date", year.end);
+          .gte("order_date", yearStartUtc)
+          .lt("order_date", yearEndUtc);
         const yearSales = (yearOrders ?? []).reduce(
           (s, o: any) => s + Number(o.final_price || 0),
           0,
         );
+
 
         const generalTarget = Number(s.general_booking_target || 0);
 
@@ -346,12 +367,13 @@ Deno.serve(async (req) => {
                 .select("id, final_price, order_date, order_status")
                 .in("id", metaOrderIds)
                 .neq("order_status", "cancelled")
-                .gte("order_date", year.start)
-                .lt("order_date", year.end);
+                .gte("order_date", yearStartUtc)
+                .lt("order_date", yearEndUtc);
               for (const o of bookingYear ?? []) {
                 const amt = Number((o as any).final_price || 0);
-                const d = (o as any).order_date as string | null;
-                if (!d) continue;
+                const iso = (o as any).order_date as string | null;
+                if (!iso) continue;
+                const d = isoToTaipeiDateStr(iso); // YYYY-MM-DD in Taipei
                 franchiseBookingYear += amt;
                 if (d >= month.start && d < month.end) franchiseBookingMonth += amt;
                 if (d === today) franchiseBookingToday += amt;
@@ -368,7 +390,7 @@ Deno.serve(async (req) => {
         const vars: Record<string, string> = {
           "日期": dateLabel,
           "民宿名稱": accName,
-          "M": String(now.getUTCMonth() + 1),
+          "M": String(tp.m),
           "今日訂單": fmtMoney(todaySales),
           "今日取消筆數": String(cancelCount),
           "今日取消金額": fmtMoney(cancelAmount),
