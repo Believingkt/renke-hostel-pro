@@ -145,13 +145,26 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    const now = taipeiNow();
-    const today = ymd(now);
-    const hhmm = currentHHMM();
-    const month = monthRange(now);
-    const prevMonth = prevMonthRange(now);
-    const year = yearRange(now);
-    const dateLabel = todayLabel(now);
+    const tp = getTaipeiParts();
+    const today = taipeiDateStr(tp.y, tp.m, tp.day);
+    const hhmm = `${pad2(tp.hour)}:${pad2(tp.minute)}`;
+
+    // UTC ISO boundaries for timestamptz columns (orders.order_date / updated_at)
+    const todayStartUtc = taipeiMidnightUtcISO(tp.y, tp.m, tp.day);
+    const tomorrowStartUtc = taipeiMidnightUtcISO(tp.y, tp.m, tp.day + 1);
+    const monthStartUtc = taipeiMidnightUtcISO(tp.y, tp.m, 1);
+    const monthEndUtc = taipeiMidnightUtcISO(tp.y, tp.m + 1, 1);
+    const prevMonthStartUtc = taipeiMidnightUtcISO(tp.y, tp.m - 1, 1);
+    const prevMonthEndUtc = monthStartUtc;
+    const yearStartUtc = taipeiMidnightUtcISO(tp.y, 1, 1);
+    const yearEndUtc = taipeiMidnightUtcISO(tp.y + 1, 1, 1);
+
+    // Plain date strings (for `date`-typed columns like franchise sold_at/signed_at)
+    const month = { start: taipeiDateStr(tp.y, tp.m, 1), end: taipeiDateStr(tp.y, tp.m + 1, 1) };
+    const prevMonth = { start: taipeiDateStr(tp.y, tp.m - 1, 1), end: month.start };
+    const year = { start: `${tp.y}-01-01`, end: `${tp.y + 1}-01-01` };
+    const dateLabel = todayLabel(tp.y, tp.m, tp.day);
+
 
     // Parse optional test_mode body
     let testMode = false;
