@@ -322,7 +322,7 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                     <div className="flex items-center text-sm">
                       <User className="w-4 h-4 mr-2 text-muted-foreground" />
                       <span className="text-muted-foreground mr-2">訂購人:</span>
-                      <span className="font-medium">{order.guest_name}</span>
+                      <span className="font-medium">{cleanGuestNameDisplay(order.guest_name)}</span>
                     </div>
                     <div className="flex items-center text-sm">
                       <Calendar className="w-4 h-4 mr-2 text-muted-foreground" />
