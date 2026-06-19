@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { Order, CustomMealPlan } from "@/types/order";
-import { getPaymentStatusConfig, getOrderStatusConfig, getOrderSourceConfig, getEffectivePaymentStatus, getPaymentMethodLabel, getOrderPaymentMethod } from "@/utils/orderHelpers";
+import { getPaymentStatusConfig, getOrderStatusConfig, getOrderSourceConfig, getEffectivePaymentStatus, getPaymentMethodLabel, getOrderPaymentMethod, cleanGuestNameDisplay } from "@/utils/orderHelpers";
 import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCart, Edit, Eye, Utensils, Globe, UserPlus, CreditCard } from "lucide-react";
 import { OrderQuickPreview } from "./OrderQuickPreview";
 import { EmptyState } from "@/components/EmptyState";
@@ -122,7 +122,7 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                         </Link>
                     </td>
                     <td className="px-4 py-3 text-sm">{format(new Date(order.order_date), "yyyy-MM-dd HH:mm")}</td>
-                    <td className="px-4 py-3 text-sm">{order.guest_name}</td>
+                    <td className="px-4 py-3 text-sm">{cleanGuestNameDisplay(order.guest_name)}</td>
                     <td className="px-4 py-3 text-sm">{order.check_in_date}</td>
                     <td className="px-4 py-3 text-sm">{order.check_out_date}</td>
                     <td className="px-4 py-3 text-sm font-medium">
@@ -322,7 +322,7 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                     <div className="flex items-center text-sm">
                       <User className="w-4 h-4 mr-2 text-muted-foreground" />
                       <span className="text-muted-foreground mr-2">訂購人:</span>
-                      <span className="font-medium">{order.guest_name}</span>
+                      <span className="font-medium">{cleanGuestNameDisplay(order.guest_name)}</span>
                     </div>
                     <div className="flex items-center text-sm">
                       <Calendar className="w-4 h-4 mr-2 text-muted-foreground" />
