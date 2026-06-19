@@ -122,7 +122,7 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                         </Link>
                     </td>
                     <td className="px-4 py-3 text-sm">{format(new Date(order.order_date), "yyyy-MM-dd HH:mm")}</td>
-                    <td className="px-4 py-3 text-sm">{order.guest_name}</td>
+                    <td className="px-4 py-3 text-sm">{cleanGuestNameDisplay(order.guest_name)}</td>
                     <td className="px-4 py-3 text-sm">{order.check_in_date}</td>
                     <td className="px-4 py-3 text-sm">{order.check_out_date}</td>
                     <td className="px-4 py-3 text-sm font-medium">
