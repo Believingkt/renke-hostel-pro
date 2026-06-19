@@ -367,12 +367,13 @@ Deno.serve(async (req) => {
                 .select("id, final_price, order_date, order_status")
                 .in("id", metaOrderIds)
                 .neq("order_status", "cancelled")
-                .gte("order_date", year.start)
-                .lt("order_date", year.end);
+                .gte("order_date", yearStartUtc)
+                .lt("order_date", yearEndUtc);
               for (const o of bookingYear ?? []) {
                 const amt = Number((o as any).final_price || 0);
-                const d = (o as any).order_date as string | null;
-                if (!d) continue;
+                const iso = (o as any).order_date as string | null;
+                if (!iso) continue;
+                const d = isoToTaipeiDateStr(iso); // YYYY-MM-DD in Taipei
                 franchiseBookingYear += amt;
                 if (d >= month.start && d < month.end) franchiseBookingMonth += amt;
                 if (d === today) franchiseBookingToday += amt;
