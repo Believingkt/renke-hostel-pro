@@ -13,38 +13,50 @@ const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
 const FROM_EMAIL = "noreply@sensaninn.lakeze.com";
 const TO_EMAIL = "service@lakeze.com";
 
-// ── Time helpers (Taipei = UTC+8) ──────────────────────────
-function taipeiNow(): Date {
-  return new Date(Date.now() + 8 * 60 * 60 * 1000);
+// ── Time helpers (Taipei = UTC+8, via Intl) ────────────────
+// Returns Taipei wall-clock parts for a given UTC instant.
+function getTaipeiParts(d: Date = new Date()): {
+  y: number; m: number; day: number; hour: number; minute: number;
+} {
+  const f = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Taipei",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  });
+  const parts: Record<string, string> = {};
+  for (const p of f.formatToParts(d)) parts[p.type] = p.value;
+  return {
+    y: Number(parts.year),
+    m: Number(parts.month),
+    day: Number(parts.day),
+    hour: Number(parts.hour === "24" ? "00" : parts.hour),
+    minute: Number(parts.minute),
+  };
 }
-function ymd(d: Date): string {
-  return d.toISOString().slice(0, 10);
+const pad2 = (n: number) => String(n).padStart(2, "0");
+// Date string "YYYY-MM-DD" from Taipei (y,m,d); month/day overflow handled by Date.UTC.
+function taipeiDateStr(y: number, m: number, d: number): string {
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return `${dt.getUTCFullYear()}-${pad2(dt.getUTCMonth() + 1)}-${pad2(dt.getUTCDate())}`;
+}
+// UTC ISO of the instant when Taipei wall-clock is (y,m,d) 00:00:00.
+// Taipei 00:00 == UTC of previous day 16:00 → use hour=-8 in Date.UTC.
+function taipeiMidnightUtcISO(y: number, m: number, d: number): string {
+  return new Date(Date.UTC(y, m - 1, d, -8, 0, 0)).toISOString();
+}
+// Convert a timestamptz ISO string to Taipei date string "YYYY-MM-DD".
+function isoToTaipeiDateStr(iso: string): string {
+  const p = getTaipeiParts(new Date(iso));
+  return `${p.y}-${pad2(p.m)}-${pad2(p.day)}`;
 }
 function currentHHMM(): string {
-  const d = taipeiNow();
-  return d.toISOString().slice(11, 16); // HH:MM
+  const p = getTaipeiParts();
+  return `${pad2(p.hour)}:${pad2(p.minute)}`;
 }
 const WEEK_ZH = ["日", "一", "二", "三", "四", "五", "六"];
-function todayLabel(d: Date): string {
-  return `${d.getUTCMonth() + 1}/${d.getUTCDate()}（${WEEK_ZH[d.getUTCDay()]}）`;
-}
-function monthRange(d: Date): { start: string; end: string } {
-  const y = d.getUTCFullYear();
-  const m = d.getUTCMonth();
-  const start = new Date(Date.UTC(y, m, 1));
-  const end = new Date(Date.UTC(y, m + 1, 1));
-  return { start: ymd(start), end: ymd(end) };
-}
-function prevMonthRange(d: Date): { start: string; end: string } {
-  const y = d.getUTCFullYear();
-  const m = d.getUTCMonth();
-  const start = new Date(Date.UTC(y, m - 1, 1));
-  const end = new Date(Date.UTC(y, m, 1));
-  return { start: ymd(start), end: ymd(end) };
-}
-function yearRange(d: Date): { start: string; end: string } {
-  const y = d.getUTCFullYear();
-  return { start: `${y}-01-01`, end: `${y + 1}-01-01` };
+function todayLabel(y: number, m: number, d: number): string {
+  const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  return `${m}/${d}（${WEEK_ZH[dow]}）`;
 }
 
 // ── Format helpers ─────────────────────────────────────────
