@@ -684,44 +684,62 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
                     </TooltipProvider>
                   </div>
                   
-                  {/* 全部選項 */}
+                  {/* 全部 / 全不選 切換 */}
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="bind-all"
-                      checked={formData.bind_all_exclusives}
+                      checked={
+                        formData.bind_all_exclusives ||
+                        (exclusivePackages.length > 0 &&
+                          formData.bound_exclusive_ids.length === exclusivePackages.length)
+                      }
                       onCheckedChange={(checked) => {
                         setFormData(prev => ({
                           ...prev,
                           bind_all_exclusives: !!checked,
-                          bound_exclusive_ids: checked ? [] : [],
+                          bound_exclusive_ids: checked
+                            ? exclusivePackages.map(p => p.id)
+                            : [],
                         }));
                       }}
                     />
-                    <Label htmlFor="bind-all" className="cursor-pointer">全部包棟房型</Label>
+                    <Label htmlFor="bind-all" className="cursor-pointer font-medium">全部包棟房型</Label>
                   </div>
-                  
-                  {/* 個別選擇 */}
-                  {!formData.bind_all_exclusives && (
-                    <div className="space-y-2 pl-4 border-l-2 border-primary/20">
-                      {exclusivePackages.map((pkg) => (
+
+                  {/* 個別勾選：永遠顯示，方便部分綁定 */}
+                  <div className="space-y-2 pl-4 border-l-2 border-primary/20">
+                    {exclusivePackages.map((pkg) => {
+                      const checked =
+                        formData.bind_all_exclusives ||
+                        formData.bound_exclusive_ids.includes(pkg.id);
+                      return (
                         <div key={pkg.id} className="flex items-center space-x-2">
                           <Checkbox
                             id={`bind-${pkg.id}`}
-                            checked={formData.bound_exclusive_ids.includes(pkg.id)}
-                            onCheckedChange={(checked) => {
-                              setFormData(prev => ({
-                                ...prev,
-                                bound_exclusive_ids: checked
-                                  ? [...prev.bound_exclusive_ids, pkg.id]
-                                  : prev.bound_exclusive_ids.filter(id => id !== pkg.id),
-                              }));
+                            checked={checked}
+                            onCheckedChange={(isChecked) => {
+                              setFormData(prev => {
+                                // 若目前是「全部」狀態,先展開為實體 id 列表再調整
+                                const base = prev.bind_all_exclusives
+                                  ? exclusivePackages.map(p => p.id)
+                                  : prev.bound_exclusive_ids;
+                                const next = isChecked
+                                  ? Array.from(new Set([...base, pkg.id]))
+                                  : base.filter(id => id !== pkg.id);
+                                return {
+                                  ...prev,
+                                  bind_all_exclusives: next.length === exclusivePackages.length,
+                                  bound_exclusive_ids: next,
+                                };
+                              });
                             }}
                           />
                           <Label htmlFor={`bind-${pkg.id}`} className="cursor-pointer">{pkg.name}</Label>
                         </div>
-                      ))}
-                    </div>
-                  )}
+                      );
+                    })}
+                  </div>
+
                 </div>
               )}
 
