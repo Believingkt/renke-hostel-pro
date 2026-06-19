@@ -427,7 +427,29 @@ Deno.serve(async (req) => {
         const tpl = (s.email_template && String(s.email_template).trim().length > 0)
           ? String(s.email_template)
           : defaultTemplate(hasFranchise);
-        const body = applyVars(tpl, vars);
+        let body = applyVars(tpl, vars);
+
+        // ── 異動提醒：今日 updated_at 在範圍內，但 order_date 不在範圍內，且未取消 ──
+        const { data: modifiedOrders } = await supabase
+          .from("orders")
+          .select("order_number, order_date, order_status")
+          .eq("accommodation_id", accId)
+          .neq("order_status", "cancelled")
+          .gte("updated_at", todayStartUtc)
+          .lt("updated_at", tomorrowStartUtc);
+        const modifiedList = (modifiedOrders ?? []).filter((o: any) => {
+          const od = o.order_date as string | null;
+          if (!od) return true;
+          return od < todayStartUtc || od >= tomorrowStartUtc;
+        });
+        if (modifiedList.length > 0) {
+          const nums = modifiedList
+            .map((o: any) => o.order_number)
+            .filter((n: any) => !!n)
+            .join("、");
+          body += `\n\n⚠️ 今日有 ${modifiedList.length} 筆歷史訂單異動（不計入今日訂單）\n訂單編號：${nums}`;
+        }
+
         const subject = `【${accName}紀錄報表】${dateLabel}`;
 
         await sendEmail(subject, body);
