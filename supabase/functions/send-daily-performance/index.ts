@@ -240,12 +240,13 @@ Deno.serve(async (req) => {
         const hasFranchise = !!flags?.has_franchise;
 
         // ── General booking metrics ────────────────────────
-        // Today orders (non-cancelled)
+        // Today orders (non-cancelled) — order_date is timestamptz, use Taipei-day UTC range
         const { data: todayOrders } = await supabase
           .from("orders")
           .select("final_price, order_status")
           .eq("accommodation_id", accId)
-          .eq("order_date", today)
+          .gte("order_date", todayStartUtc)
+          .lt("order_date", tomorrowStartUtc)
           .neq("order_status", "cancelled");
         const todaySales = (todayOrders ?? []).reduce(
           (sum, o: any) => sum + Number(o.final_price || 0),
@@ -253,33 +254,27 @@ Deno.serve(async (req) => {
         );
 
         // Today cancellations (by updated_at within Taipei day)
-        const todayStartUtc = new Date(
-          Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - 8 * 60 * 60 * 1000,
-        ).toISOString();
-        const todayEndUtc = new Date(
-          Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1) - 8 * 60 * 60 * 1000,
-        ).toISOString();
         const { data: cancelOrders } = await supabase
           .from("orders")
           .select("final_price")
           .eq("accommodation_id", accId)
           .eq("order_status", "cancelled")
           .gte("updated_at", todayStartUtc)
-          .lt("updated_at", todayEndUtc);
+          .lt("updated_at", tomorrowStartUtc);
         const cancelCount = (cancelOrders ?? []).length;
         const cancelAmount = (cancelOrders ?? []).reduce(
           (sum, o: any) => sum + Number(o.final_price || 0),
           0,
         );
 
-        // Month accumulated
+        // Month accumulated (Taipei month → UTC range)
         const { data: monthOrders } = await supabase
           .from("orders")
           .select("final_price")
           .eq("accommodation_id", accId)
           .neq("order_status", "cancelled")
-          .gte("order_date", month.start)
-          .lt("order_date", month.end);
+          .gte("order_date", monthStartUtc)
+          .lt("order_date", monthEndUtc);
         const monthSales = (monthOrders ?? []).reduce(
           (s, o: any) => s + Number(o.final_price || 0),
           0,
@@ -291,8 +286,8 @@ Deno.serve(async (req) => {
           .select("final_price")
           .eq("accommodation_id", accId)
           .neq("order_status", "cancelled")
-          .gte("order_date", prevMonth.start)
-          .lt("order_date", prevMonth.end);
+          .gte("order_date", prevMonthStartUtc)
+          .lt("order_date", prevMonthEndUtc);
         const prevMonthSales = (prevMonthOrders ?? []).reduce(
           (s, o: any) => s + Number(o.final_price || 0),
           0,
@@ -304,12 +299,13 @@ Deno.serve(async (req) => {
           .select("final_price")
           .eq("accommodation_id", accId)
           .neq("order_status", "cancelled")
-          .gte("order_date", year.start)
-          .lt("order_date", year.end);
+          .gte("order_date", yearStartUtc)
+          .lt("order_date", yearEndUtc);
         const yearSales = (yearOrders ?? []).reduce(
           (s, o: any) => s + Number(o.final_price || 0),
           0,
         );
+
 
         const generalTarget = Number(s.general_booking_target || 0);
 
