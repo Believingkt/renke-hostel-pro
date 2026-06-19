@@ -108,3 +108,17 @@ export const getOrderPaymentMethod = (order: {
     null
   );
 };
+
+/**
+ * 清掉旅安匯入的訂購人欄位中的 UNKNOWN 佔位符（副住客未填時旅安會自動補 "UNKNOWN UNKNOWN"）。
+ * 僅用於顯示，不改 DB。
+ */
+export const cleanGuestNameDisplay = (name: string | null | undefined): string => {
+  if (!name) return "";
+  const cleaned = name
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => s && !/^unknown(\s+unknown)*$/i.test(s))
+    .join(", ");
+  return cleaned || name;
+};
