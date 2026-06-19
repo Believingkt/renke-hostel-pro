@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { Order, CustomMealPlan } from "@/types/order";
-import { getPaymentStatusConfig, getOrderStatusConfig, getOrderSourceConfig, getEffectivePaymentStatus, getPaymentMethodLabel, getOrderPaymentMethod } from "@/utils/orderHelpers";
+import { getPaymentStatusConfig, getOrderStatusConfig, getOrderSourceConfig, getEffectivePaymentStatus, getPaymentMethodLabel, getOrderPaymentMethod, cleanGuestNameDisplay } from "@/utils/orderHelpers";
 import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCart, Edit, Eye, Utensils, Globe, UserPlus, CreditCard } from "lucide-react";
 import { OrderQuickPreview } from "./OrderQuickPreview";
 import { EmptyState } from "@/components/EmptyState";
