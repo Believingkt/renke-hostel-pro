@@ -390,7 +390,7 @@ Deno.serve(async (req) => {
         const vars: Record<string, string> = {
           "日期": dateLabel,
           "民宿名稱": accName,
-          "M": String(now.getUTCMonth() + 1),
+          "M": String(tp.m),
           "今日訂單": fmtMoney(todaySales),
           "今日取消筆數": String(cancelCount),
           "今日取消金額": fmtMoney(cancelAmount),
