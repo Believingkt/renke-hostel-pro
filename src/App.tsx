@@ -415,6 +415,11 @@ function App() {
                         <Suspense fallback={<DashboardSkeleton />}><EmailTest /></Suspense>
                       </RequireModule>
                     } />
+                    <Route path="admin/email-preview" element={
+                      <RequireModule module="accounts">
+                        <Suspense fallback={<DashboardSkeleton />}><EmailPreview /></Suspense>
+                      </RequireModule>
+                    } />
                     <Route path="admin/analytics" element={
                       <RequireModule module="analytics">
                         <Suspense fallback={<DashboardSkeleton />}><Analytics /></Suspense>
