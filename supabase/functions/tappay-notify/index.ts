@@ -344,10 +344,11 @@ Deno.serve(async (req) => {
             is_read: false,
           });
 
-          // ATM 付款完成且訂單已全額付清 → 統一寄送訂房通知 email
+          // ATM 付款完成或現場刷卡 → 首次付款（付清或已付訂金）寄送訂房通知 email
           // （3DS/非3DS 信用卡的通知信由 complete-3ds-booking / create-paid-order 在建單時寄出，
           //  webhook 不重複發送。）
-          if (isAtm && newPaymentStatus === 'paid') {
+          const wasUnpaid = !order.payment_status || order.payment_status === 'unpaid' || order.payment_status === 'pending_payment';
+          if (isAtm && wasUnpaid && (newPaymentStatus === 'paid' || newPaymentStatus === 'deposit_paid')) {
             try {
               const r = await sendBookingConfirmationByOrderId(
                 supabaseUrl,
@@ -359,7 +360,7 @@ Deno.serve(async (req) => {
             } catch (mailErr) {
               console.error('[tappay-notify] ATM email send failed (non-fatal):', mailErr);
             }
-          } else if (!isAtm && newPaymentStatus === 'paid' && order.order_source === 'manual') {
+          } else if (!isAtm && order.order_source === 'manual' && wasUnpaid && (newPaymentStatus === 'paid' || newPaymentStatus === 'deposit_paid')) {
             try {
               const r = await sendBookingConfirmationByOrderId(
                 supabaseUrl,
