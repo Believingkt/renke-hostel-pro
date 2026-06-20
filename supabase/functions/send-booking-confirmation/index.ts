@@ -205,6 +205,11 @@ const handler = async (req: Request): Promise<Response> => {
               
               <div style="margin: 30px 0;">
                 <table style="width: 100%; border-collapse: collapse;">
+                  ${accommodationName ? `
+                  <tr style="border-bottom: 1px solid #f0f0f0;">
+                    <td style="color: #666; font-weight: 500; padding: 12px 0; width: 35%;">住宿</td>
+                    <td style="color: #1fa958; font-weight: 700; padding: 12px 0; text-align: right;">${accommodationName}</td>
+                  </tr>` : ''}
                   <tr style="border-bottom: 1px solid #f0f0f0;">
                     <td style="color: #666; font-weight: 500; padding: 12px 0; width: 35%;">訂單編號</td>
                     <td style="color: #333; font-weight: 600; padding: 12px 0; text-align: right;">${orderNumber}</td>
