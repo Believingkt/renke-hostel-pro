@@ -435,7 +435,7 @@ export default function OrderPayment() {
             email: emailInput.trim(),
           },
           details: `訂單 ${orderNumber} 付款`,
-          frontendRedirectUrl: `${baseUrl}/payment-result?order_number=${orderNumber}&amount=${amount}&source=link`,
+          frontendRedirectUrl: `https://booking.lakeze.com/`,
           bindCard: orderInfo.needsCardBinding,
         },
       });
