@@ -103,6 +103,7 @@ const PublicHolidays = lazy(() => import("./pages/PublicHolidays"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const DataBackup = lazy(() => import("./pages/DataBackup"));
 const EmailTest = lazy(() => import("./pages/EmailTest"));
+const EmailPreview = lazy(() => import("./pages/EmailPreview"));
 const Settlement = lazy(() => import("./pages/Settlement"));
 const OwnerSettlement = lazy(() => import("./pages/OwnerSettlement"));
 const AddonCenter = lazy(() => import("./pages/AddonCenter"));
