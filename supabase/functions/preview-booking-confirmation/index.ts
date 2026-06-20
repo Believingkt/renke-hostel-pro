@@ -112,7 +112,7 @@ serve(async (req) => {
         <table style="width: 100%; border-collapse: collapse;">
           <tr><td style="font-size: 18px; font-weight: 600; padding-bottom: 15px;">總金額</td><td style="text-align: right; padding-bottom: 15px;"><span class="total-price">NT$ ${finalPrice.toLocaleString()}</span></td></tr>
           <tr><td style="font-size: 15px; color: #666; padding: 6px 0; border-top: 1px dashed #d0d0d0;">已付金額</td><td style="text-align: right; padding: 6px 0; border-top: 1px dashed #d0d0d0; color: #f97316; font-weight: 700; font-size: 16px;">NT$ ${paidAmount.toLocaleString()}</td></tr>
-          ${outstanding > 0 ? `<tr><td style="font-size: 15px; color: #666; padding: 6px 0;">未付金額</td><td style="text-align: right; padding: 6px 0; color: #d97706; font-weight: 700; font-size: 16px;">NT$ ${outstanding.toLocaleString()}</td></tr>` : `<tr><td colspan="2" style="text-align: right; padding: 6px 0; color: #f97316; font-weight: 600; font-size: 14px;">✓ 已付清</td></tr>`}
+          
         </table>
       </div>
       <div class="notice">

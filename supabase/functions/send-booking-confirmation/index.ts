@@ -300,18 +300,6 @@ const handler = async (req: Request): Promise<Response> => {
                     <td style="font-size: 15px; color: #666; padding: 6px 0; border-top: 1px dashed #d0d0d0;">已付金額</td>
                     <td style="text-align: right; padding: 6px 0; border-top: 1px dashed #d0d0d0; color: #f97316; font-weight: 700; font-size: 16px;">NT$ ${(Number(order.paid_amount) || 0).toLocaleString()}</td>
                   </tr>
-                  ${(() => {
-                    const paid = Number(order.paid_amount) || 0;
-                    const outstanding = Math.max(0, finalPrice - paid);
-                    return outstanding > 0 ? `
-                  <tr>
-                    <td style="font-size: 15px; color: #666; padding: 6px 0;">未付金額</td>
-                    <td style="text-align: right; padding: 6px 0; color: #d97706; font-weight: 700; font-size: 16px;">NT$ ${outstanding.toLocaleString()}</td>
-                  </tr>` : `
-                  <tr>
-                    <td colspan="2" style="text-align: right; padding: 6px 0; color: #f97316; font-weight: 600; font-size: 14px;">✓ 已付清</td>
-                  </tr>`;
-                  })()}
                 </table>
               </div>
 
