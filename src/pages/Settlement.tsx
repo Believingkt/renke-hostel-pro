@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { getPaymentStatusConfig } from "@/utils/orderHelpers";
+import { getPaymentStatusConfig, getPaymentMethodLabel } from "@/utils/orderHelpers";
 import { Link } from "react-router-dom";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { supabase } from "@/integrations/supabase/client";
