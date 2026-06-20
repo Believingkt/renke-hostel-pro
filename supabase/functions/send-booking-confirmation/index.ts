@@ -189,10 +189,10 @@ const handler = async (req: Request): Promise<Response> => {
           <style>
             body { font-family: 'Microsoft JhengHei', Arial, sans-serif; line-height: 1.6; color: #333; }
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background-color: #1fa958; background: linear-gradient(135deg, #1fa958 0%, #33c566 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; word-break: break-word; }
+            .header { background-color: #f97316; background: linear-gradient(135deg, #f97316 0%, #fb923c 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; word-break: break-word; }
             .content { background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; }
             .price-highlight { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
-            .total-price { font-size: 24px; color: #1fa958; font-weight: bold; }
+            .total-price { font-size: 24px; color: #f97316; font-weight: bold; }
             .footer { background: #f8f9fa; padding: 20px; text-align: center; color: #666; border-radius: 0 0 10px 10px; }
             .notice { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px; }
           </style>
@@ -214,7 +214,7 @@ const handler = async (req: Request): Promise<Response> => {
                   ${accommodationName ? `
                   <tr style="border-bottom: 1px solid #f0f0f0;">
                     <td style="color: #666; font-weight: 500; padding: 12px 0; width: 35%; white-space: nowrap;">住宿</td>
-                    <td style="color: #1fa958; font-weight: 700; padding: 12px 0; text-align: right; word-break: break-word;">${accommodationName}</td>
+                    <td style="color: #f97316; font-weight: 700; padding: 12px 0; text-align: right; word-break: break-word;">${accommodationName}</td>
                   </tr>` : ''}
                   <tr style="border-bottom: 1px solid #f0f0f0;">
                     <td style="color: #666; font-weight: 500; padding: 12px 0; width: 35%;">訂單編號</td>
@@ -298,7 +298,7 @@ const handler = async (req: Request): Promise<Response> => {
                   </tr>
                   <tr>
                     <td style="font-size: 15px; color: #666; padding: 6px 0; border-top: 1px dashed #d0d0d0;">已付金額</td>
-                    <td style="text-align: right; padding: 6px 0; border-top: 1px dashed #d0d0d0; color: #1fa958; font-weight: 700; font-size: 16px;">NT$ ${(Number(order.paid_amount) || 0).toLocaleString()}</td>
+                    <td style="text-align: right; padding: 6px 0; border-top: 1px dashed #d0d0d0; color: #f97316; font-weight: 700; font-size: 16px;">NT$ ${(Number(order.paid_amount) || 0).toLocaleString()}</td>
                   </tr>
                   ${(() => {
                     const paid = Number(order.paid_amount) || 0;
@@ -309,7 +309,7 @@ const handler = async (req: Request): Promise<Response> => {
                     <td style="text-align: right; padding: 6px 0; color: #d97706; font-weight: 700; font-size: 16px;">NT$ ${outstanding.toLocaleString()}</td>
                   </tr>` : `
                   <tr>
-                    <td colspan="2" style="text-align: right; padding: 6px 0; color: #1fa958; font-weight: 600; font-size: 14px;">✓ 已付清</td>
+                    <td colspan="2" style="text-align: right; padding: 6px 0; color: #f97316; font-weight: 600; font-size: 14px;">✓ 已付清</td>
                   </tr>`;
                   })()}
                 </table>
@@ -324,28 +324,28 @@ const handler = async (req: Request): Promise<Response> => {
                 </ul>
               </div>
 
-              <div style="margin-top: 30px; padding: 25px; background: linear-gradient(135deg, #f0fdf5 0%, #dcfce7 100%); border-radius: 12px; border: 2px solid #1fa958; text-align: center;">
-                <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: 700; color: #1fa958;">📋 查詢訂單資訊</p>
+              <div style="margin-top: 30px; padding: 25px; background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); border-radius: 12px; border: 2px solid #f97316; text-align: center;">
+                <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: 700; color: #f97316;">📋 查詢訂單資訊</p>
                 <p style="margin: 0 0 20px 0; color: #666; font-size: 14px; line-height: 1.6;">
                   您可以隨時透過以下連結查詢您的訂單狀態、付款記錄及住宿詳情
                 </p>
                 <a href="https://booking.lakeze.com/member/orders" 
-                   style="display: inline-block; padding: 14px 40px; background: linear-gradient(135deg, #1fa958 0%, #33c566 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(31, 169, 88, 0.3);">
+                   style="display: inline-block; padding: 14px 40px; background: linear-gradient(135deg, #f97316 0%, #fb923c 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);">
                   🔍 立即查詢訂單
                 </a>
               </div>
 
               ${(accommodationPhone || accommodationLineId || accommodationEmail) ? `
-              <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #1fa958;">
+              <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #f97316;">
                 <p style="margin: 0 0 15px 0; font-weight: 600; color: #333;">如有任何疑問，歡迎透過下列方式與${accommodationName ? ` ${accommodationName} ` : '我們'}聯繫：</p>
                 <div style="color: #666; line-height: 1.8;">
-                  ${accommodationPhone ? `<p style="margin: 8px 0;">📞 聯絡電話：<a href="tel:${accommodationPhone.replace(/[^+\d]/g, '')}" style="color: #1fa958; text-decoration: none;">${accommodationPhone}</a></p>` : ''}
-                  ${accommodationLineId ? `<p style="margin: 8px 0;">💬 LINE 官方帳號：<a href="https://line.me/R/ti/p/${accommodationLineId}" style="color: #1fa958; text-decoration: none;">${accommodationLineId}</a></p>` : ''}
-                  ${accommodationEmail ? `<p style="margin: 8px 0;">📧 電子郵件：<a href="mailto:${accommodationEmail}" style="color: #1fa958; text-decoration: none;">${accommodationEmail}</a></p>` : ''}
+                  ${accommodationPhone ? `<p style="margin: 8px 0;">📞 聯絡電話：<a href="tel:${accommodationPhone.replace(/[^+\d]/g, '')}" style="color: #f97316; text-decoration: none;">${accommodationPhone}</a></p>` : ''}
+                  ${accommodationLineId ? `<p style="margin: 8px 0;">💬 LINE 官方帳號：<a href="https://line.me/R/ti/p/${accommodationLineId}" style="color: #f97316; text-decoration: none;">${accommodationLineId}</a></p>` : ''}
+                  ${accommodationEmail ? `<p style="margin: 8px 0;">📧 電子郵件：<a href="mailto:${accommodationEmail}" style="color: #f97316; text-decoration: none;">${accommodationEmail}</a></p>` : ''}
                 </div>
               </div>
               ` : ''}
-              <p style="margin-top: 20px; font-size: 16px; font-weight: 500; color: #1fa958;">期待您的光臨！</p>
+              <p style="margin-top: 20px; font-size: 16px; font-weight: 500; color: #f97316;">期待您的光臨！</p>
             </div>
 
             <div class="footer">
