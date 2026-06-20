@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { getPaymentStatusConfig } from "@/utils/orderHelpers";
+import { getPaymentStatusConfig, getPaymentMethodLabel } from "@/utils/orderHelpers";
 import { Link } from "react-router-dom";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -691,7 +691,7 @@ export default function Settlement() {
                               {record.paid_at && format(new Date(record.paid_at), "yyyy/MM/dd")}
                             </TableCell>
                             <TableCell className="text-sm">
-                              {record.payment_method || "-"}
+                              {getPaymentMethodLabel(record.payment_method) || "-"}
                             </TableCell>
                             <TableCell>
                               {getStatusBadge(record.settlement_status)}

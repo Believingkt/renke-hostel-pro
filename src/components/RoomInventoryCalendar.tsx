@@ -17,7 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { getOrderStatusConfig, getPaymentStatusConfig } from "@/utils/orderHelpers";
+import { getOrderStatusConfig, getPaymentStatusConfig, getPaymentMethodLabel } from "@/utils/orderHelpers";
 import { RoomInventoryCalendarSkeleton, RoomInventoryListSkeleton } from "@/components/skeletons/RoomInventoryCalendarSkeleton";
 import { CreateOrderDialog } from "@/components/orders/CreateOrderDialog";
 
@@ -2316,7 +2316,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                               {(order as any).payment_method && (
                                 <div className="flex items-center justify-between text-sm pt-1.5 mt-1.5 border-t">
                                   <span className="text-muted-foreground">付款方式</span>
-                                  <span className="font-medium px-1.5 py-0.5 bg-muted rounded text-xs">{(order as any).payment_method}</span>
+                                  <span className="font-medium px-1.5 py-0.5 bg-muted rounded text-xs">{getPaymentMethodLabel((order as any).payment_method)}</span>
                                 </div>
                               )}
                             </div>
@@ -2541,7 +2541,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                               {(order as any).payment_method && (
                                 <div className="flex items-center justify-between text-sm pt-2 mt-2 border-t">
                                   <span className="text-muted-foreground">付款方式</span>
-                                  <span className="font-medium px-2 py-0.5 bg-muted rounded">{(order as any).payment_method}</span>
+                                  <span className="font-medium px-2 py-0.5 bg-muted rounded">{getPaymentMethodLabel((order as any).payment_method)}</span>
                                 </div>
                               )}
                             </div>
