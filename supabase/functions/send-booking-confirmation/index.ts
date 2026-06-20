@@ -135,13 +135,19 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     let accommodationName = '';
+    let accommodationPhone = '';
+    let accommodationEmail = '';
+    let accommodationLineId = '';
     if (order?.accommodation_id) {
       const { data: acc } = await supabase
         .from('accommodation_info')
-        .select('name')
+        .select('name, phone, email, line_id')
         .eq('id', order.accommodation_id)
         .single();
       accommodationName = acc?.name || '';
+      accommodationPhone = acc?.phone || '';
+      accommodationEmail = acc?.email || '';
+      accommodationLineId = acc?.line_id || '';
     }
     
     if (orderError || !order) {
