@@ -100,16 +100,24 @@ serve(async (req) => {
 
     // Persist the email the customer entered on the payment page back to the order,
     // so receipts/notifications go to the address they actually want.
+    // NOTE: Do NOT add `.neq('guest_email', cardholder.email)` — in Postgres
+    // `<col> != <val>` is NULL when the column is NULL, which would silently
+    // skip the update for orders whose guest_email is still NULL (the exact
+    // case we need to fill). Just write unconditionally; it's idempotent.
     try {
       const supaUrl = Deno.env.get('SUPABASE_URL');
       const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
       if (supaUrl && svcKey && cardholder?.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cardholder.email)) {
         const admin = createClient(supaUrl, svcKey);
-        await admin
+        const { error: emailUpdateErr } = await admin
           .from('orders')
           .update({ guest_email: cardholder.email })
-          .eq('order_number', orderId)
-          .neq('guest_email', cardholder.email);
+          .eq('order_number', orderId);
+        if (emailUpdateErr) {
+          console.warn('guest_email update returned error (non-blocking):', emailUpdateErr);
+        } else {
+          console.log('guest_email synced from payment page', { orderId, email: cardholder.email });
+        }
       }
     } catch (e) {
       console.warn('Failed to sync guest_email to order (non-blocking):', e);
