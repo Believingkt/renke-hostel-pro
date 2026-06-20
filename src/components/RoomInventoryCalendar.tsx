@@ -17,7 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { getOrderStatusConfig, getPaymentStatusConfig } from "@/utils/orderHelpers";
+import { getOrderStatusConfig, getPaymentStatusConfig, getPaymentMethodLabel } from "@/utils/orderHelpers";
 import { RoomInventoryCalendarSkeleton, RoomInventoryListSkeleton } from "@/components/skeletons/RoomInventoryCalendarSkeleton";
 import { CreateOrderDialog } from "@/components/orders/CreateOrderDialog";
 
