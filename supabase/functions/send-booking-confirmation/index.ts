@@ -130,7 +130,7 @@ const handler = async (req: Request): Promise<Response> => {
     
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('id, guest_email, order_number, accommodation_id')
+      .select('id, guest_email, order_number, accommodation_id, paid_amount, payment_status, total_price')
       .eq('order_number', orderNumber)
       .single();
 
