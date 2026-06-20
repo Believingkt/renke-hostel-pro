@@ -769,7 +769,7 @@ ${accListStr}
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-5-20250929",
         max_tokens: 1024,
         system: systemPrompt,
         messages: anthropicMessages,
@@ -944,7 +944,7 @@ ${accListStr}
                           "Content-Type": "application/json",
                         },
                         body: JSON.stringify({
-                          model: "claude-sonnet-4-20250514",
+                          model: "claude-sonnet-4-5-20250929",
                           max_tokens: 1024,
                           system: `你是人客多訂房平台 AI 管家。根據工具結果回覆客人。不顯示 UUID。價格用 NT$。適當 emoji。每次回覆最後加 [SUGGEST: 選項1 | 選項2]。今天是 ${new Date().toISOString().split('T')[0]}`,
                           messages: followUpMessages,
