@@ -159,12 +159,16 @@ serve(async (req) => {
       refundSucceeded = refundResult.success;
       if (!refundSucceeded) {
         // Do NOT cancel the order if refund failed — keep money + order in sync
+        const msgLower = typeof refundResult.msg === "string" ? refundResult.msg.toLowerCase() : "";
         const isBankCapturing =
-          refundResult.status === 946 ||
-          (typeof refundResult.msg === "string" && refundResult.msg.toLowerCase().includes("bank capturing"));
+          refundResult.status === 946 || msgLower.includes("bank capturing");
+        const isRisky =
+          refundResult.status === 10016 || msgLower.includes("risky");
         const failMessage = isBankCapturing
           ? "此交易正在銀行請款中，暫時無法自動退款。請於請款完成後（通常隔日）再試，或改用「手動退款」。"
-          : `TapPay 退款失敗（代碼 ${refundResult.status}：${refundResult.msg}），訂單未取消，請改用手動退款或至 TapPay 後台處理。`;
+          : isRisky
+            ? "此筆退款被 TapPay 風控暫時拒絕（代碼 10016），訂單未取消。請改用「手動退款」，或聯絡 TapPay 客服了解原因。"
+            : `TapPay 退款失敗（代碼 ${refundResult.status}：${refundResult.msg}），訂單未取消，請改用手動退款或至 TapPay 後台處理。`;
         return new Response(
           JSON.stringify({
             success: false,
