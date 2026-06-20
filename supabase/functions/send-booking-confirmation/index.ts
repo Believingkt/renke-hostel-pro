@@ -337,7 +337,7 @@ const handler = async (req: Request): Promise<Response> => {
 
               ${(accommodationPhone || accommodationLineId || accommodationEmail) ? `
               <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #1fa958;">
-                <p style="margin: 0 0 15px 0; font-weight: 600; color: #333;">如有任何疑問，歡迎透過下列方式與我們聯繫：</p>
+                <p style="margin: 0 0 15px 0; font-weight: 600; color: #333;">如有任何疑問，歡迎透過下列方式與${accommodationName ? ` ${accommodationName} ` : '我們'}聯繫：</p>
                 <div style="color: #666; line-height: 1.8;">
                   ${accommodationPhone ? `<p style="margin: 8px 0;">📞 聯絡電話：<a href="tel:${accommodationPhone.replace(/[^+\d]/g, '')}" style="color: #1fa958; text-decoration: none;">${accommodationPhone}</a></p>` : ''}
                   ${accommodationLineId ? `<p style="margin: 8px 0;">💬 LINE 官方帳號：<a href="https://line.me/R/ti/p/${accommodationLineId}" style="color: #1fa958; text-decoration: none;">${accommodationLineId}</a></p>` : ''}
