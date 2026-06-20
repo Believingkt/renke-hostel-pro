@@ -174,7 +174,7 @@ const handler = async (req: Request): Promise<Response> => {
       body: JSON.stringify({
         from: "人客多通知 <noreply@sensaninn.lakeze.com>",
         to: [guestEmail],
-        subject: `訂房確認通知 - 訂單編號 ${orderNumber}`,
+        subject: `${accommodationName ? `【${accommodationName}】` : ''}訂房確認通知 - 訂單編號 ${orderNumber}`,
         html: `
         <!DOCTYPE html>
         <html>
