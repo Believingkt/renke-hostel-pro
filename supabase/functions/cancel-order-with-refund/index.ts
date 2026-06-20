@@ -155,14 +155,17 @@ serve(async (req) => {
         );
       }
 
-      refundSucceeded = await refundTapPay(partnerKey, recTradeIdUsed, refundAmount);
+      const refundResult = await refundTapPay(partnerKey, recTradeIdUsed, refundAmount);
+      refundSucceeded = refundResult.success;
       if (!refundSucceeded) {
         // Do NOT cancel the order if refund failed — keep money + order in sync
         return new Response(
           JSON.stringify({
             success: false,
-            message: "TapPay 退款失敗，訂單未取消。請至 TapPay 後台檢查或改用手動退款。",
+            message: `TapPay 退款失敗（代碼 ${refundResult.status}：${refundResult.msg}），訂單未取消，請改用手動退款或至 TapPay 後台處理。`,
             recTradeId: recTradeIdUsed,
+            tappayStatus: refundResult.status,
+            tappayMsg: refundResult.msg,
           }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );

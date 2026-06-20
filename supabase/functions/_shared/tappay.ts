@@ -75,7 +75,7 @@ export async function refundTapPay(
   partnerKey: string,
   recTradeId: string,
   amount: number,
-): Promise<boolean> {
+): Promise<{ success: boolean; status?: number; msg?: string }> {
   try {
     const { refund } = getTapPayEndpoints();
     const resp = await fetch(refund, {
@@ -85,10 +85,10 @@ export async function refundTapPay(
     });
     const result = await resp.json();
     console.error("[tappay] Refund result:", { status: result.status, msg: result.msg });
-    return result.status === 0;
+    return { success: result.status === 0, status: result.status, msg: result.msg };
   } catch (e) {
     console.error("[tappay] Refund threw:", e);
-    return false;
+    return { success: false, msg: String(e) };
   }
 }
 

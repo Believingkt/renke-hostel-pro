@@ -257,7 +257,7 @@ Deno.serve(async (req) => {
       }
 
       console.error("[create-paid-order] Order insert failed AFTER charge:", orderError);
-      const refunded = await refundTapPay(partnerKey, recTradeId, body.finalPrice);
+      const refunded = (await refundTapPay(partnerKey, recTradeId, body.finalPrice)).success;
       await reportBackendError({
         functionName: "create-paid-order",
         category: "order_insert",
