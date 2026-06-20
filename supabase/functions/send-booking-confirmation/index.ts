@@ -335,14 +335,16 @@ const handler = async (req: Request): Promise<Response> => {
                 </a>
               </div>
 
+              ${(accommodationPhone || accommodationLineId || accommodationEmail) ? `
               <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #1fa958;">
                 <p style="margin: 0 0 15px 0; font-weight: 600; color: #333;">如有任何疑問，歡迎透過下列方式與我們聯繫：</p>
                 <div style="color: #666; line-height: 1.8;">
-                  <p style="margin: 8px 0;">📞 聯絡電話：<a href="tel:0903178518" style="color: #1fa958; text-decoration: none;">0903178518</a></p>
-                  <p style="margin: 8px 0;">💬 LINE 官方帳號：<a href="https://line.me/R/ti/p/@042deypa" style="color: #1fa958; text-decoration: none;">@042deypa</a></p>
-                  <p style="margin: 8px 0;">📧 電子郵件：<a href="mailto:sensan.inn@gmail.com" style="color: #1fa958; text-decoration: none;">sensan.inn@gmail.com</a></p>
+                  ${accommodationPhone ? `<p style="margin: 8px 0;">📞 聯絡電話：<a href="tel:${accommodationPhone.replace(/[^+\d]/g, '')}" style="color: #1fa958; text-decoration: none;">${accommodationPhone}</a></p>` : ''}
+                  ${accommodationLineId ? `<p style="margin: 8px 0;">💬 LINE 官方帳號：<a href="https://line.me/R/ti/p/${accommodationLineId}" style="color: #1fa958; text-decoration: none;">${accommodationLineId}</a></p>` : ''}
+                  ${accommodationEmail ? `<p style="margin: 8px 0;">📧 電子郵件：<a href="mailto:${accommodationEmail}" style="color: #1fa958; text-decoration: none;">${accommodationEmail}</a></p>` : ''}
                 </div>
               </div>
+              ` : ''}
               <p style="margin-top: 20px; font-size: 16px; font-weight: 500; color: #1fa958;">期待您的光臨！</p>
             </div>
 
