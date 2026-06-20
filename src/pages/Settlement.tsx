@@ -691,7 +691,7 @@ export default function Settlement() {
                               {record.paid_at && format(new Date(record.paid_at), "yyyy/MM/dd")}
                             </TableCell>
                             <TableCell className="text-sm">
-                              {record.payment_method || "-"}
+                              {getPaymentMethodLabel(record.payment_method) || "-"}
                             </TableCell>
                             <TableCell>
                               {getStatusBadge(record.settlement_status)}
