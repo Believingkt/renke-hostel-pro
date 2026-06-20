@@ -216,7 +216,7 @@ export function KolStatsTab() {
             .order("effective_from", { ascending: false })
             .limit(1)
             .maybeSingle(),
-          supabase.from("accommodation_info").select("name"),
+          supabase.from("accommodation_info").select("id, name"),
           showSalary && month
             ? supabase
                 .from("scout_team_targets")
@@ -261,7 +261,10 @@ export function KolStatsTab() {
         const teamBonusAmount = Number(salary?.team_bonus ?? 0);
         void salary?.team_threshold_pct;
 
-        const pmsVenues = new Set(((accsRes.data ?? []) as { name: string }[]).map((a) => a.name));
+        const pmsVenues = new Set(((accsRes.data ?? []) as { id: string; name: string }[]).map((a) => a.name));
+        const accIdToName = new Map<string, string>(
+          ((accsRes.data ?? []) as { id: string; name: string }[]).map((a) => [a.id, a.name]),
+        );
 
         const targetRows = (targetsRes.data ?? []) as TargetRow[];
         const targetsList = targetRows
@@ -337,7 +340,12 @@ export function KolStatsTab() {
           {
             count: number;
             total: number;
-            orders: Array<{ order_number: string; final_price: number; created_at: string | null }>;
+            orders: Array<{
+              order_number: string;
+              final_price: number;
+              created_at: string | null;
+              accommodation_id: string | null;
+            }>;
           }
         >();
         if (allCidCodes.size > 0) {
@@ -353,7 +361,7 @@ export function KolStatsTab() {
           );
           let q = supabase
             .from("orders")
-            .select("order_number, discount_code, final_price, created_at, order_date")
+            .select("order_number, discount_code, final_price, created_at, order_date, accommodation_id")
             .not("discount_code", "is", null)
             .neq("order_status", "cancelled");
           if (range) {
@@ -367,6 +375,7 @@ export function KolStatsTab() {
               final_price: number | null;
               order_number: string | null;
               created_at: string | null;
+              accommodation_id: string | null;
             };
             if (!row.discount_code) continue;
             const key = row.discount_code.trim().toUpperCase();
@@ -378,6 +387,7 @@ export function KolStatsTab() {
               order_number: row.order_number ?? "",
               final_price: Number(row.final_price || 0),
               created_at: row.created_at,
+              accommodation_id: row.accommodation_id,
             });
             orderMap.set(key, entry);
           }
@@ -460,8 +470,10 @@ export function KolStatsTab() {
               pmsOrderCount += ord.count;
               pmsOrderTotal += ord.total;
               for (const o of ord.orders) {
+                // 館別以訂單實際的 accommodation_id 為準，避免同一折扣碼對應多筆 kol_profiles 時誤判
+                const venueFromOrder = o.accommodation_id ? accIdToName.get(o.accommodation_id) : undefined;
                 orderItems.push({
-                  venue_name: venueByCid.get(code) ?? "",
+                  venue_name: venueFromOrder ?? venueByCid.get(code) ?? "",
                   order_number: o.order_number,
                   final_price: o.final_price,
                   commission: Math.round(o.final_price * commissionRate),
