@@ -470,8 +470,10 @@ export function KolStatsTab() {
               pmsOrderCount += ord.count;
               pmsOrderTotal += ord.total;
               for (const o of ord.orders) {
+                // 館別以訂單實際的 accommodation_id 為準，避免同一折扣碼對應多筆 kol_profiles 時誤判
+                const venueFromOrder = o.accommodation_id ? accIdToName.get(o.accommodation_id) : undefined;
                 orderItems.push({
-                  venue_name: venueByCid.get(code) ?? "",
+                  venue_name: venueFromOrder ?? venueByCid.get(code) ?? "",
                   order_number: o.order_number,
                   final_price: o.final_price,
                   commission: Math.round(o.final_price * commissionRate),
