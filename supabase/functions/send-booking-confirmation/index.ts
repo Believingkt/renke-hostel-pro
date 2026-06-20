@@ -162,7 +162,7 @@ const handler = async (req: Request): Promise<Response> => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "森山寫照 <onboarding@resend.dev>",
+        from: "森山窩居 <noreply@lakeze.com>",
         to: [guestEmail],
         subject: `訂房確認通知 - 訂單編號 ${orderNumber}`,
         html: `
@@ -324,12 +324,8 @@ const handler = async (req: Request): Promise<Response> => {
       console.error("Resend API error:", errorText);
       
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          warning: "Email sending was skipped due to development environment restrictions",
-          details: errorText 
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error: errorText }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -344,12 +340,8 @@ const handler = async (req: Request): Promise<Response> => {
     console.error("Error in send-booking-confirmation function:", error);
     
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        warning: "Email could not be sent, but booking was successful",
-        error: error.message 
-      }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ success: false, error: error.message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 };
