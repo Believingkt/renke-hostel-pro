@@ -359,6 +359,18 @@ Deno.serve(async (req) => {
             } catch (mailErr) {
               console.error('[tappay-notify] ATM email send failed (non-fatal):', mailErr);
             }
+          } else if (!isAtm && newPaymentStatus === 'paid' && order.order_source === 'manual') {
+            try {
+              const r = await sendBookingConfirmationByOrderId(
+                supabaseUrl,
+                supabaseServiceKey,
+                order.id,
+                '信用卡',
+              );
+              console.log('[tappay-notify] Manual 3DS booking email result:', r);
+            } catch (mailErr) {
+              console.error('[tappay-notify] Manual 3DS email send failed (non-fatal):', mailErr);
+            }
           }
         }
       } else {
