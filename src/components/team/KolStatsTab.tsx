@@ -216,7 +216,7 @@ export function KolStatsTab() {
             .order("effective_from", { ascending: false })
             .limit(1)
             .maybeSingle(),
-          supabase.from("accommodation_info").select("name"),
+          supabase.from("accommodation_info").select("id, name"),
           showSalary && month
             ? supabase
                 .from("scout_team_targets")
