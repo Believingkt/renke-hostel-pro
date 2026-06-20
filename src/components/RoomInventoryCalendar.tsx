@@ -2541,7 +2541,7 @@ export function RoomInventoryCalendar({ roomTypeId, roomTypeName, accommodationI
                               {(order as any).payment_method && (
                                 <div className="flex items-center justify-between text-sm pt-2 mt-2 border-t">
                                   <span className="text-muted-foreground">付款方式</span>
-                                  <span className="font-medium px-2 py-0.5 bg-muted rounded">{(order as any).payment_method}</span>
+                                  <span className="font-medium px-2 py-0.5 bg-muted rounded">{getPaymentMethodLabel((order as any).payment_method)}</span>
                                 </div>
                               )}
                             </div>
