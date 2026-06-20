@@ -103,6 +103,7 @@ const PublicHolidays = lazy(() => import("./pages/PublicHolidays"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const DataBackup = lazy(() => import("./pages/DataBackup"));
 const EmailTest = lazy(() => import("./pages/EmailTest"));
+const EmailPreview = lazy(() => import("./pages/EmailPreview"));
 const Settlement = lazy(() => import("./pages/Settlement"));
 const OwnerSettlement = lazy(() => import("./pages/OwnerSettlement"));
 const AddonCenter = lazy(() => import("./pages/AddonCenter"));
@@ -412,6 +413,11 @@ function App() {
                     <Route path="admin/email-test" element={
                       <RequireModule module="accounts">
                         <Suspense fallback={<DashboardSkeleton />}><EmailTest /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/email-preview" element={
+                      <RequireModule module="accounts">
+                        <Suspense fallback={<DashboardSkeleton />}><EmailPreview /></Suspense>
                       </RequireModule>
                     } />
                     <Route path="admin/analytics" element={
