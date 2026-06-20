@@ -261,7 +261,10 @@ export function KolStatsTab() {
         const teamBonusAmount = Number(salary?.team_bonus ?? 0);
         void salary?.team_threshold_pct;
 
-        const pmsVenues = new Set(((accsRes.data ?? []) as { name: string }[]).map((a) => a.name));
+        const pmsVenues = new Set(((accsRes.data ?? []) as { id: string; name: string }[]).map((a) => a.name));
+        const accIdToName = new Map<string, string>(
+          ((accsRes.data ?? []) as { id: string; name: string }[]).map((a) => [a.id, a.name]),
+        );
 
         const targetRows = (targetsRes.data ?? []) as TargetRow[];
         const targetsList = targetRows
