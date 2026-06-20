@@ -152,7 +152,7 @@ Deno.serve(async (req) => {
     let order = null;
     let orderSource = '';
 
-    const SELECT_COLS = 'id, accommodation_id, order_number, final_price, paid_amount, payment_status, notes, deposit_method, deposit_status, atm_rec_trade_id, payment_method';
+    const SELECT_COLS = 'id, accommodation_id, order_number, final_price, paid_amount, payment_status, notes, deposit_method, deposit_status, atm_rec_trade_id, payment_method, order_source';
 
     if (order_number) {
       const { data, error } = await supabase
@@ -358,6 +358,18 @@ Deno.serve(async (req) => {
               console.log('[tappay-notify] ATM booking email result:', r);
             } catch (mailErr) {
               console.error('[tappay-notify] ATM email send failed (non-fatal):', mailErr);
+            }
+          } else if (!isAtm && newPaymentStatus === 'paid' && order.order_source === 'manual') {
+            try {
+              const r = await sendBookingConfirmationByOrderId(
+                supabaseUrl,
+                supabaseServiceKey,
+                order.id,
+                '信用卡',
+              );
+              console.log('[tappay-notify] Manual 3DS booking email result:', r);
+            } catch (mailErr) {
+              console.error('[tappay-notify] Manual 3DS email send failed (non-fatal):', mailErr);
             }
           }
         }
