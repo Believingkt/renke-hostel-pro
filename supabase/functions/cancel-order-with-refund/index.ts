@@ -159,10 +159,16 @@ serve(async (req) => {
       refundSucceeded = refundResult.success;
       if (!refundSucceeded) {
         // Do NOT cancel the order if refund failed — keep money + order in sync
+        const isBankCapturing =
+          refundResult.status === 946 ||
+          (typeof refundResult.msg === "string" && refundResult.msg.toLowerCase().includes("bank capturing"));
+        const failMessage = isBankCapturing
+          ? "此交易正在銀行請款中，暫時無法自動退款。請於請款完成後（通常隔日）再試，或改用「手動退款」。"
+          : `TapPay 退款失敗（代碼 ${refundResult.status}：${refundResult.msg}），訂單未取消，請改用手動退款或至 TapPay 後台處理。`;
         return new Response(
           JSON.stringify({
             success: false,
-            message: `TapPay 退款失敗（代碼 ${refundResult.status}：${refundResult.msg}），訂單未取消，請改用手動退款或至 TapPay 後台處理。`,
+            message: failMessage,
             recTradeId: recTradeIdUsed,
             tappayStatus: refundResult.status,
             tappayMsg: refundResult.msg,
