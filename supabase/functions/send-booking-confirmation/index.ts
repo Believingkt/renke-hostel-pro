@@ -310,7 +310,7 @@ const handler = async (req: Request): Promise<Response> => {
 
             <div class="footer">
               <p style="margin: 0; font-size: 14px;">此為系統自動發送的郵件，請勿直接回覆</p>
-              <p style="margin: 10px 0 0 0; font-size: 12px; color: #999;">© 2025 Sensan. All rights reserved.</p>
+              <p style="margin: 10px 0 0 0; font-size: 12px; color: #999;">© 2026 人客多. All rights reserved.</p>
             </div>
           </div>
         </body>
