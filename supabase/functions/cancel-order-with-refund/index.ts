@@ -18,7 +18,13 @@ interface Body {
 
 function extractRecTradeId(notes: string | null): string | null {
   if (!notes) return null;
-  const m = notes.match(/TapPay(?:\s+3DS)?\s*交易:\s*([A-Za-z0-9_\-]+)/);
+  // 優先比對 tappay-notify / atm-create 寫入的 "(rec_trade_id: XXX)" 格式，取最後一筆（最新）
+  const matches = [...notes.matchAll(/rec_trade_id[:\s]+([A-Za-z0-9_\-]+)/gi)];
+  if (matches.length > 0) {
+    return matches[matches.length - 1][1];
+  }
+  // Fallback：舊版 "TapPay 交易：XXX" 格式
+  const m = notes.match(/TapPay(?:\s+3DS)?\s*交易[:：]\s*([A-Za-z0-9_\-]+)/);
   return m ? m[1] : null;
 }
 
