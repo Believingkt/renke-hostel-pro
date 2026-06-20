@@ -83,6 +83,7 @@ export const getPaymentMethodLabel = (method: string | null | undefined): string
   if (!method) return "";
   const map: Record<string, string> = {
     credit_card: "信用卡",
+    credit_card_3ds: "信用卡",
     atm: "ATM 虛擬帳號",
     line_pay: "LINE Pay",
     bank_transfer: "轉帳匯款",
