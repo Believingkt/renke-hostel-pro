@@ -195,6 +195,7 @@ const handler = async (req: Request): Promise<Response> => {
           <div class="container">
             <div class="header">
               <h1 style="margin: 0; font-size: 28px;">訂房確認通知</h1>
+              ${accommodationName ? `<p style="margin: 12px 0 0 0; font-size: 18px; font-weight: 600; opacity: 0.95;">${accommodationName}</p>` : ''}
               <p style="margin: 10px 0 0 0; opacity: 0.9;">感謝您的訂購！</p>
             </div>
             
