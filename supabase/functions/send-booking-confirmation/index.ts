@@ -183,7 +183,7 @@ const handler = async (req: Request): Promise<Response> => {
           <style>
             body { font-family: 'Microsoft JhengHei', Arial, sans-serif; line-height: 1.6; color: #333; }
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #1fa958 0%, #33c566 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .header { background-color: #1fa958; background: linear-gradient(135deg, #1fa958 0%, #33c566 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; word-break: break-word; }
             .content { background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; }
             .price-highlight { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
             .total-price { font-size: 24px; color: #1fa958; font-weight: bold; }
