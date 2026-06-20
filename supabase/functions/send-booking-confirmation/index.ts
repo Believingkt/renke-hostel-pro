@@ -130,9 +130,19 @@ const handler = async (req: Request): Promise<Response> => {
     
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('id, guest_email, order_number')
+      .select('id, guest_email, order_number, accommodation_id')
       .eq('order_number', orderNumber)
       .single();
+
+    let accommodationName = '';
+    if (order?.accommodation_id) {
+      const { data: acc } = await supabase
+        .from('accommodation_info')
+        .select('name')
+        .eq('id', order.accommodation_id)
+        .single();
+      accommodationName = acc?.name || '';
+    }
     
     if (orderError || !order) {
       console.warn(`[Validation] Order not found: ${orderNumber}`);
@@ -164,7 +174,7 @@ const handler = async (req: Request): Promise<Response> => {
       body: JSON.stringify({
         from: "人客多通知 <noreply@sensaninn.lakeze.com>",
         to: [guestEmail],
-        subject: `訂房確認通知 - 訂單編號 ${orderNumber}`,
+        subject: `${accommodationName ? `【${accommodationName}】` : ''}訂房確認通知 - 訂單編號 ${orderNumber}`,
         html: `
         <!DOCTYPE html>
         <html>
