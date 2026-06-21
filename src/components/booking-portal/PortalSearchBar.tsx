@@ -356,7 +356,7 @@ const PortalSearchBar = ({
                   ) : (
                     <CalendarDays className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
                   )}
-                  {renderDateLabel(checkIn, "選擇日期")}
+                  {renderDateButtonContent(checkIn, "選擇日期", "in")}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -399,7 +399,7 @@ const PortalSearchBar = ({
                   )}
                 >
                   <CalendarDays className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
-                  {renderDateLabel(checkOut, "選擇日期")}
+                  {renderDateButtonContent(checkOut, "選擇日期", "out")}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -505,7 +505,7 @@ const PortalSearchBar = ({
                   ) : (
                     <CalendarDays className="mr-1.5 h-4 w-4 shrink-0 text-muted-foreground" />
                   )}
-                  {renderDateLabel(checkIn, "入住日期")}
+                  {renderDateButtonContent(checkIn, "入住日期", "in")}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="center">
@@ -542,7 +542,7 @@ const PortalSearchBar = ({
                   )}
                 >
                   <CalendarDays className="mr-1.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                  {renderDateLabel(checkOut, "退房日期")}
+                  {renderDateButtonContent(checkOut, "退房日期", "out")}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="center">
