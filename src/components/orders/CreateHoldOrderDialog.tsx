@@ -37,6 +37,8 @@ interface CreateHoldOrderDialogProps {
 }
 
 const YUNXIU_ACC_ID = "7690a606-6bac-4cd5-a3e7-2fa754b318e8";
+const TIANSONG_ACC_ID = "4ee31aca-5641-4d05-80e2-1c67626be83d";
+const AUTO_ASSIGN_ACC_IDS = new Set([YUNXIU_ACC_ID, TIANSONG_ACC_ID]);
 
 export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateHoldOrderDialogProps) {
   const isMobile = useIsMobile();
