@@ -1273,65 +1273,6 @@ const BookingPortal = () => {
         );
       })()}
 
-      {/* ── Filters & Room Type List ── */}
-      <section id="room-list-section" className="max-w-7xl mx-auto px-3 sm:px-4 pb-12 sm:pb-16">
-        <div className="flex items-center justify-between mb-3 sm:mb-4">
-          <h2 className="text-lg sm:text-xl font-bold text-foreground">
-            {searchQuery
-              ? `「${searchQuery}」的搜尋結果`
-              : hasDateFilter
-              ? "可預訂房型"
-              : "所有房型"}
-          </h2>
-          <span className="text-sm text-muted-foreground">
-            {searching ? "搜尋中..." : `共 ${aggregatedAccs.length} 處民宿`}
-          </span>
-        </div>
-
-        {/* Filter Bar */}
-        <div className="mb-4">
-          <RoomFilterBar
-            filters={filters}
-            onFiltersChange={setFilters}
-            roomTypes={roomTypes}
-            accommodations={accommodations}
-          />
-        </div>
-
-        {filtered.length === 0 ? (
-          <div className="text-center py-20 text-muted-foreground">
-            <Search className="h-12 w-12 mx-auto mb-4 opacity-30" />
-            <p className="text-lg">
-              {hasDateFilter
-                ? "所選日期沒有可預訂的房型"
-                : "沒有找到符合條件的房型"}
-            </p>
-            <p className="text-sm mt-1">試試其他關鍵字或日期</p>
-            {hasActiveFilters && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-4"
-                onClick={clearFilters}
-              >
-                清除所有篩選
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div className="grid gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
-            {aggregatedAccs.map((card) => (
-              <AccommodationCard
-                key={card.id}
-                data={card}
-                onClick={() => handleAccClick(card.id)}
-                hasDateFilter={hasDateFilter}
-                nights={nights}
-              />
-            ))}
-          </div>
-        )}
-      </section>
 
       <BookingFooter />
       <MobileBottomNav />
