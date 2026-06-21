@@ -1,0 +1,1 @@
+ALTER TABLE public.accommodation_info ADD COLUMN IF NOT EXISTS search_card_photos text[] NOT NULL DEFAULT '{}'::text[];

@@ -310,6 +310,7 @@ export type Database = {
           region_2: string | null
           registration_number: string | null
           review_summary: string | null
+          search_card_photos: string[]
           seo_description: string | null
           seo_title: string | null
           short_name: string | null
@@ -386,6 +387,7 @@ export type Database = {
           region_2?: string | null
           registration_number?: string | null
           review_summary?: string | null
+          search_card_photos?: string[]
           seo_description?: string | null
           seo_title?: string | null
           short_name?: string | null
@@ -462,6 +464,7 @@ export type Database = {
           region_2?: string | null
           registration_number?: string | null
           review_summary?: string | null
+          search_card_photos?: string[]
           seo_description?: string | null
           seo_title?: string | null
           short_name?: string | null

@@ -24,6 +24,7 @@ interface AccInfo {
   nearby_station: string | null;
   review_summary: string | null;
   rating_score: number | null;
+  search_card_photos: string[] | null;
 }
 
 interface FacilityRow {
@@ -149,7 +150,7 @@ const BookingSearchResults = () => {
         ] = await Promise.all([
           supabase
             .from("accommodation_info")
-            .select("id, name, type, region_1, region_2, country, feature_tags_override, nearby_station, review_summary, rating_score")
+            .select("id, name, type, region_1, region_2, country, feature_tags_override, nearby_station, review_summary, rating_score, search_card_photos")
             .eq("is_active", true)
             .order("display_order", { ascending: true, nullsFirst: false }),
           supabase
@@ -364,6 +365,12 @@ const BookingSearchResults = () => {
         region_2: acc.region_2,
         country: acc.country,
         photo_url: rt.photo_url,
+        photo_urls:
+          acc.search_card_photos && acc.search_card_photos.length > 0
+            ? acc.search_card_photos
+            : rt.photo_url
+            ? [rt.photo_url]
+            : [],
         capacity: rt.capacity,
         size_sqm: rt.size_sqm,
         room_count: rt.room_count ?? null,

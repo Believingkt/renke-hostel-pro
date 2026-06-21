@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Users, BedDouble, Maximize2, TrainFront, Star, DoorOpen } from "lucide-react";
 
@@ -11,6 +12,8 @@ export interface SearchRoomCardData {
   region_2: string | null;
   country: string | null;
   photo_url: string | null;
+  /** 搜尋結果卡片的多張可滑動圖片（最多 5 張）；若無則回退至 photo_url */
+  photo_urls?: string[] | null;
   capacity: number;
   size_sqm: number | null;
   /** 此房型總房數 */
@@ -47,33 +50,65 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
       ? [data.region_1, data.region_2].filter(Boolean).join(" · ")
       : [data.country, data.region_1, data.region_2].filter(Boolean).join(" · ");
 
+  // 整理圖片列表（最多 5 張）
+  const photos = (
+    data.photo_urls && data.photo_urls.length > 0
+      ? data.photo_urls
+      : data.photo_url
+      ? [data.photo_url]
+      : []
+  )
+    .filter(Boolean)
+    .slice(0, 5);
+
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const handleScroll = () => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const idx = Math.round(el.scrollLeft / el.clientWidth);
+    if (idx !== activeIdx) setActiveIdx(idx);
+  };
+
   return (
     <article
       onClick={onClick}
       className="group cursor-pointer rounded-2xl overflow-hidden bg-card border border-border/60 hover:border-border hover:shadow-lg transition-all"
     >
-      {/* 大圖區 */}
+      {/* 大圖區 — 可水平滑動 */}
       <div className="relative aspect-[16/10] bg-muted overflow-hidden">
-        {data.photo_url ? (
-          <img
-            src={data.photo_url}
-            alt={data.name}
-            loading="lazy"
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
-        ) : (
+        {photos.length === 0 ? (
           <div
             className="w-full h-full flex items-center justify-center"
             style={{ background: "hsl(25, 60%, 95%)" }}
           >
             <BedDouble className="h-14 w-14" style={{ color: "hsl(25, 60%, 75%)" }} />
           </div>
+        ) : (
+          <div
+            ref={scrollerRef}
+            onScroll={handleScroll}
+            className="flex h-full w-full overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar"
+            style={{ scrollbarWidth: "none" }}
+          >
+            {photos.map((src, i) => (
+              <div key={i} className="relative shrink-0 w-full h-full snap-start">
+                <img
+                  src={src}
+                  alt={`${data.name} ${i + 1}`}
+                  loading={i === 0 ? "eager" : "lazy"}
+                  className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                  draggable={false}
+                />
+              </div>
+            ))}
+          </div>
         )}
 
         {/* 左上：民宿型態 */}
         {data.accommodation_type && (
           <Badge
-            className="absolute top-3 left-3 text-[11px] font-medium border-none text-white"
+            className="absolute top-3 left-3 text-[11px] font-medium border-none text-white pointer-events-none"
             style={{ background: "hsla(25, 70%, 45%, 0.9)" }}
           >
             {data.accommodation_type}
@@ -82,12 +117,12 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
 
         {/* 右上：剩餘 / 售完 */}
         {data.sold_out ? (
-          <Badge className="absolute top-3 right-3 text-[11px] font-medium border-none bg-foreground/70 text-white">
+          <Badge className="absolute top-3 right-3 text-[11px] font-medium border-none bg-foreground/70 text-white pointer-events-none">
             已售完
           </Badge>
         ) : data.available_rooms !== null && data.available_rooms <= 2 ? (
           <Badge
-            className="absolute top-3 right-3 text-[11px] font-medium border-none text-white"
+            className="absolute top-3 right-3 text-[11px] font-medium border-none text-white pointer-events-none"
             style={{ background: "hsla(0, 70%, 50%, 0.9)" }}
           >
             僅剩 {data.available_rooms} 間
@@ -96,7 +131,7 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
 
         {/* 左下：特色標籤 overlay */}
         {data.feature_tags.length > 0 && (
-          <div className="absolute left-3 bottom-3 right-3 flex flex-wrap gap-1.5">
+          <div className="absolute left-3 bottom-3 right-16 flex flex-wrap gap-1.5 pointer-events-none">
             {data.feature_tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
@@ -104,6 +139,20 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
               >
                 {tag}
               </span>
+            ))}
+          </div>
+        )}
+
+        {/* 右下：圖片頁籤（多張時顯示） */}
+        {photos.length > 1 && (
+          <div className="absolute right-3 bottom-3 flex items-center gap-1 px-1.5 py-1 rounded-full bg-black/40 backdrop-blur-sm pointer-events-none">
+            {photos.map((_, i) => (
+              <span
+                key={i}
+                className={`h-1.5 rounded-full transition-all ${
+                  i === activeIdx ? "w-3.5 bg-white" : "w-1.5 bg-white/60"
+                }`}
+              />
             ))}
           </div>
         )}

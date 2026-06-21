@@ -39,7 +39,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Copy, GripVertical, Check, X, MinusCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, Copy, GripVertical, Check, X, MinusCircle, ImagePlus, GripHorizontal } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 
@@ -126,7 +126,9 @@ const AdminPackages = () => {
     review_summary: "",
     rating_score: "" as string,
   });
+  const [cardPhotos, setCardPhotos] = useState<string[]>([]);
   const [cardSaving, setCardSaving] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
 
   useEffect(() => {
     if (!currentAccommodationId) return;
@@ -139,7 +141,7 @@ const AdminPackages = () => {
 
     supabase
       .from("accommodation_info")
-      .select("nearby_station, review_summary, rating_score")
+      .select("nearby_station, review_summary, rating_score, search_card_photos")
       .eq("id", currentAccommodationId)
       .maybeSingle()
       .then(({ data }) => {
@@ -149,8 +151,84 @@ const AdminPackages = () => {
           rating_score:
             (data as any)?.rating_score != null ? String((data as any).rating_score) : "",
         });
+        setCardPhotos(((data as any)?.search_card_photos as string[] | null) ?? []);
       });
   }, [currentAccommodationId]);
+
+  const handleCardPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!currentAccommodationId || !e.target.files?.length) return;
+    const files = Array.from(e.target.files);
+    const remain = 5 - cardPhotos.length;
+    if (remain <= 0) {
+      toast({ title: "最多 5 張圖片", variant: "destructive" });
+      e.target.value = "";
+      return;
+    }
+    const toUpload = files.slice(0, remain);
+    setPhotoUploading(true);
+    const newUrls: string[] = [];
+    try {
+      for (const file of toUpload) {
+        if (file.size > 8 * 1024 * 1024) {
+          toast({ title: `${file.name} 超過 8MB`, variant: "destructive" });
+          continue;
+        }
+        const ext = file.name.split(".").pop() || "jpg";
+        const path = `${currentAccommodationId}/search-card/${Date.now()}-${Math.random()
+          .toString(36)
+          .slice(2, 8)}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from("room-photos")
+          .upload(path, file, { contentType: file.type, cacheControl: "3600" });
+        if (upErr) {
+          toast({ title: "上傳失敗", description: upErr.message, variant: "destructive" });
+          continue;
+        }
+        const { data: pub } = supabase.storage.from("room-photos").getPublicUrl(path);
+        newUrls.push(pub.publicUrl);
+      }
+      if (newUrls.length > 0) {
+        const merged = [...cardPhotos, ...newUrls].slice(0, 5);
+        setCardPhotos(merged);
+        const { error } = await supabase
+          .from("accommodation_info")
+          .update({ search_card_photos: merged })
+          .eq("id", currentAccommodationId);
+        if (error) {
+          toast({ title: "儲存失敗", description: error.message, variant: "destructive" });
+        } else {
+          toast({ title: `已上傳 ${newUrls.length} 張` });
+        }
+      }
+    } finally {
+      setPhotoUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const removeCardPhoto = async (idx: number) => {
+    if (!currentAccommodationId) return;
+    const merged = cardPhotos.filter((_, i) => i !== idx);
+    setCardPhotos(merged);
+    const { error } = await supabase
+      .from("accommodation_info")
+      .update({ search_card_photos: merged })
+      .eq("id", currentAccommodationId);
+    if (error) toast({ title: "刪除失敗", description: error.message, variant: "destructive" });
+  };
+
+  const moveCardPhoto = async (idx: number, dir: -1 | 1) => {
+    if (!currentAccommodationId) return;
+    const target = idx + dir;
+    if (target < 0 || target >= cardPhotos.length) return;
+    const merged = [...cardPhotos];
+    [merged[idx], merged[target]] = [merged[target], merged[idx]];
+    setCardPhotos(merged);
+    await supabase
+      .from("accommodation_info")
+      .update({ search_card_photos: merged })
+      .eq("id", currentAccommodationId);
+  };
 
   const saveCardSettings = async () => {
     if (!currentAccommodationId) return;
@@ -414,6 +492,83 @@ const AdminPackages = () => {
               placeholder="例：寧靜山景湯屋・親子最推薦"
               maxLength={60}
             />
+          </div>
+
+          {/* 圖卡圖片（最多 5 張，可滑動） */}
+          <div className="sm:col-span-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">
+                圖卡圖片（最多 5 張，會在搜尋結果中讓客人左右滑動）
+              </Label>
+              <span className="text-[11px] text-muted-foreground">
+                {cardPhotos.length} / 5
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {cardPhotos.map((url, i) => (
+                <div
+                  key={url + i}
+                  className="relative group w-24 h-24 sm:w-28 sm:h-28 rounded-md overflow-hidden border bg-muted"
+                >
+                  <img
+                    src={url}
+                    alt={`圖卡-${i + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <span className="absolute top-1 left-1 text-[10px] px-1 rounded bg-black/60 text-white">
+                    {i + 1}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => removeCardPhoto(i)}
+                    className="absolute top-1 right-1 p-0.5 rounded bg-black/60 text-white hover:bg-destructive"
+                    aria-label="刪除"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                  <div className="absolute bottom-1 left-1 right-1 flex justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      type="button"
+                      onClick={() => moveCardPhoto(i, -1)}
+                      disabled={i === 0}
+                      className="px-1.5 py-0.5 text-[10px] rounded bg-white/90 text-foreground disabled:opacity-30"
+                    >
+                      ←
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveCardPhoto(i, 1)}
+                      disabled={i === cardPhotos.length - 1}
+                      className="px-1.5 py-0.5 text-[10px] rounded bg-white/90 text-foreground disabled:opacity-30"
+                    >
+                      →
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {cardPhotos.length < 5 && (
+                <label
+                  className={`w-24 h-24 sm:w-28 sm:h-28 rounded-md border-2 border-dashed flex flex-col items-center justify-center gap-1 cursor-pointer text-muted-foreground hover:border-primary hover:text-primary transition-colors ${
+                    photoUploading ? "opacity-50 pointer-events-none" : ""
+                  }`}
+                >
+                  <ImagePlus className="h-5 w-5" />
+                  <span className="text-[11px]">
+                    {photoUploading ? "上傳中…" : "新增圖片"}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={handleCardPhotoUpload}
+                  />
+                </label>
+              )}
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              建議比例 16:10，單張 ≤ 8MB。第 1 張將作為主圖預設顯示。
+            </p>
           </div>
         </div>
       </div>
