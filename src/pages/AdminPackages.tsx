@@ -365,6 +365,61 @@ const AdminPackages = () => {
         }
       />
 
+      {/* 搜尋結果圖卡顯示設定 */}
+      <div className="rounded-lg border bg-card p-4 sm:p-5 space-y-4">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h3 className="font-semibold text-base">搜尋結果圖卡顯示</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              設定本民宿在訂房搜尋結果卡片上顯示的「鄰近車站、評分、簡評」。
+            </p>
+          </div>
+          <Button size="sm" onClick={saveCardSettings} disabled={cardSaving}>
+            {cardSaving ? "儲存中…" : "儲存圖卡設定"}
+          </Button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="sm:col-span-2">
+            <Label className="text-xs">鄰近車站</Label>
+            <Input
+              value={cardSettings.nearby_station}
+              onChange={(e) =>
+                setCardSettings((s) => ({ ...s, nearby_station: e.target.value }))
+              }
+              placeholder="例：步行 5 分鐘至礁溪火車站"
+              maxLength={40}
+            />
+          </div>
+          <div>
+            <Label className="text-xs">評分（0 ~ 5）</Label>
+            <Input
+              type="number"
+              min={0}
+              max={5}
+              step={0.1}
+              value={cardSettings.rating_score}
+              onChange={(e) =>
+                setCardSettings((s) => ({ ...s, rating_score: e.target.value }))
+              }
+              placeholder="例：4.8"
+            />
+          </div>
+          <div className="sm:col-span-3">
+            <Label className="text-xs">簡評（一句話亮點）</Label>
+            <Input
+              value={cardSettings.review_summary}
+              onChange={(e) =>
+                setCardSettings((s) => ({ ...s, review_summary: e.target.value }))
+              }
+              placeholder="例：寧靜山景湯屋・親子最推薦"
+              maxLength={60}
+            />
+          </div>
+        </div>
+      </div>
+
+
+
       {packages.length === 0 ? (
         <div className="border border-dashed rounded-lg p-12 text-center text-muted-foreground">
           尚未建立任何銷售方案。點右上角「新增方案」開始。
