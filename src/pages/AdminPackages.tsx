@@ -42,6 +42,7 @@ import {
 import { Plus, Pencil, Trash2, Copy, GripVertical, Check, X, MinusCircle, ImagePlus, GripHorizontal } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
+import { PortalFeatureTagsSection } from "@/components/website-content/PortalFeatureTagsSection";
 
 interface RoomTypeOption {
   id: string;
