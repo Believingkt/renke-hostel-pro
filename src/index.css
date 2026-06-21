@@ -1327,6 +1327,9 @@ All colors MUST be HSL.
     background: hsl(var(--muted-foreground) / 0.5);
   }
 
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+
   /* Fix for room carousel images to fill container width */
   .room-carousel-item {
     flex: 0 0 100% !important;
