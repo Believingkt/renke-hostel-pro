@@ -1121,8 +1121,14 @@ const WebsiteContent = () => {
               .eq("id", accommodationId)
               .maybeSingle();
             if (accEmailData) {
+              const raw = (accEmailData as any).email_important_notice || "";
+              const items = raw
+                .split('\n')
+                .map((s: string) => s.trim())
+                .filter((s: string) => s.length > 0)
+                .map((text: string) => ({ id: crypto.randomUUID(), text }));
               setEmailNotification({
-                importantNotice: (accEmailData as any).email_important_notice || "",
+                importantNoticeItems: items,
                 contactPhone: accEmailData.phone || "",
                 contactLineId: accEmailData.line_id || "",
                 contactEmail: accEmailData.email || "",
