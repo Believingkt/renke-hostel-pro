@@ -15,9 +15,17 @@ export interface SearchRoomCardData {
   /** 搜尋結果卡片的多張可滑動圖片（最多 5 張）；若無則回退至 photo_url */
   photo_urls?: string[] | null;
   capacity: number;
+  /** 上限人數（用於顯示「X 人（含以下）」） */
+  guest_count_max?: number | null;
   size_sqm: number | null;
-  /** 此房型總房數 */
+  /** 此方案的總房間數（解析自 room_allocation） */
   room_count: number | null;
+  /** 此方案佔幾個包區（預設 1） */
+  unit_count?: number | null;
+  /** 房型分配描述，例：「雙人房x1，四人房x1」或「包下一整個專屬區域」 */
+  room_allocation?: string | null;
+  /** 是否為「銷售方案」卡片 */
+  is_package?: boolean;
   /** 鄰近車站（可選） */
   nearby_station?: string | null;
   /** 簡易評論摘要（可選） */
@@ -37,6 +45,7 @@ export interface SearchRoomCardData {
   /** 是否售完／無價／不可預訂 */
   sold_out: boolean;
 }
+
 
 interface Props {
   data: SearchRoomCardData;
