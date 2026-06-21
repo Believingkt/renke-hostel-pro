@@ -1502,6 +1502,36 @@ const WebsiteContent = () => {
     }
   };
 
+  const handleSaveEmailNotification = async () => {
+    if (!accommodationId) {
+      toast.error('找不到旅宿資訊');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from("accommodation_info")
+        .update({
+          email_important_notice: emailNotification.importantNotice || null,
+          email_service_hours: emailNotification.serviceHours || null,
+          phone: emailNotification.contactPhone || null,
+          line_id: emailNotification.contactLineId || null,
+          email: emailNotification.contactEmail || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", accommodationId);
+      if (error) throw error;
+      if (accommodationId) invalidateAccommodationCache(accommodationId);
+      toast.success('訂房確認通知設定已儲存');
+    } catch (error) {
+      if (import.meta.env.DEV) console.error('Error saving email notification:', error);
+      toast.error('儲存失敗，請稍後再試');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+
   // 訂房設定單一欄位驗證
   const validateBookingField = (fieldName: string, value: string) => {
     const result = bookingSettingsSchema.shape[fieldName as keyof typeof bookingSettingsSchema.shape]?.safeParse(value);
