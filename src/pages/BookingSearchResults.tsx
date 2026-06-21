@@ -98,7 +98,7 @@ const getTemplatePriceForDate = (
 
 const BookingSearchResults = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // ── 解析 query string ──
   const checkInStr = searchParams.get("checkIn");
