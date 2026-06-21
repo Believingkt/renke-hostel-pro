@@ -12,6 +12,9 @@ import RoomFilterBar, { type RoomFilters } from "@/components/booking-portal/Roo
 import { type RoomTypeResult } from "@/components/booking-portal/RoomTypeCard";
 import { isSensanAccommodation } from "@/lib/sensan-pricing";
 import { classifyDayTier } from "@/utils/templatePriceResolver";
+import PortalSearchBar from "@/components/booking-portal/PortalSearchBar";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+
 
 interface AccInfo {
   id: string;
@@ -95,7 +98,7 @@ const getTemplatePriceForDate = (
 
 const BookingSearchResults = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // ── 解析 query string ──
   const checkInStr = searchParams.get("checkIn");
@@ -133,6 +136,38 @@ const BookingSearchResults = () => {
     selectedRegion: "all",
   });
   const [showFilters, setShowFilters] = useState(false);
+
+  // ── 編輯搜尋條件 Sheet ──
+  const [editOpen, setEditOpen] = useState(false);
+  const [editQ, setEditQ] = useState(q);
+  const [editCheckIn, setEditCheckIn] = useState<Date | undefined>(checkIn || undefined);
+  const [editCheckOut, setEditCheckOut] = useState<Date | undefined>(checkOut || undefined);
+  const [editAdults, setEditAdults] = useState(adults || 2);
+  const [editChildren, setEditChildren] = useState(childrenCount || 0);
+  const [editRooms, setEditRooms] = useState(roomsParam || 1);
+
+  const openEdit = useCallback(() => {
+    setEditQ(q);
+    setEditCheckIn(checkIn || undefined);
+    setEditCheckOut(checkOut || undefined);
+    setEditAdults(adults || 2);
+    setEditChildren(childrenCount || 0);
+    setEditRooms(roomsParam || 1);
+    setEditOpen(true);
+  }, [q, checkIn, checkOut, adults, childrenCount, roomsParam]);
+
+  const handleApplySearch = useCallback(() => {
+    const params = new URLSearchParams();
+    if (editCheckIn) params.set("checkIn", format(editCheckIn, "yyyy-MM-dd"));
+    if (editCheckOut) params.set("checkOut", format(editCheckOut, "yyyy-MM-dd"));
+    if (editAdults) params.set("adults", String(editAdults));
+    if (editChildren) params.set("children", String(editChildren));
+    if (editRooms) params.set("rooms", String(editRooms));
+    if (editQ.trim()) params.set("q", editQ.trim());
+    setSearchParams(params);
+    setEditOpen(false);
+  }, [editCheckIn, editCheckOut, editAdults, editChildren, editRooms, editQ, setSearchParams]);
+
 
   // ── 基本資料 ──
   useEffect(() => {
@@ -527,7 +562,7 @@ const BookingSearchResults = () => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <button
-            onClick={() => navigate("/booking")}
+            onClick={openEdit}
             className="flex-1 min-w-0 text-left bg-muted/40 hover:bg-muted/60 transition rounded-xl px-3 py-2 border border-border/60"
           >
             <p className="text-xs text-muted-foreground leading-none mb-0.5">搜尋條件（點此修改）</p>
@@ -535,6 +570,7 @@ const BookingSearchResults = () => {
               {summary || "點此設定日期與人數"}
             </p>
           </button>
+
           <Button
             variant="outline"
             size="sm"
@@ -590,7 +626,33 @@ const BookingSearchResults = () => {
 
       <BookingFooter />
       <MobileBottomNav />
+
+      <Sheet open={editOpen} onOpenChange={setEditOpen}>
+        <SheetContent side="top" className="p-0 max-h-[95vh] overflow-y-auto">
+          <SheetHeader className="px-4 pt-4 pb-2">
+            <SheetTitle className="text-left">修改搜尋條件</SheetTitle>
+          </SheetHeader>
+          <div className="px-3 pb-4">
+            <PortalSearchBar
+              searchQuery={editQ}
+              onSearchQueryChange={setEditQ}
+              checkIn={editCheckIn}
+              checkOut={editCheckOut}
+              onCheckInChange={setEditCheckIn}
+              onCheckOutChange={setEditCheckOut}
+              adults={editAdults}
+              onAdultsChange={setEditAdults}
+              children={editChildren}
+              onChildrenChange={setEditChildren}
+              rooms={editRooms}
+              onRoomsChange={setEditRooms}
+              onSearch={handleApplySearch}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
+
   );
 };
 
