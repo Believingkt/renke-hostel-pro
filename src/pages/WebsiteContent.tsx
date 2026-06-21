@@ -404,6 +404,7 @@ const WebsiteContent = () => {
       'gallery': '精選照片',
       'booking-info': '訂房須知',
       'faq': '常見問題',
+      'email-notification': '訂房確認通知',
       'location': '交通地圖',
       'reviews': 'Google 評論'
     };
