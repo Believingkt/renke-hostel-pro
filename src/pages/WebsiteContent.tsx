@@ -488,7 +488,7 @@ const WebsiteContent = () => {
 
   // 訂房確認 Email 通知設定
   const [emailNotification, setEmailNotification] = useState({
-    importantNotice: "",
+    importantNoticeItems: [] as Array<{ id: string; text: string }>,
     contactPhone: "",
     contactLineId: "",
     contactEmail: "",
