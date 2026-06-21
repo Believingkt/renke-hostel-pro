@@ -1114,6 +1114,25 @@ const WebsiteContent = () => {
             if (faqData) setFaqs(faqData);
             break;
 
+          case 'email-notification': {
+            const { data: accEmailData } = await supabase
+              .from("accommodation_info")
+              .select("phone, email, line_id, email_important_notice, email_service_hours")
+              .eq("id", accommodationId)
+              .maybeSingle();
+            if (accEmailData) {
+              setEmailNotification({
+                importantNotice: (accEmailData as any).email_important_notice || "",
+                contactPhone: accEmailData.phone || "",
+                contactLineId: accEmailData.line_id || "",
+                contactEmail: accEmailData.email || "",
+                serviceHours: (accEmailData as any).email_service_hours || "",
+              });
+            }
+            break;
+          }
+
+
           case 'location':
             // 重新載入交通地圖資料
             const { data: locationData } = await supabase
