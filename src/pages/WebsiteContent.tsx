@@ -4125,24 +4125,73 @@ const WebsiteContent = () => {
                 <div>
                   <CardTitle className="text-xl">⚠️ 重要提醒</CardTitle>
                   <CardDescription>
-                    將顯示在訂房確認 Email 的「重要提醒」區塊。每行一條提醒，未填寫則使用預設內容。
+                    將顯示在訂房確認 Email 的「重要提醒」區塊。可新增、刪除或拖曳重新排序；留空或全部刪除則整個區塊不會出現在信件中。
                   </CardDescription>
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
-              <Textarea
-                value={emailNotification.importantNotice}
-                onChange={(e) => setEmailNotification(prev => ({ ...prev, importantNotice: e.target.value }))}
-                placeholder={"請於入住日前確認訂單狀態\n如需取消或變更訂單，請盡早與我們聯繫\n入住時請攜帶有效身份證件"}
-                rows={6}
-                className="text-base"
-              />
-              <p className="text-xs text-muted-foreground mt-2">
-                提示：每行一條提醒；留空則整個「重要提醒」區塊將不會出現在信件中。
+            <CardContent className="space-y-3">
+              {emailNotification.importantNoticeItems.length === 0 ? (
+                <div className="text-sm text-muted-foreground text-center py-6 border border-dashed rounded-md">
+                  尚未新增任何提醒，按下方按鈕新增第一條。
+                </div>
+              ) : (
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={(event: DragEndEvent) => {
+                    const { active, over } = event;
+                    if (!over || active.id === over.id) return;
+                    setEmailNotification(prev => {
+                      const oldIndex = prev.importantNoticeItems.findIndex(i => i.id === active.id);
+                      const newIndex = prev.importantNoticeItems.findIndex(i => i.id === over.id);
+                      if (oldIndex < 0 || newIndex < 0) return prev;
+                      return { ...prev, importantNoticeItems: arrayMove(prev.importantNoticeItems, oldIndex, newIndex) };
+                    });
+                  }}
+                >
+                  <SortableContext
+                    items={emailNotification.importantNoticeItems.map(i => i.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="space-y-2">
+                      {emailNotification.importantNoticeItems.map((item, idx) => (
+                        <SortableNoticeItem
+                          key={item.id}
+                          item={item}
+                          index={idx}
+                          onChange={(id, text) => setEmailNotification(prev => ({
+                            ...prev,
+                            importantNoticeItems: prev.importantNoticeItems.map(i => i.id === id ? { ...i, text } : i),
+                          }))}
+                          onDelete={(id) => setEmailNotification(prev => ({
+                            ...prev,
+                            importantNoticeItems: prev.importantNoticeItems.filter(i => i.id !== id),
+                          }))}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEmailNotification(prev => ({
+                  ...prev,
+                  importantNoticeItems: [...prev.importantNoticeItems, { id: crypto.randomUUID(), text: "" }],
+                }))}
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                新增提醒
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                提示：空白條目會在儲存時自動過濾，不會出現在信件中。
               </p>
             </CardContent>
           </Card>
+
 
           <Card>
             <CardHeader className="pb-4">
