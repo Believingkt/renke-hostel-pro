@@ -375,9 +375,37 @@ const BookingSearchResults = () => {
     return result;
   }, [accommodations, roomTypes, facilities, templates, holidays, inventoryMap, hasDateFilter, nights, checkIn, checkOut]);
 
+  // ── 每家民宿只保留一張最符合搜尋條件的房型卡 ──
+  const dedupedCards = useMemo<SearchRoomCardData[]>(() => {
+    const bestByAcc = new Map<string, SearchRoomCardData>();
+    const scoreOf = (c: SearchRoomCardData) => ({
+      // 越小越好：有貨 > 容量符合 > 價格低
+      outScore: c.sold_out ? 1 : 0,
+      fitScore: adults > 0 && c.capacity < adults ? 1 : 0,
+      price: c.nightly_price ?? Infinity,
+    });
+    for (const c of cards) {
+      const prev = bestByAcc.get(c.accommodation_id);
+      if (!prev) {
+        bestByAcc.set(c.accommodation_id, c);
+        continue;
+      }
+      const a = scoreOf(c);
+      const b = scoreOf(prev);
+      if (
+        a.outScore < b.outScore ||
+        (a.outScore === b.outScore && a.fitScore < b.fitScore) ||
+        (a.outScore === b.outScore && a.fitScore === b.fitScore && a.price < b.price)
+      ) {
+        bestByAcc.set(c.accommodation_id, c);
+      }
+    }
+    return Array.from(bestByAcc.values());
+  }, [cards, adults]);
+
   // ── 套用文字 / 篩選 / 排序 ──
   const filtered = useMemo(() => {
-    let r = cards;
+    let r = dedupedCards;
     if (q) {
       const qq = q.toLowerCase();
       r = r.filter(
