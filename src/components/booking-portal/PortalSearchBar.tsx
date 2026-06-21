@@ -376,7 +376,7 @@ const PortalSearchBar = ({
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                {renderRangeCalendar(2)}
+                {renderRangeCalendar(2, false)}
               </PopoverContent>
             </Popover>
           </div>
