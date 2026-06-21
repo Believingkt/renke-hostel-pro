@@ -21,6 +21,9 @@ interface AccInfo {
   region_2: string | null;
   country: string | null;
   feature_tags_override: string[] | null;
+  nearby_station: string | null;
+  review_summary: string | null;
+  rating_score: number | null;
 }
 
 interface FacilityRow {
@@ -146,7 +149,7 @@ const BookingSearchResults = () => {
         ] = await Promise.all([
           supabase
             .from("accommodation_info")
-            .select("id, name, type, region_1, region_2, country, feature_tags_override")
+            .select("id, name, type, region_1, region_2, country, feature_tags_override, nearby_station, review_summary, rating_score")
             .eq("is_active", true)
             .order("display_order", { ascending: true, nullsFirst: false }),
           supabase
@@ -364,6 +367,9 @@ const BookingSearchResults = () => {
         capacity: rt.capacity,
         size_sqm: rt.size_sqm,
         room_count: rt.room_count ?? null,
+        nearby_station: acc.nearby_station,
+        review_summary: acc.review_summary,
+        rating: acc.rating_score,
         nightly_price: nightly,
         total_price: total,
         original_total_price: total ? original : null,
