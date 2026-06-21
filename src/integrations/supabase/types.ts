@@ -273,6 +273,8 @@ export type Database = {
           description: string | null
           display_order: number | null
           email: string | null
+          email_important_notice: string | null
+          email_service_hours: string | null
           exclusive_room_breakdown: Json | null
           exclusive_total_rooms: number | null
           facebook_url: string | null
@@ -350,6 +352,8 @@ export type Database = {
           description?: string | null
           display_order?: number | null
           email?: string | null
+          email_important_notice?: string | null
+          email_service_hours?: string | null
           exclusive_room_breakdown?: Json | null
           exclusive_total_rooms?: number | null
           facebook_url?: string | null
@@ -427,6 +431,8 @@ export type Database = {
           description?: string | null
           display_order?: number | null
           email?: string | null
+          email_important_notice?: string | null
+          email_service_hours?: string | null
           exclusive_room_breakdown?: Json | null
           exclusive_total_rooms?: number | null
           facebook_url?: string | null
