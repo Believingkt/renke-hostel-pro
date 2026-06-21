@@ -562,7 +562,7 @@ const BookingSearchResults = () => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <button
-            onClick={() => navigate("/booking")}
+            onClick={openEdit}
             className="flex-1 min-w-0 text-left bg-muted/40 hover:bg-muted/60 transition rounded-xl px-3 py-2 border border-border/60"
           >
             <p className="text-xs text-muted-foreground leading-none mb-0.5">搜尋條件（點此修改）</p>
@@ -570,6 +570,7 @@ const BookingSearchResults = () => {
               {summary || "點此設定日期與人數"}
             </p>
           </button>
+
           <Button
             variant="outline"
             size="sm"
