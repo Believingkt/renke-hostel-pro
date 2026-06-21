@@ -205,10 +205,74 @@ const PortalSearchBar = ({
     ? "opacity-60 cursor-not-allowed"
     : "";
 
-  const renderDateLabel = (date: Date | undefined, fallback: string) => {
-    if (date) return format(date, "M/d (EEE)", { locale: zhTW });
-    return fallback;
+  const nights = useMemo(() => {
+    if (!checkIn || !checkOut) return 0;
+    return Math.max(
+      0,
+      Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
+    );
+  }, [checkIn, checkOut]);
+
+  const renderDateButtonContent = (
+    date: Date | undefined,
+    fallback: string,
+    kind: "in" | "out"
+  ) => {
+    if (!date) {
+      return <span className="truncate">{fallback}</span>;
+    }
+    const main = format(date, "M/d", { locale: zhTW });
+    const weekday = format(date, "EEE", { locale: zhTW });
+    const showNights = nights > 0 && kind === "out";
+    return (
+      <span className="flex items-baseline gap-1.5 truncate">
+        <span className="font-semibold text-foreground">{main}</span>
+        <span className="text-xs text-muted-foreground">{weekday}</span>
+        {showNights && (
+          <span
+            className="ml-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full"
+            style={{
+              background: "hsl(25, 80%, 95%)",
+              color: "hsl(25, 70%, 40%)",
+            }}
+          >
+            {nights} 晚
+          </span>
+        )}
+      </span>
+    );
   };
+
+  const renderCalendarHeader = (kind: "in" | "out") => (
+    <div
+      className="px-4 py-3 border-b border-border/40"
+      style={{ background: "hsl(25, 80%, 97%)" }}
+    >
+      <p className="text-xs text-muted-foreground">
+        {kind === "in" ? "選擇入住日期" : "選擇退房日期"}
+      </p>
+      <div className="mt-1 flex items-center gap-2 text-sm">
+        <span className={cn("font-medium", checkIn ? "text-foreground" : "text-muted-foreground")}>
+          {checkIn ? format(checkIn, "M/d (EEE)", { locale: zhTW }) : "入住 —"}
+        </span>
+        <span className="text-muted-foreground">→</span>
+        <span className={cn("font-medium", checkOut ? "text-foreground" : "text-muted-foreground")}>
+          {checkOut ? format(checkOut, "M/d (EEE)", { locale: zhTW }) : "退房 —"}
+        </span>
+        {nights > 0 && (
+          <span
+            className="ml-auto text-[11px] font-semibold px-2 py-0.5 rounded-full"
+            style={{
+              background: "hsl(25, 70%, 55%)",
+              color: "white",
+            }}
+          >
+            共 {nights} 晚
+          </span>
+        )}
+      </div>
+    </div>
+  );
 
   const renderDestinationRequiredHint = () => (
     <div className="w-[280px] p-4 text-sm">
