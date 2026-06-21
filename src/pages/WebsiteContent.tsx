@@ -4050,6 +4050,105 @@ const WebsiteContent = () => {
           </Card>
         </TabsContent>
 
+        <TabsContent value="email-notification" className="space-y-6">
+          <PageHeader title="訂房確認通知" icon={Mail} />
+
+          <Card>
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-1.5 bg-primary rounded-full" />
+                <div>
+                  <CardTitle className="text-xl">⚠️ 重要提醒</CardTitle>
+                  <CardDescription>
+                    將顯示在訂房確認 Email 的「重要提醒」區塊。每行一條提醒，未填寫則使用預設內容。
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                value={emailNotification.importantNotice}
+                onChange={(e) => setEmailNotification(prev => ({ ...prev, importantNotice: e.target.value }))}
+                placeholder={"請於入住日前確認訂單狀態\n如需取消或變更訂單，請盡早與我們聯繫\n入住時請攜帶有效身份證件"}
+                rows={6}
+                className="text-base"
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                提示：每行一條提醒；留空則整個「重要提醒」區塊將不會出現在信件中。
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-1.5 bg-primary rounded-full" />
+                <div>
+                  <CardTitle className="text-xl">📞 聯絡方式</CardTitle>
+                  <CardDescription>
+                    顯示在 Email 底部的聯絡資訊。未填寫的欄位不會出現在信件中；若全部留空，整個聯絡區塊將被隱藏。
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-base font-medium flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-primary" />
+                  聯絡電話
+                </Label>
+                <Input
+                  value={emailNotification.contactPhone}
+                  onChange={(e) => setEmailNotification(prev => ({ ...prev, contactPhone: e.target.value }))}
+                  placeholder="例如：03-1234567"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-base font-medium flex items-center gap-2">
+                  <MessageCircle className="h-4 w-4 text-primary" />
+                  LINE 官方帳號
+                </Label>
+                <Input
+                  value={emailNotification.contactLineId}
+                  onChange={(e) => setEmailNotification(prev => ({ ...prev, contactLineId: e.target.value }))}
+                  placeholder="例如：@yourhotel"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-base font-medium flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-primary" />
+                  電子郵件
+                </Label>
+                <Input
+                  type="email"
+                  value={emailNotification.contactEmail}
+                  onChange={(e) => setEmailNotification(prev => ({ ...prev, contactEmail: e.target.value }))}
+                  placeholder="例如：hello@example.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-base font-medium flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-primary" />
+                  客服回覆時間
+                </Label>
+                <Input
+                  value={emailNotification.serviceHours}
+                  onChange={(e) => setEmailNotification(prev => ({ ...prev, serviceHours: e.target.value }))}
+                  placeholder="例如：每日 09:00 - 21:00"
+                />
+                <p className="text-xs text-muted-foreground">未填寫則此欄位不會出現在信件中。</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <SaveButtonContainer
+            onSave={handleSaveEmailNotification}
+            isSaving={isSaving}
+            saveText="儲存變更"
+          />
+        </TabsContent>
+
+
         <TabsContent value="location" className="space-y-6">
           <PageHeader title="交通地圖" icon={Navigation} />
           <Card>
