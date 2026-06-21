@@ -362,6 +362,7 @@ const PortalSearchBar = ({
               <PopoverContent className="w-auto p-0" align="start">
                 {hasDestination ? (
                   <>
+                    {renderCalendarHeader("in")}
                     <Calendar
                       mode="single"
                       selected={checkIn}
@@ -405,6 +406,7 @@ const PortalSearchBar = ({
               <PopoverContent className="w-auto p-0" align="start">
                 {hasDestination ? (
                   <>
+                    {renderCalendarHeader("out")}
                     <Calendar
                       mode="single"
                       selected={checkOut}
@@ -511,6 +513,7 @@ const PortalSearchBar = ({
               <PopoverContent className="w-auto p-0" align="center">
                 {hasDestination ? (
                   <>
+                    {renderCalendarHeader("in")}
                     <Calendar
                       mode="single"
                       selected={checkIn}
@@ -548,6 +551,7 @@ const PortalSearchBar = ({
               <PopoverContent className="w-auto p-0" align="center">
                 {hasDestination ? (
                   <>
+                    {renderCalendarHeader("out")}
                     <Calendar
                       mode="single"
                       selected={checkOut}
