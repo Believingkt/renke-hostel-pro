@@ -156,7 +156,7 @@ const BookingPortal = () => {
   const [searching, setSearching] = useState(false);
   const [adults, setAdults] = useState(12);
   const [children, setChildren] = useState(0);
-  const [rooms, setRooms] = useState(6);
+  const [rooms, setRooms] = useState(4);
   const [hasSearched, setHasSearched] = useState(false);
   const [heroMode, setHeroMode] = useState<"search" | "ai">("ai");
   const [filters, setFilters] = useState<RoomFilters>({
