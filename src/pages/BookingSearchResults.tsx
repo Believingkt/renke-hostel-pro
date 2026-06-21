@@ -452,7 +452,7 @@ const BookingSearchResults = () => {
       });
     }
     return r;
-  }, [cards, q, filters, adults]);
+  }, [dedupedCards, q, filters, adults]);
 
   const handleCardClick = useCallback((card: SearchRoomCardData) => {
     const params = new URLSearchParams();
