@@ -256,6 +256,9 @@ const AdminPackages = () => {
         nearby_station: cardSettings.nearby_station.trim() || null,
         review_summary: cardSettings.review_summary.trim() || null,
         rating_score: ratingNum,
+        country: cardSettings.country.trim() || null,
+        region_1: cardSettings.region_1.trim() || null,
+        region_2: cardSettings.region_2.trim() || null,
       })
       .eq("id", currentAccommodationId);
     setCardSaving(false);
