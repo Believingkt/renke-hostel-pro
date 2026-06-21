@@ -15,9 +15,17 @@ export interface SearchRoomCardData {
   /** 搜尋結果卡片的多張可滑動圖片（最多 5 張）；若無則回退至 photo_url */
   photo_urls?: string[] | null;
   capacity: number;
+  /** 上限人數（用於顯示「X 人（含以下）」） */
+  guest_count_max?: number | null;
   size_sqm: number | null;
-  /** 此房型總房數 */
+  /** 此方案的總房間數（解析自 room_allocation） */
   room_count: number | null;
+  /** 此方案佔幾個包區（預設 1） */
+  unit_count?: number | null;
+  /** 房型分配描述，例：「雙人房x1，四人房x1」或「包下一整個專屬區域」 */
+  room_allocation?: string | null;
+  /** 是否為「銷售方案」卡片 */
+  is_package?: boolean;
   /** 鄰近車站（可選） */
   nearby_station?: string | null;
   /** 簡易評論摘要（可選） */
@@ -37,6 +45,7 @@ export interface SearchRoomCardData {
   /** 是否售完／無價／不可預訂 */
   sold_out: boolean;
 }
+
 
 interface Props {
   data: SearchRoomCardData;
@@ -189,16 +198,36 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
               </p>
             )}
 
-            {/* 3. 房型名 + 房數 */}
+            {/* 3. 房型／方案：人數 · 包區 · 房間數 */}
             <p className="flex items-center gap-1 text-xs sm:text-[13px] text-muted-foreground line-clamp-1">
               <DoorOpen className="h-3.5 w-3.5 shrink-0 opacity-70" />
               <span className="truncate">
-                {data.name}
-                {data.room_count ? (
-                  <span className="opacity-80"> · 共 {data.room_count} 間</span>
-                ) : null}
+                {data.is_package ? (
+                  <>
+                    {data.capacity} 人{data.guest_count_max && data.guest_count_max > data.capacity ? "（含以下）" : ""}
+                    <span className="opacity-80"> · {data.unit_count ?? 1} 包區</span>
+                    {data.room_count ? (
+                      <span className="opacity-80"> · 共 {data.room_count} 間</span>
+                    ) : null}
+                  </>
+                ) : (
+                  <>
+                    {data.name}
+                    {data.room_count ? (
+                      <span className="opacity-80"> · 共 {data.room_count} 間</span>
+                    ) : null}
+                  </>
+                )}
               </span>
             </p>
+
+            {/* 3b. 房型分配 / 方案描述 */}
+            {data.is_package && data.room_allocation && (
+              <p className="text-xs sm:text-[13px] text-muted-foreground/90 line-clamp-1 pl-[18px]">
+                {data.room_allocation}
+              </p>
+            )}
+
 
             {/* 4. 簡易評論 */}
             {(data.rating || data.review_summary) && (

@@ -126,6 +126,9 @@ const AdminPackages = () => {
     nearby_station: "",
     review_summary: "",
     rating_score: "" as string,
+    country: "",
+    region_1: "",
+    region_2: "",
   });
   const [cardPhotos, setCardPhotos] = useState<string[]>([]);
   const [cardSaving, setCardSaving] = useState(false);
@@ -142,7 +145,7 @@ const AdminPackages = () => {
 
     supabase
       .from("accommodation_info")
-      .select("nearby_station, review_summary, rating_score, search_card_photos")
+      .select("nearby_station, review_summary, rating_score, search_card_photos, country, region_1, region_2")
       .eq("id", currentAccommodationId)
       .maybeSingle()
       .then(({ data }) => {
@@ -151,6 +154,9 @@ const AdminPackages = () => {
           review_summary: (data as any)?.review_summary ?? "",
           rating_score:
             (data as any)?.rating_score != null ? String((data as any).rating_score) : "",
+          country: (data as any)?.country ?? "",
+          region_1: (data as any)?.region_1 ?? "",
+          region_2: (data as any)?.region_2 ?? "",
         });
         setCardPhotos(((data as any)?.search_card_photos as string[] | null) ?? []);
       });
@@ -250,6 +256,9 @@ const AdminPackages = () => {
         nearby_station: cardSettings.nearby_station.trim() || null,
         review_summary: cardSettings.review_summary.trim() || null,
         rating_score: ratingNum,
+        country: cardSettings.country.trim() || null,
+        region_1: cardSettings.region_1.trim() || null,
+        region_2: cardSettings.region_2.trim() || null,
       })
       .eq("id", currentAccommodationId);
     setCardSaving(false);
@@ -494,6 +503,36 @@ const AdminPackages = () => {
               maxLength={60}
             />
           </div>
+
+          {/* 地區鄉鎮 */}
+          <div>
+            <Label className="text-xs">國家</Label>
+            <Input
+              value={cardSettings.country}
+              onChange={(e) => setCardSettings((s) => ({ ...s, country: e.target.value }))}
+              placeholder="例：台灣"
+              maxLength={20}
+            />
+          </div>
+          <div>
+            <Label className="text-xs">縣市（地區）</Label>
+            <Input
+              value={cardSettings.region_1}
+              onChange={(e) => setCardSettings((s) => ({ ...s, region_1: e.target.value }))}
+              placeholder="例：宜蘭縣"
+              maxLength={20}
+            />
+          </div>
+          <div>
+            <Label className="text-xs">鄉鎮市區</Label>
+            <Input
+              value={cardSettings.region_2}
+              onChange={(e) => setCardSettings((s) => ({ ...s, region_2: e.target.value }))}
+              placeholder="例：冬山鄉"
+              maxLength={20}
+            />
+          </div>
+
 
           {/* 圖卡圖片（最多 5 張，可滑動） */}
           <div className="sm:col-span-3 space-y-2">

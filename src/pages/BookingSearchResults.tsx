@@ -12,8 +12,15 @@ import RoomFilterBar, { type RoomFilters } from "@/components/booking-portal/Roo
 import { type RoomTypeResult } from "@/components/booking-portal/RoomTypeCard";
 import { isSensanAccommodation } from "@/lib/sensan-pricing";
 import { classifyDayTier } from "@/utils/templatePriceResolver";
+import {
+  detectTierByDate,
+  getPackagePriceForTier,
+  isPackageExcludedOnDate,
+  type AccommodationPackage,
+} from "@/hooks/use-accommodation-packages";
 import PortalSearchBar from "@/components/booking-portal/PortalSearchBar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+
 
 
 interface AccInfo {
@@ -120,11 +127,13 @@ const BookingSearchResults = () => {
 
   const [accommodations, setAccommodations] = useState<AccInfo[]>([]);
   const [roomTypes, setRoomTypes] = useState<RoomTypeResult[]>([]);
+  const [packages, setPackages] = useState<AccommodationPackage[]>([]);
   const [facilities, setFacilities] = useState<FacilityRow[]>([]);
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [holidays, setHolidays] = useState<HolidayRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [inventoryMap, setInventoryMap] = useState<Map<string, { minAvail: number; minPrice: number | null; allAvailable: boolean }>>(new Map());
+
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [memberName, setMemberName] = useState("");
 
@@ -182,6 +191,7 @@ const BookingSearchResults = () => {
           { data: facs },
           { data: tpls },
           { data: hols },
+          { data: pkgs },
         ] = await Promise.all([
           supabase
             .from("accommodation_info")
@@ -205,6 +215,12 @@ const BookingSearchResults = () => {
             .select("accommodation_id, room_type_id, template_name, price, weekday_price, peak_price, weekend_price")
             .order("display_order", { ascending: true }),
           supabase.from("public_holidays").select("accommodation_id, holiday_date"),
+          supabase
+            .from("accommodation_packages")
+            .select("*")
+            .eq("enabled", true)
+            .order("display_order", { ascending: true })
+            .order("guest_count", { ascending: true }),
         ]);
 
         if (cancelled || !accs || !rooms) return;
@@ -245,6 +261,16 @@ const BookingSearchResults = () => {
         setFacilities((facs || []) as FacilityRow[]);
         setTemplates((tpls || []) as TemplateRow[]);
         setHolidays((hols || []) as HolidayRow[]);
+        setPackages(
+          ((pkgs || []) as any[]).map((p) => ({
+            ...p,
+            excluded_date_ranges: Array.isArray(p.excluded_date_ranges) ? p.excluded_date_ranges : [],
+            tier_prices:
+              p.tier_prices && typeof p.tier_prices === "object" && !Array.isArray(p.tier_prices)
+                ? p.tier_prices
+                : {},
+          })) as AccommodationPackage[]
+        );
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -253,6 +279,7 @@ const BookingSearchResults = () => {
       cancelled = true;
     };
   }, []);
+
 
   // ── auth ──
   useEffect(() => {
@@ -333,9 +360,16 @@ const BookingSearchResults = () => {
     };
   }, [hasDateFilter, checkIn, checkOut, roomTypes]);
 
-  // ── 組合卡片資料 ──
+  // ── 組合卡片資料（以「銷售方案」為基礎）──
   const cards = useMemo<SearchRoomCardData[]>(() => {
     const accMap = new Map(accommodations.map((a) => [a.id, a]));
+    const rtMap = new Map(roomTypes.map((r) => [r.id, r]));
+    const rtFirstPhoto = new Map<string, string>();
+    roomTypes.forEach((r) => {
+      if (r.photo_url && !rtFirstPhoto.has(r.accommodation_id)) {
+        rtFirstPhoto.set(r.accommodation_id, r.photo_url);
+      }
+    });
     const facByAcc = new Map<string, FacilityRow[]>();
     facilities.forEach((f) => {
       if (!f.accommodation_id) return;
@@ -344,85 +378,140 @@ const BookingSearchResults = () => {
       facByAcc.set(f.accommodation_id, arr);
     });
 
-    const result: SearchRoomCardData[] = [];
-    roomTypes.forEach((rt) => {
-      const acc = accMap.get(rt.accommodation_id);
-      if (!acc) return;
+    const parseQty = (alloc: string | null, typeName: string): number => {
+      if (!alloc || !typeName) return 1;
+      const esc = typeName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const m = alloc.match(new RegExp(esc + "\\s*[xX\u00d7]\\s*(\\d+)", "i"));
+      return m ? Math.max(1, parseInt(m[1], 10)) : 1;
+    };
 
-      const inv = inventoryMap.get(rt.id);
+    const computePkgRoomReq = (pkg: AccommodationPackage): Array<{ rtId: string; qty: number }> => {
+      const ids = (pkg as any).room_type_ids as string[] | null;
+      const list = Array.isArray(ids) && ids.length > 0
+        ? ids
+        : (pkg.primary_room_type_id ? [pkg.primary_room_type_id] : []);
+      if (list.length === 0) return [];
+      if (list.length === 1) {
+        const rt = rtMap.get(list[0]);
+        const totalMatch = pkg.room_allocation?.match(/[xX\u00d7]\s*(\d+)/);
+        const qty = totalMatch ? Math.max(1, parseInt(totalMatch[1], 10)) : 1;
+        return [{ rtId: list[0], qty: rt ? qty : 1 }];
+      }
+      return list.map((rtId) => {
+        const rt = rtMap.get(rtId);
+        return { rtId, qty: rt ? parseQty(pkg.room_allocation, rt.name) : 1 };
+      });
+    };
+
+    const stayDates = hasDateFilter
+      ? eachDayOfInterval({ start: checkIn!, end: addDays(checkOut!, -1) })
+      : [];
+
+    const result: SearchRoomCardData[] = [];
+
+    packages.forEach((pkg) => {
+      const acc = accMap.get(pkg.accommodation_id);
+      if (!acc) return;
+      if (hasDateFilter && stayDates.some((d) => isPackageExcludedOnDate(pkg, d))) return;
+
+      const req = computePkgRoomReq(pkg);
       const isSensan = isSensanAccommodation(acc.name);
 
-      // 價格：庫存查得到 → 用 inv.minPrice，否則用 template 平均，最後 base_price
-      let nightly: number | null = inv?.minPrice ?? null;
-      if (nightly == null && hasDateFilter) {
-        const holidaySet = new Set(
-          holidays
-            .filter((h) => !h.accommodation_id || h.accommodation_id === acc.id)
-            .map((h) => h.holiday_date),
-        );
-        const tpls = templates.filter(
-          (t) => t.accommodation_id === acc.id && (t.room_type_id === rt.id || t.room_type_id === null),
-        );
-        if (tpls.length > 0) {
-          const stayDates = eachDayOfInterval({ start: checkIn!, end: addDays(checkOut!, -1) });
-          let sum = 0;
-          let count = 0;
-          for (const d of stayDates) {
-            const prices = tpls
-              .map((t) => getTemplatePriceForDate(t, d, holidaySet))
-              .filter((p): p is number => p !== null);
-            if (prices.length) {
-              sum += Math.min(...prices);
-              count++;
-            }
+      let allAvail = true;
+      let minPackagesSellable = Infinity;
+      if (hasDateFilter && req.length > 0) {
+        for (const { rtId, qty } of req) {
+          const inv = inventoryMap.get(rtId);
+          if (!inv || !inv.allAvailable || inv.minAvail < qty) {
+            allAvail = false;
+            break;
           }
-          if (count > 0) nightly = Math.round(sum / count);
+          minPackagesSellable = Math.min(minPackagesSellable, Math.floor(inv.minAvail / qty));
         }
       }
-      if (nightly == null) nightly = asPositive(rt.base_price);
 
-      const total = nightly != null && nights > 0 ? nightly * nights : nightly;
-      const original = total ? Math.round((total / 0.85) / 10) * 10 : null;
+      const holidaySet = new Set(
+        holidays
+          .filter((h) => !h.accommodation_id || h.accommodation_id === acc.id)
+          .map((h) => h.holiday_date),
+      );
+      let totalSale = 0;
+      let totalOriginal = 0;
+      let hasOriginal = false;
+      let nightsCounted = 0;
+      const datesForPrice = stayDates.length > 0 ? stayDates : [new Date()];
+      for (const d of datesForPrice) {
+        const tier = detectTierByDate(d, holidaySet.has(format(d, "yyyy-MM-dd")));
+        if (!pkg.applicable_tiers.includes(tier)) continue;
+        const { sale, original } = getPackagePriceForTier(pkg, tier);
+        totalSale += sale;
+        if (original && original > sale) {
+          totalOriginal += original;
+          hasOriginal = true;
+        } else {
+          totalOriginal += sale;
+        }
+        nightsCounted++;
+      }
+      const total = nightsCounted > 0 ? totalSale : pkg.sale_price;
+      const original = hasOriginal && nightsCounted > 0 ? totalOriginal : null;
+      const nightly = nights > 0 ? Math.round(total / nights) : total;
+      const discount = original && total && original > total
+        ? Math.round(((original - total) / original) * 100)
+        : null;
+
+      const totalRoomCount = req.reduce((s, r) => s + r.qty, 0) || 1;
+      const totalSize = req.reduce((s, r) => {
+        const rt = rtMap.get(r.rtId);
+        return s + (rt?.size_sqm ? rt.size_sqm * r.qty : 0);
+      }, 0);
+
+      const primaryRt = pkg.primary_room_type_id ? rtMap.get(pkg.primary_room_type_id) : null;
+      const fallbackPhoto = primaryRt?.photo_url || rtFirstPhoto.get(acc.id) || null;
 
       const overrideTags = acc.feature_tags_override?.filter(Boolean) || [];
       const tags = overrideTags.length > 0 ? overrideTags : deriveAutoTags(facByAcc.get(acc.id) ?? []);
 
-      // sensan 散客庫存不影響可訂狀態
-      const soldOut = hasDateFilter && !isSensan && (!inv || !inv.allAvailable);
+      const soldOut = hasDateFilter && !isSensan && !allAvail;
 
       result.push({
-        id: rt.id,
-        name: rt.name,
+        id: pkg.id,
+        name: pkg.name,
         accommodation_id: acc.id,
         accommodation_name: acc.name,
         accommodation_type: acc.type,
         region_1: acc.region_1,
         region_2: acc.region_2,
         country: acc.country,
-        photo_url: rt.photo_url,
+        photo_url: fallbackPhoto,
         photo_urls:
           acc.search_card_photos && acc.search_card_photos.length > 0
             ? acc.search_card_photos
-            : rt.photo_url
-            ? [rt.photo_url]
+            : fallbackPhoto
+            ? [fallbackPhoto]
             : [],
-        capacity: rt.capacity,
-        size_sqm: rt.size_sqm,
-        room_count: rt.room_count ?? null,
+        capacity: pkg.guest_count,
+        guest_count_max: pkg.guest_count_max,
+        size_sqm: totalSize > 0 ? Math.round(totalSize) : (primaryRt?.size_sqm ?? null),
+        room_count: totalRoomCount,
+        unit_count: 1,
+        room_allocation: pkg.room_allocation,
+        is_package: true,
         nearby_station: acc.nearby_station,
         review_summary: acc.review_summary,
         rating: acc.rating_score,
-        nightly_price: nightly,
-        total_price: total,
-        original_total_price: total ? original : null,
-        discount_percent: total ? 15 : null,
-        available_rooms: inv?.allAvailable ? inv.minAvail : null,
+        nightly_price: nightly > 0 ? nightly : null,
+        total_price: total > 0 ? total : null,
+        original_total_price: original,
+        discount_percent: discount,
+        available_rooms: allAvail && minPackagesSellable !== Infinity ? minPackagesSellable : null,
         feature_tags: tags,
         sold_out: soldOut,
       });
     });
+
     return result;
-  }, [accommodations, roomTypes, facilities, templates, holidays, inventoryMap, hasDateFilter, nights, checkIn, checkOut]);
+  }, [accommodations, roomTypes, packages, facilities, holidays, inventoryMap, hasDateFilter, nights, checkIn, checkOut]);
 
   // ── 每家民宿只保留一張最符合搜尋條件的房型卡 ──
   const dedupedCards = useMemo<SearchRoomCardData[]>(() => {
