@@ -440,90 +440,17 @@ const BookingPortal = () => {
 
   const handleSearch = useCallback(async () => {
     setHasSearched(true);
+    const params = new URLSearchParams();
+    if (checkIn) params.set("checkIn", format(checkIn, "yyyy-MM-dd"));
+    if (checkOut) params.set("checkOut", format(checkOut, "yyyy-MM-dd"));
+    if (adults) params.set("adults", String(adults));
+    if (children) params.set("children", String(children));
+    if (rooms) params.set("rooms", String(rooms));
+    if (searchQuery.trim()) params.set("q", searchQuery.trim());
+    const qs = params.toString();
+    navigate(`/booking/search${qs ? `?${qs}` : ""}`);
+  }, [checkIn, checkOut, adults, children, rooms, searchQuery, navigate]);
 
-    if (!checkIn || !checkOut) return;
-
-    if (!isStayRangeAvailable(checkIn, checkOut)) {
-      toast({
-        title: "所選日期目前無法預訂",
-        description: "請改選連續有空房的入住與退房日期",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSearching(true);
-    try {
-      const stayDates = eachDayOfInterval({
-        start: checkIn,
-        end: addDays(checkOut, -1),
-      }).map((d) => format(d, "yyyy-MM-dd"));
-
-      const roomTypeIds = roomTypes.map((rt) => rt.id);
-
-      // Query inventory and pricing for all room types across stay dates
-      const { data: inventory } = await supabase
-        .from("room_inventory_pricing")
-        .select("room_type_id, date, available_rooms, is_available, price")
-        .in("room_type_id", roomTypeIds)
-        .in("date", stayDates);
-
-      // Group by room_type_id -> dates
-      const rtDateMap = new Map<string, Map<string, { available: number; isAvailable: boolean; price: number }>>();
-
-      inventory?.forEach((inv) => {
-        if (!rtDateMap.has(inv.room_type_id)) rtDateMap.set(inv.room_type_id, new Map());
-        rtDateMap.get(inv.room_type_id)!.set(inv.date, {
-          available: inv.available_rooms,
-          isAvailable: inv.is_available !== false,
-          price: inv.price,
-        });
-      });
-
-      // Update room types with availability info
-      setRoomTypes((prev) =>
-        prev.map((rt) => {
-          const dateMap = rtDateMap.get(rt.id);
-          if (!dateMap) {
-            return { ...rt, available_rooms: 0, date_price: null };
-          }
-
-          // Check all stay dates — need availability on every date
-          let minAvailable = Infinity;
-          let minPrice = Infinity;
-          let allAvailable = true;
-
-          for (const date of stayDates) {
-            const info = dateMap.get(date);
-            if (!info || !info.isAvailable || info.available <= 0) {
-              allAvailable = false;
-              break;
-            }
-            minAvailable = Math.min(minAvailable, info.available);
-            minPrice = Math.min(minPrice, info.price);
-          }
-
-          if (!allAvailable) {
-            return { ...rt, available_rooms: 0, date_price: null };
-          }
-
-          return {
-            ...rt,
-            available_rooms: minAvailable === Infinity ? 0 : minAvailable,
-            date_price: minPrice === Infinity ? null : minPrice,
-          };
-        })
-      );
-    } catch (error) {
-      console.error("Availability check failed:", error);
-    } finally {
-      setSearching(false);
-      // Scroll to results so the user sees the filter took effect
-      setTimeout(() => {
-        document.getElementById("room-list-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 50);
-    }
-  }, [checkIn, checkOut, isStayRangeAvailable, roomTypes]);
 
   const hasDateFilter = !!(checkIn && checkOut && hasSearched);
 
