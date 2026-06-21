@@ -191,6 +191,7 @@ const BookingSearchResults = () => {
           { data: facs },
           { data: tpls },
           { data: hols },
+          { data: pkgs },
         ] = await Promise.all([
           supabase
             .from("accommodation_info")
@@ -214,6 +215,12 @@ const BookingSearchResults = () => {
             .select("accommodation_id, room_type_id, template_name, price, weekday_price, peak_price, weekend_price")
             .order("display_order", { ascending: true }),
           supabase.from("public_holidays").select("accommodation_id, holiday_date"),
+          supabase
+            .from("accommodation_packages")
+            .select("*")
+            .eq("enabled", true)
+            .order("display_order", { ascending: true })
+            .order("guest_count", { ascending: true }),
         ]);
 
         if (cancelled || !accs || !rooms) return;
@@ -254,6 +261,16 @@ const BookingSearchResults = () => {
         setFacilities((facs || []) as FacilityRow[]);
         setTemplates((tpls || []) as TemplateRow[]);
         setHolidays((hols || []) as HolidayRow[]);
+        setPackages(
+          ((pkgs || []) as any[]).map((p) => ({
+            ...p,
+            excluded_date_ranges: Array.isArray(p.excluded_date_ranges) ? p.excluded_date_ranges : [],
+            tier_prices:
+              p.tier_prices && typeof p.tier_prices === "object" && !Array.isArray(p.tier_prices)
+                ? p.tier_prices
+                : {},
+          })) as AccommodationPackage[]
+        );
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -262,6 +279,7 @@ const BookingSearchResults = () => {
       cancelled = true;
     };
   }, []);
+
 
   // ── auth ──
   useEffect(() => {
