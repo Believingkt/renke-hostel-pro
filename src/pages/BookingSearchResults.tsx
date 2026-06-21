@@ -21,6 +21,9 @@ interface AccInfo {
   region_2: string | null;
   country: string | null;
   feature_tags_override: string[] | null;
+  nearby_station: string | null;
+  review_summary: string | null;
+  rating_score: number | null;
 }
 
 interface FacilityRow {
