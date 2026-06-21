@@ -73,8 +73,12 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
   return (
     <article
       onClick={onClick}
-      className="group cursor-pointer rounded-2xl overflow-hidden bg-card border border-border/60 hover:border-border hover:shadow-lg transition-all"
+      className="group cursor-pointer rounded-2xl overflow-hidden bg-card border border-border/60 hover:border-border hover:shadow-lg transition-all relative"
     >
+      {/* 售完遮罩 */}
+      {data.sold_out && (
+        <div className="absolute inset-0 z-20 bg-muted-foreground/15 pointer-events-none rounded-2xl" />
+      )}
       {/* 大圖區 — 可水平滑動 */}
       <div className="relative aspect-[16/10] bg-muted overflow-hidden">
         {photos.length === 0 ? (
