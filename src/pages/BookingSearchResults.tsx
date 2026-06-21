@@ -24,6 +24,7 @@ interface AccInfo {
   nearby_station: string | null;
   review_summary: string | null;
   rating_score: number | null;
+  search_card_photos: string[] | null;
 }
 
 interface FacilityRow {
