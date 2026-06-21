@@ -23,16 +23,20 @@ serve(async (req) => {
     let accommodationPhone = '';
     let accommodationEmail = '';
     let accommodationLineId = '';
+    let accommodationImportantNotice = '';
+    let accommodationServiceHours = '';
     if (accommodationId) {
       const { data: acc } = await supabase
         .from('accommodation_info')
-        .select('name, phone, email, line_id')
+        .select('name, phone, email, line_id, email_important_notice, email_service_hours')
         .eq('id', accommodationId)
         .single();
       accommodationName = acc?.name || '';
       accommodationPhone = acc?.phone || '';
       accommodationEmail = acc?.email || '';
       accommodationLineId = acc?.line_id || '';
+      accommodationImportantNotice = (acc as any)?.email_important_notice || '';
+      accommodationServiceHours = (acc as any)?.email_service_hours || '';
     }
 
     // Sample data
