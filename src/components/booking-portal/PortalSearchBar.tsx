@@ -377,7 +377,7 @@ const PortalSearchBar = ({
                   {adults} 大人{children > 0 ? ` · ${children} 兒童` : ""} · {rooms} 間
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-60 p-4" align="start">
+              <PopoverContent className="w-72 p-4" align="start">
                 {renderGuestPicker()}
               </PopoverContent>
             </Popover>
@@ -517,7 +517,7 @@ const PortalSearchBar = ({
                   {adults} 大人{children > 0 ? ` · ${children} 兒童` : ""} · {rooms} 間
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-60 p-4" align="start">
+              <PopoverContent className="w-72 p-4" align="start">
                 {renderGuestPicker()}
               </PopoverContent>
             </Popover>
