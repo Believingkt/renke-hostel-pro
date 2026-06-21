@@ -363,6 +363,7 @@ const BookingSearchResults = () => {
         photo_url: rt.photo_url,
         capacity: rt.capacity,
         size_sqm: rt.size_sqm,
+        room_count: rt.room_count ?? null,
         nightly_price: nightly,
         total_price: total,
         original_total_price: total ? original : null,
