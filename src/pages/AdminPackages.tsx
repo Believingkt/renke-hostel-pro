@@ -504,6 +504,36 @@ const AdminPackages = () => {
             />
           </div>
 
+          {/* 地區鄉鎮 */}
+          <div>
+            <Label className="text-xs">國家</Label>
+            <Input
+              value={cardSettings.country}
+              onChange={(e) => setCardSettings((s) => ({ ...s, country: e.target.value }))}
+              placeholder="例：台灣"
+              maxLength={20}
+            />
+          </div>
+          <div>
+            <Label className="text-xs">縣市（地區）</Label>
+            <Input
+              value={cardSettings.region_1}
+              onChange={(e) => setCardSettings((s) => ({ ...s, region_1: e.target.value }))}
+              placeholder="例：宜蘭縣"
+              maxLength={20}
+            />
+          </div>
+          <div>
+            <Label className="text-xs">鄉鎮市區</Label>
+            <Input
+              value={cardSettings.region_2}
+              onChange={(e) => setCardSettings((s) => ({ ...s, region_2: e.target.value }))}
+              placeholder="例：冬山鄉"
+              maxLength={20}
+            />
+          </div>
+
+
           {/* 圖卡圖片（最多 5 張，可滑動） */}
           <div className="sm:col-span-3 space-y-2">
             <div className="flex items-center justify-between">
