@@ -86,6 +86,7 @@ const menuItems = [
       { title: "交通地圖", url: "/admin/website-content?tab=location", icon: Navigation },
       { title: "訂房須知", url: "/admin/website-content?tab=booking-info", icon: BookOpen },
       { title: "常見問題", url: "/admin/website-content?tab=faq", icon: HelpCircle },
+      { title: "訂房確認通知", url: "/admin/website-content?tab=email-notification", icon: Mail },
       { title: "Google 評論", url: "/admin/website-content?tab=reviews", icon: Star },
     ]
   },
