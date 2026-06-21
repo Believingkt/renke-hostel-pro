@@ -299,14 +299,17 @@ export type Database = {
           longitude: number | null
           meta_keywords: string | null
           name: string
+          nearby_station: string | null
           og_description: string | null
           og_image_url: string | null
           og_title: string | null
           owlting_aliases: string[]
           phone: string | null
+          rating_score: number | null
           region_1: string | null
           region_2: string | null
           registration_number: string | null
+          review_summary: string | null
           seo_description: string | null
           seo_title: string | null
           short_name: string | null
@@ -372,14 +375,17 @@ export type Database = {
           longitude?: number | null
           meta_keywords?: string | null
           name: string
+          nearby_station?: string | null
           og_description?: string | null
           og_image_url?: string | null
           og_title?: string | null
           owlting_aliases?: string[]
           phone?: string | null
+          rating_score?: number | null
           region_1?: string | null
           region_2?: string | null
           registration_number?: string | null
+          review_summary?: string | null
           seo_description?: string | null
           seo_title?: string | null
           short_name?: string | null
@@ -445,14 +451,17 @@ export type Database = {
           longitude?: number | null
           meta_keywords?: string | null
           name?: string
+          nearby_station?: string | null
           og_description?: string | null
           og_image_url?: string | null
           og_title?: string | null
           owlting_aliases?: string[]
           phone?: string | null
+          rating_score?: number | null
           region_1?: string | null
           region_2?: string | null
           registration_number?: string | null
+          review_summary?: string | null
           seo_description?: string | null
           seo_title?: string | null
           short_name?: string | null
