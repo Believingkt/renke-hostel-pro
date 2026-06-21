@@ -307,14 +307,19 @@ const handler = async (req: Request): Promise<Response> => {
                 </table>
               </div>
 
+              ${(() => {
+                const noticeLines = accommodationImportantNotice
+                  ? accommodationImportantNotice.split('\n').map(s => s.trim()).filter(Boolean)
+                  : ['請於入住日前確認訂單狀態', '如需取消或變更訂單，請盡早與我們聯繫', '入住時請攜帶有效身份證件'];
+                if (noticeLines.length === 0) return '';
+                return `
               <div class="notice">
                 <strong style="color: #856404;">⚠️ 重要提醒</strong>
                 <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #856404;">
-                  <li>請於入住日前確認訂單狀態</li>
-                  <li>如需取消或變更訂單，請盡早與我們聯繫</li>
-                  <li>入住時請攜帶有效身份證件</li>
+                  ${noticeLines.map(l => `<li>${l.replace(/</g, '&lt;')}</li>`).join('')}
                 </ul>
-              </div>
+              </div>`;
+              })()}
 
               <div style="margin-top: 30px; padding: 25px; background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); border-radius: 12px; border: 2px solid #f97316; text-align: center;">
                 <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: 700; color: #f97316;">📋 查詢訂單資訊</p>
