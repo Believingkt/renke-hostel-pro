@@ -276,14 +276,21 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
 
       // 同步寫入 order_rooms — 主房型 + 額外加房（雲岫專屬）
       if (orderData?.id) {
-        const orderRooms = [
+        let orderRooms: {
+          order_id: string;
+          room_type_id: string;
+          quantity: number;
+          room_price: number;
+          template_name: string | null;
+          room_unit_id: string | null;
+        }[] = [
           {
             order_id: orderData.id,
             room_type_id: form.room_type_id,
             quantity: 1,
             room_price: 0,
             template_name: null,
-            room_unit_id: null as string | null,
+            room_unit_id: null,
           },
           ...extraSelections.map(ex => ({
             order_id: orderData.id,
@@ -291,16 +298,28 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
             quantity: ex.quantity,
             room_price: 0,
             template_name: null,
-            room_unit_id: null as string | null,
+            room_unit_id: null,
           })),
         ];
 
-        // 雲岫 / 天送：未指定房號時自動指派可用房號（quantity=1 才指派）
+        // 雲岫 / 天送：未指定房號時自動依序指派可用房號（含多件數，拆成多筆 quantity=1）
         if (AUTO_ASSIGN_ACC_IDS.has(currentAccommodationId)) {
           try {
-            const roomTypeIds = Array.from(new Set(orderRooms.filter(r => r.quantity === 1).map(r => r.room_type_id)));
+            // 將 quantity>1 的列拆成多筆 quantity=1，以便逐間指派 room_unit_id
+            const expanded: typeof orderRooms = [];
+            for (const r of orderRooms) {
+              if (r.quantity > 1 && !r.room_unit_id) {
+                for (let i = 0; i < r.quantity; i++) {
+                  expanded.push({ ...r, quantity: 1 });
+                }
+              } else {
+                expanded.push(r);
+              }
+            }
+            orderRooms = expanded;
+
+            const roomTypeIds = Array.from(new Set(orderRooms.map(r => r.room_type_id)));
             if (roomTypeIds.length > 0) {
-              // 取所有 active room_units
               const { data: unitsData } = await supabase
                 .from("room_units" as any)
                 .select("id, room_type_id, display_order")
@@ -308,7 +327,6 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
                 .eq("is_active", true)
                 .order("display_order", { ascending: true });
 
-              // 取入住區間內已被佔用的 unit
               const { data: occupiedData } = await supabase
                 .from("order_rooms" as any)
                 .select("room_unit_id, orders!inner(order_status, check_in_date, check_out_date)")
@@ -327,7 +345,7 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
               }
 
               for (const r of orderRooms) {
-                if (r.quantity !== 1 || r.room_unit_id) continue;
+                if (r.room_unit_id || r.quantity !== 1) continue;
                 const candidates = unitsByType.get(r.room_type_id) || [];
                 const pick = candidates.find(c => !occupied.has(c.id) && !usedThisOrder.has(c.id));
                 if (pick) {
