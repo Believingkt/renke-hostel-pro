@@ -9,6 +9,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
@@ -279,7 +284,7 @@ const PortalSearchBar = ({
     </div>
   );
 
-  const renderRangeCalendar = (numberOfMonths: number) => (
+  const renderRangeCalendar = (numberOfMonths: number, mobile = false) => (
     <>
       {renderRangeCalendarHeader()}
       <Calendar
@@ -289,9 +294,12 @@ const PortalSearchBar = ({
         disabled={rangeDayDisabled}
         defaultMonth={checkIn || today}
         numberOfMonths={numberOfMonths}
-        className={cn("p-3 pointer-events-auto")}
+        className={cn(
+          "pointer-events-auto",
+          mobile ? "p-2 w-full [&_table]:w-full [&_td]:p-0 [&_th]:w-[14.28%] [&_td]:w-[14.28%] [&_[role=gridcell]>button]:h-11 [&_[role=gridcell]>button]:w-full [&_[role=gridcell]>button]:text-[15px] [&_caption_label]:text-base" : "p-3"
+        )}
       />
-      <div className="flex items-center justify-between px-3 pb-3 pt-1">
+      <div className="flex items-center justify-between px-4 pb-3 pt-1">
         <p className="text-xs text-muted-foreground">
           {availableDateSet ? "僅可選擇連續有空房的日期" : "點選入住，再點選退房"}
         </p>
@@ -368,7 +376,7 @@ const PortalSearchBar = ({
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                {renderRangeCalendar(2)}
+                {renderRangeCalendar(2, false)}
               </PopoverContent>
             </Popover>
           </div>
@@ -433,27 +441,40 @@ const PortalSearchBar = ({
             </div>
           </div>
 
-          {/* Combined date range */}
-          <Popover open={dateOpenMobile} onOpenChange={setDateOpenMobile}>
-            <PopoverTrigger asChild>
+          {/* Combined date range - mobile bottom sheet */}
+          <Sheet open={dateOpenMobile} onOpenChange={setDateOpenMobile}>
+            <SheetTrigger asChild>
               <Button
                 variant="outline"
                 className={cn(
-                  "w-full h-11 justify-start text-left font-normal border-border text-base"
+                  "w-full h-12 justify-start text-left font-normal border-border text-base"
                 )}
               >
                 {isLoadingAvailability ? (
-                  <Loader2 className="mr-1.5 h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+                  <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
                 ) : (
-                  <CalendarDays className="mr-1.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                  <CalendarDays className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
                 )}
                 {renderRangeButtonContent(true)}
               </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="center">
-              {renderRangeCalendar(1)}
-            </PopoverContent>
-          </Popover>
+            </SheetTrigger>
+            <SheetContent
+              side="bottom"
+              className="p-0 rounded-t-2xl max-h-[90vh] overflow-y-auto"
+            >
+              {renderRangeCalendar(1, true)}
+              <div className="sticky bottom-0 bg-white border-t border-border/40 p-3">
+                <Button
+                  className="w-full h-12 rounded-lg text-white font-medium text-base"
+                  style={{ background: "hsl(25, 70%, 55%)" }}
+                  disabled={!checkIn || !checkOut}
+                  onClick={() => setDateOpenMobile(false)}
+                >
+                  {checkIn && checkOut ? `確認 · 共 ${nights} 晚` : "請選擇入住與退房日期"}
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
 
           {/* Guests + search */}
           <div className="flex gap-2">
