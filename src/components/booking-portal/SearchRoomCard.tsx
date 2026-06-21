@@ -13,6 +13,14 @@ export interface SearchRoomCardData {
   photo_url: string | null;
   capacity: number;
   size_sqm: number | null;
+  /** 此房型總房數 */
+  room_count: number | null;
+  /** 鄰近車站（可選） */
+  nearby_station?: string | null;
+  /** 簡易評論摘要（可選） */
+  review_summary?: string | null;
+  /** 評分（可選，0-5） */
+  rating?: number | null;
   /** 每晚單價（已依日期 / template 解出） */
   nightly_price: number | null;
   /** 總價（nightly × nights） */
