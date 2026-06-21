@@ -126,7 +126,9 @@ const AdminPackages = () => {
     review_summary: "",
     rating_score: "" as string,
   });
+  const [cardPhotos, setCardPhotos] = useState<string[]>([]);
   const [cardSaving, setCardSaving] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
 
   useEffect(() => {
     if (!currentAccommodationId) return;
@@ -139,7 +141,7 @@ const AdminPackages = () => {
 
     supabase
       .from("accommodation_info")
-      .select("nearby_station, review_summary, rating_score")
+      .select("nearby_station, review_summary, rating_score, search_card_photos")
       .eq("id", currentAccommodationId)
       .maybeSingle()
       .then(({ data }) => {
@@ -149,8 +151,84 @@ const AdminPackages = () => {
           rating_score:
             (data as any)?.rating_score != null ? String((data as any).rating_score) : "",
         });
+        setCardPhotos(((data as any)?.search_card_photos as string[] | null) ?? []);
       });
   }, [currentAccommodationId]);
+
+  const handleCardPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!currentAccommodationId || !e.target.files?.length) return;
+    const files = Array.from(e.target.files);
+    const remain = 5 - cardPhotos.length;
+    if (remain <= 0) {
+      toast({ title: "最多 5 張圖片", variant: "destructive" });
+      e.target.value = "";
+      return;
+    }
+    const toUpload = files.slice(0, remain);
+    setPhotoUploading(true);
+    const newUrls: string[] = [];
+    try {
+      for (const file of toUpload) {
+        if (file.size > 8 * 1024 * 1024) {
+          toast({ title: `${file.name} 超過 8MB`, variant: "destructive" });
+          continue;
+        }
+        const ext = file.name.split(".").pop() || "jpg";
+        const path = `${currentAccommodationId}/search-card/${Date.now()}-${Math.random()
+          .toString(36)
+          .slice(2, 8)}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from("room-photos")
+          .upload(path, file, { contentType: file.type, cacheControl: "3600" });
+        if (upErr) {
+          toast({ title: "上傳失敗", description: upErr.message, variant: "destructive" });
+          continue;
+        }
+        const { data: pub } = supabase.storage.from("room-photos").getPublicUrl(path);
+        newUrls.push(pub.publicUrl);
+      }
+      if (newUrls.length > 0) {
+        const merged = [...cardPhotos, ...newUrls].slice(0, 5);
+        setCardPhotos(merged);
+        const { error } = await supabase
+          .from("accommodation_info")
+          .update({ search_card_photos: merged })
+          .eq("id", currentAccommodationId);
+        if (error) {
+          toast({ title: "儲存失敗", description: error.message, variant: "destructive" });
+        } else {
+          toast({ title: `已上傳 ${newUrls.length} 張` });
+        }
+      }
+    } finally {
+      setPhotoUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const removeCardPhoto = async (idx: number) => {
+    if (!currentAccommodationId) return;
+    const merged = cardPhotos.filter((_, i) => i !== idx);
+    setCardPhotos(merged);
+    const { error } = await supabase
+      .from("accommodation_info")
+      .update({ search_card_photos: merged })
+      .eq("id", currentAccommodationId);
+    if (error) toast({ title: "刪除失敗", description: error.message, variant: "destructive" });
+  };
+
+  const moveCardPhoto = async (idx: number, dir: -1 | 1) => {
+    if (!currentAccommodationId) return;
+    const target = idx + dir;
+    if (target < 0 || target >= cardPhotos.length) return;
+    const merged = [...cardPhotos];
+    [merged[idx], merged[target]] = [merged[target], merged[idx]];
+    setCardPhotos(merged);
+    await supabase
+      .from("accommodation_info")
+      .update({ search_card_photos: merged })
+      .eq("id", currentAccommodationId);
+  };
 
   const saveCardSettings = async () => {
     if (!currentAccommodationId) return;
