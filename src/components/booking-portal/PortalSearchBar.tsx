@@ -258,13 +258,13 @@ const PortalSearchBar = ({
 
   const renderRangeCalendarHeader = () => (
     <div
-      className="px-4 py-3 border-b border-border/40"
+      className="px-4 py-3 pr-12 border-b border-border/40"
       style={{ background: "hsl(25, 80%, 97%)" }}
     >
       <p className="text-xs text-muted-foreground">
         {!checkIn ? "選擇入住日期" : !checkOut ? "選擇退房日期" : "入住與退房日期"}
       </p>
-      <div className="mt-1 flex items-center gap-2 text-sm">
+      <div className="mt-1 flex items-center gap-2 text-sm flex-wrap">
         <span className={cn("font-medium", checkIn ? "text-foreground" : "text-muted-foreground")}>
           {checkIn ? format(checkIn, "M/d (EEE)", { locale: zhTW }) : "入住 —"}
         </span>
@@ -274,7 +274,7 @@ const PortalSearchBar = ({
         </span>
         {nights > 0 && (
           <span
-            className="ml-auto text-[11px] font-semibold px-2 py-0.5 rounded-full"
+            className="ml-auto text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
             style={{ background: "hsl(25, 70%, 55%)", color: "white" }}
           >
             共 {nights} 晚
@@ -283,6 +283,18 @@ const PortalSearchBar = ({
       </div>
     </div>
   );
+
+  const mobileCalendarClassNames = {
+    months: "flex flex-col",
+    month: "space-y-3 w-full",
+    table: "w-full border-collapse",
+    head_row: "flex w-full",
+    head_cell: "text-muted-foreground font-normal text-[0.75rem] flex-1 text-center",
+    row: "flex w-full mt-1",
+    cell: "flex-1 h-11 text-center text-[15px] p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+    day: "h-11 w-full p-0 font-normal aria-selected:opacity-100 inline-flex items-center justify-center rounded-md text-[15px] hover:bg-primary/10 hover:text-primary",
+    caption_label: "text-base font-medium",
+  };
 
   const renderRangeCalendar = (numberOfMonths: number, mobile = false) => (
     <>
@@ -294,10 +306,8 @@ const PortalSearchBar = ({
         disabled={rangeDayDisabled}
         defaultMonth={checkIn || today}
         numberOfMonths={numberOfMonths}
-        className={cn(
-          "pointer-events-auto",
-          mobile ? "p-2 w-full [&_table]:w-full [&_td]:p-0 [&_th]:w-[14.28%] [&_td]:w-[14.28%] [&_[role=gridcell]>button]:h-11 [&_[role=gridcell]>button]:w-full [&_[role=gridcell]>button]:text-[15px] [&_caption_label]:text-base" : "p-3"
-        )}
+        className={cn("pointer-events-auto", mobile ? "p-3 w-full" : "p-3")}
+        classNames={mobile ? mobileCalendarClassNames : undefined}
       />
       <div className="flex items-center justify-between px-4 pb-3 pt-1">
         <p className="text-xs text-muted-foreground">
