@@ -127,11 +127,13 @@ const BookingSearchResults = () => {
 
   const [accommodations, setAccommodations] = useState<AccInfo[]>([]);
   const [roomTypes, setRoomTypes] = useState<RoomTypeResult[]>([]);
+  const [packages, setPackages] = useState<AccommodationPackage[]>([]);
   const [facilities, setFacilities] = useState<FacilityRow[]>([]);
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [holidays, setHolidays] = useState<HolidayRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [inventoryMap, setInventoryMap] = useState<Map<string, { minAvail: number; minPrice: number | null; allAvailable: boolean }>>(new Map());
+
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [memberName, setMemberName] = useState("");
 
