@@ -1568,9 +1568,10 @@ const WebsiteContent = () => {
       const { error } = await supabase
         .from("accommodation_info")
         .update({
-          email_important_notice: emailNotification.importantNoticeItems
-            .map(i => i.text.trim())
-            .filter(t => t.length > 0)
+          email_important_notice: emailNotification.importantNotice
+            .split('\n')
+            .map(s => s.trim())
+            .filter(s => s.length > 0)
             .join('\n') || null,
           email_service_hours: emailNotification.serviceHours || null,
           phone: emailNotification.contactPhone || null,
