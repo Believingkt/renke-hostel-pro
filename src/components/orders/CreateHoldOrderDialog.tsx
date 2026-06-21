@@ -37,6 +37,8 @@ interface CreateHoldOrderDialogProps {
 }
 
 const YUNXIU_ACC_ID = "7690a606-6bac-4cd5-a3e7-2fa754b318e8";
+const TIANSONG_ACC_ID = "4ee31aca-5641-4d05-80e2-1c67626be83d";
+const AUTO_ASSIGN_ACC_IDS = new Set([YUNXIU_ACC_ID, TIANSONG_ACC_ID]);
 
 export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateHoldOrderDialogProps) {
   const isMobile = useIsMobile();
@@ -281,7 +283,7 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
             quantity: 1,
             room_price: 0,
             template_name: null,
-            room_unit_id: null,
+            room_unit_id: null as string | null,
           },
           ...extraSelections.map(ex => ({
             order_id: orderData.id,
@@ -289,9 +291,56 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
             quantity: ex.quantity,
             room_price: 0,
             template_name: null,
-            room_unit_id: null,
+            room_unit_id: null as string | null,
           })),
         ];
+
+        // 雲岫 / 天送：未指定房號時自動指派可用房號（quantity=1 才指派）
+        if (AUTO_ASSIGN_ACC_IDS.has(currentAccommodationId)) {
+          try {
+            const roomTypeIds = Array.from(new Set(orderRooms.filter(r => r.quantity === 1).map(r => r.room_type_id)));
+            if (roomTypeIds.length > 0) {
+              // 取所有 active room_units
+              const { data: unitsData } = await supabase
+                .from("room_units" as any)
+                .select("id, room_type_id, display_order")
+                .in("room_type_id", roomTypeIds)
+                .eq("is_active", true)
+                .order("display_order", { ascending: true });
+
+              // 取入住區間內已被佔用的 unit
+              const { data: occupiedData } = await supabase
+                .from("order_rooms" as any)
+                .select("room_unit_id, orders!inner(order_status, check_in_date, check_out_date)")
+                .not("room_unit_id", "is", null)
+                .in("orders.order_status", ["confirmed", "hold", "pending"])
+                .lt("orders.check_in_date", form.check_out_date)
+                .gt("orders.check_out_date", form.check_in_date);
+
+              const occupied = new Set<string>((occupiedData as any[] || []).map(r => r.room_unit_id));
+              const usedThisOrder = new Set<string>();
+
+              const unitsByType = new Map<string, { id: string; room_type_id: string }[]>();
+              for (const u of (unitsData as any[] || [])) {
+                if (!unitsByType.has(u.room_type_id)) unitsByType.set(u.room_type_id, []);
+                unitsByType.get(u.room_type_id)!.push(u);
+              }
+
+              for (const r of orderRooms) {
+                if (r.quantity !== 1 || r.room_unit_id) continue;
+                const candidates = unitsByType.get(r.room_type_id) || [];
+                const pick = candidates.find(c => !occupied.has(c.id) && !usedThisOrder.has(c.id));
+                if (pick) {
+                  r.room_unit_id = pick.id;
+                  usedThisOrder.add(pick.id);
+                }
+              }
+            }
+          } catch (assignErr) {
+            console.warn("[CreateHoldOrderDialog] auto-assign room_unit failed:", assignErr);
+          }
+        }
+
         const { error: roomsError } = await supabase.from("order_rooms").insert(orderRooms);
         if (roomsError) console.error("[CreateHoldOrderDialog] order_rooms insert failed:", roomsError);
       }
