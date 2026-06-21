@@ -147,27 +147,6 @@ const PortalSearchBar = ({
 
   const renderGuestPicker = () => (
     <div className="space-y-4">
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-medium">總人數</p>
-          <span className="text-sm font-semibold" style={{ color: "hsl(25, 70%, 45%)" }}>
-            {adults + children} 人
-          </span>
-        </div>
-        <Slider
-          value={[adults]}
-          min={1}
-          max={20}
-          step={1}
-          onValueChange={(v) => onAdultsChange(v[0])}
-          className="mt-1"
-        />
-        <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-          <span>1</span>
-          <span>10</span>
-          <span>20</span>
-        </div>
-      </div>
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium">大人</p>
@@ -198,10 +177,21 @@ const PortalSearchBar = ({
           </Button>
         </div>
       </div>
-      <p className="text-[11px] text-muted-foreground leading-relaxed pt-2 border-t border-border/40">
-        <Sparkles className="inline h-3 w-3 mr-1 -mt-0.5" style={{ color: "hsl(25, 70%, 50%)" }} />
-        系統會依人數自動推薦最少房間數
-      </p>
+      <div className="flex items-center justify-between pt-3 border-t border-border/40">
+        <div>
+          <p className="text-sm font-medium">房間數</p>
+          <p className="text-sm text-muted-foreground">入住房間數量</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" className="h-7 w-7 rounded-full" onClick={() => onRoomsChange(Math.max(1, rooms - 1))} disabled={rooms <= 1}>
+            <Minus className="h-3 w-3" />
+          </Button>
+          <span className="w-6 text-center text-sm font-medium">{rooms}</span>
+          <Button variant="outline" size="icon" className="h-7 w-7 rounded-full" onClick={() => onRoomsChange(Math.min(20, rooms + 1))} disabled={rooms >= 20}>
+            <Plus className="h-3 w-3" />
+          </Button>
+        </div>
+      </div>
     </div>
   );
 
