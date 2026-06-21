@@ -12,8 +12,15 @@ import RoomFilterBar, { type RoomFilters } from "@/components/booking-portal/Roo
 import { type RoomTypeResult } from "@/components/booking-portal/RoomTypeCard";
 import { isSensanAccommodation } from "@/lib/sensan-pricing";
 import { classifyDayTier } from "@/utils/templatePriceResolver";
+import {
+  detectTierByDate,
+  getPackagePriceForTier,
+  isPackageExcludedOnDate,
+  type AccommodationPackage,
+} from "@/hooks/use-accommodation-packages";
 import PortalSearchBar from "@/components/booking-portal/PortalSearchBar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+
 
 
 interface AccInfo {
