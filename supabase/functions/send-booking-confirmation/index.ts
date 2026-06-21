@@ -332,13 +332,14 @@ const handler = async (req: Request): Promise<Response> => {
                 </a>
               </div>
 
-              ${(accommodationPhone || accommodationLineId || accommodationEmail) ? `
+              ${(accommodationPhone || accommodationLineId || accommodationEmail || accommodationServiceHours) ? `
               <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #f97316;">
                 <p style="margin: 0 0 15px 0; font-weight: 600; color: #333;">如有任何疑問，歡迎透過下列方式與${accommodationName ? ` ${accommodationName} ` : '我們'}聯繫：</p>
                 <div style="color: #666; line-height: 1.8;">
                   ${accommodationPhone ? `<p style="margin: 8px 0;">📞 聯絡電話：<a href="tel:${accommodationPhone.replace(/[^+\d]/g, '')}" style="color: #f97316; text-decoration: none;">${accommodationPhone}</a></p>` : ''}
                   ${accommodationLineId ? `<p style="margin: 8px 0;">💬 LINE 官方帳號：<a href="https://line.me/R/ti/p/${accommodationLineId}" style="color: #f97316; text-decoration: none;">${accommodationLineId}</a></p>` : ''}
                   ${accommodationEmail ? `<p style="margin: 8px 0;">📧 電子郵件：<a href="mailto:${accommodationEmail}" style="color: #f97316; text-decoration: none;">${accommodationEmail}</a></p>` : ''}
+                  ${accommodationServiceHours ? `<p style="margin: 8px 0;">🕒 客服回覆時間：${accommodationServiceHours.replace(/</g, '&lt;')}</p>` : ''}
                 </div>
               </div>
               ` : ''}
