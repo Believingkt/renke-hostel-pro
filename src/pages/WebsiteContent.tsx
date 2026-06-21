@@ -485,6 +485,15 @@ const WebsiteContent = () => {
     otherSectionTitle: "其他注意事項",
     otherSectionSubtitle: ""
   });
+
+  // 訂房確認 Email 通知設定
+  const [emailNotification, setEmailNotification] = useState({
+    importantNotice: "",
+    contactPhone: "",
+    contactLineId: "",
+    contactEmail: "",
+    serviceHours: "",
+  });
   
   // 訂房設定驗證錯誤
   const [bookingErrors, setBookingErrors] = useState<Record<string, string>>({});
