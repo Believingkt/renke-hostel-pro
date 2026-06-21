@@ -570,8 +570,13 @@ const AdminPackages = () => {
             <p className="text-[11px] text-muted-foreground">
               建議比例 16:10，單張 ≤ 8MB。第 1 張將作為主圖預設顯示。
             </p>
-          </div>
         </div>
+
+        {/* 特色標籤設定 */}
+        {currentAccommodationId && (
+          <PortalFeatureTagsSection accommodationId={currentAccommodationId} />
+        )}
+      </div>
       </div>
 
 
