@@ -276,6 +276,7 @@ export type Database = {
           exclusive_room_breakdown: Json | null
           exclusive_total_rooms: number | null
           facebook_url: string | null
+          feature_tags_override: string[] | null
           footer_logo_url: string | null
           google_place_id: string | null
           google_reviews_cache: Json | null
@@ -348,6 +349,7 @@ export type Database = {
           exclusive_room_breakdown?: Json | null
           exclusive_total_rooms?: number | null
           facebook_url?: string | null
+          feature_tags_override?: string[] | null
           footer_logo_url?: string | null
           google_place_id?: string | null
           google_reviews_cache?: Json | null
@@ -420,6 +422,7 @@ export type Database = {
           exclusive_room_breakdown?: Json | null
           exclusive_total_rooms?: number | null
           facebook_url?: string | null
+          feature_tags_override?: string[] | null
           footer_logo_url?: string | null
           google_place_id?: string | null
           google_reviews_cache?: Json | null

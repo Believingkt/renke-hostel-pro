@@ -1,0 +1,1 @@
+ALTER TABLE public.accommodation_info ADD COLUMN IF NOT EXISTS feature_tags_override text[] NULL;

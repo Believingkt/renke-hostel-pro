@@ -18,6 +18,7 @@ import { SocialSharingSection } from "@/components/website-content/SocialSharing
 import { SeoSettingsSection } from "@/components/website-content/SeoSettingsSection";
 import { HeaderFooterSection } from "@/components/website-content/HeaderFooterSection";
 import { HomepageSectionsBlock } from "@/components/website-content/HomepageSectionsBlock";
+import { PortalFeatureTagsSection } from "@/components/website-content/PortalFeatureTagsSection";
 import { AddonPlansSection, AddonPlan } from "@/components/website-content/AddonPlansSection";
 import { CustomSectionsManager } from "@/components/website-content/CustomSectionsManager";
 
@@ -3012,7 +3013,10 @@ const WebsiteContent = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsContent value="basic-info" className="space-y-6">
           <PageHeader title="網頁設定" icon={Info} />
-          
+
+          {/* /booking 搜尋結果特色標籤覆寫 */}
+          {accommodationId && <PortalFeatureTagsSection accommodationId={accommodationId} />}
+
           {/* 首頁區塊顯示設定 - 獨立區塊，放在第一個位置 */}
           <HomepageSectionsBlock
             accommodationId={accommodationId}

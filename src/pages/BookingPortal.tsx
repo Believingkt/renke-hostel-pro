@@ -440,90 +440,17 @@ const BookingPortal = () => {
 
   const handleSearch = useCallback(async () => {
     setHasSearched(true);
+    const params = new URLSearchParams();
+    if (checkIn) params.set("checkIn", format(checkIn, "yyyy-MM-dd"));
+    if (checkOut) params.set("checkOut", format(checkOut, "yyyy-MM-dd"));
+    if (adults) params.set("adults", String(adults));
+    if (children) params.set("children", String(children));
+    if (rooms) params.set("rooms", String(rooms));
+    if (searchQuery.trim()) params.set("q", searchQuery.trim());
+    const qs = params.toString();
+    navigate(`/booking/search${qs ? `?${qs}` : ""}`);
+  }, [checkIn, checkOut, adults, children, rooms, searchQuery, navigate]);
 
-    if (!checkIn || !checkOut) return;
-
-    if (!isStayRangeAvailable(checkIn, checkOut)) {
-      toast({
-        title: "所選日期目前無法預訂",
-        description: "請改選連續有空房的入住與退房日期",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSearching(true);
-    try {
-      const stayDates = eachDayOfInterval({
-        start: checkIn,
-        end: addDays(checkOut, -1),
-      }).map((d) => format(d, "yyyy-MM-dd"));
-
-      const roomTypeIds = roomTypes.map((rt) => rt.id);
-
-      // Query inventory and pricing for all room types across stay dates
-      const { data: inventory } = await supabase
-        .from("room_inventory_pricing")
-        .select("room_type_id, date, available_rooms, is_available, price")
-        .in("room_type_id", roomTypeIds)
-        .in("date", stayDates);
-
-      // Group by room_type_id -> dates
-      const rtDateMap = new Map<string, Map<string, { available: number; isAvailable: boolean; price: number }>>();
-
-      inventory?.forEach((inv) => {
-        if (!rtDateMap.has(inv.room_type_id)) rtDateMap.set(inv.room_type_id, new Map());
-        rtDateMap.get(inv.room_type_id)!.set(inv.date, {
-          available: inv.available_rooms,
-          isAvailable: inv.is_available !== false,
-          price: inv.price,
-        });
-      });
-
-      // Update room types with availability info
-      setRoomTypes((prev) =>
-        prev.map((rt) => {
-          const dateMap = rtDateMap.get(rt.id);
-          if (!dateMap) {
-            return { ...rt, available_rooms: 0, date_price: null };
-          }
-
-          // Check all stay dates — need availability on every date
-          let minAvailable = Infinity;
-          let minPrice = Infinity;
-          let allAvailable = true;
-
-          for (const date of stayDates) {
-            const info = dateMap.get(date);
-            if (!info || !info.isAvailable || info.available <= 0) {
-              allAvailable = false;
-              break;
-            }
-            minAvailable = Math.min(minAvailable, info.available);
-            minPrice = Math.min(minPrice, info.price);
-          }
-
-          if (!allAvailable) {
-            return { ...rt, available_rooms: 0, date_price: null };
-          }
-
-          return {
-            ...rt,
-            available_rooms: minAvailable === Infinity ? 0 : minAvailable,
-            date_price: minPrice === Infinity ? null : minPrice,
-          };
-        })
-      );
-    } catch (error) {
-      console.error("Availability check failed:", error);
-    } finally {
-      setSearching(false);
-      // Scroll to results so the user sees the filter took effect
-      setTimeout(() => {
-        document.getElementById("room-list-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 50);
-    }
-  }, [checkIn, checkOut, isStayRangeAvailable, roomTypes]);
 
   const hasDateFilter = !!(checkIn && checkOut && hasSearched);
 
@@ -1346,65 +1273,6 @@ const BookingPortal = () => {
         );
       })()}
 
-      {/* ── Filters & Room Type List ── */}
-      <section id="room-list-section" className="max-w-7xl mx-auto px-3 sm:px-4 pb-12 sm:pb-16">
-        <div className="flex items-center justify-between mb-3 sm:mb-4">
-          <h2 className="text-lg sm:text-xl font-bold text-foreground">
-            {searchQuery
-              ? `「${searchQuery}」的搜尋結果`
-              : hasDateFilter
-              ? "可預訂房型"
-              : "所有房型"}
-          </h2>
-          <span className="text-sm text-muted-foreground">
-            {searching ? "搜尋中..." : `共 ${aggregatedAccs.length} 處民宿`}
-          </span>
-        </div>
-
-        {/* Filter Bar */}
-        <div className="mb-4">
-          <RoomFilterBar
-            filters={filters}
-            onFiltersChange={setFilters}
-            roomTypes={roomTypes}
-            accommodations={accommodations}
-          />
-        </div>
-
-        {filtered.length === 0 ? (
-          <div className="text-center py-20 text-muted-foreground">
-            <Search className="h-12 w-12 mx-auto mb-4 opacity-30" />
-            <p className="text-lg">
-              {hasDateFilter
-                ? "所選日期沒有可預訂的房型"
-                : "沒有找到符合條件的房型"}
-            </p>
-            <p className="text-sm mt-1">試試其他關鍵字或日期</p>
-            {hasActiveFilters && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-4"
-                onClick={clearFilters}
-              >
-                清除所有篩選
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div className="grid gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
-            {aggregatedAccs.map((card) => (
-              <AccommodationCard
-                key={card.id}
-                data={card}
-                onClick={() => handleAccClick(card.id)}
-                hasDateFilter={hasDateFilter}
-                nights={nights}
-              />
-            ))}
-          </div>
-        )}
-      </section>
 
       <BookingFooter />
       <MobileBottomNav />
