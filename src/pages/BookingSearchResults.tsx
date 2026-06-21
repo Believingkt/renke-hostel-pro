@@ -137,6 +137,38 @@ const BookingSearchResults = () => {
   });
   const [showFilters, setShowFilters] = useState(false);
 
+  // ── 編輯搜尋條件 Sheet ──
+  const [editOpen, setEditOpen] = useState(false);
+  const [editQ, setEditQ] = useState(q);
+  const [editCheckIn, setEditCheckIn] = useState<Date | undefined>(checkIn || undefined);
+  const [editCheckOut, setEditCheckOut] = useState<Date | undefined>(checkOut || undefined);
+  const [editAdults, setEditAdults] = useState(adults || 2);
+  const [editChildren, setEditChildren] = useState(childrenCount || 0);
+  const [editRooms, setEditRooms] = useState(roomsParam || 1);
+
+  const openEdit = useCallback(() => {
+    setEditQ(q);
+    setEditCheckIn(checkIn || undefined);
+    setEditCheckOut(checkOut || undefined);
+    setEditAdults(adults || 2);
+    setEditChildren(childrenCount || 0);
+    setEditRooms(roomsParam || 1);
+    setEditOpen(true);
+  }, [q, checkIn, checkOut, adults, childrenCount, roomsParam]);
+
+  const handleApplySearch = useCallback(() => {
+    const params = new URLSearchParams();
+    if (editCheckIn) params.set("checkIn", format(editCheckIn, "yyyy-MM-dd"));
+    if (editCheckOut) params.set("checkOut", format(editCheckOut, "yyyy-MM-dd"));
+    if (editAdults) params.set("adults", String(editAdults));
+    if (editChildren) params.set("children", String(editChildren));
+    if (editRooms) params.set("rooms", String(editRooms));
+    if (editQ.trim()) params.set("q", editQ.trim());
+    setSearchParams(params);
+    setEditOpen(false);
+  }, [editCheckIn, editCheckOut, editAdults, editChildren, editRooms, editQ, setSearchParams]);
+
+
   // ── 基本資料 ──
   useEffect(() => {
     let cancelled = false;
