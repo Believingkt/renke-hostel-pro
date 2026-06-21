@@ -126,6 +126,9 @@ const AdminPackages = () => {
     nearby_station: "",
     review_summary: "",
     rating_score: "" as string,
+    country: "",
+    region_1: "",
+    region_2: "",
   });
   const [cardPhotos, setCardPhotos] = useState<string[]>([]);
   const [cardSaving, setCardSaving] = useState(false);
@@ -142,7 +145,7 @@ const AdminPackages = () => {
 
     supabase
       .from("accommodation_info")
-      .select("nearby_station, review_summary, rating_score, search_card_photos")
+      .select("nearby_station, review_summary, rating_score, search_card_photos, country, region_1, region_2")
       .eq("id", currentAccommodationId)
       .maybeSingle()
       .then(({ data }) => {
@@ -151,6 +154,9 @@ const AdminPackages = () => {
           review_summary: (data as any)?.review_summary ?? "",
           rating_score:
             (data as any)?.rating_score != null ? String((data as any).rating_score) : "",
+          country: (data as any)?.country ?? "",
+          region_1: (data as any)?.region_1 ?? "",
+          region_2: (data as any)?.region_2 ?? "",
         });
         setCardPhotos(((data as any)?.search_card_photos as string[] | null) ?? []);
       });
