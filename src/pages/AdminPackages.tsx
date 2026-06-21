@@ -493,6 +493,83 @@ const AdminPackages = () => {
               maxLength={60}
             />
           </div>
+
+          {/* 圖卡圖片（最多 5 張，可滑動） */}
+          <div className="sm:col-span-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">
+                圖卡圖片（最多 5 張，會在搜尋結果中讓客人左右滑動）
+              </Label>
+              <span className="text-[11px] text-muted-foreground">
+                {cardPhotos.length} / 5
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {cardPhotos.map((url, i) => (
+                <div
+                  key={url + i}
+                  className="relative group w-24 h-24 sm:w-28 sm:h-28 rounded-md overflow-hidden border bg-muted"
+                >
+                  <img
+                    src={url}
+                    alt={`圖卡-${i + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <span className="absolute top-1 left-1 text-[10px] px-1 rounded bg-black/60 text-white">
+                    {i + 1}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => removeCardPhoto(i)}
+                    className="absolute top-1 right-1 p-0.5 rounded bg-black/60 text-white hover:bg-destructive"
+                    aria-label="刪除"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                  <div className="absolute bottom-1 left-1 right-1 flex justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      type="button"
+                      onClick={() => moveCardPhoto(i, -1)}
+                      disabled={i === 0}
+                      className="px-1.5 py-0.5 text-[10px] rounded bg-white/90 text-foreground disabled:opacity-30"
+                    >
+                      ←
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveCardPhoto(i, 1)}
+                      disabled={i === cardPhotos.length - 1}
+                      className="px-1.5 py-0.5 text-[10px] rounded bg-white/90 text-foreground disabled:opacity-30"
+                    >
+                      →
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {cardPhotos.length < 5 && (
+                <label
+                  className={`w-24 h-24 sm:w-28 sm:h-28 rounded-md border-2 border-dashed flex flex-col items-center justify-center gap-1 cursor-pointer text-muted-foreground hover:border-primary hover:text-primary transition-colors ${
+                    photoUploading ? "opacity-50 pointer-events-none" : ""
+                  }`}
+                >
+                  <ImagePlus className="h-5 w-5" />
+                  <span className="text-[11px]">
+                    {photoUploading ? "上傳中…" : "新增圖片"}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={handleCardPhotoUpload}
+                  />
+                </label>
+              )}
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              建議比例 16:10，單張 ≤ 8MB。第 1 張將作為主圖預設顯示。
+            </p>
+          </div>
         </div>
       </div>
 
