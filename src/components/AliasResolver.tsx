@@ -60,6 +60,14 @@ export function AliasResolver() {
   }
 
   if (status === "notfound") {
+    // 找不到對應 alias 時，去掉 alias 前綴回到原路徑
+    // 例：/:alias/admin 或 /unknownalias/admin → /admin
+    // 若 alias 後面沒有子路徑，才退回 /booking
+    const segments = location.pathname.split("/").filter(Boolean);
+    if (segments.length > 1) {
+      const rest = "/" + segments.slice(1).join("/");
+      return <Navigate to={`${rest}${location.search}${location.hash}`} replace />;
+    }
     return <Navigate to="/booking" replace />;
   }
 
