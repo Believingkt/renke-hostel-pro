@@ -441,27 +441,40 @@ const PortalSearchBar = ({
             </div>
           </div>
 
-          {/* Combined date range */}
-          <Popover open={dateOpenMobile} onOpenChange={setDateOpenMobile}>
-            <PopoverTrigger asChild>
+          {/* Combined date range - mobile bottom sheet */}
+          <Sheet open={dateOpenMobile} onOpenChange={setDateOpenMobile}>
+            <SheetTrigger asChild>
               <Button
                 variant="outline"
                 className={cn(
-                  "w-full h-11 justify-start text-left font-normal border-border text-base"
+                  "w-full h-12 justify-start text-left font-normal border-border text-base"
                 )}
               >
                 {isLoadingAvailability ? (
-                  <Loader2 className="mr-1.5 h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+                  <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
                 ) : (
-                  <CalendarDays className="mr-1.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                  <CalendarDays className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
                 )}
                 {renderRangeButtonContent(true)}
               </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="center">
-              {renderRangeCalendar(1)}
-            </PopoverContent>
-          </Popover>
+            </SheetTrigger>
+            <SheetContent
+              side="bottom"
+              className="p-0 rounded-t-2xl max-h-[90vh] overflow-y-auto"
+            >
+              {renderRangeCalendar(1, true)}
+              <div className="sticky bottom-0 bg-white border-t border-border/40 p-3">
+                <Button
+                  className="w-full h-12 rounded-lg text-white font-medium text-base"
+                  style={{ background: "hsl(25, 70%, 55%)" }}
+                  disabled={!checkIn || !checkOut}
+                  onClick={() => setDateOpenMobile(false)}
+                >
+                  {checkIn && checkOut ? `確認 · 共 ${nights} 晚` : "請選擇入住與退房日期"}
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
 
           {/* Guests + search */}
           <div className="flex gap-2">
