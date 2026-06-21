@@ -198,16 +198,36 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
               </p>
             )}
 
-            {/* 3. 房型名 + 房數 */}
+            {/* 3. 房型／方案：人數 · 包區 · 房間數 */}
             <p className="flex items-center gap-1 text-xs sm:text-[13px] text-muted-foreground line-clamp-1">
               <DoorOpen className="h-3.5 w-3.5 shrink-0 opacity-70" />
               <span className="truncate">
-                {data.name}
-                {data.room_count ? (
-                  <span className="opacity-80"> · 共 {data.room_count} 間</span>
-                ) : null}
+                {data.is_package ? (
+                  <>
+                    {data.capacity} 人{data.guest_count_max && data.guest_count_max > data.capacity ? "（含以下）" : ""}
+                    <span className="opacity-80"> · {data.unit_count ?? 1} 包區</span>
+                    {data.room_count ? (
+                      <span className="opacity-80"> · 共 {data.room_count} 間</span>
+                    ) : null}
+                  </>
+                ) : (
+                  <>
+                    {data.name}
+                    {data.room_count ? (
+                      <span className="opacity-80"> · 共 {data.room_count} 間</span>
+                    ) : null}
+                  </>
+                )}
               </span>
             </p>
+
+            {/* 3b. 房型分配 / 方案描述 */}
+            {data.is_package && data.room_allocation && (
+              <p className="text-xs sm:text-[13px] text-muted-foreground/90 line-clamp-1 pl-[18px]">
+                {data.room_allocation}
+              </p>
+            )}
+
 
             {/* 4. 簡易評論 */}
             {(data.rating || data.review_summary) && (
