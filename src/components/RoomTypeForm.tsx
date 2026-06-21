@@ -517,9 +517,10 @@ export function RoomTypeForm({ accommodationId, roomType, onSuccess, onCancel }:
         </CardContent>
       </Card>
 
-      {/* 房間單位管理：雲岫（散客房型）/ 天送幸福和苑（包含包棟單位） */}
+      {/* 房間單位管理：雲岫（散客房型）/ 奧莉薇雅（散客房型）/ 天送幸福和苑（包含包棟單位） */}
       {roomType?.id && (
         (accommodationId === "7690a606-6bac-4cd5-a3e7-2fa754b318e8" && !formData.is_exclusive_package) ||
+        (accommodationId === "74d064f4-1f8c-47e8-9be0-f0a596bbe6f8" && !formData.is_exclusive_package) ||
         accommodationId === "4ee31aca-5641-4d05-80e2-1c67626be83d"
       ) && (
         <RoomUnitsManager
