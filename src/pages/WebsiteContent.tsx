@@ -385,6 +385,62 @@ const SortableFeatureItem = ({ feature, index, onEdit, onDelete }: SortableFeatu
   );
 };
 
+interface SortableNoticeItemProps {
+  item: { id: string; text: string };
+  index: number;
+  onChange: (id: string, text: string) => void;
+  onDelete: (id: string) => void;
+}
+
+const SortableNoticeItem = ({ item, index, onChange, onDelete }: SortableNoticeItemProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-2 bg-background border rounded-md p-2">
+      <div
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded transition-colors flex-shrink-0"
+        aria-label="拖曳排序"
+      >
+        <GripVertical className="h-4 w-4 text-muted-foreground" />
+      </div>
+      <span className="text-xs text-muted-foreground w-6 text-center flex-shrink-0">{index + 1}.</span>
+      <Input
+        value={item.text}
+        onChange={(e) => onChange(item.id, e.target.value)}
+        placeholder="輸入提醒內容…"
+        className="flex-1"
+      />
+      <Button
+        type="button"
+        variant="ghost-destructive"
+        size="icon"
+        onClick={() => onDelete(item.id)}
+        className="h-9 w-9 flex-shrink-0"
+        aria-label="刪除此條"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+};
+
+
+
 const WebsiteContent = () => {
   const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
@@ -488,7 +544,7 @@ const WebsiteContent = () => {
 
   // 訂房確認 Email 通知設定
   const [emailNotification, setEmailNotification] = useState({
-    importantNotice: "",
+    importantNoticeItems: [] as Array<{ id: string; text: string }>,
     contactPhone: "",
     contactLineId: "",
     contactEmail: "",
@@ -1121,8 +1177,14 @@ const WebsiteContent = () => {
               .eq("id", accommodationId)
               .maybeSingle();
             if (accEmailData) {
+              const raw = (accEmailData as any).email_important_notice || "";
+              const items = raw
+                .split('\n')
+                .map((s: string) => s.trim())
+                .filter((s: string) => s.length > 0)
+                .map((text: string) => ({ id: crypto.randomUUID(), text }));
               setEmailNotification({
-                importantNotice: (accEmailData as any).email_important_notice || "",
+                importantNoticeItems: items,
                 contactPhone: accEmailData.phone || "",
                 contactLineId: accEmailData.line_id || "",
                 contactEmail: accEmailData.email || "",
@@ -1512,7 +1574,10 @@ const WebsiteContent = () => {
       const { error } = await supabase
         .from("accommodation_info")
         .update({
-          email_important_notice: emailNotification.importantNotice || null,
+          email_important_notice: emailNotification.importantNoticeItems
+            .map(i => i.text.trim())
+            .filter(t => t.length > 0)
+            .join('\n') || null,
           email_service_hours: emailNotification.serviceHours || null,
           phone: emailNotification.contactPhone || null,
           line_id: emailNotification.contactLineId || null,
@@ -4060,24 +4125,73 @@ const WebsiteContent = () => {
                 <div>
                   <CardTitle className="text-xl">⚠️ 重要提醒</CardTitle>
                   <CardDescription>
-                    將顯示在訂房確認 Email 的「重要提醒」區塊。每行一條提醒，未填寫則使用預設內容。
+                    將顯示在訂房確認 Email 的「重要提醒」區塊。可新增、刪除或拖曳重新排序；留空或全部刪除則整個區塊不會出現在信件中。
                   </CardDescription>
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
-              <Textarea
-                value={emailNotification.importantNotice}
-                onChange={(e) => setEmailNotification(prev => ({ ...prev, importantNotice: e.target.value }))}
-                placeholder={"請於入住日前確認訂單狀態\n如需取消或變更訂單，請盡早與我們聯繫\n入住時請攜帶有效身份證件"}
-                rows={6}
-                className="text-base"
-              />
-              <p className="text-xs text-muted-foreground mt-2">
-                提示：每行一條提醒；留空則整個「重要提醒」區塊將不會出現在信件中。
+            <CardContent className="space-y-3">
+              {emailNotification.importantNoticeItems.length === 0 ? (
+                <div className="text-sm text-muted-foreground text-center py-6 border border-dashed rounded-md">
+                  尚未新增任何提醒，按下方按鈕新增第一條。
+                </div>
+              ) : (
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={(event: DragEndEvent) => {
+                    const { active, over } = event;
+                    if (!over || active.id === over.id) return;
+                    setEmailNotification(prev => {
+                      const oldIndex = prev.importantNoticeItems.findIndex(i => i.id === active.id);
+                      const newIndex = prev.importantNoticeItems.findIndex(i => i.id === over.id);
+                      if (oldIndex < 0 || newIndex < 0) return prev;
+                      return { ...prev, importantNoticeItems: arrayMove(prev.importantNoticeItems, oldIndex, newIndex) };
+                    });
+                  }}
+                >
+                  <SortableContext
+                    items={emailNotification.importantNoticeItems.map(i => i.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="space-y-2">
+                      {emailNotification.importantNoticeItems.map((item, idx) => (
+                        <SortableNoticeItem
+                          key={item.id}
+                          item={item}
+                          index={idx}
+                          onChange={(id, text) => setEmailNotification(prev => ({
+                            ...prev,
+                            importantNoticeItems: prev.importantNoticeItems.map(i => i.id === id ? { ...i, text } : i),
+                          }))}
+                          onDelete={(id) => setEmailNotification(prev => ({
+                            ...prev,
+                            importantNoticeItems: prev.importantNoticeItems.filter(i => i.id !== id),
+                          }))}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEmailNotification(prev => ({
+                  ...prev,
+                  importantNoticeItems: [...prev.importantNoticeItems, { id: crypto.randomUUID(), text: "" }],
+                }))}
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                新增提醒
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                提示：空白條目會在儲存時自動過濾，不會出現在信件中。
               </p>
             </CardContent>
           </Card>
+
 
           <Card>
             <CardHeader className="pb-4">
