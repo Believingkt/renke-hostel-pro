@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Users, BedDouble, Maximize2 } from "lucide-react";
+import { MapPin, Users, BedDouble, Maximize2, TrainFront, Star, DoorOpen } from "lucide-react";
 
 export interface SearchRoomCardData {
   id: string;
@@ -13,6 +13,14 @@ export interface SearchRoomCardData {
   photo_url: string | null;
   capacity: number;
   size_sqm: number | null;
+  /** 此房型總房數 */
+  room_count: number | null;
+  /** 鄰近車站（可選） */
+  nearby_station?: string | null;
+  /** 簡易評論摘要（可選） */
+  review_summary?: string | null;
+  /** 評分（可選，0-5） */
+  rating?: number | null;
   /** 每晚單價（已依日期 / template 解出） */
   nightly_price: number | null;
   /** 總價（nightly × nights） */
@@ -102,19 +110,66 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
       </div>
 
       {/* 資訊區 */}
-      <div className="p-3.5 sm:p-4 space-y-2">
+      <div className="p-3.5 sm:p-4">
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
+          {/* 左欄：民宿資訊 */}
+          <div className="min-w-0 flex-1 space-y-1">
+            {/* 1. 民宿名稱 */}
             <h3 className="font-bold text-base sm:text-lg text-foreground leading-tight line-clamp-1">
-              {data.name}
-            </h3>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 line-clamp-1">
               {data.accommodation_name}
-              {location && <span className="opacity-70"> · {location}</span>}
+            </h3>
+
+            {/* 2. 位置 + 鄰近車站 */}
+            {(location || data.nearby_station) && (
+              <p className="flex items-center gap-1 text-xs sm:text-[13px] text-muted-foreground line-clamp-1">
+                <MapPin className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                <span className="truncate">
+                  {location}
+                  {data.nearby_station && (
+                    <span className="opacity-80">
+                      {location ? " · " : ""}
+                      <TrainFront className="inline h-3 w-3 -mt-0.5 mr-0.5 opacity-70" />
+                      {data.nearby_station}
+                    </span>
+                  )}
+                </span>
+              </p>
+            )}
+
+            {/* 3. 房型名 + 房數 */}
+            <p className="flex items-center gap-1 text-xs sm:text-[13px] text-muted-foreground line-clamp-1">
+              <DoorOpen className="h-3.5 w-3.5 shrink-0 opacity-70" />
+              <span className="truncate">
+                {data.name}
+                {data.room_count ? (
+                  <span className="opacity-80"> · 共 {data.room_count} 間</span>
+                ) : null}
+              </span>
             </p>
+
+            {/* 4. 簡易評論 */}
+            {(data.rating || data.review_summary) && (
+              <p className="flex items-center gap-1 text-xs sm:text-[13px] text-muted-foreground line-clamp-1">
+                {data.rating ? (
+                  <span
+                    className="inline-flex items-center gap-0.5 font-semibold"
+                    style={{ color: "hsl(38, 85%, 50%)" }}
+                  >
+                    <Star className="h-3.5 w-3.5 fill-current" />
+                    {data.rating.toFixed(1)}
+                  </span>
+                ) : null}
+                {data.review_summary && (
+                  <span className="truncate opacity-80">
+                    {data.rating ? " · " : ""}
+                    {data.review_summary}
+                  </span>
+                )}
+              </p>
+            )}
           </div>
 
-          {/* 價格區 */}
+          {/* 右欄：價格區 */}
           <div className="text-right shrink-0">
             {data.sold_out || data.nightly_price == null ? (
               <p className="text-xs text-muted-foreground">價格電洽</p>
@@ -149,8 +204,8 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
           </div>
         </div>
 
-        {/* meta：人數 / 坪數 / 地區 */}
-        <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        {/* meta：人數 / 坪數 */}
+        <div className="mt-2 flex items-center flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
             <Users className="h-3.5 w-3.5" />
             {data.capacity} 人
@@ -161,12 +216,6 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
               {data.size_sqm} 坪
             </span>
           ) : null}
-          {location && (
-            <span className="hidden sm:flex items-center gap-1">
-              <MapPin className="h-3.5 w-3.5" />
-              {location}
-            </span>
-          )}
         </div>
       </div>
     </article>
