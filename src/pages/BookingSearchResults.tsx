@@ -626,7 +626,33 @@ const BookingSearchResults = () => {
 
       <BookingFooter />
       <MobileBottomNav />
+
+      <Sheet open={editOpen} onOpenChange={setEditOpen}>
+        <SheetContent side="top" className="p-0 max-h-[95vh] overflow-y-auto">
+          <SheetHeader className="px-4 pt-4 pb-2">
+            <SheetTitle className="text-left">修改搜尋條件</SheetTitle>
+          </SheetHeader>
+          <div className="px-3 pb-4">
+            <PortalSearchBar
+              searchQuery={editQ}
+              onSearchQueryChange={setEditQ}
+              checkIn={editCheckIn}
+              checkOut={editCheckOut}
+              onCheckInChange={setEditCheckIn}
+              onCheckOutChange={setEditCheckOut}
+              adults={editAdults}
+              onAdultsChange={setEditAdults}
+              children={editChildren}
+              onChildrenChange={setEditChildren}
+              rooms={editRooms}
+              onRoomsChange={setEditRooms}
+              onSearch={handleApplySearch}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
+
   );
 };
 
