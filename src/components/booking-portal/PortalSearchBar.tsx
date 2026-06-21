@@ -147,6 +147,12 @@ const PortalSearchBar = ({
 
   const renderGuestPicker = () => (
     <div className="space-y-4">
+      <div className="flex items-center justify-between pb-3 border-b border-border/40">
+        <p className="text-sm font-medium">總人數</p>
+        <span className="text-sm font-semibold" style={{ color: "hsl(25, 70%, 45%)" }}>
+          {adults + children} 人
+        </span>
+      </div>
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium">大人</p>
