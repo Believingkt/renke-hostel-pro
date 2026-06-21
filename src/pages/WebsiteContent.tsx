@@ -385,6 +385,62 @@ const SortableFeatureItem = ({ feature, index, onEdit, onDelete }: SortableFeatu
   );
 };
 
+interface SortableNoticeItemProps {
+  item: { id: string; text: string };
+  index: number;
+  onChange: (id: string, text: string) => void;
+  onDelete: (id: string) => void;
+}
+
+const SortableNoticeItem = ({ item, index, onChange, onDelete }: SortableNoticeItemProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-2 bg-background border rounded-md p-2">
+      <div
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded transition-colors flex-shrink-0"
+        aria-label="拖曳排序"
+      >
+        <GripVertical className="h-4 w-4 text-muted-foreground" />
+      </div>
+      <span className="text-xs text-muted-foreground w-6 text-center flex-shrink-0">{index + 1}.</span>
+      <Input
+        value={item.text}
+        onChange={(e) => onChange(item.id, e.target.value)}
+        placeholder="輸入提醒內容…"
+        className="flex-1"
+      />
+      <Button
+        type="button"
+        variant="ghost-destructive"
+        size="icon"
+        onClick={() => onDelete(item.id)}
+        className="h-9 w-9 flex-shrink-0"
+        aria-label="刪除此條"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+};
+
+
+
 const WebsiteContent = () => {
   const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
