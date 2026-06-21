@@ -284,7 +284,7 @@ const PortalSearchBar = ({
     </div>
   );
 
-  const renderRangeCalendar = (numberOfMonths: number) => (
+  const renderRangeCalendar = (numberOfMonths: number, mobile = false) => (
     <>
       {renderRangeCalendarHeader()}
       <Calendar
@@ -294,9 +294,12 @@ const PortalSearchBar = ({
         disabled={rangeDayDisabled}
         defaultMonth={checkIn || today}
         numberOfMonths={numberOfMonths}
-        className={cn("p-3 pointer-events-auto")}
+        className={cn(
+          "pointer-events-auto",
+          mobile ? "p-2 w-full [&_table]:w-full [&_td]:p-0 [&_th]:w-[14.28%] [&_td]:w-[14.28%] [&_[role=gridcell]>button]:h-11 [&_[role=gridcell]>button]:w-full [&_[role=gridcell]>button]:text-[15px] [&_caption_label]:text-base" : "p-3"
+        )}
       />
-      <div className="flex items-center justify-between px-3 pb-3 pt-1">
+      <div className="flex items-center justify-between px-4 pb-3 pt-1">
         <p className="text-xs text-muted-foreground">
           {availableDateSet ? "僅可選擇連續有空房的日期" : "點選入住，再點選退房"}
         </p>
