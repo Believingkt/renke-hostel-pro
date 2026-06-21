@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { Globe, Plus, Trash2, Edit2, GripVertical, MapPin, Image as ImageIcon, Upload, Info, Wrench, Package, HelpCircle, Navigation, icons, AlertCircle, BookOpen, Home, Clock, Star } from "lucide-react";
+import { Globe, Plus, Trash2, Edit2, GripVertical, MapPin, Image as ImageIcon, Upload, Info, Wrench, Package, HelpCircle, Navigation, icons, AlertCircle, BookOpen, Home, Clock, Star, Mail, Phone, MessageCircle } from "lucide-react";
 import { invalidateAccommodationCache } from "@/hooks/use-accommodation-cache";
 import {
   Breadcrumb,
@@ -404,6 +404,7 @@ const WebsiteContent = () => {
       'gallery': '精選照片',
       'booking-info': '訂房須知',
       'faq': '常見問題',
+      'email-notification': '訂房確認通知',
       'location': '交通地圖',
       'reviews': 'Google 評論'
     };
@@ -483,6 +484,15 @@ const WebsiteContent = () => {
     petSectionSubtitle: "",
     otherSectionTitle: "其他注意事項",
     otherSectionSubtitle: ""
+  });
+
+  // 訂房確認 Email 通知設定
+  const [emailNotification, setEmailNotification] = useState({
+    importantNotice: "",
+    contactPhone: "",
+    contactLineId: "",
+    contactEmail: "",
+    serviceHours: "",
   });
   
   // 訂房設定驗證錯誤
@@ -1104,6 +1114,25 @@ const WebsiteContent = () => {
             if (faqData) setFaqs(faqData);
             break;
 
+          case 'email-notification': {
+            const { data: accEmailData } = await supabase
+              .from("accommodation_info")
+              .select("phone, email, line_id, email_important_notice, email_service_hours")
+              .eq("id", accommodationId)
+              .maybeSingle();
+            if (accEmailData) {
+              setEmailNotification({
+                importantNotice: (accEmailData as any).email_important_notice || "",
+                contactPhone: accEmailData.phone || "",
+                contactLineId: accEmailData.line_id || "",
+                contactEmail: accEmailData.email || "",
+                serviceHours: (accEmailData as any).email_service_hours || "",
+              });
+            }
+            break;
+          }
+
+
           case 'location':
             // 重新載入交通地圖資料
             const { data: locationData } = await supabase
@@ -1472,6 +1501,36 @@ const WebsiteContent = () => {
       toast.error('儲存自訂區塊失敗');
     }
   };
+
+  const handleSaveEmailNotification = async () => {
+    if (!accommodationId) {
+      toast.error('找不到旅宿資訊');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from("accommodation_info")
+        .update({
+          email_important_notice: emailNotification.importantNotice || null,
+          email_service_hours: emailNotification.serviceHours || null,
+          phone: emailNotification.contactPhone || null,
+          line_id: emailNotification.contactLineId || null,
+          email: emailNotification.contactEmail || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", accommodationId);
+      if (error) throw error;
+      if (accommodationId) invalidateAccommodationCache(accommodationId);
+      toast.success('訂房確認通知設定已儲存');
+    } catch (error) {
+      if (import.meta.env.DEV) console.error('Error saving email notification:', error);
+      toast.error('儲存失敗，請稍後再試');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
 
   // 訂房設定單一欄位驗證
   const validateBookingField = (fieldName: string, value: string) => {
@@ -3990,6 +4049,105 @@ const WebsiteContent = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="email-notification" className="space-y-6">
+          <PageHeader title="訂房確認通知" icon={Mail} />
+
+          <Card>
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-1.5 bg-primary rounded-full" />
+                <div>
+                  <CardTitle className="text-xl">⚠️ 重要提醒</CardTitle>
+                  <CardDescription>
+                    將顯示在訂房確認 Email 的「重要提醒」區塊。每行一條提醒，未填寫則使用預設內容。
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                value={emailNotification.importantNotice}
+                onChange={(e) => setEmailNotification(prev => ({ ...prev, importantNotice: e.target.value }))}
+                placeholder={"請於入住日前確認訂單狀態\n如需取消或變更訂單，請盡早與我們聯繫\n入住時請攜帶有效身份證件"}
+                rows={6}
+                className="text-base"
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                提示：每行一條提醒；留空則整個「重要提醒」區塊將不會出現在信件中。
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-1.5 bg-primary rounded-full" />
+                <div>
+                  <CardTitle className="text-xl">📞 聯絡方式</CardTitle>
+                  <CardDescription>
+                    顯示在 Email 底部的聯絡資訊。未填寫的欄位不會出現在信件中；若全部留空，整個聯絡區塊將被隱藏。
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-base font-medium flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-primary" />
+                  聯絡電話
+                </Label>
+                <Input
+                  value={emailNotification.contactPhone}
+                  onChange={(e) => setEmailNotification(prev => ({ ...prev, contactPhone: e.target.value }))}
+                  placeholder="例如：03-1234567"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-base font-medium flex items-center gap-2">
+                  <MessageCircle className="h-4 w-4 text-primary" />
+                  LINE 官方帳號
+                </Label>
+                <Input
+                  value={emailNotification.contactLineId}
+                  onChange={(e) => setEmailNotification(prev => ({ ...prev, contactLineId: e.target.value }))}
+                  placeholder="例如：@yourhotel"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-base font-medium flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-primary" />
+                  電子郵件
+                </Label>
+                <Input
+                  type="email"
+                  value={emailNotification.contactEmail}
+                  onChange={(e) => setEmailNotification(prev => ({ ...prev, contactEmail: e.target.value }))}
+                  placeholder="例如：hello@example.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-base font-medium flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-primary" />
+                  客服回覆時間
+                </Label>
+                <Input
+                  value={emailNotification.serviceHours}
+                  onChange={(e) => setEmailNotification(prev => ({ ...prev, serviceHours: e.target.value }))}
+                  placeholder="例如：每日 09:00 - 21:00"
+                />
+                <p className="text-xs text-muted-foreground">未填寫則此欄位不會出現在信件中。</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <SaveButtonContainer
+            onSave={handleSaveEmailNotification}
+            isSaving={isSaving}
+            saveText="儲存變更"
+          />
+        </TabsContent>
+
 
         <TabsContent value="location" className="space-y-6">
           <PageHeader title="交通地圖" icon={Navigation} />

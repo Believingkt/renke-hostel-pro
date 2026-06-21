@@ -23,16 +23,20 @@ serve(async (req) => {
     let accommodationPhone = '';
     let accommodationEmail = '';
     let accommodationLineId = '';
+    let accommodationImportantNotice = '';
+    let accommodationServiceHours = '';
     if (accommodationId) {
       const { data: acc } = await supabase
         .from('accommodation_info')
-        .select('name, phone, email, line_id')
+        .select('name, phone, email, line_id, email_important_notice, email_service_hours')
         .eq('id', accommodationId)
         .single();
       accommodationName = acc?.name || '';
       accommodationPhone = acc?.phone || '';
       accommodationEmail = acc?.email || '';
       accommodationLineId = acc?.line_id || '';
+      accommodationImportantNotice = (acc as any)?.email_important_notice || '';
+      accommodationServiceHours = (acc as any)?.email_service_hours || '';
     }
 
     // Sample data
@@ -115,30 +119,36 @@ serve(async (req) => {
           
         </table>
       </div>
+      ${(() => {
+        const noticeLines = accommodationImportantNotice
+          ? accommodationImportantNotice.split('\n').map(s => s.trim()).filter(Boolean)
+          : ['請於入住日前確認訂單狀態', '如需取消或變更訂單，請盡早與我們聯繫', '入住時請攜帶有效身份證件'];
+        if (noticeLines.length === 0) return '';
+        return `
       <div class="notice">
         <strong style="color: #856404;">⚠️ 重要提醒</strong>
         <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #856404;">
-          <li>請於入住日前確認訂單狀態</li>
-          <li>如需取消或變更訂單，請盡早與我們聯繫</li>
-          <li>入住時請攜帶有效身份證件</li>
+          ${noticeLines.map(l => `<li>${l.replace(/</g, '&lt;')}</li>`).join('')}
         </ul>
-      </div>
+      </div>`;
+      })()}
       <div style="margin-top: 30px; padding: 25px; background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); border-radius: 12px; border: 2px solid #f97316; text-align: center;">
         <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: 700; color: #f97316;">📋 查詢訂單資訊</p>
         <p style="margin: 0 0 20px 0; color: #666; font-size: 14px;">您可以隨時透過以下連結查詢您的訂單狀態、付款記錄及住宿詳情</p>
         <a href="https://booking.lakeze.com/member/orders" style="display: inline-block; padding: 14px 40px; background: linear-gradient(135deg, #f97316 0%, #fb923c 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">🔍 立即查詢訂單</a>
       </div>
-      ${(accommodationPhone || accommodationLineId || accommodationEmail) ? `
+      ${(accommodationPhone || accommodationLineId || accommodationEmail || accommodationServiceHours) ? `
       <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #f97316;">
         <p style="margin: 0 0 15px 0; font-weight: 600; color: #333;">如有任何疑問，歡迎透過下列方式與${accommodationName ? ` ${accommodationName} ` : '我們'}聯繫：</p>
         <div style="color: #666; line-height: 1.8;">
           ${accommodationPhone ? `<p style="margin: 8px 0;">📞 聯絡電話：<a href="tel:${accommodationPhone.replace(/[^+\d]/g, '')}" style="color: #f97316; text-decoration: none;">${accommodationPhone}</a></p>` : ''}
           ${accommodationLineId ? `<p style="margin: 8px 0;">💬 LINE 官方帳號：<a href="https://line.me/R/ti/p/${accommodationLineId}" style="color: #f97316; text-decoration: none;">${accommodationLineId}</a></p>` : ''}
           ${accommodationEmail ? `<p style="margin: 8px 0;">📧 電子郵件：<a href="mailto:${accommodationEmail}" style="color: #f97316; text-decoration: none;">${accommodationEmail}</a></p>` : ''}
+          ${accommodationServiceHours ? `<p style="margin: 8px 0;">🕒 客服回覆時間：${accommodationServiceHours.replace(/</g, '&lt;')}</p>` : ''}
         </div>
       </div>` : `
       <div style="margin-top: 30px; padding: 16px; background: #fef3c7; border-radius: 8px; color: #92400e; font-size: 14px;">
-        ⚠️ 此民宿尚未在 accommodation_info 設定 phone / email / line_id，正式信件不會出現聯絡區塊。
+        ⚠️ 此民宿尚未在「官網內容 → 訂房確認通知」設定聯絡方式，正式信件不會出現聯絡區塊。
       </div>`}
       <p style="margin-top: 20px; font-size: 16px; font-weight: 500; color: #f97316;">期待您的光臨！</p>
     </div>

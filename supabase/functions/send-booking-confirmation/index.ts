@@ -138,16 +138,20 @@ const handler = async (req: Request): Promise<Response> => {
     let accommodationPhone = '';
     let accommodationEmail = '';
     let accommodationLineId = '';
+    let accommodationImportantNotice = '';
+    let accommodationServiceHours = '';
     if (order?.accommodation_id) {
       const { data: acc } = await supabase
         .from('accommodation_info')
-        .select('name, phone, email, line_id')
+        .select('name, phone, email, line_id, email_important_notice, email_service_hours')
         .eq('id', order.accommodation_id)
         .single();
       accommodationName = acc?.name || '';
       accommodationPhone = acc?.phone || '';
       accommodationEmail = acc?.email || '';
       accommodationLineId = acc?.line_id || '';
+      accommodationImportantNotice = (acc as any)?.email_important_notice || '';
+      accommodationServiceHours = (acc as any)?.email_service_hours || '';
     }
     
     if (orderError || !order) {
@@ -303,14 +307,19 @@ const handler = async (req: Request): Promise<Response> => {
                 </table>
               </div>
 
+              ${(() => {
+                const noticeLines = accommodationImportantNotice
+                  ? accommodationImportantNotice.split('\n').map(s => s.trim()).filter(Boolean)
+                  : ['請於入住日前確認訂單狀態', '如需取消或變更訂單，請盡早與我們聯繫', '入住時請攜帶有效身份證件'];
+                if (noticeLines.length === 0) return '';
+                return `
               <div class="notice">
                 <strong style="color: #856404;">⚠️ 重要提醒</strong>
                 <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #856404;">
-                  <li>請於入住日前確認訂單狀態</li>
-                  <li>如需取消或變更訂單，請盡早與我們聯繫</li>
-                  <li>入住時請攜帶有效身份證件</li>
+                  ${noticeLines.map(l => `<li>${l.replace(/</g, '&lt;')}</li>`).join('')}
                 </ul>
-              </div>
+              </div>`;
+              })()}
 
               <div style="margin-top: 30px; padding: 25px; background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); border-radius: 12px; border: 2px solid #f97316; text-align: center;">
                 <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: 700; color: #f97316;">📋 查詢訂單資訊</p>
@@ -323,13 +332,14 @@ const handler = async (req: Request): Promise<Response> => {
                 </a>
               </div>
 
-              ${(accommodationPhone || accommodationLineId || accommodationEmail) ? `
+              ${(accommodationPhone || accommodationLineId || accommodationEmail || accommodationServiceHours) ? `
               <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #f97316;">
                 <p style="margin: 0 0 15px 0; font-weight: 600; color: #333;">如有任何疑問，歡迎透過下列方式與${accommodationName ? ` ${accommodationName} ` : '我們'}聯繫：</p>
                 <div style="color: #666; line-height: 1.8;">
                   ${accommodationPhone ? `<p style="margin: 8px 0;">📞 聯絡電話：<a href="tel:${accommodationPhone.replace(/[^+\d]/g, '')}" style="color: #f97316; text-decoration: none;">${accommodationPhone}</a></p>` : ''}
                   ${accommodationLineId ? `<p style="margin: 8px 0;">💬 LINE 官方帳號：<a href="https://line.me/R/ti/p/${accommodationLineId}" style="color: #f97316; text-decoration: none;">${accommodationLineId}</a></p>` : ''}
                   ${accommodationEmail ? `<p style="margin: 8px 0;">📧 電子郵件：<a href="mailto:${accommodationEmail}" style="color: #f97316; text-decoration: none;">${accommodationEmail}</a></p>` : ''}
+                  ${accommodationServiceHours ? `<p style="margin: 8px 0;">🕒 客服回覆時間：${accommodationServiceHours.replace(/</g, '&lt;')}</p>` : ''}
                 </div>
               </div>
               ` : ''}
