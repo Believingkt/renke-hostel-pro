@@ -151,8 +151,8 @@ const BookingPortal = () => {
     d.setDate(d.getDate() + 1);
     return d;
   }, [tomorrow]);
-  const [checkIn, setCheckIn] = useState<Date | undefined>(tomorrow);
-  const [checkOut, setCheckOut] = useState<Date | undefined>(dayAfterTomorrow);
+  const [checkIn, setCheckIn] = useState<Date | undefined>(undefined);
+  const [checkOut, setCheckOut] = useState<Date | undefined>(undefined);
   const [searching, setSearching] = useState(false);
   const [adults, setAdults] = useState(12);
   const [children, setChildren] = useState(0);

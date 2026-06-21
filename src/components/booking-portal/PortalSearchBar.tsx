@@ -99,18 +99,39 @@ const PortalSearchBar = ({
     ? { from: checkIn, to: checkOut }
     : undefined;
 
-  const handleRangeSelect = (range: DateRange | undefined) => {
-    if (!range) {
-      onCheckInChange(undefined);
+  const handleRangeSelect = (
+    range: DateRange | undefined,
+    selectedDay?: Date
+  ) => {
+    // Case A: 已選完入住+退房，再點任何一天 → 以該天為新的入住，重新選
+    if (checkIn && checkOut && selectedDay) {
+      onCheckInChange(selectedDay);
       onCheckOutChange(undefined);
       return;
     }
+
+    if (!range) {
+      // 取消（例如點到同一天）→ 若有 selectedDay 視為新入住
+      if (selectedDay) {
+        onCheckInChange(selectedDay);
+        onCheckOutChange(undefined);
+      } else {
+        onCheckInChange(undefined);
+        onCheckOutChange(undefined);
+      }
+      return;
+    }
+
     const { from, to } = range;
+
+    // Case B: 只有入住，沒有退房 → 保持開啟，等使用者再點退房
     if (from && !to) {
       onCheckInChange(from);
       onCheckOutChange(undefined);
       return;
     }
+
+    // Case C: 入住 + 退房都有
     if (from && to) {
       if (to <= from) {
         onCheckInChange(from);
@@ -129,7 +150,7 @@ const PortalSearchBar = ({
       }
       onCheckInChange(from);
       onCheckOutChange(to);
-      // Auto close after a moment
+      // 兩個日期都選完才關閉
       setTimeout(() => {
         setDateOpen(false);
         setDateOpenMobile(false);
