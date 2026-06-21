@@ -27,6 +27,7 @@ import TeamAuth from "./pages/TeamAuth";
 
 // 平台入口 & 會員頁面 - lazy load
 const BookingPortal = lazy(() => import("./pages/BookingPortal"));
+const BookingSearchResults = lazy(() => import("./pages/BookingSearchResults"));
 const BookingAccommodation = lazy(() => import("./pages/BookingAccommodation"));
 const BookingVilla = lazy(() => import("./pages/BookingVilla"));
 const VillaLanding = lazy(() => import("./pages/VillaLanding"));
@@ -152,6 +153,9 @@ function App() {
                     {/* 平台入口 & 會員頁面 */}
                     <Route path="booking" element={
                       <Suspense fallback={null}><BookingPortal /></Suspense>
+                    } />
+                    <Route path="booking/search" element={
+                      <Suspense fallback={<FrontendSkeleton />}><BookingSearchResults /></Suspense>
                     } />
                     <Route path="booking/villa/:accId" element={
                       <Suspense fallback={<FrontendSkeleton />}><BookingVilla /></Suspense>
