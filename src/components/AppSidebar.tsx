@@ -35,7 +35,8 @@ import {
   Star,
   ConciergeBell,
   Plug,
-  FileText
+  FileText,
+  Mail
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { PreloadLink } from "@/components/PreloadLink";
