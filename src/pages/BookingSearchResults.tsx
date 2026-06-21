@@ -365,6 +365,12 @@ const BookingSearchResults = () => {
         region_2: acc.region_2,
         country: acc.country,
         photo_url: rt.photo_url,
+        photo_urls:
+          acc.search_card_photos && acc.search_card_photos.length > 0
+            ? acc.search_card_photos
+            : rt.photo_url
+            ? [rt.photo_url]
+            : [],
         capacity: rt.capacity,
         size_sqm: rt.size_sqm,
         room_count: rt.room_count ?? null,
