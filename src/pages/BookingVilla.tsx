@@ -1019,6 +1019,9 @@ const BookingVilla = () => {
           <FaqSection accommodationId={info.id} />
         )}
 
+        {/* ── 12. Similar stays ── */}
+        <SimilarStaysCarousel excludeId={info.id} region={region} />
+
         {/* Contact callout */}
         {info.phone && (
           <section className="px-4 py-4">
