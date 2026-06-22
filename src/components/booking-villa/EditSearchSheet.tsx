@@ -167,6 +167,7 @@ const EditSearchSheet = ({
                 }}
                 numberOfMonths={1}
                 locale={zhTW}
+                weekStartsOn={0}
                 disabled={(d) => {
                   if (d < today) return true;
                   if (availableDates) {
