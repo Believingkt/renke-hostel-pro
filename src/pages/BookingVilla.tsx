@@ -940,20 +940,22 @@ const BookingVilla = () => {
                 const tierPkgs = visiblePackages.filter((p) => p.applicable_tiers.includes(tier));
                 if (tierPkgs.length > 0) candidatePkgs = tierPkgs;
               }
-              // 依搜尋人數挑選符合的方案（取容量 >= 搜尋人數中最小者）
+              // 依搜尋人數挑選符合的方案：
+              // 1) 取容量 >= 搜尋人數中最小者；
+              // 2) 若搜尋人數超過所有方案容量，則取最大容量的方案（與上方 Tab 行為一致）。
               const searchAdults = Math.max(1, parseInt(searchParams.get("adults") || "0", 10) || 0);
               const searchChildren = Math.max(0, parseInt(searchParams.get("children") || "0", 10) || 0);
               const totalGuests = searchAdults + searchChildren;
               const fitPkgs = candidatePkgs.filter((p) => (p.guest_count ?? 0) >= totalGuests);
               const pickFrom = fitPkgs.length > 0
                 ? fitPkgs.reduce((min, p) => (p.guest_count < min.guest_count ? p : min), fitPkgs[0])
-                : null;
+                : (candidatePkgs.length > 0
+                    ? candidatePkgs.reduce((max, p) => ((p.guest_count ?? 0) > (max.guest_count ?? 0) ? p : max), candidatePkgs[0])
+                    : null);
               const cheapestPkg = pickFrom
                 ? candidatePkgs.filter((p) => p.guest_count === pickFrom.guest_count)
                     .reduce((min, p) => (p.sale_price < min.sale_price ? p : min), pickFrom)
-                : (candidatePkgs.length > 0
-                    ? candidatePkgs.reduce((min, p) => (p.sale_price < min.sale_price ? p : min), candidatePkgs[0])
-                    : null);
+                : null;
 
               const pkgMin = cheapestPkg?.sale_price ?? null;
               const roomMin = (secondaryData?.roomTypes?.length || 0) > 0
