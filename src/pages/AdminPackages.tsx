@@ -47,6 +47,7 @@ import { PortalFeatureTagsSection } from "@/components/website-content/PortalFea
 interface RoomTypeOption {
   id: string;
   name: string;
+  capacity?: number;
 }
 
 const TIER_OPTIONS: { value: PackageTier; label: string }[] = [
