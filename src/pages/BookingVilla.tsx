@@ -979,15 +979,23 @@ const BookingVilla = () => {
             <FacilitiesSection facilities={secondaryData!.facilities} />
           )}
 
-        {/* ── 8. Location ── */}
+        {/* ── 8. Location ── Trip.com 風格 compact + 完整 LocationSection（桌機詳細區） ── */}
         {info.show_location_section !== false && (
-          <div id="location">
-            <LocationSection
+          <>
+            <VillaLocationCompact
               address={info.address}
               locationInfo={secondaryData?.locationInfo}
+              rating={extras?.googleRating ?? null}
             />
-          </div>
+            <div className="hidden md:block">
+              <LocationSection
+                address={info.address}
+                locationInfo={secondaryData?.locationInfo}
+              />
+            </div>
+          </>
         )}
+
 
         {/* ── 9. Booking Info / 須知 ── */}
         {info.show_booking_info_section !== false && (
