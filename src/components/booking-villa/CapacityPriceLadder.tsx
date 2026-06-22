@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import PackagePhotoCarousel from "./PackagePhotoCarousel";
 import {
@@ -281,39 +281,13 @@ const CapacityPriceLadder = ({
 
         return (
           <div className="space-y-4">
-            {/* 人數 Tab */}
-            <div className="flex items-center gap-0 px-1 overflow-x-auto no-scrollbar">
-              {allTiers.map((t, idx) => {
-                const isActive = t.guestCount === activeTier_.guestCount;
-                return (
-                  <div key={`${t.guestCount}-${t.planName || ""}`} className="flex items-center">
-                    {idx > 0 && (
-                      <span className="px-1.5 text-muted-foreground/60 text-[14px]">/</span>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setSelectedGuest(t.guestCount)}
-                      className={cn(
-                        "relative px-3.5 py-1.5 text-[15px] font-bold whitespace-nowrap transition-colors",
-                        isActive ? "text-white" : "text-muted-foreground hover:text-foreground"
-                      )}
-                      style={
-                        isActive
-                          ? {
-                              background: "hsl(25, 88%, 53%)",
-                              clipPath:
-                                "polygon(10% 0, 100% 0, 90% 100%, 0 100%)",
-                              padding: "6px 18px",
-                            }
-                          : undefined
-                      }
-                    >
-                      {t.guestCount}人
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
+            {/* 人數 Tab — 可左右滑動 */}
+            <GuestTabsScroller
+              tiers={allTiers}
+              activeGuestCount={activeTier_.guestCount}
+              onSelect={(g) => setSelectedGuest(g)}
+            />
+
 
             {/* 整合圖卡：照片 → 房型分配 → 方案 → 價格 */}
             <Card className="overflow-hidden border-border/60 shadow-sm">
@@ -965,3 +939,137 @@ const PriceLadderTable = ({
 
 export default CapacityPriceLadder;
 export type { CapacityOption };
+
+// ── 人數 Tab 滑動容器：邊緣漸層提示、active 自動置中、可拖動 ──
+const GuestTabsScroller = ({
+  tiers,
+  activeGuestCount,
+  onSelect,
+}: {
+  tiers: { guestCount: number; planName?: string }[];
+  activeGuestCount: number;
+  onSelect: (g: number) => void;
+}) => {
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const btnRefs = useRef<Record<number, HTMLButtonElement | null>>({});
+  const [canLeft, setCanLeft] = useState(false);
+  const [canRight, setCanRight] = useState(false);
+
+  const updateEdges = () => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    setCanLeft(el.scrollLeft > 4);
+    setCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  };
+
+  useEffect(() => {
+    updateEdges();
+    const el = scrollerRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", updateEdges, { passive: true });
+    window.addEventListener("resize", updateEdges);
+    return () => {
+      el.removeEventListener("scroll", updateEdges);
+      window.removeEventListener("resize", updateEdges);
+    };
+  }, [tiers.length]);
+
+  // active 自動捲到視窗內
+  useEffect(() => {
+    const btn = btnRefs.current[activeGuestCount];
+    const el = scrollerRef.current;
+    if (!btn || !el) return;
+    const btnLeft = btn.offsetLeft;
+    const target = btnLeft - el.clientWidth / 2 + btn.offsetWidth / 2;
+    el.scrollTo({ left: Math.max(0, target), behavior: "smooth" });
+  }, [activeGuestCount]);
+
+  const scrollBy = (dir: 1 | -1) => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * Math.round(el.clientWidth * 0.7), behavior: "smooth" });
+  };
+
+  return (
+    <div className="relative">
+      <div
+        ref={scrollerRef}
+        className="flex items-center gap-0 px-1 overflow-x-auto no-scrollbar scroll-smooth"
+      >
+        {tiers.map((t, idx) => {
+          const isActive = t.guestCount === activeGuestCount;
+          return (
+            <div key={`${t.guestCount}-${t.planName || ""}`} className="flex items-center shrink-0">
+              {idx > 0 && (
+                <span className="px-1.5 text-muted-foreground/60 text-[14px]">/</span>
+              )}
+              <button
+                ref={(el) => {
+                  btnRefs.current[t.guestCount] = el;
+                }}
+                type="button"
+                onClick={() => onSelect(t.guestCount)}
+                className={cn(
+                  "relative px-3.5 py-1.5 text-[15px] font-bold whitespace-nowrap transition-colors",
+                  isActive ? "text-white" : "text-muted-foreground hover:text-foreground"
+                )}
+                style={
+                  isActive
+                    ? {
+                        background: "hsl(25, 88%, 53%)",
+                        clipPath: "polygon(10% 0, 100% 0, 90% 100%, 0 100%)",
+                        padding: "6px 18px",
+                      }
+                    : undefined
+                }
+              >
+                {t.guestCount}人
+              </button>
+            </div>
+          );
+        })}
+        {/* 尾端 hint：可滑動時顯示「更多 →」 */}
+        {canRight && (
+          <span className="shrink-0 ml-1 mr-2 text-[12px] font-medium text-muted-foreground/80 whitespace-nowrap animate-pulse">
+            滑動看更多 ›
+          </span>
+        )}
+      </div>
+
+      {/* 左/右漸層 + 提示箭頭 */}
+      {canLeft && (
+        <>
+          <div
+            className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 sm:hidden"
+            style={{ background: "linear-gradient(to right, hsl(var(--background)) 30%, transparent)" }}
+          />
+          <button
+            type="button"
+            aria-label="向左滑動"
+            onClick={() => scrollBy(-1)}
+            className="hidden sm:flex absolute left-0 top-1/2 -translate-y-1/2 h-7 w-7 items-center justify-center rounded-full bg-white border border-border shadow-sm text-foreground/70 hover:text-foreground hover:shadow"
+          >
+            ‹
+          </button>
+        </>
+      )}
+      {canRight && (
+        <>
+          <div
+            className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 sm:hidden"
+            style={{ background: "linear-gradient(to left, hsl(var(--background)) 30%, transparent)" }}
+          />
+          <button
+            type="button"
+            aria-label="向右滑動"
+            onClick={() => scrollBy(1)}
+            className="hidden sm:flex absolute right-0 top-1/2 -translate-y-1/2 h-7 w-7 items-center justify-center rounded-full bg-white border border-border shadow-sm text-foreground/70 hover:text-foreground hover:shadow"
+          >
+            ›
+          </button>
+        </>
+      )}
+    </div>
+  );
+};
+
