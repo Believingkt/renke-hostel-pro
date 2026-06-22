@@ -477,6 +477,49 @@ const BookingVilla = () => {
         </div>
       </header>
 
+      {/* ── Desktop Search Bar ── */}
+      <div className="hidden sm:block sticky top-20 md:top-24 z-40 bg-white/95 backdrop-blur border-b border-border">
+        <div className="max-w-3xl mx-auto px-4 py-2.5">
+          <button
+            onClick={() => setEditSearchOpen(true)}
+            className="w-full rounded-full border border-border bg-muted/40 hover:bg-muted/60 px-4 py-2.5 flex items-center justify-between text-left transition gap-4"
+          >
+            <span className="flex items-center gap-2 text-sm text-foreground font-medium">
+              <Calendar className="w-4 h-4 text-muted-foreground" />
+              {checkIn && checkOut ? (
+                <>{format(checkIn, "M月d日")} – {format(checkOut, "M月d日")}</>
+              ) : (
+                <span className="text-muted-foreground">選擇日期</span>
+              )}
+            </span>
+            <span className="h-5 w-px bg-border" />
+            <span className="flex items-center gap-4 text-sm text-foreground font-medium">
+              <span className="flex items-center gap-1.5">
+                <BedDouble className="w-4 h-4 text-muted-foreground" />
+                {Math.max(1, parseInt(searchParams.get("rooms") || "1", 10) || 1)} 間
+              </span>
+              <span className="flex items-center gap-1.5">
+                <User className="w-4 h-4 text-muted-foreground" />
+                {Math.max(1, parseInt(searchParams.get("adults") || "0", 10) || 1)} 大人
+              </span>
+              <span className="flex items-center gap-1.5 text-muted-foreground">
+                <Baby className="w-4 h-4" />
+                {Math.max(0, parseInt(searchParams.get("infants") || "0", 10) || 0) +
+                  Math.max(0, parseInt(searchParams.get("toddlers") || "0", 10) || 0) +
+                  Math.max(0, parseInt(searchParams.get("children") || "0", 10) || 0)} 兒童
+              </span>
+            </span>
+            <span
+              className="ml-auto h-9 px-5 text-sm font-bold text-white rounded-full inline-flex items-center"
+              style={{ background: "hsl(25, 76%, 50%)" }}
+            >
+              修改搜尋
+            </span>
+          </button>
+        </div>
+      </div>
+
+
       <main className="max-w-3xl mx-auto">
         {/* ── 1. Photo Carousel (mixed hero + gallery) ── */}
         <VillaPhotoCarousel photos={allPhotos} accommodationName={info.name} />
