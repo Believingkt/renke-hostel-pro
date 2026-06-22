@@ -25,26 +25,38 @@ const SimilarStaysCarousel = ({ excludeId, region }: Props) => {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
-        .from("accommodation_info")
-        .select(
-          "id, name, slug, address, region_1, region_2, google_reviews_cache, hero_image_url, hero_photo_url, hero_image_path"
-        )
+      const { data } = await (supabase
+        .from("accommodation_info") as any)
+        .select("id, name, region_1, region_2, google_reviews_cache")
         .neq("id", excludeId)
-        .eq("show_in_portal", true)
         .limit(8);
       if (cancelled || !data) return;
 
-      // Fetch base price from accommodation_room_types via min price
-      const ids = data.map((d: any) => d.id);
-      const { data: roomData } = await supabase
-        .from("accommodation_room_types")
-        .select("accommodation_id, base_price")
-        .in("accommodation_id", ids);
+      const ids: string[] = data.map((d: any) => d.id);
+
+      const [{ data: rooms }, { data: photos }] = await Promise.all([
+        (supabase.from("room_types") as any)
+          .select("accommodation_id, base_price")
+          .in("accommodation_id", ids),
+        (supabase.from("accommodation_photos") as any)
+          .select("accommodation_id, photo_url, order_index")
+          .in("accommodation_id", ids)
+          .order("order_index", { ascending: true }),
+      ]);
+
       const priceMap = new Map<string, number>();
-      (roomData || []).forEach((r: any) => {
+      (rooms || []).forEach((r: any) => {
         const cur = priceMap.get(r.accommodation_id);
-        if (cur == null || r.base_price < cur) priceMap.set(r.accommodation_id, r.base_price);
+        if (r.base_price != null && (cur == null || r.base_price < cur)) {
+          priceMap.set(r.accommodation_id, r.base_price);
+        }
+      });
+
+      const coverMap = new Map<string, string>();
+      (photos || []).forEach((p: any) => {
+        if (p.accommodation_id && !coverMap.has(p.accommodation_id)) {
+          coverMap.set(p.accommodation_id, p.photo_url);
+        }
       });
 
       const list: Item[] = data.map((d: any) => {
@@ -52,7 +64,7 @@ const SimilarStaysCarousel = ({ excludeId, region }: Props) => {
         return {
           id: d.id,
           name: d.name,
-          cover: d.hero_image_url || d.hero_photo_url || d.hero_image_path || null,
+          cover: coverMap.get(d.id) || null,
           rating: typeof cache?.rating === "number" ? cache.rating : null,
           reviewCount: typeof cache?.totalReviews === "number" ? cache.totalReviews : null,
           base_price: priceMap.get(d.id) ?? null,
@@ -60,7 +72,6 @@ const SimilarStaysCarousel = ({ excludeId, region }: Props) => {
         };
       });
 
-      // Prioritise same region
       const same = region ? list.filter((i) => i.region === region) : [];
       const other = list.filter((i) => !same.includes(i));
       setItems([...same, ...other].slice(0, 6));
@@ -75,7 +86,7 @@ const SimilarStaysCarousel = ({ excludeId, region }: Props) => {
   return (
     <section className="py-5 bg-background">
       <h2 className="text-[20px] font-bold text-foreground px-4 mb-3">您可能也喜歡</h2>
-      <div className="px-4 -mx-4 px-4 flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 scrollbar-none">
+      <div className="-mx-4 px-4 flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 scrollbar-none">
         {items.map((it) => (
           <button
             key={it.id}
