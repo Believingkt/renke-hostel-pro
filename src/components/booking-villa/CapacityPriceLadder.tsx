@@ -319,7 +319,7 @@ const CapacityPriceLadder = ({
         const optionalItems = (activeTier_.includes || []).filter((i) => i.available === "optional");
 
         const allocation = activeTier_.roomTypeAllocation || [];
-        // 攤平：每一間房一張縮圖
+        // 攤平：每一間房一張縮圖（給「房間搭配」顯示用，目前已改成文字 + 輪播照片）
         const roomTiles: { rt: any; index: number }[] = [];
         allocation.forEach((a) => {
           const rt: any = roomTypes.find((r) => r.id === a.room_type_id);
@@ -333,6 +333,27 @@ const CapacityPriceLadder = ({
           })
           .filter(Boolean)
           .join("・");
+
+        // 房型照片輪播：取所有綁定房型的全部照片
+        const carouselPhotos: { url: string; rtName: string; sizeSqm?: number | null }[] = [];
+        const seenRtIds = new Set<string>();
+        allocation.forEach((a) => {
+          if (seenRtIds.has(a.room_type_id)) return;
+          seenRtIds.add(a.room_type_id);
+          const rt: any = roomTypes.find((r) => r.id === a.room_type_id);
+          if (!rt) return;
+          const photos = Array.isArray(rt.room_photos) ? rt.room_photos : [];
+          photos.forEach((p: any) => {
+            if (p?.photo_url) {
+              carouselPhotos.push({
+                url: p.photo_url,
+                rtName: rt.name || "",
+                sizeSqm: rt.size_sqm ?? null,
+              });
+            }
+          });
+        });
+
 
         return (
           <div className="space-y-4">
