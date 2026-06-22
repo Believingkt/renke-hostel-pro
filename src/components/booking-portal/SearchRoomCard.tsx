@@ -145,7 +145,12 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
           <div
             ref={scrollerRef}
             onScroll={handleScroll}
-            className="flex h-full w-full overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth no-scrollbar overscroll-x-contain overscroll-y-none"
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={endDrag}
+            onPointerCancel={endDrag}
+            onClickCapture={onClickCapture}
+            className="flex h-full w-full overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth no-scrollbar overscroll-x-contain overscroll-y-none cursor-grab active:cursor-grabbing select-none"
             style={{ scrollbarWidth: "none", touchAction: "pan-x" }}
           >
             {photos.map((src, i) => (
