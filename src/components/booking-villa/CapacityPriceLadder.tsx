@@ -442,7 +442,7 @@ const CapacityPriceLadder = ({
                       <>
                         <p
                           className="text-[13.5px] font-bold"
-                          style={{ color: "hsl(180, 60%, 32%)" }}
+                          style={{ color: "hsl(20, 75%, 42%)" }}
                         >
                           {tier.subtitle || "方案已含"}
                         </p>
@@ -557,7 +557,7 @@ const CapacityPriceLadder = ({
                         type="button"
                         onClick={() => setExpandedKey(isOpen ? null : tierKey)}
                         className="text-[12px] font-medium underline decoration-dotted underline-offset-2"
-                        style={{ color: "hsl(200, 70%, 42%)" }}
+                        style={{ color: "hsl(25, 76%, 45%)" }}
                       >
                         {isOpen ? "收合" : "查看詳情"}
                       </button>
@@ -589,7 +589,7 @@ const CapacityPriceLadder = ({
                       )}
                       <p
                         className="font-black text-[22px] leading-tight tabular-nums"
-                        style={{ color: "hsl(210, 90%, 48%)" }}
+                        style={{ color: "hsl(25, 85%, 48%)" }}
                       >
                         NT${opt.totalPrice.toLocaleString()}
                       </p>
@@ -604,7 +604,7 @@ const CapacityPriceLadder = ({
                       type="button"
                       onClick={() => onSelect(opt)}
                       className="w-full h-11 rounded-lg text-white font-bold text-[14px] shadow-sm active:scale-[0.99] transition-transform inline-flex items-center justify-center gap-1"
-                      style={{ background: "hsl(210, 90%, 48%)" }}
+                      style={{ background: "linear-gradient(135deg, hsl(25, 85%, 52%), hsl(20, 80%, 46%))" }}
                     >
                       預訂
                       <ChevronRight className="h-4 w-4" />
