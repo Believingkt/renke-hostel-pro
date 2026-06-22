@@ -100,6 +100,19 @@ const BookingVilla = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [memberName, setMemberName] = useState("");
   const [bottomBarHidden, setBottomBarHidden] = useState(false);
+  // 追蹤底部 MobileBottomNav 是否被滾動隱藏（與 MobileBottomNav 內部邏輯一致）
+  const [navHidden, setNavHidden] = useState(false);
+  useEffect(() => {
+    let lastY = 0;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (y > lastY && y > 60) setNavHidden(true);
+      else setNavHidden(false);
+      lastY = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
   const [editSearchOpen, setEditSearchOpen] = useState(false);
   const [availableDateSet, setAvailableDateSet] = useState<Set<string> | null>(null);
   const [availMinPrice, setAvailMinPrice] = useState<number | null>(null);
