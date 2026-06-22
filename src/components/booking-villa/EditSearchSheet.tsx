@@ -91,6 +91,8 @@ const EditSearchSheet = ({
 }: EditSearchSheetProps) => {
 
   const [range, setRange] = useState<DateRange | undefined>(undefined);
+  // 標記目前 range 是否為「已完成的一段」；若是，下一次點擊將重置為新起點
+  const [rangeCommitted, setRangeCommitted] = useState(true);
   const [a, setA] = useState(adults);
   const [c, setC] = useState(children);
   const [r, setR] = useState(rooms);
@@ -101,11 +103,13 @@ const EditSearchSheet = ({
         from: checkIn ?? undefined,
         to: checkOut ?? undefined,
       });
+      setRangeCommitted(true);
       setA(adults);
       setC(children);
       setR(rooms);
     }
   }, [open, checkIn, checkOut, adults, children, rooms]);
+
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
