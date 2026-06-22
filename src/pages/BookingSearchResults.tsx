@@ -522,8 +522,13 @@ const BookingSearchResults = () => {
         ? Math.round(((original - total) / original) * 100)
         : null;
 
-      const totalRoomCount = req.reduce((s, r) => s + r.qty, 0) || 1;
-      const totalSize = req.reduce((s, r) => {
+      const reqItems = req.mode === "all"
+        ? req.items
+        : req.candidates.map((rtId) => ({ rtId, qty: 1 }));
+      const totalRoomCount = req.mode === "any-one"
+        ? 1
+        : (reqItems.reduce((s, r) => s + r.qty, 0) || 1);
+      const totalSize = reqItems.reduce((s, r) => {
         const rt = rtMap.get(r.rtId);
         return s + (rt?.size_sqm ? rt.size_sqm * r.qty : 0);
       }, 0);
