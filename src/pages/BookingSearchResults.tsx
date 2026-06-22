@@ -376,6 +376,27 @@ const BookingSearchResults = () => {
         });
       });
       setInventoryMap(result);
+
+      // 森山 / 哈庫納：當天任一房型「被訂走」(底表有開但被訂單佔光) → 整個住宿當天關閉
+      const SENSAN_ID = "5f764d55-ae11-4631-80fe-2e611853deae";
+      const HAKUNA_ID = "6b6ac0dc-602b-4dec-9167-7791ac412ba3";
+      const strictAccIds = new Set([SENSAN_ID, HAKUNA_ID]);
+      const closed = new Set<string>();
+      for (const rt of roomTypes) {
+        if (!strictAccIds.has(rt.accommodation_id)) continue;
+        if (closed.has(rt.accommodation_id)) continue;
+        for (const d of stayDates) {
+          const base = baseMap.get(`${rt.id}:${d}`);
+          const adj = adjMap.get(`${rt.id}:${d}`);
+          if (!base || !base.isAvailable) continue; // 沒開不算被訂走
+          if (!adj) continue;
+          if (adj.isBlocked || adj.available <= 0) {
+            closed.add(rt.accommodation_id);
+            break;
+          }
+        }
+      }
+      setClosedAccIds(closed);
     })();
     return () => {
       cancelled = true;
