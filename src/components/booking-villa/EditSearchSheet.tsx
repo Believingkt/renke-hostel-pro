@@ -11,7 +11,7 @@ import {
   SheetTitle,
   SheetFooter,
 } from "@/components/ui/sheet";
-import { Minus, Plus, CalendarDays, BedDouble, User, Baby } from "lucide-react";
+import { Minus, Plus, CalendarDays, BedDouble, User, Baby, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface EditSearchSheetProps {
