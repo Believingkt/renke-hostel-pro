@@ -220,7 +220,7 @@ const EditSearchSheet = ({
                     setRangeCommitted(false);
                   }
                 }}
-                numberOfMonths={1}
+                numberOfMonths={isDesktop ? 2 : 1}
                 locale={zhTW}
                 weekStartsOn={0}
 
