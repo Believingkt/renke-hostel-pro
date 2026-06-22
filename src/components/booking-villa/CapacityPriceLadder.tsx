@@ -424,14 +424,14 @@ const CapacityPriceLadder = ({
 
 
               <div className="px-4 pt-3 pb-4 space-y-4">
-                {/* 2. 房型分配 */}
-                {roomTiles.length > 0 && (
+                {/* 2. 房型分配（直接顯示後台「房型分配（用逗號分隔）」純文字） */}
+                {(activeTier_.roomAllocation || roomBreakdown) && (
                   <div>
                     <p className="text-[10px] font-bold tracking-[0.18em] text-muted-foreground/80">
                       ROOM ALLOCATION
                     </p>
                     <p className="text-[14px] font-bold text-foreground mt-0.5">
-                      房間搭配：{roomBreakdown}
+                      房間搭配：{activeTier_.roomAllocation || roomBreakdown}
                     </p>
                   </div>
                 )}
