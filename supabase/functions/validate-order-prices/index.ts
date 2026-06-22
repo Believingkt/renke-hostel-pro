@@ -285,8 +285,42 @@ serve(async (req) => {
       }
     }
 
+    // ===== 兒童分齡：伺服器端重新計算加價，並阻擋不接受 / 超過上限的組合 =====
+    let calculatedChildExtraTotal = 0;
+    if (childSelection) {
+      const { data: accInfo } = await supabase
+        .from("accommodation_info")
+        .select("child_age_rules")
+        .eq("id", accommodationId)
+        .maybeSingle();
+      const rules = parseChildAgeRules((accInfo as any)?.child_age_rules);
+      const sel = {
+        infant: Math.max(0, Number(childSelection.infants) || 0),
+        toddler: Math.max(0, Number(childSelection.toddlers) || 0),
+        child: Math.max(0, Number(childSelection.children) || 0),
+      };
+      for (const key of TIER_ORDER) {
+        const tier = rules.tiers[key];
+        const count = sel[key];
+        if (count <= 0) continue;
+        if (!tier.allowed) {
+          errors.push(`Child tier not allowed: ${tier.label} (${count})`);
+          continue;
+        }
+        if (tier.max_count !== null && count > tier.max_count) {
+          errors.push(`Child tier over limit: ${tier.label} ${count}/${tier.max_count}`);
+          continue;
+        }
+        calculatedChildExtraTotal += (tier.fee_per_night || 0) * count * nights;
+      }
+      const childDiff = Math.abs((childExtraTotal || 0) - calculatedChildExtraTotal);
+      if (childDiff > 2) {
+        errors.push(`Child extra total mismatch: client=${childExtraTotal}, server=${calculatedChildExtraTotal}`);
+      }
+    }
+
     // Calculate server-side total price
-    const calculatedTotalPrice = calculatedRoomTotal + calculatedPetPrice + calculatedMealPlanTotal + calculatedCustomAddonTotal;
+    const calculatedTotalPrice = calculatedRoomTotal + calculatedPetPrice + calculatedMealPlanTotal + calculatedCustomAddonTotal + calculatedChildExtraTotal;
 
     // Validate discount code if provided
     // Discount applies only to room total, NOT addons
