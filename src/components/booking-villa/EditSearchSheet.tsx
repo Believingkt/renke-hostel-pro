@@ -104,6 +104,7 @@ const EditSearchSheet = ({
   const [i, setI] = useState(infants);
   const [tod, setTod] = useState(toddlers);
   const [r, setR] = useState(rooms);
+  const [childrenOpen, setChildrenOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
