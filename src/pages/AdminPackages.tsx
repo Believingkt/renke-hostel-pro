@@ -141,7 +141,7 @@ const AdminPackages = () => {
     if (!currentAccommodationId) return;
     supabase
       .from("room_types")
-      .select("id, name")
+      .select("id, name, capacity")
       .eq("accommodation_id", currentAccommodationId)
       .order("display_order", { ascending: true })
       .then(({ data }) => setRoomTypes((data || []) as RoomTypeOption[]));
