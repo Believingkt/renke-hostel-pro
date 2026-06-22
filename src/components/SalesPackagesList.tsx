@@ -83,36 +83,42 @@ function resolvePrice(
   return best;
 }
 
-const SalesPackagesList = ({ accommodationId, checkIn = null }: Props) => {
+const SalesPackagesList = ({ accommodationId, checkIn = null, customTitle, customSubtitle, asSection = false }: Props) => {
   const { packages, loading } = useAccommodationPackages(accommodationId, { onlyEnabled: true });
   const { isHolidayDate } = useAccommodationHolidays(accommodationId);
+  const [searchParams] = useSearchParams();
+
+  const resolvedCheckIn = useMemo(() => {
+    if (checkIn) return checkIn;
+    const s = searchParams.get("checkIn");
+    return s ? new Date(s) : null;
+  }, [checkIn, searchParams]);
 
   const items = useMemo(
     () =>
       packages
-        .map((pkg) => ({ pkg, price: resolvePrice(pkg, checkIn ?? null, isHolidayDate) }))
+        .map((pkg) => ({ pkg, price: resolvePrice(pkg, resolvedCheckIn, isHolidayDate) }))
         .filter((x) => x.price !== null),
-    [packages, checkIn, isHolidayDate],
+    [packages, resolvedCheckIn, isHolidayDate],
   );
 
   if (loading || items.length === 0) return null;
 
-  return (
-    <div className="mb-10 md:mb-12">
-      <div className="flex items-end justify-between mb-4 md:mb-6">
-        <div>
-          <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-primary" />
-            精選銷售方案
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            民宿主推薦組合，含房型搭配與最適優惠價
-          </p>
-        </div>
+  const header = (
+    <div className={asSection ? "text-center mb-6 md:mb-8" : "flex items-end justify-between mb-4 md:mb-6"}>
+      <div className={asSection ? "" : ""}>
+        <h2 className={asSection ? "text-2xl md:text-3xl font-bold flex items-center justify-center gap-2" : "text-2xl md:text-3xl font-bold flex items-center gap-2"}>
+          <Sparkles className="h-6 w-6 text-primary" />
+          {customTitle || "精選銷售方案"}
+        </h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          {customSubtitle || "民宿主推薦組合，含房型搭配與最適優惠價"}
+        </p>
       </div>
+    </div>
+  );
 
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+  const grid = (
             {items.map(({ pkg, price }) => (
               <Card
                 key={pkg.id}
