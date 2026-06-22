@@ -613,17 +613,8 @@ const BookingVilla = () => {
           </section>
         )}
 
-        {/* ── 3. Villa Overview ── */}
-        {villaStats && (
-          <VillaOverviewBar
-            totalRooms={villaStats.totalRooms}
-            minCapacity={villaStats.minCapacity}
-            maxCapacity={villaStats.maxCapacity}
-            totalSize={villaStats.totalSize}
-            region={region}
-            labels={extras?.villaOverviewLabels}
-          />
-        )}
+        {/* Villa Overview 已移除 */}
+
 
         {/* ── Trust signals row（後台未設定則隱藏） ── */}
         {extras?.villaTrustBadges && extras.villaTrustBadges.length > 0 && (
