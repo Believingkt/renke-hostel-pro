@@ -198,11 +198,9 @@ const SalesPackagesList = ({ accommodationId, checkIn = null }: Props) => {
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        </div>
+          ))}
       </div>
-    </section>
+    </div>
   );
 };
 
