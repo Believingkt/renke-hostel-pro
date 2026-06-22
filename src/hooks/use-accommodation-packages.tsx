@@ -25,6 +25,7 @@ export interface AccommodationPackage {
   tags: string[];
   includes: PackageInclude[];
   primary_room_type_id: string | null;
+  room_type_ids: string[] | null;
   display_order: number;
   enabled: boolean;
   excluded_date_ranges: PackageDateRange[];
