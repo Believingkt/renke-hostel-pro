@@ -162,20 +162,16 @@ const BookingVilla = () => {
   }, [accId]);
 
   useEffect(() => {
-    let lastY = window.scrollY;
-    const onScroll = () => {
-      const y = window.scrollY;
-      const delta = y - lastY;
-      if (Math.abs(delta) < 6) return;
-      // 下滑顯示，上滑隱藏（避免遮住內容）
-      // 上滑顯示，下滑隱藏（避免遮住內容）
-      if (delta > 0) setBottomBarHidden(true);
-      else if (delta < 0) setBottomBarHidden(false);
-      lastY = y;
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+    // 滑入「入住方案」區塊時隱藏底部 CTA，離開時再顯示
+    const target = document.getElementById("capacity-price-section");
+    if (!target) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setBottomBarHidden(entry.isIntersecting),
+      { threshold: 0, rootMargin: "0px 0px -20% 0px" }
+    );
+    io.observe(target);
+    return () => io.disconnect();
+  }, [isLoading]);
 
   const {
     info,
