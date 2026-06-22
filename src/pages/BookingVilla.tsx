@@ -845,10 +845,12 @@ const BookingVilla = () => {
 
         {/* ── 8. Location ── */}
         {info.show_location_section !== false && (
-          <LocationSection
-            address={info.address}
-            locationInfo={secondaryData?.locationInfo}
-          />
+          <div id="location">
+            <LocationSection
+              address={info.address}
+              locationInfo={secondaryData?.locationInfo}
+            />
+          </div>
         )}
 
         {/* ── 9. Booking Info / 須知 ── */}
@@ -862,7 +864,9 @@ const BookingVilla = () => {
 
         {/* ── 10. Reviews ── */}
         {info.show_reviews_section !== false && (
-          <ReviewsSection accommodationId={info.id} />
+          <div id="reviews">
+            <ReviewsSection accommodationId={info.id} />
+          </div>
         )}
 
         {/* ── 11. FAQ ── */}
