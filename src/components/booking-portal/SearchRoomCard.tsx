@@ -167,7 +167,7 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
           </div>
         )}
 
-        {/* 桌機版：左右箭頭點擊區（避免誤觸卡片） */}
+        {/* 桌機版：左右整條點擊區（避免誤觸卡片） */}
         {photos.length > 1 && (
           <>
             <button
@@ -180,10 +180,12 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
                 const idx = Math.max(0, Math.round(el.scrollLeft / el.clientWidth) - 1);
                 el.scrollTo({ left: idx * el.clientWidth, behavior: "smooth" });
               }}
-              className="hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 z-10 h-8 w-8 items-center justify-center rounded-full bg-white/85 hover:bg-white shadow-md text-foreground opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"
+              className="hidden md:flex absolute left-0 top-0 bottom-0 w-14 z-10 items-center justify-start pl-2 group/nav disabled:pointer-events-none"
               disabled={activeIdx === 0}
             >
-              <ChevronLeft className="h-4 w-4" />
+              <span className="h-8 w-8 flex items-center justify-center rounded-full bg-white/85 group-hover/nav:bg-white shadow-md text-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                <ChevronLeft className="h-4 w-4" />
+              </span>
             </button>
             <button
               type="button"
@@ -195,10 +197,12 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
                 const idx = Math.min(photos.length - 1, Math.round(el.scrollLeft / el.clientWidth) + 1);
                 el.scrollTo({ left: idx * el.clientWidth, behavior: "smooth" });
               }}
-              className="hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 z-10 h-8 w-8 items-center justify-center rounded-full bg-white/85 hover:bg-white shadow-md text-foreground opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"
+              className="hidden md:flex absolute right-0 top-0 bottom-0 w-14 z-10 items-center justify-end pr-2 group/nav disabled:pointer-events-none"
               disabled={activeIdx >= photos.length - 1}
             >
-              <ChevronRight className="h-4 w-4" />
+              <span className="h-8 w-8 flex items-center justify-center rounded-full bg-white/85 group-hover/nav:bg-white shadow-md text-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                <ChevronRight className="h-4 w-4" />
+              </span>
             </button>
           </>
         )}
