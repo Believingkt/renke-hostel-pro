@@ -753,12 +753,13 @@ const BookingSearchResults = () => {
     if (checkIn && checkOut) {
       parts.push(`${format(checkIn, "M/d")} – ${format(checkOut, "M/d")} · ${nights} 晚`);
     }
-    if (adults || childrenCount) {
-      parts.push(`${adults} 位成人${childrenCount ? ` · ${childrenCount} 位兒童` : ""}`);
+    if (adults || childrenCount || infantsCount || toddlersCount) {
+      const childTotal = childrenCount + infantsCount + toddlersCount;
+      parts.push(`${adults} 位成人${childTotal > 0 ? ` · ${childTotal} 位兒童` : ""}`);
     }
     if (roomsParam) parts.push(`${roomsParam} 間`);
     return parts.join(" · ");
-  }, [checkIn, checkOut, nights, adults, childrenCount, roomsParam]);
+  }, [checkIn, checkOut, nights, adults, childrenCount, infantsCount, toddlersCount, roomsParam]);
 
   return (
     <div className="min-h-screen bg-background pb-16 md:pb-0">
