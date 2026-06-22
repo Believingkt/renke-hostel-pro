@@ -604,7 +604,7 @@ const BookingSearchResults = () => {
     });
 
     return result;
-  }, [accommodations, roomTypes, packages, facilities, holidays, inventoryMap, hasDateFilter, nights, checkIn, checkOut]);
+  }, [accommodations, roomTypes, packages, facilities, holidays, inventoryMap, closedAccIds, hasDateFilter, nights, checkIn, checkOut]);
 
   // ── 每家民宿只保留一張最符合搜尋條件的房型卡 ──
   const dedupedCards = useMemo<SearchRoomCardData[]>(() => {
