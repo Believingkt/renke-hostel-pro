@@ -171,7 +171,7 @@ const BookingVilla = () => {
     );
     io.observe(target);
     return () => io.disconnect();
-  }, [isLoading]);
+  }, []);
 
   const {
     info,
