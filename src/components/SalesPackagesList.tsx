@@ -119,99 +119,113 @@ const SalesPackagesList = ({ accommodationId, checkIn = null, customTitle, custo
   );
 
   const grid = (
-            {items.map(({ pkg, price }) => (
-              <Card
-                key={pkg.id}
-                className="overflow-hidden border border-border/60 hover:border-primary/40 hover:shadow-md transition-all"
-              >
-                <CardContent className="p-4 md:p-5 flex flex-col h-full">
-                  {/* 標籤 */}
-                  {pkg.tags && pkg.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-2">
-                      {pkg.tags.slice(0, 3).map((t) => (
-                        <Badge
-                          key={t}
-                          variant="secondary"
-                          className="text-[10px] font-medium px-1.5 py-0.5"
-                        >
-                          {TAG_LABEL[t] ?? t}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+      {items.map(({ pkg, price }) => (
+        <Card
+          key={pkg.id}
+          className="overflow-hidden border border-border/60 hover:border-primary/40 hover:shadow-md transition-all"
+        >
+          <CardContent className="p-4 md:p-5 flex flex-col h-full">
+            {pkg.tags && pkg.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {pkg.tags.slice(0, 3).map((t) => (
+                  <Badge
+                    key={t}
+                    variant="secondary"
+                    className="text-[10px] font-medium px-1.5 py-0.5"
+                  >
+                    {TAG_LABEL[t] ?? t}
+                  </Badge>
+                ))}
+              </div>
+            )}
 
-                  {/* 名稱 */}
-                  <h3 className="text-base md:text-lg font-bold leading-snug mb-1">
-                    {pkg.name}
-                  </h3>
-                  {pkg.subtitle && (
-                    <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                      {pkg.subtitle}
-                    </p>
-                  )}
+            <h3 className="text-base md:text-lg font-bold leading-snug mb-1">
+              {pkg.name}
+            </h3>
+            {pkg.subtitle && (
+              <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                {pkg.subtitle}
+              </p>
+            )}
 
-                  {/* 人數 + 房型配置 */}
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
-                    <span className="flex items-center gap-1">
-                      <Users className="h-3.5 w-3.5" />
-                      {pkg.guest_count}
-                      {pkg.guest_count_max && pkg.guest_count_max > pkg.guest_count
-                        ? `~${pkg.guest_count_max}`
-                        : ""} 人
+            <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
+              <span className="flex items-center gap-1">
+                <Users className="h-3.5 w-3.5" />
+                {pkg.guest_count}
+                {pkg.guest_count_max && pkg.guest_count_max > pkg.guest_count
+                  ? `~${pkg.guest_count_max}`
+                  : ""} 人
+              </span>
+              {pkg.room_allocation && (
+                <span className="flex items-center gap-1 truncate">
+                  <BedDouble className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{pkg.room_allocation}</span>
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1 text-[11px] text-muted-foreground mb-3">
+              <Tag className="h-3 w-3" />
+              適用：
+              {pkg.applicable_tiers.map((t) => TIER_LABEL[t]).join("、")}
+            </div>
+
+            <div className="mt-auto border-t border-border/60 pt-3 flex items-end justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-[10px] text-muted-foreground leading-none mb-0.5">
+                  {resolvedCheckIn ? "您選擇的日期" : `${TIER_LABEL[price!.tier]}最低價`}
+                </div>
+                <div className="flex items-baseline flex-wrap gap-x-1.5">
+                  {price!.original && price!.original > price!.sale && (
+                    <span className="text-[11px] text-muted-foreground line-through">
+                      NT${price!.original.toLocaleString()}
                     </span>
-                    {pkg.room_allocation && (
-                      <span className="flex items-center gap-1 truncate">
-                        <BedDouble className="h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate">{pkg.room_allocation}</span>
-                      </span>
-                    )}
-                  </div>
+                  )}
+                  <span className="text-lg md:text-xl font-bold text-primary">
+                    NT${price!.sale.toLocaleString()}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">/晚起</span>
+                  {price!.discount && price!.discount > 0 && (
+                    <span className="text-[10px] font-bold text-white px-1 py-0.5 rounded bg-[hsl(0,70%,55%)]">
+                      -{price!.discount}%
+                    </span>
+                  )}
+                </div>
+              </div>
+              <Link to={`/booking?packageId=${pkg.id}&step=dates`} className="shrink-0">
+                <Button
+                  size="sm"
+                  className="h-9 px-3 text-xs font-medium rounded-lg"
+                >
+                  立即預訂
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
 
-                  {/* 適用日型 */}
-                  <div className="flex items-center gap-1 text-[11px] text-muted-foreground mb-3">
-                    <Tag className="h-3 w-3" />
-                    適用：
-                    {pkg.applicable_tiers.map((t) => TIER_LABEL[t]).join("、")}
-                  </div>
+  if (asSection) {
+    return (
+      <section id="rooms" className="py-12 sm:py-16 bg-background">
+        <div className="max-w-6xl mx-auto px-4">
+          {header}
+          {grid}
+        </div>
+      </section>
+    );
+  }
 
-                  {/* 價格 */}
-                  <div className="mt-auto border-t border-border/60 pt-3 flex items-end justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="text-[10px] text-muted-foreground leading-none mb-0.5">
-                        {checkIn ? "您選擇的日期" : `${TIER_LABEL[price!.tier]}最低價`}
-                      </div>
-                      <div className="flex items-baseline flex-wrap gap-x-1.5">
-                        {price!.original && price!.original > price!.sale && (
-                          <span className="text-[11px] text-muted-foreground line-through">
-                            NT${price!.original.toLocaleString()}
-                          </span>
-                        )}
-                        <span className="text-lg md:text-xl font-bold text-primary">
-                          NT${price!.sale.toLocaleString()}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground">/晚起</span>
-                        {price!.discount && price!.discount > 0 && (
-                          <span className="text-[10px] font-bold text-white px-1 py-0.5 rounded bg-[hsl(0,70%,55%)]">
-                            -{price!.discount}%
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <Link to={`/booking?packageId=${pkg.id}&step=dates`} className="shrink-0">
-                      <Button
-                        size="sm"
-                        className="h-9 px-3 text-xs font-medium rounded-lg"
-                      >
-                        立即預訂
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-          ))}
-      </div>
+  return (
+    <div className="mb-10 md:mb-12">
+      {header}
+      {grid}
     </div>
   );
 };
 
 export default SalesPackagesList;
+
