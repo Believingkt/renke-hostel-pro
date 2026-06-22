@@ -746,7 +746,7 @@ const BookingVilla = () => {
         {/* ── 5. Capacity × Price Plans (核心 CTA) ── Trip.com style ── */}
         <section id="capacity-price-section" className="py-4 bg-background">
           <h2 className="text-[20px] font-bold text-foreground px-4 mb-3">
-            選擇您的房間
+            入住方案
           </h2>
 
 
