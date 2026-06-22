@@ -22,6 +22,8 @@ interface EditSearchSheetProps {
   adults: number;
   children: number;
   rooms: number;
+  /** 可訂日集合（yyyy-MM-dd），null 表示尚未載入；非該集合內的日期將無法選取 */
+  availableDates?: Set<string> | null;
   onConfirm: (v: {
     checkIn: Date;
     checkOut: Date;
@@ -30,6 +32,7 @@ interface EditSearchSheetProps {
     rooms: number;
   }) => void;
 }
+
 
 const Counter = ({
   icon: Icon,
