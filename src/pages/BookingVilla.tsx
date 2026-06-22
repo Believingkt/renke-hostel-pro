@@ -840,10 +840,12 @@ const BookingVilla = () => {
                 ? Math.min(...secondaryData!.roomTypes.map((r: any) => r.base_price))
                 : null;
               const display = pkgMin ?? roomMin;
+              const pkgName = cheapestPkg?.name ?? null;
               const guestCount = cheapestPkg?.guest_count ?? villaStats?.minCapacity ?? null;
               const parts: string[] = [];
               if (checkIn && checkOut) parts.push(`共 ${nights} 晚`);
-              parts.push(guestCount ? `包棟${guestCount}人起` : "包棟起");
+              if (pkgName) parts.push(pkgName);
+              else parts.push(guestCount ? `包棟${guestCount}人起` : "包棟起");
               return (
                 <>
                   <p className="text-[10px] text-muted-foreground leading-none mb-0.5">
