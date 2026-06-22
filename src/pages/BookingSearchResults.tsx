@@ -481,7 +481,10 @@ const BookingSearchResults = () => {
 
       let allAvail = true;
       let minPackagesSellable = Infinity;
-      if (hasDateFilter) {
+      // 森山 / 哈庫納：當天任一房型有訂單 → 該住宿整天關閉（所有方案標售完）
+      if (hasDateFilter && closedAccIds.has(acc.id)) {
+        allAvail = false;
+      } else if (hasDateFilter) {
         if (req.mode === "all") {
           if (req.items.length === 0) {
             // 無房型資訊，視同無法判斷 → 不擋
