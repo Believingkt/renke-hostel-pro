@@ -337,6 +337,9 @@ const AdminPackages = () => {
         ? pkg.excluded_date_ranges.map((r) => ({ ...r }))
         : [],
       tier_prices: pkg.tier_prices ? { ...pkg.tier_prices } : {},
+      room_type_allocation: Array.isArray((pkg as any).room_type_allocation)
+        ? (pkg as any).room_type_allocation.map((r: any) => ({ room_type_id: r.room_type_id, qty: Number(r.qty) || 1 }))
+        : [],
     });
     setOpen(true);
   };
