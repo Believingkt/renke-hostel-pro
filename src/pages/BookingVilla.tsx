@@ -846,45 +846,128 @@ const BookingVilla = () => {
           </section>
         )}
 
-        {/* ── 6. Room Types (showcase, not pricing) ── */}
+        {/* ── 6. Room Types (Trip.com 風格圖片拼貼卡片) ── */}
         {(secondaryData?.roomTypes?.length || 0) > 0 && (
-          <section className="py-4">
-            <h2 className="text-base font-bold text-foreground px-4 mb-3">
+          <section className="py-4 bg-background">
+            <h2 className="text-[20px] font-bold text-foreground px-4 mb-3">
               房間樣貌
             </h2>
-            <div className="px-4 flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-4 px-4 scrollbar-none">
-              {secondaryData!.roomTypes.map((room: any) => (
-                <Card
-                  key={room.id}
-                  className="snap-start shrink-0 w-[72%] sm:w-64 overflow-hidden border-border/60"
-                >
-                  <div className="aspect-[4/3] bg-muted overflow-hidden">
-                    {room.room_photos?.[0] ? (
-                      <img
-                        src={room.room_photos[0].photo_url}
-                        alt={room.name}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-full h-full" style={{ background: "hsl(25, 60%, 95%)" }} />
-                    )}
-                  </div>
-                  <div className="p-3">
-                    <p className="font-semibold text-sm text-foreground line-clamp-1">
-                      {room.name}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-1">
-                      {room.capacity} 人 {room.size_sqm ? `· ${room.size_sqm} 坪` : ""}
-                    </p>
-                    {room.description && (
-                      <p className="text-[11px] text-muted-foreground line-clamp-2 mt-1.5 leading-relaxed">
-                        {room.description}
-                      </p>
-                    )}
-                  </div>
-                </Card>
-              ))}
+            <div className="px-4 space-y-4">
+              {secondaryData!.roomTypes.map((room: any) => {
+                const photos = room.room_photos || [];
+                const main = photos[0]?.photo_url;
+                const side = photos[1]?.photo_url;
+                return (
+                  <Card
+                    key={room.id}
+                    className="overflow-hidden border-border/60 shadow-sm"
+                  >
+                    {/* image collage */}
+                    <div className="relative flex gap-1 h-[180px] bg-muted">
+                      <div className="flex-[2] overflow-hidden">
+                        {main ? (
+                          <img
+                            src={main}
+                            alt={room.name}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="w-full h-full" style={{ background: "hsl(25, 60%, 95%)" }} />
+                        )}
+                      </div>
+                      <div className="flex-1 overflow-hidden relative">
+                        {side ? (
+                          <img
+                            src={side}
+                            alt={`${room.name} 2`}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="w-full h-full" style={{ background: "hsl(25, 50%, 92%)" }} />
+                        )}
+                        {photos.length > 0 && (
+                          <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/55 backdrop-blur text-white text-[11px] font-medium">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/></svg>
+                            {photos.length}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* body */}
+                    <div className="p-3.5">
+                      <button
+                        onClick={() => {
+                          document
+                            .getElementById("capacity-price-section")
+                            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                        }}
+                        className="flex items-center gap-1 text-[15px] font-bold text-foreground"
+                      >
+                        {room.name}
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      </button>
+
+                      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <User className="h-3.5 w-3.5" />
+                          {room.capacity} 人
+                        </span>
+                        {room.size_sqm && (
+                          <span className="flex items-center gap-1">
+                            <Mountain className="h-3.5 w-3.5" />
+                            {room.size_sqm} 坪
+                          </span>
+                        )}
+                        {(room.view || (info as any).type) && (
+                          <span className="flex items-center gap-1">
+                            <Trees className="h-3.5 w-3.5" />
+                            {room.view || "景觀房"}
+                          </span>
+                        )}
+                        <span className="flex items-center gap-1">
+                          <Wifi className="h-3.5 w-3.5" />
+                          免費 Wi-Fi
+                        </span>
+                      </div>
+
+                      {room.description && (
+                        <p className="mt-2 text-[12px] text-muted-foreground line-clamp-2 leading-relaxed">
+                          {room.description}
+                        </p>
+                      )}
+
+                      {/* CTA row */}
+                      <div className="mt-3 pt-3 border-t border-border/60 flex items-center justify-between gap-3">
+                        {typeof room.base_price === "number" && (
+                          <div className="min-w-0">
+                            <p className="text-[10px] text-muted-foreground leading-none">起價</p>
+                            <p
+                              className="font-bold text-[18px] leading-tight tabular-nums"
+                              style={{ color: "hsl(217, 96%, 57%)" }}
+                            >
+                              NT${room.base_price.toLocaleString()}
+                            </p>
+                          </div>
+                        )}
+                        <Button
+                          onClick={() => {
+                            document
+                              .getElementById("capacity-price-section")
+                              ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                          }}
+                          className="h-10 px-5 text-[14px] font-bold text-white rounded-md"
+                          style={{ background: "hsl(217, 96%, 57%)" }}
+                        >
+                          查看方案
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
             </div>
           </section>
         )}
