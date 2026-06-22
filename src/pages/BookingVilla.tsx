@@ -973,7 +973,7 @@ const BookingVilla = () => {
       </div>
 
       <BookingFooter />
-      <MobileBottomNav />
+      {!editSearchOpen && <MobileBottomNav />}
 
       <EditSearchSheet
         open={editSearchOpen}
