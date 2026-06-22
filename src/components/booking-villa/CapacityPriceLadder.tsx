@@ -589,7 +589,7 @@ const CapacityPriceLadder = ({
                       )}
                       <p
                         className="font-black text-[22px] leading-tight tabular-nums"
-                        style={{ color: "hsl(210, 90%, 48%)" }}
+                        style={{ color: "hsl(25, 85%, 48%)" }}
                       >
                         NT${opt.totalPrice.toLocaleString()}
                       </p>
