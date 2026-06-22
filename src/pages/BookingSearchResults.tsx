@@ -405,21 +405,41 @@ const BookingSearchResults = () => {
       return m ? Math.max(1, parseInt(m[1], 10)) : 1;
     };
 
-    const computePkgRoomReq = (pkg: AccommodationPackage): Array<{ rtId: string; qty: number }> => {
+    // 回傳套餐的庫存需求
+    //   mode "all"      : 每個 rtId 都要滿足 qty（多房型組合，例如旅行日多房型）
+    //   mode "any-one"  : 從 candidates 中任一房型可售即可（雲岫式包棟池，從 N 棟挑 1）
+    const computePkgRoomReq = (pkg: AccommodationPackage):
+      | { mode: "all"; items: Array<{ rtId: string; qty: number }> }
+      | { mode: "any-one"; candidates: string[] } => {
       const ids = (pkg as any).room_type_ids as string[] | null;
       const list = Array.isArray(ids) && ids.length > 0
         ? ids
         : (pkg.primary_room_type_id ? [pkg.primary_room_type_id] : []);
-      if (list.length === 0) return [];
+      if (list.length === 0) return { mode: "all", items: [] };
       if (list.length === 1) {
-        // 只指定 primary_room_type_id 時，代表方案本身對應該房型的 1 份庫存
+        // 只指定單一房型時，代表方案本身對應該房型的 1 份庫存
         // room_allocation（例如「四人房x3」）僅作為顯示用，不應乘到庫存需求上
-        return [{ rtId: list[0], qty: 1 }];
+        return { mode: "all", items: [{ rtId: list[0], qty: 1 }] };
       }
-      return list.map((rtId) => {
+      // 多房型：若 room_allocation 中找不到任何列表房型名稱（如雲岫的 allocation 寫的是
+      // 「雙人房x2，四人房x2」但 room_type_ids 是 A1/A3/A5… 等 villa），代表是「擇一池」
+      const alloc = pkg.room_allocation || "";
+      const anyMatched = list.some((rtId) => {
         const rt = rtMap.get(rtId);
-        return { rtId, qty: rt ? parseQty(pkg.room_allocation, rt.name) : 1 };
+        if (!rt) return false;
+        const esc = rt.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        return new RegExp(esc + "\\s*[xX\u00d7]\\s*\\d+", "i").test(alloc);
       });
+      if (!anyMatched) {
+        return { mode: "any-one", candidates: list };
+      }
+      return {
+        mode: "all",
+        items: list.map((rtId) => {
+          const rt = rtMap.get(rtId);
+          return { rtId, qty: rt ? parseQty(pkg.room_allocation, rt.name) : 1 };
+        }),
+      };
     };
 
     const stayDates = hasDateFilter
@@ -438,16 +458,39 @@ const BookingSearchResults = () => {
 
       let allAvail = true;
       let minPackagesSellable = Infinity;
-      if (hasDateFilter && req.length > 0) {
-        for (const { rtId, qty } of req) {
-          const inv = inventoryMap.get(rtId);
-          if (!inv || !inv.allAvailable || inv.minAvail < qty) {
-            allAvail = false;
-            break;
+      if (hasDateFilter) {
+        if (req.mode === "all") {
+          if (req.items.length === 0) {
+            // 無房型資訊，視同無法判斷 → 不擋
+          } else {
+            for (const { rtId, qty } of req.items) {
+              const inv = inventoryMap.get(rtId);
+              if (!inv || !inv.allAvailable || inv.minAvail < qty) {
+                allAvail = false;
+                break;
+              }
+              minPackagesSellable = Math.min(minPackagesSellable, Math.floor(inv.minAvail / qty));
+            }
           }
-          minPackagesSellable = Math.min(minPackagesSellable, Math.floor(inv.minAvail / qty));
+        } else {
+          // any-one：擇一池中只要任一房型可售即可，且該房型容量需 ≥ 套餐人數
+          let sellableTotal = 0;
+          for (const rtId of req.candidates) {
+            const rt = rtMap.get(rtId);
+            if (!rt) continue;
+            if ((rt.capacity ?? 0) < (pkg.guest_count ?? 0)) continue;
+            const inv = inventoryMap.get(rtId);
+            if (!inv || !inv.allAvailable || inv.minAvail <= 0) continue;
+            sellableTotal += inv.minAvail;
+          }
+          if (sellableTotal <= 0) {
+            allAvail = false;
+          } else {
+            minPackagesSellable = sellableTotal;
+          }
         }
       }
+
 
       const holidaySet = new Set(
         holidays
@@ -479,8 +522,13 @@ const BookingSearchResults = () => {
         ? Math.round(((original - total) / original) * 100)
         : null;
 
-      const totalRoomCount = req.reduce((s, r) => s + r.qty, 0) || 1;
-      const totalSize = req.reduce((s, r) => {
+      const reqItems = req.mode === "all"
+        ? req.items
+        : req.candidates.map((rtId) => ({ rtId, qty: 1 }));
+      const totalRoomCount = req.mode === "any-one"
+        ? 1
+        : (reqItems.reduce((s, r) => s + r.qty, 0) || 1);
+      const totalSize = reqItems.reduce((s, r) => {
         const rt = rtMap.get(r.rtId);
         return s + (rt?.size_sqm ? rt.size_sqm * r.qty : 0);
       }, 0);
