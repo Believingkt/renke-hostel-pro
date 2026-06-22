@@ -11,7 +11,7 @@ import {
   SheetTitle,
   SheetFooter,
 } from "@/components/ui/sheet";
-import { Minus, Plus, CalendarDays, BedDouble, User, Baby } from "lucide-react";
+import { Minus, Plus, CalendarDays, BedDouble, User, Baby, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface EditSearchSheetProps {
@@ -104,6 +104,7 @@ const EditSearchSheet = ({
   const [i, setI] = useState(infants);
   const [tod, setTod] = useState(toddlers);
   const [r, setR] = useState(rooms);
+  const [childrenOpen, setChildrenOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -266,32 +267,62 @@ const EditSearchSheet = ({
               min={1}
               max={50}
             />
-            <Counter
-              icon={Baby}
-              label="嬰兒（0–2 歲）"
-              value={i}
-              onChange={setI}
-              min={0}
-              max={10}
-            />
-            <Counter
-              icon={Baby}
-              label="幼兒（3–6 歲）"
-              value={tod}
-              onChange={setTod}
-              min={0}
-              max={10}
-            />
-            <Counter
-              icon={Baby}
-              label="兒童（7–12 歲）"
-              value={c}
-              onChange={setC}
-              min={0}
-              max={10}
-            />
+            <div>
+              <button
+                type="button"
+                onClick={() => setChildrenOpen((v) => !v)}
+                className="w-full flex items-center justify-between py-3"
+                aria-expanded={childrenOpen}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Baby className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-[15px] text-foreground">兒童</span>
+                  {(i + tod + c) > 0 && (
+                    <span className="text-[13px] text-muted-foreground tabular-nums">
+                      {i + tod + c} 位
+                    </span>
+                  )}
+                </div>
+                <ChevronDown
+                  className={cn(
+                    "w-4 h-4 text-muted-foreground transition-transform",
+                    childrenOpen && "rotate-180"
+                  )}
+                />
+              </button>
+              {childrenOpen && (
+                <div className="pb-1 pl-6 divide-y divide-border/40">
+                  <Counter
+                    icon={Baby}
+                    label="嬰兒（0–2 歲）"
+                    value={i}
+                    onChange={setI}
+                    min={0}
+                    max={10}
+                  />
+                  <Counter
+                    icon={Baby}
+                    label="幼兒（3–6 歲）"
+                    value={tod}
+                    onChange={setTod}
+                    min={0}
+                    max={10}
+                  />
+                  <Counter
+                    icon={Baby}
+                    label="兒童（7–12 歲）"
+                    value={c}
+                    onChange={setC}
+                    min={0}
+                    max={10}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
+
+
 
 
         <SheetFooter
