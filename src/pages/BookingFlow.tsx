@@ -264,6 +264,11 @@ const BookingFlow = () => {
   // 加購方案
   const [petCount, setPetCount] = useState(0);
   const [isPetPolicyDialogOpen, setIsPetPolicyDialogOpen] = useState(false);
+
+  // 兒童分齡（嬰兒 / 幼兒 / 兒童 → contextGuests.children 沿用為「兒童 7-12」）
+  const [childRules, setChildRules] = useState<ChildAgeRules>(DEFAULT_CHILD_AGE_RULES);
+  const [infantsCount, setInfantsCount] = useState(0);
+  const [toddlersCount, setToddlersCount] = useState(0);
   const [bbqMealsByDate, setBbqMealsByDate] = useState<Record<string, number>>({});
   const [hiddenBbqDates, setHiddenBbqDates] = useState<Set<string>>(new Set());
   const [isBbqMealsExpanded, setIsBbqMealsExpanded] = useState(false);
