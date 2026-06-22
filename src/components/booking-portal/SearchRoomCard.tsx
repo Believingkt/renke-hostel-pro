@@ -72,12 +72,56 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
 
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [activeIdx, setActiveIdx] = useState(0);
+  const dragState = useRef<{ startX: number; startScroll: number; moved: boolean } | null>(null);
   const handleScroll = () => {
     const el = scrollerRef.current;
     if (!el) return;
     const idx = Math.round(el.scrollLeft / el.clientWidth);
     if (idx !== activeIdx) setActiveIdx(idx);
   };
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    // 只處理滑鼠拖曳；觸控保留原生捲動
+    if (e.pointerType !== "mouse") return;
+    const el = scrollerRef.current;
+    if (!el) return;
+    dragState.current = { startX: e.clientX, startScroll: el.scrollLeft, moved: false };
+  };
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const s = dragState.current;
+    const el = scrollerRef.current;
+    if (!s || !el) return;
+    const dx = e.clientX - s.startX;
+    if (Math.abs(dx) > 3) {
+      s.moved = true;
+      try {
+        (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+      } catch {}
+    }
+    if (s.moved) {
+      el.scrollLeft = s.startScroll - dx;
+      e.preventDefault();
+    }
+  };
+  const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    const s = dragState.current;
+    const el = scrollerRef.current;
+    dragState.current = null;
+    if (!s || !el) return;
+    if (s.moved) {
+      // snap 到最近的圖
+      const idx = Math.round(el.scrollLeft / el.clientWidth);
+      el.scrollTo({ left: idx * el.clientWidth, behavior: "smooth" });
+    }
+  };
+  const onClickCapture = (e: React.MouseEvent<HTMLDivElement>) => {
+    // 拖曳完不要觸發 article 的 onClick
+    if (dragState.current?.moved) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+  };
+
 
   return (
     <article
@@ -101,7 +145,12 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
           <div
             ref={scrollerRef}
             onScroll={handleScroll}
-            className="flex h-full w-full overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth no-scrollbar overscroll-x-contain overscroll-y-none"
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={endDrag}
+            onPointerCancel={endDrag}
+            onClickCapture={onClickCapture}
+            className="flex h-full w-full overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth no-scrollbar overscroll-x-contain overscroll-y-none cursor-grab active:cursor-grabbing select-none"
             style={{ scrollbarWidth: "none", touchAction: "pan-x" }}
           >
             {photos.map((src, i) => (
