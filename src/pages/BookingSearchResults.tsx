@@ -876,6 +876,10 @@ const BookingSearchResults = () => {
               onAdultsChange={setEditAdults}
               children={editChildren}
               onChildrenChange={setEditChildren}
+              infants={editInfants}
+              onInfantsChange={setEditInfants}
+              toddlers={editToddlers}
+              onToddlersChange={setEditToddlers}
               rooms={editRooms}
               onRoomsChange={setEditRooms}
               onSearch={handleApplySearch}
