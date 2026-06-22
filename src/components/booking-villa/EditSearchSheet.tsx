@@ -128,10 +128,10 @@ const EditSearchSheet = ({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="h-[88vh] p-0 flex flex-col rounded-t-2xl"
+        className="z-[120] max-h-[92vh] h-auto p-0 flex flex-col rounded-t-2xl border-t-0 shadow-2xl"
       >
-        <SheetHeader className="px-4 pt-4 pb-2 border-b border-border">
-          <SheetTitle className="text-base">調整搜尋條件</SheetTitle>
+        <SheetHeader className="px-4 pt-4 pb-3 border-b border-border">
+          <SheetTitle className="text-[16px] font-semibold text-center">調整搜尋條件</SheetTitle>
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto px-4 pb-4">
@@ -198,11 +198,14 @@ const EditSearchSheet = ({
           </div>
         </div>
 
-        <SheetFooter className="px-4 py-3 border-t border-border bg-background">
+        <SheetFooter
+          className="px-4 pt-3 border-t border-border bg-background"
+          style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom))" }}
+        >
           <Button
             onClick={handleConfirm}
             disabled={!canConfirm}
-            className="w-full h-11 text-[15px] font-bold text-white rounded-md"
+            className="w-full h-12 text-[15px] font-bold text-white rounded-lg shadow-md"
             style={{ background: "hsl(25, 76%, 50%)" }}
           >
             套用
