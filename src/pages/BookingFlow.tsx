@@ -718,6 +718,16 @@ const BookingFlow = () => {
         setGuests({ adults: a, children: c });
       }
     }
+    const infantsParam = searchParams.get("infants");
+    const toddlersParam = searchParams.get("toddlers");
+    if (infantsParam !== null) {
+      const v = parseInt(infantsParam, 10);
+      if (!isNaN(v)) setInfantsCount(Math.max(0, v));
+    }
+    if (toddlersParam !== null) {
+      const v = parseInt(toddlersParam, 10);
+      if (!isNaN(v)) setToddlersCount(Math.max(0, v));
+    }
   }, [searchParams]);
 
   useEffect(() => {
