@@ -181,6 +181,11 @@ export function useAccommodationPackages(accommodationId: string | null, opts?: 
             p.tier_prices && typeof p.tier_prices === "object" && !Array.isArray(p.tier_prices)
               ? p.tier_prices
               : {},
+          room_type_allocation: Array.isArray(p.room_type_allocation)
+            ? p.room_type_allocation.filter(
+                (r: any) => r && typeof r.room_type_id === "string" && Number(r.qty) > 0
+              )
+            : [],
         })) as AccommodationPackage[]
       );
     }
