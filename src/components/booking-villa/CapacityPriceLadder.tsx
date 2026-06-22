@@ -238,16 +238,6 @@ const CapacityPriceLadder = ({
             <span className="text-[13px] font-bold text-foreground">{tierLabel.short}方案</span>
             <span className="text-[10px] text-muted-foreground">{tierLabel.full}</span>
           </div>
-          <p className="text-[11px] mt-0.5" style={{ color: "hsl(25, 70%, 35%)" }}>
-            {checkIn ? (
-              <>
-                <CalendarDays className="inline h-3 w-3 mr-0.5 -mt-0.5" />
-                {format(checkIn, "MM/dd")}（{["日", "一", "二", "三", "四", "五", "六"][checkIn.getDay()]}）入住 · {tierLabel.hint}
-              </>
-            ) : (
-              <>依今日推算 · {tierLabel.hint}</>
-            )}
-          </p>
         </div>
 
         {/* 其他時段查價 Popover */}
