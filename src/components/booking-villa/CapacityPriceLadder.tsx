@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
+import PackagePhotoCarousel from "./PackagePhotoCarousel";
 import {
   Popover,
   PopoverContent,
