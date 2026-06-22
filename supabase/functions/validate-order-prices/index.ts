@@ -9,6 +9,12 @@ interface CustomAddonInput {
   total: number;
 }
 
+interface ChildSelectionInput {
+  infants: number;
+  toddlers: number;
+  children: number;
+}
+
 interface OrderValidationRequest {
   accommodationId: string;
   roomTypeId: string;
@@ -24,6 +30,8 @@ interface OrderValidationRequest {
   petCount?: number;
   petPlanPrice?: number;
   customAddonDetails?: CustomAddonInput[] | null;
+  childSelection?: ChildSelectionInput | null;
+  childExtraTotal?: number;
 }
 
 interface ValidationResult {
@@ -36,7 +44,54 @@ interface ValidationResult {
     mealPlanTotal: number;
     petPlanPrice: number;
     customAddonTotal: number;
+    childExtraTotal: number;
   };
+}
+
+type ChildTierKey = "infant" | "toddler" | "child";
+interface ChildTier {
+  label: string;
+  min_age: number;
+  max_age: number;
+  fee_per_night: number;
+  max_count: number | null;
+  allowed: boolean;
+  counts_toward_capacity: boolean;
+}
+interface ChildAgeRules {
+  tiers: Record<ChildTierKey, ChildTier>;
+  note: string;
+}
+const TIER_ORDER: ChildTierKey[] = ["infant", "toddler", "child"];
+const DEFAULT_CHILD_AGE_RULES: ChildAgeRules = {
+  tiers: {
+    infant: { label: "嬰兒", min_age: 0, max_age: 2, fee_per_night: 0, max_count: null, allowed: true, counts_toward_capacity: false },
+    toddler: { label: "幼兒", min_age: 3, max_age: 6, fee_per_night: 500, max_count: 2, allowed: true, counts_toward_capacity: true },
+    child: { label: "兒童", min_age: 7, max_age: 12, fee_per_night: 800, max_count: 2, allowed: true, counts_toward_capacity: true },
+  },
+  note: "",
+};
+function parseChildAgeRules(raw: unknown): ChildAgeRules {
+  if (!raw || typeof raw !== "object") return DEFAULT_CHILD_AGE_RULES;
+  const obj = raw as any;
+  const tiersIn = obj.tiers && typeof obj.tiers === "object" ? obj.tiers : {};
+  const tiers = {} as Record<ChildTierKey, ChildTier>;
+  for (const key of TIER_ORDER) {
+    const t = tiersIn[key] && typeof tiersIn[key] === "object" ? tiersIn[key] : {};
+    const def = DEFAULT_CHILD_AGE_RULES.tiers[key];
+    tiers[key] = {
+      label: typeof t.label === "string" && t.label ? t.label : def.label,
+      min_age: Number.isFinite(t.min_age) ? Number(t.min_age) : def.min_age,
+      max_age: Number.isFinite(t.max_age) ? Number(t.max_age) : def.max_age,
+      fee_per_night: Number.isFinite(t.fee_per_night) ? Number(t.fee_per_night) : def.fee_per_night,
+      max_count: t.max_count === null || t.max_count === undefined || t.max_count === ""
+        ? null
+        : Number.isFinite(Number(t.max_count)) ? Number(t.max_count) : def.max_count,
+      allowed: typeof t.allowed === "boolean" ? t.allowed : def.allowed,
+      counts_toward_capacity: typeof t.counts_toward_capacity === "boolean" ? t.counts_toward_capacity : def.counts_toward_capacity,
+    };
+  }
+  return { tiers, note: typeof obj.note === "string" ? obj.note : "" };
 }
 
 serve(async (req) => {
@@ -68,6 +123,8 @@ serve(async (req) => {
       petCount = 0,
       petPlanPrice = 0,
       customAddonDetails = null,
+      childSelection = null,
+      childExtraTotal = 0,
     } = body;
 
     const errors: string[] = [];
@@ -228,8 +285,42 @@ serve(async (req) => {
       }
     }
 
+    // ===== 兒童分齡：伺服器端重新計算加價，並阻擋不接受 / 超過上限的組合 =====
+    let calculatedChildExtraTotal = 0;
+    if (childSelection) {
+      const { data: accInfo } = await supabase
+        .from("accommodation_info")
+        .select("child_age_rules")
+        .eq("id", accommodationId)
+        .maybeSingle();
+      const rules = parseChildAgeRules((accInfo as any)?.child_age_rules);
+      const sel = {
+        infant: Math.max(0, Number(childSelection.infants) || 0),
+        toddler: Math.max(0, Number(childSelection.toddlers) || 0),
+        child: Math.max(0, Number(childSelection.children) || 0),
+      };
+      for (const key of TIER_ORDER) {
+        const tier = rules.tiers[key];
+        const count = sel[key];
+        if (count <= 0) continue;
+        if (!tier.allowed) {
+          errors.push(`Child tier not allowed: ${tier.label} (${count})`);
+          continue;
+        }
+        if (tier.max_count !== null && count > tier.max_count) {
+          errors.push(`Child tier over limit: ${tier.label} ${count}/${tier.max_count}`);
+          continue;
+        }
+        calculatedChildExtraTotal += (tier.fee_per_night || 0) * count * nights;
+      }
+      const childDiff = Math.abs((childExtraTotal || 0) - calculatedChildExtraTotal);
+      if (childDiff > 2) {
+        errors.push(`Child extra total mismatch: client=${childExtraTotal}, server=${calculatedChildExtraTotal}`);
+      }
+    }
+
     // Calculate server-side total price
-    const calculatedTotalPrice = calculatedRoomTotal + calculatedPetPrice + calculatedMealPlanTotal + calculatedCustomAddonTotal;
+    const calculatedTotalPrice = calculatedRoomTotal + calculatedPetPrice + calculatedMealPlanTotal + calculatedCustomAddonTotal + calculatedChildExtraTotal;
 
     // Validate discount code if provided
     // Discount applies only to room total, NOT addons
@@ -339,7 +430,8 @@ serve(async (req) => {
         finalPrice: calculatedFinalPrice,
         mealPlanTotal: calculatedMealPlanTotal,
         petPlanPrice: calculatedPetPrice,
-        customAddonTotal: calculatedCustomAddonTotal
+        customAddonTotal: calculatedCustomAddonTotal,
+        childExtraTotal: calculatedChildExtraTotal,
       }
     };
 

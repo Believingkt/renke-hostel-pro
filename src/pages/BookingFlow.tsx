@@ -41,6 +41,13 @@ import {
 import { format, formatISO, addMonths, endOfMonth } from "date-fns";
 import { classifyDayTier } from "@/utils/templatePriceResolver";
 import { isTemplateActiveForDates, getTierForDate, hasSegments as templateHasSegments } from "@/utils/pricingTemplateHelpers";
+import {
+  DEFAULT_CHILD_AGE_RULES,
+  parseChildAgeRules,
+  evaluateChildSelection,
+  type ChildAgeRules,
+  type ChildSelection,
+} from "@/lib/child-rules";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import {
@@ -257,6 +264,11 @@ const BookingFlow = () => {
   // 加購方案
   const [petCount, setPetCount] = useState(0);
   const [isPetPolicyDialogOpen, setIsPetPolicyDialogOpen] = useState(false);
+
+  // 兒童分齡（嬰兒 / 幼兒 / 兒童 → contextGuests.children 沿用為「兒童 7-12」）
+  const [childRules, setChildRules] = useState<ChildAgeRules>(DEFAULT_CHILD_AGE_RULES);
+  const [infantsCount, setInfantsCount] = useState(0);
+  const [toddlersCount, setToddlersCount] = useState(0);
   const [bbqMealsByDate, setBbqMealsByDate] = useState<Record<string, number>>({});
   const [hiddenBbqDates, setHiddenBbqDates] = useState<Set<string>>(new Set());
   const [isBbqMealsExpanded, setIsBbqMealsExpanded] = useState(false);
@@ -404,7 +416,7 @@ const BookingFlow = () => {
       try {
         const { data: infoData } = await supabase
           .from("accommodation_info")
-          .select("name, line_id, header_logo_url")
+          .select("name, line_id, header_logo_url, child_age_rules")
           .eq("id", accommodationId)
           .single();
         
@@ -412,6 +424,7 @@ const BookingFlow = () => {
           setAccommodationName(infoData.name);
           setAccommodationLineId(infoData.line_id);
           setAccommodationLogo(infoData.header_logo_url);
+          setChildRules(parseChildAgeRules((infoData as any).child_age_rules));
           setIsAccommodationLoaded(true);
         }
 
@@ -705,6 +718,16 @@ const BookingFlow = () => {
       if (!isNaN(a) && !isNaN(c) && (a !== contextGuests.adults || c !== contextGuests.children)) {
         setGuests({ adults: a, children: c });
       }
+    }
+    const infantsParam = searchParams.get("infants");
+    const toddlersParam = searchParams.get("toddlers");
+    if (infantsParam !== null) {
+      const v = parseInt(infantsParam, 10);
+      if (!isNaN(v)) setInfantsCount(Math.max(0, v));
+    }
+    if (toddlersParam !== null) {
+      const v = parseInt(toddlersParam, 10);
+      if (!isNaN(v)) setToddlersCount(Math.max(0, v));
     }
   }, [searchParams]);
 
@@ -1517,6 +1540,17 @@ const BookingFlow = () => {
     return appliedDiscount.value;
   };
 
+  const getChildSelection = (): ChildSelection => ({
+    infants: infantsCount,
+    toddlers: toddlersCount,
+    children: contextGuests?.children || 0,
+  });
+
+  const evaluateChildren = () =>
+    evaluateChildSelection(childRules, getChildSelection(), calculateNights());
+
+  const calculateChildExtraTotal = () => evaluateChildren().extraFeeTotal;
+
   const calculateAddonsTotal = () => {
     const nights = calculateNights();
     const bbqTotal = Object.values(bbqMealsByDate).reduce((sum, count) => sum + (count * mealPlanSettings.pricePerUnit), 0);
@@ -1524,7 +1558,7 @@ const BookingFlow = () => {
       const setting = customAddonSettings.find(s => s.addon_type === type);
       return sum + (count * (setting?.price_per_unit || 0) * nights);
     }, 0);
-    return (petCount * petPlanSettings.pricePerUnit * nights) + bbqTotal + customTotal;
+    return (petCount * petPlanSettings.pricePerUnit * nights) + bbqTotal + customTotal + calculateChildExtraTotal();
   };
 
   const calculateFinalTotal = () => {
@@ -2123,6 +2157,21 @@ const BookingFlow = () => {
       return;
     }
 
+    // 兒童分齡：阻擋不接受的年齡層或超過上限的選擇
+    const childSelection = getChildSelection();
+    const childEval = evaluateChildSelection(childRules, childSelection, calculateNights());
+    if (childEval.blocked) {
+      const labels = childEval.blockedTiers
+        .map((k) => childRules.tiers[k]?.label || k)
+        .join("、");
+      toast({
+        title: "兒童入住條件不符",
+        description: `「${labels}」超過上限或本民宿不接受該年齡層，請回上一步調整人數。`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (isSubmitting) {
       return; // 防止重複提交
     }
@@ -2256,6 +2305,8 @@ const BookingFlow = () => {
                     total: count * (setting?.price_per_unit || 0) * nights,
                   };
                 }),
+              childSelection,
+              childExtraTotal: childEval.extraFeeTotal,
             },
           }
         );
