@@ -29,6 +29,7 @@ import MobileBottomNav from "@/components/member/MobileBottomNav";
 import { CustomSectionDisplay, SingleCustomSection, CustomSection } from "@/components/CustomSectionDisplay";
 import OtherChannelsSection from "@/components/OtherChannelsSection";
 import PackagesSection from "@/components/PackagesSection";
+import SalesPackagesList from "@/components/SalesPackagesList";
 import { useAccommodationPackages } from "@/hooks/use-accommodation-packages";
 
 const BookingAccommodation = () => {
@@ -237,11 +238,11 @@ const BookingAccommodation = () => {
               return (
                 <div key="rooms">
                   {hasPackages && (
-                    <PackagesSection
+                    <SalesPackagesList
                       accommodationId={info.id}
-                      packages={packages}
                       customTitle={titles.title}
                       customSubtitle={titles.subtitle}
+                      asSection
                     />
                   )}
                   <RoomsSection
