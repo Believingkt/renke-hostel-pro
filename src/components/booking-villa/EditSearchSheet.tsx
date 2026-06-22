@@ -268,11 +268,27 @@ const EditSearchSheet = ({
             />
             <Counter
               icon={Baby}
-              label="兒童"
+              label="嬰兒（0–2 歲）"
+              value={i}
+              onChange={setI}
+              min={0}
+              max={10}
+            />
+            <Counter
+              icon={Baby}
+              label="幼兒（3–6 歲）"
+              value={tod}
+              onChange={setTod}
+              min={0}
+              max={10}
+            />
+            <Counter
+              icon={Baby}
+              label="兒童（7–12 歲）"
               value={c}
               onChange={setC}
               min={0}
-              max={20}
+              max={10}
             />
           </div>
         </div>
