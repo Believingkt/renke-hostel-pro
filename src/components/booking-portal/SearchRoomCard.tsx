@@ -281,19 +281,6 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
           </div>
         </div>
 
-        {/* meta：人數 / 坪數 */}
-        <div className="mt-2 flex items-center flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground leading-none">
-          <span className="flex items-center gap-1 leading-none">
-            <Users className="h-3.5 w-3.5 translate-y-[1px]" />
-            <span className="leading-none">{data.capacity} 人</span>
-          </span>
-          {data.size_sqm ? (
-            <span className="flex items-center gap-1 leading-none">
-              <Maximize2 className="h-3.5 w-3.5 translate-y-[1px]" />
-              <span className="leading-none">{data.size_sqm} 坪</span>
-            </span>
-          ) : null}
-        </div>
       </div>
     </article>
   );
