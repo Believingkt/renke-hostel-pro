@@ -281,39 +281,13 @@ const CapacityPriceLadder = ({
 
         return (
           <div className="space-y-4">
-            {/* 人數 Tab */}
-            <div className="flex items-center gap-0 px-1 overflow-x-auto no-scrollbar">
-              {allTiers.map((t, idx) => {
-                const isActive = t.guestCount === activeTier_.guestCount;
-                return (
-                  <div key={`${t.guestCount}-${t.planName || ""}`} className="flex items-center">
-                    {idx > 0 && (
-                      <span className="px-1.5 text-muted-foreground/60 text-[14px]">/</span>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setSelectedGuest(t.guestCount)}
-                      className={cn(
-                        "relative px-3.5 py-1.5 text-[15px] font-bold whitespace-nowrap transition-colors",
-                        isActive ? "text-white" : "text-muted-foreground hover:text-foreground"
-                      )}
-                      style={
-                        isActive
-                          ? {
-                              background: "hsl(25, 88%, 53%)",
-                              clipPath:
-                                "polygon(10% 0, 100% 0, 90% 100%, 0 100%)",
-                              padding: "6px 18px",
-                            }
-                          : undefined
-                      }
-                    >
-                      {t.guestCount}人
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
+            {/* 人數 Tab — 可左右滑動 */}
+            <GuestTabsScroller
+              tiers={allTiers}
+              activeGuestCount={activeTier_.guestCount}
+              onSelect={(g) => setSelectedGuest(g)}
+            />
+
 
             {/* 整合圖卡：照片 → 房型分配 → 方案 → 價格 */}
             <Card className="overflow-hidden border-border/60 shadow-sm">
