@@ -754,7 +754,7 @@ const BookingVilla = () => {
               className="w-full rounded-xl border border-border bg-card px-4 py-3 flex items-center justify-between text-left active:scale-[0.99] transition"
             >
               <span className="flex items-center gap-2 text-[14px] text-foreground font-medium">
-                <span className="inline-block w-4 h-4 border border-current rounded-sm" />
+                <Calendar className="w-3.5 h-3.5" />
                 {checkIn && checkOut ? (
                   <>
                     {format(checkIn, "M月d日")}–{format(checkOut, "M月d日")}
@@ -765,7 +765,7 @@ const BookingVilla = () => {
               </span>
               <span className="flex items-center gap-3 text-[14px] text-foreground font-medium">
                 <span className="flex items-center gap-1">
-                  <span className="inline-block w-3.5 h-3.5 border border-current rounded-sm" />
+                  <BedDouble className="w-3.5 h-3.5" />
                   {Math.max(1, parseInt(searchParams.get("rooms") || "1", 10) || 1)}
                 </span>
                 <span className="flex items-center gap-1">
