@@ -854,7 +854,7 @@ const BookingVilla = () => {
                       className="font-bold text-lg leading-none tabular-nums"
                       style={{ color: "hsl(25, 76%, 50%)" }}
                     >
-                      NT${display.toLocaleString()}
+                      NT${(display * Math.max(1, nights || 1)).toLocaleString()}
                     </p>
                   )}
                 </>
