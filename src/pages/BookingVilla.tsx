@@ -983,6 +983,7 @@ const BookingVilla = () => {
         adults={Math.max(1, parseInt(searchParams.get("adults") || "0", 10) || 1)}
         children={Math.max(0, parseInt(searchParams.get("children") || "0", 10) || 0)}
         rooms={Math.max(1, parseInt(searchParams.get("rooms") || "1", 10) || 1)}
+        availableDates={availableDateSet}
         onConfirm={({ checkIn: ci, checkOut: co, adults, children, rooms }) => {
           const params = new URLSearchParams(searchParams);
           params.set("checkIn", format(ci, "yyyy-MM-dd"));

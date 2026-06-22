@@ -22,6 +22,8 @@ interface EditSearchSheetProps {
   adults: number;
   children: number;
   rooms: number;
+  /** 可訂日集合（yyyy-MM-dd），null 表示尚未載入；非該集合內的日期將無法選取 */
+  availableDates?: Set<string> | null;
   onConfirm: (v: {
     checkIn: Date;
     checkOut: Date;
@@ -30,6 +32,7 @@ interface EditSearchSheetProps {
     rooms: number;
   }) => void;
 }
+
 
 const Counter = ({
   icon: Icon,
@@ -83,8 +86,10 @@ const EditSearchSheet = ({
   adults,
   children,
   rooms,
+  availableDates,
   onConfirm,
 }: EditSearchSheetProps) => {
+
   const [range, setRange] = useState<DateRange | undefined>(undefined);
   const [a, setA] = useState(adults);
   const [c, setC] = useState(children);
@@ -162,7 +167,16 @@ const EditSearchSheet = ({
                 }}
                 numberOfMonths={1}
                 locale={zhTW}
-                disabled={(d) => d < today}
+                disabled={(d) => {
+                  if (d < today) return true;
+                  if (availableDates) {
+                    const y = d.getFullYear();
+                    const m = String(d.getMonth() + 1).padStart(2, "0");
+                    const day = String(d.getDate()).padStart(2, "0");
+                    if (!availableDates.has(`${y}-${m}-${day}`)) return true;
+                  }
+                  return false;
+                }}
                 className="p-2 pointer-events-auto w-full bg-transparent"
                 classNames={{
                   months: "w-full",
