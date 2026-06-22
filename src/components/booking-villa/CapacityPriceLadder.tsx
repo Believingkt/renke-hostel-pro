@@ -489,10 +489,43 @@ const CapacityPriceLadder = ({
               {showDetails && (
                 <div className="border-t border-border/50 bg-muted/10 px-4 py-3 space-y-2.5">
                   <div>
-                    <p className="text-[11px] text-muted-foreground mb-1 flex items-center gap-1">
+                    <p className="text-[11px] text-muted-foreground mb-1.5 flex items-center gap-1">
                       <BedDouble className="h-3 w-3" /> 房型分配
                     </p>
-                    <p className="text-[12.5px] text-foreground">{selectedTier.roomAllocation}</p>
+                    {(selectedTier.roomTypeAllocation && selectedTier.roomTypeAllocation.length > 0) ? (
+                      <div className="flex flex-wrap gap-2">
+                        {selectedTier.roomTypeAllocation.map((alloc, i) => {
+                          const rt: any = roomTypes.find((r) => r.id === alloc.room_type_id);
+                          const cover = rt?.room_photos?.[0]?.photo_url;
+                          return (
+                            <div
+                              key={`${alloc.room_type_id}-${i}`}
+                              className="flex items-center gap-2 rounded-lg border border-border/60 bg-card p-1.5 pr-2.5"
+                            >
+                              <div className="w-12 h-12 rounded-md overflow-hidden bg-muted shrink-0">
+                                {cover ? (
+                                  <img src={cover} alt={rt?.name || ""} className="w-full h-full object-cover" loading="lazy" />
+                                ) : (
+                                  <div className="w-full h-full" style={{ background: "hsl(25, 60%, 95%)" }} />
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-[12px] font-semibold text-foreground leading-tight">
+                                  {rt?.name || "房型"}
+                                </p>
+                                <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">
+                                  × {alloc.qty}
+                                  {rt?.capacity ? ` · ${rt.capacity}人` : ""}
+                                  {rt?.size_sqm ? ` · ${rt.size_sqm}坪` : ""}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-[12.5px] text-foreground">{selectedTier.roomAllocation}</p>
+                    )}
                   </div>
                   {(selectedTier.includes || []).length > 0 && (
                     <div>

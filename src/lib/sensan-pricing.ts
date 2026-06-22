@@ -30,6 +30,8 @@ export interface SensanTierPrice {
   tags?: string[];
   /** 附加說明 */
   includes?: SensanTierIncludeItem[];
+  /** 房型分配（資料驅動）：[{room_type_id, qty}]，用於前台顯示縮圖。 */
+  roomTypeAllocation?: Array<{ room_type_id: string; qty: number }>;
 }
 
 export const SENSAN_PRICING_TABLE: Record<SensanPricingTier, SensanTierPrice[]> = {

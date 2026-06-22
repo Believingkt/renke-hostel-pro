@@ -29,6 +29,7 @@ export interface AccommodationPackage {
   enabled: boolean;
   excluded_date_ranges: PackageDateRange[];
   tier_prices: PackageTierPrices;
+  room_type_allocation: Array<{ room_type_id: string; qty: number }>;
 }
 
 export interface PackageDateRange {
@@ -180,6 +181,11 @@ export function useAccommodationPackages(accommodationId: string | null, opts?: 
             p.tier_prices && typeof p.tier_prices === "object" && !Array.isArray(p.tier_prices)
               ? p.tier_prices
               : {},
+          room_type_allocation: Array.isArray(p.room_type_allocation)
+            ? p.room_type_allocation.filter(
+                (r: any) => r && typeof r.room_type_id === "string" && Number(r.qty) > 0
+              )
+            : [],
         })) as AccommodationPackage[]
       );
     }
@@ -235,6 +241,7 @@ export function buildPricingTableFromPackages(
         childAgeNote: pkg.child_age_note,
         tags: pkg.tags || [],
         includes: pkg.includes || [],
+        roomTypeAllocation: pkg.room_type_allocation || [],
       };
       table[tier].push(tierPrice);
     }

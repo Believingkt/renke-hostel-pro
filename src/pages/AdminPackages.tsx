@@ -47,6 +47,7 @@ import { PortalFeatureTagsSection } from "@/components/website-content/PortalFea
 interface RoomTypeOption {
   id: string;
   name: string;
+  capacity?: number;
 }
 
 const TIER_OPTIONS: { value: PackageTier; label: string }[] = [
@@ -86,6 +87,7 @@ interface FormState {
   enabled: boolean;
   excluded_date_ranges: PackageDateRange[];
   tier_prices: PackageTierPrices;
+  room_type_allocation: Array<{ room_type_id: string; qty: number }>;
 }
 
 const emptyForm = (): FormState => ({
@@ -107,6 +109,7 @@ const emptyForm = (): FormState => ({
   enabled: true,
   excluded_date_ranges: [],
   tier_prices: {},
+  room_type_allocation: [],
 });
 
 const AdminPackages = () => {
@@ -138,7 +141,7 @@ const AdminPackages = () => {
     if (!currentAccommodationId) return;
     supabase
       .from("room_types")
-      .select("id, name")
+      .select("id, name, capacity")
       .eq("accommodation_id", currentAccommodationId)
       .order("display_order", { ascending: true })
       .then(({ data }) => setRoomTypes((data || []) as RoomTypeOption[]));
@@ -303,6 +306,9 @@ const AdminPackages = () => {
         ? pkg.excluded_date_ranges.map((r) => ({ ...r }))
         : [],
       tier_prices: pkg.tier_prices ? { ...pkg.tier_prices } : {},
+      room_type_allocation: Array.isArray((pkg as any).room_type_allocation)
+        ? (pkg as any).room_type_allocation.map((r: any) => ({ room_type_id: r.room_type_id, qty: Number(r.qty) || 1 }))
+        : [],
     });
     setOpen(true);
   };
@@ -332,6 +338,9 @@ const AdminPackages = () => {
         ? pkg.excluded_date_ranges.map((r) => ({ ...r }))
         : [],
       tier_prices: pkg.tier_prices ? { ...pkg.tier_prices } : {},
+      room_type_allocation: Array.isArray((pkg as any).room_type_allocation)
+        ? (pkg as any).room_type_allocation.map((r: any) => ({ room_type_id: r.room_type_id, qty: Number(r.qty) || 1 }))
+        : [],
     });
     setOpen(true);
   };
@@ -391,6 +400,9 @@ const AdminPackages = () => {
           ([, v]) => v && typeof v.sale === "number" && !Number.isNaN(v.sale)
         )
       ) as any,
+      room_type_allocation: (form.room_type_allocation || [])
+        .filter((r) => r.room_type_id && Number(r.qty) > 0)
+        .map((r) => ({ room_type_id: r.room_type_id, qty: Number(r.qty) })) as any,
     };
     const { error } = editing
       ? await supabase.from("accommodation_packages").update(payload as any).eq("id", editing.id)
@@ -915,6 +927,91 @@ const AdminPackages = () => {
                 onChange={(e) => setForm({ ...form, room_allocation: e.target.value })}
                 placeholder="例：豪華雙人房 x 2、溫馨四人房 x 1"
               />
+              <p className="text-[11px] text-muted-foreground mt-1">
+                純文字描述。當下方「結構化房型分配」沒設定時，前台才會 fallback 顯示此文字。
+              </p>
+            </div>
+
+            <div>
+              <Label>房型分配（結構化・含縮圖）</Label>
+              <p className="text-[11px] text-muted-foreground mb-2">
+                指定此包區方案實際入住的房型與數量。設定後前台會在方案卡內顯示房型縮圖（如「四人房 × 3」）。
+              </p>
+              <div className="space-y-2 rounded-md border p-3">
+                {form.room_type_allocation.length === 0 && (
+                  <p className="text-xs text-muted-foreground">尚未設定，點下方按鈕新增。</p>
+                )}
+                {form.room_type_allocation.map((alloc, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <Select
+                      value={alloc.room_type_id || NONE}
+                      onValueChange={(v) =>
+                        setForm((f) => {
+                          const next = [...f.room_type_allocation];
+                          next[idx] = { ...next[idx], room_type_id: v === NONE ? "" : v };
+                          return { ...f, room_type_allocation: next };
+                        })
+                      }
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="選擇房型" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NONE}>未選擇</SelectItem>
+                        {roomTypes.map((rt) => (
+                          <SelectItem key={rt.id} value={rt.id}>
+                            {rt.name}（{rt.capacity}人）
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      type="number"
+                      min={1}
+                      className="w-20"
+                      value={alloc.qty}
+                      onChange={(e) => {
+                        const n = Math.max(1, parseInt(e.target.value || "1", 10) || 1);
+                        setForm((f) => {
+                          const next = [...f.room_type_allocation];
+                          next[idx] = { ...next[idx], qty: n };
+                          return { ...f, room_type_allocation: next };
+                        });
+                      }}
+                    />
+                    <span className="text-xs text-muted-foreground">間</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() =>
+                        setForm((f) => ({
+                          ...f,
+                          room_type_allocation: f.room_type_allocation.filter((_, i) => i !== idx),
+                        }))
+                      }
+                    >
+                      <MinusCircle className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setForm((f) => ({
+                      ...f,
+                      room_type_allocation: [
+                        ...f.room_type_allocation,
+                        { room_type_id: "", qty: 1 },
+                      ],
+                    }))
+                  }
+                >
+                  + 新增房型
+                </Button>
+              </div>
             </div>
 
             <div>
