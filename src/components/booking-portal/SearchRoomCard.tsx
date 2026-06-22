@@ -167,6 +167,42 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
           </div>
         )}
 
+        {/* 桌機版：左右箭頭點擊區（避免誤觸卡片） */}
+        {photos.length > 1 && (
+          <>
+            <button
+              type="button"
+              aria-label="上一張"
+              onClick={(e) => {
+                e.stopPropagation();
+                const el = scrollerRef.current;
+                if (!el) return;
+                const idx = Math.max(0, Math.round(el.scrollLeft / el.clientWidth) - 1);
+                el.scrollTo({ left: idx * el.clientWidth, behavior: "smooth" });
+              }}
+              className="hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 z-10 h-8 w-8 items-center justify-center rounded-full bg-white/85 hover:bg-white shadow-md text-foreground opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"
+              disabled={activeIdx === 0}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              aria-label="下一張"
+              onClick={(e) => {
+                e.stopPropagation();
+                const el = scrollerRef.current;
+                if (!el) return;
+                const idx = Math.min(photos.length - 1, Math.round(el.scrollLeft / el.clientWidth) + 1);
+                el.scrollTo({ left: idx * el.clientWidth, behavior: "smooth" });
+              }}
+              className="hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 z-10 h-8 w-8 items-center justify-center rounded-full bg-white/85 hover:bg-white shadow-md text-foreground opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"
+              disabled={activeIdx >= photos.length - 1}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </>
+        )}
+
         {/* 左上：民宿型態 */}
         {data.accommodation_type && (
           <Badge
