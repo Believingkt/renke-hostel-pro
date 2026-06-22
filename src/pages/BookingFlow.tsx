@@ -2157,6 +2157,21 @@ const BookingFlow = () => {
       return;
     }
 
+    // 兒童分齡：阻擋不接受的年齡層或超過上限的選擇
+    const childSelection = getChildSelection();
+    const childEval = evaluateChildSelection(childRules, childSelection, calculateNights());
+    if (childEval.blocked) {
+      const labels = childEval.blockedTiers
+        .map((k) => childRules.tiers[k]?.label || k)
+        .join("、");
+      toast({
+        title: "兒童入住條件不符",
+        description: `「${labels}」超過上限或本民宿不接受該年齡層，請回上一步調整人數。`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (isSubmitting) {
       return; // 防止重複提交
     }
