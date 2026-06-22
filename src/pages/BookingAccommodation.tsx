@@ -234,19 +234,23 @@ const BookingAccommodation = () => {
               );
             case 'rooms':
               if (info.show_rooms_section === false) return null;
-              if (hasPackages) {
-                return (
-                  <PackagesSection
-                    key="rooms"
-                    accommodationId={info.id}
-                    packages={packages}
-                    customTitle={titles.title}
-                    customSubtitle={titles.subtitle}
-                  />
-                );
-              }
               return (
-                <RoomsSection key="rooms" roomTypes={secondaryData?.roomTypes || []} sectionDescription={info.description} customTitle={titles.title} customSubtitle={titles.subtitle} />
+                <div key="rooms">
+                  {hasPackages && (
+                    <PackagesSection
+                      accommodationId={info.id}
+                      packages={packages}
+                      customTitle={titles.title}
+                      customSubtitle={titles.subtitle}
+                    />
+                  )}
+                  <RoomsSection
+                    roomTypes={secondaryData?.roomTypes || []}
+                    sectionDescription={info.description}
+                    customTitle={hasPackages ? '房型導覽' : titles.title}
+                    customSubtitle={hasPackages ? '各房型獨立預訂選項' : titles.subtitle}
+                  />
+                </div>
               );
             case 'facilities':
               return info.show_facilities_section !== false && (
