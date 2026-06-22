@@ -67,6 +67,7 @@ import SimilarStaysCarousel from "@/components/booking-villa/SimilarStaysCarouse
 import BookingInfoSection from "@/components/BookingInfoSection";
 import BookingFooter from "@/components/BookingFooter";
 import MobileBottomNav from "@/components/member/MobileBottomNav";
+import EditSearchSheet from "@/components/booking-villa/EditSearchSheet";
 
 // 信任標籤可選圖示對照（後台填字串 key，前台對應 lucide icon）
 export const TRUST_BADGE_ICONS: Record<string, typeof ShieldCheck> = {
@@ -99,6 +100,7 @@ const BookingVilla = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [memberName, setMemberName] = useState("");
   const [bottomBarHidden, setBottomBarHidden] = useState(false);
+  const [editSearchOpen, setEditSearchOpen] = useState(false);
   const [availableDateSet, setAvailableDateSet] = useState<Set<string> | null>(null);
   const [availMinPrice, setAvailMinPrice] = useState<number | null>(null);
   const [availEarliestDate, setAvailEarliestDate] = useState<string | null>(null);
@@ -876,7 +878,7 @@ const BookingVilla = () => {
       >
         {/* 日期 + 人數 chips（永遠顯示） */}
         <button
-          onClick={() => navigate("/booking")}
+          onClick={() => setEditSearchOpen(true)}
           className="w-full mb-2 rounded-lg border border-border bg-muted/40 px-3 py-1.5 flex items-center justify-between text-left active:scale-[0.99] transition"
         >
           <span className="flex items-center gap-1.5 text-[13px] text-foreground font-medium">
@@ -972,6 +974,25 @@ const BookingVilla = () => {
 
       <BookingFooter />
       <MobileBottomNav />
+
+      <EditSearchSheet
+        open={editSearchOpen}
+        onOpenChange={setEditSearchOpen}
+        checkIn={checkIn}
+        checkOut={checkOut}
+        adults={Math.max(1, parseInt(searchParams.get("adults") || "0", 10) || 1)}
+        children={Math.max(0, parseInt(searchParams.get("children") || "0", 10) || 0)}
+        rooms={Math.max(1, parseInt(searchParams.get("rooms") || "1", 10) || 1)}
+        onConfirm={({ checkIn: ci, checkOut: co, adults, children, rooms }) => {
+          const params = new URLSearchParams(searchParams);
+          params.set("checkIn", format(ci, "yyyy-MM-dd"));
+          params.set("checkOut", format(co, "yyyy-MM-dd"));
+          params.set("adults", String(adults));
+          params.set("children", String(children));
+          params.set("rooms", String(rooms));
+          setSearchParams(params, { replace: true });
+        }}
+      />
     </div>
   );
 };
