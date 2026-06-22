@@ -112,6 +112,8 @@ const BookingSearchResults = () => {
   const checkOutStr = searchParams.get("checkOut");
   const adults = Number(searchParams.get("adults") || 0);
   const childrenCount = Number(searchParams.get("children") || 0);
+  const infantsCount = Number(searchParams.get("infants") || 0);
+  const toddlersCount = Number(searchParams.get("toddlers") || 0);
   const roomsParam = Number(searchParams.get("rooms") || 0);
   const q = searchParams.get("q") || "";
 
@@ -128,6 +130,7 @@ const BookingSearchResults = () => {
   const [accommodations, setAccommodations] = useState<AccInfo[]>([]);
   const [roomTypes, setRoomTypes] = useState<RoomTypeResult[]>([]);
   const [packages, setPackages] = useState<AccommodationPackage[]>([]);
+  const [accommodationRulesMap, setAccommodationRulesMap] = useState<Map<string, unknown>>(new Map());
   const [facilities, setFacilities] = useState<FacilityRow[]>([]);
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [holidays, setHolidays] = useState<HolidayRow[]>([]);
@@ -154,6 +157,8 @@ const BookingSearchResults = () => {
   const [editCheckOut, setEditCheckOut] = useState<Date | undefined>(checkOut || undefined);
   const [editAdults, setEditAdults] = useState(adults || 2);
   const [editChildren, setEditChildren] = useState(childrenCount || 0);
+  const [editInfants, setEditInfants] = useState(infantsCount || 0);
+  const [editToddlers, setEditToddlers] = useState(toddlersCount || 0);
   const [editRooms, setEditRooms] = useState(roomsParam || 1);
 
   const openEdit = useCallback(() => {
@@ -162,9 +167,11 @@ const BookingSearchResults = () => {
     setEditCheckOut(checkOut || undefined);
     setEditAdults(adults || 2);
     setEditChildren(childrenCount || 0);
+    setEditInfants(infantsCount || 0);
+    setEditToddlers(toddlersCount || 0);
     setEditRooms(roomsParam || 1);
     setEditOpen(true);
-  }, [q, checkIn, checkOut, adults, childrenCount, roomsParam]);
+  }, [q, checkIn, checkOut, adults, childrenCount, infantsCount, toddlersCount, roomsParam]);
 
   const handleApplySearch = useCallback(() => {
     const params = new URLSearchParams();
@@ -172,11 +179,13 @@ const BookingSearchResults = () => {
     if (editCheckOut) params.set("checkOut", format(editCheckOut, "yyyy-MM-dd"));
     if (editAdults) params.set("adults", String(editAdults));
     if (editChildren) params.set("children", String(editChildren));
+    if (editInfants) params.set("infants", String(editInfants));
+    if (editToddlers) params.set("toddlers", String(editToddlers));
     if (editRooms) params.set("rooms", String(editRooms));
     if (editQ.trim()) params.set("q", editQ.trim());
     setSearchParams(params);
     setEditOpen(false);
-  }, [editCheckIn, editCheckOut, editAdults, editChildren, editRooms, editQ, setSearchParams]);
+  }, [editCheckIn, editCheckOut, editAdults, editChildren, editInfants, editToddlers, editRooms, editQ, setSearchParams]);
 
 
   // ── 基本資料 ──
