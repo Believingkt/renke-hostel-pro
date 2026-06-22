@@ -412,11 +412,6 @@ const CapacityPriceLadder = ({
                           <span className="bg-black/55 backdrop-blur-sm text-white text-[11px] font-semibold px-2 py-0.5 rounded-full">
                             {p.rtName}
                           </span>
-                          {p.sizeSqm && (
-                            <span className="bg-white/90 text-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full tabular-nums">
-                              {p.sizeSqm}
-                            </span>
-                          )}
                         </div>
                         <div className="absolute bottom-2 right-2 bg-black/55 backdrop-blur-sm text-white text-[10px] font-semibold px-2 py-0.5 rounded-full tabular-nums">
                           {i + 1}/{carouselPhotos.length}
