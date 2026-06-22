@@ -739,49 +739,101 @@ const BookingVilla = () => {
           }}
         />
 
-        {/* ── 5. Capacity × Price Plans (核心 CTA) ── */}
+        {/* ── 5. Capacity × Price Plans (核心 CTA) ── Trip.com style ── */}
         <section id="capacity-price-section" className="py-4 bg-background">
-          <div className="px-4 mb-3 flex items-end justify-between">
-            <div>
-              <h2 className="text-base font-bold text-foreground">
-                選擇人數方案
-              </h2>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                整棟包棟 · 依入住人數選擇對應方案
-                {checkIn && checkOut && (
+          <h2 className="text-[20px] font-bold text-foreground px-4 mb-3">
+            選擇您的房間
+          </h2>
+
+          {/* 日期 + 人數 chip card */}
+          <div className="px-4 mb-3">
+            <button
+              onClick={() => navigate("/booking")}
+              className="w-full rounded-xl border border-border bg-card px-4 py-3 flex items-center justify-between text-left active:scale-[0.99] transition"
+            >
+              <span className="flex items-center gap-2 text-[14px] text-foreground font-medium">
+                <span className="inline-block w-4 h-4 border border-current rounded-sm" />
+                {checkIn && checkOut ? (
                   <>
-                    {" · "}
-                    {format(checkIn, "MM/dd")}–{format(checkOut, "MM/dd")}
+                    {format(checkIn, "M月d日")}–{format(checkOut, "M月d日")}
                   </>
+                ) : (
+                  <span className="text-muted-foreground">選擇日期</span>
                 )}
-              </p>
-            </div>
-            {!checkIn && (
-              <button
-                onClick={() => navigate("/booking")}
-                className="text-[11px] font-medium underline text-muted-foreground"
-              >
-                選日期
-              </button>
-            )}
+              </span>
+              <span className="flex items-center gap-3 text-[14px] text-foreground font-medium">
+                <span className="flex items-center gap-1">
+                  <span className="inline-block w-3.5 h-3.5 border border-current rounded-sm" />
+                  {Math.max(1, parseInt(searchParams.get("rooms") || "1", 10) || 1)}
+                </span>
+                <span className="flex items-center gap-1">
+                  <User className="w-3.5 h-3.5" />
+                  {Math.max(1, parseInt(searchParams.get("adults") || "0", 10) || 1)}
+                </span>
+                <span className="flex items-center gap-1 text-muted-foreground">
+                  <Baby className="w-3.5 h-3.5" />
+                  {Math.max(0, parseInt(searchParams.get("children") || "0", 10) || 0)}
+                </span>
+              </span>
+            </button>
           </div>
-          <CapacityPriceLadder
-            roomTypes={secondaryData?.roomTypes || []}
-            onSelect={handleSelectOption}
-            nights={nights}
-            checkIn={checkIn}
-            selectedGuestCount={
-              searchParams.get("adults")
-                ? parseInt(searchParams.get("adults") || "0", 10) || null
-                : null
-            }
-            pricingTable={customPricingTable}
-            planIncludes={customIncludes}
-            includesTitle={customIncludesTitle}
-            enableFewPeople={isSensan || packages.some((p) => (p.tags || []).some((t) => t === "early_bird" || t === "few_people"))}
-            isSensan={isSensan}
-            isHolidayDate={isHolidayDate}
-          />
+
+          {/* Discount hint banner（有早鳥/折扣方案才顯示） */}
+          {visiblePackages.some((p) => p.original_price && p.original_price > p.sale_price) && (() => {
+            const maxDiscount = Math.max(
+              ...visiblePackages
+                .filter((p) => p.original_price && p.original_price > p.sale_price)
+                .map((p) => (p.original_price as number) - p.sale_price)
+            );
+            return (
+              <div className="px-4 mb-3">
+                <div className="rounded-xl border border-[hsl(330,80%,90%)] bg-card px-3.5 py-2.5 flex items-center gap-2.5">
+                  <span
+                    className="inline-flex items-center justify-center w-7 h-7 rounded-md text-white text-[11px] font-bold shrink-0"
+                    style={{ background: "hsl(335, 80%, 55%)" }}
+                  >
+                    %
+                  </span>
+                  <p className="flex-1 text-[13px] font-semibold text-foreground leading-snug">
+                    最高 NT${maxDiscount.toLocaleString()} 折扣
+                    <span className="ml-1.5 text-[12px] font-normal text-muted-foreground">
+                      精選民宿優惠
+                    </span>
+                  </p>
+                  <button
+                    onClick={() => {
+                      const el = document.querySelector('[data-capacity-list]');
+                      el?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }}
+                    className="text-[13px] font-semibold text-white px-3 py-1.5 rounded-md whitespace-nowrap"
+                    style={{ background: "hsl(217, 96%, 57%)" }}
+                  >
+                    全部領取
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+
+          <div data-capacity-list>
+            <CapacityPriceLadder
+              roomTypes={secondaryData?.roomTypes || []}
+              onSelect={handleSelectOption}
+              nights={nights}
+              checkIn={checkIn}
+              selectedGuestCount={
+                searchParams.get("adults")
+                  ? parseInt(searchParams.get("adults") || "0", 10) || null
+                  : null
+              }
+              pricingTable={customPricingTable}
+              planIncludes={customIncludes}
+              includesTitle={customIncludesTitle}
+              enableFewPeople={isSensan || packages.some((p) => (p.tags || []).some((t) => t === "early_bird" || t === "few_people"))}
+              isSensan={isSensan}
+              isHolidayDate={isHolidayDate}
+            />
+          </div>
         </section>
 
         {/* ── 5. About / Description ── */}
