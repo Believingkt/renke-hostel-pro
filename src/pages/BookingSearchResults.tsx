@@ -302,6 +302,7 @@ const BookingSearchResults = () => {
   useEffect(() => {
     if (!hasDateFilter || roomTypes.length === 0) {
       setInventoryMap(new Map());
+      setClosedAccIds(new Set());
       return;
     }
     let cancelled = false;
