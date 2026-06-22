@@ -878,7 +878,7 @@ const BookingVilla = () => {
       >
         {/* 日期 + 人數 chips（永遠顯示） */}
         <button
-          onClick={() => navigate("/booking")}
+          onClick={() => setEditSearchOpen(true)}
           className="w-full mb-2 rounded-lg border border-border bg-muted/40 px-3 py-1.5 flex items-center justify-between text-left active:scale-[0.99] transition"
         >
           <span className="flex items-center gap-1.5 text-[13px] text-foreground font-medium">
