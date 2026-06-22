@@ -237,7 +237,7 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
                   </span>
                 ) : null}
                 {data.review_summary && (
-                  <span className="truncate opacity-80">
+                  <span className="truncate text-foreground">
                     {data.rating ? " · " : ""}
                     {data.review_summary}
                   </span>
