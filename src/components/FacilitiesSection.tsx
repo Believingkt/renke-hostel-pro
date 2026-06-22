@@ -44,13 +44,18 @@ const FacilitiesSection = ({ facilities, customTitle, customSubtitle }: Faciliti
   const [activeCat, setActiveCat] = useState(categoryKeys[0]);
   const tabsRef = useRef<HTMLDivElement>(null);
 
-  // 切換類別時，將 active tab 滾入視野
+  // 切換類別時，只在 tab 列內部水平捲動使 active tab 置中
+  // （避免使用 scrollIntoView，否則會連同整個頁面一起被水平捲動，造成內容左偏）
   useEffect(() => {
     const container = tabsRef.current;
     if (!container) return;
     const el = container.querySelector<HTMLButtonElement>(`[data-cat="${activeCat}"]`);
-    el?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    if (!el) return;
+    const target =
+      el.offsetLeft - container.clientWidth / 2 + el.clientWidth / 2;
+    container.scrollTo({ left: Math.max(0, target), behavior: "smooth" });
   }, [activeCat]);
+
 
   const activeItems = grouped[activeCat] || [];
 
