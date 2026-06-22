@@ -137,7 +137,7 @@ const BookingSearchResults = () => {
   const [accommodations, setAccommodations] = useState<AccInfo[]>([]);
   const [roomTypes, setRoomTypes] = useState<RoomTypeResult[]>([]);
   const [packages, setPackages] = useState<AccommodationPackage[]>([]);
-  const [accommodationRulesMap, setAccommodationRulesMap] = useState<Map<string, unknown>>(new Map());
+  
   const [facilities, setFacilities] = useState<FacilityRow[]>([]);
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [holidays, setHolidays] = useState<HolidayRow[]>([]);
