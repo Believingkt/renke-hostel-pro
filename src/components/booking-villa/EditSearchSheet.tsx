@@ -198,11 +198,14 @@ const EditSearchSheet = ({
           </div>
         </div>
 
-        <SheetFooter className="px-4 py-3 border-t border-border bg-background">
+        <SheetFooter
+          className="px-4 pt-3 border-t border-border bg-background"
+          style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom))" }}
+        >
           <Button
             onClick={handleConfirm}
             disabled={!canConfirm}
-            className="w-full h-11 text-[15px] font-bold text-white rounded-md"
+            className="w-full h-12 text-[15px] font-bold text-white rounded-lg shadow-md"
             style={{ background: "hsl(25, 76%, 50%)" }}
           >
             套用
