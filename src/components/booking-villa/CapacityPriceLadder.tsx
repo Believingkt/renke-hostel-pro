@@ -442,7 +442,7 @@ const CapacityPriceLadder = ({
                       <>
                         <p
                           className="text-[13.5px] font-bold"
-                          style={{ color: "hsl(180, 60%, 32%)" }}
+                          style={{ color: "hsl(20, 75%, 42%)" }}
                         >
                           {tier.subtitle || "方案已含"}
                         </p>
