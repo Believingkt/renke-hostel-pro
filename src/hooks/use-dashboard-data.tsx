@@ -169,11 +169,13 @@ const fetchDashboardData = async (
     }
   });
   
-  const isRevenueEligible = (status: string) => status === 'confirmed';
+  // 營收計入規則：confirmed 一律計入；hold 僅在「業主自帶」來源時計入（與住房營業分析對齊）
+  const isRevenueEligible = (status: string, source?: string | null) =>
+    status === 'confirmed' || (status === 'hold' && source === 'owner_provided');
   const totalRoomCount = roomTypesData.reduce((sum, rt) => sum + (rt.room_count || 0), 0);
 
   // Step 2: Fetch inventory pricing for daily revenue splitting
-  const confirmedWithDates = ordersData.filter(o => isRevenueEligible(o.order_status) && o.check_in_date && o.check_out_date);
+  const confirmedWithDates = ordersData.filter(o => isRevenueEligible(o.order_status, (o as any).order_source) && o.check_in_date && o.check_out_date);
   const roomTypeIds = roomTypesData.map(rt => rt.id);
   
   let pricingMap: PricingMap = new Map();
@@ -246,7 +248,7 @@ const fetchDashboardData = async (
   // 接單趨勢排除 KOL 互惠 (kol) 與公務使用 (official_use)
   const EXCLUDED_TREND_SOURCES = new Set(['kol', 'official_use']);
   ordersData.forEach(order => {
-    if (!isRevenueEligible(order.order_status)) return;
+    if (!isRevenueEligible(order.order_status, (order as any).order_source)) return;
     if (EXCLUDED_TREND_SOURCES.has((order as any).order_source)) return;
     const monthKey = format(new Date(order.order_date), 'yyyy-MM');
     bookingPlacedByMonth.set(monthKey, (bookingPlacedByMonth.get(monthKey) || 0) + 1);
@@ -262,8 +264,8 @@ const fetchDashboardData = async (
   const currentMonthOrders = ordersByMonth.get(currentMonthKey) || [];
   const lastMonthOrders = ordersByMonth.get(lastMonthKey) || [];
   
-  const confirmedCurrentMonthOrders = currentMonthOrders.filter(o => isRevenueEligible(o.order_status));
-  const confirmedLastMonthOrders = lastMonthOrders.filter(o => isRevenueEligible(o.order_status));
+  const confirmedCurrentMonthOrders = currentMonthOrders.filter(o => isRevenueEligible(o.order_status, (o as any).order_source));
+  const confirmedLastMonthOrders = lastMonthOrders.filter(o => isRevenueEligible(o.order_status, (o as any).order_source));
   const monthlyBookingCount = confirmedCurrentMonthOrders.length;
   const lastMonthBookingCount = confirmedLastMonthOrders.length;
   const monthlyGuestCount = confirmedCurrentMonthOrders.reduce((sum, o) => sum + (o.guest_count || 0), 0);
@@ -482,7 +484,7 @@ const fetchDashboardData = async (
     // Get confirmed orders overlapping this month
     const monthOrders = ordersData.filter(o => {
       if (!o.check_in_date || !o.check_out_date) return false;
-      if (!isRevenueEligible(o.order_status)) return false;
+      if (!isRevenueEligible(o.order_status, (o as any).order_source)) return false;
       const checkIn = new Date(o.check_in_date);
       const checkOut = new Date(o.check_out_date);
       return checkOut > monthStart && checkIn <= monthEnd;
@@ -494,7 +496,7 @@ const fetchDashboardData = async (
     
     const lastYearMonthOrders = ordersData.filter(o => {
       if (!o.check_in_date || !o.check_out_date) return false;
-      if (!isRevenueEligible(o.order_status)) return false;
+      if (!isRevenueEligible(o.order_status, (o as any).order_source)) return false;
       const checkIn = new Date(o.check_in_date);
       const checkOut = new Date(o.check_out_date);
       return checkOut > lastYearMonthStart && checkIn <= lastYearMonthEnd;
