@@ -203,13 +203,7 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
               <DoorOpen className="h-3.5 w-3.5 shrink-0 opacity-70" />
               <span className="truncate">
                 {data.is_package ? (
-                  <>
-                    {data.capacity} 人{data.guest_count_max && data.guest_count_max > data.capacity ? "（含以下）" : ""}
-                    <span className="opacity-80"> · {data.unit_count ?? 1} 包區</span>
-                    {data.room_count ? (
-                      <span className="opacity-80"> · 共 {data.room_count} 間</span>
-                    ) : null}
-                  </>
+                  <span className="font-medium text-foreground/90">{data.name}</span>
                 ) : (
                   <>
                     {data.name}
