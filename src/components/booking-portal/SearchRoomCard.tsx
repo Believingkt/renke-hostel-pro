@@ -154,12 +154,12 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
             style={{ scrollbarWidth: "none", touchAction: "pan-x" }}
           >
             {photos.map((src, i) => (
-              <div key={i} className="relative shrink-0 w-full h-full snap-start">
+              <div key={i} className="relative shrink-0 w-full h-full snap-start overflow-hidden">
                 <img
                   src={src}
                   alt={`${data.name} ${i + 1}`}
                   loading={i === 0 ? "eager" : "lazy"}
-                  className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                  className="w-full h-full object-cover"
                   draggable={false}
                 />
               </div>
