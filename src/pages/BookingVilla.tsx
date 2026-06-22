@@ -55,6 +55,7 @@ import {
   buildPricingTableFromPackages,
   aggregateIncludesFromPackages,
   detectTierByDate,
+  getPackagePriceForTier,
   isPackageExcludedOnDate,
 } from "@/hooks/use-accommodation-packages";
 
@@ -890,12 +891,20 @@ const BookingVilla = () => {
                 : (candidatePkgs.length > 0
                     ? candidatePkgs.reduce((max, p) => ((p.guest_count ?? 0) > (max.guest_count ?? 0) ? p : max), candidatePkgs[0])
                     : null);
+              const currentTier = checkIn ? detectTierByDate(checkIn, isHolidayDate(checkIn)) : null;
               const cheapestPkg = pickFrom
-                ? candidatePkgs.filter((p) => p.guest_count === pickFrom.guest_count)
-                    .reduce((min, p) => (p.sale_price < min.sale_price ? p : min), pickFrom)
+                ? candidatePkgs
+                    .filter((p) => p.guest_count === pickFrom.guest_count)
+                    .reduce((min, p) => {
+                      const pSale = currentTier ? getPackagePriceForTier(p, currentTier).sale : p.sale_price;
+                      const mSale = currentTier ? getPackagePriceForTier(min, currentTier).sale : min.sale_price;
+                      return pSale < mSale ? p : min;
+                    }, pickFrom)
                 : null;
 
-              const pkgMin = cheapestPkg?.sale_price ?? null;
+              const pkgMin = cheapestPkg
+                ? (currentTier ? getPackagePriceForTier(cheapestPkg, currentTier).sale : cheapestPkg.sale_price)
+                : null;
               const roomMin = (secondaryData?.roomTypes?.length || 0) > 0
                 ? Math.min(...secondaryData!.roomTypes.map((r: any) => r.base_price))
                 : null;
