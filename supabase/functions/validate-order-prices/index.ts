@@ -123,6 +123,8 @@ serve(async (req) => {
       petCount = 0,
       petPlanPrice = 0,
       customAddonDetails = null,
+      childSelection = null,
+      childExtraTotal = 0,
     } = body;
 
     const errors: string[] = [];
