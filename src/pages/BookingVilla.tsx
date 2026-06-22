@@ -749,38 +749,8 @@ const BookingVilla = () => {
             選擇您的房間
           </h2>
 
-          {/* 日期 + 人數 chip card */}
-          <div className="px-4 mb-3">
-            <button
-              onClick={() => navigate("/booking")}
-              className="w-full rounded-xl border border-border bg-card px-4 py-3 flex items-center justify-between text-left active:scale-[0.99] transition"
-            >
-              <span className="flex items-center gap-2 text-[14px] text-foreground font-medium">
-                <Calendar className="w-3.5 h-3.5" />
-                {checkIn && checkOut ? (
-                  <>
-                    {format(checkIn, "M月d日")}–{format(checkOut, "M月d日")}
-                  </>
-                ) : (
-                  <span className="text-muted-foreground">選擇日期</span>
-                )}
-              </span>
-              <span className="flex items-center gap-3 text-[14px] text-foreground font-medium">
-                <span className="flex items-center gap-1">
-                  <BedDouble className="w-3.5 h-3.5" />
-                  {Math.max(1, parseInt(searchParams.get("rooms") || "1", 10) || 1)}
-                </span>
-                <span className="flex items-center gap-1">
-                  <User className="w-3.5 h-3.5" />
-                  {Math.max(1, parseInt(searchParams.get("adults") || "0", 10) || 1)}
-                </span>
-                <span className="flex items-center gap-1 text-muted-foreground">
-                  <Baby className="w-3.5 h-3.5" />
-                  {Math.max(0, parseInt(searchParams.get("children") || "0", 10) || 0)}
-                </span>
-              </span>
-            </button>
-          </div>
+
+
 
           {/* Discount hint banner（有早鳥/折扣方案才顯示） */}
           {visiblePackages.some((p) => p.original_price && p.original_price > p.sale_price) && (() => {
