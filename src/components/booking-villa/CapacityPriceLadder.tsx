@@ -604,7 +604,7 @@ const CapacityPriceLadder = ({
                       type="button"
                       onClick={() => onSelect(opt)}
                       className="w-full h-11 rounded-lg text-white font-bold text-[14px] shadow-sm active:scale-[0.99] transition-transform inline-flex items-center justify-center gap-1"
-                      style={{ background: "hsl(210, 90%, 48%)" }}
+                      style={{ background: "linear-gradient(135deg, hsl(25, 85%, 52%), hsl(20, 80%, 46%))" }}
                     >
                       預訂
                       <ChevronRight className="h-4 w-4" />
