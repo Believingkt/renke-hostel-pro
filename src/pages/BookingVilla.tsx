@@ -35,6 +35,8 @@ import {
   Flame,
   Music,
   Snowflake,
+  Calendar,
+  BedDouble,
 } from "lucide-react";
 import { differenceInDays, format, formatISO } from "date-fns";
 
