@@ -349,6 +349,18 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
                 )}
               </p>
             )}
+
+            {/* 5. 兒童規則摘要 */}
+            {data.child_rules_summary && (
+              <p className="text-[11px] sm:text-xs text-muted-foreground/90 line-clamp-2 leading-snug pt-0.5">
+                {data.child_rules_summary}
+              </p>
+            )}
+            {data.child_blocked_reason && (
+              <p className="text-[11px] sm:text-xs font-medium text-destructive line-clamp-1 leading-snug">
+                ⚠ {data.child_blocked_reason}
+              </p>
+            )}
           </div>
 
           {/* 右欄：價格區 */}
