@@ -133,6 +133,7 @@ const BookingSearchResults = () => {
   const [holidays, setHolidays] = useState<HolidayRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [inventoryMap, setInventoryMap] = useState<Map<string, { minAvail: number; minPrice: number | null; allAvailable: boolean }>>(new Map());
+  const [closedAccIds, setClosedAccIds] = useState<Set<string>>(new Set());
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [memberName, setMemberName] = useState("");
@@ -301,6 +302,7 @@ const BookingSearchResults = () => {
   useEffect(() => {
     if (!hasDateFilter || roomTypes.length === 0) {
       setInventoryMap(new Map());
+      setClosedAccIds(new Set());
       return;
     }
     let cancelled = false;
@@ -374,6 +376,27 @@ const BookingSearchResults = () => {
         });
       });
       setInventoryMap(result);
+
+      // 森山 / 哈庫納：當天任一房型「被訂走」(底表有開但被訂單佔光) → 整個住宿當天關閉
+      const SENSAN_ID = "5f764d55-ae11-4631-80fe-2e611853deae";
+      const HAKUNA_ID = "6b6ac0dc-602b-4dec-9167-7791ac412ba3";
+      const strictAccIds = new Set([SENSAN_ID, HAKUNA_ID]);
+      const closed = new Set<string>();
+      for (const rt of roomTypes) {
+        if (!strictAccIds.has(rt.accommodation_id)) continue;
+        if (closed.has(rt.accommodation_id)) continue;
+        for (const d of stayDates) {
+          const base = baseMap.get(`${rt.id}:${d}`);
+          const adj = adjMap.get(`${rt.id}:${d}`);
+          if (!base || !base.isAvailable) continue; // 沒開不算被訂走
+          if (!adj) continue;
+          if (adj.isBlocked || adj.available <= 0) {
+            closed.add(rt.accommodation_id);
+            break;
+          }
+        }
+      }
+      setClosedAccIds(closed);
     })();
     return () => {
       cancelled = true;
@@ -458,7 +481,10 @@ const BookingSearchResults = () => {
 
       let allAvail = true;
       let minPackagesSellable = Infinity;
-      if (hasDateFilter) {
+      // 森山 / 哈庫納：當天任一房型有訂單 → 該住宿整天關閉（所有方案標售完）
+      if (hasDateFilter && closedAccIds.has(acc.id)) {
+        allAvail = false;
+      } else if (hasDateFilter) {
         if (req.mode === "all") {
           if (req.items.length === 0) {
             // 無房型資訊，視同無法判斷 → 不擋
@@ -578,7 +604,7 @@ const BookingSearchResults = () => {
     });
 
     return result;
-  }, [accommodations, roomTypes, packages, facilities, holidays, inventoryMap, hasDateFilter, nights, checkIn, checkOut]);
+  }, [accommodations, roomTypes, packages, facilities, holidays, inventoryMap, closedAccIds, hasDateFilter, nights, checkIn, checkOut]);
 
   // ── 每家民宿只保留一張最符合搜尋條件的房型卡 ──
   const dedupedCards = useMemo<SearchRoomCardData[]>(() => {
