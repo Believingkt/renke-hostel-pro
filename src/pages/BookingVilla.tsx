@@ -904,14 +904,20 @@ const BookingVilla = () => {
         checkOut={checkOut}
         adults={Math.max(1, parseInt(searchParams.get("adults") || "0", 10) || 1)}
         children={Math.max(0, parseInt(searchParams.get("children") || "0", 10) || 0)}
+        infants={Math.max(0, parseInt(searchParams.get("infants") || "0", 10) || 0)}
+        toddlers={Math.max(0, parseInt(searchParams.get("toddlers") || "0", 10) || 0)}
         rooms={Math.max(1, parseInt(searchParams.get("rooms") || "1", 10) || 1)}
         availableDates={availableDateSet}
-        onConfirm={({ checkIn: ci, checkOut: co, adults, children, rooms }) => {
+        onConfirm={({ checkIn: ci, checkOut: co, adults, children, infants, toddlers, rooms }) => {
           const params = new URLSearchParams(searchParams);
           params.set("checkIn", format(ci, "yyyy-MM-dd"));
           params.set("checkOut", format(co, "yyyy-MM-dd"));
           params.set("adults", String(adults));
           params.set("children", String(children));
+          if (infants > 0) params.set("infants", String(infants));
+          else params.delete("infants");
+          if (toddlers > 0) params.set("toddlers", String(toddlers));
+          else params.delete("toddlers");
           params.set("rooms", String(rooms));
           setSearchParams(params, { replace: true });
         }}
