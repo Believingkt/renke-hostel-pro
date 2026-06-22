@@ -319,7 +319,7 @@ const CapacityPriceLadder = ({
         const optionalItems = (activeTier_.includes || []).filter((i) => i.available === "optional");
 
         const allocation = activeTier_.roomTypeAllocation || [];
-        // 攤平：每一間房一張縮圖
+        // 攤平：每一間房一張縮圖（給「房間搭配」顯示用，目前已改成文字 + 輪播照片）
         const roomTiles: { rt: any; index: number }[] = [];
         allocation.forEach((a) => {
           const rt: any = roomTypes.find((r) => r.id === a.room_type_id);
@@ -333,6 +333,27 @@ const CapacityPriceLadder = ({
           })
           .filter(Boolean)
           .join("・");
+
+        // 房型照片輪播：取所有綁定房型的全部照片
+        const carouselPhotos: { url: string; rtName: string; sizeSqm?: number | null }[] = [];
+        const seenRtIds = new Set<string>();
+        allocation.forEach((a) => {
+          if (seenRtIds.has(a.room_type_id)) return;
+          seenRtIds.add(a.room_type_id);
+          const rt: any = roomTypes.find((r) => r.id === a.room_type_id);
+          if (!rt) return;
+          const photos = Array.isArray(rt.room_photos) ? rt.room_photos : [];
+          photos.forEach((p: any) => {
+            if (p?.photo_url) {
+              carouselPhotos.push({
+                url: p.photo_url,
+                rtName: rt.name || "",
+                sizeSqm: rt.size_sqm ?? null,
+              });
+            }
+          });
+        });
+
 
         return (
           <div className="space-y-4">
@@ -372,39 +393,40 @@ const CapacityPriceLadder = ({
 
             {/* 整合圖卡：照片 → 房型分配 → 方案 → 價格 */}
             <Card className="overflow-hidden border-border/60 shadow-sm">
-              {/* 1. 房型照片 */}
-              {roomTiles.length > 0 && (
-                <div className="grid grid-cols-3 gap-1.5 p-2">
-                  {roomTiles.slice(0, 6).map(({ rt, index }, i) => {
-                    const cover = rt?.room_photos?.[0]?.photo_url;
-                    return (
+              {/* 1. 房型照片輪播（綁定房型的全部照片） */}
+              {carouselPhotos.length > 0 && (
+                <div className="relative">
+                  <div className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar">
+                    {carouselPhotos.map((p, i) => (
                       <div
-                        key={`${rt.id}-${index}-${i}`}
-                        className="relative aspect-[4/3] rounded-md overflow-hidden bg-muted"
+                        key={`${p.url}-${i}`}
+                        className="relative shrink-0 w-full snap-center aspect-[16/10] bg-muted"
                       >
-                        {cover ? (
-                          <img
-                            src={cover}
-                            alt={rt?.name || ""}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div
-                            className="w-full h-full"
-                            style={{ background: "hsl(25, 60%, 95%)" }}
-                          />
-                        )}
-                        {rt?.size_sqm && (
-                          <span className="absolute bottom-1 right-1 bg-white text-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm tabular-nums">
-                            {rt.size_sqm}
+                        <img
+                          src={p.url}
+                          alt={p.rtName}
+                          className="w-full h-full object-cover"
+                          loading={i === 0 ? "eager" : "lazy"}
+                        />
+                        <div className="absolute bottom-2 left-2 flex items-center gap-1.5">
+                          <span className="bg-black/55 backdrop-blur-sm text-white text-[11px] font-semibold px-2 py-0.5 rounded-full">
+                            {p.rtName}
                           </span>
-                        )}
+                          {p.sizeSqm && (
+                            <span className="bg-white/90 text-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full tabular-nums">
+                              {p.sizeSqm}
+                            </span>
+                          )}
+                        </div>
+                        <div className="absolute bottom-2 right-2 bg-black/55 backdrop-blur-sm text-white text-[10px] font-semibold px-2 py-0.5 rounded-full tabular-nums">
+                          {i + 1}/{carouselPhotos.length}
+                        </div>
                       </div>
-                    );
-                  })}
+                    ))}
+                  </div>
                 </div>
               )}
+
 
               <div className="px-4 pt-3 pb-4 space-y-4">
                 {/* 2. 房型分配 */}
