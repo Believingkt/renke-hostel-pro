@@ -78,7 +78,7 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
       <h2 className="text-[20px] font-bold text-foreground mb-2">位置</h2>
       {rating != null && (
         <p className="mb-3 text-[14px]">
-          <span className="font-bold" style={{ color: "hsl(217, 96%, 57%)" }}>
+          <span className="font-bold" style={{ color: "hsl(25, 76%, 50%)" }}>
             {rating.toFixed(1)}/10
           </span>{" "}
           <span className="text-foreground/80">位置絕佳</span>
@@ -133,9 +133,9 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
               onClick={() => setTab(t.key)}
               className="shrink-0 px-3 py-1.5 rounded-md border text-[13px] font-medium transition"
               style={{
-                borderColor: active ? "hsl(217, 96%, 57%)" : "hsl(0, 0%, 88%)",
-                color: active ? "hsl(217, 96%, 57%)" : "hsl(0, 0%, 30%)",
-                background: active ? "hsl(217, 96%, 97%)" : "transparent",
+                borderColor: active ? "hsl(25, 76%, 50%)" : "hsl(0, 0%, 88%)",
+                color: active ? "hsl(25, 76%, 50%)" : "hsl(0, 0%, 30%)",
+                background: active ? "hsl(25, 76%, 96%)" : "transparent",
               }}
             >
               {t.label}

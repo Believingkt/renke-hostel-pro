@@ -114,7 +114,7 @@ const SimilarStaysCarousel = ({ excludeId, region }: Props) => {
                   <div className="mt-1.5 flex items-center gap-1.5">
                     <span
                       className="inline-flex items-center px-1.5 py-0.5 rounded text-white text-[11px] font-bold"
-                      style={{ background: "hsl(217, 96%, 57%)" }}
+                      style={{ background: "hsl(25, 76%, 50%)" }}
                     >
                       {it.rating.toFixed(1)}/10
                     </span>
@@ -131,7 +131,7 @@ const SimilarStaysCarousel = ({ excludeId, region }: Props) => {
                 {it.base_price != null && (
                   <p
                     className="mt-2 font-bold text-[16px] tabular-nums"
-                    style={{ color: "hsl(217, 96%, 57%)" }}
+                    style={{ color: "hsl(25, 76%, 50%)" }}
                   >
                     NT${it.base_price.toLocaleString()}
                   </p>

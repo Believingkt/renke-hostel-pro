@@ -497,18 +497,18 @@ const BookingVilla = () => {
             <div className="mt-2 flex items-center gap-2 flex-wrap">
               <span
                 className="inline-flex items-center px-1.5 py-0.5 rounded text-white text-[13px] font-bold"
-                style={{ background: "hsl(217, 96%, 57%)" }}
+                style={{ background: "hsl(25, 76%, 50%)" }}
               >
                 {extras.googleRating.toFixed(1)}/10
               </span>
-              <span className="text-[14px] font-semibold" style={{ color: "hsl(217, 96%, 57%)" }}>
+              <span className="text-[14px] font-semibold" style={{ color: "hsl(25, 76%, 50%)" }}>
                 超棒
               </span>
               {extras.googleTotal != null && extras.googleTotal > 0 && (
                 <button
                   onClick={() => document.getElementById("reviews")?.scrollIntoView({ behavior: "smooth" })}
                   className="text-[13px] underline"
-                  style={{ color: "hsl(217, 96%, 57%)" }}
+                  style={{ color: "hsl(25, 76%, 50%)" }}
                 >
                   {extras.googleTotal} 則評論
                 </button>
@@ -581,7 +581,7 @@ const BookingVilla = () => {
             <div className="flex items-center gap-3">
               <div
                 className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-                style={{ background: "hsl(217, 96%, 57%)" }}
+                style={{ background: "hsl(25, 76%, 50%)" }}
               >
                 <Phone className="h-4 w-4 text-white" />
               </div>
@@ -592,7 +592,7 @@ const BookingVilla = () => {
               <a
                 href={`tel:${info.phone}`}
                 className="text-[13px] font-medium underline whitespace-nowrap"
-                style={{ color: "hsl(217, 96%, 57%)" }}
+                style={{ color: "hsl(25, 76%, 50%)" }}
               >
                 聯絡人
               </a>
@@ -808,7 +808,7 @@ const BookingVilla = () => {
                       el?.scrollIntoView({ behavior: "smooth", block: "start" });
                     }}
                     className="text-[13px] font-semibold text-white px-3 py-1.5 rounded-md whitespace-nowrap"
-                    style={{ background: "hsl(217, 96%, 57%)" }}
+                    style={{ background: "hsl(25, 76%, 50%)" }}
                   >
                     全部領取
                   </button>
@@ -948,7 +948,7 @@ const BookingVilla = () => {
                             <p className="text-[10px] text-muted-foreground leading-none">起價</p>
                             <p
                               className="font-bold text-[18px] leading-tight tabular-nums"
-                              style={{ color: "hsl(217, 96%, 57%)" }}
+                              style={{ color: "hsl(25, 76%, 50%)" }}
                             >
                               NT${room.base_price.toLocaleString()}
                             </p>
@@ -961,7 +961,7 @@ const BookingVilla = () => {
                               ?.scrollIntoView({ behavior: "smooth", block: "start" });
                           }}
                           className="h-10 px-5 text-[14px] font-bold text-white rounded-md"
-                          style={{ background: "hsl(217, 96%, 57%)" }}
+                          style={{ background: "hsl(25, 76%, 50%)" }}
                         >
                           查看方案
                         </Button>
@@ -1081,7 +1081,7 @@ const BookingVilla = () => {
                   {display != null && (
                     <p
                       className="font-bold text-lg leading-none tabular-nums"
-                      style={{ color: "hsl(217, 96%, 57%)" }}
+                      style={{ color: "hsl(25, 76%, 50%)" }}
                     >
                       NT${display.toLocaleString()}
                     </p>
@@ -1092,7 +1092,7 @@ const BookingVilla = () => {
           </div>
           <Button
             className="h-11 px-6 text-[15px] font-bold text-white rounded-md shadow-md active:scale-95 transition-transform"
-            style={{ background: "hsl(217, 96%, 57%)" }}
+            style={{ background: "hsl(25, 76%, 50%)" }}
             onClick={() => {
               document
                 .getElementById("capacity-price-section")
