@@ -55,6 +55,7 @@ import {
   buildPricingTableFromPackages,
   aggregateIncludesFromPackages,
   detectTierByDate,
+  getPackagePriceForTier,
   isPackageExcludedOnDate,
 } from "@/hooks/use-accommodation-packages";
 
