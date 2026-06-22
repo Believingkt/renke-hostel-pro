@@ -462,67 +462,143 @@ const BookingVilla = () => {
         {/* ── 1. Photo Carousel (mixed hero + gallery) ── */}
         <VillaPhotoCarousel photos={allPhotos} accommodationName={info.name} />
 
-        {/* ── 2. Title + Region + Rating ── */}
-        <section className="px-4 py-3.5 bg-card border-b border-border/40">
-          <div className="flex items-start justify-between gap-3 mb-1">
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xl font-bold text-foreground leading-tight">
-                {info.name}
-              </h1>
-              {info.hero_subtitle && (
-                <p className="italic text-[13px] text-muted-foreground mt-0.5 tracking-wide">
-                  — {info.hero_subtitle}
-                </p>
+        {/* ── 2. Title + Region + Rating（Trip.com 風格） ── */}
+        <section className="px-4 pt-4 pb-3 bg-card border-b border-border/40">
+          <h1 className="text-[22px] font-bold text-foreground leading-tight flex items-center gap-2 flex-wrap">
+            <span>{info.name}</span>
+            {extras?.googleRating != null && (
+              <span className="inline-flex items-center gap-0.5 text-[hsl(35,95%,55%)] text-base leading-none">
+                <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                <span className="w-1.5 h-1.5 rounded-full bg-current" />
+              </span>
+            )}
+          </h1>
+
+          {info.address && (
+            <p className="text-[13px] text-muted-foreground mt-1.5 leading-snug">
+              {info.address}
+              <a
+                href="#location"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById("location")?.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="ml-2 underline text-foreground/90 font-medium whitespace-nowrap"
+              >
+                在地圖上檢視
+              </a>
+            </p>
+          )}
+
+          {extras?.googleRating != null && (
+            <div className="mt-2 flex items-center gap-2 flex-wrap">
+              <span
+                className="inline-flex items-center px-1.5 py-0.5 rounded text-white text-[13px] font-bold"
+                style={{ background: "hsl(217, 96%, 57%)" }}
+              >
+                {extras.googleRating.toFixed(1)}/10
+              </span>
+              <span className="text-[14px] font-semibold" style={{ color: "hsl(217, 96%, 57%)" }}>
+                超棒
+              </span>
+              {extras.googleTotal != null && extras.googleTotal > 0 && (
+                <button
+                  onClick={() => document.getElementById("reviews")?.scrollIntoView({ behavior: "smooth" })}
+                  className="text-[13px] underline"
+                  style={{ color: "hsl(217, 96%, 57%)" }}
+                >
+                  {extras.googleTotal} 則評論
+                </button>
               )}
             </div>
-            {extras?.googleRating != null && (
-              <div
-                className="shrink-0 flex items-center gap-0.5 px-1.5 py-0.5 rounded text-white text-xs font-bold"
-                style={{ background: "hsl(25, 70%, 50%)" }}
-              >
-                <Star className="h-3 w-3 fill-current" />
-                {extras.googleRating.toFixed(1)}
-              </div>
-            )}
-          </div>
+          )}
 
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mb-2">
-            {(info as any).type && (
-              <Badge
-                variant="outline"
-                className="text-[10px] px-1.5 py-0 h-5 border-border/60"
-              >
-                {(info as any).type}
-              </Badge>
-            )}
-            {info.address && (
-              <span className="flex items-center gap-0.5 line-clamp-1">
-                <MapPin className="h-3 w-3 shrink-0" />
-                {info.address}
-              </span>
-            )}
-          </div>
-
-          {/* Latest social-proof review snippet (來自 Google 評論快取，沒有就不顯示) */}
           {extras?.googleTopReview && (
-            <div
-              className="mt-1.5 rounded-lg px-2.5 py-1.5 text-[11px] leading-snug border"
-              style={{
-                background: "hsl(25, 70%, 97%)",
-                borderColor: "hsl(25, 50%, 88%)",
-                color: "hsl(25, 40%, 30%)",
-              }}
-            >
-              <span className="text-amber-500 mr-1">★★★★★</span>
-              「{extras.googleTopReview.text}」
-              <span className="text-muted-foreground">
-                {" "}— {extras.googleTopReview.author}
-              </span>
-            </div>
+            <p className="mt-1.5 text-[14px] text-foreground/85 leading-snug">
+              "{extras.googleTopReview.text}"
+            </p>
           )}
         </section>
 
-        {/* ── 3. Villa Overview (warmer labels) ── */}
+        {/* ── 2b. Feature icons grid（從 facilities 取前 6 個關鍵字配對 icon） ── */}
+        {(() => {
+          const all = secondaryData?.facilities || [];
+          if (all.length === 0) return null;
+          const matchers: { kw: string[]; icon: typeof Wifi; label: string }[] = [
+            { kw: ["wi-fi", "wifi", "無線"], icon: Wifi, label: "免費 Wi-Fi" },
+            { kw: ["停車", "parking"], icon: Car, label: "免費停車" },
+            { kw: ["早餐", "breakfast", "餐"], icon: Utensils, label: "餐飲服務" },
+            { kw: ["山景", "景觀", "view"], icon: Mountain, label: "景觀房" },
+            { kw: ["陽台", "balcony", "庭院"], icon: Trees, label: "陽台/庭院" },
+            { kw: ["親子", "嬰", "兒童", "family", "baby"], icon: Baby, label: "親子友善" },
+            { kw: ["寵物", "pet", "dog"], icon: Dog, label: "寵物友善" },
+            { kw: ["泳池", "水", "spa", "pool"], icon: Waves, label: "戲水設施" },
+            { kw: ["bbq", "烤", "火"], icon: Flame, label: "烤肉/壁爐" },
+            { kw: ["音響", "ktv", "music"], icon: Music, label: "影音設備" },
+            { kw: ["空調", "冷氣", "ac"], icon: Snowflake, label: "空調" },
+          ];
+          const picked: { icon: typeof Wifi; label: string }[] = [];
+          const usedLabels = new Set<string>();
+          for (const f of all) {
+            const name = (f.facility_name || "").toLowerCase();
+            for (const m of matchers) {
+              if (usedLabels.has(m.label)) continue;
+              if (m.kw.some((k) => name.includes(k))) {
+                picked.push({ icon: m.icon, label: m.label });
+                usedLabels.add(m.label);
+                break;
+              }
+            }
+            if (picked.length >= 6) break;
+          }
+          // 補入完善服務 / 即時確認 預設 chip 讓畫面更滿
+          if (picked.length < 6) picked.unshift({ icon: Heart, label: "完善服務" });
+          if (picked.length < 6) picked.push({ icon: ShieldCheck, label: "即時確認" });
+          if (picked.length === 0) return null;
+          return (
+            <section className="px-4 py-3 bg-card border-b border-border/40">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+                {picked.slice(0, 6).map((p, i) => {
+                  const Icon = p.icon;
+                  return (
+                    <div key={i} className="flex items-center gap-2 text-[13px] text-foreground/85">
+                      <Icon className="h-4 w-4 shrink-0" style={{ color: "hsl(40, 95%, 50%)" }} />
+                      <span className="line-clamp-1">{p.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })()}
+
+        {/* ── 2c. 聯繫住宿 row ── */}
+        {info.phone && (
+          <section className="px-4 py-3 bg-card border-b border-border/40">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+                style={{ background: "hsl(217, 96%, 57%)" }}
+              >
+                <Phone className="h-4 w-4 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[14px] font-semibold text-foreground leading-tight">聯繫住宿</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">房東通常在 60 分鐘內回覆</p>
+              </div>
+              <a
+                href={`tel:${info.phone}`}
+                className="text-[13px] font-medium underline whitespace-nowrap"
+                style={{ color: "hsl(217, 96%, 57%)" }}
+              >
+                聯絡人
+              </a>
+            </div>
+          </section>
+        )}
+
+        {/* ── 3. Villa Overview ── */}
         {villaStats && (
           <VillaOverviewBar
             totalRooms={villaStats.totalRooms}
