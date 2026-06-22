@@ -898,10 +898,10 @@ const BookingVilla = () => {
 
       {/* ── Sticky Bottom Action Bar (mobile-first) ── */}
       <div
-        className={`fixed left-0 right-0 z-[60] bg-white/95 backdrop-blur border-t border-border px-4 py-2.5 sm:hidden transition-transform duration-300 ${bottomBarHidden ? "translate-y-full" : "translate-y-0"}`}
-        style={{ bottom: "calc(64px + env(safe-area-inset-bottom))", paddingBottom: "0.625rem" }}
+        className="fixed left-0 right-0 z-[60] bg-white/95 backdrop-blur border-t border-border px-4 pt-2 pb-2.5 sm:hidden"
+        style={{ bottom: "calc(64px + env(safe-area-inset-bottom))" }}
       >
-        {/* 日期 + 人數 chips */}
+        {/* 日期 + 人數 chips（永遠顯示） */}
         <button
           onClick={() => navigate("/booking")}
           className="w-full mb-2 rounded-lg border border-border bg-muted/40 px-3 py-1.5 flex items-center justify-between text-left active:scale-[0.99] transition"
@@ -929,7 +929,8 @@ const BookingVilla = () => {
             </span>
           </span>
         </button>
-        <div className="flex items-center gap-3">
+        <div className={`flex items-center gap-3 transition-all duration-300 overflow-hidden ${bottomBarHidden ? "max-h-0 opacity-0" : "max-h-32 opacity-100"}`}>
+
 
           <div className="flex-1 min-w-0">
             {(() => {
