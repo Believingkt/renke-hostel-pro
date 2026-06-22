@@ -61,6 +61,7 @@ import LocationSection from "@/components/LocationSection";
 import VillaLocationCompact from "@/components/booking-villa/VillaLocationCompact";
 import ReviewsSection from "@/components/ReviewsSection";
 import FaqSection from "@/components/FaqSection";
+import SimilarStaysCarousel from "@/components/booking-villa/SimilarStaysCarousel";
 import BookingInfoSection from "@/components/BookingInfoSection";
 import BookingFooter from "@/components/BookingFooter";
 import MobileBottomNav from "@/components/member/MobileBottomNav";
