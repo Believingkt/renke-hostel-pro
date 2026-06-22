@@ -319,7 +319,10 @@ const EditSearchSheet = ({
                 </div>
               )}
             </div>
+          </div>
         </div>
+
+
 
 
         <SheetFooter
