@@ -786,7 +786,7 @@ const BookingVilla = () => {
 
       {/* ── Sticky Bottom Action Bar (mobile-first) ── */}
       <div
-        className={`fixed left-0 right-0 z-[60] bg-white/95 backdrop-blur border-t border-border px-4 pt-2 pb-2.5 sm:hidden transition-transform duration-300 ease-out ${editSearchOpen ? "translate-y-full pointer-events-none" : "translate-y-0"}`}
+        className={`fixed left-0 right-0 z-[60] bg-white/95 backdrop-blur border-t border-border px-4 pt-2 pb-2.5 sm:hidden transition-transform duration-300 ease-out after:content-[''] after:absolute after:inset-x-0 after:-bottom-1 after:h-1 after:bg-white after:pointer-events-none ${editSearchOpen ? "translate-y-full pointer-events-none" : "translate-y-0"}`}
         style={{
           bottom: navHidden ? "env(safe-area-inset-bottom)" : `${navHeight}px`,
           transition: "bottom 300ms ease-out",
