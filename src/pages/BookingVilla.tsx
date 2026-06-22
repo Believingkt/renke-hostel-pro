@@ -163,30 +163,8 @@ const BookingVilla = () => {
     };
   }, [accId]);
 
-  useEffect(() => {
-    // 滑入「入住方案」區塊時隱藏底部 CTA，離開時再顯示
-    let io: IntersectionObserver | null = null;
-    const attach = () => {
-      const target = document.getElementById("capacity-price-section");
-      if (!target) return false;
-      io = new IntersectionObserver(
-        ([entry]) => setBottomBarHidden(entry.isIntersecting),
-        { threshold: 0, rootMargin: "0px 0px -20% 0px" }
-      );
-      io.observe(target);
-      return true;
-    };
-    if (!attach()) {
-      const t = window.setInterval(() => {
-        if (attach()) window.clearInterval(t);
-      }, 200);
-      return () => {
-        window.clearInterval(t);
-        io?.disconnect();
-      };
-    }
-    return () => io?.disconnect();
-  }, []);
+  // 底部 CTA bar 維持常駐顯示（緊貼下方 MobileBottomNav），不再因捲動到入住方案而隱藏
+
 
   const {
     info,
