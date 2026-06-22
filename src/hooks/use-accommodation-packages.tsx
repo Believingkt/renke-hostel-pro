@@ -31,6 +31,8 @@ export interface AccommodationPackage {
   excluded_date_ranges: PackageDateRange[];
   tier_prices: PackageTierPrices;
   room_type_allocation: Array<{ room_type_id: string; qty: number }>;
+  /** 兒童分齡規則覆寫；null 表示沿用民宿層 accommodation_info.child_age_rules */
+  child_age_rules_override: unknown | null;
 }
 
 export interface PackageDateRange {

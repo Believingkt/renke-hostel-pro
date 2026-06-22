@@ -264,6 +264,7 @@ export type Database = {
           booking_type: string
           building_count: number
           check_in_notice: string | null
+          child_age_rules: Json
           country: string | null
           created_at: string
           custom_domain: string | null
@@ -343,6 +344,7 @@ export type Database = {
           booking_type?: string
           building_count?: number
           check_in_notice?: string | null
+          child_age_rules?: Json
           country?: string | null
           created_at?: string
           custom_domain?: string | null
@@ -422,6 +424,7 @@ export type Database = {
           booking_type?: string
           building_count?: number
           check_in_notice?: string | null
+          child_age_rules?: Json
           country?: string | null
           created_at?: string
           custom_domain?: string | null
@@ -725,6 +728,7 @@ export type Database = {
           accommodation_id: string
           applicable_tiers: string[]
           child_age_note: string | null
+          child_age_rules_override: Json | null
           child_count_max: number | null
           created_at: string
           display_order: number
@@ -752,6 +756,7 @@ export type Database = {
           accommodation_id: string
           applicable_tiers?: string[]
           child_age_note?: string | null
+          child_age_rules_override?: Json | null
           child_count_max?: number | null
           created_at?: string
           display_order?: number
@@ -779,6 +784,7 @@ export type Database = {
           accommodation_id?: string
           applicable_tiers?: string[]
           child_age_note?: string | null
+          child_age_rules_override?: Json | null
           child_count_max?: number | null
           created_at?: string
           display_order?: number

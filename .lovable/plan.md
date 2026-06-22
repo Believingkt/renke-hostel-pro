@@ -1,60 +1,115 @@
+# 兒童分齡 + 加價/排除規則
+
 ## 目標
-比照截圖的 Trip.com 訂房頁，調整民宿前台訂房頁 (`/booking/villa/:id`) 的視覺與資訊結構。
 
-## 截圖對應變更
+1. 前台搜尋列把「兒童」拆成 **嬰兒 / 幼兒 / 兒童** 三個年齡層，各自帶人數。
+2. 後台新增 **民宿預設規則** 與 **方案層覆寫**：年齡定義、人數上限、超限加價或不接受。
+3. 搜尋結果圖卡顯示兒童規則摘要；若搜尋條件超過上限：依設定 **加價** 或 **排除**。
 
-### A. 頂部圖片 + 民宿資訊卡（截圖 1）
-- 圖片輪播：在右上角加上「目前 / 總數」徽章（例：1/44），左上加返回鍵、右上加收藏/分享。
-- 民宿名稱旁的評分標籤改成「10/10 超棒 · X 則評論」藍色文字＋小引言「"富含巧思…"」。
-- 加上「特色 icon 兩欄列」：完善服務、家庭房、免費 Wi-Fi、陽台、山景、免費停車（從 facilities 取前 6 個對應 icon）。
-- 加上「聯繫住宿」橫條：對話框圖示、文字＋「聯絡人」按鈕。
+---
 
-### B. 房型卡片重新設計（截圖 2、3、4）
-- 上方加「選擇您的房間」標題＋日期/人數選擇 chip（既有資料）。
-- 折扣橫條：「最高 TWD X,XXX 折扣  精選民宿優惠  全部領取」。
-- 卡片：左 2/3 主圖 + 右 1/3 第二張縮圖，右下角顯示「📷 11」總相片數。
-- 卡片下方：房型名 ＞、icon row（床數、坪數、景觀、禁菸、Wi-Fi）。
-- 方案明細：藍色標題「能免費取消的最低價」＋免費取消日期、即時確認、可入住人數、查看詳情。
-- 價格：右下藍色大字 TWD，原價刪除線，會員優惠 -% 粉色徽章。
-- 「預訂」藍色大按鈕＋房間數量 select、「只剩 X 間！」紅字。
-- 多方案折疊「隱藏 ∧ / 顯示更多房價 (N) ∨」。
+## 1. 資料模型（migration）
 
-### C. 位置區塊（截圖 5）
-- 評分「10/10 位置絕佳」標題。
-- Google 地圖嵌入 (既有 LocationSection 可重用，外觀加圓角＋陰影)。
-- 地址列＋複製按鈕。
-- Tab chips：交通、熱門地標、餐點、購物，下方顯示對應距離列表。
+### 1.1 `accommodation_info` 加入 `child_age_rules jsonb`（民宿預設）
 
-### D. 常見問題 / 關於 / 你可能也喜歡（截圖 6、7）
-- 「您可能想知道」FAQ 改成可水平滑動的卡片，每張顯示問答 + 飯店管理人員 avatar。
-- 「關於此飯店」：開幕／翻新年份 chip + 多段描述 + 顯示完整說明展開。
-- 「您可能也喜歡」：水平滑動推薦卡（其他民宿縮圖 + 評分 + 價格）。
+```json
+{
+  "tiers": {
+    "infant":  { "label": "嬰兒", "min_age": 0, "max_age": 2, "fee_per_night": 0,   "max_count": null, "allowed": true },
+    "toddler": { "label": "幼兒", "min_age": 3, "max_age": 6, "fee_per_night": 500, "max_count": 2,    "allowed": true },
+    "child":   { "label": "兒童", "min_age": 7, "max_age": 12,"fee_per_night": 800, "max_count": 2,    "allowed": true }
+  },
+  "note": "可選備註，例如 12 歲以上以成人計"
+}
+```
 
-### E. 手機 sticky bottom bar
-- 維持既有：左側總價＋原價刪除線＋折扣%，右側「選擇房型」藍色大按鈕（點擊滾動到房型區）。
-- 改成 Trip.com 藍 `#287DFA`，桌機不顯示。
+預設值在 migration 內以 `DEFAULT` 給上述 JSON，避免空值要處理。
 
-## 技術細節
-- 主檔：`src/pages/BookingVilla.tsx`。
-- 新增 / 改寫子元件：
-  - `src/components/booking-portal/villa/VillaInfoCard.tsx`（B 區）
-  - `src/components/booking-portal/villa/VillaFeatureIcons.tsx`
-  - `src/components/booking-portal/villa/VillaContactHostRow.tsx`
-  - `src/components/booking-portal/villa/VillaRoomPlanCard.tsx`（重點）
-  - `src/components/booking-portal/villa/SimilarStaysCarousel.tsx`
-- 既有元件繼續使用：`VillaPhotoCarousel`、`LocationSection`、`FaqSection`、`ReviewsSection`、`CapacityPriceLadder`。
-- 顏色：採用截圖的藍 `hsl(217, 96%, 57%)` 作為 CTA / 數字主色，原本的橘色保留為次要強調。
-- 不變更後端 schema、價格計算邏輯、3DS 驗證。
-- RWD：手機優先 (390px)，桌機 ≥768px 維持兩欄（資訊卡左、價格卡右）。
+### 1.2 `accommodation_packages` 加入 `child_age_rules_override jsonb NULL`
 
-## 實作順序
-1. A 區頂部資訊卡 + icon row + 聯絡住宿。
-2. B 區房型卡片（最重要、最大改動）。
-3. C 區 Location tabs。
-4. D 區 FAQ / About / Similar。
-5. E sticky bar 配色微調。
+- 結構同上；`NULL` = 沿用民宿預設。
+- 移除/保留：保留現有 `child_count_max`、`child_age_note` 不動（向後相容），但新規則為準。
 
-## 不在這次範圍
-- 不改後台 / 不改價格邏輯。
-- 不改 `VillaPhotoCarousel` 的滑動互動（先前已調整完成）。
-- 不重做 `CapacityPriceLadder`（內部仍是既有方案邏輯，只在外殼套上新樣式）。
+### 1.3 一個共用 helper（前後台都會用）
+
+`src/lib/child-rules.ts`：
+- `resolveChildRules(accommodation, pkg?)`：回傳合併後 tiers。
+- `evaluateChildSelection(rules, { infants, toddlers, children, nights })` → `{ exceeded: tier[], extraFee, blocked, breakdown }`。
+
+---
+
+## 2. 後台 UI
+
+### 2.1 民宿預設（`AdminBookingSettings` 之類，找到 accommodation_info 編輯頁）
+新增一段「兒童分齡規則」卡片，含三段 tier 的：
+- 標籤（可改名）
+- 年齡區間（min/max）
+- 每晚加價（NT$，0 = 免費）
+- 人數上限（空白 = 不限）
+- 是否接受訂房（switch；關閉等同 max_count = 0 → 排除）
+- 備註文字
+
+### 2.2 方案覆寫（`AdminPackages` 編輯方案表單）
+- 加 switch「使用民宿預設規則」
+- 關閉時展開同上三段 tier，可獨立設定，存入 `child_age_rules_override`
+
+---
+
+## 3. 前台搜尋介面
+
+### 3.1 `PortalSearchBar`、`EditSearchSheet`（民宿首頁與搜尋頁的調整搜尋條件）
+- 把單一「兒童」列改為三列：嬰兒 / 幼兒 / 兒童（label 動態讀民宿規則）。
+- 各自 +/- 計數，範圍對齊 tier。
+- 用 URL params：`infants` / `toddlers` / `children`（保留 `children` 命名以相容舊連結）。
+
+### 3.2 hooks 與 state
+- `useSearchParams` 讀三個欄位。
+- 將總人數 = adults + sum(tier counts，僅納入成人計的策略：依規則設定，預設 infants 不佔人數，其他佔）。先採簡單版：**全部都納入兒童總數，但不加入 adults**，下方加價/上限以 tier 單獨判斷。
+
+---
+
+## 4. 搜尋結果圖卡（`BookingSearchResults`）
+
+每張卡片下方新增一行「兒童規則」摘要：
+
+> 嬰兒 0–2 歲免費 · 幼兒 3–6 歲 +NT$500/晚 · 兒童 7–12 歲 +NT$800/晚（上限 2 位）
+
+並依使用者搜尋值計算：
+- 若任一 tier 超過上限 **且 `allowed=false` 或無加價方案**：圖卡標記「不符兒童人數條件」並淡化，或從結果濾掉（看 1.3 設定）。
+- 若超出但仍允許加價：在價格旁顯示 `含兒童加價 +NTD X`。
+
+實作方式：在現有 results 計算迴圈內呼叫 `evaluateChildSelection`，把 extraFee 疊加到顯示價，blocked 則 push 到「不符條件」list。
+
+---
+
+## 5. 訂房流程（`BookingFlow` / `BookingVilla`）
+
+- 價格計算引擎讀取相同 helper，將 `extraFee * nights` 加到總價（顯示於明細表）。
+- 後端 3DS 驗證 Edge Function 亦需同步計算（後續另開）；本次先做前台。
+
+---
+
+## 6. 影響檔案（預估）
+
+- `supabase/migrations/<ts>_child_age_rules.sql`
+- `src/lib/child-rules.ts`（新增）
+- `src/integrations/supabase/types.ts`（自動）
+- 後台：定位民宿設定與方案編輯檔案後加 UI
+- 前台：`PortalSearchBar.tsx`、`booking-villa/EditSearchSheet.tsx`、`BookingSearchResults.tsx`、`BookingVilla.tsx`、`BookingFlow.tsx`
+
+---
+
+## 7. 範圍切分
+
+建議分兩階段提交，避免一次過大：
+
+**Phase A（本輪）**：DB migration + helper + 後台兩處 UI + 前台搜尋列 3 段欄位 + 搜尋結果圖卡顯示與排除/加價。
+
+**Phase B（下一輪）**：訂房流程價格疊加、3DS 驗證、Edge Function、訂單 schema（infants/toddlers/children 拆分儲存）。
+
+---
+
+請確認：
+1. Phase 切分是否 OK，先做 A？
+2. 預設年齡區間 0–2 / 3–6 / 7–12 可以嗎？
+3. 嬰兒預設「不佔人數」對嗎（純資訊性，不影響房型容量檢查）？

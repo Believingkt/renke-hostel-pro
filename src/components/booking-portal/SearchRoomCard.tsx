@@ -44,6 +44,12 @@ export interface SearchRoomCardData {
   feature_tags: string[];
   /** 是否售完／無價／不可預訂 */
   sold_out: boolean;
+  /** 兒童分齡規則摘要文字（顯示於資訊區） */
+  child_rules_summary?: string | null;
+  /** 兒童加價總額（若 > 0 顯示於價格旁） */
+  child_extra_fee_total?: number | null;
+  /** 因兒童條件不符的原因（若非空，將以「不符兒童條件」狀態呈現） */
+  child_blocked_reason?: string | null;
 }
 
 
@@ -343,6 +349,18 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
                 )}
               </p>
             )}
+
+            {/* 5. 兒童規則摘要 */}
+            {data.child_rules_summary && (
+              <p className="text-[11px] sm:text-xs text-muted-foreground/90 line-clamp-2 leading-snug pt-0.5">
+                {data.child_rules_summary}
+              </p>
+            )}
+            {data.child_blocked_reason && (
+              <p className="text-[11px] sm:text-xs font-medium text-destructive line-clamp-1 leading-snug">
+                ⚠ {data.child_blocked_reason}
+              </p>
+            )}
           </div>
 
           {/* 右欄：價格區 */}
@@ -375,6 +393,11 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
                     </span>
                   ) : null}
                 </p>
+                {data.child_extra_fee_total && data.child_extra_fee_total > 0 ? (
+                  <p className="text-[10px] text-[hsl(25,70%,50%)] font-medium leading-none mt-0.5">
+                    含兒童加價 +NT${data.child_extra_fee_total.toLocaleString()}
+                  </p>
+                ) : null}
               </>
             )}
           </div>

@@ -20,6 +20,12 @@ import {
 } from "@/hooks/use-accommodation-packages";
 import PortalSearchBar from "@/components/booking-portal/PortalSearchBar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  evaluateChildSelection,
+  resolveChildRules,
+  summarizeChildRules,
+  type ChildAgeRules,
+} from "@/lib/child-rules";
 
 
 
@@ -35,6 +41,7 @@ interface AccInfo {
   review_summary: string | null;
   rating_score: number | null;
   search_card_photos: string[] | null;
+  child_age_rules: unknown;
 }
 
 interface FacilityRow {
@@ -112,6 +119,8 @@ const BookingSearchResults = () => {
   const checkOutStr = searchParams.get("checkOut");
   const adults = Number(searchParams.get("adults") || 0);
   const childrenCount = Number(searchParams.get("children") || 0);
+  const infantsCount = Number(searchParams.get("infants") || 0);
+  const toddlersCount = Number(searchParams.get("toddlers") || 0);
   const roomsParam = Number(searchParams.get("rooms") || 0);
   const q = searchParams.get("q") || "";
 
@@ -128,6 +137,7 @@ const BookingSearchResults = () => {
   const [accommodations, setAccommodations] = useState<AccInfo[]>([]);
   const [roomTypes, setRoomTypes] = useState<RoomTypeResult[]>([]);
   const [packages, setPackages] = useState<AccommodationPackage[]>([]);
+  
   const [facilities, setFacilities] = useState<FacilityRow[]>([]);
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [holidays, setHolidays] = useState<HolidayRow[]>([]);
@@ -154,6 +164,8 @@ const BookingSearchResults = () => {
   const [editCheckOut, setEditCheckOut] = useState<Date | undefined>(checkOut || undefined);
   const [editAdults, setEditAdults] = useState(adults || 2);
   const [editChildren, setEditChildren] = useState(childrenCount || 0);
+  const [editInfants, setEditInfants] = useState(infantsCount || 0);
+  const [editToddlers, setEditToddlers] = useState(toddlersCount || 0);
   const [editRooms, setEditRooms] = useState(roomsParam || 1);
 
   const openEdit = useCallback(() => {
@@ -162,9 +174,11 @@ const BookingSearchResults = () => {
     setEditCheckOut(checkOut || undefined);
     setEditAdults(adults || 2);
     setEditChildren(childrenCount || 0);
+    setEditInfants(infantsCount || 0);
+    setEditToddlers(toddlersCount || 0);
     setEditRooms(roomsParam || 1);
     setEditOpen(true);
-  }, [q, checkIn, checkOut, adults, childrenCount, roomsParam]);
+  }, [q, checkIn, checkOut, adults, childrenCount, infantsCount, toddlersCount, roomsParam]);
 
   const handleApplySearch = useCallback(() => {
     const params = new URLSearchParams();
@@ -172,11 +186,13 @@ const BookingSearchResults = () => {
     if (editCheckOut) params.set("checkOut", format(editCheckOut, "yyyy-MM-dd"));
     if (editAdults) params.set("adults", String(editAdults));
     if (editChildren) params.set("children", String(editChildren));
+    if (editInfants) params.set("infants", String(editInfants));
+    if (editToddlers) params.set("toddlers", String(editToddlers));
     if (editRooms) params.set("rooms", String(editRooms));
     if (editQ.trim()) params.set("q", editQ.trim());
     setSearchParams(params);
     setEditOpen(false);
-  }, [editCheckIn, editCheckOut, editAdults, editChildren, editRooms, editQ, setSearchParams]);
+  }, [editCheckIn, editCheckOut, editAdults, editChildren, editInfants, editToddlers, editRooms, editQ, setSearchParams]);
 
 
   // ── 基本資料 ──
@@ -196,7 +212,7 @@ const BookingSearchResults = () => {
         ] = await Promise.all([
           supabase
             .from("accommodation_info")
-            .select("id, name, type, region_1, region_2, country, feature_tags_override, nearby_station, review_summary, rating_score, search_card_photos")
+            .select("id, name, type, region_1, region_2, country, feature_tags_override, nearby_station, review_summary, rating_score, search_card_photos, child_age_rules")
             .eq("is_active", true)
             .order("display_order", { ascending: true, nullsFirst: false }),
           supabase
@@ -565,7 +581,29 @@ const BookingSearchResults = () => {
       const overrideTags = acc.feature_tags_override?.filter(Boolean) || [];
       const tags = overrideTags.length > 0 ? overrideTags : deriveAutoTags(facByAcc.get(acc.id) ?? []);
 
-      const soldOut = hasDateFilter && !allAvail;
+      // 兒童分齡規則：方案覆寫 > 民宿預設
+      const childRules: ChildAgeRules = resolveChildRules(
+        acc.child_age_rules,
+        (pkg as any).child_age_rules_override,
+      );
+      const childEval = evaluateChildSelection(
+        childRules,
+        {
+          infants: infantsCount,
+          toddlers: toddlersCount,
+          children: childrenCount,
+        },
+        nights || 1,
+      );
+      const childExtraTotal = childEval.extraFeeTotal;
+      const childBlockedByLimits = childEval.blocked;
+
+      const inventorySoldOut = hasDateFilter && !allAvail;
+      const soldOut = inventorySoldOut || childBlockedByLimits;
+
+      const adjTotal = total > 0 ? total + childExtraTotal : total;
+      const adjOriginal = original ? original + childExtraTotal : original;
+      const adjNightly = nights > 0 ? Math.round(adjTotal / nights) : adjTotal;
 
       result.push({
         id: pkg.id,
@@ -593,18 +631,25 @@ const BookingSearchResults = () => {
         nearby_station: acc.nearby_station,
         review_summary: acc.review_summary,
         rating: acc.rating_score,
-        nightly_price: nightly > 0 ? nightly : null,
-        total_price: total > 0 ? total : null,
-        original_total_price: original,
+        nightly_price: adjNightly > 0 ? adjNightly : null,
+        total_price: adjTotal > 0 ? adjTotal : null,
+        original_total_price: adjOriginal,
         discount_percent: discount,
         available_rooms: allAvail && minPackagesSellable !== Infinity ? minPackagesSellable : null,
         feature_tags: tags,
         sold_out: soldOut,
+        child_rules_summary: summarizeChildRules(childRules),
+        child_extra_fee_total: childExtraTotal > 0 ? childExtraTotal : null,
+        child_blocked_reason: childBlockedByLimits
+          ? `兒童人數超過上限（${childEval.blockedTiers
+              .map((k) => childRules.tiers[k].label)
+              .join("、")}）`
+          : null,
       });
     });
 
     return result;
-  }, [accommodations, roomTypes, packages, facilities, holidays, inventoryMap, closedAccIds, hasDateFilter, nights, checkIn, checkOut]);
+  }, [accommodations, roomTypes, packages, facilities, holidays, inventoryMap, closedAccIds, hasDateFilter, nights, checkIn, checkOut, infantsCount, toddlersCount, childrenCount]);
 
   // ── 每家民宿只保留一張最符合搜尋條件的房型卡 ──
   const dedupedCards = useMemo<SearchRoomCardData[]>(() => {
@@ -696,24 +741,27 @@ const BookingSearchResults = () => {
     if (checkOutStr) params.set("checkOut", checkOutStr);
     if (adults) params.set("adults", String(adults));
     if (childrenCount) params.set("children", String(childrenCount));
+    if (infantsCount) params.set("infants", String(infantsCount));
+    if (toddlersCount) params.set("toddlers", String(toddlersCount));
     if (roomsParam) params.set("rooms", String(roomsParam));
     const useVilla = isSensanAccommodation(card.accommodation_name);
     const path = useVilla ? `/booking/villa/${card.accommodation_id}` : `/booking/${card.accommodation_id}`;
     const qs = params.toString();
     navigate(`${path}${qs ? `?${qs}` : ""}`);
-  }, [navigate, checkInStr, checkOutStr, adults, childrenCount, roomsParam]);
+  }, [navigate, checkInStr, checkOutStr, adults, childrenCount, infantsCount, toddlersCount, roomsParam]);
 
   const summary = useMemo(() => {
     const parts: string[] = [];
     if (checkIn && checkOut) {
       parts.push(`${format(checkIn, "M/d")} – ${format(checkOut, "M/d")} · ${nights} 晚`);
     }
-    if (adults || childrenCount) {
-      parts.push(`${adults} 位成人${childrenCount ? ` · ${childrenCount} 位兒童` : ""}`);
+    if (adults || childrenCount || infantsCount || toddlersCount) {
+      const childTotal = childrenCount + infantsCount + toddlersCount;
+      parts.push(`${adults} 位成人${childTotal > 0 ? ` · ${childTotal} 位兒童` : ""}`);
     }
     if (roomsParam) parts.push(`${roomsParam} 間`);
     return parts.join(" · ");
-  }, [checkIn, checkOut, nights, adults, childrenCount, roomsParam]);
+  }, [checkIn, checkOut, nights, adults, childrenCount, infantsCount, toddlersCount, roomsParam]);
 
   return (
     <div className="min-h-screen bg-background pb-16 md:pb-0">
@@ -831,6 +879,10 @@ const BookingSearchResults = () => {
               onAdultsChange={setEditAdults}
               children={editChildren}
               onChildrenChange={setEditChildren}
+              infants={editInfants}
+              onInfantsChange={setEditInfants}
+              toddlers={editToddlers}
+              onToddlersChange={setEditToddlers}
               rooms={editRooms}
               onRoomsChange={setEditRooms}
               onSearch={handleApplySearch}

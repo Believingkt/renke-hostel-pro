@@ -36,8 +36,13 @@ interface PortalSearchBarProps {
   onCheckOutChange: (d: Date | undefined) => void;
   adults: number;
   onAdultsChange: (n: number) => void;
+  /** 兒童（兼容舊參數；當 infants/toddlers/onInfantsChange/onToddlersChange 提供時，會以三段年齡層顯示） */
   children: number;
   onChildrenChange: (n: number) => void;
+  infants?: number;
+  onInfantsChange?: (n: number) => void;
+  toddlers?: number;
+  onToddlersChange?: (n: number) => void;
   rooms: number;
   onRoomsChange: (n: number) => void;
   onSearch: () => void;
@@ -58,6 +63,10 @@ const PortalSearchBar = ({
   onAdultsChange,
   children,
   onChildrenChange,
+  infants,
+  onInfantsChange,
+  toddlers,
+  onToddlersChange,
   rooms,
   onRoomsChange,
   onSearch,
@@ -167,12 +176,30 @@ const PortalSearchBar = ({
     if (e.key === "Enter") onSearch();
   };
 
+  const tieredChildren =
+    typeof infants === "number" &&
+    typeof toddlers === "number" &&
+    !!onInfantsChange &&
+    !!onToddlersChange;
+
+  const totalChildren = tieredChildren
+    ? (infants || 0) + (toddlers || 0) + (children || 0)
+    : children;
+
+  const childSummary = tieredChildren
+    ? totalChildren > 0
+      ? ` · ${totalChildren} 兒童`
+      : ""
+    : children > 0
+      ? ` · ${children} 兒童`
+      : "";
+
   const renderGuestPicker = () => (
     <div className="space-y-4">
       <div className="flex items-center justify-between pb-3 border-b border-border/40">
         <p className="text-sm font-medium">總人數</p>
         <span className="text-sm font-semibold" style={{ color: "hsl(25, 70%, 45%)" }}>
-          {adults + children} 人
+          {adults + totalChildren} 人
         </span>
       </div>
       <div className="flex items-center justify-between">
@@ -190,21 +217,73 @@ const PortalSearchBar = ({
           </Button>
         </div>
       </div>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium">兒童</p>
-          <p className="text-xs text-muted-foreground">0–6 歲</p>
+
+      {tieredChildren ? (
+        <>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">嬰兒</p>
+              <p className="text-xs text-muted-foreground">0–2 歲</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" size="icon" className="h-9 w-9 rounded-full" onClick={() => onInfantsChange!(Math.max(0, (infants || 0) - 1))} disabled={(infants || 0) <= 0}>
+                <Minus className="h-4 w-4" />
+              </Button>
+              <span className="w-7 text-center text-base font-medium tabular-nums">{infants || 0}</span>
+              <Button variant="outline" size="icon" className="h-9 w-9 rounded-full" onClick={() => onInfantsChange!(Math.min(10, (infants || 0) + 1))} disabled={(infants || 0) >= 10}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">幼兒</p>
+              <p className="text-xs text-muted-foreground">3–6 歲</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" size="icon" className="h-9 w-9 rounded-full" onClick={() => onToddlersChange!(Math.max(0, (toddlers || 0) - 1))} disabled={(toddlers || 0) <= 0}>
+                <Minus className="h-4 w-4" />
+              </Button>
+              <span className="w-7 text-center text-base font-medium tabular-nums">{toddlers || 0}</span>
+              <Button variant="outline" size="icon" className="h-9 w-9 rounded-full" onClick={() => onToddlersChange!(Math.min(10, (toddlers || 0) + 1))} disabled={(toddlers || 0) >= 10}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">兒童</p>
+              <p className="text-xs text-muted-foreground">7–12 歲</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" size="icon" className="h-9 w-9 rounded-full" onClick={() => onChildrenChange(Math.max(0, children - 1))} disabled={children <= 0}>
+                <Minus className="h-4 w-4" />
+              </Button>
+              <span className="w-7 text-center text-base font-medium tabular-nums">{children}</span>
+              <Button variant="outline" size="icon" className="h-9 w-9 rounded-full" onClick={() => onChildrenChange(Math.min(10, children + 1))} disabled={children >= 10}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">兒童</p>
+            <p className="text-xs text-muted-foreground">0–12 歲</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="icon" className="h-9 w-9 rounded-full" onClick={() => onChildrenChange(Math.max(0, children - 1))} disabled={children <= 0}>
+              <Minus className="h-4 w-4" />
+            </Button>
+            <span className="w-7 text-center text-base font-medium tabular-nums">{children}</span>
+            <Button variant="outline" size="icon" className="h-9 w-9 rounded-full" onClick={() => onChildrenChange(Math.min(10, children + 1))} disabled={children >= 10}>
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="icon" className="h-9 w-9 rounded-full" onClick={() => onChildrenChange(Math.max(0, children - 1))} disabled={children <= 0}>
-            <Minus className="h-4 w-4" />
-          </Button>
-          <span className="w-7 text-center text-base font-medium tabular-nums">{children}</span>
-          <Button variant="outline" size="icon" className="h-9 w-9 rounded-full" onClick={() => onChildrenChange(Math.min(10, children + 1))} disabled={children >= 10}>
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+      )}
+
       <div className="flex items-center justify-between pt-3 border-t border-border/40">
         <div>
           <p className="text-sm font-medium">房間數</p>

@@ -43,6 +43,12 @@ import { Plus, Pencil, Trash2, Copy, GripVertical, Check, X, MinusCircle, ImageP
 import { toast } from "@/hooks/use-toast";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { PortalFeatureTagsSection } from "@/components/website-content/PortalFeatureTagsSection";
+import ChildAgeRulesEditor from "@/components/website-content/ChildAgeRulesEditor";
+import {
+  DEFAULT_CHILD_AGE_RULES,
+  parseChildAgeRules,
+  type ChildAgeRules,
+} from "@/lib/child-rules";
 
 interface RoomTypeOption {
   id: string;
@@ -88,6 +94,7 @@ interface FormState {
   excluded_date_ranges: PackageDateRange[];
   tier_prices: PackageTierPrices;
   room_type_allocation: Array<{ room_type_id: string; qty: number }>;
+  child_age_rules_override: ChildAgeRules | null;
 }
 
 const emptyForm = (): FormState => ({
@@ -110,6 +117,7 @@ const emptyForm = (): FormState => ({
   excluded_date_ranges: [],
   tier_prices: {},
   room_type_allocation: [],
+  child_age_rules_override: null,
 });
 
 const AdminPackages = () => {
@@ -136,6 +144,8 @@ const AdminPackages = () => {
   const [cardPhotos, setCardPhotos] = useState<string[]>([]);
   const [cardSaving, setCardSaving] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
+  const [accommodationDefaultChildRules, setAccommodationDefaultChildRules] =
+    useState<ChildAgeRules>(DEFAULT_CHILD_AGE_RULES);
 
   useEffect(() => {
     if (!currentAccommodationId) return;
@@ -148,7 +158,7 @@ const AdminPackages = () => {
 
     supabase
       .from("accommodation_info")
-      .select("nearby_station, review_summary, rating_score, search_card_photos, country, region_1, region_2")
+      .select("nearby_station, review_summary, rating_score, search_card_photos, country, region_1, region_2, child_age_rules")
       .eq("id", currentAccommodationId)
       .maybeSingle()
       .then(({ data }) => {
@@ -162,6 +172,7 @@ const AdminPackages = () => {
           region_2: (data as any)?.region_2 ?? "",
         });
         setCardPhotos(((data as any)?.search_card_photos as string[] | null) ?? []);
+        setAccommodationDefaultChildRules(parseChildAgeRules((data as any)?.child_age_rules));
       });
   }, [currentAccommodationId]);
 
@@ -309,6 +320,9 @@ const AdminPackages = () => {
       room_type_allocation: Array.isArray((pkg as any).room_type_allocation)
         ? (pkg as any).room_type_allocation.map((r: any) => ({ room_type_id: r.room_type_id, qty: Number(r.qty) || 1 }))
         : [],
+      child_age_rules_override: pkg.child_age_rules_override
+        ? parseChildAgeRules(pkg.child_age_rules_override)
+        : null,
     });
     setOpen(true);
   };
@@ -341,6 +355,9 @@ const AdminPackages = () => {
       room_type_allocation: Array.isArray((pkg as any).room_type_allocation)
         ? (pkg as any).room_type_allocation.map((r: any) => ({ room_type_id: r.room_type_id, qty: Number(r.qty) || 1 }))
         : [],
+      child_age_rules_override: pkg.child_age_rules_override
+        ? parseChildAgeRules(pkg.child_age_rules_override)
+        : null,
     });
     setOpen(true);
   };
@@ -403,6 +420,7 @@ const AdminPackages = () => {
       room_type_allocation: (form.room_type_allocation || [])
         .filter((r) => r.room_type_id && Number(r.qty) > 0)
         .map((r) => ({ room_type_id: r.room_type_id, qty: Number(r.qty) })) as any,
+      child_age_rules_override: form.child_age_rules_override as any,
     };
     const { error } = editing
       ? await supabase.from("accommodation_packages").update(payload as any).eq("id", editing.id)
@@ -779,6 +797,32 @@ const AdminPackages = () => {
                 />
               </div>
             </div>
+
+            <div className="rounded-lg border border-border/60 p-3 space-y-2">
+              <div className="text-sm font-medium">兒童分齡與加價（方案層）</div>
+              <p className="text-xs text-muted-foreground">
+                未開啟覆寫時，沿用民宿層的兒童分齡規則。開啟覆寫後，可獨立設定該方案的年齡區間、人數上限與每晚加價。
+              </p>
+              <ChildAgeRulesEditor
+                value={form.child_age_rules_override ?? accommodationDefaultChildRules}
+                onChange={(next) => setForm({ ...form, child_age_rules_override: next })}
+                showNote={false}
+                overrideToggle={{
+                  enabled: form.child_age_rules_override !== null,
+                  onToggle: (enabled) =>
+                    setForm({
+                      ...form,
+                      child_age_rules_override: enabled
+                        ? parseChildAgeRules(
+                            form.child_age_rules_override ?? accommodationDefaultChildRules,
+                          )
+                        : null,
+                    }),
+                  defaultRulesPreview: accommodationDefaultChildRules,
+                }}
+              />
+            </div>
+
 
             <div className="grid grid-cols-2 gap-3">
               <div>
