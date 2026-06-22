@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
+import PackagePhotoCarousel from "./PackagePhotoCarousel";
 import {
   Popover,
   PopoverContent,
@@ -395,31 +396,7 @@ const CapacityPriceLadder = ({
             <Card className="overflow-hidden border-border/60 shadow-sm">
               {/* 1. 房型照片輪播（綁定房型的全部照片） */}
               {carouselPhotos.length > 0 && (
-                <div className="relative">
-                  <div className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar">
-                    {carouselPhotos.map((p, i) => (
-                      <div
-                        key={`${p.url}-${i}`}
-                        className="relative shrink-0 w-full snap-center aspect-[16/10] bg-muted"
-                      >
-                        <img
-                          src={p.url}
-                          alt={p.rtName}
-                          className="w-full h-full object-cover"
-                          loading={i === 0 ? "eager" : "lazy"}
-                        />
-                        <div className="absolute bottom-2 left-2 flex items-center gap-1.5">
-                          <span className="bg-black/55 backdrop-blur-sm text-white text-[11px] font-semibold px-2 py-0.5 rounded-full">
-                            {p.rtName}
-                          </span>
-                        </div>
-                        <div className="absolute bottom-2 right-2 bg-black/55 backdrop-blur-sm text-white text-[10px] font-semibold px-2 py-0.5 rounded-full tabular-nums">
-                          {i + 1}/{carouselPhotos.length}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <PackagePhotoCarousel photos={carouselPhotos.map((p) => ({ url: p.url, rtName: p.rtName }))} />
               )}
 
 
