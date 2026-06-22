@@ -237,11 +237,11 @@ const BookingAccommodation = () => {
               return (
                 <div key="rooms">
                   {hasPackages && (
-                    <PackagesSection
+                    <SalesPackagesList
                       accommodationId={info.id}
-                      packages={packages}
                       customTitle={titles.title}
                       customSubtitle={titles.subtitle}
+                      asSection
                     />
                   )}
                   <RoomsSection
