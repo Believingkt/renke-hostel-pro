@@ -146,12 +146,12 @@ const EditSearchSheet = ({
                 </span>
               )}
             </div>
-            <div className="rounded-lg border border-border p-1">
+            <div className="rounded-xl bg-muted/30 px-1 py-2">
               <Calendar
+                variant="frontend"
                 mode="range"
                 selected={range}
                 onSelect={(val) => {
-                  // 若已選好一段，重新選擇時改為從新起點開始
                   if (val?.from && !val?.to && range?.from && range?.to) {
                     setRange({ from: val.from, to: undefined });
                   } else if (val?.from && !val?.to) {
@@ -163,14 +163,32 @@ const EditSearchSheet = ({
                 numberOfMonths={1}
                 locale={zhTW}
                 disabled={(d) => d < today}
-                className={cn("p-2 pointer-events-auto")}
+                className="p-2 pointer-events-auto w-full bg-transparent"
+                classNames={{
+                  months: "w-full",
+                  month: "w-full space-y-3",
+                  caption_label: "text-[15px] font-semibold",
+                  table: "w-full border-collapse",
+                  head_row: "flex w-full",
+                  head_cell: "text-muted-foreground font-normal text-[12px] flex-1 text-center",
+                  row: "flex w-full mt-1",
+                  cell: "flex-1 h-10 text-center text-sm p-0 relative [&:has([aria-selected])]:bg-primary/15 first:[&:has([aria-selected])]:rounded-l-full last:[&:has([aria-selected])]:rounded-r-full [&:has([aria-selected].day-range-start)]:rounded-l-full [&:has([aria-selected].day-range-end)]:rounded-r-full focus-within:relative focus-within:z-20",
+                  day: "h-10 w-10 mx-auto p-0 font-normal text-[14px] rounded-full hover:bg-primary/15 hover:text-primary aria-selected:opacity-100 transition-colors",
+                  day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground font-semibold",
+                  day_today: "text-primary font-semibold aria-selected:text-primary-foreground",
+                  day_range_middle: "!bg-transparent !text-foreground hover:!bg-primary/20",
+                  day_range_start: "rounded-full",
+                  day_range_end: "rounded-full",
+                  day_outside: "text-muted-foreground/40",
+                  day_disabled: "text-muted-foreground/30 line-through",
+                }}
                 initialFocus
               />
             </div>
           </div>
 
           {/* 人數 / 房間 */}
-          <div className="mt-4 rounded-lg border border-border px-3 divide-y divide-border">
+          <div className="mt-4 rounded-xl bg-muted/30 px-3 divide-y divide-border/60">
             <Counter
               icon={BedDouble}
               label="房間數"
@@ -197,6 +215,7 @@ const EditSearchSheet = ({
             />
           </div>
         </div>
+
 
         <SheetFooter
           className="px-4 pt-3 border-t border-border bg-background"
