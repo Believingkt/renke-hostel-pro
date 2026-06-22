@@ -236,8 +236,8 @@ const EditSearchSheet = ({
                 }}
                 className="p-2 pointer-events-auto w-full bg-transparent"
                 classNames={{
-                  months: "w-full",
-                  month: "w-full space-y-3",
+                  months: "w-full flex flex-col sm:flex-row gap-4 sm:gap-6",
+                  month: "flex-1 min-w-0 space-y-3",
                   caption_label: "text-[15px] font-semibold",
                   table: "w-full border-collapse",
                   head_row: "flex w-full",
