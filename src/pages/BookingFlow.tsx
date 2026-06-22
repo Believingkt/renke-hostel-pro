@@ -1540,6 +1540,17 @@ const BookingFlow = () => {
     return appliedDiscount.value;
   };
 
+  const getChildSelection = (): ChildSelection => ({
+    infants: infantsCount,
+    toddlers: toddlersCount,
+    children: contextGuests?.children || 0,
+  });
+
+  const evaluateChildren = () =>
+    evaluateChildSelection(childRules, getChildSelection(), calculateNights());
+
+  const calculateChildExtraTotal = () => evaluateChildren().extraFeeTotal;
+
   const calculateAddonsTotal = () => {
     const nights = calculateNights();
     const bbqTotal = Object.values(bbqMealsByDate).reduce((sum, count) => sum + (count * mealPlanSettings.pricePerUnit), 0);
@@ -1547,7 +1558,7 @@ const BookingFlow = () => {
       const setting = customAddonSettings.find(s => s.addon_type === type);
       return sum + (count * (setting?.price_per_unit || 0) * nights);
     }, 0);
-    return (petCount * petPlanSettings.pricePerUnit * nights) + bbqTotal + customTotal;
+    return (petCount * petPlanSettings.pricePerUnit * nights) + bbqTotal + customTotal + calculateChildExtraTotal();
   };
 
   const calculateFinalTotal = () => {
