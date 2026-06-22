@@ -108,6 +108,7 @@ const emptyForm = (): FormState => ({
   enabled: true,
   excluded_date_ranges: [],
   tier_prices: {},
+  room_type_allocation: [],
 });
 
 const AdminPackages = () => {
