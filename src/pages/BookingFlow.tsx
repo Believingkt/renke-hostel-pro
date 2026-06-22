@@ -41,6 +41,13 @@ import {
 import { format, formatISO, addMonths, endOfMonth } from "date-fns";
 import { classifyDayTier } from "@/utils/templatePriceResolver";
 import { isTemplateActiveForDates, getTierForDate, hasSegments as templateHasSegments } from "@/utils/pricingTemplateHelpers";
+import {
+  DEFAULT_CHILD_AGE_RULES,
+  parseChildAgeRules,
+  evaluateChildSelection,
+  type ChildAgeRules,
+  type ChildSelection,
+} from "@/lib/child-rules";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import {
