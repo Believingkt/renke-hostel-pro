@@ -20,6 +20,12 @@ import {
 } from "@/hooks/use-accommodation-packages";
 import PortalSearchBar from "@/components/booking-portal/PortalSearchBar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  evaluateChildSelection,
+  resolveChildRules,
+  summarizeChildRules,
+  type ChildAgeRules,
+} from "@/lib/child-rules";
 
 
 
@@ -35,6 +41,7 @@ interface AccInfo {
   review_summary: string | null;
   rating_score: number | null;
   search_card_photos: string[] | null;
+  child_age_rules: unknown;
 }
 
 interface FacilityRow {
