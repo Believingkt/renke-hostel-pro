@@ -188,14 +188,15 @@ const EditSearchSheet = ({
                   head_cell: "text-muted-foreground font-normal text-[12px] flex-1 text-center",
                   row: "flex w-full mt-1",
                   cell: "flex-1 h-10 text-center text-sm p-0 relative [&:has([aria-selected])]:bg-primary/15 first:[&:has([aria-selected])]:rounded-l-full last:[&:has([aria-selected])]:rounded-r-full [&:has([aria-selected].day-range-start)]:rounded-l-full [&:has([aria-selected].day-range-end)]:rounded-r-full focus-within:relative focus-within:z-20",
-                  day: "h-10 w-10 mx-auto p-0 font-normal text-[14px] rounded-full hover:bg-primary/15 hover:text-primary aria-selected:opacity-100 transition-colors",
-                  day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground font-semibold",
-                  day_today: "text-primary font-semibold aria-selected:text-primary-foreground",
+                  day: "h-10 w-10 mx-auto p-0 font-semibold text-[15px] text-foreground rounded-full hover:bg-primary/15 hover:text-primary aria-selected:opacity-100 transition-colors",
+                  day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground font-bold",
+                  day_today: "ring-1 ring-primary/60 text-primary font-bold aria-selected:ring-0 aria-selected:text-primary-foreground",
                   day_range_middle: "!bg-transparent !text-foreground hover:!bg-primary/20",
                   day_range_start: "rounded-full",
                   day_range_end: "rounded-full",
-                  day_outside: "text-muted-foreground/40",
-                  day_disabled: "text-muted-foreground/30 line-through",
+                  day_outside: "text-muted-foreground/30 font-normal",
+                  day_disabled: "!text-muted-foreground/35 !font-normal line-through decoration-muted-foreground/40 hover:!bg-transparent cursor-not-allowed",
+
                 }}
                 initialFocus
               />
