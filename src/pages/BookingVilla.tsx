@@ -1067,8 +1067,8 @@ const BookingVilla = () => {
                   </p>
                   {display != null && (
                     <p
-                      className="font-bold text-base leading-none"
-                      style={{ color: "hsl(0, 75%, 50%)" }}
+                      className="font-bold text-lg leading-none tabular-nums"
+                      style={{ color: "hsl(217, 96%, 57%)" }}
                     >
                       NT${display.toLocaleString()}
                     </p>
