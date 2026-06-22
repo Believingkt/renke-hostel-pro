@@ -901,7 +901,36 @@ const BookingVilla = () => {
         className={`fixed left-0 right-0 z-[60] bg-white/95 backdrop-blur border-t border-border px-4 py-2.5 sm:hidden transition-transform duration-300 ${bottomBarHidden ? "translate-y-full" : "translate-y-0"}`}
         style={{ bottom: "calc(64px + env(safe-area-inset-bottom))", paddingBottom: "0.625rem" }}
       >
+        {/* 日期 + 人數 chips */}
+        <button
+          onClick={() => navigate("/booking")}
+          className="w-full mb-2 rounded-lg border border-border bg-muted/40 px-3 py-1.5 flex items-center justify-between text-left active:scale-[0.99] transition"
+        >
+          <span className="flex items-center gap-1.5 text-[13px] text-foreground font-medium">
+            <Calendar className="w-3.5 h-3.5" />
+            {checkIn && checkOut ? (
+              <>{format(checkIn, "M月d日")}–{format(checkOut, "M月d日")}</>
+            ) : (
+              <span className="text-muted-foreground">選擇日期</span>
+            )}
+          </span>
+          <span className="flex items-center gap-2.5 text-[13px] text-foreground font-medium">
+            <span className="flex items-center gap-1">
+              <BedDouble className="w-3.5 h-3.5" />
+              {Math.max(1, parseInt(searchParams.get("rooms") || "1", 10) || 1)}
+            </span>
+            <span className="flex items-center gap-1">
+              <User className="w-3.5 h-3.5" />
+              {Math.max(1, parseInt(searchParams.get("adults") || "0", 10) || 1)}
+            </span>
+            <span className="flex items-center gap-1 text-muted-foreground">
+              <Baby className="w-3.5 h-3.5" />
+              {Math.max(0, parseInt(searchParams.get("children") || "0", 10) || 0)}
+            </span>
+          </span>
+        </button>
         <div className="flex items-center gap-3">
+
           <div className="flex-1 min-w-0">
             {(() => {
               let candidatePkgs = visiblePackages;
