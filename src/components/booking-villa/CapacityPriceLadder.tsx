@@ -557,7 +557,7 @@ const CapacityPriceLadder = ({
                         type="button"
                         onClick={() => setExpandedKey(isOpen ? null : tierKey)}
                         className="text-[12px] font-medium underline decoration-dotted underline-offset-2"
-                        style={{ color: "hsl(200, 70%, 42%)" }}
+                        style={{ color: "hsl(25, 76%, 45%)" }}
                       >
                         {isOpen ? "收合" : "查看詳情"}
                       </button>
