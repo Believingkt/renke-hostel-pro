@@ -565,7 +565,7 @@ const BookingSearchResults = () => {
       const overrideTags = acc.feature_tags_override?.filter(Boolean) || [];
       const tags = overrideTags.length > 0 ? overrideTags : deriveAutoTags(facByAcc.get(acc.id) ?? []);
 
-      const soldOut = hasDateFilter && !isSensan && !allAvail;
+      const soldOut = hasDateFilter && !allAvail;
 
       result.push({
         id: pkg.id,
