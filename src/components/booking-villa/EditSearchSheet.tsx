@@ -198,6 +198,7 @@ const EditSearchSheet = ({
             </div>
             <div className="rounded-xl bg-muted/30 px-1 py-2">
               <Calendar
+                showOutsideDays={false}
                 variant="frontend"
                 mode="range"
                 selected={range}
