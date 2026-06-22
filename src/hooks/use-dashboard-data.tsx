@@ -169,7 +169,9 @@ const fetchDashboardData = async (
     }
   });
   
-  const isRevenueEligible = (status: string) => status === 'confirmed';
+  // 營收計入規則：confirmed 一律計入；hold 僅在「業主自帶」來源時計入（與住房營業分析對齊）
+  const isRevenueEligible = (status: string, source?: string | null) =>
+    status === 'confirmed' || (status === 'hold' && source === 'owner_provided');
   const totalRoomCount = roomTypesData.reduce((sum, rt) => sum + (rt.room_count || 0), 0);
 
   // Step 2: Fetch inventory pricing for daily revenue splitting
