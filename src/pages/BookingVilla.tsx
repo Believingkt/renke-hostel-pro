@@ -117,7 +117,7 @@ const BookingVilla = () => {
   useEffect(() => {
     const measure = () => {
       const nav = document.querySelector('nav.fixed.bottom-0') as HTMLElement | null;
-      if (nav) setNavHeight(nav.offsetHeight);
+      if (nav) setNavHeight(Math.round(nav.getBoundingClientRect().height));
     };
     measure();
     const ro = new ResizeObserver(measure);
