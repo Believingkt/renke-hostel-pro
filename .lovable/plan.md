@@ -1,74 +1,60 @@
 ## 目標
+比照截圖的 Trip.com 訂房頁，調整民宿前台訂房頁 (`/booking/villa/:id`) 的視覺與資訊結構。
 
-- `/booking` 首頁：只保留 Hero/搜尋條 + 精選民宿介紹（AccommodationCard 區塊）。
-- 新增 `/booking/search`：搜尋後跳轉的結果頁，以房型為單位的大圖卡片呈現。
-- HQ 後台：每家民宿可手動覆寫「特色標籤」。
+## 截圖對應變更
 
----
+### A. 頂部圖片 + 民宿資訊卡（截圖 1）
+- 圖片輪播：在右上角加上「目前 / 總數」徽章（例：1/44），左上加返回鍵、右上加收藏/分享。
+- 民宿名稱旁的評分標籤改成「10/10 超棒 · X 則評論」藍色文字＋小引言「"富含巧思…"」。
+- 加上「特色 icon 兩欄列」：完善服務、家庭房、免費 Wi-Fi、陽台、山景、免費停車（從 facilities 取前 6 個對應 icon）。
+- 加上「聯繫住宿」橫條：對話框圖示、文字＋「聯絡人」按鈕。
 
-## 1. 資料庫
+### B. 房型卡片重新設計（截圖 2、3、4）
+- 上方加「選擇您的房間」標題＋日期/人數選擇 chip（既有資料）。
+- 折扣橫條：「最高 TWD X,XXX 折扣  精選民宿優惠  全部領取」。
+- 卡片：左 2/3 主圖 + 右 1/3 第二張縮圖，右下角顯示「📷 11」總相片數。
+- 卡片下方：房型名 ＞、icon row（床數、坪數、景觀、禁菸、Wi-Fi）。
+- 方案明細：藍色標題「能免費取消的最低價」＋免費取消日期、即時確認、可入住人數、查看詳情。
+- 價格：右下藍色大字 TWD，原價刪除線，會員優惠 -% 粉色徽章。
+- 「預訂」藍色大按鈕＋房間數量 select、「只剩 X 間！」紅字。
+- 多方案折疊「隱藏 ∧ / 顯示更多房價 (N) ∨」。
 
-新增欄位（migration）：
+### C. 位置區塊（截圖 5）
+- 評分「10/10 位置絕佳」標題。
+- Google 地圖嵌入 (既有 LocationSection 可重用，外觀加圓角＋陰影)。
+- 地址列＋複製按鈕。
+- Tab chips：交通、熱門地標、餐點、購物，下方顯示對應距離列表。
 
-```
-ALTER TABLE public.accommodation_info
-  ADD COLUMN feature_tags_override text[] NULL;
-```
+### D. 常見問題 / 關於 / 你可能也喜歡（截圖 6、7）
+- 「您可能想知道」FAQ 改成可水平滑動的卡片，每張顯示問答 + 飯店管理人員 avatar。
+- 「關於此飯店」：開幕／翻新年份 chip + 多段描述 + 顯示完整說明展開。
+- 「您可能也喜歡」：水平滑動推薦卡（其他民宿縮圖 + 評分 + 價格）。
 
-語意：`null` 或空陣列 → 用現有 facilities 自動推導；非空 → 完全以此為準。
+### E. 手機 sticky bottom bar
+- 維持既有：左側總價＋原價刪除線＋折扣%，右側「選擇房型」藍色大按鈕（點擊滾動到房型區）。
+- 改成 Trip.com 藍 `#287DFA`，桌機不顯示。
 
-## 2. 後台設定
+## 技術細節
+- 主檔：`src/pages/BookingVilla.tsx`。
+- 新增 / 改寫子元件：
+  - `src/components/booking-portal/villa/VillaInfoCard.tsx`（B 區）
+  - `src/components/booking-portal/villa/VillaFeatureIcons.tsx`
+  - `src/components/booking-portal/villa/VillaContactHostRow.tsx`
+  - `src/components/booking-portal/villa/VillaRoomPlanCard.tsx`（重點）
+  - `src/components/booking-portal/villa/SimilarStaysCarousel.tsx`
+- 既有元件繼續使用：`VillaPhotoCarousel`、`LocationSection`、`FaqSection`、`ReviewsSection`、`CapacityPriceLadder`。
+- 顏色：採用截圖的藍 `hsl(217, 96%, 57%)` 作為 CTA / 數字主色，原本的橘色保留為次要強調。
+- 不變更後端 schema、價格計算邏輯、3DS 驗證。
+- RWD：手機優先 (390px)，桌機 ≥768px 維持兩欄（資訊卡左、價格卡右）。
 
-在 HQ「民宿資料」編輯頁加一個「搜尋結果特色標籤」區塊：
-- 預設顯示目前自動推導的標籤（灰色 chips，唯讀）
-- 下方一組可勾選 + 自訂輸入的標籤池（寵物友善 / BBQ / 獨立廚房 / 泳池 / KTV / 含早餐 / 免費停車 / WiFi / 桌遊 / 親子，再 +「自訂」）
-- 留空 = 自動；勾選後寫入 `feature_tags_override`
+## 實作順序
+1. A 區頂部資訊卡 + icon row + 聯絡住宿。
+2. B 區房型卡片（最重要、最大改動）。
+3. C 區 Location tabs。
+4. D 區 FAQ / About / Similar。
+5. E sticky bar 配色微調。
 
-（找現有 accommodation 編輯表單擴一個欄位，不新增獨立頁面。）
-
-## 3. /booking 首頁簡化
-
-`src/pages/BookingPortal.tsx`：
-- 保留：Hero 圖、PortalSearchBar、登入/會員按鈕、精選民宿區塊（直接列出 accommodations，不再依搜尋過濾／不再呼叫 availability index）
-- 移除：`handleSearch` 裡的 inventory 計算、`aggregatedAccs`/`filtered` 對搜尋結果的依賴
-- 「搜尋」按鈕改成：把 `checkIn / checkOut / adults / children / rooms / q` 組成 query string，`navigate('/booking/search?...')`
-
-## 4. /booking/search 新頁
-
-新檔 `src/pages/BookingSearchResults.tsx`，掛在 `App.tsx` `booking/search` 路徑。
-
-頁面構成：
-- 頂部：精簡搜尋摘要列（日期 / 人數 / 房數，可點開重編後重新搜尋）
-- RoomFilterBar（沿用現有元件：排序 / 價格 / 容量 / 地區 / 民宿）
-- 結果卡片清單：以 **房型** 為單位
-
-每張卡：
-```
-┌─────────────────────────────┐
-│         房型主圖（16:10）       │
-│  [特色標籤 chips overlay 左下]   │
-├─────────────────────────────┤
-│ 房型名稱                 NT$總價 │
-│ 民宿名 · 地區            /夜 起 │
-│ 👥 2人 · 📐 26m² · 🛏 雙人床    │
-└─────────────────────────────┘
-```
-
-點卡 → 進入對應 `/booking/:accId?...` 或 `/booking/villa/:accId?...`（沿用現有導向邏輯）。
-
-森山保持現有特殊邏輯（包區方案、不卡散客庫存）。
-
-## 5. 範圍外（這次不做）
-
-- 結果卡評分（user 確認不顯示）
-- 地圖檢視、收藏按鈕
-- 排序動畫、骨架屏（依專案規範）
-
----
-
-### 技術細節
-
-- 共用 `RoomTypeCard` 重新做大圖版型，或在新頁新增 `SearchRoomCard`（建議後者，舊卡仍在民宿頁用）
-- Availability 計算（沿用現有 handleSearch 的 inventory + template 價格邏輯）整段搬到 `BookingSearchResults` 的 `useEffect`
-- 後台覆寫標籤要同步反映在首頁 AccommodationCard 的 `feature_tags` 與結果頁的卡片
-- query string 解析支援空值（缺日期則退回明天 + 後天）
+## 不在這次範圍
+- 不改後台 / 不改價格邏輯。
+- 不改 `VillaPhotoCarousel` 的滑動互動（先前已調整完成）。
+- 不重做 `CapacityPriceLadder`（內部仍是既有方案邏輯，只在外殼套上新樣式）。
