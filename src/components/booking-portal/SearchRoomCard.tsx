@@ -186,13 +186,13 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
               <p className="flex items-center gap-2 text-xs sm:text-[13px] text-muted-foreground line-clamp-1 leading-none">
                 {location && (
                   <span className="flex items-center gap-1 min-w-0">
-                    <MapPin className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                    <MapPin className="h-3.5 w-3.5 shrink-0 opacity-70 translate-y-[1px]" />
                     <span className="truncate leading-none">{location}</span>
                   </span>
                 )}
                 {data.nearby_station && (
                   <span className="flex items-center gap-1 min-w-0">
-                    <TrainFront className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                    <TrainFront className="h-3.5 w-3.5 shrink-0 opacity-70 translate-y-[1px]" />
                     <span className="truncate leading-none">{data.nearby_station}</span>
                   </span>
                 )}
@@ -201,7 +201,7 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
 
             {/* 3. 房型／方案：人數 · 包區 · 房間數 */}
             <p className="flex items-center gap-1 text-xs sm:text-[13px] text-muted-foreground line-clamp-1 leading-none">
-              <DoorOpen className="h-3.5 w-3.5 shrink-0 opacity-70" />
+              <DoorOpen className="h-3.5 w-3.5 shrink-0 opacity-70 translate-y-[1px]" />
               <span className="truncate leading-none">
                 {data.is_package ? (
                   <span className="font-medium text-foreground/90">{data.name}</span>
@@ -284,12 +284,12 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
         {/* meta：人數 / 坪數 */}
         <div className="mt-2 flex items-center flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground leading-none">
           <span className="flex items-center gap-1 leading-none">
-            <Users className="h-3.5 w-3.5" />
+            <Users className="h-3.5 w-3.5 translate-y-[1px]" />
             <span className="leading-none">{data.capacity} 人</span>
           </span>
           {data.size_sqm ? (
             <span className="flex items-center gap-1 leading-none">
-              <Maximize2 className="h-3.5 w-3.5" />
+              <Maximize2 className="h-3.5 w-3.5 translate-y-[1px]" />
               <span className="leading-none">{data.size_sqm} 坪</span>
             </span>
           ) : null}
