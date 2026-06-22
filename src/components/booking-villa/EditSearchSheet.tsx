@@ -91,6 +91,8 @@ const EditSearchSheet = ({
 }: EditSearchSheetProps) => {
 
   const [range, setRange] = useState<DateRange | undefined>(undefined);
+  // 標記目前 range 是否為「已完成的一段」；若是，下一次點擊將重置為新起點
+  const [rangeCommitted, setRangeCommitted] = useState(true);
   const [a, setA] = useState(adults);
   const [c, setC] = useState(children);
   const [r, setR] = useState(rooms);
@@ -101,11 +103,13 @@ const EditSearchSheet = ({
         from: checkIn ?? undefined,
         to: checkOut ?? undefined,
       });
+      setRangeCommitted(true);
       setA(adults);
       setC(children);
       setR(rooms);
     }
   }, [open, checkIn, checkOut, adults, children, rooms]);
+
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -145,10 +149,28 @@ const EditSearchSheet = ({
             <div className="flex items-center gap-2 mb-2">
               <CalendarDays className="w-4 h-4 text-muted-foreground" />
               <span className="text-[15px] font-medium">入住日期</span>
-              {range?.from && range?.to && (
+              {range?.from && range?.to ? (
                 <span className="ml-auto text-xs text-muted-foreground">
                   {format(range.from, "M月d日")} – {format(range.to, "M月d日")} · 共 {nights} 晚
                 </span>
+              ) : range?.from ? (
+                <span className="ml-auto text-xs text-primary">
+                  已選 {format(range.from, "M月d日")} · 請選退房日
+                </span>
+              ) : (
+                <span className="ml-auto text-xs text-muted-foreground">請選入住日</span>
+              )}
+              {(range?.from || range?.to) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRange(undefined);
+                    setRangeCommitted(false);
+                  }}
+                  className="text-xs text-primary underline-offset-2 hover:underline ml-1"
+                >
+                  重選
+                </button>
               )}
             </div>
             <div className="rounded-xl bg-muted/30 px-1 py-2">
@@ -156,18 +178,29 @@ const EditSearchSheet = ({
                 variant="frontend"
                 mode="range"
                 selected={range}
-                onSelect={(val) => {
-                  if (val?.from && !val?.to && range?.from && range?.to) {
-                    setRange({ from: val.from, to: undefined });
-                  } else if (val?.from && !val?.to) {
-                    setRange({ from: val.from, to: addDays(val.from, 1) });
-                  } else {
+                onSelect={(val, clickedDay) => {
+                  // 規則：若上一段已完成 (committed)，任何點擊都重置為新的起點
+                  if (rangeCommitted && clickedDay) {
+                    setRange({ from: clickedDay, to: undefined });
+                    setRangeCommitted(false);
+                    return;
+                  }
+                  if (val?.from && val?.to) {
+                    // 完成一段
                     setRange(val);
+                    setRangeCommitted(true);
+                  } else if (val?.from) {
+                    setRange({ from: val.from, to: undefined });
+                    setRangeCommitted(false);
+                  } else {
+                    setRange(undefined);
+                    setRangeCommitted(false);
                   }
                 }}
                 numberOfMonths={1}
                 locale={zhTW}
                 weekStartsOn={0}
+
                 disabled={(d) => {
                   if (d < today) return true;
                   if (availableDates) {
