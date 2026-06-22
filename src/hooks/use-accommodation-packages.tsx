@@ -227,6 +227,17 @@ export function buildPricingTableFromPackages(
     if (!pkg.enabled) continue;
     for (const tier of pkg.applicable_tiers) {
       const { original, sale } = getPackagePriceForTier(pkg, tier);
+      // Fallback：若沒設定結構化房型分配，則用 primary_room_type_id / room_type_ids 自動帶入縮圖
+      let allocation = pkg.room_type_allocation || [];
+      if (allocation.length === 0) {
+        const ids: string[] = [];
+        if (Array.isArray(pkg.room_type_ids) && pkg.room_type_ids.length > 0) {
+          ids.push(...pkg.room_type_ids.filter(Boolean));
+        } else if (pkg.primary_room_type_id) {
+          ids.push(pkg.primary_room_type_id);
+        }
+        allocation = ids.map((id) => ({ room_type_id: id, qty: 1 }));
+      }
       const tierPrice: SensanTierPrice = {
         guestCount: pkg.guest_count,
         original: original ?? sale,
@@ -241,7 +252,7 @@ export function buildPricingTableFromPackages(
         childAgeNote: pkg.child_age_note,
         tags: pkg.tags || [],
         includes: pkg.includes || [],
-        roomTypeAllocation: pkg.room_type_allocation || [],
+        roomTypeAllocation: allocation,
       };
       table[tier].push(tierPrice);
     }
