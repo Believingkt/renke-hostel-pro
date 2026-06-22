@@ -741,12 +741,14 @@ const BookingSearchResults = () => {
     if (checkOutStr) params.set("checkOut", checkOutStr);
     if (adults) params.set("adults", String(adults));
     if (childrenCount) params.set("children", String(childrenCount));
+    if (infantsCount) params.set("infants", String(infantsCount));
+    if (toddlersCount) params.set("toddlers", String(toddlersCount));
     if (roomsParam) params.set("rooms", String(roomsParam));
     const useVilla = isSensanAccommodation(card.accommodation_name);
     const path = useVilla ? `/booking/villa/${card.accommodation_id}` : `/booking/${card.accommodation_id}`;
     const qs = params.toString();
     navigate(`${path}${qs ? `?${qs}` : ""}`);
-  }, [navigate, checkInStr, checkOutStr, adults, childrenCount, roomsParam]);
+  }, [navigate, checkInStr, checkOutStr, adults, childrenCount, infantsCount, toddlersCount, roomsParam]);
 
   const summary = useMemo(() => {
     const parts: string[] = [];
