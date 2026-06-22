@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,8 +16,12 @@ import {
 
 interface Props {
   accommodationId: string | null;
-  /** 可選：用戶搜尋的入住日，若有則以該日 tier 顯示；無則以今天起 30 天內掃描，挑最便宜 tier */
+  /** 可選：用戶搜尋的入住日；未提供時自動讀 URL ?checkIn=；都無則挑 60 天內最便宜 tier */
   checkIn?: Date | null;
+  customTitle?: string;
+  customSubtitle?: string;
+  /** 是否包成獨立 section（含 id="rooms"），用於取代原 PackagesSection */
+  asSection?: boolean;
 }
 
 const TIER_LABEL: Record<PackageTier, string> = {
