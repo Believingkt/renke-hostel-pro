@@ -752,42 +752,6 @@ const BookingVilla = () => {
 
 
 
-          {/* Discount hint banner（有早鳥/折扣方案才顯示） */}
-          {visiblePackages.some((p) => p.original_price && p.original_price > p.sale_price) && (() => {
-            const maxDiscount = Math.max(
-              ...visiblePackages
-                .filter((p) => p.original_price && p.original_price > p.sale_price)
-                .map((p) => (p.original_price as number) - p.sale_price)
-            );
-            return (
-              <div className="px-4 mb-3">
-                <div className="rounded-xl border border-[hsl(330,80%,90%)] bg-card px-3.5 py-2.5 flex items-center gap-2.5">
-                  <span
-                    className="inline-flex items-center justify-center w-7 h-7 rounded-md text-white text-[11px] font-bold shrink-0"
-                    style={{ background: "hsl(335, 80%, 55%)" }}
-                  >
-                    %
-                  </span>
-                  <p className="flex-1 text-[13px] font-semibold text-foreground leading-snug">
-                    最高 NT${maxDiscount.toLocaleString()} 折扣
-                    <span className="ml-1.5 text-[12px] font-normal text-muted-foreground">
-                      精選民宿優惠
-                    </span>
-                  </p>
-                  <button
-                    onClick={() => {
-                      const el = document.querySelector('[data-capacity-list]');
-                      el?.scrollIntoView({ behavior: "smooth", block: "start" });
-                    }}
-                    className="text-[13px] font-semibold text-white px-3 py-1.5 rounded-md whitespace-nowrap"
-                    style={{ background: "hsl(25, 76%, 50%)" }}
-                  >
-                    全部領取
-                  </button>
-                </div>
-              </div>
-            );
-          })()}
 
           <div data-capacity-list>
             <CapacityPriceLadder
