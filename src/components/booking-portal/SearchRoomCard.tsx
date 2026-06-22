@@ -183,26 +183,26 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
 
             {/* 2. 位置 + 鄰近車站 */}
             {(location || data.nearby_station) && (
-              <p className="flex items-center gap-2 text-xs sm:text-[13px] text-muted-foreground line-clamp-1">
+              <p className="flex items-center gap-2 text-xs sm:text-[13px] text-muted-foreground line-clamp-1 leading-none">
                 {location && (
                   <span className="flex items-center gap-1 min-w-0">
                     <MapPin className="h-3.5 w-3.5 shrink-0 opacity-70" />
-                    <span className="truncate">{location}</span>
+                    <span className="truncate leading-none">{location}</span>
                   </span>
                 )}
                 {data.nearby_station && (
                   <span className="flex items-center gap-1 min-w-0">
                     <TrainFront className="h-3.5 w-3.5 shrink-0 opacity-70" />
-                    <span className="truncate">{data.nearby_station}</span>
+                    <span className="truncate leading-none">{data.nearby_station}</span>
                   </span>
                 )}
               </p>
             )}
 
             {/* 3. 房型／方案：人數 · 包區 · 房間數 */}
-            <p className="flex items-center gap-1 text-xs sm:text-[13px] text-muted-foreground line-clamp-1">
+            <p className="flex items-center gap-1 text-xs sm:text-[13px] text-muted-foreground line-clamp-1 leading-none">
               <DoorOpen className="h-3.5 w-3.5 shrink-0 opacity-70" />
-              <span className="truncate">
+              <span className="truncate leading-none">
                 {data.is_package ? (
                   <span className="font-medium text-foreground/90">{data.name}</span>
                 ) : (
@@ -218,7 +218,7 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
 
             {/* 3b. 房型分配 / 方案描述 */}
             {data.is_package && data.room_allocation && (
-              <p className="text-xs sm:text-[13px] text-muted-foreground/90 line-clamp-1 pl-[18px]">
+              <p className="text-xs sm:text-[13px] text-muted-foreground/90 line-clamp-1 pl-[18px] leading-none">
                 {data.room_allocation}
               </p>
             )}
