@@ -21,6 +21,8 @@ interface EditSearchSheetProps {
   checkOut: Date | null;
   adults: number;
   children: number;
+  infants?: number;
+  toddlers?: number;
   rooms: number;
   /** 可訂日集合（yyyy-MM-dd），null 表示尚未載入；非該集合內的日期將無法選取 */
   availableDates?: Set<string> | null;
@@ -29,6 +31,8 @@ interface EditSearchSheetProps {
     checkOut: Date;
     adults: number;
     children: number;
+    infants: number;
+    toddlers: number;
     rooms: number;
   }) => void;
 }
@@ -85,6 +89,8 @@ const EditSearchSheet = ({
   checkOut,
   adults,
   children,
+  infants = 0,
+  toddlers = 0,
   rooms,
   availableDates,
   onConfirm,
@@ -95,6 +101,8 @@ const EditSearchSheet = ({
   const [rangeCommitted, setRangeCommitted] = useState(true);
   const [a, setA] = useState(adults);
   const [c, setC] = useState(children);
+  const [i, setI] = useState(infants);
+  const [tod, setTod] = useState(toddlers);
   const [r, setR] = useState(rooms);
 
   useEffect(() => {
@@ -106,9 +114,11 @@ const EditSearchSheet = ({
       setRangeCommitted(true);
       setA(adults);
       setC(children);
+      setI(infants);
+      setTod(toddlers);
       setR(rooms);
     }
-  }, [open, checkIn, checkOut, adults, children, rooms]);
+  }, [open, checkIn, checkOut, adults, children, infants, toddlers, rooms]);
 
 
   const today = new Date();
@@ -128,6 +138,8 @@ const EditSearchSheet = ({
       checkOut: range.to,
       adults: a,
       children: c,
+      infants: i,
+      toddlers: tod,
       rooms: r,
     });
     onOpenChange(false);

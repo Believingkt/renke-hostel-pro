@@ -17,6 +17,7 @@ import { AboutFeaturesSection } from "@/components/website-content/AboutFeatures
 import { SocialSharingSection } from "@/components/website-content/SocialSharingSection";
 import { SeoSettingsSection } from "@/components/website-content/SeoSettingsSection";
 import { HeaderFooterSection } from "@/components/website-content/HeaderFooterSection";
+import ChildAgeRulesCard from "@/components/website-content/ChildAgeRulesCard";
 import { HomepageSectionsBlock } from "@/components/website-content/HomepageSectionsBlock";
 import { PortalFeatureTagsSection } from "@/components/website-content/PortalFeatureTagsSection";
 import { AddonPlansSection, AddonPlan } from "@/components/website-content/AddonPlansSection";
@@ -3978,6 +3979,8 @@ const WebsiteContent = () => {
               )}
             </CardContent>
           </Card>
+
+          <ChildAgeRulesCard accommodationId={accommodationId} />
 
           <SaveButtonContainer 
             onSave={async () => {
