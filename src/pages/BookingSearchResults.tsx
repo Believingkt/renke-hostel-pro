@@ -212,7 +212,7 @@ const BookingSearchResults = () => {
         ] = await Promise.all([
           supabase
             .from("accommodation_info")
-            .select("id, name, type, region_1, region_2, country, feature_tags_override, nearby_station, review_summary, rating_score, search_card_photos")
+            .select("id, name, type, region_1, region_2, country, feature_tags_override, nearby_station, review_summary, rating_score, search_card_photos, child_age_rules")
             .eq("is_active", true)
             .order("display_order", { ascending: true, nullsFirst: false }),
           supabase
