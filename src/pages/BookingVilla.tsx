@@ -102,6 +102,7 @@ const BookingVilla = () => {
   const [bottomBarHidden, setBottomBarHidden] = useState(false);
   // 追蹤底部 MobileBottomNav 是否被滾動隱藏（與 MobileBottomNav 內部邏輯一致）
   const [navHidden, setNavHidden] = useState(false);
+  const [navHeight, setNavHeight] = useState(64);
   useEffect(() => {
     let lastY = 0;
     const onScroll = () => {
@@ -112,6 +113,18 @@ const BookingVilla = () => {
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  useEffect(() => {
+    const measure = () => {
+      const nav = document.querySelector('nav.fixed.bottom-0') as HTMLElement | null;
+      if (nav) setNavHeight(nav.offsetHeight);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    const nav = document.querySelector('nav.fixed.bottom-0');
+    if (nav) ro.observe(nav);
+    window.addEventListener("resize", measure);
+    return () => { ro.disconnect(); window.removeEventListener("resize", measure); };
   }, []);
   const [editSearchOpen, setEditSearchOpen] = useState(false);
   const [availableDateSet, setAvailableDateSet] = useState<Set<string> | null>(null);
@@ -775,7 +788,7 @@ const BookingVilla = () => {
       <div
         className={`fixed left-0 right-0 z-[60] bg-white/95 backdrop-blur border-t border-border px-4 pt-2 pb-2.5 sm:hidden transition-transform duration-300 ease-out ${editSearchOpen ? "translate-y-full pointer-events-none" : "translate-y-0"}`}
         style={{
-          bottom: navHidden ? "env(safe-area-inset-bottom)" : "64px",
+          bottom: navHidden ? "env(safe-area-inset-bottom)" : `${navHeight}px`,
           transition: "bottom 300ms ease-out",
         }}
       >
