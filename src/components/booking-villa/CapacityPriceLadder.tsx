@@ -295,7 +295,7 @@ const CapacityPriceLadder = ({
         </Popover>
       </div>
 
-      {/* ── 方案卡片直列（Trip.com 風格） ── */}
+      {/* ── 包區方案：人數 Tab + 單一方案卡（參考圖二） ── */}
       {(() => {
         const allTiers = [...currentTiers].sort((a, b) => a.guestCount - b.guestCount);
         if (allTiers.length === 0) {
@@ -306,313 +306,216 @@ const CapacityPriceLadder = ({
           );
         }
 
+        // 選定的人數（預設：搜尋條 → 最划算 → 第一個）
+        const defaultGuest =
+          (selectedGuest ?? matchedGuestCount ?? recommendedGuestCount ?? allTiers[0].guestCount);
+        const activeTier_ =
+          allTiers.find((t) => t.guestCount === defaultGuest) || allTiers[0];
+
+        const opt = buildOption(activeTier_, activeTier_.guestCount === recommendedGuestCount);
+        const saved = opt.originalPrice - opt.totalPrice;
+        const scene = getGuestScene(activeTier_.guestCount);
+        const yesItems = (activeTier_.includes || []).filter((i) => i.available === "yes");
+        const optionalItems = (activeTier_.includes || []).filter((i) => i.available === "optional");
+
+        const allocation = activeTier_.roomTypeAllocation || [];
+        // 攤平：每一間房一張縮圖
+        const roomTiles: { rt: any; index: number }[] = [];
+        allocation.forEach((a) => {
+          const rt: any = roomTypes.find((r) => r.id === a.room_type_id);
+          if (!rt) return;
+          for (let i = 0; i < a.qty; i++) roomTiles.push({ rt, index: i });
+        });
+        const roomBreakdown = allocation
+          .map((a) => {
+            const rt: any = roomTypes.find((r) => r.id === a.room_type_id);
+            return rt ? `${rt.name}×${a.qty}` : null;
+          })
+          .filter(Boolean)
+          .join("・");
+
         return (
-          <div className="space-y-3">
-            {allTiers.map((tier) => {
-              const opt = buildOption(tier, tier.guestCount === recommendedGuestCount);
-              const saved = opt.originalPrice - opt.totalPrice;
-              const perPerson = Math.round(opt.totalPrice / opt.guestCount / safeNights);
-              const scene = getGuestScene(tier.guestCount);
-              const yesItems = (tier.includes || []).filter((i) => i.available === "yes");
-              const optionalItems = (tier.includes || []).filter((i) => i.available === "optional");
+          <div className="space-y-4">
+            {/* 人數 Tab */}
+            <div className="flex items-center gap-0 px-1 overflow-x-auto no-scrollbar">
+              {allTiers.map((t, idx) => {
+                const isActive = t.guestCount === activeTier_.guestCount;
+                return (
+                  <div key={`${t.guestCount}-${t.planName || ""}`} className="flex items-center">
+                    {idx > 0 && (
+                      <span className="px-1.5 text-muted-foreground/60 text-[14px]">/</span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedGuest(t.guestCount)}
+                      className={cn(
+                        "relative px-3.5 py-1.5 text-[15px] font-bold whitespace-nowrap transition-colors",
+                        isActive ? "text-white" : "text-muted-foreground hover:text-foreground"
+                      )}
+                      style={
+                        isActive
+                          ? {
+                              background: "hsl(25, 88%, 53%)",
+                              clipPath:
+                                "polygon(10% 0, 100% 0, 90% 100%, 0 100%)",
+                              padding: "6px 18px",
+                            }
+                          : undefined
+                      }
+                    >
+                      {t.guestCount}人
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
 
-              // 收集綁定房型的所有照片
-              const allocation = tier.roomTypeAllocation || [];
-              const boundRoomTypes = allocation
-                .map((a) => roomTypes.find((r) => r.id === a.room_type_id))
-                .filter(Boolean) as any[];
-              const photos: { url: string; alt: string }[] = [];
-              boundRoomTypes.forEach((rt) => {
-                (rt.room_photos || []).forEach((p: any) => {
-                  if (p?.photo_url) photos.push({ url: p.photo_url, alt: rt.name || "" });
-                });
-              });
-              // 計算總坪數 / 總房間數
-              const totalSqm = allocation.reduce((s, a) => {
-                const rt: any = roomTypes.find((r) => r.id === a.room_type_id);
-                return s + (rt?.size_sqm || 0) * a.qty;
-              }, 0);
-              const roomBreakdown = allocation
-                .map((a) => {
-                  const rt: any = roomTypes.find((r) => r.id === a.room_type_id);
-                  return rt ? `${rt.name}×${a.qty}` : null;
-                })
-                .filter(Boolean)
-                .join("・");
+            {/* 主卡：標題 + 價格 */}
+            <Card className="overflow-hidden border-border/60 shadow-sm">
+              <div className="px-4 py-4">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xl" aria-hidden>{scene.emoji}</span>
+                  <h3 className="font-black text-[18px] leading-tight text-foreground">
+                    {activeTier_.planName || `${opt.guestCount} 人${TERM}`}
+                  </h3>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  {opt.originalPrice > opt.totalPrice && (
+                    <span className="text-[12px] line-through text-muted-foreground tabular-nums">
+                      NT${opt.originalPrice.toLocaleString()}
+                    </span>
+                  )}
+                  <span
+                    className="font-black text-[26px] leading-none tabular-nums"
+                    style={{ color: "hsl(25, 88%, 50%)" }}
+                  >
+                    NT${opt.totalPrice.toLocaleString()}
+                  </span>
+                  {saved > 0 && (
+                    <span
+                      className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded text-white"
+                      style={{ background: "hsl(340, 80%, 55%)" }}
+                    >
+                      -{opt.discountPercent}%
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1.5">
+                  <Users className="inline h-3 w-3 mr-0.5 -mt-0.5" />
+                  可入住 {opt.guestCount} 位
+                  {activeTier_.guestCountMax && activeTier_.guestCountMax > opt.guestCount && (
+                    <span>~{activeTier_.guestCountMax}</span>
+                  )}
+                  {" · "}
+                  {nights > 1 ? `${nights} 晚含稅總價` : "單晚含稅"}
+                </p>
+              </div>
+            </Card>
 
-              const isOpen = expandedKey === `${activeTier}-${tier.guestCount}-${tier.planName || ""}`;
-              const tierKey = `${activeTier}-${tier.guestCount}-${tier.planName || ""}`;
-              const isRec = tier.guestCount === recommendedGuestCount;
-              const isFew = !!tier.isFewPeople;
-
-              return (
-                <Card
-                  key={tierKey}
-                  className="overflow-hidden border-border/60 shadow-sm"
-                >
-                  {/* 上方圖庫橫幅 */}
-                  {photos.length > 0 && (
-                    <div className="relative">
-                      {photos.length === 1 ? (
-                        <img
-                          src={photos[0].url}
-                          alt={photos[0].alt}
-                          className="w-full h-44 object-cover"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="grid grid-cols-2 gap-0.5 h-44">
+            {/* 房間搭配 */}
+            {roomTiles.length > 0 && (
+              <div>
+                <p className="text-[10px] font-bold tracking-[0.18em] text-muted-foreground/80">
+                  ROOM ALLOCATION
+                </p>
+                <p className="text-[14px] font-bold text-foreground mt-0.5">
+                  房間搭配：{roomBreakdown}
+                </p>
+                <div className="grid grid-cols-3 gap-2 mt-2.5">
+                  {roomTiles.slice(0, 6).map(({ rt, index }, i) => {
+                    const cover = rt?.room_photos?.[0]?.photo_url;
+                    return (
+                      <div
+                        key={`${rt.id}-${index}-${i}`}
+                        className="relative aspect-[4/3] rounded-lg overflow-hidden bg-muted"
+                      >
+                        {cover ? (
                           <img
-                            src={photos[0].url}
-                            alt={photos[0].alt}
+                            src={cover}
+                            alt={rt?.name || ""}
                             className="w-full h-full object-cover"
                             loading="lazy"
                           />
-                          <div className="grid grid-rows-2 gap-0.5">
-                            {photos.slice(1, 3).map((p, i) => (
-                              <img
-                                key={i}
-                                src={p.url}
-                                alt={p.alt}
-                                className="w-full h-full object-cover"
-                                loading="lazy"
-                              />
-                            ))}
-                            {photos.length < 3 && (
-                              <div className="bg-muted/30" />
-                            )}
-                          </div>
-                        </div>
-                      )}
-                      {/* 早鳥 / 最划算 角標 */}
-                      {(isFew || isRec) && (
-                        <span
-                          className="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full text-white shadow"
-                          style={{ background: isFew ? "hsl(0,75%,52%)" : "hsl(25,75%,52%)" }}
-                        >
-                          {isFew ? "早鳥優惠" : "最划算"}
-                        </span>
-                      )}
-                      {/* 照片計數 */}
-                      <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 bg-black/55 text-white text-[10.5px] px-2 py-0.5 rounded-full">
-                        <Camera className="h-3 w-3" />
-                        {photos.length}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* 標題 + 規格列 */}
-                  <div className="px-4 pt-3 pb-2.5">
-                    <button
-                      type="button"
-                      onClick={() => setExpandedKey(isOpen ? null : tierKey)}
-                      className="flex items-center gap-1 text-foreground -ml-0.5"
-                    >
-                      <span className="text-lg" aria-hidden>{scene.emoji}</span>
-                      <span className="font-bold text-[16px]">
-                        {tier.planName || `${opt.guestCount} 人${TERM}`}
-                      </span>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    </button>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-[11.5px] text-muted-foreground">
-                      <span className="inline-flex items-center gap-1">
-                        <Users className="h-3.5 w-3.5" />
-                        可入住 {opt.guestCount} 位
-                        {tier.guestCountMax && tier.guestCountMax > opt.guestCount && (
-                          <span>~{tier.guestCountMax}</span>
+                        ) : (
+                          <div
+                            className="w-full h-full"
+                            style={{ background: "hsl(25, 60%, 95%)" }}
+                          />
                         )}
-                      </span>
-                      {roomBreakdown && (
-                        <span className="inline-flex items-center gap-1">
-                          <BedDouble className="h-3.5 w-3.5" />
-                          {roomBreakdown}
-                        </span>
-                      )}
-                      {totalSqm > 0 && (
-                        <span>{totalSqm} 坪</span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="border-t border-border/50" />
-
-                  {/* 方案內容 */}
-                  <div className="px-4 py-3 space-y-2">
-                    {(yesItems.length > 0 || (tier.subtitle && tier.subtitle.length > 0)) && (
-                      <>
-                        <p
-                          className="text-[13.5px] font-bold"
-                          style={{ color: "hsl(20, 75%, 42%)" }}
-                        >
-                          {tier.subtitle || "方案已含"}
-                        </p>
-                        {yesItems.length > 0 && (
-                          <ul className="space-y-1.5">
-                            {yesItems.slice(0, isOpen ? yesItems.length : 4).map((inc, i) => (
-                              <li key={i} className="flex items-start gap-1.5">
-                                <Check
-                                  className="h-3.5 w-3.5 mt-0.5 shrink-0"
-                                  style={{ color: "hsl(140, 50%, 35%)" }}
-                                />
-                                <span className="text-[12.5px] text-foreground leading-snug">
-                                  {inc.text}
-                                  {inc.price_note && (
-                                    <span className="text-muted-foreground ml-1">
-                                      ({inc.price_note})
-                                    </span>
-                                  )}
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </>
-                    )}
-
-                    {(tier.childCountMax || tier.childAgeNote) && (
-                      <p className="text-[11.5px] text-muted-foreground flex items-center gap-1">
-                        <Baby className="h-3 w-3" />
-                        {tier.childCountMax ? `可加 ${tier.childCountMax} 位兒童` : ""}
-                        {tier.childCountMax && tier.childAgeNote ? "・" : ""}
-                        {tier.childAgeNote || ""}
-                      </p>
-                    )}
-
-                    {/* 展開：房型分配縮圖 + optional / 完整 includes */}
-                    {isOpen && (
-                      <div className="pt-2 mt-1 border-t border-border/40 space-y-3">
-                        {allocation.length > 0 && (
-                          <div>
-                            <p className="text-[11px] text-muted-foreground mb-1.5 flex items-center gap-1">
-                              <BedDouble className="h-3 w-3" /> 房型分配
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                              {allocation.map((alloc, i) => {
-                                const rt: any = roomTypes.find((r) => r.id === alloc.room_type_id);
-                                const cover = rt?.room_photos?.[0]?.photo_url;
-                                return (
-                                  <div
-                                    key={`${alloc.room_type_id}-${i}`}
-                                    className="flex items-center gap-2 rounded-lg border border-border/60 bg-card p-1.5 pr-2.5"
-                                  >
-                                    <div className="w-12 h-12 rounded-md overflow-hidden bg-muted shrink-0">
-                                      {cover ? (
-                                        <img
-                                          src={cover}
-                                          alt={rt?.name || ""}
-                                          className="w-full h-full object-cover"
-                                          loading="lazy"
-                                        />
-                                      ) : (
-                                        <div
-                                          className="w-full h-full"
-                                          style={{ background: "hsl(25, 60%, 95%)" }}
-                                        />
-                                      )}
-                                    </div>
-                                    <div className="min-w-0">
-                                      <p className="text-[12px] font-semibold text-foreground leading-tight">
-                                        {rt?.name || "房型"}
-                                      </p>
-                                      <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">
-                                        × {alloc.qty}
-                                        {rt?.capacity ? ` · ${rt.capacity}人` : ""}
-                                        {rt?.size_sqm ? ` · ${rt.size_sqm}坪` : ""}
-                                      </p>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-                        {optionalItems.length > 0 && (
-                          <div>
-                            <p className="text-[11px] text-muted-foreground mb-1">附加說明</p>
-                            <ul className="space-y-1">
-                              {optionalItems.map((inc, i) => (
-                                <li key={i} className="flex items-start gap-1.5">
-                                  <Plus
-                                    className="h-3 w-3 mt-0.5 shrink-0"
-                                    style={{ color: "hsl(25, 70%, 45%)" }}
-                                  />
-                                  <span className="text-[11.5px] leading-tight text-foreground">
-                                    {inc.text}
-                                    {inc.price_note && (
-                                      <span className="text-muted-foreground ml-1">
-                                        ({inc.price_note})
-                                      </span>
-                                    )}
-                                  </span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
+                        {rt?.size_sqm && (
+                          <span className="absolute bottom-1.5 right-1.5 bg-white text-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm tabular-nums">
+                            {rt.size_sqm}
+                          </span>
                         )}
                       </div>
-                    )}
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
-                    {(yesItems.length > 4 || optionalItems.length > 0 || allocation.length > 0) && (
-                      <button
-                        type="button"
-                        onClick={() => setExpandedKey(isOpen ? null : tierKey)}
-                        className="text-[12px] font-medium underline decoration-dotted underline-offset-2"
-                        style={{ color: "hsl(25, 76%, 45%)" }}
-                      >
-                        {isOpen ? "收合" : "查看詳情"}
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="border-t border-border/50" />
-
-                  {/* 價格 + 預訂 */}
-                  <div className="px-4 py-3 flex items-end justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-[10.5px] text-muted-foreground">
-                        平均每人 <span className="font-bold text-foreground">${perPerson.toLocaleString()}</span> / 晚
-                      </p>
-                      {saved > 0 && (
-                        <span
-                          className="inline-flex items-center mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded text-white"
-                          style={{ background: "hsl(340, 80%, 55%)" }}
-                        >
-                          會員優惠 -{opt.discountPercent}%
+            {/* 方案已含 */}
+            {yesItems.length > 0 && (
+              <div>
+                <p className="text-[14px] font-bold text-foreground">
+                  {activeTier_.subtitle || "方案已含"}
+                </p>
+                <ul className="mt-2 space-y-1.5">
+                  {yesItems.map((inc, i) => (
+                    <li key={i} className="flex items-start gap-1.5">
+                      <Check
+                        className="h-4 w-4 mt-0.5 shrink-0"
+                        style={{ color: "hsl(25, 88%, 50%)" }}
+                      />
+                      <span className="text-[13px] text-foreground leading-snug">
+                        {inc.text}
+                        {inc.price_note && (
+                          <span className="text-muted-foreground ml-1">
+                            ({inc.price_note})
+                          </span>
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {optionalItems.length > 0 && (
+                  <ul className="mt-2 space-y-1">
+                    {optionalItems.map((inc, i) => (
+                      <li key={i} className="flex items-start gap-1.5">
+                        <Plus
+                          className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground"
+                        />
+                        <span className="text-[12px] leading-snug text-muted-foreground">
+                          {inc.text}
+                          {inc.price_note && (
+                            <span className="ml-1">({inc.price_note})</span>
+                          )}
                         </span>
-                      )}
-                    </div>
-                    <div className="text-right shrink-0">
-                      {opt.originalPrice > opt.totalPrice && (
-                        <p className="text-[11px] line-through text-muted-foreground tabular-nums leading-none">
-                          NT${opt.originalPrice.toLocaleString()}
-                        </p>
-                      )}
-                      <p
-                        className="font-black text-[22px] leading-tight tabular-nums"
-                        style={{ color: "hsl(25, 85%, 48%)" }}
-                      >
-                        NT${opt.totalPrice.toLocaleString()}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground leading-none">
-                        {nights > 1 ? `${nights} 晚含稅總價` : "/ 晚 含稅"}
-                      </p>
-                    </div>
-                  </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
 
-                  <div className="px-4 pb-3">
-                    <button
-                      type="button"
-                      onClick={() => onSelect(opt)}
-                      className="w-full h-11 rounded-lg text-white font-bold text-[14px] shadow-sm active:scale-[0.99] transition-transform inline-flex items-center justify-center gap-1"
-                      style={{ background: "linear-gradient(135deg, hsl(25, 85%, 52%), hsl(20, 80%, 46%))" }}
-                    >
-                      預訂
-                      <ChevronRight className="h-4 w-4" />
-                    </button>
-                  </div>
-                </Card>
-              );
-            })}
+            {(activeTier_.childCountMax || activeTier_.childAgeNote) && (
+              <p className="text-[12px] text-muted-foreground flex items-center gap-1">
+                <Baby className="h-3.5 w-3.5" />
+                {activeTier_.childCountMax ? `可加 ${activeTier_.childCountMax} 位兒童` : ""}
+                {activeTier_.childCountMax && activeTier_.childAgeNote ? "・" : ""}
+                {activeTier_.childAgeNote || ""}
+              </p>
+            )}
+
+            {/* 預訂按鈕 */}
+            <button
+              type="button"
+              onClick={() => onSelect(opt)}
+              className="w-full h-12 rounded-xl text-white font-bold text-[15px] shadow-md active:scale-[0.99] transition-transform"
+              style={{ background: "hsl(25, 88%, 53%)" }}
+            >
+              就選這個方案
+            </button>
 
             {showDisabledFewPeopleNote && (
               <div className="flex items-center gap-1.5 px-1 text-[10.5px] text-muted-foreground">
@@ -623,6 +526,7 @@ const CapacityPriceLadder = ({
           </div>
         );
       })()}
+
 
       {/* ── 底部提示 ── */}
       <div className="flex items-start gap-1.5 px-1 pt-1 pb-2">
