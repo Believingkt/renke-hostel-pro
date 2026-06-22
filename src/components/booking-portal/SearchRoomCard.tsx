@@ -44,6 +44,12 @@ export interface SearchRoomCardData {
   feature_tags: string[];
   /** 是否售完／無價／不可預訂 */
   sold_out: boolean;
+  /** 兒童分齡規則摘要文字（顯示於資訊區） */
+  child_rules_summary?: string | null;
+  /** 兒童加價總額（若 > 0 顯示於價格旁） */
+  child_extra_fee_total?: number | null;
+  /** 因兒童條件不符的原因（若非空，將以「不符兒童條件」狀態呈現） */
+  child_blocked_reason?: string | null;
 }
 
 
