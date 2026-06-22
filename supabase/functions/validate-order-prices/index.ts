@@ -430,7 +430,8 @@ serve(async (req) => {
         finalPrice: calculatedFinalPrice,
         mealPlanTotal: calculatedMealPlanTotal,
         petPlanPrice: calculatedPetPrice,
-        customAddonTotal: calculatedCustomAddonTotal
+        customAddonTotal: calculatedCustomAddonTotal,
+        childExtraTotal: calculatedChildExtraTotal,
       }
     };
 
