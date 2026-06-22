@@ -523,6 +523,11 @@ const BookingSearchResults = () => {
       price: c.nightly_price ?? Infinity,
     });
     for (const c of cards) {
+      // 銷售方案不得低於搜尋人數（以方案最大容量為準，無則用 capacity）
+      if (c.is_package && adults > 0) {
+        const maxCap = c.guest_count_max ?? c.capacity;
+        if (maxCap < adults) continue;
+      }
       const prev = bestByAcc.get(c.accommodation_id);
       if (!prev) {
         bestByAcc.set(c.accommodation_id, c);
