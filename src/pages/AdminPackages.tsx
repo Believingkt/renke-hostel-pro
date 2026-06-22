@@ -399,6 +399,9 @@ const AdminPackages = () => {
           ([, v]) => v && typeof v.sale === "number" && !Number.isNaN(v.sale)
         )
       ) as any,
+      room_type_allocation: (form.room_type_allocation || [])
+        .filter((r) => r.room_type_id && Number(r.qty) > 0)
+        .map((r) => ({ room_type_id: r.room_type_id, qty: Number(r.qty) })) as any,
     };
     const { error } = editing
       ? await supabase.from("accommodation_packages").update(payload as any).eq("id", editing.id)
