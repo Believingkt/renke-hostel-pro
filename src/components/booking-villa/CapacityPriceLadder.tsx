@@ -419,12 +419,18 @@ const CapacityPriceLadder = ({
                   </div>
                 )}
 
-                {/* 3. 方案 */}
+                {/* 3. 方案（可收合） */}
                 {yesItems.length > 0 && (
-                  <div>
-                    <p className="text-[14px] font-bold text-foreground">
-                      {activeTier_.subtitle || "方案已含"}
-                    </p>
+                  <details className="group">
+                    <summary className="flex items-center justify-between cursor-pointer list-none">
+                      <p className="text-[14px] font-bold text-foreground">
+                        {activeTier_.subtitle || "方案已含"}
+                        <span className="ml-1.5 text-[12px] font-normal text-muted-foreground">
+                          （{yesItems.length}{optionalItems.length > 0 ? `+${optionalItems.length}` : ""} 項）
+                        </span>
+                      </p>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
+                    </summary>
                     <ul className="mt-2 space-y-1.5">
                       {yesItems.map((inc, i) => (
                         <li key={i} className="flex items-start gap-1.5">
@@ -460,8 +466,9 @@ const CapacityPriceLadder = ({
                         ))}
                       </ul>
                     )}
-                  </div>
+                  </details>
                 )}
+
 
                 {(activeTier_.childCountMax || activeTier_.childAgeNote) && (
                   <p className="text-[12px] text-muted-foreground flex items-center gap-1">
