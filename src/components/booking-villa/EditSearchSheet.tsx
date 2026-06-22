@@ -167,7 +167,16 @@ const EditSearchSheet = ({
                 }}
                 numberOfMonths={1}
                 locale={zhTW}
-                disabled={(d) => d < today}
+                disabled={(d) => {
+                  if (d < today) return true;
+                  if (availableDates) {
+                    const y = d.getFullYear();
+                    const m = String(d.getMonth() + 1).padStart(2, "0");
+                    const day = String(d.getDate()).padStart(2, "0");
+                    if (!availableDates.has(`${y}-${m}-${day}`)) return true;
+                  }
+                  return false;
+                }}
                 className="p-2 pointer-events-auto w-full bg-transparent"
                 classNames={{
                   months: "w-full",
