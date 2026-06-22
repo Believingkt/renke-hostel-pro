@@ -58,8 +58,10 @@ import {
 
 import FacilitiesSection from "@/components/FacilitiesSection";
 import LocationSection from "@/components/LocationSection";
+import VillaLocationCompact from "@/components/booking-villa/VillaLocationCompact";
 import ReviewsSection from "@/components/ReviewsSection";
 import FaqSection from "@/components/FaqSection";
+import SimilarStaysCarousel from "@/components/booking-villa/SimilarStaysCarousel";
 import BookingInfoSection from "@/components/BookingInfoSection";
 import BookingFooter from "@/components/BookingFooter";
 import MobileBottomNav from "@/components/member/MobileBottomNav";
@@ -978,15 +980,23 @@ const BookingVilla = () => {
             <FacilitiesSection facilities={secondaryData!.facilities} />
           )}
 
-        {/* ── 8. Location ── */}
+        {/* ── 8. Location ── Trip.com 風格 compact + 完整 LocationSection（桌機詳細區） ── */}
         {info.show_location_section !== false && (
-          <div id="location">
-            <LocationSection
+          <>
+            <VillaLocationCompact
               address={info.address}
               locationInfo={secondaryData?.locationInfo}
+              rating={extras?.googleRating ?? null}
             />
-          </div>
+            <div className="hidden md:block">
+              <LocationSection
+                address={info.address}
+                locationInfo={secondaryData?.locationInfo}
+              />
+            </div>
+          </>
         )}
+
 
         {/* ── 9. Booking Info / 須知 ── */}
         {info.show_booking_info_section !== false && (
@@ -1008,6 +1018,9 @@ const BookingVilla = () => {
         {info.show_faq_section !== false && (
           <FaqSection accommodationId={info.id} />
         )}
+
+        {/* ── 12. Similar stays ── */}
+        <SimilarStaysCarousel excludeId={info.id} region={region} />
 
         {/* Contact callout */}
         {info.phone && (
