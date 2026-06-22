@@ -29,6 +29,7 @@ export interface AccommodationPackage {
   enabled: boolean;
   excluded_date_ranges: PackageDateRange[];
   tier_prices: PackageTierPrices;
+  room_type_allocation: Array<{ room_type_id: string; qty: number }>;
 }
 
 export interface PackageDateRange {
