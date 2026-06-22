@@ -311,41 +311,61 @@ const BookingSearchResults = () => {
       }).map((d) => format(d, "yyyy-MM-dd"));
       const rtIds = roomTypes.map((r) => r.id);
 
+      // 1) base：取 is_available / price
       const { data: inv } = await supabase
         .from("room_inventory_pricing")
-        .select("room_type_id, date, available_rooms, is_available, price")
+        .select("room_type_id, date, is_available, price")
         .in("room_type_id", rtIds)
         .in("date", stayDates);
       if (cancelled) return;
 
-      const rtDateMap = new Map<string, Map<string, { available: number; isAvailable: boolean; price: number }>>();
+      const baseMap = new Map<string, { isAvailable: boolean; price: number }>();
       inv?.forEach((row) => {
-        if (!rtDateMap.has(row.room_type_id)) rtDateMap.set(row.room_type_id, new Map());
-        rtDateMap.get(row.room_type_id)!.set(row.date, {
-          available: row.available_rooms,
+        baseMap.set(`${row.room_type_id}:${row.date}`, {
           isAvailable: row.is_available !== false,
-          price: row.price,
+          price: row.price ?? 0,
         });
       });
 
+      // 2) adjusted：扣除既有訂單後的真實可售房數
+      const adjustedResults = await Promise.all(
+        roomTypes.map(async (rt) => {
+          const { data } = await supabase.rpc("get_adjusted_room_inventory_batch", {
+            p_room_type_id: rt.id,
+            p_dates: stayDates,
+            p_accommodation_id: rt.accommodation_id,
+          });
+          return { roomTypeId: rt.id, rows: (data as any[]) || [] };
+        }),
+      );
+      if (cancelled) return;
+
+      const adjMap = new Map<string, { available: number; isBlocked: boolean }>();
+      for (const { roomTypeId, rows } of adjustedResults) {
+        for (const row of rows) {
+          const dateKey = (row as any).date_value ?? (row as any).date;
+          if (!dateKey) continue;
+          adjMap.set(`${roomTypeId}:${dateKey}`, {
+            available: row.available_rooms ?? 0,
+            isBlocked: row.is_blocked === true,
+          });
+        }
+      }
+
       const result = new Map<string, { minAvail: number; minPrice: number | null; allAvailable: boolean }>();
       rtIds.forEach((id) => {
-        const dm = rtDateMap.get(id);
-        if (!dm) {
-          result.set(id, { minAvail: 0, minPrice: null, allAvailable: false });
-          return;
-        }
         let minAvail = Infinity;
         let minPrice = Infinity;
         let allAvail = true;
         for (const d of stayDates) {
-          const info = dm.get(d);
-          if (!info || !info.isAvailable || info.available <= 0) {
+          const base = baseMap.get(`${id}:${d}`);
+          const adj = adjMap.get(`${id}:${d}`);
+          if (!base || !base.isAvailable || !adj || adj.isBlocked || adj.available <= 0) {
             allAvail = false;
             break;
           }
-          minAvail = Math.min(minAvail, info.available);
-          if (info.price > 0) minPrice = Math.min(minPrice, info.price);
+          minAvail = Math.min(minAvail, adj.available);
+          if (base.price > 0) minPrice = Math.min(minPrice, base.price);
         }
         result.set(id, {
           minAvail: allAvail && minAvail !== Infinity ? minAvail : 0,
