@@ -183,18 +183,19 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
 
             {/* 2. 位置 + 鄰近車站 */}
             {(location || data.nearby_station) && (
-              <p className="flex items-center gap-1 text-xs sm:text-[13px] text-muted-foreground line-clamp-1">
-                <MapPin className="h-3.5 w-3.5 shrink-0 opacity-70" />
-                <span className="truncate">
-                  {location}
-                  {data.nearby_station && (
-                    <span className="opacity-80">
-                      {location ? " · " : ""}
-                      <TrainFront className="inline h-3 w-3 -mt-0.5 mr-0.5 opacity-70" />
-                      {data.nearby_station}
-                    </span>
-                  )}
-                </span>
+              <p className="flex items-center gap-2 text-xs sm:text-[13px] text-muted-foreground line-clamp-1">
+                {location && (
+                  <span className="flex items-center gap-1 min-w-0">
+                    <MapPin className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                    <span className="truncate">{location}</span>
+                  </span>
+                )}
+                {data.nearby_station && (
+                  <span className="flex items-center gap-1 min-w-0">
+                    <TrainFront className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                    <span className="truncate">{data.nearby_station}</span>
+                  </span>
+                )}
               </p>
             )}
 
