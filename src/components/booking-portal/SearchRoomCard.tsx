@@ -393,6 +393,11 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
                     </span>
                   ) : null}
                 </p>
+                {data.child_extra_fee_total && data.child_extra_fee_total > 0 ? (
+                  <p className="text-[10px] text-[hsl(25,70%,50%)] font-medium leading-none mt-0.5">
+                    含兒童加價 +NT${data.child_extra_fee_total.toLocaleString()}
+                  </p>
+                ) : null}
               </>
             )}
           </div>
