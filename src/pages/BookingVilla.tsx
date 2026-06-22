@@ -944,8 +944,8 @@ const BookingVilla = () => {
               // 1) 取容量 >= 搜尋人數中最小者；
               // 2) 若搜尋人數超過所有方案容量，則取最大容量的方案（與上方 Tab 行為一致）。
               const searchAdults = Math.max(1, parseInt(searchParams.get("adults") || "0", 10) || 0);
-              const searchChildren = Math.max(0, parseInt(searchParams.get("children") || "0", 10) || 0);
-              const totalGuests = searchAdults + searchChildren;
+              // 小孩不計入方案容量比對
+              const totalGuests = searchAdults;
               const fitPkgs = candidatePkgs.filter((p) => (p.guest_count ?? 0) >= totalGuests);
               const pickFrom = fitPkgs.length > 0
                 ? fitPkgs.reduce((min, p) => (p.guest_count < min.guest_count ? p : min), fitPkgs[0])
