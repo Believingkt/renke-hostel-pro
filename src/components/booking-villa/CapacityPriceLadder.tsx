@@ -1,5 +1,4 @@
 import { useMemo, useState, useEffect, useRef } from "react";
-import { ChevronRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import PackagePhotoCarousel from "./PackagePhotoCarousel";
 import {
