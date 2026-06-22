@@ -974,6 +974,25 @@ const BookingVilla = () => {
 
       <BookingFooter />
       <MobileBottomNav />
+
+      <EditSearchSheet
+        open={editSearchOpen}
+        onOpenChange={setEditSearchOpen}
+        checkIn={checkIn}
+        checkOut={checkOut}
+        adults={Math.max(1, parseInt(searchParams.get("adults") || "0", 10) || 1)}
+        children={Math.max(0, parseInt(searchParams.get("children") || "0", 10) || 0)}
+        rooms={Math.max(1, parseInt(searchParams.get("rooms") || "1", 10) || 1)}
+        onConfirm={({ checkIn: ci, checkOut: co, adults, children, rooms }) => {
+          const params = new URLSearchParams(searchParams);
+          params.set("checkIn", format(ci, "yyyy-MM-dd"));
+          params.set("checkOut", format(co, "yyyy-MM-dd"));
+          params.set("adults", String(adults));
+          params.set("children", String(children));
+          params.set("rooms", String(rooms));
+          setSearchParams(params, { replace: true });
+        }}
+      />
     </div>
   );
 };
