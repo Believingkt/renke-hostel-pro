@@ -241,6 +241,7 @@ export function buildPricingTableFromPackages(
         childAgeNote: pkg.child_age_note,
         tags: pkg.tags || [],
         includes: pkg.includes || [],
+        roomTypeAllocation: pkg.room_type_allocation || [],
       };
       table[tier].push(tierPrice);
     }
