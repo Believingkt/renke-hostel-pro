@@ -416,7 +416,7 @@ const BookingFlow = () => {
       try {
         const { data: infoData } = await supabase
           .from("accommodation_info")
-          .select("name, line_id, header_logo_url")
+          .select("name, line_id, header_logo_url, child_age_rules")
           .eq("id", accommodationId)
           .single();
         
@@ -424,6 +424,7 @@ const BookingFlow = () => {
           setAccommodationName(infoData.name);
           setAccommodationLineId(infoData.line_id);
           setAccommodationLogo(infoData.header_logo_url);
+          setChildRules(parseChildAgeRules((infoData as any).child_age_rules));
           setIsAccommodationLoaded(true);
         }
 
