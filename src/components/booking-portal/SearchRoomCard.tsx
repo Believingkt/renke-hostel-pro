@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Users, BedDouble, Maximize2, TrainFront, Star, DoorOpen } from "lucide-react";
+import { MapPin, Users, BedDouble, Maximize2, TrainFront, Star, DoorOpen, ChevronLeft, ChevronRight } from "lucide-react";
 
 export interface SearchRoomCardData {
   id: string;
