@@ -412,10 +412,9 @@ const BookingSearchResults = () => {
         : (pkg.primary_room_type_id ? [pkg.primary_room_type_id] : []);
       if (list.length === 0) return [];
       if (list.length === 1) {
-        const rt = rtMap.get(list[0]);
-        const totalMatch = pkg.room_allocation?.match(/[xX\u00d7]\s*(\d+)/);
-        const qty = totalMatch ? Math.max(1, parseInt(totalMatch[1], 10)) : 1;
-        return [{ rtId: list[0], qty: rt ? qty : 1 }];
+        // 只指定 primary_room_type_id 時，代表方案本身對應該房型的 1 份庫存
+        // room_allocation（例如「四人房x3」）僅作為顯示用，不應乘到庫存需求上
+        return [{ rtId: list[0], qty: 1 }];
       }
       return list.map((rtId) => {
         const rt = rtMap.get(rtId);
