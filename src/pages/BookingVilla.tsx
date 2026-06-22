@@ -929,7 +929,7 @@ const BookingVilla = () => {
             </span>
           </span>
         </button>
-        <div className={`flex items-center gap-3 transition-all duration-300 overflow-hidden ${bottomBarHidden ? "max-h-0 opacity-0" : "max-h-32 opacity-100"}`}>
+        <div className="flex items-center gap-3">
 
 
           <div className="flex-1 min-w-0">
