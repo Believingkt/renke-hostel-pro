@@ -86,8 +86,10 @@ const EditSearchSheet = ({
   adults,
   children,
   rooms,
+  availableDates,
   onConfirm,
 }: EditSearchSheetProps) => {
+
   const [range, setRange] = useState<DateRange | undefined>(undefined);
   const [a, setA] = useState(adults);
   const [c, setC] = useState(children);
