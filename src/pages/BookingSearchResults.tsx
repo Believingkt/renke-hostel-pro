@@ -581,7 +581,29 @@ const BookingSearchResults = () => {
       const overrideTags = acc.feature_tags_override?.filter(Boolean) || [];
       const tags = overrideTags.length > 0 ? overrideTags : deriveAutoTags(facByAcc.get(acc.id) ?? []);
 
-      const soldOut = hasDateFilter && !allAvail;
+      // 兒童分齡規則：方案覆寫 > 民宿預設
+      const childRules: ChildAgeRules = resolveChildRules(
+        acc.child_age_rules,
+        (pkg as any).child_age_rules_override,
+      );
+      const childEval = evaluateChildSelection(
+        childRules,
+        {
+          infants: infantsCount,
+          toddlers: toddlersCount,
+          children: childrenCount,
+        },
+        nights || 1,
+      );
+      const childExtraTotal = childEval.extraFeeTotal;
+      const childBlockedByLimits = childEval.blocked;
+
+      const inventorySoldOut = hasDateFilter && !allAvail;
+      const soldOut = inventorySoldOut || childBlockedByLimits;
+
+      const adjTotal = total > 0 ? total + childExtraTotal : total;
+      const adjOriginal = original ? original + childExtraTotal : original;
+      const adjNightly = nights > 0 ? Math.round(adjTotal / nights) : adjTotal;
 
       result.push({
         id: pkg.id,
@@ -609,18 +631,25 @@ const BookingSearchResults = () => {
         nearby_station: acc.nearby_station,
         review_summary: acc.review_summary,
         rating: acc.rating_score,
-        nightly_price: nightly > 0 ? nightly : null,
-        total_price: total > 0 ? total : null,
-        original_total_price: original,
+        nightly_price: adjNightly > 0 ? adjNightly : null,
+        total_price: adjTotal > 0 ? adjTotal : null,
+        original_total_price: adjOriginal,
         discount_percent: discount,
         available_rooms: allAvail && minPackagesSellable !== Infinity ? minPackagesSellable : null,
         feature_tags: tags,
         sold_out: soldOut,
+        child_rules_summary: summarizeChildRules(childRules),
+        child_extra_fee_total: childExtraTotal > 0 ? childExtraTotal : null,
+        child_blocked_reason: childBlockedByLimits
+          ? `兒童人數超過上限（${childEval.blockedTiers
+              .map((k) => childRules.tiers[k].label)
+              .join("、")}）`
+          : null,
       });
     });
 
     return result;
-  }, [accommodations, roomTypes, packages, facilities, holidays, inventoryMap, closedAccIds, hasDateFilter, nights, checkIn, checkOut]);
+  }, [accommodations, roomTypes, packages, facilities, holidays, inventoryMap, closedAccIds, hasDateFilter, nights, checkIn, checkOut, infantsCount, toddlersCount, childrenCount]);
 
   // ── 每家民宿只保留一張最符合搜尋條件的房型卡 ──
   const dedupedCards = useMemo<SearchRoomCardData[]>(() => {
