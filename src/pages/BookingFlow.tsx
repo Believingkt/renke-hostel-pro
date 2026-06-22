@@ -2305,6 +2305,8 @@ const BookingFlow = () => {
                     total: count * (setting?.price_per_unit || 0) * nights,
                   };
                 }),
+              childSelection,
+              childExtraTotal: childEval.extraFeeTotal,
             },
           }
         );
