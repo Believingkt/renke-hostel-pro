@@ -94,20 +94,19 @@ const SalesPackagesList = ({ accommodationId, checkIn = null }: Props) => {
   if (loading || items.length === 0) return null;
 
   return (
-    <section className="py-10 md:py-12 bg-background">
-      <div className="container mx-auto px-4 md:px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-end justify-between mb-4 md:mb-6">
-            <div>
-              <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
-                <Sparkles className="h-6 w-6 text-primary" />
-                精選銷售方案
-              </h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                以下方案為民宿主推薦組合，含房型搭配與最適優惠價
-              </p>
-            </div>
-          </div>
+    <div className="mb-10 md:mb-12">
+      <div className="flex items-end justify-between mb-4 md:mb-6">
+        <div>
+          <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
+            <Sparkles className="h-6 w-6 text-primary" />
+            精選銷售方案
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            民宿主推薦組合，含房型搭配與最適優惠價
+          </p>
+        </div>
+      </div>
+
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
             {items.map(({ pkg, price }) => (
