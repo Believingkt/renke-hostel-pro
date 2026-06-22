@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/carousel";
 import { ImageViewerPortal } from "./ImageViewerPortal";
 import { OptimizedImage } from "./OptimizedImage";
+import SalesPackagesList from "./SalesPackagesList";
 import roomDeluxe from "@/assets/room-deluxe.jpg";
 import roomSuite from "@/assets/room-suite.jpg";
 import roomStandard from "@/assets/room-standard.jpg";
