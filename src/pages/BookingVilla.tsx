@@ -163,30 +163,8 @@ const BookingVilla = () => {
     };
   }, [accId]);
 
-  useEffect(() => {
-    // 滑入「入住方案」區塊時隱藏底部 CTA，離開時再顯示
-    let io: IntersectionObserver | null = null;
-    const attach = () => {
-      const target = document.getElementById("capacity-price-section");
-      if (!target) return false;
-      io = new IntersectionObserver(
-        ([entry]) => setBottomBarHidden(entry.isIntersecting),
-        { threshold: 0, rootMargin: "0px 0px -20% 0px" }
-      );
-      io.observe(target);
-      return true;
-    };
-    if (!attach()) {
-      const t = window.setInterval(() => {
-        if (attach()) window.clearInterval(t);
-      }, 200);
-      return () => {
-        window.clearInterval(t);
-        io?.disconnect();
-      };
-    }
-    return () => io?.disconnect();
-  }, []);
+  // 底部 CTA bar 維持常駐顯示（緊貼下方 MobileBottomNav），不再因捲動到入住方案而隱藏
+
 
   const {
     info,
@@ -782,7 +760,7 @@ const BookingVilla = () => {
 
       {/* ── Sticky Bottom Action Bar (mobile-first) ── */}
       <div
-        className={`fixed left-0 right-0 z-[60] bg-white/95 backdrop-blur border-t border-border px-4 pt-2 pb-2.5 sm:hidden transition-transform duration-300 ease-out ${(bottomBarHidden || editSearchOpen) ? "translate-y-full pointer-events-none" : "translate-y-0"}`}
+        className={`fixed left-0 right-0 z-[60] bg-white/95 backdrop-blur border-t border-border px-4 pt-2 pb-2.5 sm:hidden transition-transform duration-300 ease-out ${editSearchOpen ? "translate-y-full pointer-events-none" : "translate-y-0"}`}
         style={{ bottom: "calc(64px + env(safe-area-inset-bottom))" }}
       >
         {/* 日期 + 人數 chips（永遠顯示） */}
