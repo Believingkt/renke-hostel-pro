@@ -58,6 +58,7 @@ import {
 
 import FacilitiesSection from "@/components/FacilitiesSection";
 import LocationSection from "@/components/LocationSection";
+import VillaLocationCompact from "@/components/booking-villa/VillaLocationCompact";
 import ReviewsSection from "@/components/ReviewsSection";
 import FaqSection from "@/components/FaqSection";
 import BookingInfoSection from "@/components/BookingInfoSection";
