@@ -243,19 +243,17 @@ async function processRow(
   const owlCfg: OwlConfig = { owlting_hotel_code: cfg.owlting_hotel_code };
 
   const uniqueId = order.owlting_unique_id ?? order.order_number;
-  const xml = buildResNotifXml(owlOrder, owlCfg, {
+  const xml = buildResNotifRq(owlOrder, owlCfg, {
     resStatus: row.res_status,
     echoToken: row.echo_token,
     uniqueId,
-  }, { username: ctx.username || "(missing)", password: ctx.password || "(missing)" });
-
-  const maskedXml = maskPasswordInXml(xml);
+  });
 
   // ============ DRYRUN ============
   if (MODE !== "live") {
     await admin.from("owlting_order_push_log").insert({
       ...baseLog,
-      request_xml: maskedXml,
+      request_xml: xml,
       response_xml: null,
       http_status: null,
       duration_ms: null,
@@ -279,10 +277,8 @@ async function processRow(
   }
 
   // ============ LIVE ============ (only when OWLTING_PUSH_MODE=live)
-  if (!ctx.haveCreds) {
-    await finalizeFail(admin, row, baseLog, "missing OWLTING_WS_USERNAME/PASSWORD", true);
-    return { id: row.id, outcome: "failed", reason: "no creds" };
-  }
+  // Auth = IP allow-list; no credential check here.
+
   try {
     const { status, text, durationMs } = await sendToOwlting(cfg.cm_api_endpoint_url, xml);
     const ok = status >= 200 && status < 300 && isSuccessRs(text);
