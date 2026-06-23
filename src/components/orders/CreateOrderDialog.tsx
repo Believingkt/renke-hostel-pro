@@ -783,7 +783,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
   const getAutomaticRoomUnitAssignments = useCallback(async (selections: RoomSelection[]) => {
     const assignments = new Map<string, string>();
-    if (!isYunxiu || !currentAccommodationId || !form.check_in_date || !form.check_out_date) return assignments;
+    if ((!isYunxiu && !isOlivia) || !currentAccommodationId || !form.check_in_date || !form.check_out_date) return assignments;
 
     const fitSelections = selections.filter((sel) => {
       const roomType = roomTypes.find((rt) => rt.id === sel.room_type_id);
