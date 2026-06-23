@@ -874,7 +874,8 @@ export function AccommodationDialog({
                                   }}
                                   onBlur={(e) => {
                                     const val = parseInt(e.target.value) || 0;
-                                    if (val !== depositPercentage) {
+                                    if (val < 0 || val > 100) return;
+                                    if (val !== savedDepositRef.current) {
                                       handleDepositPercentageChange(val);
                                     }
                                   }}
