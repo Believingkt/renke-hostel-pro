@@ -1648,14 +1648,17 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                         value={roomSelections[0]?.template_id || ""}
                         onValueChange={(value) => {
                           const template = roomSelections[0]?.filteredTemplates.find(t => t.id === value);
-                          if (roomSelections[0]) {
-                            setRoomSelections([{
-                              ...roomSelections[0],
-                              template_id: value,
-                              template_name: template?.template_name || "",
-                            }]);
-                          }
+                          // 同一組訂單共用同一個專案：同步套用到所有房間
+                          setRoomSelections(prev => prev.map((s, i) => {
+                            if (i === 0) {
+                              return { ...s, template_id: value, template_name: template?.template_name || "" };
+                            }
+                            const match = s.filteredTemplates.find(t => t.id === value);
+                            if (!match) return s; // 此房型無對應專案則保留原值
+                            return { ...s, template_id: match.id, template_name: match.template_name };
+                          }));
                         }}
+
                       >
                         <SelectTrigger className="h-10 text-sm">
                           <SelectValue placeholder="選擇專案" />
