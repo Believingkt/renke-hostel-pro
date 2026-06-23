@@ -194,7 +194,9 @@ export function AccommodationDialog({
 
       if (error) throw error;
 
-      setTransactionFeePercentage(data?.transaction_fee_percentage ?? 0);
+      const tf = data?.transaction_fee_percentage ?? 0;
+      setTransactionFeePercentage(tf);
+      savedTransactionFeeRef.current = tf;
     } catch (error) {
       console.error("Error loading transaction fee setting:", error);
     }
