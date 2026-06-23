@@ -290,13 +290,16 @@ const CapacityPriceLadder = ({
 
 
         return (
-          <div className="space-y-4">
-            {/* 人數 Tab — 可左右滑動 */}
-            <GuestTabsScroller
-              tiers={allTiers}
-              activeGuestCount={activeTier_.guestCount}
-              onSelect={(g) => setSelectedGuest(g)}
-            />
+          <div className="space-y-0">
+            {/* 人數 Tab — 可左右滑動（緊貼圖卡） */}
+            <div className="pb-1">
+              <GuestTabsScroller
+                tiers={allTiers}
+                activeGuestCount={activeTier_.guestCount}
+                onSelect={(g) => setSelectedGuest(g)}
+              />
+            </div>
+
 
 
             {/* 整合圖卡：照片 → 房型分配 → 方案 → 價格 */}
