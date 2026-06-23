@@ -112,6 +112,12 @@ export function AccommodationDialog({
   const [loadingTransactionFee, setLoadingTransactionFee] = useState(false);
   const savedTransactionFeeRef = useRef<number>(0);
 
+  // Free cancellation days state
+  const [freeCancelDays, setFreeCancelDays] = useState<number>(14);
+  const [loadingFreeCancel, setLoadingFreeCancel] = useState(false);
+  const savedFreeCancelRef = useRef<number>(14);
+
+
   useEffect(() => {
     if (initialData) {
       setFormData({
