@@ -8,6 +8,7 @@ import PortalAIChatPanel from "@/components/booking-portal/PortalAIChatPanel";
 import { type RoomTypeResult } from "@/components/booking-portal/RoomTypeCard";
 import RoomFilterBar, { type RoomFilters, type SortOption } from "@/components/booking-portal/RoomFilterBar";
 import AccommodationCard, { type AccommodationCardData } from "@/components/booking-portal/AccommodationCard";
+import AccommodationPhotoCarousel from "@/components/booking-portal/AccommodationPhotoCarousel";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,7 @@ interface AccommodationInfo {
   address: string | null;
   country: string | null;
   hero_photo_url?: string | null;
+  hero_photos?: string[];
   about_title?: string | null;
   about_description?: string | null;
 }
@@ -234,12 +236,13 @@ const BookingPortal = () => {
 
       if (!accs || !rooms) return;
 
-      // Build hero photo map (first hero per accommodation)
-      const heroPhotoMap = new Map<string, string>();
+      // Build hero photo arrays (ordered) per accommodation — used for carousel
+      const heroPhotosMap = new Map<string, string[]>();
       heroPhotos?.forEach((p) => {
-        if (p.accommodation_id && !heroPhotoMap.has(p.accommodation_id)) {
-          heroPhotoMap.set(p.accommodation_id, p.photo_url);
-        }
+        if (!p.accommodation_id || !p.photo_url) return;
+        const arr = heroPhotosMap.get(p.accommodation_id) ?? [];
+        arr.push(p.photo_url);
+        heroPhotosMap.set(p.accommodation_id, arr);
       });
 
       const aboutMap = new Map<string, { title: string | null; description: string | null }>();
@@ -247,12 +250,16 @@ const BookingPortal = () => {
         if (s.accommodation_id) aboutMap.set(s.accommodation_id, { title: s.section_title, description: s.section_description });
       });
 
-      const accsWithPhotos: AccommodationInfo[] = accs.map((a) => ({
-        ...a,
-        hero_photo_url: heroPhotoMap.get(a.id) || null,
-        about_title: aboutMap.get(a.id)?.title ?? null,
-        about_description: aboutMap.get(a.id)?.description ?? null,
-      }));
+      const accsWithPhotos: AccommodationInfo[] = accs.map((a) => {
+        const photos = heroPhotosMap.get(a.id) ?? [];
+        return {
+          ...a,
+          hero_photo_url: photos[0] ?? null,
+          hero_photos: photos,
+          about_title: aboutMap.get(a.id)?.title ?? null,
+          about_description: aboutMap.get(a.id)?.description ?? null,
+        };
+      });
 
       const accMap = new Map(accsWithPhotos.map((a) => [a.id, a]));
 
@@ -1084,27 +1091,15 @@ const BookingPortal = () => {
                     key={acc.id}
                     className={`${idx === 0 ? "pt-1" : "pt-4"} pb-5`}
                   >
-                    {/* Full-bleed photo */}
-                    <button
-                      type="button"
+                    {/* Full-bleed photo carousel */}
+                    <AccommodationPhotoCarousel
+                      photos={acc.hero_photos ?? (acc.hero_photo_url ? [acc.hero_photo_url] : [])}
+                      alt={acc.name}
+                      aspectClassName="aspect-[4/3]"
+                      roundedClassName="rounded-xl"
+                      eager={idx === 0}
                       onClick={() => handleAccClick(acc.id)}
-                      className="block w-full group"
-                    >
-                      <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-muted">
-                        {acc.hero_photo_url ? (
-                          <img
-                            src={acc.hero_photo_url}
-                            alt={acc.name}
-                            loading={idx === 0 ? "eager" : "lazy"}
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-secondary">
-                            <BedDouble className="h-12 w-12 text-muted-foreground/40" />
-                          </div>
-                        )}
-                      </div>
-                    </button>
+                    />
 
                     {/* Name + Location */}
                     <div className="mt-3 px-1">
@@ -1175,22 +1170,23 @@ const BookingPortal = () => {
               {/* Hero feature */}
               {hero && (
                 <div className="md:col-span-7 group cursor-pointer" onClick={() => handleAccClick(hero.id)}>
-                  <div className="relative aspect-[4/3] overflow-hidden rounded-sm mb-4 sm:mb-6 bg-muted">
-                    {hero.hero_photo_url ? (
-                      <img src={hero.hero_photo_url} alt={hero.name} loading="lazy"
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-secondary">
-                        <BedDouble className="h-12 w-12 text-muted-foreground/40" />
-                      </div>
-                    )}
-                    {locOf(hero) && (
-                      <div className="absolute top-4 left-4 sm:top-6 sm:left-6">
-                        <span className="backdrop-blur-md bg-white/85 px-3 py-1.5 sm:px-4 sm:py-2 text-xs font-medium tracking-wider text-foreground rounded-full">
-                          {locOf(hero)}
-                        </span>
-                      </div>
-                    )}
+                  <div className="mb-4 sm:mb-6">
+                    <AccommodationPhotoCarousel
+                      photos={hero.hero_photos ?? (hero.hero_photo_url ? [hero.hero_photo_url] : [])}
+                      alt={hero.name}
+                      aspectClassName="aspect-[4/3]"
+                      roundedClassName="rounded-sm"
+                      onClick={() => handleAccClick(hero.id)}
+                      overlay={
+                        locOf(hero) ? (
+                          <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10 pointer-events-none">
+                            <span className="backdrop-blur-md bg-white/85 px-3 py-1.5 sm:px-4 sm:py-2 text-xs font-medium tracking-wider text-foreground rounded-full">
+                              {locOf(hero)}
+                            </span>
+                          </div>
+                        ) : null
+                      }
+                    />
                   </div>
                   <div className="flex justify-between items-start gap-4">
                     <h3 style={serif} className="text-xl sm:text-2xl md:text-3xl text-foreground group-hover:text-primary transition-colors">
@@ -1232,23 +1228,24 @@ const BookingPortal = () => {
               {/* Vertical secondary, offset down on desktop */}
               {secondary && (
                 <div className="md:col-span-5 md:pt-16 lg:pt-24 group cursor-pointer" onClick={() => handleAccClick(secondary.id)}>
-                  <div className="relative aspect-[3/4] overflow-hidden rounded-sm mb-4 sm:mb-6 bg-muted">
-                    {secondary.hero_photo_url ? (
-                      <img src={secondary.hero_photo_url} alt={secondary.name} loading="lazy"
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-secondary">
-                        <BedDouble className="h-12 w-12 text-muted-foreground/40" />
-                      </div>
-                    )}
-                    {secondary.type && (
-                      <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6">
-                        <div className="bg-primary text-primary-foreground px-3 py-2 rounded-sm">
-                          <p className="text-[10px] uppercase tracking-tighter opacity-80 leading-none mb-0.5">Type</p>
-                          <p style={serif} className="text-base leading-none">{secondary.type}</p>
-                        </div>
-                      </div>
-                    )}
+                  <div className="mb-4 sm:mb-6">
+                    <AccommodationPhotoCarousel
+                      photos={secondary.hero_photos ?? (secondary.hero_photo_url ? [secondary.hero_photo_url] : [])}
+                      alt={secondary.name}
+                      aspectClassName="aspect-[3/4]"
+                      roundedClassName="rounded-sm"
+                      onClick={() => handleAccClick(secondary.id)}
+                      overlay={
+                        secondary.type ? (
+                          <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 z-10 pointer-events-none">
+                            <div className="bg-primary text-primary-foreground px-3 py-2 rounded-sm">
+                              <p className="text-[10px] uppercase tracking-tighter opacity-80 leading-none mb-0.5">Type</p>
+                              <p style={serif} className="text-base leading-none">{secondary.type}</p>
+                            </div>
+                          </div>
+                        ) : null
+                      }
+                    />
                   </div>
                   <div className="space-y-2">
                     {locOf(secondary) && (
@@ -1271,15 +1268,14 @@ const BookingPortal = () => {
               {/* Bottom row of squares */}
               {rest.map((acc) => (
                 <div key={acc.id} className="md:col-span-4 group cursor-pointer" onClick={() => handleAccClick(acc.id)}>
-                  <div className="relative aspect-square overflow-hidden rounded-sm mb-3 sm:mb-4 bg-muted">
-                    {acc.hero_photo_url ? (
-                      <img src={acc.hero_photo_url} alt={acc.name} loading="lazy"
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-secondary">
-                        <BedDouble className="h-10 w-10 text-muted-foreground/40" />
-                      </div>
-                    )}
+                  <div className="mb-3 sm:mb-4">
+                    <AccommodationPhotoCarousel
+                      photos={acc.hero_photos ?? (acc.hero_photo_url ? [acc.hero_photo_url] : [])}
+                      alt={acc.name}
+                      aspectClassName="aspect-square"
+                      roundedClassName="rounded-sm"
+                      onClick={() => handleAccClick(acc.id)}
+                    />
                   </div>
                   <h3 style={serif} className="text-lg sm:text-xl text-foreground mb-0.5 group-hover:text-primary transition-colors">
                     {acc.name}
