@@ -829,123 +829,109 @@ const BookingVilla = () => {
         )}
       </main>
 
-      {/* ── Sticky Bottom Action Bar (mobile-first) ── */}
+      {/* ── Sticky Bottom Action Bar — Premium Stacked Bar (mobile) ── */}
       <div
-        className={`fixed left-0 right-0 z-[60] bg-white/95 backdrop-blur border-t border-border px-4 pt-2 pb-2.5 sm:hidden transition-transform duration-300 ease-out after:content-[''] after:absolute after:inset-x-0 after:-bottom-4 after:h-4 after:bg-white after:pointer-events-none ${editSearchOpen ? "pointer-events-none" : ""}`}
+        className={`fixed left-0 right-0 z-[60] w-full bg-[#F9F8F6]/90 backdrop-blur-lg border-t border-gray-200/50 sm:hidden transition-transform duration-300 ease-out ${editSearchOpen ? "pointer-events-none" : ""}`}
         style={{
           bottom: `${Math.max(0, navHeight - 1)}px`,
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
           transform: editSearchOpen
-            ? "translateY(100%)"
+            ? "translateY(120%)"
             : navHidden
               ? `translateY(${Math.max(0, navHeight - 1)}px)`
               : "translateY(0)",
         }}
       >
-        {/* 日期 + 人數 chips（永遠顯示） */}
-        <button
-          onClick={() => setEditSearchOpen(true)}
-          className="w-full mb-2 rounded-lg border border-border bg-muted/40 px-3 py-1.5 flex items-center justify-between text-left active:scale-[0.99] transition"
-        >
-          <span className="flex items-center gap-1.5 text-[13px] text-foreground font-medium">
-            <Calendar className="w-3.5 h-3.5" />
-            {checkIn && checkOut ? (
-              <>{format(checkIn, "M月d日")}–{format(checkOut, "M月d日")}</>
-            ) : (
-              <span className="text-muted-foreground">選擇日期</span>
-            )}
-          </span>
-          <span className="flex items-center gap-2.5 text-[13px] text-foreground font-medium">
-            <span className="flex items-center gap-1">
-              <BedDouble className="w-3.5 h-3.5" />
-              {Math.max(1, parseInt(searchParams.get("rooms") || "1", 10) || 1)}
-            </span>
-            <span className="flex items-center gap-1">
-              <User className="w-3.5 h-3.5" />
-              {Math.max(1, parseInt(searchParams.get("adults") || "0", 10) || 1)}
-            </span>
-            <span className="flex items-center gap-1 text-muted-foreground">
-              <Baby className="w-3.5 h-3.5" />
-              {Math.max(0, parseInt(searchParams.get("children") || "0", 10) || 0)}
-            </span>
-          </span>
-        </button>
-        <div className="flex items-center gap-3">
-
-
-          <div className="flex-1 min-w-0">
-            {(() => {
-              let candidatePkgs = visiblePackages;
-              if (visiblePackages.length > 0 && checkIn) {
-                const tier = detectTierByDate(checkIn, isHolidayDate(checkIn));
-                const tierPkgs = visiblePackages.filter((p) => p.applicable_tiers.includes(tier));
-                if (tierPkgs.length > 0) candidatePkgs = tierPkgs;
-              }
-              // 依搜尋人數挑選符合的方案：
-              // 1) 取容量 >= 搜尋人數中最小者；
-              // 2) 若搜尋人數超過所有方案容量，則取最大容量的方案（與上方 Tab 行為一致）。
-              const searchAdults = Math.max(1, parseInt(searchParams.get("adults") || "0", 10) || 0);
-              // 小孩不計入方案容量比對
-              const totalGuests = searchAdults;
-              const fitPkgs = candidatePkgs.filter((p) => (p.guest_count ?? 0) >= totalGuests);
-              const pickFrom = fitPkgs.length > 0
-                ? fitPkgs.reduce((min, p) => (p.guest_count < min.guest_count ? p : min), fitPkgs[0])
-                : (candidatePkgs.length > 0
-                    ? candidatePkgs.reduce((max, p) => ((p.guest_count ?? 0) > (max.guest_count ?? 0) ? p : max), candidatePkgs[0])
-                    : null);
-              const currentTier = checkIn ? detectTierByDate(checkIn, isHolidayDate(checkIn)) : null;
-              const cheapestPkg = pickFrom
-                ? candidatePkgs
-                    .filter((p) => p.guest_count === pickFrom.guest_count)
-                    .reduce((min, p) => {
-                      const pSale = currentTier ? getPackagePriceForTier(p, currentTier).sale : p.sale_price;
-                      const mSale = currentTier ? getPackagePriceForTier(min, currentTier).sale : min.sale_price;
-                      return pSale < mSale ? p : min;
-                    }, pickFrom)
-                : null;
-
-              const pkgMin = cheapestPkg
-                ? (currentTier ? getPackagePriceForTier(cheapestPkg, currentTier).sale : cheapestPkg.sale_price)
-                : null;
-              const roomMin = (secondaryData?.roomTypes?.length || 0) > 0
-                ? Math.min(...secondaryData!.roomTypes.map((r: any) => r.base_price))
-                : null;
-              const display = pkgMin ?? roomMin;
-              const pkgName = cheapestPkg?.name ?? null;
-              const guestCount = cheapestPkg?.guest_count ?? villaStats?.minCapacity ?? null;
-              const parts: string[] = [];
-              if (checkIn && checkOut) parts.push(`共 ${nights} 晚`);
-              if (pkgName) parts.push(pkgName);
-              else parts.push(guestCount ? `包棟${guestCount}人起` : "包棟起");
-              return (
-                <>
-                  <p className="text-[10px] text-muted-foreground leading-none mb-0.5">
-                    {parts.join(" · ")}
-                  </p>
-                  {display != null && (
-                    <p
-                      className="font-bold text-lg leading-none tabular-nums"
-                      style={{ color: "hsl(25, 76%, 50%)" }}
-                    >
-                      NT${(display * Math.max(1, nights || 1)).toLocaleString()}
-                    </p>
-                  )}
-                </>
-              );
-            })()}
-          </div>
-          <Button
-            className="h-11 px-6 text-[15px] font-bold text-white rounded-md shadow-md active:scale-95 transition-transform"
-            style={{ background: "hsl(25, 76%, 50%)" }}
-            onClick={() => {
-              document
-                .getElementById("capacity-price-section")
-                ?.scrollIntoView({ behavior: "smooth", block: "start" });
-            }}
+        <div className="flex flex-col gap-2 px-4 py-3">
+          {/* 上層：搜尋修改入口 */}
+          <button
+            onClick={() => setEditSearchOpen(true)}
+            className="w-full flex justify-between items-center bg-gray-100/50 rounded-lg px-3 py-2 active:scale-[0.99] transition"
           >
-            選擇房型
-          </Button>
+            <span className="flex items-center gap-2 text-sm text-gray-600">
+              <Calendar className="w-3.5 h-3.5 text-gray-500" />
+              {checkIn && checkOut ? (
+                <>
+                  {format(checkIn, "M/d")}–{format(checkOut, "M/d")}
+                  {" · "}
+                  {Math.max(1, parseInt(searchParams.get("rooms") || "1", 10) || 1)}房
+                  {" · "}
+                  {Math.max(1, parseInt(searchParams.get("adults") || "0", 10) || 1)}位
+                </>
+              ) : (
+                <span>選擇日期與人數</span>
+              )}
+            </span>
+            <span className="flex items-center gap-1 text-[13px] font-medium text-[#A98467]">
+              修改
+              <ChevronDown className="w-3.5 h-3.5" />
+            </span>
+          </button>
+
+          {/* 下層：價格與主行動呼籲 */}
+          <div className="flex justify-between items-center w-full">
+            <div className="min-w-0">
+              {(() => {
+                let candidatePkgs = visiblePackages;
+                if (visiblePackages.length > 0 && checkIn) {
+                  const tier = detectTierByDate(checkIn, isHolidayDate(checkIn));
+                  const tierPkgs = visiblePackages.filter((p) => p.applicable_tiers.includes(tier));
+                  if (tierPkgs.length > 0) candidatePkgs = tierPkgs;
+                }
+                const searchAdults = Math.max(1, parseInt(searchParams.get("adults") || "0", 10) || 0);
+                const totalGuests = searchAdults;
+                const fitPkgs = candidatePkgs.filter((p) => (p.guest_count ?? 0) >= totalGuests);
+                const pickFrom = fitPkgs.length > 0
+                  ? fitPkgs.reduce((min, p) => (p.guest_count < min.guest_count ? p : min), fitPkgs[0])
+                  : (candidatePkgs.length > 0
+                      ? candidatePkgs.reduce((max, p) => ((p.guest_count ?? 0) > (max.guest_count ?? 0) ? p : max), candidatePkgs[0])
+                      : null);
+                const currentTier = checkIn ? detectTierByDate(checkIn, isHolidayDate(checkIn)) : null;
+                const cheapestPkg = pickFrom
+                  ? candidatePkgs
+                      .filter((p) => p.guest_count === pickFrom.guest_count)
+                      .reduce((min, p) => {
+                        const pSale = currentTier ? getPackagePriceForTier(p, currentTier).sale : p.sale_price;
+                        const mSale = currentTier ? getPackagePriceForTier(min, currentTier).sale : min.sale_price;
+                        return pSale < mSale ? p : min;
+                      }, pickFrom)
+                  : null;
+
+                const pkgMin = cheapestPkg
+                  ? (currentTier ? getPackagePriceForTier(cheapestPkg, currentTier).sale : cheapestPkg.sale_price)
+                  : null;
+                const roomMin = (secondaryData?.roomTypes?.length || 0) > 0
+                  ? Math.min(...secondaryData!.roomTypes.map((r: any) => r.base_price))
+                  : null;
+                const display = pkgMin ?? roomMin;
+                if (display == null) {
+                  return <span className="text-sm text-muted-foreground">查看方案</span>;
+                }
+                return (
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-[11px] text-gray-500">總價</span>
+                    <span className="text-xl font-bold text-gray-800 tabular-nums">
+                      NT${(display * Math.max(1, nights || 1)).toLocaleString()}
+                    </span>
+                  </div>
+                );
+              })()}
+            </div>
+            <Button
+              className="h-11 px-6 text-[15px] font-semibold text-white rounded-full shadow-sm active:scale-95 transition-transform"
+              style={{ backgroundColor: "#A98467" }}
+              onClick={() => {
+                document
+                  .getElementById("capacity-price-section")
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+            >
+              選擇房型
+            </Button>
+          </div>
         </div>
       </div>
+
 
       <BookingFooter />
       {!editSearchOpen && <MobileBottomNav />}
