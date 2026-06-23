@@ -297,8 +297,8 @@ const CapacityPriceLadder = ({
               )}
 
 
-              <div className="px-4 pt-3 pb-4 space-y-4">
-                {/* 2. 房型分配（直接顯示後台「房型分配（用逗號分隔）」純文字） */}
+              <div className="px-4 pt-3 pb-4 space-y-3">
+                {/* 2. 房型分配 */}
                 {(activeTier_.roomAllocation || roomBreakdown) && (
                   <div>
                     <p className="text-[10px] font-bold tracking-[0.18em] text-muted-foreground/80">
@@ -311,65 +311,78 @@ const CapacityPriceLadder = ({
                   </div>
                 )}
 
-                {/* 3. 禮遇列表（Benefits） */}
-                <div>
-                  <p className="text-[14px] font-bold text-foreground">
-                    {activeTier_.subtitle || "尊榮禮遇"}
-                  </p>
-                  <ul className="mt-3 space-y-2.5">
+                {/* 3. 模組化資訊區塊：禮遇 + 訂房規則 */}
+                <div className="rounded-xl bg-[#F9F8F6] border border-border/50 p-3.5 space-y-3">
+                  {/* 禮遇標題 + 獨享 Badge */}
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[14px] font-bold text-foreground">
+                      {activeTier_.subtitle || "尊榮禮遇"}
+                    </p>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-border/60 text-gray-600 text-[11px]">
+                      <Sparkles className="h-3 w-3" style={{ color: "#A98467" }} />
+                      僅接待一組貴賓
+                    </span>
+                  </div>
+
+                  {/* 禮遇清單 */}
+                  <ul className="space-y-2">
                     {[
                       "私人管家全程接待",
                       "迎賓下午茶與在地點心",
                       "全棟空間尊榮獨享",
                     ].map((label, i) => (
                       <li key={i} className="flex items-start gap-2">
-                        <Check
-                          className="h-4 w-4 mt-0.5 shrink-0"
-                          style={{ color: "#A98467" }}
-                        />
-                        <span className="text-[13px] text-gray-700 leading-relaxed">
-                          {label}
-                        </span>
+                        <Check className="h-4 w-4 mt-0.5 shrink-0" style={{ color: "#A98467" }} />
+                        <span className="text-[13px] text-gray-700 leading-snug">{label}</span>
                       </li>
                     ))}
                   </ul>
+
+                  {/* 分隔線 */}
+                  {((activeTier_.childCountMax || activeTier_.childAgeNote)) && (
+                    <div className="h-px bg-border/50" />
+                  )}
+
+                  {/* 訂房規則 */}
+                  <div className="space-y-1.5">
+                    {(activeTier_.childCountMax || activeTier_.childAgeNote) && (
+                      <p className="text-[12px] text-gray-600 flex items-center gap-1.5">
+                        <Baby className="h-3.5 w-3.5" style={{ color: "#A98467" }} />
+                        {activeTier_.childCountMax ? `可加 ${activeTier_.childCountMax} 位兒童` : ""}
+                        {activeTier_.childCountMax && activeTier_.childAgeNote ? "・" : ""}
+                        {activeTier_.childAgeNote || ""}
+                      </p>
+                    )}
+                    <ul className="flex flex-wrap gap-x-4 gap-y-1" style={{ color: "#526A5A" }}>
+                      <li className="flex items-center gap-1 text-[12px]">
+                        <Check className="h-3.5 w-3.5" />
+                        <span>即時確認</span>
+                      </li>
+                      <li className="flex items-center gap-1 text-[12px]">
+                        <Check className="h-3.5 w-3.5" />
+                        <span>依政策免費取消</span>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
 
-                {(activeTier_.childCountMax || activeTier_.childAgeNote) && (
-                  <p className="text-[12px] text-muted-foreground flex items-center gap-1">
-                    <Baby className="h-3.5 w-3.5" />
-                    {activeTier_.childCountMax ? `可加 ${activeTier_.childCountMax} 位兒童` : ""}
-                    {activeTier_.childCountMax && activeTier_.childAgeNote ? "・" : ""}
-                    {activeTier_.childAgeNote || ""}
-                  </p>
-                )}
-
-                {/* 信任訊號 */}
-                <ul className="flex flex-wrap gap-x-4 gap-y-1 pt-1" style={{ color: "#526A5A" }}>
-                  <li className="flex items-center gap-1 text-[12px]">
-                    <Check className="h-3.5 w-3.5" />
-                    <span>即時確認</span>
-                  </li>
-                  <li className="flex items-center gap-1 text-[12px]">
-                    <Check className="h-3.5 w-3.5" />
-                    <span>依政策免費取消</span>
-                  </li>
-                </ul>
-
-                {/* 4. 價格區 */}
-                <div className="pt-3 border-t border-border/60">
-                  {/* 獨享權標示 */}
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-[11.5px]">
-                    <Sparkles className="h-3 w-3" />
-                    <span>本日僅接待您一組貴賓</span>
-                  </div>
-
-                  <div className="mt-2 flex items-center gap-1.5">
-                    <h3 className="font-semibold text-[17px] leading-tight text-foreground tracking-tight">
+                {/* 4. 價格 + CTA（緊貼按鈕） */}
+                <div className="pt-1">
+                  <div className="flex items-center gap-1.5">
+                    <h3 className="font-semibold text-[15px] leading-tight text-foreground tracking-tight">
                       {activeTier_.planName || `${opt.guestCount} 人${TERM}`}
                     </h3>
                   </div>
-                  <div className="mt-2 flex items-baseline gap-2 flex-wrap">
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    <Users className="inline h-3 w-3 mr-0.5 -mt-0.5" />
+                    可入住 {opt.guestCount} 位
+                    {activeTier_.guestCountMax && activeTier_.guestCountMax > opt.guestCount && (
+                      <span>~{activeTier_.guestCountMax}</span>
+                    )}
+                    {" · "}
+                    {nights > 1 ? `${nights} 晚總價` : "單晚總價"}
+                  </p>
+                  <div className="mt-1.5 flex items-baseline gap-2 flex-wrap">
                     <span
                       className="font-bold text-[32px] leading-none tabular-nums tracking-tight"
                       style={{ color: "#A98467" }}
@@ -385,28 +398,16 @@ const CapacityPriceLadder = ({
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-gray-400 mt-1.5">
-                    已含稅與服務費
-                  </p>
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    <Users className="inline h-3 w-3 mr-0.5 -mt-0.5" />
-                    可入住 {opt.guestCount} 位
-                    {activeTier_.guestCountMax && activeTier_.guestCountMax > opt.guestCount && (
-                      <span>~{activeTier_.guestCountMax}</span>
-                    )}
-                    {" · "}
-                    {nights > 1 ? `${nights} 晚總價` : "單晚總價"}
-                  </p>
+                  <p className="text-[11px] text-gray-400 mt-1">已含稅與服務費</p>
 
                   <button
                     type="button"
                     onClick={() => onSelect(opt)}
-                    className="mt-3 w-full h-12 rounded-full font-bold text-[15px] text-white tracking-wide shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 focus:outline-none"
+                    className="mt-2.5 w-full h-10 rounded-full font-bold text-[15px] text-white tracking-wide shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 focus:outline-none"
                     style={{ backgroundColor: "#F08A3E" }}
                   >
                     預約這段專屬假期
                   </button>
-
 
                   {showDisabledFewPeopleNote && (
                     <div className="mt-2 flex items-center gap-1.5 px-1 text-[10.5px] text-muted-foreground">
@@ -415,6 +416,7 @@ const CapacityPriceLadder = ({
                     </div>
                   )}
                 </div>
+
 
               </div>
             </Card>
