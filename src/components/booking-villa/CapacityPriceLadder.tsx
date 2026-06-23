@@ -406,8 +406,8 @@ const CapacityPriceLadder = ({
                     </span>
                     {saved > 0 && (
                       <span
-                        className="inline-flex items-center text-sm font-semibold px-2 py-0.5 rounded-md"
-                        style={{ background: "#FDF6F5", color: "#C25953" }}
+                        className="inline-flex items-center text-[13px] font-bold px-2.5 py-0.5 rounded-full text-white"
+                        style={{ background: "#EF4F6B" }}
                       >
                         -{opt.discountPercent}%
                       </span>
@@ -426,8 +426,8 @@ const CapacityPriceLadder = ({
                   <button
                     type="button"
                     onClick={() => onSelect(opt)}
-                    className="mt-3 w-full h-11 rounded-xl font-medium text-[14px] bg-transparent border hover:bg-[#5C4A42]/5 active:scale-[0.98] transition-all duration-200 tracking-wide focus:outline-none"
-                    style={{ borderColor: "#5C4A42", color: "#5C4A42" }}
+                    className="mt-3 w-full h-12 rounded-full font-bold text-[15px] text-white tracking-wide shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 focus:outline-none"
+                    style={{ backgroundColor: "#F08A3E" }}
                   >
                     馬上預訂
                   </button>
@@ -1025,20 +1025,18 @@ const GuestTabsScroller = ({
                 type="button"
                 onClick={() => onSelect(t.guestCount)}
                 className={cn(
-                  "relative px-3 pt-2 pb-2 text-[15px] whitespace-nowrap transition-colors",
+                  "relative px-4 py-1.5 my-1 text-[15px] whitespace-nowrap rounded-full transition-all",
                   isActive
-                    ? "font-semibold text-foreground"
+                    ? "font-semibold"
                     : "font-medium text-muted-foreground/70 hover:text-foreground"
                 )}
+                style={
+                  isActive
+                    ? { background: "#FFF1E6", color: "#C2410C" }
+                    : undefined
+                }
               >
                 {t.guestCount}人
-                <span
-                  className={cn(
-                    "absolute left-1/2 -translate-x-1/2 bottom-0 h-[2px] rounded-full transition-all",
-                    isActive ? "w-6 opacity-100" : "w-0 opacity-0"
-                  )}
-                  style={{ background: "#A98467" }}
-                />
               </button>
             </div>
           );

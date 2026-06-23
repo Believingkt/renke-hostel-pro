@@ -831,10 +831,11 @@ const BookingVilla = () => {
 
       {/* ── Sticky Bottom Action Bar — Premium Stacked Bar (mobile) ── */}
       <div
-        className={`fixed left-0 right-0 z-[60] w-full bg-[#F9F8F6]/90 backdrop-blur-lg border-t border-gray-200/50 sm:hidden transition-transform duration-300 ease-out ${editSearchOpen ? "pointer-events-none" : ""}`}
+        className={`fixed left-0 right-0 z-[60] w-full bg-white border-t border-gray-100 sm:hidden transition-transform duration-300 ease-out ${editSearchOpen ? "pointer-events-none" : ""}`}
         style={{
           bottom: `${Math.max(0, navHeight - 1)}px`,
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          boxShadow: "0 -4px 15px rgba(0,0,0,0.05)",
           transform: editSearchOpen
             ? "translateY(120%)"
             : navHidden
@@ -846,9 +847,9 @@ const BookingVilla = () => {
           {/* 上層：搜尋修改入口 */}
           <button
             onClick={() => setEditSearchOpen(true)}
-            className="w-full flex justify-between items-center bg-gray-100/50 rounded-lg px-3 py-2 active:scale-[0.99] transition"
+            className="w-full flex justify-between items-center bg-gray-50 rounded-lg px-3 py-2 active:scale-[0.99] transition"
           >
-            <span className="flex items-center gap-2 text-sm text-gray-600">
+            <span className="flex items-center gap-2 text-sm font-medium text-gray-700">
               <Calendar className="w-3.5 h-3.5 text-gray-500" />
               {checkIn && checkOut ? (
                 <>
@@ -862,7 +863,7 @@ const BookingVilla = () => {
                 <span>選擇日期與人數</span>
               )}
             </span>
-            <span className="flex items-center gap-1 text-[13px] font-medium text-[#A98467]">
+            <span className="flex items-center gap-1 text-[13px] font-semibold" style={{ color: "#F08A3E" }}>
               修改
               <ChevronDown className="w-3.5 h-3.5" />
             </span>
@@ -918,8 +919,8 @@ const BookingVilla = () => {
               })()}
             </div>
             <Button
-              className="h-11 px-6 text-[15px] font-semibold text-white rounded-full shadow-sm active:scale-95 transition-transform"
-              style={{ backgroundColor: "#A98467" }}
+              className="h-11 px-6 text-[15px] font-bold text-white rounded-full shadow-md hover:shadow-lg active:scale-95 transition-all"
+              style={{ backgroundColor: "#F08A3E" }}
               onClick={() => {
                 document
                   .getElementById("capacity-price-section")
