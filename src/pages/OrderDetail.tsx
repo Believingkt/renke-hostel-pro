@@ -401,6 +401,7 @@ const OrderDetailPage = () => {
     guest_count: 1,
     order_source: "",
     owner_direct: false,
+    lock_whole_building: false,
     order_status: "",
     payment_status: "",
     deposit_payment_method: "",
