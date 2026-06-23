@@ -30,6 +30,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import {
+  TW_DEFAULT_CANCEL_RULES,
+  getFreeCancelDeadline,
+  formatFreeCancelDeadline,
+  DEFAULT_FREE_CANCEL_DAYS,
+} from "@/lib/cancellation-policy";
 
 interface RoomType {
   id: string;
@@ -69,6 +75,8 @@ interface Props {
   isSensan?: boolean;
   /** 判斷某日期是否為國定假日（含補假），命中即視為假日 tier */
   isHolidayDate?: (date: Date | null | undefined) => boolean;
+  /** 免費取消天數（住宿日前 N 日含以前取消 0%）。預設 14（台灣法規） */
+  freeCancelDays?: number;
 }
 
 import {
@@ -113,6 +121,7 @@ const CapacityPriceLadder = ({
   enableFewPeople = true,
   isSensan = true,
   isHolidayDate,
+  freeCancelDays,
 }: Props) => {
   const TERM = isSensan ? "包區" : "包棟";
   const TIER_HINT: Record<PricingTier, string> = {
@@ -392,16 +401,62 @@ const CapacityPriceLadder = ({
                   <p className="text-[11px] text-gray-300 mt-1">已含稅與服務費</p>
 
                   {/* 信任訊號：按鈕正上方 */}
-                  <ul className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1" style={{ color: "#2F5D3A" }}>
-                    <li className="flex items-center gap-1 text-[12.5px] font-medium">
-                      <Check className="h-3.5 w-3.5" strokeWidth={2.75} />
-                      <span>即時確認</span>
-                    </li>
-                    <li className="flex items-center gap-1 text-[12.5px] font-medium">
-                      <Check className="h-3.5 w-3.5" strokeWidth={2.75} />
-                      <span>依政策免費取消</span>
-                    </li>
-                  </ul>
+                  {(() => {
+                    const effectiveFreeDays = freeCancelDays ?? DEFAULT_FREE_CANCEL_DAYS;
+                    const deadline = getFreeCancelDeadline(checkIn, effectiveFreeDays);
+                    const isFreeNow = !deadline || deadline.getTime() >= Date.now();
+                    return (
+                      <ul className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1" style={{ color: "#2F5D3A" }}>
+                        <li className="flex items-center gap-1 text-[12.5px] font-medium">
+                          <Check className="h-3.5 w-3.5" strokeWidth={2.75} />
+                          <span>即時確認</span>
+                        </li>
+                        <li>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button
+                                type="button"
+                                className="flex items-center gap-1 text-[12.5px] font-medium focus:outline-none"
+                                style={{ color: "#2F5D3A" }}
+                              >
+                                <Check className="h-3.5 w-3.5" strokeWidth={2.75} />
+                                <span>
+                                  {deadline && isFreeNow
+                                    ? `免費取消 ${formatFreeCancelDeadline(deadline)} 之前`
+                                    : "依政策免費取消"}
+                                </span>
+                                <Info className="h-3 w-3 opacity-70" />
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent
+                              side="top"
+                              align="start"
+                              className="w-[280px] p-3 text-[12px] leading-relaxed"
+                            >
+                              <p className="font-bold text-foreground mb-1.5">取消變更規則</p>
+                              {deadline && (
+                                <p className="text-[12px] mb-2" style={{ color: "#2F5D3A" }}>
+                                  ✓ {formatFreeCancelDeadline(deadline)} 之前取消，無須支付任何費用
+                                </p>
+                              )}
+                              <ul className="space-y-1 text-muted-foreground">
+                                {TW_DEFAULT_CANCEL_RULES.map((r) => (
+                                  <li key={r.daysBefore} className="flex items-start gap-1.5">
+                                    <span className="text-[#A98467] shrink-0">★</span>
+                                    <span>{r.label}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                              <p className="mt-2 pt-2 border-t border-border/50 text-[11px] text-muted-foreground">
+                                依交通部觀光署旅宿業定型化契約規定計算。
+                              </p>
+                            </PopoverContent>
+                          </Popover>
+                        </li>
+                      </ul>
+                    );
+                  })()}
+
 
                   <button
                     type="button"
