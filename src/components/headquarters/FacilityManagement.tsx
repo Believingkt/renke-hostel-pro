@@ -157,20 +157,38 @@ export const FacilityManagement = forwardRef<FacilityManagementRef, object>((_, 
   };
 
   const handleSave = async () => {
-    if (!formData.facility_name.trim()) {
+    const trimmedName = formData.facility_name.trim();
+    if (!trimmedName) {
       toast.error("請輸入設施名稱");
       return;
     }
 
     setSaving(true);
     try {
+      // 重複檢查：共用層級（accommodation_id IS NULL）下，同 (facility_name, category) 不可重複
+      const { data: dup, error: dupErr } = await supabase
+        .from("accommodation_facilities")
+        .select("id, facility_name, category")
+        .is("accommodation_id", null)
+        .eq("facility_name", trimmedName)
+        .eq("category", formData.category)
+        .maybeSingle();
+      if (dupErr) throw dupErr;
+      if (dup && (!editingFacility || dup.id !== editingFacility.id)) {
+        toast.error("已有同名設施", {
+          description: `「${getCategoryLabel(formData.category)} / ${trimmedName}」已存在於共用設施清單`,
+        });
+        setSaving(false);
+        return;
+      }
+
       if (editingFacility) {
         // Update existing
         const { error } = await supabase
           .from("accommodation_facilities")
           .update({
             category: formData.category,
-            facility_name: formData.facility_name.trim(),
+            facility_name: trimmedName,
             is_available: formData.is_available,
             pricing_type: formData.pricing_type,
           })
@@ -185,7 +203,7 @@ export const FacilityManagement = forwardRef<FacilityManagementRef, object>((_, 
           .insert({
             accommodation_id: null, // 共用設施
             category: formData.category,
-            facility_name: formData.facility_name.trim(),
+            facility_name: trimmedName,
             is_available: formData.is_available,
             pricing_type: formData.pricing_type,
           });
@@ -199,7 +217,12 @@ export const FacilityManagement = forwardRef<FacilityManagementRef, object>((_, 
       await loadFacilities();
     } catch (error: any) {
       console.error("Error saving facility:", error);
-      toast.error("儲存失敗", { description: error.message });
+      // DB 唯一索引擋下的兜底訊息
+      if (error?.code === "23505") {
+        toast.error("設施名稱重複", { description: "同類別下已有相同名稱的設施" });
+      } else {
+        toast.error("儲存失敗", { description: error.message });
+      }
     } finally {
       setSaving(false);
     }
