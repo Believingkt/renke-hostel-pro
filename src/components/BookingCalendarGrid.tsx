@@ -821,7 +821,8 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                     <span className="text-xs text-muted-foreground ml-auto">{roomCount > 0 ? `${roomCount}${roomType.is_exclusive_package ? '棟' : '間'}` : ""}</span>
                   </div>
                   {/* Available rooms per date */}
-                  <div className="flex flex-1">
+                  <div className="flex shrink-0" style={daysRowStyle}>
+
                     {dates.map((date, i) => {
                       const dateStr = dateStrings[i];
                       const available = getAvailableRooms(roomType.id, dateStr);
