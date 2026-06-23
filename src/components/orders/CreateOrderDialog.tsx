@@ -494,11 +494,15 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       }
       if (!chosen) return prev;
       const templates = getTemplatesForRoomType(chosen.id);
+      // 同一組訂單共用同一個專案：若主方案的 template 在新房型的可選範圍內，直接沿用
+      const primaryTplId = prev[0]?.template_id;
+      const inheritedTpl = primaryTplId ? templates.find(t => t.id === primaryTplId) : undefined;
+      const useTpl = inheritedTpl || templates[0];
       return [...prev, {
         id,
         room_type_id: chosen.id,
-        template_id: templates[0]?.id || "",
-        template_name: templates[0]?.template_name || "",
+        template_id: useTpl?.id || "",
+        template_name: useTpl?.template_name || "",
         quantity: 1,
         roomPrice: 0,
         filteredTemplates: templates,
@@ -511,15 +515,19 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   }, []);
 
   const updateRoomSelection = useCallback((selId: string, updates: Partial<RoomSelection>) => {
-    setRoomSelections(prev => prev.map(s => {
+    setRoomSelections(prev => prev.map((s, idx) => {
       if (s.id !== selId) return s;
       const updated = { ...s, ...updates };
       if (updates.room_type_id && updates.room_type_id !== s.room_type_id) {
         const templates = getTemplatesForRoomType(updates.room_type_id);
         const newRt = roomTypes.find(r => r.id === updates.room_type_id);
         updated.filteredTemplates = templates;
-        updated.template_id = templates[0]?.id || "";
-        updated.template_name = templates[0]?.template_name || "";
+        // 沿用主方案的 template（若可用）；只有主列(idx=0)或無法沿用時才用第一個
+        const primaryTplId = idx === 0 ? null : prev[0]?.template_id;
+        const inherited = primaryTplId ? templates.find(t => t.id === primaryTplId) : undefined;
+        const useTpl = inherited || templates[0];
+        updated.template_id = useTpl?.id || "";
+        updated.template_name = useTpl?.template_name || "";
         // 切到包棟時鎖為 1
         if (newRt?.is_exclusive_package) updated.quantity = 1;
         // 換房型時清掉房號選擇
@@ -528,6 +536,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       return updated;
     }));
   }, [getTemplatesForRoomType, roomTypes]);
+
 
   const changeRoomQuantity = useCallback((selId: string, delta: number) => {
     setRoomSelections(prev => {
