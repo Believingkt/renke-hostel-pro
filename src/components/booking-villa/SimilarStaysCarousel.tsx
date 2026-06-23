@@ -116,7 +116,7 @@ const SimilarStaysCarousel = ({ excludeId, region }: Props) => {
                       className="inline-flex items-center px-1.5 py-0.5 rounded text-white text-[11px] font-bold"
                       style={{ background: "hsl(25, 76%, 50%)" }}
                     >
-                      {it.rating.toFixed(1)}/10
+                      {it.rating <= 5 ? `${it.rating.toFixed(1)}/5` : `${it.rating.toFixed(1)}/10`}
                     </span>
                     {it.reviewCount != null && it.reviewCount > 0 && (
                       <span className="text-[11px] text-muted-foreground">
