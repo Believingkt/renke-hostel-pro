@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { format, parseISO, addDays, eachDayOfInterval, differenceInCalendarDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { expandFacilitiesForAccommodations } from "@/lib/facility-merge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Search, User, LogIn, SlidersHorizontal } from "lucide-react";
 import lokezeLogo from "@/assets/lakeze-portal-logo.png";
@@ -225,8 +226,7 @@ const BookingSearchResults = () => {
             .order("display_order", { ascending: true }),
           supabase
             .from("accommodation_facilities")
-            .select("accommodation_id, category, facility_name")
-            .eq("is_available", true),
+            .select("accommodation_id, category, facility_name, is_available"),
           supabase
             .from("pricing_templates")
             .select("accommodation_id, room_type_id, template_name, price, weekday_price, peak_price, weekend_price")
@@ -275,7 +275,7 @@ const BookingSearchResults = () => {
 
         setAccommodations(accs as AccInfo[]);
         setRoomTypes(results);
-        setFacilities((facs || []) as FacilityRow[]);
+        setFacilities(expandFacilitiesForAccommodations((facs || []) as any, (accs || []).map((a: any) => a.id)) as FacilityRow[]);
         setTemplates((tpls || []) as TemplateRow[]);
         setHolidays((hols || []) as HolidayRow[]);
         setPackages(

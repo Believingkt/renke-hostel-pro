@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tag, Plus, X, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { expandFacilitiesForAccommodations } from "@/lib/facility-merge";
 import { toast } from "@/hooks/use-toast";
 
 const PRESET_TAGS = [
@@ -59,9 +60,8 @@ export const PortalFeatureTagsSection = ({ accommodationId }: Props) => {
             .maybeSingle(),
           supabase
             .from("accommodation_facilities")
-            .select("facility_name")
-            .eq("accommodation_id", accommodationId)
-            .eq("is_available", true),
+            .select("accommodation_id, category, facility_name, is_available")
+            .or(`accommodation_id.is.null,accommodation_id.eq.${accommodationId}`),
         ]);
         if (cancelled) return;
 
@@ -69,8 +69,9 @@ export const PortalFeatureTagsSection = ({ accommodationId }: Props) => {
         setHasOverride(override.length > 0);
         setSelectedTags(override);
 
+        const effective = expandFacilitiesForAccommodations((facs || []) as any, [accommodationId]);
         const derived = new Set<string>();
-        (facs || []).forEach((f) => {
+        effective.forEach((f) => {
           for (const rule of FEATURE_TAG_RULES) {
             if (rule.test(f.facility_name)) {
               derived.add(rule.label);

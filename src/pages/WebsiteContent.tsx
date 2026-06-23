@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Globe, Plus, Trash2, Edit2, GripVertical, MapPin, Image as ImageIcon, Upload, Info, Wrench, Package, HelpCircle, Navigation, icons, AlertCircle, BookOpen, Home, Clock, Star, Mail, Phone, MessageCircle } from "lucide-react";
 import { invalidateAccommodationCache } from "@/hooks/use-accommodation-cache";
+import { expandFacilitiesForAccommodations } from "@/lib/facility-merge";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -730,18 +731,18 @@ const WebsiteContent = () => {
           document.title = infoData.name;
         }
 
-        // 加載現有設施
-        const { data: facilities } = await supabase
+        // 加載現有設施（合併共用清單 + 本民宿覆寫）
+        const { data: facRows } = await supabase
           .from("accommodation_facilities")
-          .select("*")
-          .eq("accommodation_id", infoData.id)
-          .eq("is_available", true);
+          .select("accommodation_id, facility_name, category, is_available, pricing_type")
+          .or(`accommodation_id.is.null,accommodation_id.eq.${infoData.id}`);
 
-        if (facilities) {
+        if (facRows) {
+          const effective = expandFacilitiesForAccommodations(facRows as any, [infoData.id]);
           const selected: Record<string, boolean> = {};
           const pricing: Record<string, string> = {};
 
-          facilities.forEach(facility => {
+          effective.forEach((facility) => {
             selected[facility.facility_name] = true;
             if (facility.pricing_type) {
               pricing[facility.facility_name] = facility.pricing_type;
@@ -751,6 +752,7 @@ const WebsiteContent = () => {
           setSelectedFacilities(selected);
           setPricingTypes(pricing);
         }
+
 
         // 加載訂房設定
         const { data: bookingSettings } = await supabase
@@ -1056,18 +1058,18 @@ const WebsiteContent = () => {
             break;
 
           case 'facilities':
-            // 重新載入設施資料
-            const { data: facilities } = await supabase
+            // 重新載入設施資料（合併共用清單）
+            const { data: facRowsReload } = await supabase
               .from("accommodation_facilities")
-              .select("*")
-              .eq("accommodation_id", accommodationId)
-              .eq("is_available", true);
+              .select("accommodation_id, facility_name, category, is_available, pricing_type")
+              .or(`accommodation_id.is.null,accommodation_id.eq.${accommodationId}`);
 
-            if (facilities) {
+            if (facRowsReload) {
+              const effective = expandFacilitiesForAccommodations(facRowsReload as any, [accommodationId]);
               const selected: Record<string, boolean> = {};
               const pricing: Record<string, string> = {};
 
-              facilities.forEach(facility => {
+              effective.forEach((facility) => {
                 selected[facility.facility_name] = true;
                 if (facility.pricing_type) {
                   pricing[facility.facility_name] = facility.pricing_type;
@@ -1078,6 +1080,7 @@ const WebsiteContent = () => {
               setPricingTypes(pricing);
             }
             break;
+
 
           case 'addon-plans':
             // 重新載入加購方案資料
@@ -1256,14 +1259,9 @@ const WebsiteContent = () => {
 
     setIsSaving(true);
     try {
-      // 1. 計算「目標清單」：使用者勾選後該存在的設施
-      type DesiredRow = {
-        facility_name: string;
-        category: string;
-        pricing_type: string;
-        is_available: boolean;
-      };
-      const desired = new Map<string, DesiredRow>(); // key: name||category
+      // 1. 目標清單：使用者勾選後該存在的設施
+      type DesiredRow = { facility_name: string; category: string; pricing_type: string };
+      const desired = new Map<string, DesiredRow>();
       for (const [category, items] of Object.entries(facilitiesData)) {
         for (const item of items) {
           if (!selectedFacilities[item.name]) continue;
@@ -1272,50 +1270,104 @@ const WebsiteContent = () => {
             facility_name: item.name,
             category,
             pricing_type: item.hasPrice ? (pricingTypes[item.name] || 'free') : 'included',
-            is_available: true,
           });
         }
       }
 
-      // 2. 讀取此民宿現有設施
-      const { data: existing, error: loadErr } = await supabase
+      // 2. 讀取共用清單 + 本民宿覆寫
+      const { data: allRows, error: loadErr } = await supabase
         .from("accommodation_facilities")
-        .select("id, facility_name, category, pricing_type, is_available")
-        .eq("accommodation_id", accommodationId);
+        .select("id, accommodation_id, facility_name, category, pricing_type, is_available")
+        .or(`accommodation_id.is.null,accommodation_id.eq.${accommodationId}`);
       if (loadErr) throw loadErr;
 
-      // 3. 建立 existing map，並順便偵測同名同類別重複（保留第一筆，其餘列入刪除）
-      const existingMap = new Map<string, { id: string; pricing_type: string | null; is_available: boolean }>();
-      const dedupeIds: string[] = [];
-      for (const row of existing || []) {
-        const key = `${row.facility_name}||${row.category}`;
-        if (existingMap.has(key)) {
-          dedupeIds.push(row.id); // 重複，標記刪除
+      const sharedActive = new Map<string, { facility_name: string; category: string; pricing_type: string | null }>();
+      const propRowByKey = new Map<string, { id: string; is_available: boolean; pricing_type: string | null }>();
+      const propDupes: string[] = [];
+      for (const r of allRows || []) {
+        const key = `${r.facility_name}||${r.category}`;
+        if (r.accommodation_id === null) {
+          if (r.is_available) {
+            sharedActive.set(key, {
+              facility_name: r.facility_name,
+              category: r.category,
+              pricing_type: r.pricing_type,
+            });
+          }
         } else {
-          existingMap.set(key, { id: row.id, pricing_type: row.pricing_type, is_available: row.is_available });
+          if (propRowByKey.has(key)) {
+            propDupes.push(r.id);
+          } else {
+            propRowByKey.set(key, {
+              id: r.id,
+              is_available: !!r.is_available,
+              pricing_type: r.pricing_type,
+            });
+          }
         }
       }
 
-      // 4. 計算 diff
-      const toInsert: Array<DesiredRow & { accommodation_id: string }> = [];
-      const toUpdate: Array<{ id: string; pricing_type: string; is_available: boolean }> = [];
-      const toDeleteIds: string[] = [...dedupeIds];
+      // 3. 計算 diff
+      const toInsert: Array<{
+        accommodation_id: string;
+        facility_name: string;
+        category: string;
+        pricing_type: string | null;
+        is_available: boolean;
+      }> = [];
+      const toUpdate: Array<{ id: string; is_available: boolean; pricing_type: string | null }> = [];
+      const toDeleteIds: string[] = [...propDupes];
 
-      // desired 中不存在的 → insert；存在但欄位有變 → update
-      for (const [key, want] of desired) {
-        const cur = existingMap.get(key);
-        if (!cur) {
-          toInsert.push({ accommodation_id: accommodationId, ...want });
-        } else if (cur.pricing_type !== want.pricing_type || cur.is_available !== want.is_available) {
-          toUpdate.push({ id: cur.id, pricing_type: want.pricing_type, is_available: want.is_available });
+      const allKeys = new Set<string>([
+        ...sharedActive.keys(),
+        ...desired.keys(),
+        ...propRowByKey.keys(),
+      ]);
+      for (const key of allKeys) {
+        const cur = propRowByKey.get(key);
+        const want = desired.get(key);
+        const sh = sharedActive.get(key);
+
+        if (sh) {
+          if (want) {
+            // 使用者勾選：刪掉本民宿任何 row，沿用共用設定
+            if (cur) toDeleteIds.push(cur.id);
+          } else {
+            // 使用者取消勾選：寫入停用覆寫
+            if (!cur) {
+              toInsert.push({
+                accommodation_id: accommodationId,
+                facility_name: sh.facility_name,
+                category: sh.category,
+                pricing_type: null,
+                is_available: false,
+              });
+            } else if (cur.is_available !== false) {
+              toUpdate.push({ id: cur.id, is_available: false, pricing_type: null });
+            }
+          }
+        } else {
+          if (want) {
+            // 共用清單沒有 → 本民宿自有設施
+            if (!cur) {
+              toInsert.push({
+                accommodation_id: accommodationId,
+                facility_name: want.facility_name,
+                category: want.category,
+                pricing_type: want.pricing_type,
+                is_available: true,
+              });
+            } else if (!cur.is_available || cur.pricing_type !== want.pricing_type) {
+              toUpdate.push({ id: cur.id, is_available: true, pricing_type: want.pricing_type });
+            }
+          } else {
+            // 都不要：清掉殘留
+            if (cur) toDeleteIds.push(cur.id);
+          }
         }
       }
-      // existing 中 desired 沒有的 → delete
-      for (const [key, cur] of existingMap) {
-        if (!desired.has(key)) toDeleteIds.push(cur.id);
-      }
 
-      // 5. 套用變更（順序：delete → update → insert，降低 unique 衝突風險）
+      // 4. 套用變更（順序：delete → update → insert）
       if (toDeleteIds.length > 0) {
         const { error } = await supabase
           .from("accommodation_facilities")
@@ -1337,27 +1389,26 @@ const WebsiteContent = () => {
         if (error) throw error;
       }
 
-      // 6. 重新載入設施資料
-      const { data: updatedFacilities } = await supabase
+      // 5. 重新載入（合併共用清單）
+      const { data: refreshed } = await supabase
         .from("accommodation_facilities")
-        .select("*")
-        .eq("accommodation_id", accommodationId)
-        .eq("is_available", true);
+        .select("accommodation_id, facility_name, category, is_available, pricing_type")
+        .or(`accommodation_id.is.null,accommodation_id.eq.${accommodationId}`);
 
-      if (updatedFacilities) {
+      if (refreshed) {
+        const effective = expandFacilitiesForAccommodations(refreshed as any, [accommodationId]);
         const selected: Record<string, boolean> = {};
         const pricing: Record<string, string> = {};
-
-        updatedFacilities.forEach(facility => {
+        effective.forEach((facility) => {
           selected[facility.facility_name] = true;
           if (facility.pricing_type) {
             pricing[facility.facility_name] = facility.pricing_type;
           }
         });
-
         setSelectedFacilities(selected);
         setPricingTypes(pricing);
       }
+
 
       // 清除前台快取
       if (accommodationId) invalidateAccommodationCache(accommodationId);

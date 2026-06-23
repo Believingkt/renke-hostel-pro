@@ -11,6 +11,7 @@ import AccommodationCard, { type AccommodationCardData } from "@/components/book
 import AccommodationPhotoCarousel from "@/components/booking-portal/AccommodationPhotoCarousel";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { expandFacilitiesForAccommodations } from "@/lib/facility-merge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -224,8 +225,7 @@ const BookingPortal = () => {
           .order("display_order", { ascending: true }),
         supabase
           .from("accommodation_facilities")
-          .select("accommodation_id, category, facility_name")
-          .eq("is_available", true),
+          .select("accommodation_id, category, facility_name, is_available"),
         supabase
           .from("addon_settings")
           .select("accommodation_id, addon_type, unit_label, max_quantity, enabled")
@@ -336,7 +336,7 @@ const BookingPortal = () => {
 
       setAccommodations(accsWithPhotos);
       setRoomTypes(results);
-      setFacilities(facs || []);
+      setFacilities(expandFacilitiesForAccommodations((facs || []) as any, accs.map((a) => a.id)) as any);
       setPricingTemplates((templates || []) as PricingTemplateRow[]);
       setPublicHolidays((holidays || []) as PublicHolidayRow[]);
 
