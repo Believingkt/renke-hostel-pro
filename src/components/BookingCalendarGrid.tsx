@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { format, addDays, subDays, isToday, isWeekend, parseISO, differenceInDays } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -603,12 +603,20 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
   // Column width – responsive: measure container and distribute evenly
   const LEFT_COL_WIDTH = 200;
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const roCleanupRef = useRef<(() => void) | null>(null);
   const [containerWidth, setContainerWidth] = useState(0);
 
-  useEffect(() => {
-    const el = containerRef.current;
+  // Callback ref so measurement attaches whenever the grid element mounts
+  // (the component may render a spinner first, then the grid — a plain useEffect
+  // with [] deps would miss the second mount).
+  const setContainerRef = useCallback((el: HTMLDivElement | null) => {
+    containerRef.current = el;
+    // Tear down previous observer/listeners
+    if (roCleanupRef.current) {
+      roCleanupRef.current();
+      roCleanupRef.current = null;
+    }
     if (!el) return;
-    // Measure parent width to avoid feedback loop (this element's width depends on children)
     const target = el.parentElement ?? el;
     const measure = () => {
       const rect = target.getBoundingClientRect();
@@ -620,11 +628,15 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
     const onResize = () => measure();
     window.addEventListener("resize", onResize);
     window.addEventListener("orientationchange", onResize);
-    return () => {
+    roCleanupRef.current = () => {
       ro.disconnect();
       window.removeEventListener("resize", onResize);
       window.removeEventListener("orientationchange", onResize);
     };
+  }, []);
+
+  useEffect(() => () => {
+    if (roCleanupRef.current) roCleanupRef.current();
   }, []);
 
   const DAY_COL_MIN_WIDTH = (() => {
@@ -735,7 +747,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
       </div>
 
       {/* Grid */}
-      <div ref={containerRef} className="w-full border rounded-lg bg-card relative">
+      <div ref={setContainerRef} className="w-full border rounded-lg bg-card relative">
         <div className="sticky top-0 z-40 border-b bg-card shadow-sm">
           <div
             ref={headerScrollRef}
