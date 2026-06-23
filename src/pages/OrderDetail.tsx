@@ -2188,38 +2188,57 @@ const OrderDetailPage = () => {
                                 </div>
                               )}
                             </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs">專案</Label>
-                              <Select
-                                value={or.template_name || "none"}
-                                onValueChange={async (v) => {
-                                  const newTemplate = v === "none" ? "" : v;
-                                  // 重新依新方案計算單間總額
-                                  const dateBasedTotal = await computeRoomTotalByDates(or.room_type_id, newTemplate);
-                                  setEditOrderRooms(prev => prev.map(r => {
-                                    if (r.id !== or.id) return r;
-                                    if (dateBasedTotal > 0) {
-                                      const roomTotal = dateBasedTotal * r.quantity;
-                                      const unitPrice = r.quantity > 0 ? Math.round(roomTotal / r.quantity) : roomTotal;
-                                      return { ...r, template_name: newTemplate, unit_price: unitPrice, room_price: roomTotal };
-                                    }
-                                    return { ...r, template_name: newTemplate };
-                                  }));
-                                }}
-                              >
-                                <SelectTrigger className="h-8 text-xs">
-                                  <SelectValue placeholder="選擇專案" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="none">無</SelectItem>
-                                  {allTemplates
-                                    .filter(t => !t.room_type_id || t.room_type_id === or.room_type_id)
-                                    .map(t => (
-                                    <SelectItem key={t.id} value={t.template_name || ""}>{t.template_name}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
+                            {idx === 0 ? (
+                              <div className="space-y-1">
+                                <Label className="text-xs">專案</Label>
+                                <Select
+                                  value={or.template_name || "none"}
+                                  onValueChange={async (v) => {
+                                    const newTemplate = v === "none" ? "" : v;
+                                    // 主方案變更 → 同步套用到所有 room rows（若該房型有對應方案）
+                                    const updates = await Promise.all(editOrderRooms.map(async (r) => {
+                                      const candidates = allTemplates.filter(t => !t.room_type_id || t.room_type_id === r.room_type_id);
+                                      const applyTpl = newTemplate && candidates.some(t => t.template_name === newTemplate)
+                                        ? newTemplate
+                                        : (r.id === or.id ? newTemplate : r.template_name);
+                                      const dateBasedTotal = await computeRoomTotalByDates(r.room_type_id, applyTpl);
+                                      if (dateBasedTotal > 0) {
+                                        const roomTotal = dateBasedTotal * r.quantity;
+                                        const unitPrice = r.quantity > 0 ? Math.round(roomTotal / r.quantity) : roomTotal;
+                                        return { ...r, template_name: applyTpl, unit_price: unitPrice, room_price: roomTotal };
+                                      }
+                                      return { ...r, template_name: applyTpl };
+                                    }));
+                                    setEditOrderRooms(updates);
+                                  }}
+                                >
+                                  <SelectTrigger className="h-8 text-xs">
+                                    <SelectValue placeholder="選擇專案" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">無</SelectItem>
+                                    {allTemplates
+                                      .filter(t => !t.room_type_id || t.room_type_id === or.room_type_id)
+                                      .map(t => (
+                                      <SelectItem key={t.id} value={t.template_name || ""}>{t.template_name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            ) : (() => {
+                              const primaryTpl = editOrderRooms[0]?.template_name || null;
+                              const candidates = allTemplates.filter(t => !t.room_type_id || t.room_type_id === or.room_type_id);
+                              const matched = primaryTpl && candidates.some(t => t.template_name === primaryTpl);
+                              return (
+                                <div className="space-y-1">
+                                  <Label className="text-xs">專案</Label>
+                                  <div className={`h-8 px-3 flex items-center rounded-md border bg-muted/50 text-xs ${matched ? "text-muted-foreground" : "text-destructive"}`}>
+                                    {matched ? `共用主方案：${primaryTpl}` : (primaryTpl ? "此房型無對應主方案" : "未選擇主方案")}
+                                  </div>
+                                </div>
+                              );
+                            })()}
+
                             {(() => {
                               const isPackage = !!roomTypes.find(rt => rt.id === or.room_type_id)?.is_exclusive_package;
                               if (or.quantity !== 1) return null;
