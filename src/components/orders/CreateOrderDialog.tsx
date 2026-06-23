@@ -2060,32 +2060,23 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
                   <div className="space-y-1.5">
                     <Label className="text-xs">專案</Label>
-                    {sel.filteredTemplates.length > 0 ? (
-                      <Select
-                        value={sel.template_id}
-                        onValueChange={(value) => {
-                          const template = sel.filteredTemplates.find(t => t.id === value);
-                          updateRoomSelection(sel.id, {
-                            template_id: value,
-                            template_name: template?.template_name || "",
-                          });
-                        }}
-                      >
-                        <SelectTrigger className="h-10 text-sm">
-                          <SelectValue placeholder="選擇專案" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {sel.filteredTemplates.map((template) => (
-                            <SelectItem key={template.id} value={template.id}>
-                              {template.project_name || template.template_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <p className="text-xs text-muted-foreground py-2">無對應專案</p>
-                    )}
+                    {(() => {
+                      const sharedTpl = sel.filteredTemplates.find(t => t.id === sel.template_id);
+                      if (sel.filteredTemplates.length === 0) {
+                        return <p className="text-xs text-muted-foreground py-2">無對應專案</p>;
+                      }
+                      return (
+                        <div className="h-10 flex items-center text-sm text-muted-foreground">
+                          {sharedTpl ? (
+                            <span>共用主方案：{sharedTpl.project_name || sharedTpl.template_name}</span>
+                          ) : (
+                            <span className="text-destructive">此房型無對應主方案</span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
+
 
                   {!(isYunxiu && !roomTypes.find(r => r.id === sel.room_type_id)?.is_exclusive_package) && (
                     <div className="space-y-1.5">
