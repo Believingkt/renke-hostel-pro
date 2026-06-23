@@ -618,11 +618,12 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
   }, []);
 
   const DAY_COL_MIN_WIDTH = (() => {
+    // Cap so cells don't stretch absurdly wide in short ranges (3天/7天)
+    const MAX_COL = 140;
     if (containerWidth > 0) {
       const available = containerWidth - LEFT_COL_WIDTH;
       const natural = Math.floor(available / dayCount);
-      // Floor: never go below 48px per cell
-      return Math.max(natural, 48);
+      return Math.min(Math.max(natural, 48), MAX_COL);
     }
     // Fallback before measurement
     return dayCount <= 7 ? 120 : dayCount <= 15 ? 80 : 48;
