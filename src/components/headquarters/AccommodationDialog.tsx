@@ -246,6 +246,7 @@ export function AccommodationDialog({
       if (error) throw error;
 
       setDepositPercentage(value);
+      savedDepositRef.current = value;
       toast.success(`訂金比例已更新為 ${value}%`);
     } catch (error: any) {
       console.error("Error updating deposit percentage:", error);
