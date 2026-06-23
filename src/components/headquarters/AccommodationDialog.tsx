@@ -105,10 +105,12 @@ export function AccommodationDialog({
   // Deposit percentage state
   const [depositPercentage, setDepositPercentage] = useState<number>(30);
   const [loadingDeposit, setLoadingDeposit] = useState(false);
+  const savedDepositRef = useRef<number>(30);
 
   // Transaction fee percentage state
   const [transactionFeePercentage, setTransactionFeePercentage] = useState<number>(0);
   const [loadingTransactionFee, setLoadingTransactionFee] = useState(false);
+  const savedTransactionFeeRef = useRef<number>(0);
 
   useEffect(() => {
     if (initialData) {
@@ -173,7 +175,9 @@ export function AccommodationDialog({
 
       const paymentMethods = Array.isArray(data?.payment_methods) ? data.payment_methods : [];
       setLinePayEnabled(paymentMethods.includes("LINE Pay"));
-      setDepositPercentage(data?.deposit_percentage ?? 30);
+      const dp = data?.deposit_percentage ?? 30;
+      setDepositPercentage(dp);
+      savedDepositRef.current = dp;
     } catch (error) {
       console.error("Error loading payment settings:", error);
     }
@@ -190,7 +194,9 @@ export function AccommodationDialog({
 
       if (error) throw error;
 
-      setTransactionFeePercentage(data?.transaction_fee_percentage ?? 0);
+      const tf = data?.transaction_fee_percentage ?? 0;
+      setTransactionFeePercentage(tf);
+      savedTransactionFeeRef.current = tf;
     } catch (error) {
       console.error("Error loading transaction fee setting:", error);
     }
@@ -214,6 +220,7 @@ export function AccommodationDialog({
       if (error) throw error;
 
       setTransactionFeePercentage(value);
+      savedTransactionFeeRef.current = value;
       toast.success(`請款手續費已更新為 ${value}%`);
     } catch (error: any) {
       console.error("Error updating transaction fee:", error);
@@ -240,6 +247,7 @@ export function AccommodationDialog({
       if (error) throw error;
 
       setDepositPercentage(value);
+      savedDepositRef.current = value;
       toast.success(`訂金比例已更新為 ${value}%`);
     } catch (error: any) {
       console.error("Error updating deposit percentage:", error);
@@ -874,7 +882,8 @@ export function AccommodationDialog({
                                   }}
                                   onBlur={(e) => {
                                     const val = parseInt(e.target.value) || 0;
-                                    if (val !== depositPercentage) {
+                                    if (val < 0 || val > 100) return;
+                                    if (val !== savedDepositRef.current) {
                                       handleDepositPercentageChange(val);
                                     }
                                   }}
@@ -916,7 +925,8 @@ export function AccommodationDialog({
                                   }}
                                   onBlur={(e) => {
                                     const val = parseFloat(e.target.value) || 0;
-                                    if (val !== transactionFeePercentage) {
+                                    if (val < 0 || val > 100) return;
+                                    if (val !== savedTransactionFeeRef.current) {
                                       handleTransactionFeeChange(val);
                                     }
                                   }}
