@@ -175,7 +175,9 @@ export function AccommodationDialog({
 
       const paymentMethods = Array.isArray(data?.payment_methods) ? data.payment_methods : [];
       setLinePayEnabled(paymentMethods.includes("LINE Pay"));
-      setDepositPercentage(data?.deposit_percentage ?? 30);
+      const dp = data?.deposit_percentage ?? 30;
+      setDepositPercentage(dp);
+      savedDepositRef.current = dp;
     } catch (error) {
       console.error("Error loading payment settings:", error);
     }
