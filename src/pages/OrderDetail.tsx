@@ -819,6 +819,7 @@ const OrderDetailPage = () => {
         guest_count: editForm.guest_count,
         order_source: editForm.order_source,
         owner_direct: editForm.owner_direct,
+        lock_whole_building: isOlivia ? editForm.lock_whole_building : false,
         order_status: editForm.order_status,
         payment_status: editForm.payment_status,
         deposit_payment_method: editForm.deposit_payment_method === "none" ? null : editForm.deposit_payment_method,
