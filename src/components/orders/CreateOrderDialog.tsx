@@ -494,11 +494,15 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       }
       if (!chosen) return prev;
       const templates = getTemplatesForRoomType(chosen.id);
+      // 同一組訂單共用同一個專案：若主方案的 template 在新房型的可選範圍內，直接沿用
+      const primaryTplId = prev[0]?.template_id;
+      const inheritedTpl = primaryTplId ? templates.find(t => t.id === primaryTplId) : undefined;
+      const useTpl = inheritedTpl || templates[0];
       return [...prev, {
         id,
         room_type_id: chosen.id,
-        template_id: templates[0]?.id || "",
-        template_name: templates[0]?.template_name || "",
+        template_id: useTpl?.id || "",
+        template_name: useTpl?.template_name || "",
         quantity: 1,
         roomPrice: 0,
         filteredTemplates: templates,
@@ -511,15 +515,19 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   }, []);
 
   const updateRoomSelection = useCallback((selId: string, updates: Partial<RoomSelection>) => {
-    setRoomSelections(prev => prev.map(s => {
+    setRoomSelections(prev => prev.map((s, idx) => {
       if (s.id !== selId) return s;
       const updated = { ...s, ...updates };
       if (updates.room_type_id && updates.room_type_id !== s.room_type_id) {
         const templates = getTemplatesForRoomType(updates.room_type_id);
         const newRt = roomTypes.find(r => r.id === updates.room_type_id);
         updated.filteredTemplates = templates;
-        updated.template_id = templates[0]?.id || "";
-        updated.template_name = templates[0]?.template_name || "";
+        // 沿用主方案的 template（若可用）；只有主列(idx=0)或無法沿用時才用第一個
+        const primaryTplId = idx === 0 ? null : prev[0]?.template_id;
+        const inherited = primaryTplId ? templates.find(t => t.id === primaryTplId) : undefined;
+        const useTpl = inherited || templates[0];
+        updated.template_id = useTpl?.id || "";
+        updated.template_name = useTpl?.template_name || "";
         // 切到包棟時鎖為 1
         if (newRt?.is_exclusive_package) updated.quantity = 1;
         // 換房型時清掉房號選擇
@@ -528,6 +536,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       return updated;
     }));
   }, [getTemplatesForRoomType, roomTypes]);
+
 
   const changeRoomQuantity = useCallback((selId: string, delta: number) => {
     setRoomSelections(prev => {
@@ -1639,14 +1648,17 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                         value={roomSelections[0]?.template_id || ""}
                         onValueChange={(value) => {
                           const template = roomSelections[0]?.filteredTemplates.find(t => t.id === value);
-                          if (roomSelections[0]) {
-                            setRoomSelections([{
-                              ...roomSelections[0],
-                              template_id: value,
-                              template_name: template?.template_name || "",
-                            }]);
-                          }
+                          // 同一組訂單共用同一個專案：同步套用到所有房間
+                          setRoomSelections(prev => prev.map((s, i) => {
+                            if (i === 0) {
+                              return { ...s, template_id: value, template_name: template?.template_name || "" };
+                            }
+                            const match = s.filteredTemplates.find(t => t.id === value);
+                            if (!match) return s; // 此房型無對應專案則保留原值
+                            return { ...s, template_id: match.id, template_name: match.template_name };
+                          }));
                         }}
+
                       >
                         <SelectTrigger className="h-10 text-sm">
                           <SelectValue placeholder="選擇專案" />
@@ -1806,20 +1818,23 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-xs">專案</Label>
-                          {sel.filteredTemplates.length > 0 ? (
-                            <Select value={sel.template_id} onValueChange={(value) => {
-                              const t = sel.filteredTemplates.find(t => t.id === value);
-                              updateRoomSelection(sel.id, { template_id: value, template_name: t?.template_name || "" });
-                            }}>
-                              <SelectTrigger className="h-10 text-sm"><SelectValue placeholder="選擇專案" /></SelectTrigger>
-                              <SelectContent>
-                                {sel.filteredTemplates.map((t) => (
-                                  <SelectItem key={t.id} value={t.id}>{t.project_name || t.template_name}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          ) : (<p className="text-xs text-muted-foreground py-2">無對應專案</p>)}
+                          {(() => {
+                            const sharedTpl = sel.filteredTemplates.find(t => t.id === sel.template_id);
+                            if (sel.filteredTemplates.length === 0) {
+                              return <p className="text-xs text-muted-foreground py-2">無對應專案</p>;
+                            }
+                            return (
+                              <div className="h-10 flex items-center text-sm text-muted-foreground">
+                                {sharedTpl ? (
+                                  <span>共用主方案：{sharedTpl.project_name || sharedTpl.template_name}</span>
+                                ) : (
+                                  <span className="text-destructive">此房型無對應主方案</span>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
+
                         {!(isYunxiu && !isExclusive) && (
                           <div className="space-y-1.5">
                             <Label className="text-xs">間數</Label>
@@ -2045,32 +2060,23 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
                   <div className="space-y-1.5">
                     <Label className="text-xs">專案</Label>
-                    {sel.filteredTemplates.length > 0 ? (
-                      <Select
-                        value={sel.template_id}
-                        onValueChange={(value) => {
-                          const template = sel.filteredTemplates.find(t => t.id === value);
-                          updateRoomSelection(sel.id, {
-                            template_id: value,
-                            template_name: template?.template_name || "",
-                          });
-                        }}
-                      >
-                        <SelectTrigger className="h-10 text-sm">
-                          <SelectValue placeholder="選擇專案" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {sel.filteredTemplates.map((template) => (
-                            <SelectItem key={template.id} value={template.id}>
-                              {template.project_name || template.template_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <p className="text-xs text-muted-foreground py-2">無對應專案</p>
-                    )}
+                    {(() => {
+                      const sharedTpl = sel.filteredTemplates.find(t => t.id === sel.template_id);
+                      if (sel.filteredTemplates.length === 0) {
+                        return <p className="text-xs text-muted-foreground py-2">無對應專案</p>;
+                      }
+                      return (
+                        <div className="h-10 flex items-center text-sm text-muted-foreground">
+                          {sharedTpl ? (
+                            <span>共用主方案：{sharedTpl.project_name || sharedTpl.template_name}</span>
+                          ) : (
+                            <span className="text-destructive">此房型無對應主方案</span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
+
 
                   {!(isYunxiu && !roomTypes.find(r => r.id === sel.room_type_id)?.is_exclusive_package) && (
                     <div className="space-y-1.5">
