@@ -980,7 +980,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                               <span className="text-xs text-muted-foreground truncate">· {slot.meta.nickname}</span>
                             )}
                           </div>
-                          <div className="flex flex-1 relative" style={{ minHeight: 48 }}>
+                          <div className="flex shrink-0 relative" style={{ ...daysRowStyle, minHeight: 48 }}>
                             {/* Background date cells */}
                             {dates.map((date, i) => {
                               const dateStr = dateStrings[i];
