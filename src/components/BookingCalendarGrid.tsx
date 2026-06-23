@@ -988,11 +988,13 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                               const isSatSun = isWeekend(date);
                               const isRedDay = (isSatSun || isHoliday) && holiday?.holiday_type !== "work_on_weekend";
                               const blockedByExclusive = isBlockedByExclusive(roomType.id, dateStr);
+                              const isLast = i === dates.length - 1;
                               return (
                                 <div
                                   key={dateStr}
                                   className={cn(
-                                     "shrink-0 border-r last:border-r-0",
+                                     "shrink-0",
+                                     !isLast && "border-r",
                                     isRedDay && "bg-destructive/5",
                                     isToday(date) && "bg-primary/5",
                                   )}
