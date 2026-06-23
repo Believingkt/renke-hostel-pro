@@ -328,7 +328,7 @@ const PortalFeaturedCardSection = ({ accommodationId }: Props) => {
               rows={5}
               value={settings.editor_pick_body}
               onChange={(e) => setSettings((s) => ({ ...s, editor_pick_body: e.target.value }))}
-              placeholder="專業旅遊編輯口吻，介紹這間民宿的獨特之處（建議 60–120 字）"
+              placeholder="專業旅遊編輯口吻，介紹這間民宿的獨特之處（建議 50 字內）"
             />
           </div>
           <div>
