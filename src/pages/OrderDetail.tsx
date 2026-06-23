@@ -173,6 +173,7 @@ interface EditFormState {
   guest_count: number;
   order_source: string;
   owner_direct: boolean;
+  lock_whole_building: boolean;
   order_status: string;
   payment_status: string;
   deposit_payment_method: string;
