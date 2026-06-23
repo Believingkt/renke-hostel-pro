@@ -1058,35 +1058,35 @@ const GuestTabsScroller = ({
     <div className="relative">
       <div
         ref={scrollerRef}
-        className="flex items-center gap-0 px-1 overflow-x-auto no-scrollbar scroll-smooth"
+        className="flex items-center gap-2 px-1 overflow-x-auto no-scrollbar scroll-smooth"
       >
-        {tiers.map((t, idx) => {
+        {tiers.map((t) => {
           const isActive = t.guestCount === activeGuestCount;
           return (
-            <div key={`${t.guestCount}-${t.planName || ""}`} className="flex items-center shrink-0">
-              <button
-                ref={(el) => {
-                  btnRefs.current[t.guestCount] = el;
-                }}
-                type="button"
-                onClick={() => onSelect(t.guestCount)}
-                className={cn(
-                  "relative px-4 py-1.5 my-1 text-[15px] whitespace-nowrap rounded-full transition-all",
-                  isActive
-                    ? "font-semibold shadow-sm"
-                    : "font-medium text-gray-600 hover:text-foreground"
-                )}
-                style={
-                  isActive
-                    ? { background: "#A98467", color: "#FFFFFF" }
-                    : undefined
-                }
-              >
-                {t.guestCount}人
-              </button>
-            </div>
+            <button
+              key={`${t.guestCount}-${t.planName || ""}`}
+              ref={(el) => {
+                btnRefs.current[t.guestCount] = el;
+              }}
+              type="button"
+              onClick={() => onSelect(t.guestCount)}
+              className={cn(
+                "flex-1 min-w-[72px] shrink-0 px-4 py-2 my-1 text-[15px] whitespace-nowrap rounded-full transition-colors duration-300 ease-out text-center",
+                isActive
+                  ? "font-bold text-white shadow-sm"
+                  : "font-medium text-gray-700 bg-[#F9F8F6] hover:bg-[#EFEAE3]"
+              )}
+              style={
+                isActive
+                  ? { background: "#A98467" }
+                  : undefined
+              }
+            >
+              {t.guestCount}人
+            </button>
           );
         })}
+
 
         {/* 尾端 hint：可滑動時顯示「更多 →」 */}
         {canRight && (
