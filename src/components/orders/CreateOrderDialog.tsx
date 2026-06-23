@@ -2431,6 +2431,22 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         </div>
       </div>
 
+      {isOlivia && (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
+          <div className="space-y-0.5">
+            <Label className="text-sm font-medium">標記為包棟</Label>
+            <p className="text-xs text-muted-foreground">
+              勾選後，入住期間內整棟其他房型自動鎖定（不可預訂）。
+            </p>
+          </div>
+          <Switch
+            checked={lockWholeBuilding}
+            onCheckedChange={setLockWholeBuilding}
+          />
+        </div>
+      )}
+
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>付款方式</Label>
