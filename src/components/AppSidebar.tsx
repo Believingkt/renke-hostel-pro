@@ -83,6 +83,7 @@ const menuItems = [
       { title: "設施服務", url: "/admin/website-content?tab=facilities", icon: Wrench },
       { title: "加購方案", url: "/admin/website-content?tab=addon-plans", icon: Package },
       { title: "精選照片", url: "/admin/website-content?tab=gallery", icon: ImageIcon },
+      { title: "精選民宿卡片", url: "/admin/website-content?tab=portal-card", icon: Sparkles },
       { title: "交通地圖", url: "/admin/website-content?tab=location", icon: Navigation },
       { title: "訂房須知", url: "/admin/website-content?tab=booking-info", icon: BookOpen },
       { title: "常見問題", url: "/admin/website-content?tab=faq", icon: HelpCircle },

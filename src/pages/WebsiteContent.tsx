@@ -20,6 +20,7 @@ import { HeaderFooterSection } from "@/components/website-content/HeaderFooterSe
 import ChildAgeRulesCard from "@/components/website-content/ChildAgeRulesCard";
 import { HomepageSectionsBlock } from "@/components/website-content/HomepageSectionsBlock";
 import { PortalFeatureTagsSection } from "@/components/website-content/PortalFeatureTagsSection";
+import PortalFeaturedCardSection from "@/components/website-content/PortalFeaturedCardSection";
 import { AddonPlansSection, AddonPlan } from "@/components/website-content/AddonPlansSection";
 import { CustomSectionsManager } from "@/components/website-content/CustomSectionsManager";
 
@@ -463,7 +464,8 @@ const WebsiteContent = () => {
       'faq': '常見問題',
       'email-notification': '訂房確認通知',
       'location': '交通地圖',
-      'reviews': 'Google 評論'
+      'reviews': 'Google 評論',
+      'portal-card': '精選民宿卡片'
     };
     return titleMap[activeTab] || '官網內容';
   };
@@ -3617,6 +3619,10 @@ const WebsiteContent = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="portal-card" className="space-y-6">
+          <PortalFeaturedCardSection accommodationId={accommodationId} />
         </TabsContent>
 
         <TabsContent value="booking-info" className="space-y-6">

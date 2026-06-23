@@ -48,6 +48,14 @@ interface AccommodationInfo {
   hero_photos?: string[];
   about_title?: string | null;
   about_description?: string | null;
+  // Portal 精選卡片獨立設定
+  card_display_name?: string | null;
+  card_location?: string | null;
+  card_editor_title?: string | null;
+  card_editor_body?: string | null;
+  card_cta_label?: string | null;
+  card_is_visible?: boolean;
+  card_photos?: string[];
 }
 
 interface FacilityRow {
@@ -195,7 +203,7 @@ const BookingPortal = () => {
   const fetchData = async () => {
     try {
       // Fetch accommodations and room types in parallel
-      const [{ data: accs }, { data: rooms }, { data: roomPhotos }, { data: heroPhotos }, { data: facs }, { data: addons }, { data: templates }, { data: holidays }, { data: aboutSections }] = await Promise.all([
+      const [{ data: accs }, { data: rooms }, { data: roomPhotos }, { data: heroPhotos }, { data: facs }, { data: addons }, { data: templates }, { data: holidays }, { data: aboutSections }, { data: cardSettings }, { data: cardPhotos }] = await Promise.all([
         supabase
           .from("accommodation_info")
           .select("id, name, region_1, region_2, type, address, country")
@@ -232,6 +240,13 @@ const BookingPortal = () => {
         supabase
           .from("about_section")
           .select("accommodation_id, section_title, section_description"),
+        (supabase as any)
+          .from("portal_featured_cards")
+          .select("accommodation_id, display_name, location_override, editor_pick_title, editor_pick_body, cta_label, is_visible"),
+        (supabase as any)
+          .from("portal_featured_card_photos")
+          .select("accommodation_id, photo_url, display_order")
+          .order("display_order", { ascending: true }),
       ]);
 
       if (!accs || !rooms) return;
@@ -250,16 +265,40 @@ const BookingPortal = () => {
         if (s.accommodation_id) aboutMap.set(s.accommodation_id, { title: s.section_title, description: s.section_description });
       });
 
-      const accsWithPhotos: AccommodationInfo[] = accs.map((a) => {
-        const photos = heroPhotosMap.get(a.id) ?? [];
-        return {
-          ...a,
-          hero_photo_url: photos[0] ?? null,
-          hero_photos: photos,
-          about_title: aboutMap.get(a.id)?.title ?? null,
-          about_description: aboutMap.get(a.id)?.description ?? null,
-        };
+      // Portal featured card overrides
+      const cardSettingsMap = new Map<string, any>();
+      (cardSettings ?? []).forEach((c: any) => {
+        if (c.accommodation_id) cardSettingsMap.set(c.accommodation_id, c);
       });
+      const cardPhotosMap = new Map<string, string[]>();
+      (cardPhotos ?? []).forEach((p: any) => {
+        if (!p.accommodation_id || !p.photo_url) return;
+        const arr = cardPhotosMap.get(p.accommodation_id) ?? [];
+        arr.push(p.photo_url);
+        cardPhotosMap.set(p.accommodation_id, arr);
+      });
+
+      const accsWithPhotos: AccommodationInfo[] = accs
+        .map((a) => {
+          const photos = heroPhotosMap.get(a.id) ?? [];
+          const cs = cardSettingsMap.get(a.id);
+          return {
+            ...a,
+            hero_photo_url: photos[0] ?? null,
+            hero_photos: photos,
+            about_title: aboutMap.get(a.id)?.title ?? null,
+            about_description: aboutMap.get(a.id)?.description ?? null,
+            card_display_name: cs?.display_name ?? null,
+            card_location: cs?.location_override ?? null,
+            card_editor_title: cs?.editor_pick_title ?? null,
+            card_editor_body: cs?.editor_pick_body ?? null,
+            card_cta_label: cs?.cta_label ?? null,
+            card_is_visible: cs?.is_visible ?? true,
+            card_photos: cardPhotosMap.get(a.id) ?? [],
+          };
+        })
+        // 隱藏被關閉顯示的民宿（僅影響卡片清單；其餘 region 排序內部仍可用）
+        .filter((a) => a.card_is_visible !== false);
 
       const accMap = new Map(accsWithPhotos.map((a) => [a.id, a]));
 
@@ -1085,7 +1124,15 @@ const BookingPortal = () => {
             <div className="md:hidden divide-y divide-border/40">
               {accommodations.map((acc, idx) => {
                 const price = minPriceOf(acc.id);
-                const editorPick = acc.about_description || acc.about_title;
+                const editorBody = acc.card_editor_body || acc.about_description || acc.about_title;
+                const editorTitle = acc.card_editor_title || "管家推薦 · Editor's Pick";
+                const ctaLabel = acc.card_cta_label || "探索這間民宿";
+                const displayName = acc.card_display_name || acc.name;
+                const displayLocation = acc.card_location || locOf(acc);
+                const cardPhotos =
+                  (acc.card_photos && acc.card_photos.length > 0
+                    ? acc.card_photos
+                    : acc.hero_photos) ?? (acc.hero_photo_url ? [acc.hero_photo_url] : []);
                 return (
                   <article
                     key={acc.id}
@@ -1093,8 +1140,8 @@ const BookingPortal = () => {
                   >
                     {/* Full-bleed photo carousel */}
                     <AccommodationPhotoCarousel
-                      photos={acc.hero_photos ?? (acc.hero_photo_url ? [acc.hero_photo_url] : [])}
-                      alt={acc.name}
+                      photos={cardPhotos}
+                      alt={displayName}
                       aspectClassName="aspect-[4/3]"
                       roundedClassName="rounded-xl"
                       eager={idx === 0}
@@ -1108,12 +1155,12 @@ const BookingPortal = () => {
                           style={serif}
                           className="text-xl leading-tight text-foreground/90"
                         >
-                          {acc.name}
+                          {displayName}
                         </h3>
-                        {locOf(acc) && (
+                        {displayLocation && (
                           <p className="text-xs text-muted-foreground tracking-wide flex items-center gap-1 shrink-0">
                             <MapPin className="h-3 w-3" />
-                            {locOf(acc)}
+                            {displayLocation}
                           </p>
                         )}
                       </div>
@@ -1128,10 +1175,10 @@ const BookingPortal = () => {
                     </div>
 
                     {/* Editor's Pick / 管家推薦 */}
-                    {editorPick && (
+                    {editorBody && (
                       <div className="mt-3 mx-1 bg-muted/40 rounded-lg px-3 py-2.5 border border-border/30">
                         <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-primary mb-1">
-                          管家推薦 · Editor's Pick
+                          {editorTitle}
                         </p>
                         <div className="flex gap-1.5">
                           <span
@@ -1141,8 +1188,8 @@ const BookingPortal = () => {
                           >
                             ❝
                           </span>
-                          <p className="text-[13px] leading-relaxed text-foreground/75 line-clamp-3">
-                            {editorPick}
+                          <p className="text-[13px] leading-relaxed text-foreground/75 line-clamp-3 whitespace-pre-line">
+                            {editorBody}
                           </p>
                         </div>
                       </div>
@@ -1156,7 +1203,7 @@ const BookingPortal = () => {
                         className="w-full h-10 border-primary/60 text-primary hover:bg-primary hover:text-primary-foreground rounded-lg tracking-wider"
                         onClick={() => handleAccClick(acc.id)}
                       >
-                        探索這間民宿
+                        {ctaLabel}
                         <ChevronRight className="h-4 w-4 ml-1" />
                       </Button>
                     </div>
@@ -1172,7 +1219,7 @@ const BookingPortal = () => {
                 <div className="md:col-span-7 group cursor-pointer" onClick={() => handleAccClick(hero.id)}>
                   <div className="mb-4 sm:mb-6">
                     <AccommodationPhotoCarousel
-                      photos={hero.hero_photos ?? (hero.hero_photo_url ? [hero.hero_photo_url] : [])}
+                      photos={(hero.card_photos && hero.card_photos.length > 0 ? hero.card_photos : hero.hero_photos) ?? (hero.hero_photo_url ? [hero.hero_photo_url] : [])}
                       alt={hero.name}
                       aspectClassName="aspect-[4/3]"
                       roundedClassName="rounded-sm"
@@ -1230,7 +1277,7 @@ const BookingPortal = () => {
                 <div className="md:col-span-5 md:pt-16 lg:pt-24 group cursor-pointer" onClick={() => handleAccClick(secondary.id)}>
                   <div className="mb-4 sm:mb-6">
                     <AccommodationPhotoCarousel
-                      photos={secondary.hero_photos ?? (secondary.hero_photo_url ? [secondary.hero_photo_url] : [])}
+                      photos={(secondary.card_photos && secondary.card_photos.length > 0 ? secondary.card_photos : secondary.hero_photos) ?? (secondary.hero_photo_url ? [secondary.hero_photo_url] : [])}
                       alt={secondary.name}
                       aspectClassName="aspect-[3/4]"
                       roundedClassName="rounded-sm"
@@ -1270,7 +1317,7 @@ const BookingPortal = () => {
                 <div key={acc.id} className="md:col-span-4 group cursor-pointer" onClick={() => handleAccClick(acc.id)}>
                   <div className="mb-3 sm:mb-4">
                     <AccommodationPhotoCarousel
-                      photos={acc.hero_photos ?? (acc.hero_photo_url ? [acc.hero_photo_url] : [])}
+                      photos={(acc.card_photos && acc.card_photos.length > 0 ? acc.card_photos : acc.hero_photos) ?? (acc.hero_photo_url ? [acc.hero_photo_url] : [])}
                       alt={acc.name}
                       aspectClassName="aspect-square"
                       roundedClassName="rounded-sm"
