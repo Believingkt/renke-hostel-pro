@@ -487,6 +487,7 @@ const OrderDetailPage = () => {
       guest_count: order.guest_count || 1,
       order_source: order.order_source || "website",
       owner_direct: !!order.owner_direct,
+      lock_whole_building: !!order.lock_whole_building,
       order_status: order.order_status || "pending",
       payment_status: order.payment_status || "unpaid",
       deposit_payment_method: order.deposit_payment_method || "none",
