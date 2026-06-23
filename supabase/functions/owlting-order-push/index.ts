@@ -38,20 +38,48 @@ interface QueueRow {
 }
 
 // --- Single fetch wrapper: only place that talks to OwlTing externally.
-// Auth is via IP allow-listing — no headers/credentials are required.
+// Auth is via IP allow-listing — 走共用 VPS 靜態 IP relay（68.178.175.73）。
+// Relay 規格與 owlting-ari-push.fetchViaRelay 一致：
+//   POST {STATIC_IP_PROXY_URL}/relay
+//   Headers: X-Relay-Token, X-Target-Url, X-Target-Method,
+//            目標 headers 以 X-Forward-Header-* 前綴帶過去
+//   Body: 原始 request body（relay passthrough）
+// 若 STATIC_IP_PROXY_URL 未設則回退直連（dev/測試用）。
 async function sendToOwlting(
   endpoint: string,
   xml: string,
 ): Promise<{ status: number; text: string; durationMs: number }> {
   const t0 = Date.now();
-  const resp = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/xml; charset=utf-8",
-      "Accept": "application/xml",
-    },
-    body: xml,
-  });
+  const targetHeaders: Record<string, string> = {
+    "Content-Type": "application/xml; charset=utf-8",
+    "Accept": "application/xml",
+  };
+
+  const proxyUrl = Deno.env.get("STATIC_IP_PROXY_URL");
+  const proxyToken = Deno.env.get("STATIC_IP_PROXY_TOKEN");
+
+  let resp: Response;
+  if (!proxyUrl) {
+    console.warn("[OwlTing Relay] STATIC_IP_PROXY_URL not set, using direct connection");
+    resp = await fetch(endpoint, { method: "POST", headers: targetHeaders, body: xml });
+  } else {
+    const relayHeaders: Record<string, string> = {
+      "X-Target-Url": endpoint,
+      "X-Target-Method": "POST",
+      "Content-Type": "application/octet-stream",
+    };
+    if (proxyToken) relayHeaders["X-Relay-Token"] = proxyToken;
+    for (const [k, v] of Object.entries(targetHeaders)) {
+      relayHeaders[`X-Forward-Header-${k}`] = v;
+    }
+    console.log(`[OwlTing Relay] POST via ${proxyUrl} → ${endpoint}`);
+    resp = await fetch(`${proxyUrl}/relay`, {
+      method: "POST",
+      headers: relayHeaders,
+      body: xml,
+    });
+  }
+
   const text = await resp.text();
   return { status: resp.status, text, durationMs: Date.now() - t0 };
 }
