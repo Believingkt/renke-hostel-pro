@@ -415,7 +415,7 @@ const CapacityPriceLadder = ({
                     className="mt-3 w-full h-12 rounded-xl text-white font-bold text-[15px] shadow-md active:scale-[0.99] transition-transform"
                     style={{ background: "hsl(25, 88%, 53%)" }}
                   >
-                    就選這個方案
+                    馬上預訂
                   </button>
 
                   {showDisabledFewPeopleNote && (
