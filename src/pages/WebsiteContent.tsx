@@ -1256,39 +1256,88 @@ const WebsiteContent = () => {
 
     setIsSaving(true);
     try {
-      // 先刪除所有現有設施
-      await supabase
-        .from("accommodation_facilities")
-        .delete()
-        .eq("accommodation_id", accommodationId);
-
-      // 準備要插入的設施資料
-      const facilitiesToInsert = [];
-      
+      // 1. 計算「目標清單」：使用者勾選後該存在的設施
+      type DesiredRow = {
+        facility_name: string;
+        category: string;
+        pricing_type: string;
+        is_available: boolean;
+      };
+      const desired = new Map<string, DesiredRow>(); // key: name||category
       for (const [category, items] of Object.entries(facilitiesData)) {
         for (const item of items) {
-          if (selectedFacilities[item.name]) {
-            facilitiesToInsert.push({
-              accommodation_id: accommodationId,
-              facility_name: item.name,
-              category: category,
-              pricing_type: item.hasPrice ? (pricingTypes[item.name] || 'free') : 'included',
-              is_available: true
-            });
-          }
+          if (!selectedFacilities[item.name]) continue;
+          const key = `${item.name}||${category}`;
+          desired.set(key, {
+            facility_name: item.name,
+            category,
+            pricing_type: item.hasPrice ? (pricingTypes[item.name] || 'free') : 'included',
+            is_available: true,
+          });
         }
       }
 
-      // 插入新資料
-      if (facilitiesToInsert.length > 0) {
+      // 2. 讀取此民宿現有設施
+      const { data: existing, error: loadErr } = await supabase
+        .from("accommodation_facilities")
+        .select("id, facility_name, category, pricing_type, is_available")
+        .eq("accommodation_id", accommodationId);
+      if (loadErr) throw loadErr;
+
+      // 3. 建立 existing map，並順便偵測同名同類別重複（保留第一筆，其餘列入刪除）
+      const existingMap = new Map<string, { id: string; pricing_type: string | null; is_available: boolean }>();
+      const dedupeIds: string[] = [];
+      for (const row of existing || []) {
+        const key = `${row.facility_name}||${row.category}`;
+        if (existingMap.has(key)) {
+          dedupeIds.push(row.id); // 重複，標記刪除
+        } else {
+          existingMap.set(key, { id: row.id, pricing_type: row.pricing_type, is_available: row.is_available });
+        }
+      }
+
+      // 4. 計算 diff
+      const toInsert: Array<DesiredRow & { accommodation_id: string }> = [];
+      const toUpdate: Array<{ id: string; pricing_type: string; is_available: boolean }> = [];
+      const toDeleteIds: string[] = [...dedupeIds];
+
+      // desired 中不存在的 → insert；存在但欄位有變 → update
+      for (const [key, want] of desired) {
+        const cur = existingMap.get(key);
+        if (!cur) {
+          toInsert.push({ accommodation_id: accommodationId, ...want });
+        } else if (cur.pricing_type !== want.pricing_type || cur.is_available !== want.is_available) {
+          toUpdate.push({ id: cur.id, pricing_type: want.pricing_type, is_available: want.is_available });
+        }
+      }
+      // existing 中 desired 沒有的 → delete
+      for (const [key, cur] of existingMap) {
+        if (!desired.has(key)) toDeleteIds.push(cur.id);
+      }
+
+      // 5. 套用變更（順序：delete → update → insert，降低 unique 衝突風險）
+      if (toDeleteIds.length > 0) {
         const { error } = await supabase
           .from("accommodation_facilities")
-          .insert(facilitiesToInsert);
-
+          .delete()
+          .in("id", toDeleteIds);
+        if (error) throw error;
+      }
+      for (const u of toUpdate) {
+        const { error } = await supabase
+          .from("accommodation_facilities")
+          .update({ pricing_type: u.pricing_type, is_available: u.is_available })
+          .eq("id", u.id);
+        if (error) throw error;
+      }
+      if (toInsert.length > 0) {
+        const { error } = await supabase
+          .from("accommodation_facilities")
+          .upsert(toInsert, { onConflict: "accommodation_id,facility_name,category", ignoreDuplicates: false });
         if (error) throw error;
       }
 
-      // 重新載入設施資料
+      // 6. 重新載入設施資料
       const { data: updatedFacilities } = await supabase
         .from("accommodation_facilities")
         .select("*")
