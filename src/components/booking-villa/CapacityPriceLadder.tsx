@@ -30,6 +30,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import {
+  TW_DEFAULT_CANCEL_RULES,
+  getFreeCancelDeadline,
+  formatFreeCancelDeadline,
+  DEFAULT_FREE_CANCEL_DAYS,
+} from "@/lib/cancellation-policy";
 
 interface RoomType {
   id: string;
