@@ -6,6 +6,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cacheAccommodationTheme } from "@/constants/themes";
+import { expandFacilitiesForAccommodations } from "@/lib/facility-merge";
 
 // 快取過期時間（5 分鐘）
 const CACHE_TTL = 5 * 60 * 1000;
@@ -207,8 +208,7 @@ export const useAccommodationCache = (accommodationId: string | null) => {
         supabase
           .from("accommodation_facilities")
           .select("*")
-          .eq("accommodation_id", accId)
-          .eq("is_available", true),
+          .or(`accommodation_id.is.null,accommodation_id.eq.${accId}`),
         supabase
           .from("location_info")
           .select("*")
@@ -237,7 +237,7 @@ export const useAccommodationCache = (accommodationId: string | null) => {
       const data: SecondaryData = {
         roomTypes: roomTypesWithPhotos,
         bookingSettings: bookingSettingsRes.data,
-        facilities: facilitiesRes.data || [],
+        facilities: expandFacilitiesForAccommodations(facilitiesRes.data || [], [accId]),
         locationInfo: locationInfoRes.data,
         customBookingSections: customSectionsRes.data || [],
         customImageSections: customImageSectionsRes.data || []
