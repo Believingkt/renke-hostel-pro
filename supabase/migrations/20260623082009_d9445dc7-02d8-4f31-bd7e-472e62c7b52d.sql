@@ -1,0 +1,2 @@
+ALTER TABLE public.booking_settings ADD COLUMN IF NOT EXISTS free_cancel_days integer NOT NULL DEFAULT 14;
+COMMENT ON COLUMN public.booking_settings.free_cancel_days IS '免費取消天數：住宿日前 N 天（含）以前取消可全額退款，預設 14 天（與台灣交通部觀光署旅宿業定型化契約一致）';
