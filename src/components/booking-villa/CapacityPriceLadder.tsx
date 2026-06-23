@@ -388,7 +388,6 @@ const CapacityPriceLadder = ({
                 {/* 4. 價格區 */}
                 <div className="pt-3 border-t border-border/60">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xl" aria-hidden>{scene.emoji}</span>
                     <h3 className="font-semibold text-[17px] leading-tight text-foreground tracking-tight">
                       {activeTier_.planName || `${opt.guestCount} 人${TERM}`}
                     </h3>
@@ -407,7 +406,7 @@ const CapacityPriceLadder = ({
                     </span>
                     {saved > 0 && (
                       <span
-                        className="inline-flex items-center text-[11px] font-semibold px-1.5 py-0.5 rounded-md"
+                        className="inline-flex items-center text-sm font-semibold px-2 py-0.5 rounded-md"
                         style={{ background: "#FDF6F5", color: "#C25953" }}
                       >
                         -{opt.discountPercent}%
@@ -427,11 +426,12 @@ const CapacityPriceLadder = ({
                   <button
                     type="button"
                     onClick={() => onSelect(opt)}
-                    className="mt-3 w-full h-12 rounded-xl text-white font-semibold text-[15px] shadow-md hover:shadow-lg active:scale-95 transition-all duration-200 tracking-wide"
-                    style={{ background: "#6B5644" }}
+                    className="mt-3 w-full h-11 rounded-xl font-medium text-[14px] bg-transparent border hover:bg-[#5C4A42]/5 active:scale-[0.98] transition-all duration-200 tracking-wide focus:outline-none"
+                    style={{ borderColor: "#5C4A42", color: "#5C4A42" }}
                   >
                     馬上預訂
                   </button>
+
 
                   {showDisabledFewPeopleNote && (
                     <div className="mt-2 flex items-center gap-1.5 px-1 text-[10.5px] text-muted-foreground">
