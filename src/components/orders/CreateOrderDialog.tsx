@@ -354,6 +354,22 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     fetchData();
   }, [currentAccommodationId]);
 
+  // 載入該民宿的訂金比例設定（HQ 設定會即時代入）
+  useEffect(() => {
+    const loadDepositPct = async () => {
+      if (!currentAccommodationId) return;
+      const { data } = await supabase
+        .from("booking_settings")
+        .select("deposit_percentage")
+        .eq("accommodation_id", currentAccommodationId)
+        .maybeSingle();
+      if (data?.deposit_percentage != null) {
+        setDepositPct(data.deposit_percentage);
+      }
+    };
+    if (open) loadDepositPct();
+  }, [currentAccommodationId, open]);
+
   // 載入該民宿所有 active room_units（用於散客房選房號）
   useEffect(() => {
     const loadUnits = async () => {
