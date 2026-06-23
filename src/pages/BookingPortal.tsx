@@ -1074,75 +1074,97 @@ const BookingPortal = () => {
               <span className="text-muted-foreground text-sm">探索深度旅宿的質感生活</span>
             </div>
 
-            {/* ── Mobile: Hero card + horizontal scroll ── */}
-            <div className="md:hidden space-y-6">
-              {/* Hero card */}
-              {hero && (
-                <div className="group cursor-pointer" onClick={() => handleAccClick(hero.id)}>
-                  <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-muted shadow-lg">
-                    {hero.hero_photo_url ? (
-                      <img src={hero.hero_photo_url} alt={hero.name} loading="lazy"
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-secondary">
-                        <BedDouble className="h-12 w-12 text-muted-foreground/40" />
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                    <div className="absolute bottom-0 left-0 p-4 w-full">
-                      <span className="inline-block px-2.5 py-0.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full mb-1.5 uppercase tracking-wider">
-                        Featured
-                      </span>
-                      <h3 className="text-white text-lg font-bold leading-tight">{hero.name}</h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-white/70 text-xs">{locOf(hero)}</span>
-                        {minPriceOf(hero.id) != null && (
-                          <>
-                            <span className="w-1 h-1 bg-white/30 rounded-full" />
-                            <span className="text-primary font-bold text-sm">NT$ {minPriceOf(hero.id)!.toLocaleString()}</span>
-                          </>
+            {/* ── Mobile: Immersive vertical feed ── */}
+            <div className="md:hidden divide-y divide-border/40">
+              {accommodations.map((acc, idx) => {
+                const price = minPriceOf(acc.id);
+                const editorPick = acc.about_description || acc.about_title;
+                return (
+                  <article
+                    key={acc.id}
+                    className={`${idx === 0 ? "pt-2" : "pt-10"} pb-20`}
+                  >
+                    {/* Full-bleed photo */}
+                    <button
+                      type="button"
+                      onClick={() => handleAccClick(acc.id)}
+                      className="block w-full group"
+                    >
+                      <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-muted">
+                        {acc.hero_photo_url ? (
+                          <img
+                            src={acc.hero_photo_url}
+                            alt={acc.name}
+                            loading={idx === 0 ? "eager" : "lazy"}
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-secondary">
+                            <BedDouble className="h-12 w-12 text-muted-foreground/40" />
+                          </div>
                         )}
                       </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+                    </button>
 
-              {/* 2-column grid: show every other accommodation at once */}
-              {mobileOthers.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-3 px-1">
-                    <h4 className="text-xs font-black text-muted-foreground tracking-widest uppercase">更多質感嚴選</h4>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    {mobileOthers.map((acc) => (
-                      <div key={acc.id} className="cursor-pointer group" onClick={() => handleAccClick(acc.id)}>
-                        <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-muted shadow-md">
-                          {acc.hero_photo_url ? (
-                            <img src={acc.hero_photo_url} alt={acc.name} loading="lazy"
-                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-secondary">
-                              <BedDouble className="h-10 w-10 text-muted-foreground/40" />
-                            </div>
-                          )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
-                          <div className="absolute bottom-0 p-3 w-full">
-                            <h4 className="text-white font-bold text-sm leading-tight line-clamp-1">{acc.name}</h4>
-                            <div className="flex justify-between items-center mt-1 gap-1">
-                              <span className="text-white/80 text-[10px] truncate">{locOf(acc)}</span>
-                              {minPriceOf(acc.id) != null && (
-                                <span className="text-primary font-bold text-[11px] whitespace-nowrap">NT$ {minPriceOf(acc.id)!.toLocaleString()}</span>
-                              )}
-                            </div>
-                          </div>
+                    {/* Location + Name */}
+                    <div className="mt-5 px-1">
+                      {locOf(acc) && (
+                        <p className="text-xs text-muted-foreground tracking-wide flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {locOf(acc)}
+                        </p>
+                      )}
+                      <h3
+                        style={serif}
+                        className="mt-1.5 text-2xl leading-tight text-foreground/90"
+                      >
+                        {acc.name}
+                      </h3>
+                      {price != null && (
+                        <p className="mt-2 text-sm text-muted-foreground">
+                          <span className="text-primary font-semibold text-base">
+                            NT$ {price.toLocaleString()}
+                          </span>{" "}
+                          起 / 晚
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Editor's Pick / 管家真心話 */}
+                    {editorPick && (
+                      <div className="mt-5 mx-1 bg-muted/40 rounded-lg p-4 border border-border/30">
+                        <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-primary mb-2">
+                          管家真心話 · Editor's Pick
+                        </p>
+                        <div className="flex gap-2">
+                          <span
+                            style={serif}
+                            className="text-2xl leading-none text-primary/60 select-none"
+                            aria-hidden
+                          >
+                            ❝
+                          </span>
+                          <p className="text-sm leading-relaxed text-foreground/75 line-clamp-4">
+                            {editorPick}
+                          </p>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                    )}
 
+                    {/* CTA */}
+                    <div className="mt-5 px-1">
+                      <Button
+                        variant="outline"
+                        className="w-full h-12 border-primary/60 text-primary hover:bg-primary hover:text-primary-foreground rounded-lg tracking-wider"
+                        onClick={() => handleAccClick(acc.id)}
+                      >
+                        探索這間民宿
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
 
             {/* ── Desktop: Magazine grid ── */}
