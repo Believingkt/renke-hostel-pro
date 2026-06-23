@@ -173,7 +173,7 @@ export function AccommodationDialog({
     try {
       const { data, error } = await supabase
         .from("booking_settings")
-        .select("payment_methods, deposit_percentage")
+        .select("payment_methods, deposit_percentage, free_cancel_days")
         .eq("accommodation_id", accommodationId)
         .single();
 
@@ -184,8 +184,38 @@ export function AccommodationDialog({
       const dp = data?.deposit_percentage ?? 30;
       setDepositPercentage(dp);
       savedDepositRef.current = dp;
+      const fcd = (data as any)?.free_cancel_days ?? 14;
+      setFreeCancelDays(fcd);
+      savedFreeCancelRef.current = fcd;
     } catch (error) {
       console.error("Error loading payment settings:", error);
+    }
+  };
+
+  const handleFreeCancelDaysChange = async (value: number) => {
+    if (!initialData?.id) return;
+    if (value < 0 || value > 365) return;
+
+    setLoadingFreeCancel(true);
+    try {
+      const { error } = await supabase
+        .from("booking_settings")
+        .update({
+          free_cancel_days: value,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("accommodation_id", initialData.id);
+
+      if (error) throw error;
+
+      setFreeCancelDays(value);
+      savedFreeCancelRef.current = value;
+      toast.success(`免費取消天數已更新為 ${value} 天`);
+    } catch (error: any) {
+      console.error("Error updating free cancel days:", error);
+      toast.error("更新失敗", { description: error.message });
+    } finally {
+      setLoadingFreeCancel(false);
     }
   };
 
