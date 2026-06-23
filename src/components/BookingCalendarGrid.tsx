@@ -38,6 +38,7 @@ interface Order {
   order_source: string;
   room_type_id: string;
   notes: string | null;
+  lock_whole_building?: boolean | null;
 }
 
 interface OrderRoom {
@@ -219,7 +220,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
           .order("display_order"),
         supabase
           .from("orders")
-          .select("id, order_number, guest_name, guest_phone, guest_count, check_in_date, check_out_date, order_status, order_source, room_type_id, notes")
+          .select("id, order_number, guest_name, guest_phone, guest_count, check_in_date, check_out_date, order_status, order_source, room_type_id, notes, lock_whole_building")
           .eq("accommodation_id", accommodationId)
           .in("order_status", ["hold", "pending", "confirmed", "checked_in"])
           .gte("check_out_date", startStr)
@@ -456,7 +457,23 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
     return map;
   }, [roomTypes, calendarEntries, dateStrings]);
 
+  // 整棟保留/包棟旗標：任何訂單 lock_whole_building = true → 該日所有房型整列鎖（不分包棟/散客）
+  const wholeBuildingLockedDates = useMemo(() => {
+    const blocked = new Set<string>();
+    for (const dateStr of dateStrings) {
+      const hit = orders.some(o =>
+        o.lock_whole_building === true &&
+        o.order_status !== 'cancelled' &&
+        o.check_in_date <= dateStr && o.check_out_date > dateStr
+      );
+      if (hit) blocked.add(dateStr);
+    }
+    return blocked;
+  }, [orders, dateStrings]);
+
   const isBlockedByExclusive = (roomTypeId: string, dateStr: string): boolean => {
+    // 整棟保留 → 任何房型該日都鎖
+    if (wholeBuildingLockedDates.has(dateStr)) return true;
     const rt = roomTypes.find(r => r.id === roomTypeId);
     if (!rt) return false;
     if (rt.is_exclusive_package) {
