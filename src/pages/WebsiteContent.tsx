@@ -20,6 +20,7 @@ import { HeaderFooterSection } from "@/components/website-content/HeaderFooterSe
 import ChildAgeRulesCard from "@/components/website-content/ChildAgeRulesCard";
 import { HomepageSectionsBlock } from "@/components/website-content/HomepageSectionsBlock";
 import { PortalFeatureTagsSection } from "@/components/website-content/PortalFeatureTagsSection";
+import PortalFeaturedCardSection from "@/components/website-content/PortalFeaturedCardSection";
 import { AddonPlansSection, AddonPlan } from "@/components/website-content/AddonPlansSection";
 import { CustomSectionsManager } from "@/components/website-content/CustomSectionsManager";
 
