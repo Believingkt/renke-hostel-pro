@@ -1124,7 +1124,15 @@ const BookingPortal = () => {
             <div className="md:hidden divide-y divide-border/40">
               {accommodations.map((acc, idx) => {
                 const price = minPriceOf(acc.id);
-                const editorPick = acc.about_description || acc.about_title;
+                const editorBody = acc.card_editor_body || acc.about_description || acc.about_title;
+                const editorTitle = acc.card_editor_title || "管家推薦 · Editor's Pick";
+                const ctaLabel = acc.card_cta_label || "探索這間民宿";
+                const displayName = acc.card_display_name || acc.name;
+                const displayLocation = acc.card_location || locOf(acc);
+                const cardPhotos =
+                  (acc.card_photos && acc.card_photos.length > 0
+                    ? acc.card_photos
+                    : acc.hero_photos) ?? (acc.hero_photo_url ? [acc.hero_photo_url] : []);
                 return (
                   <article
                     key={acc.id}
@@ -1132,8 +1140,8 @@ const BookingPortal = () => {
                   >
                     {/* Full-bleed photo carousel */}
                     <AccommodationPhotoCarousel
-                      photos={acc.hero_photos ?? (acc.hero_photo_url ? [acc.hero_photo_url] : [])}
-                      alt={acc.name}
+                      photos={cardPhotos}
+                      alt={displayName}
                       aspectClassName="aspect-[4/3]"
                       roundedClassName="rounded-xl"
                       eager={idx === 0}
@@ -1147,12 +1155,12 @@ const BookingPortal = () => {
                           style={serif}
                           className="text-xl leading-tight text-foreground/90"
                         >
-                          {acc.name}
+                          {displayName}
                         </h3>
-                        {locOf(acc) && (
+                        {displayLocation && (
                           <p className="text-xs text-muted-foreground tracking-wide flex items-center gap-1 shrink-0">
                             <MapPin className="h-3 w-3" />
-                            {locOf(acc)}
+                            {displayLocation}
                           </p>
                         )}
                       </div>
@@ -1167,10 +1175,10 @@ const BookingPortal = () => {
                     </div>
 
                     {/* Editor's Pick / 管家推薦 */}
-                    {editorPick && (
+                    {editorBody && (
                       <div className="mt-3 mx-1 bg-muted/40 rounded-lg px-3 py-2.5 border border-border/30">
                         <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-primary mb-1">
-                          管家推薦 · Editor's Pick
+                          {editorTitle}
                         </p>
                         <div className="flex gap-1.5">
                           <span
@@ -1180,8 +1188,8 @@ const BookingPortal = () => {
                           >
                             ❝
                           </span>
-                          <p className="text-[13px] leading-relaxed text-foreground/75 line-clamp-3">
-                            {editorPick}
+                          <p className="text-[13px] leading-relaxed text-foreground/75 line-clamp-3 whitespace-pre-line">
+                            {editorBody}
                           </p>
                         </div>
                       </div>
@@ -1195,7 +1203,7 @@ const BookingPortal = () => {
                         className="w-full h-10 border-primary/60 text-primary hover:bg-primary hover:text-primary-foreground rounded-lg tracking-wider"
                         onClick={() => handleAccClick(acc.id)}
                       >
-                        探索這間民宿
+                        {ctaLabel}
                         <ChevronRight className="h-4 w-4 ml-1" />
                       </Button>
                     </div>
