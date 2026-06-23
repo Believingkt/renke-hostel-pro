@@ -1074,7 +1074,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                               : entry.order_status === 'checked_in'
                                                 ? "border border-violet-300 bg-violet-100 dark:bg-violet-900/30 text-violet-800 dark:text-violet-200"
                                                 : "border border-amber-300 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200",
-                                          "rounded-md flex items-center px-2 gap-1 text-xs overflow-hidden",
+                                          "rounded-md flex items-center justify-center px-2 gap-1 text-xs overflow-hidden",
                                           "hover:brightness-95 transition-all",
                                           isClippedLeft && "rounded-l-none border-l-0",
                                           isClippedRight && "rounded-r-none border-r-0",
