@@ -464,7 +464,8 @@ const WebsiteContent = () => {
       'faq': '常見問題',
       'email-notification': '訂房確認通知',
       'location': '交通地圖',
-      'reviews': 'Google 評論'
+      'reviews': 'Google 評論',
+      'portal-card': '精選民宿卡片'
     };
     return titleMap[activeTab] || '官網內容';
   };
