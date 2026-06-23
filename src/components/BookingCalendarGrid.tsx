@@ -747,7 +747,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
       </div>
 
       {/* Grid */}
-      <div ref={containerRef} className="w-full border rounded-lg bg-card relative">
+      <div ref={setContainerRef} className="w-full border rounded-lg bg-card relative">
         <div className="sticky top-0 z-40 border-b bg-card shadow-sm">
           <div
             ref={headerScrollRef}
