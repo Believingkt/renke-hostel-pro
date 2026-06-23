@@ -275,7 +275,7 @@ const BookingSearchResults = () => {
 
         setAccommodations(accs as AccInfo[]);
         setRoomTypes(results);
-        setFacilities((facs || []) as FacilityRow[]);
+        setFacilities(expandFacilitiesForAccommodations((facs || []) as any, (accs || []).map((a: any) => a.id)) as FacilityRow[]);
         setTemplates((tpls || []) as TemplateRow[]);
         setHolidays((hols || []) as HolidayRow[]);
         setPackages(
