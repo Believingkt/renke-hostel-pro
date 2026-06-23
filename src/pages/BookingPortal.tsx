@@ -1277,7 +1277,7 @@ const BookingPortal = () => {
                 <div className="md:col-span-5 md:pt-16 lg:pt-24 group cursor-pointer" onClick={() => handleAccClick(secondary.id)}>
                   <div className="mb-4 sm:mb-6">
                     <AccommodationPhotoCarousel
-                      photos={secondary.hero_photos ?? (secondary.hero_photo_url ? [secondary.hero_photo_url] : [])}
+                      photos={(secondary.card_photos && secondary.card_photos.length > 0 ? secondary.card_photos : secondary.hero_photos) ?? (secondary.hero_photo_url ? [secondary.hero_photo_url] : [])}
                       alt={secondary.name}
                       aspectClassName="aspect-[3/4]"
                       roundedClassName="rounded-sm"
