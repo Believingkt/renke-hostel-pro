@@ -1,5 +1,5 @@
 import { assertEquals, assertStringIncludes, assertMatch, assert } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { buildResNotifXml, buildResNotifRq, maskPasswordInXml, resolveRatePlan, type OwlOrderInput, type OwlConfig } from "./xml.ts";
+import { buildResNotifRq, resolveRatePlan, type OwlOrderInput, type OwlConfig } from "./xml.ts";
 
 const order: OwlOrderInput = {
   order_number: "ABC12345",
@@ -17,14 +17,20 @@ const order: OwlOrderInput = {
 };
 
 const config: OwlConfig = { owlting_hotel_code: "HOTEL001" };
-const creds = { username: "u", password: "p@ss" };
 const NOW = "2030-04-01T12:00:00.000Z";
 
-Deno.test("Commit: CreateDateTime only, full structure", () => {
-  const xml = buildResNotifXml(order, config, { resStatus: "Commit", echoToken: "E1", uniqueId: "ABC12345", nowIso: NOW }, creds);
+Deno.test("Commit: bare OTA root, CreateDateTime only, no SOAP/wsse", () => {
+  const xml = buildResNotifRq(order, config, { resStatus: "Commit", echoToken: "E1", uniqueId: "ABC12345", nowIso: NOW });
+  // Root element + xml declaration
+  assertMatch(xml, /^<\?xml version="1\.0" encoding="UTF-8"\?>\s*<OTA_HotelResNotifRQ\b/);
+  assertStringIncludes(xml, `xmlns="http://www.opentravel.org/OTA/2003/05"`);
   assertStringIncludes(xml, `ResStatus="Commit"`);
   assertStringIncludes(xml, `CreateDateTime="${NOW}"`);
   assert(!xml.includes("LastModifyDateTime="), "Commit must not contain LastModifyDateTime");
+  // No SOAP envelope, no WS-Security
+  assert(!/soap:Envelope/i.test(xml), "must not contain soap:Envelope");
+  assert(!/wsse[:\s]/i.test(xml), "must not contain wsse namespace/elements");
+  assert(!/UsernameToken/i.test(xml), "must not contain UsernameToken");
   // POS
   assertStringIncludes(xml, `Type="22" ID="LAKEZE"`);
   assertStringIncludes(xml, `Type="7" Primary="true"`);
@@ -40,29 +46,29 @@ Deno.test("Commit: CreateDateTime only, full structure", () => {
   // UniqueID + EchoToken
   assertStringIncludes(xml, `ID="ABC12345"`);
   assertStringIncludes(xml, `EchoToken="E1"`);
-  // WS-Security
-  assertStringIncludes(xml, `<wsse:Username>u</wsse:Username>`);
-  assertStringIncludes(xml, `<wsse:Password`);
   // Two RoomStay elements
   const count = (xml.match(/<RoomStay>/g) ?? []).length;
   assertEquals(count, 2);
 });
 
-Deno.test("Modify: LastModifyDateTime only", () => {
-  const xml = buildResNotifXml(order, config, { resStatus: "Modify", echoToken: "E2", uniqueId: "ABC12345", nowIso: NOW }, creds);
+Deno.test("Modify: LastModifyDateTime only, no SOAP/wsse", () => {
+  const xml = buildResNotifRq(order, config, { resStatus: "Modify", echoToken: "E2", uniqueId: "ABC12345", nowIso: NOW });
   assertStringIncludes(xml, `ResStatus="Modify"`);
   assertStringIncludes(xml, `LastModifyDateTime="${NOW}"`);
   assert(!xml.includes("CreateDateTime="), "Modify must not contain CreateDateTime");
-  // Still full structure
+  assert(!/soap:Envelope/i.test(xml));
+  assert(!/wsse/i.test(xml));
   assertStringIncludes(xml, `<RoomStays>`);
   assertStringIncludes(xml, `HotelCode="HOTEL001"`);
 });
 
-Deno.test("Cancel: LastModifyDateTime + full structure (POS + RoomStays still present)", () => {
-  const xml = buildResNotifXml(order, config, { resStatus: "Cancel", echoToken: "E3", uniqueId: "ABC12345", nowIso: NOW }, creds);
+Deno.test("Cancel: LastModifyDateTime + full RoomStays still present, no SOAP/wsse", () => {
+  const xml = buildResNotifRq(order, config, { resStatus: "Cancel", echoToken: "E3", uniqueId: "ABC12345", nowIso: NOW });
   assertStringIncludes(xml, `ResStatus="Cancel"`);
   assertStringIncludes(xml, `LastModifyDateTime="${NOW}"`);
   assert(!xml.includes("CreateDateTime="));
+  assert(!/soap:Envelope/i.test(xml));
+  assert(!/wsse/i.test(xml));
   assertStringIncludes(xml, `Type="22" ID="LAKEZE"`); // POS still present
   assertStringIncludes(xml, `<RoomStays>`);            // RoomStays still present
   assertStringIncludes(xml, `RoomTypeCode="1001"`);
@@ -79,14 +85,14 @@ Deno.test("UniqueID consistent across Commit / Modify / Cancel", () => {
   }
 });
 
-Deno.test("maskPasswordInXml hides the password", () => {
-  const xml = buildResNotifXml(order, config, { resStatus: "Commit", echoToken: "E", uniqueId: "U", nowIso: NOW }, creds);
-  const masked = maskPasswordInXml(xml);
-  assert(!masked.includes("p@ss"), "real password leaked");
-  assertMatch(masked, /<wsse:Password[^>]*>\*{8}<\/wsse:Password>/);
+Deno.test("Payload never contains credentials", () => {
+  const xml = buildResNotifRq(order, config, { resStatus: "Commit", echoToken: "E", uniqueId: "U", nowIso: NOW });
+  assert(!/Password/i.test(xml));
+  assert(!/Username/i.test(xml));
+  assert(!/UsernameToken/i.test(xml));
 });
 
-// ---- Step 3.5: resolveRatePlan strictly uses order.package_id ----
+// ---- resolveRatePlan strictly uses order.package_id ----
 const pkgs = [
   { id: "pkg-a", name: "6人包區",  numeric_code: 1001 },
   { id: "pkg-b", name: "8人包區",  numeric_code: 1002 },
@@ -126,7 +132,6 @@ Deno.test("resolveRatePlan: package without numeric_code -> fail", () => {
 });
 
 Deno.test("resolveRatePlan: does NOT fall back to lowest numeric_code when missing", () => {
-  // Even though pkg-a (1001) exists, a null package_id must NOT return 1001.
   const r = resolveRatePlan(null, pkgs);
   assertEquals(r.ok, false);
 });
