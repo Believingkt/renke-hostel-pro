@@ -561,7 +561,7 @@ const BookingVilla = () => {
                 className="inline-flex items-center px-1.5 py-0.5 rounded text-white text-[13px] font-bold"
                 style={{ background: "hsl(25, 76%, 50%)" }}
               >
-                {extras.googleRating.toFixed(1)}/10
+                {extras.googleRating <= 5 ? `${extras.googleRating.toFixed(1)}/5` : `${extras.googleRating.toFixed(1)}/10`}
               </span>
               <span className="text-[14px] font-semibold" style={{ color: "hsl(25, 76%, 50%)" }}>
                 超棒
