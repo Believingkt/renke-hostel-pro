@@ -1212,127 +1212,113 @@ const BookingPortal = () => {
               })}
             </div>
 
-            {/* ── Desktop: Magazine grid ── */}
-            <div className="hidden md:grid md:grid-cols-12 gap-6 md:gap-10 items-start">
-              {/* Hero feature */}
-              {hero && (
-                <div className="md:col-span-7 group cursor-pointer" onClick={() => handleAccClick(hero.id)}>
-                  <div className="mb-4 sm:mb-6">
-                    <AccommodationPhotoCarousel
-                      photos={(hero.card_photos && hero.card_photos.length > 0 ? hero.card_photos : hero.hero_photos) ?? (hero.hero_photo_url ? [hero.hero_photo_url] : [])}
-                      alt={hero.name}
-                      aspectClassName="aspect-[4/3]"
-                      roundedClassName="rounded-sm"
-                      onClick={() => handleAccClick(hero.id)}
-                      overlay={
-                        locOf(hero) ? (
-                          <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10 pointer-events-none">
-                            <span className="backdrop-blur-md bg-white/85 px-3 py-1.5 sm:px-4 sm:py-2 text-xs font-medium tracking-wider text-foreground rounded-full">
-                              {locOf(hero)}
-                            </span>
-                          </div>
-                        ) : null
-                      }
-                    />
-                  </div>
-                  <div className="flex justify-between items-start gap-4">
-                    <h3 style={serif} className="text-xl sm:text-2xl md:text-3xl text-foreground group-hover:text-primary transition-colors">
-                      {hero.name}
-                    </h3>
-                    {minPriceOf(hero.id) != null && (
-                      <div className="text-right shrink-0">
-                        <span className="text-base sm:text-xl font-medium text-primary whitespace-nowrap">
-                          NT$ {minPriceOf(hero.id)!.toLocaleString()}
-                          <span className="text-xs font-normal text-muted-foreground"> 起</span>
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  {(hero.about_title || hero.about_description) && (
-                    <div className="mt-5 sm:mt-6 max-w-xl">
-                      {hero.about_title && (
-                        <p style={serif} className="text-primary text-lg sm:text-xl mb-2 leading-snug">
-                          {hero.about_title}
-                        </p>
-                      )}
-                      {hero.about_description && (
-                        <p className="text-sm sm:text-base text-muted-foreground leading-relaxed line-clamp-5">
-                          {hero.about_description}
-                        </p>
-                      )}
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); handleAccClick(hero.id); }}
-                        className="inline-flex items-center gap-1 mt-3 text-xs font-semibold tracking-widest uppercase text-primary hover:gap-2 transition-all"
-                      >
-                        探索此處 <ChevronRight className="h-3 w-3" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Vertical secondary, offset down on desktop */}
-              {secondary && (
-                <div className="md:col-span-5 md:pt-16 lg:pt-24 group cursor-pointer" onClick={() => handleAccClick(secondary.id)}>
-                  <div className="mb-4 sm:mb-6">
-                    <AccommodationPhotoCarousel
-                      photos={(secondary.card_photos && secondary.card_photos.length > 0 ? secondary.card_photos : secondary.hero_photos) ?? (secondary.hero_photo_url ? [secondary.hero_photo_url] : [])}
-                      alt={secondary.name}
-                      aspectClassName="aspect-[3/4]"
-                      roundedClassName="rounded-sm"
-                      onClick={() => handleAccClick(secondary.id)}
-                      overlay={
-                        secondary.type ? (
-                          <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 z-10 pointer-events-none">
-                            <div className="bg-primary text-primary-foreground px-3 py-2 rounded-sm">
-                              <p className="text-[10px] uppercase tracking-tighter opacity-80 leading-none mb-0.5">Type</p>
-                              <p style={serif} className="text-base leading-none">{secondary.type}</p>
-                            </div>
-                          </div>
-                        ) : null
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    {locOf(secondary) && (
-                      <span className="text-primary/80 text-xs font-semibold tracking-widest uppercase">
-                        {locOf(secondary)}
-                      </span>
-                    )}
-                    <h3 style={serif} className="text-lg sm:text-xl md:text-2xl text-foreground group-hover:text-primary transition-colors">
-                      {secondary.name}
-                    </h3>
-                    {minPriceOf(secondary.id) != null && (
-                      <p className="text-sm text-muted-foreground">
-                        NT$ <span className="font-semibold text-foreground">{minPriceOf(secondary.id)!.toLocaleString()}</span> 起
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Bottom row of squares */}
-              {rest.map((acc) => (
-                <div key={acc.id} className="md:col-span-4 group cursor-pointer" onClick={() => handleAccClick(acc.id)}>
-                  <div className="mb-3 sm:mb-4">
-                    <AccommodationPhotoCarousel
-                      photos={(acc.card_photos && acc.card_photos.length > 0 ? acc.card_photos : acc.hero_photos) ?? (acc.hero_photo_url ? [acc.hero_photo_url] : [])}
-                      alt={acc.name}
-                      aspectClassName="aspect-square"
-                      roundedClassName="rounded-sm"
+            {/* ── Desktop: Editorial zigzag feed ── */}
+            <div className="hidden md:flex md:flex-col md:gap-16 lg:gap-24">
+              {accommodations.map((acc, idx) => {
+                const price = minPriceOf(acc.id);
+                const editorBody = acc.card_editor_body || acc.about_description || acc.about_title;
+                const editorTitle = acc.card_editor_title || "管家推薦 · Editor's Pick";
+                const ctaLabel = acc.card_cta_label || "探索這間民宿";
+                const displayName = acc.card_display_name || acc.name;
+                const displayLocation = acc.card_location || locOf(acc);
+                const cardPhotos =
+                  (acc.card_photos && acc.card_photos.length > 0
+                    ? acc.card_photos
+                    : acc.hero_photos) ?? (acc.hero_photo_url ? [acc.hero_photo_url] : []);
+                const reverse = idx % 2 === 1;
+                return (
+                  <article
+                    key={acc.id}
+                    className={`grid grid-cols-12 gap-8 lg:gap-12 items-center ${reverse ? "" : ""}`}
+                  >
+                    {/* Photo */}
+                    <div
+                      className={`col-span-7 group cursor-pointer ${reverse ? "order-2" : "order-1"}`}
                       onClick={() => handleAccClick(acc.id)}
-                    />
-                  </div>
-                  <h3 style={serif} className="text-lg sm:text-xl text-foreground mb-0.5 group-hover:text-primary transition-colors">
-                    {acc.name}
-                  </h3>
-                  {locOf(acc) && (
-                    <p className="text-sm text-muted-foreground">{locOf(acc)}</p>
-                  )}
-                </div>
-              ))}
+                    >
+                      <AccommodationPhotoCarousel
+                        photos={cardPhotos}
+                        alt={displayName}
+                        aspectClassName="aspect-[4/3]"
+                        roundedClassName="rounded-sm"
+                        eager={idx === 0}
+                        onClick={() => handleAccClick(acc.id)}
+                      />
+                    </div>
+
+                    {/* Text block */}
+                    <div className={`col-span-5 ${reverse ? "order-1 lg:pr-6" : "order-2 lg:pl-6"}`}>
+                      {/* Index marker */}
+                      <div className="flex items-center gap-3 mb-4">
+                        <span style={serif} className="text-primary/70 text-sm tracking-[0.3em]">
+                          {String(idx + 1).padStart(2, "0")}
+                        </span>
+                        <span className="h-px flex-grow bg-border" />
+                      </div>
+
+                      {/* Name + Location */}
+                      <div className="flex items-start justify-between gap-4 mb-3">
+                        <h3
+                          style={serif}
+                          className="text-3xl lg:text-4xl leading-tight text-foreground group-hover:text-primary transition-colors cursor-pointer"
+                          onClick={() => handleAccClick(acc.id)}
+                        >
+                          {displayName}
+                        </h3>
+                        {displayLocation && (
+                          <p className="text-xs text-muted-foreground tracking-widest uppercase flex items-center gap-1 shrink-0 mt-2">
+                            <MapPin className="h-3 w-3" />
+                            {displayLocation}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Price */}
+                      {price != null && (
+                        <p className="text-sm text-muted-foreground mb-5">
+                          <span className="text-primary font-semibold text-lg">
+                            NT$ {price.toLocaleString()}
+                          </span>{" "}
+                          起 / 晚
+                        </p>
+                      )}
+
+                      {/* Editor's Pick */}
+                      {editorBody && (
+                        <div className="bg-muted/40 rounded-lg px-5 py-4 border border-border/30 mb-6">
+                          <p className="text-[10px] font-bold tracking-[0.25em] uppercase text-primary mb-2">
+                            {editorTitle}
+                          </p>
+                          <div className="flex gap-2">
+                            <span
+                              style={serif}
+                              className="text-2xl leading-none text-primary/60 select-none"
+                              aria-hidden
+                            >
+                              ❝
+                            </span>
+                            <p className="text-sm leading-relaxed text-foreground/75 line-clamp-4 whitespace-pre-line">
+                              {editorBody}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* CTA */}
+                      <Button
+                        variant="outline"
+                        className="h-11 px-6 border-primary/60 text-primary hover:bg-primary hover:text-primary-foreground rounded-lg tracking-wider"
+                        onClick={() => handleAccClick(acc.id)}
+                      >
+                        {ctaLabel}
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
+
           </section>
         );
       })()}
