@@ -1113,8 +1113,8 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                           isClippedRight && "rounded-r-none border-r-0",
                                         )}
                                         style={{
-                                          left: leftPx,
-                                          width: widthPx,
+                                          left: leftPx + (isClippedLeft ? 0 : 1),
+                                          width: widthPx - (isClippedLeft ? 0 : 1) - (isClippedRight ? 0 : 1),
                                         }}
                                         onClick={() => navigate(`/admin/orders/${entry.orderId}`, { state: { from: '/admin/room-inventory' } })}
                                       >
