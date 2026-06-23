@@ -79,7 +79,7 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
       {rating != null && (
         <p className="mb-3 text-[14px]">
           <span className="font-bold" style={{ color: "hsl(25, 76%, 50%)" }}>
-            {rating.toFixed(1)}/10
+            {rating <= 5 ? `${rating.toFixed(1)}/5` : `${rating.toFixed(1)}/10`}
           </span>{" "}
           <span className="text-foreground/80">位置絕佳</span>
         </p>
