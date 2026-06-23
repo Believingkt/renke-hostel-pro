@@ -1268,15 +1268,14 @@ const BookingPortal = () => {
               {/* Bottom row of squares */}
               {rest.map((acc) => (
                 <div key={acc.id} className="md:col-span-4 group cursor-pointer" onClick={() => handleAccClick(acc.id)}>
-                  <div className="relative aspect-square overflow-hidden rounded-sm mb-3 sm:mb-4 bg-muted">
-                    {acc.hero_photo_url ? (
-                      <img src={acc.hero_photo_url} alt={acc.name} loading="lazy"
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-secondary">
-                        <BedDouble className="h-10 w-10 text-muted-foreground/40" />
-                      </div>
-                    )}
+                  <div className="mb-3 sm:mb-4">
+                    <AccommodationPhotoCarousel
+                      photos={acc.hero_photos ?? (acc.hero_photo_url ? [acc.hero_photo_url] : [])}
+                      alt={acc.name}
+                      aspectClassName="aspect-square"
+                      roundedClassName="rounded-sm"
+                      onClick={() => handleAccClick(acc.id)}
+                    />
                   </div>
                   <h3 style={serif} className="text-lg sm:text-xl text-foreground mb-0.5 group-hover:text-primary transition-colors">
                     {acc.name}
