@@ -521,6 +521,20 @@ const BookingVilla = () => {
         </div>
       </div>
 
+      {/* ── Section Anchor Tabs（Trip.com 風格橫向頁籤） ── */}
+      <SectionTabsNav
+        tabs={[
+          { id: "capacity-price-section", label: "入住方案" },
+          { id: "about", label: "描述" },
+          { id: "facilities", label: "設施" },
+          { id: "location", label: "位置" },
+          { id: "reviews", label: "Google 評論" },
+          { id: "policy", label: "住宿政策" },
+          { id: "notice", label: "注意事項" },
+          { id: "faq", label: "常見問題" },
+          { id: "similar", label: "鄰近住宿" },
+        ]}
+      />
 
       <main className="max-w-3xl mx-auto">
         {/* ── 1. Photo Carousel (mixed hero + gallery) ── */}
