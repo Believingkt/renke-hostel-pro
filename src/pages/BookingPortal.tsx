@@ -1212,12 +1212,12 @@ const BookingPortal = () => {
               })}
             </div>
 
-            {/* ── Desktop: Editorial zigzag feed ── */}
-            <div className="hidden md:flex md:flex-col md:gap-16 lg:gap-24">
+            {/* ── Desktop: Compact editorial grid ── */}
+            <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
               {accommodations.map((acc, idx) => {
                 const price = minPriceOf(acc.id);
                 const editorBody = acc.card_editor_body || acc.about_description || acc.about_title;
-                const editorTitle = acc.card_editor_title || "管家推薦 · Editor's Pick";
+                const editorTitle = acc.card_editor_title || "管家推薦";
                 const ctaLabel = acc.card_cta_label || "探索這間民宿";
                 const displayName = acc.card_display_name || acc.name;
                 const displayLocation = acc.card_location || locOf(acc);
@@ -1225,99 +1225,73 @@ const BookingPortal = () => {
                   (acc.card_photos && acc.card_photos.length > 0
                     ? acc.card_photos
                     : acc.hero_photos) ?? (acc.hero_photo_url ? [acc.hero_photo_url] : []);
-                const reverse = idx % 2 === 1;
                 return (
-                  <article
-                    key={acc.id}
-                    className={`grid grid-cols-12 gap-8 lg:gap-12 items-center ${reverse ? "" : ""}`}
-                  >
-                    {/* Photo */}
-                    <div
-                      className={`col-span-7 group cursor-pointer ${reverse ? "order-2" : "order-1"}`}
-                      onClick={() => handleAccClick(acc.id)}
-                    >
+                  <article key={acc.id} className="group flex flex-col">
+                    <div className="cursor-pointer" onClick={() => handleAccClick(acc.id)}>
                       <AccommodationPhotoCarousel
                         photos={cardPhotos}
                         alt={displayName}
                         aspectClassName="aspect-[4/3]"
-                        roundedClassName="rounded-sm"
-                        eager={idx === 0}
+                        roundedClassName="rounded-md"
+                        eager={idx < 3}
                         onClick={() => handleAccClick(acc.id)}
                       />
                     </div>
 
-                    {/* Text block */}
-                    <div className={`col-span-5 ${reverse ? "order-1 lg:pr-6" : "order-2 lg:pl-6"}`}>
-                      {/* Index marker */}
-                      <div className="flex items-center gap-3 mb-4">
-                        <span style={serif} className="text-primary/70 text-sm tracking-[0.3em]">
-                          {String(idx + 1).padStart(2, "0")}
-                        </span>
-                        <span className="h-px flex-grow bg-border" />
-                      </div>
-
-                      {/* Name + Location */}
-                      <div className="flex items-start justify-between gap-4 mb-3">
-                        <h3
-                          style={serif}
-                          className="text-3xl lg:text-4xl leading-tight text-foreground group-hover:text-primary transition-colors cursor-pointer"
-                          onClick={() => handleAccClick(acc.id)}
-                        >
-                          {displayName}
-                        </h3>
-                        {displayLocation && (
-                          <p className="text-xs text-muted-foreground tracking-widest uppercase flex items-center gap-1 shrink-0 mt-2">
-                            <MapPin className="h-3 w-3" />
-                            {displayLocation}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Price */}
-                      {price != null && (
-                        <p className="text-sm text-muted-foreground mb-5">
-                          <span className="text-primary font-semibold text-lg">
-                            NT$ {price.toLocaleString()}
-                          </span>{" "}
-                          起 / 晚
-                        </p>
-                      )}
-
-                      {/* Editor's Pick */}
-                      {editorBody && (
-                        <div className="bg-muted/40 rounded-lg px-5 py-4 border border-border/30 mb-6">
-                          <p className="text-[10px] font-bold tracking-[0.25em] uppercase text-primary mb-2">
-                            {editorTitle}
-                          </p>
-                          <div className="flex gap-2">
-                            <span
-                              style={serif}
-                              className="text-2xl leading-none text-primary/60 select-none"
-                              aria-hidden
-                            >
-                              ❝
-                            </span>
-                            <p className="text-sm leading-relaxed text-foreground/75 line-clamp-4 whitespace-pre-line">
-                              {editorBody}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* CTA */}
-                      <Button
-                        variant="outline"
-                        className="h-11 px-6 border-primary/60 text-primary hover:bg-primary hover:text-primary-foreground rounded-lg tracking-wider"
+                    {/* Name + Location */}
+                    <div className="mt-4 flex items-baseline justify-between gap-3">
+                      <h3
+                        style={serif}
+                        className="text-xl lg:text-2xl leading-tight text-foreground group-hover:text-primary transition-colors cursor-pointer"
                         onClick={() => handleAccClick(acc.id)}
                       >
-                        {ctaLabel}
-                        <ChevronRight className="h-4 w-4 ml-1" />
-                      </Button>
+                        {displayName}
+                      </h3>
+                      {displayLocation && (
+                        <p className="text-[11px] text-muted-foreground tracking-wider flex items-center gap-1 shrink-0">
+                          <MapPin className="h-3 w-3" />
+                          {displayLocation}
+                        </p>
+                      )}
                     </div>
+
+                    {/* Price */}
+                    {price != null && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        <span className="text-primary font-semibold text-sm">
+                          NT$ {price.toLocaleString()}
+                        </span>{" "}
+                        起 / 晚
+                      </p>
+                    )}
+
+                    {/* Editor's Pick */}
+                    {editorBody && (
+                      <div className="mt-3 bg-muted/40 rounded-md px-3 py-2.5 border border-border/30">
+                        <p className="text-[9px] font-bold tracking-[0.2em] uppercase text-primary mb-1">
+                          {editorTitle}
+                        </p>
+                        <p className="text-[12px] leading-relaxed text-foreground/75 line-clamp-2 whitespace-pre-line">
+                          {editorBody}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* CTA */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 h-9 border-primary/60 text-primary hover:bg-primary hover:text-primary-foreground rounded-md tracking-wider"
+                      onClick={() => handleAccClick(acc.id)}
+                    >
+                      {ctaLabel}
+                      <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                    </Button>
                   </article>
                 );
               })}
             </div>
+
 
           </section>
         );
