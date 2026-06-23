@@ -20,6 +20,7 @@ import { useAuditLog } from "@/hooks/use-audit-log";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { resolveTemplatePricesForDates } from "@/utils/templatePriceResolver";
+import { Switch } from "@/components/ui/switch";
 
 interface RoomType {
   id: string;
