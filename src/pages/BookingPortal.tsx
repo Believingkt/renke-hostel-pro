@@ -1091,27 +1091,15 @@ const BookingPortal = () => {
                     key={acc.id}
                     className={`${idx === 0 ? "pt-1" : "pt-4"} pb-5`}
                   >
-                    {/* Full-bleed photo */}
-                    <button
-                      type="button"
+                    {/* Full-bleed photo carousel */}
+                    <AccommodationPhotoCarousel
+                      photos={acc.hero_photos ?? (acc.hero_photo_url ? [acc.hero_photo_url] : [])}
+                      alt={acc.name}
+                      aspectClassName="aspect-[4/3]"
+                      roundedClassName="rounded-xl"
+                      eager={idx === 0}
                       onClick={() => handleAccClick(acc.id)}
-                      className="block w-full group"
-                    >
-                      <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-muted">
-                        {acc.hero_photo_url ? (
-                          <img
-                            src={acc.hero_photo_url}
-                            alt={acc.name}
-                            loading={idx === 0 ? "eager" : "lazy"}
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-secondary">
-                            <BedDouble className="h-12 w-12 text-muted-foreground/40" />
-                          </div>
-                        )}
-                      </div>
-                    </button>
+                    />
 
                     {/* Name + Location */}
                     <div className="mt-3 px-1">
