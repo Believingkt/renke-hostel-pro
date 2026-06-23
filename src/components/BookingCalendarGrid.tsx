@@ -1234,7 +1234,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                 <span className="font-semibold text-sm truncate">{cr.name}</span>
                 <span className="text-xs text-muted-foreground ml-auto">{cr.count}間</span>
               </div>
-              <div className="flex flex-1">
+              <div className="flex shrink-0" style={daysRowStyle}>
                 {dates.map((date, i) => {
                   const dateStr = dateStrings[i];
                   const holiday = holidays.get(dateStr);
