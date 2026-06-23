@@ -80,7 +80,9 @@ export interface FacilityManagementRef {
 export const FacilityManagement = forwardRef<FacilityManagementRef, object>((_, ref) => {
   const [loading, setLoading] = useState(true);
   const [facilities, setFacilities] = useState<Facility[]>([]);
+  const [accommodations, setAccommodations] = useState<Record<string, string>>({});
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [scopeFilter, setScopeFilter] = useState<"shared" | "per_property" | "all">("shared");
   const [searchQuery, setSearchQuery] = useState("");
 
   // Dialog states
@@ -99,7 +101,16 @@ export const FacilityManagement = forwardRef<FacilityManagementRef, object>((_, 
 
   useEffect(() => {
     loadFacilities();
-  }, [categoryFilter]);
+  }, [categoryFilter, scopeFilter]);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from("accommodation_info").select("id,name");
+      const map: Record<string, string> = {};
+      (data || []).forEach((a: any) => { map[a.id] = a.name; });
+      setAccommodations(map);
+    })();
+  }, []);
 
   const loadFacilities = async () => {
     setLoading(true);
@@ -112,6 +123,11 @@ export const FacilityManagement = forwardRef<FacilityManagementRef, object>((_, 
 
       if (categoryFilter !== "all") {
         query = query.eq("category", categoryFilter);
+      }
+      if (scopeFilter === "shared") {
+        query = query.is("accommodation_id", null);
+      } else if (scopeFilter === "per_property") {
+        query = query.not("accommodation_id", "is", null);
       }
 
       const { data, error } = await query;
@@ -274,6 +290,17 @@ export const FacilityManagement = forwardRef<FacilityManagementRef, object>((_, 
     <div className="space-y-4">
       {/* Filters */}
       <div className="flex items-center gap-4 flex-wrap">
+        <Select value={scopeFilter} onValueChange={(v) => setScopeFilter(v as any)}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="shared">共用設施</SelectItem>
+            <SelectItem value="per_property">各民宿設施</SelectItem>
+            <SelectItem value="all">全部（共用＋民宿）</SelectItem>
+          </SelectContent>
+        </Select>
+
         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="全部類別" />
@@ -323,6 +350,7 @@ export const FacilityManagement = forwardRef<FacilityManagementRef, object>((_, 
                       <TableHeader>
                         <TableRow className="bg-muted/50">
                           <TableHead>設施名稱</TableHead>
+                          {scopeFilter !== "shared" && <TableHead>歸屬</TableHead>}
                           <TableHead>計費方式</TableHead>
                           <TableHead>狀態</TableHead>
                           <TableHead className="text-center">操作</TableHead>
@@ -334,6 +362,17 @@ export const FacilityManagement = forwardRef<FacilityManagementRef, object>((_, 
                             <TableCell className="font-medium">
                               {facility.facility_name}
                             </TableCell>
+                            {scopeFilter !== "shared" && (
+                              <TableCell className="text-sm">
+                                {facility.accommodation_id ? (
+                                  <Badge variant="outline">
+                                    {accommodations[facility.accommodation_id] || "未知民宿"}
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="secondary">共用</Badge>
+                                )}
+                              </TableCell>
+                            )}
                             <TableCell className="text-sm text-muted-foreground">
                               {getPricingTypeLabel(facility.pricing_type)}
                             </TableCell>
@@ -346,16 +385,18 @@ export const FacilityManagement = forwardRef<FacilityManagementRef, object>((_, 
                             </TableCell>
                             <TableCell className="text-center">
                               <div className="flex justify-center gap-2">
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  onClick={() => openEditDialog(facility)}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
+                                {!facility.accommodation_id && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => openEditDialog(facility)}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
                                   onClick={() => setDeleteTarget(facility)}
                                 >
                                   <Trash2 className="h-4 w-4 text-destructive" />
