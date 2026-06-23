@@ -290,13 +290,16 @@ const CapacityPriceLadder = ({
 
 
         return (
-          <div className="space-y-4">
-            {/* 人數 Tab — 可左右滑動 */}
-            <GuestTabsScroller
-              tiers={allTiers}
-              activeGuestCount={activeTier_.guestCount}
-              onSelect={(g) => setSelectedGuest(g)}
-            />
+          <div className="space-y-0">
+            {/* 人數 Tab — 可左右滑動（緊貼圖卡） */}
+            <div className="pb-1">
+              <GuestTabsScroller
+                tiers={allTiers}
+                activeGuestCount={activeTier_.guestCount}
+                onSelect={(g) => setSelectedGuest(g)}
+              />
+            </div>
+
 
 
             {/* 整合圖卡：照片 → 房型分配 → 方案 → 價格 */}
@@ -1061,9 +1064,6 @@ const GuestTabsScroller = ({
           const isActive = t.guestCount === activeGuestCount;
           return (
             <div key={`${t.guestCount}-${t.planName || ""}`} className="flex items-center shrink-0">
-              {idx > 0 && (
-                <span className="px-1 text-muted-foreground/30 text-[13px]">·</span>
-              )}
               <button
                 ref={(el) => {
                   btnRefs.current[t.guestCount] = el;
@@ -1073,12 +1073,12 @@ const GuestTabsScroller = ({
                 className={cn(
                   "relative px-4 py-1.5 my-1 text-[15px] whitespace-nowrap rounded-full transition-all",
                   isActive
-                    ? "font-semibold"
-                    : "font-medium text-muted-foreground/70 hover:text-foreground"
+                    ? "font-semibold shadow-sm"
+                    : "font-medium text-gray-600 hover:text-foreground"
                 )}
                 style={
                   isActive
-                    ? { background: "#FFF1E6", color: "#C2410C" }
+                    ? { background: "#A98467", color: "#FFFFFF" }
                     : undefined
                 }
               >
@@ -1087,6 +1087,7 @@ const GuestTabsScroller = ({
             </div>
           );
         })}
+
         {/* 尾端 hint：可滑動時顯示「更多 →」 */}
         {canRight && (
           <span className="shrink-0 ml-1 mr-2 text-[12px] font-medium text-muted-foreground/80 whitespace-nowrap animate-pulse">
