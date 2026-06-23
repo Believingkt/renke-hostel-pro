@@ -350,6 +350,7 @@ export const FacilityManagement = forwardRef<FacilityManagementRef, object>((_, 
                       <TableHeader>
                         <TableRow className="bg-muted/50">
                           <TableHead>設施名稱</TableHead>
+                          {scopeFilter !== "shared" && <TableHead>歸屬</TableHead>}
                           <TableHead>計費方式</TableHead>
                           <TableHead>狀態</TableHead>
                           <TableHead className="text-center">操作</TableHead>
@@ -361,6 +362,17 @@ export const FacilityManagement = forwardRef<FacilityManagementRef, object>((_, 
                             <TableCell className="font-medium">
                               {facility.facility_name}
                             </TableCell>
+                            {scopeFilter !== "shared" && (
+                              <TableCell className="text-sm">
+                                {facility.accommodation_id ? (
+                                  <Badge variant="outline">
+                                    {accommodations[facility.accommodation_id] || "未知民宿"}
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="secondary">共用</Badge>
+                                )}
+                              </TableCell>
+                            )}
                             <TableCell className="text-sm text-muted-foreground">
                               {getPricingTypeLabel(facility.pricing_type)}
                             </TableCell>
@@ -373,16 +385,18 @@ export const FacilityManagement = forwardRef<FacilityManagementRef, object>((_, 
                             </TableCell>
                             <TableCell className="text-center">
                               <div className="flex justify-center gap-2">
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  onClick={() => openEditDialog(facility)}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
+                                {!facility.accommodation_id && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => openEditDialog(facility)}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
                                   onClick={() => setDeleteTarget(facility)}
                                 >
                                   <Trash2 className="h-4 w-4 text-destructive" />
