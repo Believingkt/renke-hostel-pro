@@ -1082,7 +1082,7 @@ const BookingPortal = () => {
                 return (
                   <article
                     key={acc.id}
-                    className={`${idx === 0 ? "pt-2" : "pt-10"} pb-20`}
+                    className={`${idx === 0 ? "pt-2" : "pt-6"} pb-8`}
                   >
                     {/* Full-bleed photo */}
                     <button
