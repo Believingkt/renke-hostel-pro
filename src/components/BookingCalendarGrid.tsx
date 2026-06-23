@@ -635,6 +635,8 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
     maxWidth: DAY_COL_MIN_WIDTH,
     flexBasis: DAY_COL_MIN_WIDTH,
   };
+  const DAYS_ROW_WIDTH = DAY_COL_MIN_WIDTH * dayCount;
+  const daysRowStyle = { width: DAYS_ROW_WIDTH, minWidth: DAYS_ROW_WIDTH };
 
   const syncHorizontalScroll = (source: "header" | "body") => {
     if (isSyncingScrollRef.current) return;
@@ -749,8 +751,9 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                   <ChevronDown className="h-4 w-4 mr-1" />
                   客房類別
                 </div>
-                <div className="flex-1 flex flex-col">
+                <div className="shrink-0 flex flex-col" style={daysRowStyle}>
                   <div className="flex">
+
                     {dates.map((date, i) => {
                       const dateStr = dateStrings[i];
                       const holiday = holidays.get(dateStr);
@@ -818,7 +821,8 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                     <span className="text-xs text-muted-foreground ml-auto">{roomCount > 0 ? `${roomCount}${roomType.is_exclusive_package ? '棟' : '間'}` : ""}</span>
                   </div>
                   {/* Available rooms per date */}
-                  <div className="flex flex-1">
+                  <div className="flex shrink-0" style={daysRowStyle}>
+
                     {dates.map((date, i) => {
                       const dateStr = dateStrings[i];
                       const available = getAvailableRooms(roomType.id, dateStr);
@@ -976,7 +980,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                               <span className="text-xs text-muted-foreground truncate">· {slot.meta.nickname}</span>
                             )}
                           </div>
-                          <div className="flex flex-1 relative" style={{ minHeight: 48 }}>
+                          <div className="flex shrink-0 relative" style={{ ...daysRowStyle, minHeight: 48 }}>
                             {/* Background date cells */}
                             {dates.map((date, i) => {
                               const dateStr = dateStrings[i];
@@ -1167,7 +1171,8 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                           <span className="font-medium text-foreground truncate">{pr.name}</span>
                           <span className="text-xs text-muted-foreground ml-auto">{pr.count}間</span>
                         </div>
-                        <div className="flex flex-1">
+                        <div className="flex shrink-0" style={daysRowStyle}>
+
                           {dates.map((date, i) => {
                             const dateStr = dateStrings[i];
                             const holiday = holidays.get(dateStr);
@@ -1229,7 +1234,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                 <span className="font-semibold text-sm truncate">{cr.name}</span>
                 <span className="text-xs text-muted-foreground ml-auto">{cr.count}間</span>
               </div>
-              <div className="flex flex-1">
+              <div className="flex shrink-0" style={daysRowStyle}>
                 {dates.map((date, i) => {
                   const dateStr = dateStrings[i];
                   const holiday = holidays.get(dateStr);
