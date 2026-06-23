@@ -836,13 +836,16 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                     {(() => {
                       const YUNXIU_ACC_ID = "7690a606-6bac-4cd5-a3e7-2fa754b318e8";
                       const TIANSONG_ACC_ID = "4ee31aca-5641-4d05-80e2-1c67626be83d";
+                      const OLIVIA_ACC_ID = "74d064f4-1f8c-47e8-9be0-f0a596bbe6f8";
                       const isYunxiu = accommodationId === YUNXIU_ACC_ID;
                       const isTiansong = accommodationId === TIANSONG_ACC_ID;
+                      const isOlivia = accommodationId === OLIVIA_ACC_ID;
                       const rtUnits = roomUnits.filter(u => u.room_type_id === roomType.id);
-                      // 雲岫：僅散客房型用單位顯示
+                      // 雲岫 / 奧莉薇雅：僅散客房型用單位顯示
                       // 天送：散客與包棟皆用單位顯示（房號 / 棟號）
                       const useUnits = rtUnits.length > 0 && (
                         (isYunxiu && !roomType.is_exclusive_package) ||
+                        (isOlivia && !roomType.is_exclusive_package) ||
                         isTiansong
                       );
 
