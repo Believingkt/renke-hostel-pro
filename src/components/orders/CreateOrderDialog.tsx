@@ -1195,6 +1195,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         deposit_required_amount: form.security_deposit_amount,
         deposit_method: form.security_deposit_method,
         deposit_status: "pending",
+        lock_whole_building: isOlivia ? lockWholeBuilding : false,
       }).select('id').single();
 
       if (error) throw error;
