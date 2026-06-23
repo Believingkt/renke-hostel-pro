@@ -618,17 +618,16 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
   }, []);
 
   const DAY_COL_MIN_WIDTH = (() => {
-    // Cap so cells don't stretch absurdly wide in short ranges (3天/7天)
-    const MAX_COL = 140;
     if (containerWidth > 0) {
       const available = containerWidth - LEFT_COL_WIDTH;
-      const natural = Math.floor(available / dayCount);
-      return Math.min(Math.max(natural, 48), MAX_COL);
+      const natural = available / dayCount;
+      return Math.max(natural, 48);
     }
     // Fallback before measurement
     return dayCount <= 7 ? 120 : dayCount <= 15 ? 80 : 48;
   })();
   const GRID_MIN_WIDTH = LEFT_COL_WIDTH + DAY_COL_MIN_WIDTH * dayCount;
+  const gridStyle = { width: GRID_MIN_WIDTH, minWidth: GRID_MIN_WIDTH };
   const dayColumnStyle = {
     width: DAY_COL_MIN_WIDTH,
     minWidth: DAY_COL_MIN_WIDTH,
@@ -732,7 +731,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
             onScroll={() => syncHorizontalScroll("header")}
             className="overflow-x-auto overflow-y-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [overscroll-behavior-x:contain]"
           >
-            <div style={{ minWidth: GRID_MIN_WIDTH }}>
+              <div style={gridStyle}>
               <div className="flex border-b bg-card">
                 <div
                   className="shrink-0 border-r sticky left-0 bg-card z-30"
@@ -798,7 +797,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
           onScroll={() => syncHorizontalScroll("body")}
           className="overflow-x-auto overflow-y-visible [overscroll-behavior-x:contain]"
         >
-          <div style={{ minWidth: GRID_MIN_WIDTH }}>
+            <div style={gridStyle}>
             {/* Room type rows */}
           {roomTypes.filter(rt => !hiddenRoomTypeIds.has(rt.id)).map(roomType => {
             const isExpanded = expandedRoomTypes.has(roomType.id);
