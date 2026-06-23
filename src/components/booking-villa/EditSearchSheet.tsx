@@ -231,9 +231,10 @@ const EditSearchSheet = ({
                   // 若已選入住日但尚未選退房日：允許 from+1 ~ 第一個無庫存日（含）作為退房日
                   if (range?.from && !range?.to && !rangeCommitted) {
                     if (d <= range.from) {
-                      // 點擊更早或同一天 → 留給 onSelect 改成新起點
-                      return availableDates ? !availableDates.has(dateKey) : false;
+                      // 選退房日時，禁止點擊入住日（含）以前的日期，引導用戶用「重選」
+                      return true;
                     }
+
                     // 從 from+1 開始往後找最大允許退房日
                     let cursor = addDays(range.from, 1);
                     let maxCheckout = cursor;
