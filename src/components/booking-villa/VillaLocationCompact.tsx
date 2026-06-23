@@ -168,17 +168,18 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
           })}
         </ul>
       ) : tab === "transport" && (locationInfo?.driving_info || locationInfo?.public_transport_info) ? (
-        <div className="space-y-2 text-[12px] text-muted-foreground leading-relaxed">
+        <div className="space-y-2 text-[12px] text-muted-foreground leading-relaxed [&_strong]:font-semibold [&_strong]:text-foreground [&_p]:mb-1 [&_a]:underline">
           {locationInfo?.public_transport_info && (
-            <p className="whitespace-pre-line">{locationInfo.public_transport_info}</p>
+            <div dangerouslySetInnerHTML={{ __html: locationInfo.public_transport_info }} />
           )}
           {locationInfo?.driving_info && (
-            <p className="whitespace-pre-line">{locationInfo.driving_info}</p>
+            <div dangerouslySetInnerHTML={{ __html: locationInfo.driving_info }} />
           )}
         </div>
       ) : (
         <p className="text-[12px] text-muted-foreground py-2">暫無相關資訊</p>
       )}
+
     </section>
   );
 };
