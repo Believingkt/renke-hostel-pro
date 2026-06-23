@@ -199,6 +199,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   }, []);
 
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  // 奧莉薇雅：標記為包棟 → 自動鎖當天整棟所有其他房型
+  const [lockWholeBuilding, setLockWholeBuilding] = useState(false);
   const [filteredTemplates, setFilteredTemplates] = useState<PricingTemplate[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
   const [form, setForm] = useState({
