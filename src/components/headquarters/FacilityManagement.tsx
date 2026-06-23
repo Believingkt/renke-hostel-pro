@@ -290,6 +290,17 @@ export const FacilityManagement = forwardRef<FacilityManagementRef, object>((_, 
     <div className="space-y-4">
       {/* Filters */}
       <div className="flex items-center gap-4 flex-wrap">
+        <Select value={scopeFilter} onValueChange={(v) => setScopeFilter(v as any)}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="shared">共用設施</SelectItem>
+            <SelectItem value="per_property">各民宿設施</SelectItem>
+            <SelectItem value="all">全部（共用＋民宿）</SelectItem>
+          </SelectContent>
+        </Select>
+
         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="全部類別" />
