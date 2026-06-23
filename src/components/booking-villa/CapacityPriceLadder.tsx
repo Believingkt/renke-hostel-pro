@@ -311,58 +311,29 @@ const CapacityPriceLadder = ({
                   </div>
                 )}
 
-                {/* 3. 方案（可收合） */}
-                {yesItems.length > 0 && (
-                  <details className="group">
-                    <summary className="flex items-center justify-between cursor-pointer list-none focus:outline-none focus-visible:outline-none">
-                      <p className="text-[14px] font-bold text-foreground">
-                        {activeTier_.subtitle || "方案已含"}
-                        <span className="ml-1.5 text-[12px] font-normal text-muted-foreground">
-                          （{yesItems.length}{optionalItems.length > 0 ? `+${optionalItems.length}` : ""} 項）
+                {/* 3. 禮遇列表（Benefits） */}
+                <div>
+                  <p className="text-[14px] font-bold text-foreground">
+                    {activeTier_.subtitle || "尊榮禮遇"}
+                  </p>
+                  <ul className="mt-3 space-y-2.5">
+                    {[
+                      "私人管家全程接待",
+                      "迎賓下午茶與在地點心",
+                      "全棟空間尊榮獨享",
+                    ].map((label, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <Check
+                          className="h-4 w-4 mt-0.5 shrink-0"
+                          style={{ color: "#A98467" }}
+                        />
+                        <span className="text-[13px] text-gray-700 leading-relaxed">
+                          {label}
                         </span>
-                      </p>
-                      <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
-                    </summary>
-                    <ul className="mt-3 space-y-2.5">
-                      {yesItems.map((inc, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <Check
-                            className="h-4 w-4 mt-0.5 shrink-0"
-                            style={{ color: "#A98467" }}
-                          />
-                          <span className="text-[13px] text-foreground leading-relaxed">
-                            {inc.text}
-                            {inc.price_note && (
-                              <span className="text-muted-foreground ml-1">
-                                ({inc.price_note})
-                              </span>
-                            )}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                    {optionalItems.length > 0 && (
-                      <ul className="mt-2.5 space-y-2">
-                        {optionalItems.map((inc, i) => (
-                          <li key={i} className="flex items-start gap-2">
-                            <Plus
-                              className="h-3.5 w-3.5 mt-0.5 shrink-0"
-                              style={{ color: "#526A5A" }}
-                            />
-                            <span className="text-[12px] leading-relaxed text-muted-foreground">
-                              {inc.text}
-                              {inc.price_note && (
-                                <span className="ml-1">({inc.price_note})</span>
-                              )}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </details>
-                )}
-
-
+                      </li>
+                    ))}
+                  </ul>
+                </div>
 
                 {(activeTier_.childCountMax || activeTier_.childAgeNote) && (
                   <p className="text-[12px] text-muted-foreground flex items-center gap-1">
@@ -387,40 +358,44 @@ const CapacityPriceLadder = ({
 
                 {/* 4. 價格區 */}
                 <div className="pt-3 border-t border-border/60">
-                  <div className="flex items-center gap-1.5">
+                  {/* 獨享權標示 */}
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-[11.5px]">
+                    <Sparkles className="h-3 w-3" />
+                    <span>本日僅接待您一組貴賓</span>
+                  </div>
+
+                  <div className="mt-2 flex items-center gap-1.5">
                     <h3 className="font-semibold text-[17px] leading-tight text-foreground tracking-tight">
                       {activeTier_.planName || `${opt.guestCount} 人${TERM}`}
                     </h3>
                   </div>
                   <div className="mt-2 flex items-baseline gap-2 flex-wrap">
-                    {opt.originalPrice > opt.totalPrice && (
-                      <span className="text-[12px] line-through text-muted-foreground/70 tabular-nums">
-                        NT${opt.originalPrice.toLocaleString()}
-                      </span>
-                    )}
                     <span
-                      className="font-bold text-[26px] leading-none tabular-nums tracking-tight"
+                      className="font-bold text-[32px] leading-none tabular-nums tracking-tight"
                       style={{ color: "#A98467" }}
                     >
                       NT${opt.totalPrice.toLocaleString()}
                     </span>
                     {saved > 0 && (
                       <span
-                        className="inline-flex items-center text-[13px] font-bold px-2.5 py-0.5 rounded-full text-white"
-                        style={{ background: "#EF4F6B" }}
+                        className="inline-flex items-center text-[12px] font-medium px-2.5 py-0.5 rounded-full"
+                        style={{ background: "#FDF6F5", color: "#C25953" }}
                       >
-                        -{opt.discountPercent}%
+                        限時特別禮遇
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-muted-foreground mt-1.5">
+                  <p className="text-[11px] text-gray-400 mt-1.5">
+                    已含稅與服務費
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-1">
                     <Users className="inline h-3 w-3 mr-0.5 -mt-0.5" />
                     可入住 {opt.guestCount} 位
                     {activeTier_.guestCountMax && activeTier_.guestCountMax > opt.guestCount && (
                       <span>~{activeTier_.guestCountMax}</span>
                     )}
                     {" · "}
-                    {nights > 1 ? `${nights} 晚含稅總價` : "單晚含稅"}
+                    {nights > 1 ? `${nights} 晚總價` : "單晚總價"}
                   </p>
 
                   <button
@@ -429,7 +404,7 @@ const CapacityPriceLadder = ({
                     className="mt-3 w-full h-12 rounded-full font-bold text-[15px] text-white tracking-wide shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 focus:outline-none"
                     style={{ backgroundColor: "#F08A3E" }}
                   >
-                    馬上預訂
+                    預約這段專屬假期
                   </button>
 
 
@@ -440,6 +415,7 @@ const CapacityPriceLadder = ({
                     </div>
                   )}
                 </div>
+
               </div>
             </Card>
 
