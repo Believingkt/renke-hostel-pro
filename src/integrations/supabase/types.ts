@@ -5915,6 +5915,82 @@ export type Database = {
         }
         Relationships: []
       }
+      portal_featured_card_photos: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          display_order: number
+          id: string
+          photo_url: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          photo_url: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          photo_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_featured_card_photos_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_featured_cards: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          cta_label: string | null
+          display_name: string | null
+          editor_pick_body: string | null
+          editor_pick_title: string | null
+          is_visible: boolean
+          location_override: string | null
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          cta_label?: string | null
+          display_name?: string | null
+          editor_pick_body?: string | null
+          editor_pick_title?: string | null
+          is_visible?: boolean
+          location_override?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          cta_label?: string | null
+          display_name?: string | null
+          editor_pick_body?: string | null
+          editor_pick_title?: string | null
+          is_visible?: boolean
+          location_override?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_featured_cards_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: true
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pricing_rules: {
         Row: {
           accommodation_id: string
