@@ -112,6 +112,12 @@ export function AccommodationDialog({
   const [loadingTransactionFee, setLoadingTransactionFee] = useState(false);
   const savedTransactionFeeRef = useRef<number>(0);
 
+  // Free cancellation days state
+  const [freeCancelDays, setFreeCancelDays] = useState<number>(14);
+  const [loadingFreeCancel, setLoadingFreeCancel] = useState(false);
+  const savedFreeCancelRef = useRef<number>(14);
+
+
   useEffect(() => {
     if (initialData) {
       setFormData({
@@ -167,7 +173,7 @@ export function AccommodationDialog({
     try {
       const { data, error } = await supabase
         .from("booking_settings")
-        .select("payment_methods, deposit_percentage")
+        .select("payment_methods, deposit_percentage, free_cancel_days")
         .eq("accommodation_id", accommodationId)
         .single();
 
@@ -178,8 +184,38 @@ export function AccommodationDialog({
       const dp = data?.deposit_percentage ?? 30;
       setDepositPercentage(dp);
       savedDepositRef.current = dp;
+      const fcd = (data as any)?.free_cancel_days ?? 14;
+      setFreeCancelDays(fcd);
+      savedFreeCancelRef.current = fcd;
     } catch (error) {
       console.error("Error loading payment settings:", error);
+    }
+  };
+
+  const handleFreeCancelDaysChange = async (value: number) => {
+    if (!initialData?.id) return;
+    if (value < 0 || value > 365) return;
+
+    setLoadingFreeCancel(true);
+    try {
+      const { error } = await supabase
+        .from("booking_settings")
+        .update({
+          free_cancel_days: value,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("accommodation_id", initialData.id);
+
+      if (error) throw error;
+
+      setFreeCancelDays(value);
+      savedFreeCancelRef.current = value;
+      toast.success(`免費取消天數已更新為 ${value} 天`);
+    } catch (error: any) {
+      console.error("Error updating free cancel days:", error);
+      toast.error("更新失敗", { description: error.message });
+    } finally {
+      setLoadingFreeCancel(false);
     }
   };
 
@@ -968,6 +1004,59 @@ export function AccommodationDialog({
                                 更新中...
                               </div>
                             )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 取消政策 */}
+                      <div className="pt-4 border-t">
+                        <div className="space-y-1 mb-4">
+                          <h3 className="font-semibold text-base flex items-center gap-2">
+                            <div className="h-5 w-1 rounded-full bg-primary" />
+                            取消政策
+                          </h3>
+                          <p className="text-xs text-muted-foreground">
+                            前台「依政策免費取消」會依入住日減去此天數，自動計算截止時間
+                          </p>
+                        </div>
+                        <div className="border rounded-lg p-4 bg-muted/30">
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-sm">免費取消天數</span>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                住宿日前 N 天（含）以前取消可全額退款，預設 14 天
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="number"
+                                min={0}
+                                max={365}
+                                step={1}
+                                value={freeCancelDays}
+                                onChange={(e) => {
+                                  const val = parseInt(e.target.value) || 0;
+                                  if (val >= 0 && val <= 365) {
+                                    setFreeCancelDays(val);
+                                  }
+                                }}
+                                onBlur={(e) => {
+                                  const val = parseInt(e.target.value) || 0;
+                                  if (val < 0 || val > 365) return;
+                                  if (val !== savedFreeCancelRef.current) {
+                                    handleFreeCancelDaysChange(val);
+                                  }
+                                }}
+                                disabled={loadingFreeCancel || isSubmitting}
+                                className="w-20 h-9 text-center"
+                              />
+                              <span className="text-sm text-muted-foreground">天</span>
+                              {loadingFreeCancel && (
+                                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>

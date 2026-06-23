@@ -1575,6 +1575,7 @@ export type Database = {
           check_out_time: string | null
           created_at: string
           deposit_percentage: number | null
+          free_cancel_days: number
           id: string
           important_section_subtitle: string | null
           important_section_title: string | null
@@ -1602,6 +1603,7 @@ export type Database = {
           check_out_time?: string | null
           created_at?: string
           deposit_percentage?: number | null
+          free_cancel_days?: number
           id?: string
           important_section_subtitle?: string | null
           important_section_title?: string | null
@@ -1629,6 +1631,7 @@ export type Database = {
           check_out_time?: string | null
           created_at?: string
           deposit_percentage?: number | null
+          free_cancel_days?: number
           id?: string
           important_section_subtitle?: string | null
           important_section_title?: string | null

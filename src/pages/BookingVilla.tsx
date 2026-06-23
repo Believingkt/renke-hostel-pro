@@ -739,6 +739,7 @@ const BookingVilla = () => {
               enableFewPeople={isSensan || packages.some((p) => (p.tags || []).some((t) => t === "early_bird" || t === "few_people"))}
               isSensan={isSensan}
               isHolidayDate={isHolidayDate}
+              freeCancelDays={secondaryData?.bookingSettings?.free_cancel_days ?? undefined}
             />
           </div>
         </section>
