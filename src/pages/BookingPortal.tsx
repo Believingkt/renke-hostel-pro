@@ -1228,23 +1228,24 @@ const BookingPortal = () => {
               {/* Vertical secondary, offset down on desktop */}
               {secondary && (
                 <div className="md:col-span-5 md:pt-16 lg:pt-24 group cursor-pointer" onClick={() => handleAccClick(secondary.id)}>
-                  <div className="relative aspect-[3/4] overflow-hidden rounded-sm mb-4 sm:mb-6 bg-muted">
-                    {secondary.hero_photo_url ? (
-                      <img src={secondary.hero_photo_url} alt={secondary.name} loading="lazy"
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-secondary">
-                        <BedDouble className="h-12 w-12 text-muted-foreground/40" />
-                      </div>
-                    )}
-                    {secondary.type && (
-                      <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6">
-                        <div className="bg-primary text-primary-foreground px-3 py-2 rounded-sm">
-                          <p className="text-[10px] uppercase tracking-tighter opacity-80 leading-none mb-0.5">Type</p>
-                          <p style={serif} className="text-base leading-none">{secondary.type}</p>
-                        </div>
-                      </div>
-                    )}
+                  <div className="mb-4 sm:mb-6">
+                    <AccommodationPhotoCarousel
+                      photos={secondary.hero_photos ?? (secondary.hero_photo_url ? [secondary.hero_photo_url] : [])}
+                      alt={secondary.name}
+                      aspectClassName="aspect-[3/4]"
+                      roundedClassName="rounded-sm"
+                      onClick={() => handleAccClick(secondary.id)}
+                      overlay={
+                        secondary.type ? (
+                          <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 z-10 pointer-events-none">
+                            <div className="bg-primary text-primary-foreground px-3 py-2 rounded-sm">
+                              <p className="text-[10px] uppercase tracking-tighter opacity-80 leading-none mb-0.5">Type</p>
+                              <p style={serif} className="text-base leading-none">{secondary.type}</p>
+                            </div>
+                          </div>
+                        ) : null
+                      }
+                    />
                   </div>
                   <div className="space-y-2">
                     {locOf(secondary) && (
