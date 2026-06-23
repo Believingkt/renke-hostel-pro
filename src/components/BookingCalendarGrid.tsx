@@ -610,18 +610,27 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
     if (!el) return;
     // Measure parent width to avoid feedback loop (this element's width depends on children)
     const target = el.parentElement ?? el;
-    const ro = new ResizeObserver(entries => {
-      for (const entry of entries) {
-        setContainerWidth(entry.contentRect.width);
-      }
-    });
+    const measure = () => {
+      const rect = target.getBoundingClientRect();
+      setContainerWidth(prev => (Math.abs(prev - rect.width) < 0.5 ? prev : rect.width));
+    };
+    measure();
+    const ro = new ResizeObserver(() => measure());
     ro.observe(target);
-    return () => ro.disconnect();
+    const onResize = () => measure();
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", onResize);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", onResize);
+    };
   }, []);
 
   const DAY_COL_MIN_WIDTH = (() => {
     if (containerWidth > 0) {
-      const available = containerWidth - LEFT_COL_WIDTH;
+      // Subtract container border (1px each side) to prevent subpixel overflow
+      const available = containerWidth - LEFT_COL_WIDTH - 2;
       const natural = available / dayCount;
       return Math.max(natural, 48);
     }
