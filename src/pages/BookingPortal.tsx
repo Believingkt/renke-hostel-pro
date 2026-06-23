@@ -1170,22 +1170,23 @@ const BookingPortal = () => {
               {/* Hero feature */}
               {hero && (
                 <div className="md:col-span-7 group cursor-pointer" onClick={() => handleAccClick(hero.id)}>
-                  <div className="relative aspect-[4/3] overflow-hidden rounded-sm mb-4 sm:mb-6 bg-muted">
-                    {hero.hero_photo_url ? (
-                      <img src={hero.hero_photo_url} alt={hero.name} loading="lazy"
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-secondary">
-                        <BedDouble className="h-12 w-12 text-muted-foreground/40" />
-                      </div>
-                    )}
-                    {locOf(hero) && (
-                      <div className="absolute top-4 left-4 sm:top-6 sm:left-6">
-                        <span className="backdrop-blur-md bg-white/85 px-3 py-1.5 sm:px-4 sm:py-2 text-xs font-medium tracking-wider text-foreground rounded-full">
-                          {locOf(hero)}
-                        </span>
-                      </div>
-                    )}
+                  <div className="mb-4 sm:mb-6">
+                    <AccommodationPhotoCarousel
+                      photos={hero.hero_photos ?? (hero.hero_photo_url ? [hero.hero_photo_url] : [])}
+                      alt={hero.name}
+                      aspectClassName="aspect-[4/3]"
+                      roundedClassName="rounded-sm"
+                      onClick={() => handleAccClick(hero.id)}
+                      overlay={
+                        locOf(hero) ? (
+                          <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10 pointer-events-none">
+                            <span className="backdrop-blur-md bg-white/85 px-3 py-1.5 sm:px-4 sm:py-2 text-xs font-medium tracking-wider text-foreground rounded-full">
+                              {locOf(hero)}
+                            </span>
+                          </div>
+                        ) : null
+                      }
+                    />
                   </div>
                   <div className="flex justify-between items-start gap-4">
                     <h3 style={serif} className="text-xl sm:text-2xl md:text-3xl text-foreground group-hover:text-primary transition-colors">
