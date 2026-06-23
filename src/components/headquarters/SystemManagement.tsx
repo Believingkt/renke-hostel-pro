@@ -35,6 +35,7 @@ import { AccommodationApiKeysManagement } from "@/components/headquarters/Accomm
 import { OwlTingServiceAccountManagement } from "@/components/headquarters/OwlTingServiceAccountManagement";
 import { AccommodationOwnersManagement } from "@/components/headquarters/AccommodationOwnersManagement";
 import { OwlTingAliasesEditor } from "@/components/headquarters/OwlTingAliasesEditor";
+import { OwlTingPushMonitor } from "@/components/headquarters/OwlTingPushMonitor";
 import { SystemHealthMonitor } from "@/components/headquarters/SystemHealthMonitor";
 import { 
   ScrollText,
@@ -885,6 +886,10 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
 
         <TabsContent value="owlting" className="space-y-4">
           <OwlTingServiceAccountManagement />
+        </TabsContent>
+
+        <TabsContent value="owlting-push" className="space-y-4">
+          <OwlTingPushMonitor />
         </TabsContent>
 
         <TabsContent value="owners" className="space-y-4">

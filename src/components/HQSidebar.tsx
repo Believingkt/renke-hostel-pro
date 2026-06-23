@@ -65,6 +65,7 @@ const menuItems = [
       { title: "系統健康監控", url: "/hq?tab=system&section=health", icon: Activity },
       { title: "民宿 API Keys", url: "/hq?tab=system&section=api-keys", icon: FileText },
       { title: "奧丁丁服務帳號", url: "/hq?tab=system&section=owlting", icon: FileText },
+      { title: "奧丁丁推送監控", url: "/hq?tab=system&section=owlting-push", icon: Activity },
       { title: "業主聯絡人", url: "/hq?tab=system&section=owners", icon: UserCheck },
     ]
   },
