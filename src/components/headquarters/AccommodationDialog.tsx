@@ -105,10 +105,12 @@ export function AccommodationDialog({
   // Deposit percentage state
   const [depositPercentage, setDepositPercentage] = useState<number>(30);
   const [loadingDeposit, setLoadingDeposit] = useState(false);
+  const savedDepositRef = useRef<number>(30);
 
   // Transaction fee percentage state
   const [transactionFeePercentage, setTransactionFeePercentage] = useState<number>(0);
   const [loadingTransactionFee, setLoadingTransactionFee] = useState(false);
+  const savedTransactionFeeRef = useRef<number>(0);
 
   useEffect(() => {
     if (initialData) {
