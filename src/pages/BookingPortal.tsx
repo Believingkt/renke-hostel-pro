@@ -1108,19 +1108,15 @@ const BookingPortal = () => {
                 </div>
               )}
 
-              {/* Horizontal scroll strip */}
+              {/* 2-column grid: show every other accommodation at once */}
               {mobileOthers.length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-3 px-1">
                     <h4 className="text-xs font-black text-muted-foreground tracking-widest uppercase">更多質感嚴選</h4>
-                    <span className="text-[10px] text-muted-foreground">← 滑動查看 →</span>
                   </div>
-                  <div
-                    className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-3 px-3"
-                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                  >
+                  <div className="grid grid-cols-2 gap-3">
                     {mobileOthers.map((acc) => (
-                      <div key={acc.id} className="flex-none w-[180px] snap-start cursor-pointer group" onClick={() => handleAccClick(acc.id)}>
+                      <div key={acc.id} className="cursor-pointer group" onClick={() => handleAccClick(acc.id)}>
                         <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-muted shadow-md">
                           {acc.hero_photo_url ? (
                             <img src={acc.hero_photo_url} alt={acc.name} loading="lazy"
@@ -1130,23 +1126,23 @@ const BookingPortal = () => {
                               <BedDouble className="h-10 w-10 text-muted-foreground/40" />
                             </div>
                           )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
                           <div className="absolute bottom-0 p-3 w-full">
-                            <h4 className="text-white font-bold text-sm leading-tight">{acc.name}</h4>
-                            <div className="flex justify-between items-center mt-1">
-                              <span className="text-white/80 text-[10px]">{locOf(acc)}</span>
+                            <h4 className="text-white font-bold text-sm leading-tight line-clamp-1">{acc.name}</h4>
+                            <div className="flex justify-between items-center mt-1 gap-1">
+                              <span className="text-white/80 text-[10px] truncate">{locOf(acc)}</span>
                               {minPriceOf(acc.id) != null && (
-                                <span className="text-primary font-bold text-xs">NT$ {minPriceOf(acc.id)!.toLocaleString()}</span>
+                                <span className="text-primary font-bold text-[11px] whitespace-nowrap">NT$ {minPriceOf(acc.id)!.toLocaleString()}</span>
                               )}
                             </div>
                           </div>
                         </div>
                       </div>
                     ))}
-                    <div className="flex-none w-4" />
                   </div>
                 </div>
               )}
+
             </div>
 
             {/* ── Desktop: Magazine grid ── */}
