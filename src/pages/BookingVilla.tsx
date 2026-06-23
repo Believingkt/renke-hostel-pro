@@ -37,6 +37,7 @@ import {
   Snowflake,
   Calendar,
   BedDouble,
+  ChevronDown,
 } from "lucide-react";
 import { differenceInDays, format, formatISO } from "date-fns";
 
