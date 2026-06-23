@@ -917,7 +917,8 @@ export function AccommodationDialog({
                                   }}
                                   onBlur={(e) => {
                                     const val = parseFloat(e.target.value) || 0;
-                                    if (val !== transactionFeePercentage) {
+                                    if (val < 0 || val > 100) return;
+                                    if (val !== savedTransactionFeeRef.current) {
                                       handleTransactionFeeChange(val);
                                     }
                                   }}
