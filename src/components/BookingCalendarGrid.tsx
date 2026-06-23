@@ -751,8 +751,9 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                   <ChevronDown className="h-4 w-4 mr-1" />
                   客房類別
                 </div>
-                <div className="flex-1 flex flex-col">
+                <div className="shrink-0 flex flex-col" style={daysRowStyle}>
                   <div className="flex">
+
                     {dates.map((date, i) => {
                       const dateStr = dateStrings[i];
                       const holiday = holidays.get(dateStr);
