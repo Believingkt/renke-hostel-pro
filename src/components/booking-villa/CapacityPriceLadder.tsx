@@ -305,6 +305,7 @@ const CapacityPriceLadder = ({
                       ROOM ALLOCATION
                     </p>
                     <p className="text-[14px] font-bold text-foreground mt-0.5">
+                      <span className="mr-1" aria-hidden>👆</span>
                       房間搭配：{activeTier_.roomAllocation || roomBreakdown}
                     </p>
                   </div>
@@ -370,30 +371,42 @@ const CapacityPriceLadder = ({
                   </p>
                 )}
 
+                {/* 信任訊號 */}
+                <ul className="flex flex-wrap gap-x-4 gap-y-1 pt-1" style={{ color: "#526A5A" }}>
+                  <li className="flex items-center gap-1 text-[12px]">
+                    <Check className="h-3.5 w-3.5" />
+                    <span>即時確認</span>
+                  </li>
+                  <li className="flex items-center gap-1 text-[12px]">
+                    <Check className="h-3.5 w-3.5" />
+                    <span>依政策免費取消</span>
+                  </li>
+                </ul>
+
                 {/* 4. 價格區 */}
                 <div className="pt-3 border-t border-border/60">
                   <div className="flex items-center gap-1.5">
                     <span className="text-xl" aria-hidden>{scene.emoji}</span>
-                    <h3 className="font-black text-[18px] leading-tight text-foreground">
+                    <h3 className="font-semibold text-[17px] leading-tight text-foreground tracking-tight">
                       {activeTier_.planName || `${opt.guestCount} 人${TERM}`}
                     </h3>
                   </div>
-                  <div className="mt-2 flex items-baseline gap-2">
+                  <div className="mt-2 flex items-baseline gap-2 flex-wrap">
                     {opt.originalPrice > opt.totalPrice && (
-                      <span className="text-[12px] line-through text-muted-foreground tabular-nums">
+                      <span className="text-[12px] line-through text-muted-foreground/70 tabular-nums">
                         NT${opt.originalPrice.toLocaleString()}
                       </span>
                     )}
                     <span
-                      className="font-black text-[26px] leading-none tabular-nums"
-                      style={{ color: "hsl(25, 88%, 50%)" }}
+                      className="font-bold text-[26px] leading-none tabular-nums tracking-tight"
+                      style={{ color: "#A98467" }}
                     >
                       NT${opt.totalPrice.toLocaleString()}
                     </span>
                     {saved > 0 && (
                       <span
-                        className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded text-white"
-                        style={{ background: "hsl(340, 80%, 55%)" }}
+                        className="inline-flex items-center text-[11px] font-semibold px-1.5 py-0.5 rounded-md"
+                        style={{ background: "#FDF6F5", color: "#C25953" }}
                       >
                         -{opt.discountPercent}%
                       </span>
@@ -412,8 +425,8 @@ const CapacityPriceLadder = ({
                   <button
                     type="button"
                     onClick={() => onSelect(opt)}
-                    className="mt-3 w-full h-12 rounded-xl text-white font-bold text-[15px] shadow-md active:scale-[0.99] transition-transform"
-                    style={{ background: "hsl(25, 88%, 53%)" }}
+                    className="mt-3 w-full h-12 rounded-xl text-white font-semibold text-[15px] shadow-md hover:shadow-lg active:scale-95 transition-all duration-200 tracking-wide"
+                    style={{ background: "#6B5644" }}
                   >
                     馬上預訂
                   </button>
@@ -1001,7 +1014,7 @@ const GuestTabsScroller = ({
           return (
             <div key={`${t.guestCount}-${t.planName || ""}`} className="flex items-center shrink-0">
               {idx > 0 && (
-                <span className="px-1.5 text-muted-foreground/60 text-[14px]">/</span>
+                <span className="px-1 text-muted-foreground/30 text-[13px]">·</span>
               )}
               <button
                 ref={(el) => {
@@ -1010,20 +1023,20 @@ const GuestTabsScroller = ({
                 type="button"
                 onClick={() => onSelect(t.guestCount)}
                 className={cn(
-                  "relative px-3.5 py-1.5 text-[15px] font-bold whitespace-nowrap transition-colors",
-                  isActive ? "text-white" : "text-muted-foreground hover:text-foreground"
-                )}
-                style={
+                  "relative px-3 pt-2 pb-2 text-[15px] whitespace-nowrap transition-colors",
                   isActive
-                    ? {
-                        background: "hsl(25, 88%, 53%)",
-                        clipPath: "polygon(10% 0, 100% 0, 90% 100%, 0 100%)",
-                        padding: "6px 18px",
-                      }
-                    : undefined
-                }
+                    ? "font-semibold text-foreground"
+                    : "font-medium text-muted-foreground/70 hover:text-foreground"
+                )}
               >
                 {t.guestCount}人
+                <span
+                  className={cn(
+                    "absolute left-1/2 -translate-x-1/2 bottom-0 h-[2px] rounded-full transition-all",
+                    isActive ? "w-6 opacity-100" : "w-0 opacity-0"
+                  )}
+                  style={{ background: "#A98467" }}
+                />
               </button>
             </div>
           );
