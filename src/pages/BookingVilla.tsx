@@ -526,16 +526,17 @@ const BookingVilla = () => {
       <SectionTabsNav
         tabs={[
           { id: "capacity-price-section", label: "入住方案" },
-          { id: "about", label: "描述" },
           { id: "facilities", label: "設施" },
           { id: "location", label: "位置" },
           { id: "reviews", label: "Google 評論" },
+          { id: "faq", label: "常見問題" },
+          { id: "about", label: "描述" },
           { id: "policy", label: "住宿政策" },
           { id: "notice", label: "注意事項" },
-          { id: "faq", label: "常見問題" },
           { id: "similar", label: "鄰近住宿" },
         ]}
       />
+
 
       <main className="max-w-3xl mx-auto">
         {/* ── 1. Photo Carousel (mixed hero + gallery) ── */}
@@ -759,16 +760,6 @@ const BookingVilla = () => {
           </div>
         </section>
 
-        {/* ── 5. About / Description ── */}
-        {info.description && (
-          <section id="about" className="px-4 py-4 bg-card border-y border-border/40">
-            <h2 className="text-base font-bold text-foreground mb-2">關於這個空間</h2>
-            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
-              {info.description}
-            </p>
-          </section>
-        )}
-
         {/* ── 6. Room Types 已整合到「選擇您的房間」方案卡內的房型分配（含縮圖），此區移除 ── */}
 
 
@@ -797,8 +788,31 @@ const BookingVilla = () => {
           </div>
         )}
 
+        {/* ── 9. Reviews ── */}
+        {info.show_reviews_section !== false && (
+          <div id="reviews">
+            <ReviewsSection accommodationId={info.id} />
+          </div>
+        )}
 
-        {/* ── 9. Booking Info / 須知 ── */}
+        {/* ── 10. FAQ ── */}
+        {info.show_faq_section !== false && (
+          <div id="faq">
+            <FaqSection accommodationId={info.id} />
+          </div>
+        )}
+
+        {/* ── 11. About / Description ── */}
+        {info.description && (
+          <section id="about" className="px-4 py-4 bg-card border-y border-border/40">
+            <h2 className="text-base font-bold text-foreground mb-2">關於這個空間</h2>
+            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+              {info.description}
+            </p>
+          </section>
+        )}
+
+        {/* ── 12. Booking Info / 住宿政策 + 注意事項 ── */}
         {info.show_booking_info_section !== false && (
           <div id="policy">
             <BookingInfoSection
@@ -810,24 +824,11 @@ const BookingVilla = () => {
           </div>
         )}
 
-        {/* ── 10. Reviews ── */}
-        {info.show_reviews_section !== false && (
-          <div id="reviews">
-            <ReviewsSection accommodationId={info.id} />
-          </div>
-        )}
-
-        {/* ── 11. FAQ ── */}
-        {info.show_faq_section !== false && (
-          <div id="faq">
-            <FaqSection accommodationId={info.id} />
-          </div>
-        )}
-
-        {/* ── 12. Similar stays ── */}
+        {/* ── 13. Similar stays ── */}
         <div id="similar">
           <SimilarStaysCarousel excludeId={info.id} region={region} />
         </div>
+
 
 
         {/* Contact callout */}
