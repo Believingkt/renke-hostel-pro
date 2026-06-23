@@ -203,7 +203,7 @@ const BookingPortal = () => {
   const fetchData = async () => {
     try {
       // Fetch accommodations and room types in parallel
-      const [{ data: accs }, { data: rooms }, { data: roomPhotos }, { data: heroPhotos }, { data: facs }, { data: addons }, { data: templates }, { data: holidays }, { data: aboutSections }] = await Promise.all([
+      const [{ data: accs }, { data: rooms }, { data: roomPhotos }, { data: heroPhotos }, { data: facs }, { data: addons }, { data: templates }, { data: holidays }, { data: aboutSections }, { data: cardSettings }, { data: cardPhotos }] = await Promise.all([
         supabase
           .from("accommodation_info")
           .select("id, name, region_1, region_2, type, address, country")
@@ -240,6 +240,13 @@ const BookingPortal = () => {
         supabase
           .from("about_section")
           .select("accommodation_id, section_title, section_description"),
+        (supabase as any)
+          .from("portal_featured_cards")
+          .select("accommodation_id, display_name, location_override, editor_pick_title, editor_pick_body, cta_label, is_visible"),
+        (supabase as any)
+          .from("portal_featured_card_photos")
+          .select("accommodation_id, photo_url, display_order")
+          .order("display_order", { ascending: true }),
       ]);
 
       if (!accs || !rooms) return;
