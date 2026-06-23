@@ -82,9 +82,9 @@ Deno.serve(async (req) => {
     { auth: { persistSession: false } },
   );
 
-  const username = Deno.env.get("OWLTING_WS_USERNAME") ?? "";
-  const password = Deno.env.get("OWLTING_WS_PASSWORD") ?? "";
-  const haveCreds = !!username && !!password;
+  // Auth is via IP allow-listing. Username/password secrets may still exist
+  // but are intentionally NOT injected into the payload or headers.
+
 
   // 1) Claim queue rows
   const nowIso = new Date().toISOString();
