@@ -48,6 +48,14 @@ interface AccommodationInfo {
   hero_photos?: string[];
   about_title?: string | null;
   about_description?: string | null;
+  // Portal 精選卡片獨立設定
+  card_display_name?: string | null;
+  card_location?: string | null;
+  card_editor_title?: string | null;
+  card_editor_body?: string | null;
+  card_cta_label?: string | null;
+  card_is_visible?: boolean;
+  card_photos?: string[];
 }
 
 interface FacilityRow {
