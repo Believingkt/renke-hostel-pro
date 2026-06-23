@@ -1020,8 +1020,8 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                               const span = endIdx === -1 ? dateStrings.length - startIdx : endIdx - startIdx;
                               if (span <= 0) return null;
 
-                              const leftPercent = (startIdx / dayCount) * 100;
-                              const widthPercent = (span / dayCount) * 100;
+                              const leftPx = startIdx * DAY_COL_MIN_WIDTH;
+                              const widthPx = span * DAY_COL_MIN_WIDTH;
                               const isClippedLeft = checkInDate < dateStrings[0];
                               const isClippedRight = checkOutDate > format(addDays(parseISO(dateStrings[dateStrings.length - 1]), 1), "yyyy-MM-dd");
 
@@ -1109,8 +1109,8 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                           isClippedRight && "rounded-r-none border-r-0",
                                         )}
                                         style={{
-                                          left: `${leftPercent}%`,
-                                          width: `${widthPercent}%`,
+                                          left: leftPx,
+                                          width: widthPx,
                                         }}
                                         onClick={() => navigate(`/admin/orders/${entry.orderId}`, { state: { from: '/admin/room-inventory' } })}
                                       >
