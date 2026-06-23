@@ -69,6 +69,8 @@ interface Props {
   isSensan?: boolean;
   /** 判斷某日期是否為國定假日（含補假），命中即視為假日 tier */
   isHolidayDate?: (date: Date | null | undefined) => boolean;
+  /** 免費取消天數（住宿日前 N 日含以前取消 0%）。預設 14（台灣法規） */
+  freeCancelDays?: number;
 }
 
 import {
