@@ -1106,20 +1106,22 @@ const BookingPortal = () => {
                       </div>
                     </button>
 
-                    {/* Location + Name */}
+                    {/* Name + Location */}
                     <div className="mt-3 px-1">
-                      {locOf(acc) && (
-                        <p className="text-xs text-muted-foreground tracking-wide flex items-center gap-1">
-                          <MapPin className="h-3 w-3" />
-                          {locOf(acc)}
-                        </p>
-                      )}
-                      <h3
-                        style={serif}
-                        className="mt-1 text-xl leading-tight text-foreground/90"
-                      >
-                        {acc.name}
-                      </h3>
+                      <div className="flex items-baseline justify-between gap-3">
+                        <h3
+                          style={serif}
+                          className="text-xl leading-tight text-foreground/90"
+                        >
+                          {acc.name}
+                        </h3>
+                        {locOf(acc) && (
+                          <p className="text-xs text-muted-foreground tracking-wide flex items-center gap-1 shrink-0">
+                            <MapPin className="h-3 w-3" />
+                            {locOf(acc)}
+                          </p>
+                        )}
+                      </div>
                       {price != null && (
                         <p className="mt-1 text-sm text-muted-foreground">
                           <span className="text-primary font-semibold text-base">
