@@ -350,12 +350,7 @@ const SearchRoomCard = ({ data, nights, onClick }: Props) => {
               </p>
             )}
 
-            {/* 5. 兒童規則摘要 */}
-            {data.child_rules_summary && (
-              <p className="text-[11px] sm:text-xs text-muted-foreground/90 line-clamp-2 leading-snug pt-0.5">
-                {data.child_rules_summary}
-              </p>
-            )}
+            {/* 5. 兒童規則摘要（不顯示於搜尋卡片，避免版面冗長） */}
             {data.child_blocked_reason && (
               <p className="text-[11px] sm:text-xs font-medium text-destructive line-clamp-1 leading-snug">
                 ⚠ {data.child_blocked_reason}
