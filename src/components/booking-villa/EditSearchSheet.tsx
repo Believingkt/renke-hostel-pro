@@ -227,14 +227,30 @@ const EditSearchSheet = ({
 
                 disabled={(d) => {
                   if (d < today) return true;
-                  if (availableDates) {
-                    const y = d.getFullYear();
-                    const m = String(d.getMonth() + 1).padStart(2, "0");
-                    const day = String(d.getDate()).padStart(2, "0");
-                    if (!availableDates.has(`${y}-${m}-${day}`)) return true;
+                  const dateKey = format(d, "yyyy-MM-dd");
+                  // 若已選入住日但尚未選退房日：允許 from+1 ~ 第一個無庫存日（含）作為退房日
+                  if (range?.from && !range?.to && !rangeCommitted) {
+                    if (d <= range.from) {
+                      // 點擊更早或同一天 → 留給 onSelect 改成新起點
+                      return availableDates ? !availableDates.has(dateKey) : false;
+                    }
+                    // 從 from+1 開始往後找最大允許退房日
+                    let cursor = addDays(range.from, 1);
+                    let maxCheckout = cursor;
+                    while (true) {
+                      const prevKey = format(addDays(cursor, -1), "yyyy-MM-dd");
+                      const prevAvailable = availableDates ? availableDates.has(prevKey) : true;
+                      if (!prevAvailable) break;
+                      maxCheckout = cursor;
+                      cursor = addDays(cursor, 1);
+                      if (differenceInDays(cursor, range.from) > 90) break;
+                    }
+                    return d > maxCheckout;
                   }
+                  if (availableDates && !availableDates.has(dateKey)) return true;
                   return false;
                 }}
+
                 className="p-2 pointer-events-auto w-full bg-transparent"
                 classNames={{
                   months: "w-full flex flex-col sm:flex-row gap-4 sm:gap-6",
