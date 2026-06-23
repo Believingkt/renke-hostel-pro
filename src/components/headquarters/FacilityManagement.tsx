@@ -80,7 +80,9 @@ export interface FacilityManagementRef {
 export const FacilityManagement = forwardRef<FacilityManagementRef, object>((_, ref) => {
   const [loading, setLoading] = useState(true);
   const [facilities, setFacilities] = useState<Facility[]>([]);
+  const [accommodations, setAccommodations] = useState<Record<string, string>>({});
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [scopeFilter, setScopeFilter] = useState<"shared" | "per_property" | "all">("shared");
   const [searchQuery, setSearchQuery] = useState("");
 
   // Dialog states
@@ -99,7 +101,16 @@ export const FacilityManagement = forwardRef<FacilityManagementRef, object>((_, 
 
   useEffect(() => {
     loadFacilities();
-  }, [categoryFilter]);
+  }, [categoryFilter, scopeFilter]);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from("accommodation_info").select("id,name");
+      const map: Record<string, string> = {};
+      (data || []).forEach((a: any) => { map[a.id] = a.name; });
+      setAccommodations(map);
+    })();
+  }, []);
 
   const loadFacilities = async () => {
     setLoading(true);
@@ -112,6 +123,11 @@ export const FacilityManagement = forwardRef<FacilityManagementRef, object>((_, 
 
       if (categoryFilter !== "all") {
         query = query.eq("category", categoryFilter);
+      }
+      if (scopeFilter === "shared") {
+        query = query.is("accommodation_id", null);
+      } else if (scopeFilter === "per_property") {
+        query = query.not("accommodation_id", "is", null);
       }
 
       const { data, error } = await query;
