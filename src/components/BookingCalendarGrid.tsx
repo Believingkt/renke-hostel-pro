@@ -628,6 +628,12 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
     return dayCount <= 7 ? 120 : dayCount <= 15 ? 80 : 48;
   })();
   const GRID_MIN_WIDTH = LEFT_COL_WIDTH + DAY_COL_MIN_WIDTH * dayCount;
+  const dayColumnStyle = {
+    width: DAY_COL_MIN_WIDTH,
+    minWidth: DAY_COL_MIN_WIDTH,
+    maxWidth: DAY_COL_MIN_WIDTH,
+    flexBasis: DAY_COL_MIN_WIDTH,
+  };
 
   const syncHorizontalScroll = (source: "header" | "body") => {
     if (isSyncingScrollRef.current) return;
@@ -758,11 +764,11 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                         <div
                           key={dateStr}
                           className={cn(
-                            "flex-1 text-center py-2 border-r last:border-r-0 text-sm",
+                            "shrink-0 text-center py-2 border-r last:border-r-0 text-sm",
                             isToday(date) && "bg-primary/10 font-bold",
                             isRed && "text-destructive",
                           )}
-                          style={{ minWidth: DAY_COL_MIN_WIDTH }}
+                          style={dayColumnStyle}
                         >
                           <span>{DAY_LABELS[dayOfWeek]} {date.getDate()}</span>
                           {holiday && (
@@ -829,12 +835,12 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                         <div
                           key={dateStr}
                           className={cn(
-                            "flex-1 border-r last:border-r-0 p-2 text-center text-sm",
+                            "shrink-0 border-r last:border-r-0 p-2 text-center text-sm overflow-hidden",
                             isRedDay && "bg-destructive/5",
                             isToday(date) && "bg-primary/5",
                           )}
                           style={{
-                            minWidth: DAY_COL_MIN_WIDTH,
+                            ...dayColumnStyle,
                             ...(blockedByExclusive
                               ? {
                                   backgroundColor: "hsl(var(--muted) / 0.28)",
@@ -982,12 +988,12 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                 <div
                                   key={dateStr}
                                   className={cn(
-                                    "flex-1 border-r last:border-r-0",
+                                     "shrink-0 border-r last:border-r-0",
                                     isRedDay && "bg-destructive/5",
                                     isToday(date) && "bg-primary/5",
                                   )}
                                   style={{
-                                    minWidth: DAY_COL_MIN_WIDTH,
+                                     ...dayColumnStyle,
                                     ...(blockedByExclusive
                                       ? {
                                           backgroundColor: "hsl(var(--muted) / 0.28)",
@@ -1014,8 +1020,8 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                               const span = endIdx === -1 ? dateStrings.length - startIdx : endIdx - startIdx;
                               if (span <= 0) return null;
 
-                              const leftPercent = (startIdx / dayCount) * 100;
-                              const widthPercent = (span / dayCount) * 100;
+                              const leftPx = startIdx * DAY_COL_MIN_WIDTH;
+                              const widthPx = span * DAY_COL_MIN_WIDTH;
                               const isClippedLeft = checkInDate < dateStrings[0];
                               const isClippedRight = checkOutDate > format(addDays(parseISO(dateStrings[dateStrings.length - 1]), 1), "yyyy-MM-dd");
 
@@ -1103,8 +1109,8 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                           isClippedRight && "rounded-r-none border-r-0",
                                         )}
                                         style={{
-                                          left: `${leftPercent}%`,
-                                          width: `${widthPercent}%`,
+                                          left: leftPx,
+                                          width: widthPx,
                                         }}
                                         onClick={() => navigate(`/admin/orders/${entry.orderId}`, { state: { from: '/admin/room-inventory' } })}
                                       >
@@ -1175,12 +1181,12 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                               <div
                                 key={dateStr}
                                 className={cn(
-                                  "flex-1 border-r last:border-r-0 p-2 text-center text-sm",
+                                   "shrink-0 border-r last:border-r-0 p-2 text-center text-sm overflow-hidden",
                                   isRedDay && "bg-destructive/5",
                                   isToday(date) && "bg-primary/5",
                                 )}
                                 style={{
-                                  minWidth: DAY_COL_MIN_WIDTH,
+                                   ...dayColumnStyle,
                                   ...(hasExclusiveOrder
                                     ? {
                                         backgroundColor: "hsl(var(--muted) / 0.28)",
@@ -1236,12 +1242,12 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                     <div
                       key={dateStr}
                       className={cn(
-                        "flex-1 border-r last:border-r-0 p-2 text-center text-sm",
+                        "shrink-0 border-r last:border-r-0 p-2 text-center text-sm overflow-hidden",
                         isRedDay && "bg-destructive/5",
                         isToday(date) && "bg-primary/5",
                       )}
                       style={{
-                        minWidth: DAY_COL_MIN_WIDTH,
+                        ...dayColumnStyle,
                         ...(hasExclusiveOrder
                           ? {
                               backgroundColor: "hsl(var(--muted) / 0.28)",
