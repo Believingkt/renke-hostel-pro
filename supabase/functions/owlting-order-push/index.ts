@@ -285,7 +285,7 @@ async function processRow(
     const md5 = parseOwlNestMd5(text);
     await admin.from("owlting_order_push_log").insert({
       ...baseLog,
-      request_xml: maskedXml,
+      request_xml: xml,
       response_xml: text,
       http_status: status,
       duration_ms: durationMs,
@@ -325,7 +325,7 @@ async function processRow(
     const msg = (e as Error).message ?? String(e);
     await admin.from("owlting_order_push_log").insert({
       ...baseLog,
-      request_xml: maskedXml,
+      request_xml: xml,
       success: false,
       error_message: msg,
     });
