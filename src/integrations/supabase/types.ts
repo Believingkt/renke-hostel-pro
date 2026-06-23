@@ -4432,6 +4432,7 @@ export type Database = {
           idempotency_key: string | null
           internal_email_sent: boolean
           internal_email_sent_at: string | null
+          lock_whole_building: boolean
           meal_plan: string | null
           meal_plan_details: Json | null
           meal_plan_total: number | null
@@ -4499,6 +4500,7 @@ export type Database = {
           idempotency_key?: string | null
           internal_email_sent?: boolean
           internal_email_sent_at?: string | null
+          lock_whole_building?: boolean
           meal_plan?: string | null
           meal_plan_details?: Json | null
           meal_plan_total?: number | null
@@ -4566,6 +4568,7 @@ export type Database = {
           idempotency_key?: string | null
           internal_email_sent?: boolean
           internal_email_sent_at?: string | null
+          lock_whole_building?: boolean
           meal_plan?: string | null
           meal_plan_details?: Json | null
           meal_plan_total?: number | null

@@ -92,6 +92,7 @@ interface OrderDetail {
   custom_addon_details: CustomAddonDetail[] | null;
   order_source: string;
   owner_direct?: boolean;
+  lock_whole_building?: boolean;
   checked_in_at?: string | null;
   checked_out_at?: string | null;
   room_type_id: string | null;
@@ -172,6 +173,7 @@ interface EditFormState {
   guest_count: number;
   order_source: string;
   owner_direct: boolean;
+  lock_whole_building: boolean;
   order_status: string;
   payment_status: string;
   deposit_payment_method: string;
@@ -399,6 +401,7 @@ const OrderDetailPage = () => {
     guest_count: 1,
     order_source: "",
     owner_direct: false,
+    lock_whole_building: false,
     order_status: "",
     payment_status: "",
     deposit_payment_method: "",
@@ -484,6 +487,7 @@ const OrderDetailPage = () => {
       guest_count: order.guest_count || 1,
       order_source: order.order_source || "website",
       owner_direct: !!order.owner_direct,
+      lock_whole_building: !!order.lock_whole_building,
       order_status: order.order_status || "pending",
       payment_status: order.payment_status || "unpaid",
       deposit_payment_method: order.deposit_payment_method || "none",
@@ -815,6 +819,7 @@ const OrderDetailPage = () => {
         guest_count: editForm.guest_count,
         order_source: editForm.order_source,
         owner_direct: editForm.owner_direct,
+        lock_whole_building: isOlivia ? editForm.lock_whole_building : false,
         order_status: editForm.order_status,
         payment_status: editForm.payment_status,
         deposit_payment_method: editForm.deposit_payment_method === "none" ? null : editForm.deposit_payment_method,
@@ -1822,6 +1827,27 @@ const OrderDetailPage = () => {
                 </Badge>
               )}
             </div>
+            {isOlivia && (
+              <>
+                <Separator />
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">
+                    標記為包棟
+                    <span className="block text-xs text-muted-foreground/70 mt-0.5">勾選後整棟其他房型自動鎖定</span>
+                  </span>
+                  {isEditing ? (
+                    <Switch
+                      checked={editForm.lock_whole_building}
+                      onCheckedChange={(v) => setEditForm(f => ({ ...f, lock_whole_building: v }))}
+                    />
+                  ) : (
+                    <Badge variant={order.lock_whole_building ? "default" : "outline"}>
+                      {order.lock_whole_building ? "是（整棟鎖定）" : "否"}
+                    </Badge>
+                  )}
+                </div>
+              </>
+            )}
             <Separator />
             <div className="flex justify-between items-center gap-2">
               <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">訂單狀態</span>

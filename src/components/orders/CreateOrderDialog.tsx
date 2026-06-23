@@ -20,6 +20,7 @@ import { useAuditLog } from "@/hooks/use-audit-log";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { resolveTemplatePricesForDates } from "@/utils/templatePriceResolver";
+import { Switch } from "@/components/ui/switch";
 
 interface RoomType {
   id: string;
@@ -198,6 +199,8 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   }, []);
 
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  // 奧莉薇雅：標記為包棟 → 自動鎖當天整棟所有其他房型
+  const [lockWholeBuilding, setLockWholeBuilding] = useState(false);
   const [filteredTemplates, setFilteredTemplates] = useState<PricingTemplate[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
   const [form, setForm] = useState({
@@ -1192,6 +1195,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         deposit_required_amount: form.security_deposit_amount,
         deposit_method: form.security_deposit_method,
         deposit_status: "pending",
+        lock_whole_building: isOlivia ? lockWholeBuilding : false,
       }).select('id').single();
 
       if (error) throw error;
@@ -2426,6 +2430,22 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           </Select>
         </div>
       </div>
+
+      {isOlivia && (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
+          <div className="space-y-0.5">
+            <Label className="text-sm font-medium">標記為包棟</Label>
+            <p className="text-xs text-muted-foreground">
+              勾選後，入住期間內整棟其他房型自動鎖定（不可預訂）。
+            </p>
+          </div>
+          <Switch
+            checked={lockWholeBuilding}
+            onCheckedChange={setLockWholeBuilding}
+          />
+        </div>
+      )}
+
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
