@@ -608,12 +608,14 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
+    // Measure parent width to avoid feedback loop (this element's width depends on children)
+    const target = el.parentElement ?? el;
     const ro = new ResizeObserver(entries => {
       for (const entry of entries) {
         setContainerWidth(entry.contentRect.width);
       }
     });
-    ro.observe(el);
+    ro.observe(target);
     return () => ro.disconnect();
   }, []);
 
