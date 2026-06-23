@@ -1082,7 +1082,7 @@ const BookingPortal = () => {
                 return (
                   <article
                     key={acc.id}
-                    className={`${idx === 0 ? "pt-2" : "pt-6"} pb-8`}
+                    className={`${idx === 0 ? "pt-1" : "pt-4"} pb-5`}
                   >
                     {/* Full-bleed photo */}
                     <button
@@ -1107,7 +1107,7 @@ const BookingPortal = () => {
                     </button>
 
                     {/* Location + Name */}
-                    <div className="mt-5 px-1">
+                    <div className="mt-3 px-1">
                       {locOf(acc) && (
                         <p className="text-xs text-muted-foreground tracking-wide flex items-center gap-1">
                           <MapPin className="h-3 w-3" />
@@ -1116,12 +1116,12 @@ const BookingPortal = () => {
                       )}
                       <h3
                         style={serif}
-                        className="mt-1.5 text-2xl leading-tight text-foreground/90"
+                        className="mt-1 text-xl leading-tight text-foreground/90"
                       >
                         {acc.name}
                       </h3>
                       {price != null && (
-                        <p className="mt-2 text-sm text-muted-foreground">
+                        <p className="mt-1 text-sm text-muted-foreground">
                           <span className="text-primary font-semibold text-base">
                             NT$ {price.toLocaleString()}
                           </span>{" "}
@@ -1130,21 +1130,21 @@ const BookingPortal = () => {
                       )}
                     </div>
 
-                    {/* Editor's Pick / 管家真心話 */}
+                    {/* Editor's Pick / 管家推薦 */}
                     {editorPick && (
-                      <div className="mt-5 mx-1 bg-muted/40 rounded-lg p-4 border border-border/30">
-                        <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-primary mb-2">
+                      <div className="mt-3 mx-1 bg-muted/40 rounded-lg px-3 py-2.5 border border-border/30">
+                        <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-primary mb-1">
                           管家推薦 · Editor's Pick
                         </p>
-                        <div className="flex gap-2">
+                        <div className="flex gap-1.5">
                           <span
                             style={serif}
-                            className="text-2xl leading-none text-primary/60 select-none"
+                            className="text-lg leading-none text-primary/60 select-none"
                             aria-hidden
                           >
                             ❝
                           </span>
-                          <p className="text-sm leading-relaxed text-foreground/75 line-clamp-4">
+                          <p className="text-[13px] leading-relaxed text-foreground/75 line-clamp-3">
                             {editorPick}
                           </p>
                         </div>
@@ -1152,10 +1152,11 @@ const BookingPortal = () => {
                     )}
 
                     {/* CTA */}
-                    <div className="mt-5 px-1">
+                    <div className="mt-3 px-1">
                       <Button
                         variant="outline"
-                        className="w-full h-12 border-primary/60 text-primary hover:bg-primary hover:text-primary-foreground rounded-lg tracking-wider"
+                        size="sm"
+                        className="w-full h-10 border-primary/60 text-primary hover:bg-primary hover:text-primary-foreground rounded-lg tracking-wider"
                         onClick={() => handleAccClick(acc.id)}
                       >
                         探索這間民宿
