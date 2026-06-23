@@ -1001,7 +1001,7 @@ const GuestTabsScroller = ({
           return (
             <div key={`${t.guestCount}-${t.planName || ""}`} className="flex items-center shrink-0">
               {idx > 0 && (
-                <span className="px-1.5 text-muted-foreground/60 text-[14px]">/</span>
+                <span className="px-1 text-muted-foreground/30 text-[13px]">·</span>
               )}
               <button
                 ref={(el) => {
@@ -1010,20 +1010,20 @@ const GuestTabsScroller = ({
                 type="button"
                 onClick={() => onSelect(t.guestCount)}
                 className={cn(
-                  "relative px-3.5 py-1.5 text-[15px] font-bold whitespace-nowrap transition-colors",
-                  isActive ? "text-white" : "text-muted-foreground hover:text-foreground"
-                )}
-                style={
+                  "relative px-3 pt-2 pb-2 text-[15px] whitespace-nowrap transition-colors",
                   isActive
-                    ? {
-                        background: "hsl(25, 88%, 53%)",
-                        clipPath: "polygon(10% 0, 100% 0, 90% 100%, 0 100%)",
-                        padding: "6px 18px",
-                      }
-                    : undefined
-                }
+                    ? "font-semibold text-foreground"
+                    : "font-medium text-muted-foreground/70 hover:text-foreground"
+                )}
               >
                 {t.guestCount}人
+                <span
+                  className={cn(
+                    "absolute left-1/2 -translate-x-1/2 bottom-0 h-[2px] rounded-full transition-all",
+                    isActive ? "w-6 opacity-100" : "w-0 opacity-0"
+                  )}
+                  style={{ background: "#A98467" }}
+                />
               </button>
             </div>
           );
