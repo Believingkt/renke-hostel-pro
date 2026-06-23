@@ -379,7 +379,9 @@ const CapacityPriceLadder = ({
                     )}
                     {" · "}
                     <span className="font-bold text-foreground">
-                      選擇日期 {nights > 1 ? `${nights} 晚總價` : "單晚總價"}
+                      {checkIn && nights > 0
+                        ? `${format(checkIn, "M/d")}–${format(new Date(checkIn.getTime() + nights * 86400000), "M/d")} ${nights > 1 ? `${nights} 晚總價` : "單晚總價"}`
+                        : nights > 1 ? `${nights} 晚總價` : "單晚總價"}
                     </span>
                   </p>
                   <div className="mt-1.5 flex items-baseline gap-2 flex-wrap">
