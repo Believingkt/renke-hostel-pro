@@ -38,6 +38,7 @@ interface Order {
   order_source: string;
   room_type_id: string;
   notes: string | null;
+  lock_whole_building?: boolean | null;
 }
 
 interface OrderRoom {
