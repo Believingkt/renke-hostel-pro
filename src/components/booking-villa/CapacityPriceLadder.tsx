@@ -115,6 +115,7 @@ const CapacityPriceLadder = ({
   enableFewPeople = true,
   isSensan = true,
   isHolidayDate,
+  freeCancelDays,
 }: Props) => {
   const TERM = isSensan ? "包區" : "包棟";
   const TIER_HINT: Record<PricingTier, string> = {
