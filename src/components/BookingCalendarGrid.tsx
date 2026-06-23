@@ -1174,8 +1174,9 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                             const isSatSun = isWeekend(date);
                             const isRedDay = (isSatSun || isHoliday) && holiday?.holiday_type !== "work_on_weekend";
                             const cfg = exclusiveConfigByRoomTypeDate.get(roomType.id)?.get(dateStr);
-                            const hasExclusiveOrder = !!cfg;
-                            const lockedCount = cfg?.get(pr.name) ?? 0;
+                            const hasExclusiveBooking = exclusiveBookedDates.get(roomType.id)?.has(dateStr) === true;
+                            const hasExclusiveOrder = hasExclusiveBooking || !!cfg;
+                            const lockedCount = cfg ? (cfg.get(pr.name) ?? 0) : (hasExclusiveBooking ? pr.count : 0);
                             const remaining = Math.max(0, pr.count - lockedCount);
                             return (
                               <div
