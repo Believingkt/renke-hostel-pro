@@ -1134,7 +1134,7 @@ const BookingPortal = () => {
                     {editorPick && (
                       <div className="mt-5 mx-1 bg-muted/40 rounded-lg p-4 border border-border/30">
                         <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-primary mb-2">
-                          管家真心話 · Editor's Pick
+                          管家推薦 · Editor's Pick
                         </p>
                         <div className="flex gap-2">
                           <span
