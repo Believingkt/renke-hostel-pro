@@ -8,6 +8,7 @@ import PortalAIChatPanel from "@/components/booking-portal/PortalAIChatPanel";
 import { type RoomTypeResult } from "@/components/booking-portal/RoomTypeCard";
 import RoomFilterBar, { type RoomFilters, type SortOption } from "@/components/booking-portal/RoomFilterBar";
 import AccommodationCard, { type AccommodationCardData } from "@/components/booking-portal/AccommodationCard";
+import AccommodationPhotoCarousel from "@/components/booking-portal/AccommodationPhotoCarousel";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
