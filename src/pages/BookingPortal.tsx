@@ -265,16 +265,40 @@ const BookingPortal = () => {
         if (s.accommodation_id) aboutMap.set(s.accommodation_id, { title: s.section_title, description: s.section_description });
       });
 
-      const accsWithPhotos: AccommodationInfo[] = accs.map((a) => {
-        const photos = heroPhotosMap.get(a.id) ?? [];
-        return {
-          ...a,
-          hero_photo_url: photos[0] ?? null,
-          hero_photos: photos,
-          about_title: aboutMap.get(a.id)?.title ?? null,
-          about_description: aboutMap.get(a.id)?.description ?? null,
-        };
+      // Portal featured card overrides
+      const cardSettingsMap = new Map<string, any>();
+      (cardSettings ?? []).forEach((c: any) => {
+        if (c.accommodation_id) cardSettingsMap.set(c.accommodation_id, c);
       });
+      const cardPhotosMap = new Map<string, string[]>();
+      (cardPhotos ?? []).forEach((p: any) => {
+        if (!p.accommodation_id || !p.photo_url) return;
+        const arr = cardPhotosMap.get(p.accommodation_id) ?? [];
+        arr.push(p.photo_url);
+        cardPhotosMap.set(p.accommodation_id, arr);
+      });
+
+      const accsWithPhotos: AccommodationInfo[] = accs
+        .map((a) => {
+          const photos = heroPhotosMap.get(a.id) ?? [];
+          const cs = cardSettingsMap.get(a.id);
+          return {
+            ...a,
+            hero_photo_url: photos[0] ?? null,
+            hero_photos: photos,
+            about_title: aboutMap.get(a.id)?.title ?? null,
+            about_description: aboutMap.get(a.id)?.description ?? null,
+            card_display_name: cs?.display_name ?? null,
+            card_location: cs?.location_override ?? null,
+            card_editor_title: cs?.editor_pick_title ?? null,
+            card_editor_body: cs?.editor_pick_body ?? null,
+            card_cta_label: cs?.cta_label ?? null,
+            card_is_visible: cs?.is_visible ?? true,
+            card_photos: cardPhotosMap.get(a.id) ?? [],
+          };
+        })
+        // 隱藏被關閉顯示的民宿（僅影響卡片清單；其餘 region 排序內部仍可用）
+        .filter((a) => a.card_is_visible !== false);
 
       const accMap = new Map(accsWithPhotos.map((a) => [a.id, a]));
 
