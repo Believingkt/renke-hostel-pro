@@ -8,13 +8,13 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 import {
-  buildResNotifXml,
-  maskPasswordInXml,
+  buildResNotifRq,
   resolveRatePlan,
   type OwlOrderInput,
   type OwlConfig,
   type ResStatus,
 } from "./xml.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,6 +38,7 @@ interface QueueRow {
 }
 
 // --- Single fetch wrapper: only place that talks to OwlTing externally.
+// Auth is via IP allow-listing — no headers/credentials are required.
 async function sendToOwlting(
   endpoint: string,
   xml: string,
@@ -46,14 +47,15 @@ async function sendToOwlting(
   const resp = await fetch(endpoint, {
     method: "POST",
     headers: {
-      "Content-Type": "text/xml; charset=utf-8",
-      "SOAPAction": "",
+      "Content-Type": "application/xml; charset=utf-8",
+      "Accept": "application/xml",
     },
     body: xml,
   });
   const text = await resp.text();
   return { status: resp.status, text, durationMs: Date.now() - t0 };
 }
+
 
 function parseOwlNestMd5(xml: string): string | null {
   const m = xml.match(/owlnest_md5\s*=\s*["']([^"']+)["']/i)
@@ -80,9 +82,9 @@ Deno.serve(async (req) => {
     { auth: { persistSession: false } },
   );
 
-  const username = Deno.env.get("OWLTING_WS_USERNAME") ?? "";
-  const password = Deno.env.get("OWLTING_WS_PASSWORD") ?? "";
-  const haveCreds = !!username && !!password;
+  // Auth is via IP allow-listing. Username/password secrets may still exist
+  // but are intentionally NOT injected into the payload or headers.
+
 
   // 1) Claim queue rows
   const nowIso = new Date().toISOString();
@@ -103,14 +105,14 @@ Deno.serve(async (req) => {
   const results: any[] = [];
 
   for (const row of (queue ?? []) as QueueRow[]) {
-    const r = await processRow(admin, row, { username, password, haveCreds });
+    const r = await processRow(admin, row);
     results.push(r);
   }
 
   return new Response(JSON.stringify({
     mode: MODE,
     processed: results.length,
-    haveCreds,
+    auth: "ip_whitelist",
     results,
   }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 });
@@ -118,8 +120,8 @@ Deno.serve(async (req) => {
 async function processRow(
   admin: any,
   row: QueueRow,
-  ctx: { username: string; password: string; haveCreds: boolean },
 ) {
+
   const baseLog: any = {
     queue_id: row.id,
     accommodation_id: row.accommodation_id,
@@ -241,19 +243,17 @@ async function processRow(
   const owlCfg: OwlConfig = { owlting_hotel_code: cfg.owlting_hotel_code };
 
   const uniqueId = order.owlting_unique_id ?? order.order_number;
-  const xml = buildResNotifXml(owlOrder, owlCfg, {
+  const xml = buildResNotifRq(owlOrder, owlCfg, {
     resStatus: row.res_status,
     echoToken: row.echo_token,
     uniqueId,
-  }, { username: ctx.username || "(missing)", password: ctx.password || "(missing)" });
-
-  const maskedXml = maskPasswordInXml(xml);
+  });
 
   // ============ DRYRUN ============
   if (MODE !== "live") {
     await admin.from("owlting_order_push_log").insert({
       ...baseLog,
-      request_xml: maskedXml,
+      request_xml: xml,
       response_xml: null,
       http_status: null,
       duration_ms: null,
@@ -277,17 +277,15 @@ async function processRow(
   }
 
   // ============ LIVE ============ (only when OWLTING_PUSH_MODE=live)
-  if (!ctx.haveCreds) {
-    await finalizeFail(admin, row, baseLog, "missing OWLTING_WS_USERNAME/PASSWORD", true);
-    return { id: row.id, outcome: "failed", reason: "no creds" };
-  }
+  // Auth = IP allow-list; no credential check here.
+
   try {
     const { status, text, durationMs } = await sendToOwlting(cfg.cm_api_endpoint_url, xml);
     const ok = status >= 200 && status < 300 && isSuccessRs(text);
     const md5 = parseOwlNestMd5(text);
     await admin.from("owlting_order_push_log").insert({
       ...baseLog,
-      request_xml: maskedXml,
+      request_xml: xml,
       response_xml: text,
       http_status: status,
       duration_ms: durationMs,
@@ -327,7 +325,7 @@ async function processRow(
     const msg = (e as Error).message ?? String(e);
     await admin.from("owlting_order_push_log").insert({
       ...baseLog,
-      request_xml: maskedXml,
+      request_xml: xml,
       success: false,
       error_message: msg,
     });

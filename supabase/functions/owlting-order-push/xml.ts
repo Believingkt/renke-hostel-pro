@@ -1,7 +1,7 @@
 // OTA_HotelResNotifRQ XML assembler for OwlTing OwlNest CM
-// Wrapped in a SOAP envelope with WS-Security (UsernameToken).
-// Pure functions only — no I/O, no Deno-specific APIs, so this file is
-// trivially unit-testable.
+// Bare OTA payload (no SOAP envelope, no WS-Security). Authentication for
+// the live endpoint is handled by OwlTing via IP allow-listing.
+// Pure functions only — no I/O, no Deno-specific APIs.
 
 export type ResStatus = "Commit" | "Modify" | "Cancel";
 
@@ -39,11 +39,7 @@ export interface BuildOpts {
   nowIso?: string;             // override for tests
 }
 
-const SOAP_NS = "http://schemas.xmlsoap.org/soap/envelope/";
-const WSSE_NS = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd";
-const OTA_NS  = "http://www.opentravel.org/OTA/2003/05";
-const PASSWORD_TYPE_TEXT =
-  "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText";
+const OTA_NS = "http://www.opentravel.org/OTA/2003/05";
 
 function esc(v: unknown): string {
   return String(v ?? "")
@@ -57,7 +53,6 @@ function esc(v: unknown): string {
 function splitName(full: string): { first: string; last: string } {
   const s = (full ?? "").trim();
   if (!s) return { first: "Guest", last: "—" };
-  // For CJK names, treat first char as surname; for space-separated, last token = surname.
   if (s.includes(" ")) {
     const parts = s.split(/\s+/);
     const last = parts[parts.length - 1];
@@ -158,14 +153,16 @@ function buildHotelReservation(
   ].join("");
 }
 
-/** Build the inner OTA_HotelResNotifRQ element (no SOAP envelope). */
+/** Build the bare OTA_HotelResNotifRQ document (no SOAP, no WS-Security). */
 export function buildResNotifRq(
   order: OwlOrderInput,
   config: OwlConfig,
   opts: BuildOpts,
 ): string {
+  const ts = esc(opts.nowIso ?? new Date().toISOString());
   return [
-    `<OTA_HotelResNotifRQ xmlns="${OTA_NS}" Version="1.0" EchoToken="${esc(opts.echoToken)}" TimeStamp="${esc(opts.nowIso ?? new Date().toISOString())}" ResStatus="${opts.resStatus}">`,
+    `<?xml version="1.0" encoding="UTF-8"?>`,
+    `<OTA_HotelResNotifRQ xmlns="${OTA_NS}" Version="1.0" EchoToken="${esc(opts.echoToken)}" TimeStamp="${ts}" ResStatus="${opts.resStatus}">`,
       buildPos(),
       `<HotelReservations>`,
         buildHotelReservation(order, config, opts),
@@ -174,36 +171,18 @@ export function buildResNotifRq(
   ].join("");
 }
 
-/** Build the full SOAP envelope with WS-Security UsernameToken header. */
+/**
+ * Back-compat alias. The previous SOAP+wsse wrapper has been removed;
+ * OwlTing authenticates this endpoint via IP allow-listing, so we now post
+ * the bare OTA payload. Any extra `credentials` argument is ignored.
+ */
 export function buildResNotifXml(
   order: OwlOrderInput,
   config: OwlConfig,
   opts: BuildOpts,
-  credentials: { username: string; password: string },
+  _credentials?: { username: string; password: string },
 ): string {
-  const body = buildResNotifRq(order, config, opts);
-  return [
-    `<?xml version="1.0" encoding="UTF-8"?>`,
-    `<soap:Envelope xmlns:soap="${SOAP_NS}">`,
-      `<soap:Header>`,
-        `<wsse:Security xmlns:wsse="${WSSE_NS}" soap:mustUnderstand="1">`,
-          `<wsse:UsernameToken>`,
-            `<wsse:Username>${esc(credentials.username)}</wsse:Username>`,
-            `<wsse:Password Type="${PASSWORD_TYPE_TEXT}">${esc(credentials.password)}</wsse:Password>`,
-          `</wsse:UsernameToken>`,
-        `</wsse:Security>`,
-      `</soap:Header>`,
-      `<soap:Body>${body}</soap:Body>`,
-    `</soap:Envelope>`,
-  ].join("");
-}
-
-/** Replace the wsse:Password inner text with a mask. Safe for logging. */
-export function maskPasswordInXml(xml: string): string {
-  return xml.replace(
-    /(<wsse:Password[^>]*>)([\s\S]*?)(<\/wsse:Password>)/,
-    `$1********$3`,
-  );
+  return buildResNotifRq(order, config, opts);
 }
 
 /**
