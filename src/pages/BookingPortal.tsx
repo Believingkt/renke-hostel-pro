@@ -235,12 +235,13 @@ const BookingPortal = () => {
 
       if (!accs || !rooms) return;
 
-      // Build hero photo map (first hero per accommodation)
-      const heroPhotoMap = new Map<string, string>();
+      // Build hero photo arrays (ordered) per accommodation — used for carousel
+      const heroPhotosMap = new Map<string, string[]>();
       heroPhotos?.forEach((p) => {
-        if (p.accommodation_id && !heroPhotoMap.has(p.accommodation_id)) {
-          heroPhotoMap.set(p.accommodation_id, p.photo_url);
-        }
+        if (!p.accommodation_id || !p.photo_url) return;
+        const arr = heroPhotosMap.get(p.accommodation_id) ?? [];
+        arr.push(p.photo_url);
+        heroPhotosMap.set(p.accommodation_id, arr);
       });
 
       const aboutMap = new Map<string, { title: string | null; description: string | null }>();
@@ -248,12 +249,16 @@ const BookingPortal = () => {
         if (s.accommodation_id) aboutMap.set(s.accommodation_id, { title: s.section_title, description: s.section_description });
       });
 
-      const accsWithPhotos: AccommodationInfo[] = accs.map((a) => ({
-        ...a,
-        hero_photo_url: heroPhotoMap.get(a.id) || null,
-        about_title: aboutMap.get(a.id)?.title ?? null,
-        about_description: aboutMap.get(a.id)?.description ?? null,
-      }));
+      const accsWithPhotos: AccommodationInfo[] = accs.map((a) => {
+        const photos = heroPhotosMap.get(a.id) ?? [];
+        return {
+          ...a,
+          hero_photo_url: photos[0] ?? null,
+          hero_photos: photos,
+          about_title: aboutMap.get(a.id)?.title ?? null,
+          about_description: aboutMap.get(a.id)?.description ?? null,
+        };
+      });
 
       const accMap = new Map(accsWithPhotos.map((a) => [a.id, a]));
 
