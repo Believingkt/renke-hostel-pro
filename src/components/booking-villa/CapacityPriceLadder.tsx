@@ -305,6 +305,7 @@ const CapacityPriceLadder = ({
                       ROOM ALLOCATION
                     </p>
                     <p className="text-[14px] font-bold text-foreground mt-0.5">
+                      <span className="mr-1" aria-hidden>👆</span>
                       房間搭配：{activeTier_.roomAllocation || roomBreakdown}
                     </p>
                   </div>
