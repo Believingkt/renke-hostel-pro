@@ -1827,6 +1827,27 @@ const OrderDetailPage = () => {
                 </Badge>
               )}
             </div>
+            {isOlivia && (
+              <>
+                <Separator />
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">
+                    標記為包棟
+                    <span className="block text-xs text-muted-foreground/70 mt-0.5">勾選後整棟其他房型自動鎖定</span>
+                  </span>
+                  {isEditing ? (
+                    <Switch
+                      checked={editForm.lock_whole_building}
+                      onCheckedChange={(v) => setEditForm(f => ({ ...f, lock_whole_building: v }))}
+                    />
+                  ) : (
+                    <Badge variant={order.lock_whole_building ? "default" : "outline"}>
+                      {order.lock_whole_building ? "是（整棟鎖定）" : "否"}
+                    </Badge>
+                  )}
+                </div>
+              </>
+            )}
             <Separator />
             <div className="flex justify-between items-center gap-2">
               <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">訂單狀態</span>
