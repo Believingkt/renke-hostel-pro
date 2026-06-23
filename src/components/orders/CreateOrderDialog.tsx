@@ -831,7 +831,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     });
 
     return assignments;
-  }, [currentAccommodationId, form.check_in_date, form.check_out_date, isYunxiu, roomTypes]);
+  }, [currentAccommodationId, form.check_in_date, form.check_out_date, isYunxiu, isOlivia, roomTypes]);
 
   // Check inventory warnings (for all room selections)
   useEffect(() => {
