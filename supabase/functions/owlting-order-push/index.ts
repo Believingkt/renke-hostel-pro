@@ -38,6 +38,7 @@ interface QueueRow {
 }
 
 // --- Single fetch wrapper: only place that talks to OwlTing externally.
+// Auth is via IP allow-listing — no headers/credentials are required.
 async function sendToOwlting(
   endpoint: string,
   xml: string,
@@ -46,14 +47,15 @@ async function sendToOwlting(
   const resp = await fetch(endpoint, {
     method: "POST",
     headers: {
-      "Content-Type": "text/xml; charset=utf-8",
-      "SOAPAction": "",
+      "Content-Type": "application/xml; charset=utf-8",
+      "Accept": "application/xml",
     },
     body: xml,
   });
   const text = await resp.text();
   return { status: resp.status, text, durationMs: Date.now() - t0 };
 }
+
 
 function parseOwlNestMd5(xml: string): string | null {
   const m = xml.match(/owlnest_md5\s*=\s*["']([^"']+)["']/i)
