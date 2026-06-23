@@ -635,6 +635,8 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
     maxWidth: DAY_COL_MIN_WIDTH,
     flexBasis: DAY_COL_MIN_WIDTH,
   };
+  const DAYS_ROW_WIDTH = DAY_COL_MIN_WIDTH * dayCount;
+  const daysRowStyle = { width: DAYS_ROW_WIDTH, minWidth: DAYS_ROW_WIDTH };
 
   const syncHorizontalScroll = (source: "header" | "body") => {
     if (isSyncingScrollRef.current) return;
