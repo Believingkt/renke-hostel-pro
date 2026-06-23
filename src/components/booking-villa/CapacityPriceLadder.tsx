@@ -373,15 +373,21 @@ const CapacityPriceLadder = ({
                   </div>
                   <p className="text-[11px] text-muted-foreground mt-1">
                     <Users className="inline h-3 w-3 mr-0.5 -mt-0.5" />
-                    可入住 {opt.guestCount} 位
+                    可入住 {opt.guestCount}
                     {activeTier_.guestCountMax && activeTier_.guestCountMax > opt.guestCount && (
                       <span>~{activeTier_.guestCountMax}</span>
+                    )} 位
+                    {checkIn && nights > 0 && (
+                      <>
+                        {"｜"}
+                        <span className="font-bold text-foreground">
+                          {format(checkIn, "M/d")}–{format(new Date(checkIn.getTime() + nights * 86400000), "M/d")}
+                        </span>
+                      </>
                     )}
-                    {" · "}
+                    {"｜"}
                     <span className="font-bold text-foreground">
-                      {checkIn && nights > 0
-                        ? `${format(checkIn, "M/d")}–${format(new Date(checkIn.getTime() + nights * 86400000), "M/d")} ${nights > 1 ? `${nights} 晚總價` : "單晚總價"}`
-                        : nights > 1 ? `${nights} 晚總價` : "單晚總價"}
+                      {nights > 1 ? `${nights} 晚總價` : "單晚總價"}
                     </span>
                   </p>
                   <div className="mt-1.5 flex items-baseline gap-2 flex-wrap">
