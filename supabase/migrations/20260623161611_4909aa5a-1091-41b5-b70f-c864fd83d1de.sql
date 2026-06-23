@@ -1,0 +1,1 @@
+DELETE FROM public.accommodation_facilities WHERE accommodation_id IS NOT NULL AND is_available = false AND EXISTS (SELECT 1 FROM public.accommodation_facilities s WHERE s.accommodation_id IS NULL AND s.facility_name = accommodation_facilities.facility_name AND s.category = accommodation_facilities.category);
