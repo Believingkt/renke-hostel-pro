@@ -105,14 +105,14 @@ Deno.serve(async (req) => {
   const results: any[] = [];
 
   for (const row of (queue ?? []) as QueueRow[]) {
-    const r = await processRow(admin, row, { username, password, haveCreds });
+    const r = await processRow(admin, row);
     results.push(r);
   }
 
   return new Response(JSON.stringify({
     mode: MODE,
     processed: results.length,
-    haveCreds,
+    auth: "ip_whitelist",
     results,
   }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 });
@@ -120,8 +120,8 @@ Deno.serve(async (req) => {
 async function processRow(
   admin: any,
   row: QueueRow,
-  ctx: { username: string; password: string; haveCreds: boolean },
 ) {
+
   const baseLog: any = {
     queue_id: row.id,
     accommodation_id: row.accommodation_id,
