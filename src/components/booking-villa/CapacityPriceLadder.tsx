@@ -314,7 +314,7 @@ const CapacityPriceLadder = ({
                 {/* 3. 方案（可收合） */}
                 {yesItems.length > 0 && (
                   <details className="group">
-                    <summary className="flex items-center justify-between cursor-pointer list-none">
+                    <summary className="flex items-center justify-between cursor-pointer list-none focus:outline-none focus-visible:outline-none">
                       <p className="text-[14px] font-bold text-foreground">
                         {activeTier_.subtitle || "方案已含"}
                         <span className="ml-1.5 text-[12px] font-normal text-muted-foreground">
@@ -323,14 +323,14 @@ const CapacityPriceLadder = ({
                       </p>
                       <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
                     </summary>
-                    <ul className="mt-2 space-y-1.5">
+                    <ul className="mt-3 space-y-2.5">
                       {yesItems.map((inc, i) => (
-                        <li key={i} className="flex items-start gap-1.5">
+                        <li key={i} className="flex items-start gap-2">
                           <Check
                             className="h-4 w-4 mt-0.5 shrink-0"
-                            style={{ color: "hsl(25, 88%, 50%)" }}
+                            style={{ color: "#A98467" }}
                           />
-                          <span className="text-[13px] text-foreground leading-snug">
+                          <span className="text-[13px] text-foreground leading-relaxed">
                             {inc.text}
                             {inc.price_note && (
                               <span className="text-muted-foreground ml-1">
@@ -342,13 +342,14 @@ const CapacityPriceLadder = ({
                       ))}
                     </ul>
                     {optionalItems.length > 0 && (
-                      <ul className="mt-2 space-y-1">
+                      <ul className="mt-2.5 space-y-2">
                         {optionalItems.map((inc, i) => (
-                          <li key={i} className="flex items-start gap-1.5">
+                          <li key={i} className="flex items-start gap-2">
                             <Plus
-                              className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground"
+                              className="h-3.5 w-3.5 mt-0.5 shrink-0"
+                              style={{ color: "#526A5A" }}
                             />
-                            <span className="text-[12px] leading-snug text-muted-foreground">
+                            <span className="text-[12px] leading-relaxed text-muted-foreground">
                               {inc.text}
                               {inc.price_note && (
                                 <span className="ml-1">({inc.price_note})</span>
@@ -360,6 +361,7 @@ const CapacityPriceLadder = ({
                     )}
                   </details>
                 )}
+
 
 
                 {(activeTier_.childCountMax || activeTier_.childAgeNote) && (
