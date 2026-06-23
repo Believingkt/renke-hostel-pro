@@ -344,27 +344,15 @@ const CapacityPriceLadder = ({
                     <div className="h-px bg-border/50" />
                   )}
 
-                  {/* 訂房規則 */}
-                  <div className="space-y-1.5">
-                    {(activeTier_.childCountMax || activeTier_.childAgeNote) && (
-                      <p className="text-[12px] text-gray-600 flex items-center gap-1.5">
-                        <Baby className="h-3.5 w-3.5" style={{ color: "#A98467" }} />
-                        {activeTier_.childCountMax ? `可加 ${activeTier_.childCountMax} 位兒童` : ""}
-                        {activeTier_.childCountMax && activeTier_.childAgeNote ? "・" : ""}
-                        {activeTier_.childAgeNote || ""}
-                      </p>
-                    )}
-                    <ul className="flex flex-wrap gap-x-4 gap-y-1" style={{ color: "#526A5A" }}>
-                      <li className="flex items-center gap-1 text-[12px]">
-                        <Check className="h-3.5 w-3.5" />
-                        <span>即時確認</span>
-                      </li>
-                      <li className="flex items-center gap-1 text-[12px]">
-                        <Check className="h-3.5 w-3.5" />
-                        <span>依政策免費取消</span>
-                      </li>
-                    </ul>
-                  </div>
+                  {/* 訂房規則：兒童 */}
+                  {(activeTier_.childCountMax || activeTier_.childAgeNote) && (
+                    <p className="text-[12px] text-gray-600 flex items-center gap-1.5">
+                      <Baby className="h-3.5 w-3.5" style={{ color: "#A98467" }} />
+                      {activeTier_.childCountMax ? `可加 ${activeTier_.childCountMax} 位兒童` : ""}
+                      {activeTier_.childCountMax && activeTier_.childAgeNote ? "・" : ""}
+                      {activeTier_.childAgeNote || ""}
+                    </p>
+                  )}
                 </div>
 
                 {/* 4. 價格 + CTA（緊貼按鈕） */}
@@ -381,7 +369,9 @@ const CapacityPriceLadder = ({
                       <span>~{activeTier_.guestCountMax}</span>
                     )}
                     {" · "}
-                    {nights > 1 ? `${nights} 晚總價` : "單晚總價"}
+                    <span className="font-bold text-foreground">
+                      {nights > 1 ? `${nights} 晚總價` : "單晚總價"}
+                    </span>
                   </p>
                   <div className="mt-1.5 flex items-baseline gap-2 flex-wrap">
                     <span
@@ -399,16 +389,30 @@ const CapacityPriceLadder = ({
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-gray-400 mt-1">已含稅與服務費</p>
+                  <p className="text-[11px] text-gray-300 mt-1">已含稅與服務費</p>
+
+                  {/* 信任訊號：按鈕正上方 */}
+                  <ul className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1" style={{ color: "#2F5D3A" }}>
+                    <li className="flex items-center gap-1 text-[12.5px] font-medium">
+                      <Check className="h-3.5 w-3.5" strokeWidth={2.75} />
+                      <span>即時確認</span>
+                    </li>
+                    <li className="flex items-center gap-1 text-[12.5px] font-medium">
+                      <Check className="h-3.5 w-3.5" strokeWidth={2.75} />
+                      <span>依政策免費取消</span>
+                    </li>
+                  </ul>
 
                   <button
                     type="button"
                     onClick={() => onSelect(opt)}
-                    className="mt-2.5 w-full h-10 rounded-full font-bold text-[15px] text-white tracking-wide shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 focus:outline-none"
+                    className="mt-2 w-full h-10 rounded-full font-bold text-[15px] text-white tracking-wide shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 focus:outline-none inline-flex items-center justify-center gap-1.5"
                     style={{ backgroundColor: "#F08A3E" }}
                   >
+                    <Zap className="h-4 w-4" fill="currentColor" strokeWidth={0} />
                     預約這段專屬假期
                   </button>
+
 
                   {showDisabledFewPeopleNote && (
                     <div className="mt-2 flex items-center gap-1.5 px-1 text-[10.5px] text-muted-foreground">
