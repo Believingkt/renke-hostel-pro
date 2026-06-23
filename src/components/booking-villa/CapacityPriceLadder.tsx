@@ -379,7 +379,7 @@ const CapacityPriceLadder = ({
                     )}
                     {" · "}
                     <span className="font-bold text-foreground">
-                      {nights > 1 ? `${nights} 晚總價` : "單晚總價"}
+                      選擇日期 {nights > 1 ? `${nights} 晚總價` : "單晚總價"}
                     </span>
                   </p>
                   <div className="mt-1.5 flex items-baseline gap-2 flex-wrap">
