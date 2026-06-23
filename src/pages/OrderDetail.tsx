@@ -2035,7 +2035,11 @@ const OrderDetailPage = () => {
                           onClick={async () => {
                             const rt = roomTypes.filter(r => !r.is_exclusive_package)[0];
                             if (!rt) return;
-                            const dateBasedTotal = await computeRoomTotalByDates(rt.id, null);
+                            // 同一張訂單共用主方案
+                            const primaryTpl = editOrderRooms[0]?.template_name || null;
+                            const candidates = allTemplates.filter(t => !t.room_type_id || t.room_type_id === rt.id);
+                            const sharedTpl = primaryTpl && candidates.some(t => t.template_name === primaryTpl) ? primaryTpl : null;
+                            const dateBasedTotal = await computeRoomTotalByDates(rt.id, sharedTpl);
                             const suggestedUnitPrice = dateBasedTotal || getSuggestedRoomUnitPrice(rt.id) || rt.base_price;
                             setEditOrderRooms(prev => [...prev, {
                               id: crypto.randomUUID(),
@@ -2043,7 +2047,7 @@ const OrderDetailPage = () => {
                               quantity: 1,
                               room_price: suggestedUnitPrice,
                               unit_price: suggestedUnitPrice,
-                              template_name: null,
+                              template_name: sharedTpl,
                             }]);
                           }}
                         >
@@ -2060,7 +2064,10 @@ const OrderDetailPage = () => {
                             onClick={async () => {
                               const rt = roomTypes.filter(r => r.is_exclusive_package)[0];
                               if (!rt) return;
-                              const dateBasedTotal = await computeRoomTotalByDates(rt.id, null);
+                              const primaryTpl = editOrderRooms[0]?.template_name || null;
+                              const candidates = allTemplates.filter(t => !t.room_type_id || t.room_type_id === rt.id);
+                              const sharedTpl = primaryTpl && candidates.some(t => t.template_name === primaryTpl) ? primaryTpl : null;
+                              const dateBasedTotal = await computeRoomTotalByDates(rt.id, sharedTpl);
                               const suggestedUnitPrice = dateBasedTotal || getSuggestedRoomUnitPrice(rt.id) || rt.base_price;
                               setEditOrderRooms(prev => [...prev, {
                                 id: crypto.randomUUID(),
@@ -2068,7 +2075,7 @@ const OrderDetailPage = () => {
                                 quantity: 1,
                                 room_price: suggestedUnitPrice,
                                 unit_price: suggestedUnitPrice,
-                                template_name: null,
+                                template_name: sharedTpl,
                               }]);
                             }}
                           >
@@ -2076,6 +2083,7 @@ const OrderDetailPage = () => {
                             新增{exclusiveLabel}
                           </Button>
                         )}
+
                       </div>
                     )}
                   </div>
