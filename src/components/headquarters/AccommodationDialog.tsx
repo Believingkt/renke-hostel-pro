@@ -220,6 +220,7 @@ export function AccommodationDialog({
       if (error) throw error;
 
       setTransactionFeePercentage(value);
+      savedTransactionFeeRef.current = value;
       toast.success(`請款手續費已更新為 ${value}%`);
     } catch (error: any) {
       console.error("Error updating transaction fee:", error);
