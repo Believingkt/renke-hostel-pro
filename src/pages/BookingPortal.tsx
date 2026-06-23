@@ -44,6 +44,7 @@ interface AccommodationInfo {
   address: string | null;
   country: string | null;
   hero_photo_url?: string | null;
+  hero_photos?: string[];
   about_title?: string | null;
   about_description?: string | null;
 }
