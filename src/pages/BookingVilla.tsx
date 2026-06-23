@@ -70,6 +70,7 @@ import BookingInfoSection from "@/components/BookingInfoSection";
 import BookingFooter from "@/components/BookingFooter";
 import MobileBottomNav from "@/components/member/MobileBottomNav";
 import EditSearchSheet from "@/components/booking-villa/EditSearchSheet";
+import SectionTabsNav from "@/components/booking-villa/SectionTabsNav";
 
 // 信任標籤可選圖示對照（後台填字串 key，前台對應 lucide icon）
 export const TRUST_BADGE_ICONS: Record<string, typeof ShieldCheck> = {
@@ -521,6 +522,20 @@ const BookingVilla = () => {
         </div>
       </div>
 
+      {/* ── Section Anchor Tabs（Trip.com 風格橫向頁籤） ── */}
+      <SectionTabsNav
+        tabs={[
+          { id: "capacity-price-section", label: "入住方案" },
+          { id: "about", label: "描述" },
+          { id: "facilities", label: "設施" },
+          { id: "location", label: "位置" },
+          { id: "reviews", label: "Google 評論" },
+          { id: "policy", label: "住宿政策" },
+          { id: "notice", label: "注意事項" },
+          { id: "faq", label: "常見問題" },
+          { id: "similar", label: "鄰近住宿" },
+        ]}
+      />
 
       <main className="max-w-3xl mx-auto">
         {/* ── 1. Photo Carousel (mixed hero + gallery) ── */}
@@ -746,7 +761,7 @@ const BookingVilla = () => {
 
         {/* ── 5. About / Description ── */}
         {info.description && (
-          <section className="px-4 py-4 bg-card border-y border-border/40">
+          <section id="about" className="px-4 py-4 bg-card border-y border-border/40">
             <h2 className="text-base font-bold text-foreground mb-2">關於這個空間</h2>
             <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
               {info.description}
@@ -760,12 +775,14 @@ const BookingVilla = () => {
         {/* ── 7. Facilities ── */}
         {info.show_facilities_section !== false &&
           (secondaryData?.facilities?.length || 0) > 0 && (
-            <FacilitiesSection facilities={secondaryData!.facilities} />
+            <div id="facilities">
+              <FacilitiesSection facilities={secondaryData!.facilities} />
+            </div>
           )}
 
         {/* ── 8. Location ── Trip.com 風格 compact + 完整 LocationSection（桌機詳細區） ── */}
         {info.show_location_section !== false && (
-          <>
+          <div id="location">
             <VillaLocationCompact
               address={info.address}
               locationInfo={secondaryData?.locationInfo}
@@ -777,17 +794,20 @@ const BookingVilla = () => {
                 locationInfo={secondaryData?.locationInfo}
               />
             </div>
-          </>
+          </div>
         )}
 
 
         {/* ── 9. Booking Info / 須知 ── */}
         {info.show_booking_info_section !== false && (
-          <BookingInfoSection
-            bookingSettings={secondaryData?.bookingSettings}
-            checkInNotice={info.check_in_notice}
-            customSections={secondaryData?.customBookingSections}
-          />
+          <div id="policy">
+            <BookingInfoSection
+              bookingSettings={secondaryData?.bookingSettings}
+              checkInNotice={info.check_in_notice}
+              customSections={secondaryData?.customBookingSections}
+            />
+            <span id="notice" className="block" />
+          </div>
         )}
 
         {/* ── 10. Reviews ── */}
@@ -799,11 +819,16 @@ const BookingVilla = () => {
 
         {/* ── 11. FAQ ── */}
         {info.show_faq_section !== false && (
-          <FaqSection accommodationId={info.id} />
+          <div id="faq">
+            <FaqSection accommodationId={info.id} />
+          </div>
         )}
 
         {/* ── 12. Similar stays ── */}
-        <SimilarStaysCarousel excludeId={info.id} region={region} />
+        <div id="similar">
+          <SimilarStaysCarousel excludeId={info.id} region={region} />
+        </div>
+
 
         {/* Contact callout */}
         {info.phone && (
