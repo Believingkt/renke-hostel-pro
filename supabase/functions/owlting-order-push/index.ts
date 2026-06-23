@@ -8,13 +8,13 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 import {
-  buildResNotifXml,
-  maskPasswordInXml,
+  buildResNotifRq,
   resolveRatePlan,
   type OwlOrderInput,
   type OwlConfig,
   type ResStatus,
 } from "./xml.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
