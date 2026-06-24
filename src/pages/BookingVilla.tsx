@@ -610,8 +610,7 @@ const BookingVilla = () => {
           { id: "reviews", label: "Google 評論" },
           { id: "faq", label: "常見問題" },
           { id: "about", label: "描述" },
-          { id: "policy", label: "住宿政策" },
-          { id: "notice", label: "注意事項" },
+          { id: "policy", label: "訂房須知" },
           { id: "similar", label: "鄰近住宿" },
         ]}
       />
