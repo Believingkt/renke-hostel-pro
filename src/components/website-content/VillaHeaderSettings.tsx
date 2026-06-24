@@ -465,9 +465,6 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
             };
             const isLine = form.contactType === "line";
             const lineIdValid = !isLine || v.startsWith("http") || /^@?[a-zA-Z0-9._-]{2,}$/.test(v);
-            const rows: { label: string; href: string }[] = [
-              { label: isLine ? "一般點擊（無 promo）" : "實際連結", href: buildHref(null) },
-            ];
             const promoRows: { key: keyof typeof previewMessages; label: string; placeholder?: string }[] = isLine ? [
               { key: "friday", label: "promo=friday" },
               { key: "sunday", label: "promo=sunday" },
