@@ -517,7 +517,7 @@ const Pricing = () => {
 
         <TabsContent value="basic" className="space-y-4">
           <PageHeader
-            title="專案設定"
+            title="房價價格設定"
             icon={DollarSign}
             action={
               <Button onClick={() => pricingTemplateRef.current?.openAddDialog()} className="flex items-center gap-2 h-11 sm:h-10 touch-manipulation">
