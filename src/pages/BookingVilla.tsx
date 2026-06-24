@@ -1028,8 +1028,15 @@ const BookingVilla = () => {
             </span>
           </button>
 
-          {/* 下層：價格與主行動呼籲（捲到入住方案區塊時隱藏） */}
-          {!priceSectionVisible && (
+          {/* 下層：價格與主行動呼籲（「預約這段專屬假期」按鈕進入畫面時隱藏，附動畫過渡） */}
+          <div
+            aria-hidden={bookCtaVisible}
+            className={`overflow-hidden transition-all duration-300 ease-out ${
+              bookCtaVisible
+                ? "max-h-0 opacity-0 -translate-y-2 pointer-events-none"
+                : "max-h-32 opacity-100 translate-y-0"
+            }`}
+          >
           <div className="flex justify-between items-center w-full">
             <div className="min-w-0">
               {(() => {
