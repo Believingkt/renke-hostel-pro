@@ -777,6 +777,8 @@ const BookingVilla = () => {
           const oaMessage =
             promo === "friday"
               ? "我想了解週五專屬禮遇包棟方案"
+              : promo === "sunday"
+              ? "我想了解週日專屬禮遇包棟方案"
               : promo === "hot"
               ? "我想預訂熱門檔期包棟方案"
               : null;
