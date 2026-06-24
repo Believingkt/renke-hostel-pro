@@ -1011,9 +1011,10 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
 
           {/* Price Display - moved after discount code */}
           {calculatedPrice.total > 0 && (() => {
+            const addonNights = Math.max(1, calculateNights());
             const addonTotal = editForm.selected_addons.reduce((sum, selectedAddon) => {
               const addon = addonSettings.find(a => a.id === selectedAddon.addon_id);
-              return sum + (addon ? addon.price_per_unit * selectedAddon.quantity : 0);
+              return sum + (addon ? addon.price_per_unit * selectedAddon.quantity * addonNights : 0);
             }, 0);
             const effectiveTotal = manualTotalPriceStr !== null ? Math.max(0, parseInt(manualTotalPriceStr) || 0) : calculatedPrice.total;
             const effectiveDiscount = manualDiscountStr !== null ? Math.max(0, parseInt(manualDiscountStr) || 0) : calculatedPrice.discount;
