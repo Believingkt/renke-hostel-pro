@@ -58,7 +58,12 @@ const CONTACT_TYPES: Array<{ value: string; label: string; placeholder: string; 
 
 const VillaHeaderSettings = ({ accommodationId }: Props) => {
   const [form, setForm] = useState<State>(empty);
-  const [customMessage, setCustomMessage] = useState("");
+  const [previewMessages, setPreviewMessages] = useState({
+    friday: "我想了解週五專屬禮遇包棟方案",
+    sunday: "我想了解週日專屬禮遇包棟方案",
+    hot: "我想預訂熱門檔期包棟方案",
+    custom: "",
+  });
   const [tags, setTags] = useState<VillaFeatureTag[]>([]);
   const [autoData, setAutoData] = useState<{
     rating: number | null;
