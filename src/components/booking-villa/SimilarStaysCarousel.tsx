@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { eachDayOfInterval, addDays, format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
+import {
+  detectTierByDate,
+  getPackagePriceForTier,
+  isPackageExcludedOnDate,
+  type PackageTier,
+} from "@/hooks/use-accommodation-packages";
 
 interface Item {
   id: string;
@@ -18,15 +25,19 @@ interface Props {
   region?: string | null;
   /** 搜尋人數，用來挑最接近的方案價格 */
   adults?: number;
+  /** 入住 / 退房日期（yyyy-MM-dd），用來計算 tier 價格 */
+  checkIn?: string | null;
+  checkOut?: string | null;
 }
 
 /**
  * 鄰近住宿：
  * - 僅顯示同 region_1 的物業
- * - 價格取「最接近搜尋人數」的啟用方案 sale_price (fallback original_price)
+ * - 有日期時：依該日期的 tier (weekday / friday_sunday / weekend) 計算總價，挑最低
+ * - 無日期時：取「最接近搜尋人數」的方案 sale_price (fallback original_price)
  * - 搜不到方案 → 不顯示價格（不顯示 NT$0）
  */
-const SimilarStaysCarousel = ({ excludeId, region, adults = 2 }: Props) => {
+const SimilarStaysCarousel = ({ excludeId, region, adults = 2, checkIn, checkOut }: Props) => {
   const navigate = useNavigate();
   const [items, setItems] = useState<Item[]>([]);
 
@@ -53,9 +64,11 @@ const SimilarStaysCarousel = ({ excludeId, region, adults = 2 }: Props) => {
 
       const ids: string[] = data.map((d: any) => d.id);
 
-      const [{ data: packages }, { data: cardPhotos }, { data: heroPhotos }] = await Promise.all([
+      const [{ data: packages }, { data: cardPhotos }, { data: heroPhotos }, { data: holidays }] = await Promise.all([
         (supabase.from("accommodation_packages") as any)
-          .select("accommodation_id, guest_count, guest_count_max, sale_price, original_price, enabled")
+          .select(
+            "accommodation_id, guest_count, guest_count_max, sale_price, original_price, enabled, applicable_tiers, tier_prices, excluded_date_ranges",
+          )
           .in("accommodation_id", ids)
           .eq("enabled", true),
         (supabase.from("portal_featured_card_photos") as any)
@@ -67,9 +80,17 @@ const SimilarStaysCarousel = ({ excludeId, region, adults = 2 }: Props) => {
           .in("accommodation_id", ids)
           .eq("photo_type", "hero")
           .order("display_order", { ascending: true }),
+        (supabase.from("public_holidays") as any)
+          .select("accommodation_id, holiday_date"),
       ]);
 
-      // 挑最接近 adults 的方案價格
+      // 解析日期
+      const ci = checkIn ? parseISO(checkIn) : null;
+      const co = checkOut ? parseISO(checkOut) : null;
+      const hasDates = !!(ci && co && co > ci);
+      const stayDates = hasDates ? eachDayOfInterval({ start: ci!, end: addDays(co!, -1) }) : [];
+      const nights = stayDates.length;
+
       const priceMap = new Map<string, number>();
       const byAcc = new Map<string, any[]>();
       (packages || []).forEach((p: any) => {
@@ -78,6 +99,7 @@ const SimilarStaysCarousel = ({ excludeId, region, adults = 2 }: Props) => {
         arr.push(p);
         byAcc.set(p.accommodation_id, arr);
       });
+
       byAcc.forEach((pkgs, accId) => {
         // 先找剛好涵蓋 adults 的方案
         const inRange = pkgs.filter((p) => {
@@ -86,23 +108,46 @@ const SimilarStaysCarousel = ({ excludeId, region, adults = 2 }: Props) => {
           return adults >= min && adults <= max;
         });
         const candidates = inRange.length > 0 ? inRange : pkgs;
-        // 從候選中取「人數最接近 adults」者，價格 = sale_price || original_price
-        let best: { dist: number; price: number | null } | null = null;
-        candidates.forEach((p) => {
-          const gc = p.guest_count ?? p.guest_count_max ?? 0;
-          const dist = Math.abs(gc - adults);
-          const price =
-            p.sale_price != null && Number(p.sale_price) > 0
-              ? Number(p.sale_price)
-              : p.original_price != null && Number(p.original_price) > 0
-                ? Number(p.original_price)
-                : null;
-          if (price == null) return;
-          if (!best || dist < best.dist || (dist === best.dist && price < (best.price ?? Infinity))) {
-            best = { dist, price };
+
+        const holidaySet = new Set(
+          (holidays || [])
+            .filter((h: any) => !h.accommodation_id || h.accommodation_id === accId)
+            .map((h: any) => h.holiday_date),
+        );
+
+        let bestTotal: number | null = null;
+
+        candidates.forEach((p: any) => {
+          // 有日期：按 tier 計算總價；任一晚被排除或所有晚都不適用 tier 則跳過
+          if (hasDates) {
+            if (stayDates.some((d) => isPackageExcludedOnDate(p, d))) return;
+            let total = 0;
+            let counted = 0;
+            for (const d of stayDates) {
+              const tier: PackageTier = detectTierByDate(d, holidaySet.has(format(d, "yyyy-MM-dd")));
+              const tiers: PackageTier[] = Array.isArray(p.applicable_tiers) ? p.applicable_tiers : [];
+              if (!tiers.includes(tier)) continue;
+              const { sale } = getPackagePriceForTier(p, tier);
+              if (!sale || sale <= 0) continue;
+              total += sale;
+              counted++;
+            }
+            if (counted !== nights) return; // 必須全部晚數都有對應 tier 價
+            const nightly = Math.round(total / nights);
+            if (bestTotal == null || nightly < bestTotal) bestTotal = nightly;
+          } else {
+            const price =
+              p.sale_price != null && Number(p.sale_price) > 0
+                ? Number(p.sale_price)
+                : p.original_price != null && Number(p.original_price) > 0
+                  ? Number(p.original_price)
+                  : null;
+            if (price == null) return;
+            if (bestTotal == null || price < bestTotal) bestTotal = price;
           }
         });
-        if (best?.price != null) priceMap.set(accId, best.price);
+
+        if (bestTotal != null) priceMap.set(accId, bestTotal);
       });
 
       const coverMap = new Map<string, string>();
@@ -132,12 +177,12 @@ const SimilarStaysCarousel = ({ excludeId, region, adults = 2 }: Props) => {
         };
       });
 
-      setItems(list.slice(0, 8));
+      if (!cancelled) setItems(list.slice(0, 8));
     })();
     return () => {
       cancelled = true;
     };
-  }, [excludeId, region, adults]);
+  }, [excludeId, region, adults, checkIn, checkOut]);
 
   if (items.length === 0) return null;
 
