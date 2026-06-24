@@ -749,11 +749,15 @@ const BookingSearchResults = () => {
   const promoTag = useMemo<"friday" | "sunday" | "hot" | null>(() => {
     if (!checkIn) return null;
     const dow = checkIn.getDay();
+    const dateStr = format(checkIn, "yyyy-MM-dd");
+    const isHoliday = holidays.some((h) => h.holiday_date === dateStr);
+    // 國定假日 / 連假 → 比照週六「熱門檔期」
+    if (isHoliday) return "hot";
     if (dow === 5) return "friday";
     if (dow === 0) return "sunday";
     if (dow === 6) return "hot";
     return null;
-  }, [checkIn]);
+  }, [checkIn, holidays]);
 
   const handleCardClick = useCallback((card: SearchRoomCardData) => {
     const params = new URLSearchParams();
