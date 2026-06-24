@@ -503,7 +503,12 @@ const AdminPackages = () => {
         .eq("id", currentAccommodationId);
       if (!perksErr) {
         setDefaultPerks(nextPerks);
-        toast({ title: "已自動關閉「啟用預設禮遇」", description: "方案已填寫附加說明，避免與預設禮遇衝突" });
+        setPerksAutoDisabled({ at: Date.now(), packageName: form.name.trim() });
+        toast({
+          title: "⚠️ 已自動關閉「啟用預設禮遇」",
+          description: `方案「${form.name.trim()}」已自行填寫附加說明，為避免前台同時顯示兩份禮遇清單而衝突，系統已自動關閉此民宿的預設禮遇開關。如需重新啟用，請至上方「方案預設禮遇」區塊手動開啟。`,
+          duration: 8000,
+        });
       }
     }
 
