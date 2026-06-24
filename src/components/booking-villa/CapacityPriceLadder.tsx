@@ -79,6 +79,8 @@ interface Props {
   freeCancelDays?: number;
   /** 兒童加價總額（已乘上晚數）。預設 0 */
   childExtraTotal?: number;
+  /** 兒童加價分項明細（嬰兒/幼兒/兒童 × 人數 × 小計） */
+  childExtraBreakdown?: Array<{ key: string; label: string; count: number; subtotal: number }>;
 }
 
 import {
@@ -125,6 +127,7 @@ const CapacityPriceLadder = ({
   isHolidayDate,
   freeCancelDays,
   childExtraTotal = 0,
+  childExtraBreakdown = [],
 }: Props) => {
   const TERM = isSensan ? "包區" : "包棟";
   const TIER_HINT: Record<PricingTier, string> = {
@@ -415,9 +418,47 @@ const CapacityPriceLadder = ({
                     )}
                   </div>
                   {childExtraTotal > 0 && (
-                    <p className="text-[11px] mt-1 font-medium" style={{ color: "hsl(15, 78%, 48%)" }}>
-                      含兒童加價 +NT${childExtraTotal.toLocaleString()}
-                    </p>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium focus:outline-none"
+                          style={{ color: "hsl(15, 78%, 48%)" }}
+                        >
+                          <span>含兒童加價 +NT${childExtraTotal.toLocaleString()}</span>
+                          <Info className="h-3 w-3 opacity-70" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        side="top"
+                        align="start"
+                        className="w-[280px] p-3 text-[12px] leading-relaxed"
+                      >
+                        <p className="font-semibold mb-2 text-foreground">兒童加價明細</p>
+                        <ul className="space-y-1">
+                          {childExtraBreakdown.map((b) => (
+                            <li key={b.key} className="flex justify-between gap-3 text-muted-foreground">
+                              <span>
+                                {b.label} × {b.count} 位
+                                {nights > 1 ? ` × ${nights} 晚` : ""}
+                              </span>
+                              <span className="font-medium text-foreground tabular-nums">
+                                +NT${b.subtotal.toLocaleString()}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                        <div className="mt-2 pt-2 border-t border-border/60 flex justify-between gap-3">
+                          <span className="text-foreground font-semibold">合計</span>
+                          <span className="font-bold tabular-nums" style={{ color: "hsl(15, 78%, 48%)" }}>
+                            +NT${childExtraTotal.toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-[11px] text-muted-foreground">
+                          加價已含入上方總價。實際依結帳頁明細為準。
+                        </p>
+                      </PopoverContent>
+                    </Popover>
                   )}
                   <p className="text-[11px] text-gray-300 mt-1">已含稅與服務費</p>
 

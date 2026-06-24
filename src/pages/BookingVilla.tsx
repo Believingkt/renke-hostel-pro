@@ -267,16 +267,18 @@ const BookingVilla = () => {
   }, [packages, checkIn]);
 
   // 兒童加價（與搜尋頁邏輯一致：民宿層 child_age_rules + URL 的 children/infants/toddlers）
-  const childExtraTotal = useMemo(() => {
-    if (!info) return 0;
+  const childEval = useMemo(() => {
+    if (!info) return null;
     const rules = resolveChildRules((info as any).child_age_rules, null);
     const sel = {
       infants: Math.max(0, parseInt(searchParams.get("infants") || "0", 10) || 0),
       toddlers: Math.max(0, parseInt(searchParams.get("toddlers") || "0", 10) || 0),
       children: Math.max(0, parseInt(searchParams.get("children") || "0", 10) || 0),
     };
-    return evaluateChildSelection(rules, sel, nights || 1).extraFeeTotal;
+    return evaluateChildSelection(rules, sel, nights || 1);
   }, [info, searchParams, nights]);
+  const childExtraTotal = childEval?.extraFeeTotal ?? 0;
+  const childExtraBreakdown = childEval?.breakdown ?? [];
 
   const customPricingTable = useMemo(() => {
     if (visiblePackages.length === 0) return undefined;
@@ -770,6 +772,7 @@ const BookingVilla = () => {
               isHolidayDate={isHolidayDate}
               freeCancelDays={secondaryData?.bookingSettings?.free_cancel_days ?? undefined}
               childExtraTotal={childExtraTotal}
+              childExtraBreakdown={childExtraBreakdown}
             />
           </div>
         </section>
