@@ -53,7 +53,7 @@ const SimilarStaysCarousel = ({ excludeId, region, adults = 2 }: Props) => {
 
       const ids: string[] = data.map((d: any) => d.id);
 
-      const [{ data: packages }, { data: photos }] = await Promise.all([
+      const [{ data: packages }, { data: cardPhotos }, { data: heroPhotos }] = await Promise.all([
         (supabase.from("accommodation_packages") as any)
           .select("accommodation_id, guest_count, guest_count_max, sale_price, original_price, enabled")
           .in("accommodation_id", ids)
@@ -61,6 +61,11 @@ const SimilarStaysCarousel = ({ excludeId, region, adults = 2 }: Props) => {
         (supabase.from("portal_featured_card_photos") as any)
           .select("accommodation_id, photo_url, display_order")
           .in("accommodation_id", ids)
+          .order("display_order", { ascending: true }),
+        (supabase.from("accommodation_photos") as any)
+          .select("accommodation_id, photo_url, display_order")
+          .in("accommodation_id", ids)
+          .eq("photo_type", "hero")
           .order("display_order", { ascending: true }),
       ]);
 
@@ -101,9 +106,16 @@ const SimilarStaysCarousel = ({ excludeId, region, adults = 2 }: Props) => {
       });
 
       const coverMap = new Map<string, string>();
-      (photos || []).forEach((p: any) => {
+      (cardPhotos || []).forEach((p: any) => {
         if (p.accommodation_id && !coverMap.has(p.accommodation_id) && p.photo_url) {
           coverMap.set(p.accommodation_id, p.photo_url);
+        }
+      });
+
+      const heroCoverMap = new Map<string, string>();
+      (heroPhotos || []).forEach((p: any) => {
+        if (p.accommodation_id && !heroCoverMap.has(p.accommodation_id) && p.photo_url) {
+          heroCoverMap.set(p.accommodation_id, p.photo_url);
         }
       });
 
@@ -112,7 +124,7 @@ const SimilarStaysCarousel = ({ excludeId, region, adults = 2 }: Props) => {
         return {
           id: d.id,
           name: d.name,
-          cover: coverMap.get(d.id) || d.og_image_url || null,
+          cover: coverMap.get(d.id) || heroCoverMap.get(d.id) || d.og_image_url || null,
           rating: typeof cache?.rating === "number" ? cache.rating : null,
           reviewCount: typeof cache?.totalReviews === "number" ? cache.totalReviews : null,
           price: priceMap.get(d.id) ?? null,
