@@ -686,14 +686,31 @@ const CapacityPriceLadder = ({
                   <button
                     type="button"
                     data-book-cta="true"
-                    onClick={() => onSelect(opt)}
-                    className="mt-2 w-full h-10 rounded-full font-bold text-[15px] text-white tracking-wide shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 focus:outline-none inline-flex items-center justify-center gap-1.5"
+                    onClick={() => {
+                      if (childBlocked) {
+                        toast.error(childBlockReason || "兒童人數不符合此民宿規範", {
+                          description: "請點選上方搜尋條調整人數後再試。",
+                        });
+                        return;
+                      }
+                      onSelect(opt);
+                    }}
+                    aria-disabled={childBlocked}
+                    className={`mt-2 w-full h-10 rounded-full font-bold text-[15px] text-white tracking-wide shadow-md transition-all duration-200 focus:outline-none inline-flex items-center justify-center gap-1.5 ${
+                      childBlocked ? "opacity-50 cursor-not-allowed" : "hover:shadow-lg active:scale-[0.98]"
+                    }`}
                     style={{ backgroundColor: "#F08A3E" }}
                   >
                     <Zap className="h-4 w-4" fill="currentColor" strokeWidth={0} />
                     預約這段專屬假期
                   </button>
 
+                  {childBlocked && childBlockReason && (
+                    <div className="mt-2 flex items-start gap-1.5 px-1 text-[11px] font-medium" style={{ color: "hsl(0, 70%, 45%)" }}>
+                      <Info className="h-3 w-3 mt-0.5 shrink-0" />
+                      <span>{childBlockReason}</span>
+                    </div>
+                  )}
 
                   {showDisabledFewPeopleNote && (
                     <div className="mt-2 flex items-center gap-1.5 px-1 text-[10.5px] text-muted-foreground">
