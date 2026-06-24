@@ -579,16 +579,49 @@ const AdminPackages = () => {
           </Button>
         </div>
 
+        {perksAutoDisabled && (
+          <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2.5 text-[12.5px] leading-relaxed text-amber-900 flex items-start gap-2">
+            <span className="text-base leading-none mt-0.5">⚠️</span>
+            <div className="flex-1">
+              <p className="font-semibold">已自動關閉「啟用預設禮遇」</p>
+              <p className="mt-0.5">
+                方案「{perksAutoDisabled.packageName}」已填寫附加說明，為避免前台同時顯示兩份禮遇而衝突，預設禮遇已自動關閉。如需重新啟用，請點下方開關並按「儲存禮遇設定」。
+              </p>
+            </div>
+            <button
+              type="button"
+              className="text-amber-700 hover:text-amber-900 text-xs underline shrink-0"
+              onClick={() => setPerksAutoDisabled(null)}
+            >
+              關閉提示
+            </button>
+          </div>
+        )}
+
         <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/30 px-3 py-2">
-          <div>
-            <p className="text-sm font-medium">啟用預設禮遇</p>
+          <div className="flex-1">
+            <p className="text-sm font-medium flex items-center gap-2">
+              啟用預設禮遇
+              <span
+                className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-full ${
+                  defaultPerks.enabled
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-gray-200 text-gray-600"
+                }`}
+              >
+                目前：{defaultPerks.enabled ? "已啟用" : "已關閉"}
+              </span>
+            </p>
             <p className="text-[11px] text-muted-foreground">
               關閉後，未設定附加說明的方案前台將不顯示這份禮遇清單。
             </p>
           </div>
           <Switch
             checked={defaultPerks.enabled}
-            onCheckedChange={(v) => setDefaultPerks((p) => ({ ...p, enabled: v }))}
+            onCheckedChange={(v) => {
+              setDefaultPerks((p) => ({ ...p, enabled: v }));
+              if (v) setPerksAutoDisabled(null);
+            }}
           />
         </div>
 
