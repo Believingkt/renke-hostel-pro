@@ -772,14 +772,30 @@ const BookingVilla = () => {
           const ctype = extras?.contactType || (info.phone ? "phone" : null);
           const cvalue = extras?.contactValue || info.phone || "";
           if (!ctype || !cvalue) return null;
+          // 行銷歸因：搜尋頁帶入的 promo 參數會自動轉成 LINE@ oaMessage 預填文字
+          const promo = searchParams.get("promo");
+          const oaMessage =
+            promo === "friday"
+              ? "我想了解週五專屬禮遇包棟方案"
+              : promo === "hot"
+              ? "我想預訂熱門檔期包棟方案"
+              : null;
           const buildHref = (type: string, val: string) => {
             const v = val.trim();
             switch (type) {
               case "phone": return `tel:${v}`;
               case "sms": return `sms:${v}`;
               case "email": return `mailto:${v}`;
-              case "line":
-                return v.startsWith("http") ? v : `https://line.me/R/ti/p/${encodeURIComponent(v.replace(/^@/, "@"))}`;
+              case "line": {
+                if (v.startsWith("http")) {
+                  return oaMessage ? `${v}${v.includes("?") ? "&" : "?"}oaMessage=${encodeURIComponent(oaMessage)}` : v;
+                }
+                const oaId = v.replace(/^@/, "");
+                if (oaMessage) {
+                  return `https://line.me/R/oaMessage/${encodeURIComponent(oaId)}/?${encodeURIComponent(oaMessage)}`;
+                }
+                return `https://line.me/R/ti/p/${encodeURIComponent(`@${oaId}`)}`;
+              }
               case "whatsapp":
                 return `https://wa.me/${v.replace(/[^0-9]/g, "")}`;
               case "url":
