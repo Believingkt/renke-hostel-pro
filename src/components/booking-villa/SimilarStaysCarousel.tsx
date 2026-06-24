@@ -58,10 +58,10 @@ const SimilarStaysCarousel = ({ excludeId, region, adults = 2 }: Props) => {
           .select("accommodation_id, guest_count, guest_count_max, sale_price, original_price, enabled")
           .in("accommodation_id", ids)
           .eq("enabled", true),
-        (supabase.from("accommodation_photos") as any)
-          .select("accommodation_id, photo_url, order_index")
+        (supabase.from("portal_featured_card_photos") as any)
+          .select("accommodation_id, photo_url, display_order")
           .in("accommodation_id", ids)
-          .order("order_index", { ascending: true }),
+          .order("display_order", { ascending: true }),
       ]);
 
       // 挑最接近 adults 的方案價格
