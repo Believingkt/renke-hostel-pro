@@ -16,6 +16,17 @@ import {
 import { Loader2, Globe, CheckCircle2, XCircle, AlertCircle, Upload, Trash2, Image, Crop, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { LogoCropDialog } from "@/components/LogoCropDialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const ACCOMMODATION_TYPE_OPTIONS = [
+  "民宿",
+  "飯店",
+  "Villa",
+  "會館",
+  "小酒店",
+  "獨立包棟",
+  "社區型包棟",
+];
 
 interface AccommodationFormData {
   name: string;
@@ -675,6 +686,26 @@ export function AccommodationDialog({
                       disabled={isSubmitting}
                       className="h-11"
                     />
+                  </div>
+
+                  {/* 型態 */}
+                  <div className="space-y-2">
+                    <Label htmlFor="type" className="text-sm font-medium">型態 *</Label>
+                    <Select
+                      value={ACCOMMODATION_TYPE_OPTIONS.includes(formData.type) ? formData.type : "民宿"}
+                      onValueChange={(value) => setFormData({ ...formData, type: value })}
+                      disabled={isSubmitting}
+                    >
+                      <SelectTrigger id="type" className="h-11">
+                        <SelectValue placeholder="請選擇型態" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ACCOMMODATION_TYPE_OPTIONS.map((opt) => (
+                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">會顯示在訂房入口的民宿卡片左上角標籤</p>
                   </div>
 
                   {/* LINE 推播簡稱 */}
