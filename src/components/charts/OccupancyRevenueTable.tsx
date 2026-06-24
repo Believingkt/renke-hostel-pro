@@ -221,9 +221,9 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
     const isSensan = (accName || '').includes('森山');
     const isOlivia = (accName || '').includes('奧莉');
     const adminSplit = dailyVillaCap > 0 || dailyRoomCap > 0;
-    const splitMode = adminSplit || (isYunxiu && exclusiveRoomCount > 0 && standardRoomCount > 0);
+    const splitMode = adminSplit || (isYunxiu && exclusiveRoomCount > 0 && standardRoomCount > 0) || isOlivia;
     // 管理員啟用分流時，包棟訂單一律視為 1 棟（不分內含房數）
-    const villaAsSingleUnit = adminSplit;
+    const villaAsSingleUnit = adminSplit || isOlivia;
 
     let exclusiveCap: number;
     let standardCap: number;
