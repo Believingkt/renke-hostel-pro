@@ -150,8 +150,12 @@ const BookingVilla = () => {
     googleTopReview: { text: string; author: string } | null;
     ratingLabel: string;
     hostResponseText: string;
+    contactType: string | null;
+    contactValue: string | null;
+    contactLabel: string | null;
     featureTagsOverride: Array<{ icon: string; label: string }> | null;
   } | null>(null);
+
 
   useEffect(() => {
     if (!accId) return;
