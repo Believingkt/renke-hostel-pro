@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import PackagePhotoCarousel from "./PackagePhotoCarousel";
 import {
