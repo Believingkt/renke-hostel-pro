@@ -468,19 +468,14 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
             const rows: { label: string; href: string }[] = [
               { label: isLine ? "一般點擊（無 promo）" : "實際連結", href: buildHref(null) },
             ];
-            if (isLine) {
-              rows.push(
-                { label: "promo=friday", href: buildHref("我想了解週五專屬禮遇包棟方案") },
-                { label: "promo=sunday", href: buildHref("我想了解週日專屬禮遇包棟方案") },
-                { label: "promo=hot", href: buildHref("我想預訂熱門檔期包棟方案") },
-              );
-              const trimmedCustom = customMessage.trim();
-              if (trimmedCustom) {
-                rows.push({ label: "自訂訊息", href: buildHref(trimmedCustom) });
-              }
-            }
+            const promoRows: { key: keyof typeof previewMessages; label: string; placeholder?: string }[] = isLine ? [
+              { key: "friday", label: "promo=friday" },
+              { key: "sunday", label: "promo=sunday" },
+              { key: "hot", label: "promo=hot" },
+              { key: "custom", label: "自訂訊息（測試）", placeholder: "輸入想預填到 LINE 對話框的文字" },
+            ] : [];
             return (
-              <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+              <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-medium text-foreground">連結即時預覽</p>
                   {isLine && !lineIdValid && (
@@ -492,35 +487,57 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
                     系統會自動在 LINE ID 前補上 <code className="px-1 rounded bg-background">@</code>，無論你是否輸入。
                   </p>
                 )}
+
+                {/* 基本連結 */}
+                <div className="text-[11px] break-all">
+                  <span className="inline-block min-w-[120px] text-muted-foreground">
+                    {isLine ? "一般點擊（無 promo）" : "實際連結"}
+                  </span>
+                  <a
+                    href={buildHref(null)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-primary hover:underline font-mono"
+                  >
+                    {buildHref(null)}
+                  </a>
+                </div>
+
                 {isLine && (
-                  <div className="space-y-1">
-                    <Label className="text-[11px] text-muted-foreground">自訂訊息預覽（僅測試用，不會儲存）</Label>
-                    <Input
-                      placeholder="輸入想預填到 LINE 對話框的文字"
-                      value={customMessage}
-                      onChange={(e) => setCustomMessage(e.target.value)}
-                      className="h-8 text-xs"
-                    />
+                  <div className="space-y-2">
                     <p className="text-[11px] text-muted-foreground">
-                      會自動 encode 後帶入 <code className="px-1 rounded bg-background">oaMessage</code> 參數
+                      以下訊息為測試用（不會儲存），可直接編輯後點「測試開啟」確認 LINE 載入結果。
                     </p>
+                    {promoRows.map((row) => {
+                      const text = previewMessages[row.key];
+                      const trimmed = text.trim();
+                      const href = trimmed ? buildHref(trimmed) : null;
+                      return (
+                        <div key={row.key} className="flex items-center gap-2">
+                          <Label className="text-[11px] text-muted-foreground min-w-[110px] shrink-0">{row.label}</Label>
+                          <Input
+                            value={text}
+                            placeholder={row.placeholder}
+                            onChange={(e) => setPreviewMessages((s) => ({ ...s, [row.key]: e.target.value }))}
+                            className="h-8 text-xs flex-1"
+                          />
+                          {href ? (
+                            <a
+                              href={href}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[11px] text-primary hover:underline whitespace-nowrap"
+                            >
+                              測試開啟 ↗
+                            </a>
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground whitespace-nowrap">—</span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
-                <ul className="space-y-1.5">
-                  {rows.map((r) => (
-                    <li key={r.label} className="text-[11px] break-all">
-                      <span className="inline-block min-w-[120px] text-muted-foreground">{r.label}</span>
-                      <a
-                        href={r.href}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-primary hover:underline font-mono"
-                      >
-                        {r.href}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
               </div>
             );
           })()}
