@@ -950,11 +950,18 @@ const BookingVilla = () => {
                   return <span className="text-sm text-muted-foreground">查看方案</span>;
                 }
                 return (
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-[11px] text-gray-500">總價</span>
-                    <span className="text-xl font-bold text-gray-800 tabular-nums">
-                      NT${(display * Math.max(1, nights || 1)).toLocaleString()}
-                    </span>
+                  <div className="flex flex-col">
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-[11px] text-gray-500">總價</span>
+                      <span className="text-xl font-bold text-gray-800 tabular-nums">
+                        NT${(display * Math.max(1, nights || 1) + childExtraTotal).toLocaleString()}
+                      </span>
+                    </div>
+                    {childExtraTotal > 0 && (
+                      <span className="text-[10px] font-medium leading-tight" style={{ color: "hsl(15, 78%, 48%)" }}>
+                        含兒童加價 +NT${childExtraTotal.toLocaleString()}
+                      </span>
+                    )}
                   </div>
                 );
               })()}
