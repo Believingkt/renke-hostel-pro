@@ -3395,6 +3395,10 @@ const WebsiteContent = () => {
           )}
         </TabsContent>
 
+        <TabsContent value="villa-header" className="space-y-6">
+          <VillaHeaderSettings accommodationId={accommodationId} />
+        </TabsContent>
+
         <TabsContent value="facilities" className="space-y-6">
           <PageHeader title="設施服務" icon={Wrench} />
           {/* 公共區設施與服務 */}
