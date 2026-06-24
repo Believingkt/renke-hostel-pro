@@ -1033,8 +1033,8 @@ const BookingVilla = () => {
             aria-hidden={bookCtaVisible}
             className={`overflow-hidden transition-all duration-300 ease-out ${
               bookCtaVisible
-                ? "max-h-0 opacity-0 -translate-y-2 pointer-events-none"
-                : "max-h-32 opacity-100 translate-y-0"
+                ? "max-h-0 opacity-0 -translate-y-2 pointer-events-none mt-0"
+                : "max-h-32 opacity-100 translate-y-0 mt-2"
             }`}
           >
           <div className="flex justify-between items-center w-full">
