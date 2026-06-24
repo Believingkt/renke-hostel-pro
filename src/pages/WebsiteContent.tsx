@@ -22,6 +22,7 @@ import ChildAgeRulesCard from "@/components/website-content/ChildAgeRulesCard";
 import { HomepageSectionsBlock } from "@/components/website-content/HomepageSectionsBlock";
 import { PortalFeatureTagsSection } from "@/components/website-content/PortalFeatureTagsSection";
 import PortalFeaturedCardSection from "@/components/website-content/PortalFeaturedCardSection";
+import VillaHeaderSettings from "@/components/website-content/VillaHeaderSettings";
 import { AddonPlansSection, AddonPlan } from "@/components/website-content/AddonPlansSection";
 import { CustomSectionsManager } from "@/components/website-content/CustomSectionsManager";
 
