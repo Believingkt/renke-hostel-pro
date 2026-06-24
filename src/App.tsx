@@ -75,6 +75,7 @@ const OrderDetail = lazy(() => import("./pages/OrderDetail"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const AdminPackages = lazy(() => import("./pages/AdminPackages"));
 const AdminPackagesPreview = lazy(() => import("./pages/AdminPackagesPreview"));
+const AdminSearchCard = lazy(() => import("./pages/AdminSearchCard"));
 const RoomInventory = lazy(() => import("./pages/RoomInventory"));
 const RoomPriceCalendar = lazy(() => import("./pages/RoomPriceCalendar"));
 const Accounts = lazy(() => import("./pages/Accounts"));
