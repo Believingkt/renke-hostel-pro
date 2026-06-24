@@ -155,7 +155,7 @@ const BookingVilla = () => {
     (async () => {
       const { data } = await supabase
         .from("accommodation_info")
-        .select("villa_trust_badges, villa_overview_labels, google_reviews_cache, villa_default_perks")
+        .select("villa_trust_badges, villa_overview_labels, google_reviews_cache")
         .eq("id", accId)
         .maybeSingle();
       if (cancelled || !data) return;
@@ -176,19 +176,6 @@ const BookingVilla = () => {
       }
       const badgesRaw = data.villa_trust_badges as any;
       const labelsRaw = data.villa_overview_labels as any;
-      const perksRaw = (data as any).villa_default_perks;
-      const perks =
-        perksRaw && typeof perksRaw === "object"
-          ? {
-              enabled: perksRaw.enabled !== false,
-              title: typeof perksRaw.title === "string" ? perksRaw.title : null,
-              items: Array.isArray(perksRaw.items)
-                ? perksRaw.items
-                    .filter((it: any) => it && typeof it.text === "string")
-                    .map((it: any) => ({ text: it.text, enabled: it.enabled !== false }))
-                : [],
-            }
-          : null;
       setExtras({
         villaTrustBadges:
           Array.isArray(badgesRaw) && badgesRaw.length > 0
@@ -199,9 +186,9 @@ const BookingVilla = () => {
         googleRating: typeof cache?.rating === "number" ? cache.rating : null,
         googleTotal: typeof cache?.totalReviews === "number" ? cache.totalReviews : null,
         googleTopReview: topReview,
-        villaDefaultPerks: perks,
       });
     })();
+
 
     return () => {
       cancelled = true;
