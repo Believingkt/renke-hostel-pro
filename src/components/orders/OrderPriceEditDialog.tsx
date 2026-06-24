@@ -55,10 +55,19 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
   const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
   const [addonQuantities, setAddonQuantities] = useState<Record<string, number>>({});
 
+  // Compute nights from order for addon multiplication
+  const addonNights = (() => {
+    if (!order?.check_in_date || !order?.check_out_date) return 1;
+    const ci = new Date(order.check_in_date);
+    const co = new Date(order.check_out_date);
+    const n = Math.ceil((co.getTime() - ci.getTime()) / 86400000);
+    return Math.max(1, n);
+  })();
+
   // Compute addon total from editable quantities
   const addonTotal = addonSettings.reduce((sum, s) => {
     const qty = addonQuantities[s.addon_type] || 0;
-    return sum + s.price_per_unit * qty;
+    return sum + s.price_per_unit * qty * addonNights;
   }, 0);
 
   const editFinalPrice = editTotalPrice - editDiscountAmount + addonTotal;
@@ -252,7 +261,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
             addon_type: s.addon_type,
             count: qty,
             price_per_unit: s.price_per_unit,
-            total: s.price_per_unit * qty,
+            total: s.price_per_unit * qty * addonNights,
             unit_label: s.unit_label,
           };
         });
@@ -447,7 +456,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{addon.addon_type}</p>
                         <p className="text-xs text-muted-foreground">
-                          NT$ {addon.price_per_unit.toLocaleString()} / {addon.unit_label}
+                          NT$ {addon.price_per_unit.toLocaleString()} / {addon.unit_label} / 晚
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -474,7 +483,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
                         </Button>
                         {qty > 0 && (
                           <span className="text-sm w-20 text-right">
-                            NT$ {(addon.price_per_unit * qty).toLocaleString()}
+                            NT$ {(addon.price_per_unit * qty * addonNights).toLocaleString()}
                           </span>
                         )}
                       </div>
