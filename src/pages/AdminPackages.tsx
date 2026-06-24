@@ -39,7 +39,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Copy, GripVertical, Check, X, MinusCircle, ImagePlus, GripHorizontal } from "lucide-react";
+import { Plus, Pencil, Trash2, Copy, GripVertical, Check, X, MinusCircle, ImagePlus, GripHorizontal, ChevronUp, ChevronDown } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import AdminPackagesPreview from "@/pages/AdminPackagesPreview";
@@ -256,6 +256,17 @@ const AdminPackages = () => {
       arr.map((t) =>
         t.id === tplId ? { ...t, items: t.items.filter((_, i) => i !== idx) } : t
       )
+    );
+  const moveTemplateItem = (tplId: string, idx: number, dir: -1 | 1) =>
+    setPerkTemplates((arr) =>
+      arr.map((t) => {
+        if (t.id !== tplId) return t;
+        const j = idx + dir;
+        if (j < 0 || j >= t.items.length) return t;
+        const items = [...t.items];
+        [items[idx], items[j]] = [items[j], items[idx]];
+        return { ...t, items };
+      })
     );
 
 
@@ -687,6 +698,30 @@ const AdminPackages = () => {
                               maxLength={40}
                               className="flex-1"
                             />
+                            <div className="flex flex-col shrink-0">
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="h-5 w-6"
+                                disabled={idx === 0}
+                                onClick={() => moveTemplateItem(tpl.id, idx, -1)}
+                                title="上移"
+                              >
+                                <ChevronUp className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="h-5 w-6"
+                                disabled={idx === tpl.items.length - 1}
+                                onClick={() => moveTemplateItem(tpl.id, idx, 1)}
+                                title="下移"
+                              >
+                                <ChevronDown className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
                             <Button
                               type="button"
                               size="icon"
