@@ -242,6 +242,18 @@ const BookingVilla = () => {
   }, [accId]);
 
   // 底部 CTA bar 維持常駐顯示（緊貼下方 MobileBottomNav），不再因捲動到入住方案而隱藏
+  // 當「入住方案」區塊進入視窗時，隱藏 CTA bar 下層（選擇房型 + 總價），保留上層搜尋修改列
+  const [priceSectionVisible, setPriceSectionVisible] = useState(false);
+  useEffect(() => {
+    const el = document.getElementById("capacity-price-section");
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setPriceSectionVisible(entry.isIntersecting),
+      { threshold: 0, rootMargin: "0px 0px -30% 0px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [accId]);
 
 
   const {
@@ -999,7 +1011,8 @@ const BookingVilla = () => {
             </span>
           </button>
 
-          {/* 下層：價格與主行動呼籲 */}
+          {/* 下層：價格與主行動呼籲（捲到入住方案區塊時隱藏） */}
+          {!priceSectionVisible && (
           <div className="flex justify-between items-center w-full">
             <div className="min-w-0">
               {(() => {
@@ -1067,6 +1080,7 @@ const BookingVilla = () => {
               選擇房型
             </Button>
           </div>
+          )}
         </div>
       </div>
 
