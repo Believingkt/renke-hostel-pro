@@ -112,10 +112,25 @@ export interface NightlyFallbackNote {
   fallbackSale: number;
 }
 
+/** 每晚明細（無論是否 fallback 都會列入，供備註展開使用） */
+export interface NightlyBreakdownItem {
+  date: Date;
+  tier: SensanPricingTier;
+  /** 是否走 fallback（本方案在該晚不適用） */
+  isFallback: boolean;
+  /** 該晚實際採用的方案名稱（若 fallback 則為替代方案名稱） */
+  planName?: string;
+  /** 該晚實際採用的單晚 sale */
+  sale: number;
+  /** 該晚採用的單晚 original（無折扣前） */
+  original: number;
+}
+
 export interface NightlyTotalsResult {
   totalSale: number;
   totalOriginal: number;
   fallbackNotes: NightlyFallbackNote[];
+  breakdown: NightlyBreakdownItem[];
 }
 
 export function computeNightlyPackageTotals(args: {
@@ -134,12 +149,14 @@ export function computeNightlyPackageTotals(args: {
       totalSale: selectedTier.sale * safeNights,
       totalOriginal: (selectedTier.original ?? selectedTier.sale) * safeNights,
       fallbackNotes: [],
+      breakdown: [],
     };
   }
 
   let totalSale = 0;
   let totalOriginal = 0;
   const fallbackNotes: NightlyFallbackNote[] = [];
+  const breakdown: NightlyBreakdownItem[] = [];
 
   for (let i = 0; i < safeNights; i++) {
     const d = new Date(checkIn);
@@ -162,6 +179,14 @@ export function computeNightlyPackageTotals(args: {
     if (sameInThisTier && sameInThisTier.sale > 0) {
       totalSale += sameInThisTier.sale;
       totalOriginal += sameInThisTier.original ?? sameInThisTier.sale;
+      breakdown.push({
+        date: d,
+        tier: effectiveTier,
+        isFallback: false,
+        planName: sameInThisTier.planName || selectedTier.planName,
+        sale: sameInThisTier.sale,
+        original: sameInThisTier.original ?? sameInThisTier.sale,
+      });
       continue;
     }
 
@@ -171,12 +196,21 @@ export function computeNightlyPackageTotals(args: {
       const cheapest = openPlans.reduce((a, b) => (a.sale < b.sale ? a : b));
       totalSale += cheapest.sale;
       totalOriginal += cheapest.original ?? cheapest.sale;
+      const cheapestName = cheapest.planName || `${cheapest.guestCount} 人方案`;
       fallbackNotes.push({
         date: d,
         tier: effectiveTier,
         reason: "no_tier_price",
-        fallbackPlanName: cheapest.planName || `${cheapest.guestCount} 人方案`,
+        fallbackPlanName: cheapestName,
         fallbackSale: cheapest.sale,
+      });
+      breakdown.push({
+        date: d,
+        tier: effectiveTier,
+        isFallback: true,
+        planName: cheapestName,
+        sale: cheapest.sale,
+        original: cheapest.original ?? cheapest.sale,
       });
       continue;
     }
@@ -190,8 +224,16 @@ export function computeNightlyPackageTotals(args: {
       reason: "no_open_plans",
       fallbackSale: selectedTier.sale,
     });
+    breakdown.push({
+      date: d,
+      tier: effectiveTier,
+      isFallback: true,
+      planName: selectedTier.planName,
+      sale: selectedTier.sale,
+      original: selectedTier.original ?? selectedTier.sale,
+    });
   }
 
-  return { totalSale, totalOriginal, fallbackNotes };
+  return { totalSale, totalOriginal, fallbackNotes, breakdown };
 }
 

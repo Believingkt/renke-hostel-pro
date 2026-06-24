@@ -61,6 +61,15 @@ interface CapacityOption {
     fallbackPlanName?: string;
     fallbackSale: number;
   }>;
+  /** 每晚明細（含 fallback 與非 fallback），供備註展開逐晚加總 */
+  breakdown?: Array<{
+    date: Date;
+    tier: "weekday" | "friday_sunday" | "weekend";
+    isFallback: boolean;
+    planName?: string;
+    sale: number;
+    original: number;
+  }>;
 }
 
 
@@ -186,7 +195,7 @@ const CapacityPriceLadder = ({
       fallbackRoomType;
 
     // 跨平/旺/假日逐晚計價：當日該方案不適用 → fallback 該日「有開」方案最低 sale
-    const { totalSale, totalOriginal, fallbackNotes } = computeNightlyPackageTotals({
+    const { totalSale, totalOriginal, fallbackNotes, breakdown } = computeNightlyPackageTotals({
       selectedTier: tier,
       checkIn,
       nights,
@@ -208,6 +217,7 @@ const CapacityPriceLadder = ({
       discountPercent,
       isRecommended,
       fallbackNotes,
+      breakdown,
     };
   };
 
@@ -547,20 +557,47 @@ const CapacityPriceLadder = ({
                   )}
                   <p className="text-[11px] text-gray-300 mt-1">已含稅與服務費</p>
 
-                  {/* 跨平/旺/假日 fallback 標註：某些晚此方案不適用，改用當日最低替代價 */}
-                  {opt.fallbackNotes && opt.fallbackNotes.length > 0 && (
+                  {/* 跨平/旺/假日 fallback 標註：逐晚明細 + 加總計算 */}
+                  {opt.fallbackNotes && opt.fallbackNotes.length > 0 && opt.breakdown && opt.breakdown.length > 0 && (
                     <div className="mt-2 rounded-lg border border-[#EADFCB] bg-[#FDF7EC] px-2.5 py-2 text-[11px] leading-relaxed text-[#7A5A2E]">
                       <div className="flex items-start gap-1.5">
                         <Info className="h-3 w-3 mt-0.5 shrink-0" />
-                        <div className="space-y-0.5">
-                          {opt.fallbackNotes.map((n, idx) => (
-                            <div key={idx}>
-                              <span className="font-semibold">{format(n.date, "M/d")}</span>
-                              （{TIER_LABELS[n.tier].short}）本方案不適用，改以
-                              {n.fallbackPlanName ? `「${n.fallbackPlanName}」` : "當日最低價"}
-                              NT${n.fallbackSale.toLocaleString()} 計算
+                        <div className="space-y-1 w-full">
+                          {/* 不適用提示（保留原本逐筆說明） */}
+                          <div className="space-y-0.5">
+                            {opt.fallbackNotes.map((n, idx) => (
+                              <div key={`fn-${idx}`}>
+                                <span className="font-semibold">{format(n.date, "M/d")}</span>
+                                （{TIER_LABELS[n.tier].short}）本方案不適用，改以
+                                {n.fallbackPlanName ? `「${n.fallbackPlanName}」` : "當日最低價"}
+                                NT${n.fallbackSale.toLocaleString()} 計算
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* 詳細計算：每晚明細逐項加總 */}
+                          <div className="pt-1 mt-1 border-t border-[#EADFCB]/70">
+                            <div className="font-semibold mb-0.5">詳細計算</div>
+                            <div className="space-y-0.5 font-mono tabular-nums">
+                              {opt.breakdown.map((b, idx) => (
+                                <div key={`bd-${idx}`} className="flex items-baseline justify-between gap-2">
+                                  <span>
+                                    {format(b.date, "M/d")}（{TIER_LABELS[b.tier].short}）
+                                    {b.isFallback
+                                      ? `替代：${b.planName ?? "當日最低價"}`
+                                      : `本方案${b.planName ? `：${b.planName}` : ""}`}
+                                  </span>
+                                  <span>NT${b.sale.toLocaleString()}</span>
+                                </div>
+                              ))}
+                              <div className="flex items-baseline justify-between gap-2 pt-0.5 mt-0.5 border-t border-[#EADFCB]/70 font-semibold">
+                                <span>合計（{opt.breakdown.length} 晚）</span>
+                                <span>
+                                  NT${opt.breakdown.reduce((s, b) => s + b.sale, 0).toLocaleString()}
+                                </span>
+                              </div>
                             </div>
-                          ))}
+                          </div>
                         </div>
                       </div>
                     </div>
