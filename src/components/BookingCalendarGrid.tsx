@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { format, addDays, subDays, isToday, isWeekend, parseISO, differenceInDays } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Lock, Package, CalendarIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Lock, Package, CalendarIcon, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getRoomOverride, isTemplateActiveForDates, type TemplateLike } from "@/utils/pricingTemplateHelpers";
 import { toast } from "sonner";
@@ -1150,27 +1150,35 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                             {getSourceLabel(entry.order_source)}
                                           </span>
                                         )}
-                                        {useUnits && (
-                                          <Select
-                                            value={entry.room_unit_id || "__none__"}
-                                            onValueChange={(v) => assignEntryToUnit(entry, v === "__none__" ? null : v)}
-                                          >
-                                            <SelectTrigger
-                                              onClick={(e) => e.stopPropagation()}
-                                              className="ml-auto h-5 px-1.5 py-0 text-[10px] bg-background/70 border-foreground/20 shrink-0 w-auto gap-1"
+                                        {useUnits && (() => {
+                                          const assignedUnit = entry.room_unit_id ? rtUnits.find(u => u.id === entry.room_unit_id) : null;
+                                          return (
+                                            <Select
+                                              value={entry.room_unit_id || "__none__"}
+                                              onValueChange={(v) => assignEntryToUnit(entry, v === "__none__" ? null : v)}
                                             >
-                                              <SelectValue placeholder="指派" />
-                                            </SelectTrigger>
-                                            <SelectContent onClick={(e) => e.stopPropagation()}>
-                                              <SelectItem value="__none__">未指派</SelectItem>
-                                              {eligibleUnits.map(u => (
-                                                <SelectItem key={u.id} value={u.id}>
-                                                  {u.unit_number}{u.nickname ? ` · ${u.nickname}` : ''}
-                                                </SelectItem>
-                                              ))}
-                                            </SelectContent>
-                                          </Select>
-                                        )}
+                                              <SelectTrigger
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="ml-auto h-5 px-1 py-0 text-[10px] bg-background/70 border-foreground/20 shrink-0 w-auto gap-0.5 [&>svg]:hidden"
+                                                title={assignedUnit ? `${assignedUnit.unit_number}${assignedUnit.nickname ? ` · ${assignedUnit.nickname}` : ''}` : "指派"}
+                                              >
+                                                {assignedUnit ? (
+                                                  <span className="font-medium tabular-nums">{assignedUnit.unit_number}</span>
+                                                ) : (
+                                                  <UserPlus className="h-3 w-3" />
+                                                )}
+                                              </SelectTrigger>
+                                              <SelectContent onClick={(e) => e.stopPropagation()}>
+                                                <SelectItem value="__none__">未指派</SelectItem>
+                                                {eligibleUnits.map(u => (
+                                                  <SelectItem key={u.id} value={u.id}>
+                                                    {u.unit_number}{u.nickname ? ` · ${u.nickname}` : ''}
+                                                  </SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                          );
+                                        })()}
                                       </div>
                                     </TooltipTrigger>
                                     <TooltipContent className="text-sm whitespace-pre-line max-w-xs">
