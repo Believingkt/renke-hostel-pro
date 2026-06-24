@@ -594,6 +594,7 @@ const BookingSearchResults = () => {
           children: childrenCount,
         },
         nights || 1,
+        adults || 2,
       );
       const childExtraTotal = childEval.extraFeeTotal;
       const childBlockedByLimits = childEval.blocked;
@@ -641,7 +642,8 @@ const BookingSearchResults = () => {
         child_rules_summary: summarizeChildRules(childRules),
         child_extra_fee_total: childExtraTotal > 0 ? childExtraTotal : null,
         child_blocked_reason: childBlockedByLimits
-          ? `兒童人數超過上限（${childEval.blockedTiers
+          ? childEval.blockReason ||
+            `兒童人數超過上限（${childEval.blockedTiers
               .map((k) => childRules.tiers[k].label)
               .join("、")}）`
           : null,
@@ -649,7 +651,8 @@ const BookingSearchResults = () => {
     });
 
     return result;
-  }, [accommodations, roomTypes, packages, facilities, holidays, inventoryMap, closedAccIds, hasDateFilter, nights, checkIn, checkOut, infantsCount, toddlersCount, childrenCount]);
+  }, [accommodations, roomTypes, packages, facilities, holidays, inventoryMap, closedAccIds, hasDateFilter, nights, checkIn, checkOut, infantsCount, toddlersCount, childrenCount, adults]);
+
 
   // ── 每家民宿只保留一張最符合搜尋條件的房型卡 ──
   const dedupedCards = useMemo<SearchRoomCardData[]>(() => {
