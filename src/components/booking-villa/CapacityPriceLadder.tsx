@@ -97,9 +97,11 @@ interface Props {
 import {
   SENSAN_PRICING_TABLE as DEFAULT_PRICING_TABLE,
   detectSensanTierByDate as detectTierByDateShared,
+  computeNightlyPackageTotals,
   type SensanPricingTier as PricingTier,
   type SensanTierPrice as TierPrice,
 } from "@/lib/sensan-pricing";
+
 
 const DEFAULT_PLAN_INCLUDES = [
   { icon: <Ticket className="h-3.5 w-3.5" />, label: "星夢森林劇場門票" },
