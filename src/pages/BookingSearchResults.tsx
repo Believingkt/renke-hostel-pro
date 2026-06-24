@@ -746,10 +746,11 @@ const BookingSearchResults = () => {
    *  - hot：入住日為週六（系統判定該月份週六熱門）→ 熱門檔期
    *  - 其他日子預設不顯示
    */
-  const promoTag = useMemo<"friday" | "hot" | null>(() => {
+  const promoTag = useMemo<"friday" | "sunday" | "hot" | null>(() => {
     if (!checkIn) return null;
     const dow = checkIn.getDay();
     if (dow === 5) return "friday";
+    if (dow === 0) return "sunday";
     if (dow === 6) return "hot";
     return null;
   }, [checkIn]);
