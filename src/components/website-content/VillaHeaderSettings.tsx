@@ -178,6 +178,9 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
         villa_header_review_count_override: countNum,
         villa_header_top_review_override: form.topReview.trim() || null,
         villa_header_host_response_text: form.hostResponseText.trim() || null,
+        villa_header_contact_type: form.contactValue.trim() ? form.contactType : null,
+        villa_header_contact_value: form.contactValue.trim() || null,
+        villa_header_contact_label: form.contactLabel.trim() || null,
         villa_header_feature_tags: tagsPayload.length > 0 ? tagsPayload : null,
       } as any)
       .eq("id", accommodationId);
