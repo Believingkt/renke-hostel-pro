@@ -727,7 +727,7 @@ const BookingVilla = () => {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[14px] font-semibold text-foreground leading-tight">聯繫住宿</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">房東通常在 60 分鐘內回覆</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">{extras?.hostResponseText || "房東通常在 60 分鐘內回覆"}</p>
               </div>
               <a
                 href={`tel:${info.phone}`}
