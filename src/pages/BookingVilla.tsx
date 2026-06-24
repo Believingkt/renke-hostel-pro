@@ -791,8 +791,8 @@ const BookingVilla = () => {
               childExtraTotal={childExtraTotal}
               childExtraBreakdown={childExtraBreakdown}
               childRuleLines={childRuleLines}
-              defaultPerks={extras?.villaDefaultPerks ?? null}
             />
+
           </div>
         </section>
 
