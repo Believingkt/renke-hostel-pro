@@ -42,14 +42,18 @@ const AdminSearchCard = () => {
     supabase
       .from("accommodation_info")
       .select(
-        "name, accommodation_type, nearby_station, review_summary, rating_score, search_card_photos, country, region_1, region_2, feature_tags_override"
+        "name, type, nearby_station, review_summary, rating_score, search_card_photos, country, region_1, region_2, feature_tags_override"
       )
       .eq("id", currentAccommodationId)
       .maybeSingle()
-      .then(async ({ data }) => {
+      .then(async ({ data, error }) => {
+        if (error) {
+          toast({ title: "載入圖卡設定失敗", description: error.message, variant: "destructive" });
+          return;
+        }
         const d: any = data || {};
         setAccName(d.name ?? "");
-        setAccType(d.accommodation_type ?? null);
+        setAccType(d.type ?? null);
         setCardSettings({
           nearby_station: d.nearby_station ?? "",
           review_summary: d.review_summary ?? "",
@@ -387,7 +391,10 @@ const AdminSearchCard = () => {
           </div>
 
           {/* 特色標籤(自帶 Card) */}
-          <PortalFeatureTagsSection accommodationId={currentAccommodationId} />
+          <PortalFeatureTagsSection
+            accommodationId={currentAccommodationId}
+            onPreviewTagsChange={setPreviewTags}
+          />
         </div>
 
         {/* 右:前台預覽 */}
