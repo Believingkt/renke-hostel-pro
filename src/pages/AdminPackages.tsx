@@ -1472,6 +1472,16 @@ const AdminPackages = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <div className="rounded-lg border bg-card p-4 sm:p-5 space-y-3">
+        <div>
+          <h3 className="font-semibold text-base">方案前台預覽</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            模擬入住日期與人數，即時預覽銷售方案在訂房前台的呈現
+          </p>
+        </div>
+        <AdminPackagesPreview embedded />
+      </div>
     </div>
   );
 };
