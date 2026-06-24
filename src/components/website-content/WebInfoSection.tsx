@@ -157,9 +157,10 @@ export const WebInfoSection = ({
         <div className="flex items-center gap-3">
           <div className="h-10 w-1.5 bg-primary rounded-full" />
           <div>
-            <CardTitle className="text-xl">輪播圖管理</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">首頁輪播圖片（最多 5 張）與全局顯示設定</p>
-          </div>
+            <CardTitle className="text-xl">輪播圖管理（精選照片）</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              首頁輪播圖片（最多 5 張）與全局顯示設定。此處上傳的「精選照片」也會作為訂房詳情頁（包棟頁）最上方的圖片輪播來源，未設定時則不顯示。
+            </p>
         </div>
       </CardHeader>
       <CardContent className="space-y-8">
