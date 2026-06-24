@@ -769,6 +769,7 @@ const BookingVilla = () => {
               isSensan={isSensan}
               isHolidayDate={isHolidayDate}
               freeCancelDays={secondaryData?.bookingSettings?.free_cancel_days ?? undefined}
+              childExtraTotal={childExtraTotal}
             />
           </div>
         </section>
