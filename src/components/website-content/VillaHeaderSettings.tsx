@@ -30,6 +30,9 @@ interface State {
   reviewCount: string;
   topReview: string;
   hostResponseText: string;
+  contactType: string;
+  contactValue: string;
+  contactLabel: string;
 }
 
 const empty: State = {
@@ -38,7 +41,20 @@ const empty: State = {
   reviewCount: "",
   topReview: "",
   hostResponseText: "",
+  contactType: "phone",
+  contactValue: "",
+  contactLabel: "",
 };
+
+const CONTACT_TYPES: Array<{ value: string; label: string; placeholder: string; defaultBtn: string }> = [
+  { value: "phone", label: "電話", placeholder: "0912345678", defaultBtn: "聯絡人" },
+  { value: "sms", label: "簡訊", placeholder: "0912345678", defaultBtn: "傳簡訊" },
+  { value: "line", label: "LINE", placeholder: "@your-line-id 或完整 LINE 連結", defaultBtn: "LINE 聯繫" },
+  { value: "whatsapp", label: "WhatsApp", placeholder: "886912345678 (含國碼)", defaultBtn: "WhatsApp" },
+  { value: "email", label: "Email", placeholder: "host@example.com", defaultBtn: "寄信" },
+  { value: "url", label: "自訂網址", placeholder: "https://...", defaultBtn: "前往" },
+];
+
 
 const VillaHeaderSettings = ({ accommodationId }: Props) => {
   const [form, setForm] = useState<State>(empty);
@@ -55,7 +71,7 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
     supabase
       .from("accommodation_info")
       .select(
-        "villa_header_rating_override, villa_header_rating_label_override, villa_header_review_count_override, villa_header_top_review_override, villa_header_host_response_text, villa_header_feature_tags, google_reviews_cache"
+        "villa_header_rating_override, villa_header_rating_label_override, villa_header_review_count_override, villa_header_top_review_override, villa_header_host_response_text, villa_header_feature_tags, villa_header_contact_type, villa_header_contact_value, villa_header_contact_label, google_reviews_cache"
       )
       .eq("id", accommodationId)
       .maybeSingle()
@@ -71,7 +87,11 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
               : "",
           topReview: d.villa_header_top_review_override ?? "",
           hostResponseText: d.villa_header_host_response_text ?? "",
+          contactType: d.villa_header_contact_type ?? "phone",
+          contactValue: d.villa_header_contact_value ?? "",
+          contactLabel: d.villa_header_contact_label ?? "",
         });
+
         const rawTags = d.villa_header_feature_tags;
         if (Array.isArray(rawTags)) {
           setTags(
@@ -158,6 +178,9 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
         villa_header_review_count_override: countNum,
         villa_header_top_review_override: form.topReview.trim() || null,
         villa_header_host_response_text: form.hostResponseText.trim() || null,
+        villa_header_contact_type: form.contactValue.trim() ? form.contactType : null,
+        villa_header_contact_value: form.contactValue.trim() || null,
+        villa_header_contact_label: form.contactLabel.trim() || null,
         villa_header_feature_tags: tagsPayload.length > 0 ? tagsPayload : null,
       } as any)
       .eq("id", accommodationId);
@@ -369,7 +392,7 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
         <CardHeader>
           <CardTitle className="text-base">聯繫房東</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-5">
           <div className="space-y-1.5">
             <Label className="text-sm">回覆時間說明</Label>
             <Input
@@ -382,7 +405,46 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
               顯示在「聯繫住宿」下方的小字
             </p>
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-sm">聯繫方式類型</Label>
+              <Select
+                value={form.contactType}
+                onValueChange={(v) => setForm((s) => ({ ...s, contactType: v }))}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CONTACT_TYPES.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5 md:col-span-2">
+              <Label className="text-sm">聯繫方式內容</Label>
+              <Input
+                placeholder={CONTACT_TYPES.find((t) => t.value === form.contactType)?.placeholder}
+                value={form.contactValue}
+                onChange={(e) => setForm((s) => ({ ...s, contactValue: e.target.value }))}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                留空則使用基本資料中的電話號碼
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-sm">按鈕文字</Label>
+            <Input
+              placeholder={`預設：${CONTACT_TYPES.find((t) => t.value === form.contactType)?.defaultBtn || "聯絡人"}`}
+              maxLength={10}
+              value={form.contactLabel}
+              onChange={(e) => setForm((s) => ({ ...s, contactLabel: e.target.value }))}
+            />
+          </div>
         </CardContent>
+
       </Card>
 
       <div className="flex justify-end">
