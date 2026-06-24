@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { getVillaFeatureIcon } from "@/lib/villa-feature-icons";
@@ -461,7 +462,16 @@ const BookingVilla = () => {
     );
   }
 
+  const childBlocked = childCtx?.evalResult.blocked ?? false;
+  const childBlockReason = childCtx?.evalResult.blockReason;
+
   const handleSelectOption = (opt: CapacityOption, subPlanKey?: string) => {
+    if (childBlocked) {
+      toast.error(childBlockReason || "兒童人數不符合此民宿規範", {
+        description: "請點選上方搜尋條調整人數後再試。",
+      });
+      return;
+    }
     const params = new URLSearchParams();
     params.set("acc", info.id);
     params.set("roomId", opt.roomTypeId);
@@ -921,6 +931,8 @@ const BookingVilla = () => {
               childExtraTotal={childExtraTotal}
               childExtraBreakdown={childExtraBreakdown}
               childRuleLines={childRuleLines}
+              childBlocked={childBlocked}
+              childBlockReason={childBlockReason}
             />
 
           </div>
