@@ -77,6 +77,8 @@ interface Props {
   isHolidayDate?: (date: Date | null | undefined) => boolean;
   /** 免費取消天數（住宿日前 N 日含以前取消 0%）。預設 14（台灣法規） */
   freeCancelDays?: number;
+  /** 兒童加價總額（已乘上晚數）。預設 0 */
+  childExtraTotal?: number;
 }
 
 import {
@@ -122,6 +124,7 @@ const CapacityPriceLadder = ({
   isSensan = true,
   isHolidayDate,
   freeCancelDays,
+  childExtraTotal = 0,
 }: Props) => {
   const TERM = isSensan ? "包區" : "包棟";
   const TIER_HINT: Record<PricingTier, string> = {
@@ -166,8 +169,10 @@ const CapacityPriceLadder = ({
       fallbackRoomType;
 
     const safeNights = Math.max(1, nights);
-    const totalPrice = tier.sale * safeNights;
-    const originalPrice = tier.original * safeNights;
+    const baseTotal = tier.sale * safeNights;
+    const baseOriginal = tier.original * safeNights;
+    const totalPrice = baseTotal + childExtraTotal;
+    const originalPrice = baseOriginal + childExtraTotal;
     const discountPercent = tier.original > tier.sale
       ? Math.round(((tier.original - tier.sale) / tier.original) * 100)
       : 0;
