@@ -626,8 +626,22 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
               {capacityHeader} | 排除「已取消」訂單 | 跨日訂單金額平均分配至每一晚
             </p>
           </div>
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
-            <Hotel className="h-4 w-4 text-emerald-600" />
+          <div className="flex items-center gap-3">
+            {hasStandardCapSetting && (
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="toggle-show-standard"
+                  checked={showStandard}
+                  onCheckedChange={setShowStandard}
+                />
+                <Label htmlFor="toggle-show-standard" className="text-xs text-muted-foreground cursor-pointer">
+                  顯示散客
+                </Label>
+              </div>
+            )}
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
+              <Hotel className="h-4 w-4 text-emerald-600" />
+            </div>
           </div>
         </div>
       </CardHeader>
