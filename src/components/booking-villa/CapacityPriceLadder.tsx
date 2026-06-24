@@ -547,6 +547,26 @@ const CapacityPriceLadder = ({
                   )}
                   <p className="text-[11px] text-gray-300 mt-1">已含稅與服務費</p>
 
+                  {/* 跨平/旺/假日 fallback 標註：某些晚此方案不適用，改用當日最低替代價 */}
+                  {opt.fallbackNotes && opt.fallbackNotes.length > 0 && (
+                    <div className="mt-2 rounded-lg border border-[#EADFCB] bg-[#FDF7EC] px-2.5 py-2 text-[11px] leading-relaxed text-[#7A5A2E]">
+                      <div className="flex items-start gap-1.5">
+                        <Info className="h-3 w-3 mt-0.5 shrink-0" />
+                        <div className="space-y-0.5">
+                          {opt.fallbackNotes.map((n, idx) => (
+                            <div key={idx}>
+                              <span className="font-semibold">{format(n.date, "M/d")}</span>
+                              （{TIER_LABELS[n.tier].short}）本方案不適用，改以
+                              {n.fallbackPlanName ? `「${n.fallbackPlanName}」` : "當日最低價"}
+                              NT${n.fallbackSale.toLocaleString()} 計算
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+
                   {/* 信任訊號：按鈕正上方 */}
                   {(() => {
                     const effectiveFreeDays = freeCancelDays ?? DEFAULT_FREE_CANCEL_DAYS;
