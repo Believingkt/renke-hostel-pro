@@ -262,6 +262,111 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
 
       <Card>
         <CardHeader>
+          <CardTitle className="text-base flex items-center justify-between gap-2">
+            <span>特色標籤（最多 6 個）</span>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={addTag}
+              disabled={tags.length >= 6}
+            >
+              <Plus className="h-3.5 w-3.5 mr-1" /> 新增標籤
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-[11px] text-muted-foreground -mt-1">
+            自訂訂房頁標題下方的 6 個圖示標籤；留空則自動從設施服務關鍵字推測。
+          </p>
+          {tags.length === 0 && (
+            <p className="text-[12px] text-muted-foreground rounded-md border border-dashed bg-muted/20 px-3 py-3 text-center">
+              尚未設定，按「新增標籤」開始建立
+            </p>
+          )}
+          <ul className="space-y-2">
+            {tags.map((tag, idx) => {
+              const Icon = getVillaFeatureIcon(tag.icon);
+              return (
+                <li
+                  key={idx}
+                  className="flex items-center gap-2 rounded-md border bg-background p-2"
+                >
+                  <Select
+                    value={tag.icon}
+                    onValueChange={(v) => {
+                      const opt = VILLA_FEATURE_ICON_OPTIONS.find((o) => o.value === v);
+                      updateTag(idx, {
+                        icon: v,
+                        label: tag.label || opt?.defaultLabel || "",
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="w-[150px] shrink-0">
+                      <div className="flex items-center gap-2">
+                        <Icon className="h-4 w-4 text-primary" />
+                        <SelectValue />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {VILLA_FEATURE_ICON_OPTIONS.map((o) => {
+                        const OptIcon = o.icon;
+                        return (
+                          <SelectItem key={o.value} value={o.value}>
+                            <div className="flex items-center gap-2">
+                              <OptIcon className="h-4 w-4" />
+                              <span>{o.defaultLabel}</span>
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    value={tag.label}
+                    onChange={(e) => updateTag(idx, { label: e.target.value })}
+                    placeholder="標籤文字"
+                    maxLength={12}
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => moveTag(idx, -1)}
+                    disabled={idx === 0}
+                    title="上移"
+                  >
+                    <ArrowUp className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => moveTag(idx, 1)}
+                    disabled={idx === tags.length - 1}
+                    title="下移"
+                  >
+                    <ArrowDown className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => removeTag(idx)}
+                    title="刪除"
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </li>
+              );
+            })}
+          </ul>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle className="text-base">聯繫房東</CardTitle>
         </CardHeader>
         <CardContent>
