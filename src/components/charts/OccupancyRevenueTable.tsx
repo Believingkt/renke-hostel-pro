@@ -257,8 +257,10 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
     const holidaySet = new Set<string>();
     holidays.forEach(h => holidaySet.add(h.holiday_date));
 
-    // 啟用的分段
-    const activeSegments: SegmentKey[] = splitMode ? ['exclusive', 'standard'] : ['all'];
+    // 啟用的分段：分流模式下，沒設定容量的類別不顯示
+    const activeSegments: SegmentKey[] = splitMode
+      ? (['exclusive', 'standard'] as SegmentKey[]).filter(s => segmentCapacity[s] > 0)
+      : ['all'];
 
     type Bucket = {
       soldByType: Record<DayType, number>;
