@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Copy, Maximize2, Check, Train, MapPin } from "lucide-react";
+import { Copy, Maximize2, Check, Train, MapPin, Car, Bus } from "lucide-react";
 import { toast } from "sonner";
 
 interface Attraction {
