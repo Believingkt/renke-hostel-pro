@@ -919,9 +919,10 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
   // Calculate totals
   const calculateTotalsForSelections = (selections: RoomSelection[]) => {
+    const addonNights = Math.max(1, calculateNights());
     const addonTotal = selectedAddons.reduce((sum, a) => {
       const addon = addonSettings.find(ad => ad.id === a.addon_id);
-      return sum + (addon ? addon.price_per_unit * a.quantity : 0);
+      return sum + (addon ? addon.price_per_unit * a.quantity * addonNights : 0);
     }, 0);
     // Use explicit selection prices to avoid stale roomPrice state during submit
     const actualRoomTotal = selections.reduce((sum, sel) => sum + sel.roomPrice, 0);
