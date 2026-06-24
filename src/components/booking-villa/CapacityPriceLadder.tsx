@@ -155,6 +155,8 @@ const CapacityPriceLadder = ({
   childExtraTotal = 0,
   childExtraBreakdown = [],
   childRuleLines = [],
+  childBlocked = false,
+  childBlockReason,
 }: Props) => {
   const TERM = isSensan ? "包區" : "包棟";
   const TIER_HINT: Record<PricingTier, string> = {
