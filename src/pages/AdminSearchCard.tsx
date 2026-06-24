@@ -63,28 +63,7 @@ const AdminSearchCard = () => {
         if (Array.isArray(d.feature_tags_override) && d.feature_tags_override.length > 0) {
           setPreviewTags(d.feature_tags_override);
         } else {
-          // 簡易自動推導：以設施名稱關鍵字推導 3 個標籤
-          try {
-            const facs = await expandFacilitiesForAccommodations([currentAccommodationId]);
-            const names = (facs || []).map((f: any) => f?.name || "").filter(Boolean);
-            const rules: Array<{ test: RegExp; label: string }> = [
-              { test: /寵物|pet/i, label: "寵物友善" },
-              { test: /BBQ|烤肉/i, label: "BBQ 烤肉" },
-              { test: /廚房|kitchen/i, label: "獨立廚房" },
-              { test: /泳池|游泳/i, label: "泳池" },
-              { test: /早餐|breakfast/i, label: "含早餐" },
-              { test: /停車|parking/i, label: "免費停車" },
-              { test: /wifi|無線/i, label: "免費 WiFi" },
-              { test: /兒童|親子|kids/i, label: "親子友善" },
-            ];
-            const auto: string[] = [];
-            for (const r of rules) {
-              if (names.some((n) => r.test.test(n)) && !auto.includes(r.label)) auto.push(r.label);
-            }
-            setPreviewTags(auto.slice(0, 3));
-          } catch {
-            setPreviewTags([]);
-          }
+          setPreviewTags([]);
         }
       });
   }, [currentAccommodationId]);
