@@ -118,7 +118,7 @@ export const useAccommodationCache = (accommodationId: string | null) => {
       const [infoRes, photosRes] = await Promise.all([
         supabase
           .from("accommodation_info")
-          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, og_title, og_description, og_image_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay, theme_preset, short_url_alias, show_reviews_section, show_facilities_section, show_gallery_section, show_faq_section, show_location_section, show_booking_info_section, show_about_section, show_rooms_section, show_custom_images_section, homepage_sections_order, homepage_section_titles, child_age_rules")
+          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, og_title, og_description, og_image_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay, theme_preset, short_url_alias, show_reviews_section, show_facilities_section, show_gallery_section, show_faq_section, show_location_section, show_booking_info_section, show_about_section, show_rooms_section, show_custom_images_section, homepage_sections_order, homepage_section_titles, child_age_rules, region_1, region_2")
           .eq("id", accId)
           .maybeSingle(),
         supabase
