@@ -261,7 +261,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
             addon_type: s.addon_type,
             count: qty,
             price_per_unit: s.price_per_unit,
-            total: s.price_per_unit * qty,
+            total: s.price_per_unit * qty * addonNights,
             unit_label: s.unit_label,
           };
         });
