@@ -575,28 +575,43 @@ const CapacityPriceLadder = ({
                             ))}
                           </div>
 
-                          {/* 詳細計算：每晚明細逐項加總 */}
+                          {/* 詳細計算：可展開/收合 */}
                           <div className="pt-1 mt-1 border-t border-[#EADFCB]/70">
-                            <div className="font-semibold mb-0.5">詳細計算</div>
-                            <div className="space-y-0.5 font-mono tabular-nums">
-                              {opt.breakdown.map((b, idx) => (
-                                <div key={`bd-${idx}`} className="flex items-baseline justify-between gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setShowDetails((v) => !v)}
+                              aria-expanded={showDetails}
+                              className="flex items-center gap-1 font-semibold text-[#7A5A2E] hover:text-[#5C4220] transition-colors"
+                            >
+                              <ChevronDown
+                                className={cn(
+                                  "h-3.5 w-3.5 transition-transform",
+                                  showDetails ? "rotate-0" : "-rotate-90"
+                                )}
+                              />
+                              <span>{showDetails ? "收合詳細計算" : "展開詳細計算"}</span>
+                            </button>
+                            {showDetails && (
+                              <div className="mt-1 space-y-0.5 font-mono tabular-nums">
+                                {opt.breakdown.map((b, idx) => (
+                                  <div key={`bd-${idx}`} className="flex items-baseline justify-between gap-2">
+                                    <span>
+                                      {format(b.date, "M/d")}（{TIER_LABELS[b.tier].short}）
+                                      {b.isFallback
+                                        ? `替代：${b.planName ?? "當日最低價"}`
+                                        : `本方案${b.planName ? `：${b.planName}` : ""}`}
+                                    </span>
+                                    <span>NT${b.sale.toLocaleString()}</span>
+                                  </div>
+                                ))}
+                                <div className="flex items-baseline justify-between gap-2 pt-0.5 mt-0.5 border-t border-[#EADFCB]/70 font-semibold">
+                                  <span>合計（{opt.breakdown.length} 晚）</span>
                                   <span>
-                                    {format(b.date, "M/d")}（{TIER_LABELS[b.tier].short}）
-                                    {b.isFallback
-                                      ? `替代：${b.planName ?? "當日最低價"}`
-                                      : `本方案${b.planName ? `：${b.planName}` : ""}`}
+                                    NT${opt.breakdown.reduce((s, b) => s + b.sale, 0).toLocaleString()}
                                   </span>
-                                  <span>NT${b.sale.toLocaleString()}</span>
                                 </div>
-                              ))}
-                              <div className="flex items-baseline justify-between gap-2 pt-0.5 mt-0.5 border-t border-[#EADFCB]/70 font-semibold">
-                                <span>合計（{opt.breakdown.length} 晚）</span>
-                                <span>
-                                  NT${opt.breakdown.reduce((s, b) => s + b.sale, 0).toLocaleString()}
-                                </span>
                               </div>
-                            </div>
+                            )}
                           </div>
                         </div>
                       </div>
