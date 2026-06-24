@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format, addDays, differenceInDays, startOfMonth, endOfMonth, getDay } from 'date-fns';
@@ -9,6 +9,8 @@ import { Hotel } from 'lucide-react';
 import { buildPricingMap } from '@/utils/revenueByMonth';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 interface OccupancyRevenueTableProps {
   accommodationId: string;
