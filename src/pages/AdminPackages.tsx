@@ -569,146 +569,6 @@ const AdminPackages = () => {
         }
       />
 
-      {/* 禮遇範本庫（民宿層）：可建立多組命名範本，方案編輯時一鍵套用至「附加說明」 */}
-      <div className="rounded-lg border bg-card p-4 sm:p-5 space-y-4">
-        <div className="flex items-start justify-between gap-3 flex-wrap">
-          <div>
-            <h3 className="font-semibold text-base">禮遇範本庫</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              建立常用的禮遇條列組合（例：一泊二食、純住宿、包棟尊榮）。新增/編輯方案時可在「附加說明」一鍵套用，套用後完全脫鉤、可任意修改而不影響範本。
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                const tpl = newTemplate();
-                setPerkTemplates((arr) => [...arr, tpl]);
-                setExpandedTplId(tpl.id);
-              }}
-            >
-              <Plus className="h-3.5 w-3.5 mr-1" />
-              新增範本
-            </Button>
-            <Button size="sm" onClick={savePerkTemplates} disabled={perksSaving}>
-              {perksSaving ? "儲存中…" : "儲存範本庫"}
-            </Button>
-          </div>
-        </div>
-
-        {perkTemplates.length === 0 && (
-          <p className="text-[12px] text-muted-foreground rounded-md border border-dashed bg-muted/20 px-3 py-3 text-center">
-            尚未建立任何範本。按「新增範本」開始建立第一組常用禮遇。
-          </p>
-        )}
-
-        <div className="space-y-3">
-          {perkTemplates.map((tpl) => {
-            const isOpen = expandedTplId === tpl.id;
-            const enabledCount = tpl.items.filter((it) => it.enabled && it.text.trim()).length;
-            return (
-              <div key={tpl.id} className="rounded-md border bg-background">
-                <div className="flex items-center gap-2 px-3 py-2">
-                  <button
-                    type="button"
-                    onClick={() => setExpandedTplId(isOpen ? null : tpl.id)}
-                    className="text-xs text-muted-foreground hover:text-foreground shrink-0 w-5"
-                    aria-label={isOpen ? "收合" : "展開"}
-                  >
-                    {isOpen ? "▾" : "▸"}
-                  </button>
-                  <Input
-                    value={tpl.name}
-                    onChange={(e) => updateTemplate(tpl.id, { name: e.target.value })}
-                    placeholder="範本名稱（例：一泊二食）"
-                    className="flex-1 h-8"
-                    maxLength={20}
-                  />
-                  <span className="text-[11px] text-muted-foreground shrink-0">
-                    {enabledCount} 條
-                  </span>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => {
-                      if (!confirm(`確定要刪除範本「${tpl.name}」？`)) return;
-                      setPerkTemplates((arr) => arr.filter((t) => t.id !== tpl.id));
-                      if (expandedTplId === tpl.id) setExpandedTplId(null);
-                    }}
-                    title="刪除範本"
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-
-                {isOpen && (
-                  <div className="border-t bg-muted/10 px-3 py-3 space-y-3">
-                    <div>
-                      <Label className="text-xs">區塊標題（顯示在前台禮遇上方）</Label>
-                      <Input
-                        value={tpl.title}
-                        onChange={(e) => updateTemplate(tpl.id, { title: e.target.value })}
-                        placeholder="例：尊榮禮遇"
-                        maxLength={20}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs">禮遇條列</Label>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => addTemplateItem(tpl.id)}
-                        >
-                          <Plus className="h-3.5 w-3.5 mr-1" />
-                          新增一條
-                        </Button>
-                      </div>
-                      <ul className="space-y-2">
-                        {tpl.items.map((it, idx) => (
-                          <li
-                            key={idx}
-                            className="flex items-center gap-2 rounded-md border bg-background px-2 py-1.5"
-                          >
-                            <Switch
-                              checked={it.enabled}
-                              onCheckedChange={(v) => updateTemplateItem(tpl.id, idx, { enabled: v })}
-                            />
-                            <Input
-                              value={it.text}
-                              onChange={(e) => updateTemplateItem(tpl.id, idx, { text: e.target.value })}
-                              placeholder="例：私人管家全程接待"
-                              maxLength={40}
-                              className="flex-1"
-                            />
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => removeTemplateItem(tpl.id, idx)}
-                              title="刪除"
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </li>
-                        ))}
-                      </ul>
-                      <p className="text-[11px] text-muted-foreground">
-                        每條最多 40 字；關閉開關可暫時隱藏該條而不需刪除。
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
 
       {/* 搜尋結果圖卡顯示設定 */}
 
@@ -946,6 +806,146 @@ const AdminPackages = () => {
           ))}
         </div>
       )}
+      {/* 禮遇範本庫（民宿層）：可建立多組命名範本，方案編輯時一鍵套用至「附加說明」 */}
+      <div className="rounded-lg border bg-card p-4 sm:p-5 space-y-4">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h3 className="font-semibold text-base">禮遇範本庫</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              建立常用的禮遇條列組合（例：一泊二食、純住宿、包棟尊榮）。新增/編輯方案時可在「附加說明」一鍵套用，套用後完全脫鉤、可任意修改而不影響範本。
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                const tpl = newTemplate();
+                setPerkTemplates((arr) => [...arr, tpl]);
+                setExpandedTplId(tpl.id);
+              }}
+            >
+              <Plus className="h-3.5 w-3.5 mr-1" />
+              新增範本
+            </Button>
+            <Button size="sm" onClick={savePerkTemplates} disabled={perksSaving}>
+              {perksSaving ? "儲存中…" : "儲存範本庫"}
+            </Button>
+          </div>
+        </div>
+
+        {perkTemplates.length === 0 && (
+          <p className="text-[12px] text-muted-foreground rounded-md border border-dashed bg-muted/20 px-3 py-3 text-center">
+            尚未建立任何範本。按「新增範本」開始建立第一組常用禮遇。
+          </p>
+        )}
+
+        <div className="space-y-3">
+          {perkTemplates.map((tpl) => {
+            const isOpen = expandedTplId === tpl.id;
+            const enabledCount = tpl.items.filter((it) => it.enabled && it.text.trim()).length;
+            return (
+              <div key={tpl.id} className="rounded-md border bg-background">
+                <div className="flex items-center gap-2 px-3 py-2">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedTplId(isOpen ? null : tpl.id)}
+                    className="text-xs text-muted-foreground hover:text-foreground shrink-0 w-5"
+                    aria-label={isOpen ? "收合" : "展開"}
+                  >
+                    {isOpen ? "▾" : "▸"}
+                  </button>
+                  <Input
+                    value={tpl.name}
+                    onChange={(e) => updateTemplate(tpl.id, { name: e.target.value })}
+                    placeholder="範本名稱（例：一泊二食）"
+                    className="flex-1 h-8"
+                    maxLength={20}
+                  />
+                  <span className="text-[11px] text-muted-foreground shrink-0">
+                    {enabledCount} 條
+                  </span>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => {
+                      if (!confirm(`確定要刪除範本「${tpl.name}」？`)) return;
+                      setPerkTemplates((arr) => arr.filter((t) => t.id !== tpl.id));
+                      if (expandedTplId === tpl.id) setExpandedTplId(null);
+                    }}
+                    title="刪除範本"
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+
+                {isOpen && (
+                  <div className="border-t bg-muted/10 px-3 py-3 space-y-3">
+                    <div>
+                      <Label className="text-xs">區塊標題（顯示在前台禮遇上方）</Label>
+                      <Input
+                        value={tpl.title}
+                        onChange={(e) => updateTemplate(tpl.id, { title: e.target.value })}
+                        placeholder="例：尊榮禮遇"
+                        maxLength={20}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs">禮遇條列</Label>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => addTemplateItem(tpl.id)}
+                        >
+                          <Plus className="h-3.5 w-3.5 mr-1" />
+                          新增一條
+                        </Button>
+                      </div>
+                      <ul className="space-y-2">
+                        {tpl.items.map((it, idx) => (
+                          <li
+                            key={idx}
+                            className="flex items-center gap-2 rounded-md border bg-background px-2 py-1.5"
+                          >
+                            <Switch
+                              checked={it.enabled}
+                              onCheckedChange={(v) => updateTemplateItem(tpl.id, idx, { enabled: v })}
+                            />
+                            <Input
+                              value={it.text}
+                              onChange={(e) => updateTemplateItem(tpl.id, idx, { text: e.target.value })}
+                              placeholder="例：私人管家全程接待"
+                              maxLength={40}
+                              className="flex-1"
+                            />
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => removeTemplateItem(tpl.id, idx)}
+                              title="刪除"
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="text-[11px] text-muted-foreground">
+                        每條最多 40 字；關閉開關可暫時隱藏該條而不需刪除。
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Edit Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
