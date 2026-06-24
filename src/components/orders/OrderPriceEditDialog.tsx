@@ -55,14 +55,8 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
   const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
   const [addonQuantities, setAddonQuantities] = useState<Record<string, number>>({});
 
-  // Compute nights from order for addon multiplication
-  const addonNights = (() => {
-    if (!order?.check_in_date || !order?.check_out_date) return 1;
-    const ci = new Date(order.check_in_date);
-    const co = new Date(order.check_out_date);
-    const n = Math.ceil((co.getTime() - ci.getTime()) / 86400000);
-    return Math.max(1, n);
-  })();
+  // 歷史訂單不重算加購晚數，保留原金額
+  const addonNights = 1;
 
   // Compute addon total from editable quantities
   const addonTotal = addonSettings.reduce((sum, s) => {
