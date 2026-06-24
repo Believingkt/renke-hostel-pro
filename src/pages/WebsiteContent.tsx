@@ -3644,6 +3644,7 @@ const WebsiteContent = () => {
         <TabsContent value="gallery" className="space-y-6">
           <PageHeader 
             title="精選照片" 
+            description="此處上傳的精選照片會用於：首頁輪播（最多 5 張）、訂房詳情頁（包棟頁）最上方的圖片輪播，以及首頁「精選照片」區塊。建議寬度 1920px、比例 16:9，單張 ≤ 8MB。"
             icon={ImageIcon}
             action={
               <Button
