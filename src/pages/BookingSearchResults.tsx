@@ -872,6 +872,7 @@ const BookingSearchResults = () => {
                 key={card.id}
                 data={card}
                 nights={nights}
+                promoTag={promoTag}
                 onClick={() => handleCardClick(card)}
               />
             ))}
