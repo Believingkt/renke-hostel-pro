@@ -49,6 +49,7 @@ export interface AccommodationInfo {
   show_custom_images_section?: boolean;
   homepage_sections_order?: string[];
   homepage_section_titles?: Record<string, { title?: string; subtitle?: string }>;
+  child_age_rules?: unknown | null;
 }
 
 export interface SecondaryData {
