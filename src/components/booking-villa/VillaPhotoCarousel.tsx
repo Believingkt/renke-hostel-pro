@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, ImageIcon } from "lucide-react";
 
 interface Photo {
@@ -13,28 +13,59 @@ interface Props {
 }
 
 /**
- * Trip.com 風格的全屏圖片輪播（手機優先）
- * - 橫向滑動（snap scroll），底部白色頁碼
- * - 全部混合（hero + gallery）
+ * Villa 頁頂部圖片輪播
+ * 互動方式比照搜尋頁卡片（SearchRoomCard）：
+ *  - 觸控：原生橫向滑動 + snap
+ *  - 桌機：滑鼠拖曳；左右 hover 區出現箭頭
+ *  - 底部：小圓點頁籤（>10 張時改顯示 "n / N" 計數）
  */
 const VillaPhotoCarousel = ({ photos, accommodationName }: Props) => {
+  const scrollerRef = useRef<HTMLDivElement>(null);
   const [activeIdx, setActiveIdx] = useState(0);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const dragState = useRef<{ startX: number; startScroll: number; moved: boolean } | null>(null);
 
-  // Track scroll position to update active index
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el || photos.length === 0) return;
-    const handleScroll = () => {
+  const handleScroll = () => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const idx = Math.round(el.scrollLeft / el.clientWidth);
+    if (idx !== activeIdx) setActiveIdx(idx);
+  };
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== "mouse") return;
+    const el = scrollerRef.current;
+    if (!el) return;
+    dragState.current = { startX: e.clientX, startScroll: el.scrollLeft, moved: false };
+  };
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const s = dragState.current;
+    const el = scrollerRef.current;
+    if (!s || !el) return;
+    const dx = e.clientX - s.startX;
+    if (Math.abs(dx) > 3) {
+      s.moved = true;
+      try {
+        (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+      } catch {}
+    }
+    if (s.moved) {
+      el.scrollLeft = s.startScroll - dx;
+      e.preventDefault();
+    }
+  };
+  const endDrag = () => {
+    const s = dragState.current;
+    const el = scrollerRef.current;
+    dragState.current = null;
+    if (!s || !el) return;
+    if (s.moved) {
       const idx = Math.round(el.scrollLeft / el.clientWidth);
-      setActiveIdx(idx);
-    };
-    el.addEventListener("scroll", handleScroll, { passive: true });
-    return () => el.removeEventListener("scroll", handleScroll);
-  }, [photos.length]);
+      el.scrollTo({ left: idx * el.clientWidth, behavior: "smooth" });
+    }
+  };
 
   const scrollTo = (idx: number) => {
-    const el = scrollRef.current;
+    const el = scrollerRef.current;
     if (!el) return;
     el.scrollTo({ left: idx * el.clientWidth, behavior: "smooth" });
   };
@@ -50,55 +81,93 @@ const VillaPhotoCarousel = ({ photos, accommodationName }: Props) => {
     );
   }
 
+  const useCounter = photos.length > 10;
+
   return (
-    <div className="relative w-full aspect-[4/3] bg-muted overflow-hidden">
-      {/* Scrollable strip */}
+    <div className="group relative w-full aspect-[4/3] bg-muted overflow-hidden">
       <div
-        ref={scrollRef}
-        className="w-full h-full flex overflow-x-auto snap-x snap-mandatory scrollbar-none"
-        style={{ scrollbarWidth: "none" }}
+        ref={scrollerRef}
+        onScroll={handleScroll}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        className="flex h-full w-full overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth no-scrollbar overscroll-x-contain overscroll-y-none cursor-grab active:cursor-grabbing select-none"
+        style={{ scrollbarWidth: "none", touchAction: "pan-x" }}
       >
         {photos.map((p, i) => (
-          <div key={p.id} className="w-full h-full shrink-0 snap-center">
+          <div key={p.id} className="relative shrink-0 w-full h-full snap-start overflow-hidden">
             <img
               src={p.photo_url}
               alt={p.title || `${accommodationName} - ${i + 1}`}
-              className="w-full h-full object-cover"
               loading={i === 0 ? "eager" : "lazy"}
+              className="w-full h-full object-cover"
+              draggable={false}
             />
           </div>
         ))}
       </div>
 
-      {/* Desktop arrows (hidden on mobile) */}
+      {/* 桌機版：左右 hover 區，顯示箭頭 */}
       {photos.length > 1 && (
         <>
-          <button
-            type="button"
-            onClick={() => scrollTo(Math.max(0, activeIdx - 1))}
-            className="hidden sm:flex absolute left-2 top-1/2 -translate-y-1/2 h-9 w-9 items-center justify-center rounded-full bg-black/40 backdrop-blur text-white hover:bg-black/60 transition disabled:opacity-30"
-            disabled={activeIdx === 0}
+          <div
+            role="button"
             aria-label="上一張"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              if (activeIdx === 0) return;
+              scrollTo(Math.max(0, activeIdx - 1));
+            }}
+            className="hidden md:flex absolute left-0 top-0 bottom-0 w-14 z-20 items-center justify-start pl-2 cursor-pointer"
           >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => scrollTo(Math.min(photos.length - 1, activeIdx + 1))}
-            className="hidden sm:flex absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 items-center justify-center rounded-full bg-black/40 backdrop-blur text-white hover:bg-black/60 transition disabled:opacity-30"
-            disabled={activeIdx === photos.length - 1}
+            {activeIdx > 0 && (
+              <span className="h-9 w-9 flex items-center justify-center rounded-full bg-white/85 hover:bg-white shadow-md text-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                <ChevronLeft className="h-5 w-5" />
+              </span>
+            )}
+          </div>
+          <div
+            role="button"
             aria-label="下一張"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              if (activeIdx >= photos.length - 1) return;
+              scrollTo(Math.min(photos.length - 1, activeIdx + 1));
+            }}
+            className="hidden md:flex absolute right-0 top-0 bottom-0 w-14 z-20 items-center justify-end pr-2 cursor-pointer"
           >
-            <ChevronRight className="h-5 w-5" />
-          </button>
+            {activeIdx < photos.length - 1 && (
+              <span className="h-9 w-9 flex items-center justify-center rounded-full bg-white/85 hover:bg-white shadow-md text-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                <ChevronRight className="h-5 w-5" />
+              </span>
+            )}
+          </div>
         </>
       )}
 
-      {/* Counter pill (Trip.com style) */}
+      {/* 右下：小圓點頁籤 / 多張時計數 */}
       {photos.length > 1 && (
-        <div className="absolute bottom-3 right-3 px-2 py-0.5 rounded-full bg-black/55 backdrop-blur text-white text-xs font-medium tabular-nums">
-          {activeIdx + 1} / {photos.length}
-        </div>
+        useCounter ? (
+          <div className="absolute bottom-3 right-3 px-2 py-0.5 rounded-full bg-black/55 backdrop-blur text-white text-xs font-medium tabular-nums pointer-events-none">
+            {activeIdx + 1} / {photos.length}
+          </div>
+        ) : (
+          <div className="absolute right-3 bottom-3 flex items-center gap-1 px-1.5 py-1 rounded-full bg-black/40 backdrop-blur-sm pointer-events-none">
+            {photos.map((_, i) => (
+              <span
+                key={i}
+                className={`h-1.5 rounded-full transition-all ${
+                  i === activeIdx ? "w-3.5 bg-white" : "w-1.5 bg-white/60"
+                }`}
+              />
+            ))}
+          </div>
+        )
       )}
     </div>
   );
