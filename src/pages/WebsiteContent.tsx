@@ -459,6 +459,7 @@ const WebsiteContent = () => {
   const getBreadcrumbTitle = () => {
     const titleMap: Record<string, string> = {
       'basic-info': '網頁設定',
+      'villa-header': '訂房頁標頭',
       'facilities': '設施服務',
       'addon-plans': '加購方案',
       'gallery': '精選照片',
