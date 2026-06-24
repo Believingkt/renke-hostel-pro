@@ -53,7 +53,16 @@ interface CapacityOption {
   originalPrice: number;
   discountPercent: number;
   isRecommended?: boolean;
+  /** 多晚跨平/旺/假日時，某些晚不適用本方案而改用替代價的標註 */
+  fallbackNotes?: Array<{
+    date: Date;
+    tier: "weekday" | "friday_sunday" | "weekend";
+    reason: "no_tier_price" | "no_open_plans";
+    fallbackPlanName?: string;
+    fallbackSale: number;
+  }>;
 }
+
 
 interface Props {
   roomTypes: RoomType[];
