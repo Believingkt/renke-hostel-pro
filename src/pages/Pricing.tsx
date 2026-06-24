@@ -342,7 +342,7 @@ const Pricing = () => {
       case "facilities":
         return "客房設施";
       case "basic":
-        return "專案設定";
+        return "房價價格設定";
       case "holidays":
         return "國定假日";
       default:
