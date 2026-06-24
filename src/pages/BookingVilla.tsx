@@ -1104,7 +1104,7 @@ const BookingVilla = () => {
               選擇房型
             </Button>
           </div>
-          )}
+          </div>
         </div>
       </div>
 
