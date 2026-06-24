@@ -469,6 +469,10 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
                 { label: "promo=sunday", href: buildHref("我想了解週日專屬禮遇包棟方案") },
                 { label: "promo=hot", href: buildHref("我想預訂熱門檔期包棟方案") },
               );
+              const trimmedCustom = customMessage.trim();
+              if (trimmedCustom) {
+                rows.push({ label: "自訂訊息", href: buildHref(trimmedCustom) });
+              }
             }
             return (
               <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
