@@ -79,6 +79,8 @@ interface Props {
   freeCancelDays?: number;
   /** 兒童加價總額（已乘上晚數）。預設 0 */
   childExtraTotal?: number;
+  /** 兒童加價分項明細（嬰兒/幼兒/兒童 × 人數 × 小計） */
+  childExtraBreakdown?: Array<{ key: string; label: string; count: number; subtotal: number }>;
 }
 
 import {
@@ -125,6 +127,7 @@ const CapacityPriceLadder = ({
   isHolidayDate,
   freeCancelDays,
   childExtraTotal = 0,
+  childExtraBreakdown = [],
 }: Props) => {
   const TERM = isSensan ? "包區" : "包棟";
   const TIER_HINT: Record<PricingTier, string> = {
