@@ -939,7 +939,11 @@ const BookingVilla = () => {
 
         {/* ── 13. Similar stays ── */}
         <div id="similar">
-          <SimilarStaysCarousel excludeId={info.id} region={region} />
+          <SimilarStaysCarousel
+            excludeId={info.id}
+            region={region}
+            adults={Math.max(1, parseInt(searchParams.get("adults") || "2", 10) || 2)}
+          />
         </div>
 
 
