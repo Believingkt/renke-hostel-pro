@@ -1132,7 +1132,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                               : entry.order_status === 'checked_in'
                                                 ? "border border-violet-300 bg-violet-100 dark:bg-violet-900/30 text-violet-800 dark:text-violet-200"
                                                 : "border border-amber-300 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200",
-                                          "rounded-md flex items-center justify-center px-1 gap-0.5 text-xs overflow-hidden",
+                                          "rounded-md flex items-center justify-center px-2 gap-1 text-xs overflow-hidden",
                                           "hover:brightness-95 transition-all",
                                           isClippedLeft && "rounded-l-none border-l-0",
                                           isClippedRight && "rounded-r-none border-r-0",
@@ -1143,8 +1143,8 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                         }}
                                         onClick={() => navigate(`/admin/orders/${entry.orderId}`, { state: { from: '/admin/room-inventory' } })}
                                       >
-                                        <span className="shrink-0 text-[11px] leading-none">{SOURCE_ICONS[entry.order_source] || "📋"}</span>
-                                        <span className="font-medium truncate min-w-0 flex-1">{entry.guest_name}</span>
+                                        <span className="shrink-0">{SOURCE_ICONS[entry.order_source] || "📋"}</span>
+                                        <span className="font-medium truncate">{entry.guest_name}</span>
                                         {span >= 2 && entry.order_source !== 'website' && entry.order_source !== 'manual' && (
                                           <span className="text-muted-foreground truncate hidden sm:inline">
                                             {getSourceLabel(entry.order_source)}
@@ -1159,13 +1159,13 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                             >
                                               <SelectTrigger
                                                 onClick={(e) => e.stopPropagation()}
-                                                className="ml-0.5 h-5 min-h-0 w-[30px] px-0 py-0 text-[9px] bg-background/70 border-foreground/20 shrink-0 justify-center gap-0 [&>svg]:hidden"
+                                                className="ml-auto h-5 px-1 py-0 text-[10px] bg-background/70 border-foreground/20 shrink-0 w-auto gap-0.5 [&>svg]:hidden"
                                                 title={assignedUnit ? `${assignedUnit.unit_number}${assignedUnit.nickname ? ` · ${assignedUnit.nickname}` : ''}` : "指派"}
                                               >
                                                 {assignedUnit ? (
-                                                  <span className="font-medium tabular-nums leading-none">{assignedUnit.unit_number}</span>
+                                                  <span className="font-medium tabular-nums">{assignedUnit.unit_number}</span>
                                                 ) : (
-                                                  <UserPlus className="h-2.5 w-2.5" />
+                                                  <UserPlus className="h-3 w-3" />
                                                 )}
                                               </SelectTrigger>
                                               <SelectContent onClick={(e) => e.stopPropagation()}>
