@@ -22,7 +22,11 @@ const DEVICE_WIDTH: Record<Device, number> = {
   desktop: 1280,
 };
 
-const AdminPackagesPreview = () => {
+interface AdminPackagesPreviewProps {
+  embedded?: boolean;
+}
+
+const AdminPackagesPreview = ({ embedded = false }: AdminPackagesPreviewProps = {}) => {
   const { currentAccommodationId } = useAccommodation();
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
