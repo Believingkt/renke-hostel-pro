@@ -249,7 +249,7 @@ const SearchRoomCard = ({ data, nights, onClick, promoTag = null }: Props) => {
             熱門檔期
           </Badge>
         ) : data.available_rooms !== null && data.available_rooms <= 2 ? (
-          <Badge className="absolute top-3 right-3 rounded-md text-xs font-semibold border-none pointer-events-none bg-[#FDF6F5] text-[#C25953]">
+          <Badge className="absolute top-3 right-3 rounded-md text-xs font-semibold border border-white/5 shadow-lg shadow-black/20 pointer-events-none bg-[#064E3B] text-[#FDFCF0]">
             全棟獨享
           </Badge>
         ) : null}
