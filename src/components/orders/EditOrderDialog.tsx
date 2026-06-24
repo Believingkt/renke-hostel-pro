@@ -658,7 +658,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
             addon_type: addon.addon_type,
             count: sa.quantity,
             price_per_unit: addon.price_per_unit,
-            total: addon.price_per_unit * sa.quantity,
+            total: addon.price_per_unit * sa.quantity * addonNights,
             unit_label: addon.unit_label,
           } : null;
         })
