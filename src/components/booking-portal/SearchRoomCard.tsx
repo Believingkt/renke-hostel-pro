@@ -80,7 +80,7 @@ const SearchRoomCard = ({ data, nights, onClick, promoTag = null }: Props) => {
 
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [activeIdx, setActiveIdx] = useState(0);
-  const dragState = useRef<{ startX: number; startScroll: number; moved: boolean } | null>(null);
+  const dragState = useRef<{ startX: number; startY: number; startScroll: number; moved: boolean; locked: "h" | "v" | null } | null>(null);
   const handleScroll = () => {
     const el = scrollerRef.current;
     if (!el) return;
@@ -89,17 +89,38 @@ const SearchRoomCard = ({ data, nights, onClick, promoTag = null }: Props) => {
   };
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    // 只處理滑鼠拖曳；觸控保留原生捲動
-    if (e.pointerType !== "mouse") return;
     const el = scrollerRef.current;
     if (!el) return;
-    dragState.current = { startX: e.clientX, startScroll: el.scrollLeft, moved: false };
+    dragState.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startScroll: el.scrollLeft,
+      moved: false,
+      locked: e.pointerType === "mouse" ? "h" : null,
+    };
   };
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const s = dragState.current;
     const el = scrollerRef.current;
     if (!s || !el) return;
     const dx = e.clientX - s.startX;
+    const dy = e.clientY - s.startY;
+
+    // 對於觸控:在第一次移動時依方向鎖定;垂直主導 → 讓頁面正常上下捲動,本元件完全不介入
+    if (s.locked === null) {
+      const ax = Math.abs(dx);
+      const ay = Math.abs(dy);
+      if (ax < 6 && ay < 6) return; // 還不確定方向
+      if (ay > ax) {
+        s.locked = "v";
+        dragState.current = null; // 放手,交回給瀏覽器原生垂直捲動
+        return;
+      }
+      s.locked = "h";
+    }
+
+    if (s.locked !== "h") return;
+
     if (Math.abs(dx) > 3) {
       s.moved = true;
       try {
@@ -159,7 +180,7 @@ const SearchRoomCard = ({ data, nights, onClick, promoTag = null }: Props) => {
             onPointerCancel={endDrag}
             onClickCapture={onClickCapture}
             className="flex h-full w-full overflow-x-auto overflow-y-hidden snap-x snap-mandatory scroll-smooth no-scrollbar overscroll-x-contain overscroll-y-none cursor-grab active:cursor-grabbing select-none"
-            style={{ scrollbarWidth: "none", touchAction: "pan-x" }}
+            style={{ scrollbarWidth: "none", touchAction: "pan-y" }}
           >
             {photos.map((src, i) => (
               <div key={i} className="relative shrink-0 w-full h-full snap-start overflow-hidden">
