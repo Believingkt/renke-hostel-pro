@@ -74,26 +74,68 @@ export default function SectionTabsNav({ tabs }: SectionTabsNavProps) {
       : window.matchMedia("(min-width: 640px)").matches
         ? 80 + 48
         : 64 + 48;
-    const top = el.getBoundingClientRect().top + window.scrollY - headerOffset;
+    const targetTop = el.getBoundingClientRect().top + window.scrollY - headerOffset;
 
-    // 鎖定 active，scroll 結束後再解鎖（以 scrollend 為主，逾時兜底）
+    // 鎖定 active，scroll 結束後再解鎖
     lockRef.current = true;
     setActive(id);
-    if (lockTimerRef.current) window.clearTimeout(lockTimerRef.current);
+    if (lockTimerRef.current) {
+      window.clearTimeout(lockTimerRef.current);
+      lockTimerRef.current = null;
+    }
 
-    const release = () => {
+    // 相容性策略：
+    //  - Chrome/Edge：原生 `scrollend` 事件（最準確）
+    //  - Safari/Firefox：監聽 `scroll` 並用 debounce 偵測「停止滾動」
+    //  - 兩者都加 2.5s 硬性逾時兜底（避免使用者中途打斷滾動造成卡鎖）
+    const supportsScrollEnd = "onscrollend" in window;
+    let idleTimer: number | null = null;
+    let hardTimer: number | null = null;
+    let settleTimer: number | null = null;
+
+    const cleanup = () => {
       lockRef.current = false;
-      window.removeEventListener("scrollend", release);
-      if (lockTimerRef.current) {
-        window.clearTimeout(lockTimerRef.current);
-        lockTimerRef.current = null;
-      }
+      window.removeEventListener("scrollend", onScrollEnd);
+      window.removeEventListener("scroll", onScrollPoll);
+      if (idleTimer) window.clearTimeout(idleTimer);
+      if (hardTimer) window.clearTimeout(hardTimer);
+      if (settleTimer) window.clearTimeout(settleTimer);
+      lockTimerRef.current = null;
     };
-    window.addEventListener("scrollend", release, { once: true });
-    // Safari 沒有 scrollend：1.2s 後強制解鎖
-    lockTimerRef.current = window.setTimeout(release, 1200);
 
-    window.scrollTo({ top, behavior: "smooth" });
+    const onScrollEnd = () => {
+      // 多等一拍讓 IntersectionObserver 以最終位置回報
+      settleTimer = window.setTimeout(cleanup, 80);
+    };
+
+    const onScrollPoll = () => {
+      if (idleTimer) window.clearTimeout(idleTimer);
+      // 150ms 沒有新的 scroll → 視為停止
+      idleTimer = window.setTimeout(() => {
+        settleTimer = window.setTimeout(cleanup, 80);
+      }, 150);
+    };
+
+    if (supportsScrollEnd) {
+      window.addEventListener("scrollend", onScrollEnd, { once: true });
+    } else {
+      window.addEventListener("scroll", onScrollPoll, { passive: true });
+      // 啟動 idle 計時（萬一目標距離極短，scroll 事件可能很少）
+      idleTimer = window.setTimeout(() => {
+        settleTimer = window.setTimeout(cleanup, 80);
+      }, 400);
+    }
+
+    // 硬性兜底：無論如何 2.5s 後解鎖
+    hardTimer = window.setTimeout(cleanup, 2500);
+    lockTimerRef.current = hardTimer;
+
+    // 已在目標位置（距離 < 2px）直接立即解鎖，否則 smooth scroll
+    if (Math.abs(targetTop - window.scrollY) < 2) {
+      cleanup();
+      return;
+    }
+    window.scrollTo({ top: targetTop, behavior: "smooth" });
   };
 
   return (
