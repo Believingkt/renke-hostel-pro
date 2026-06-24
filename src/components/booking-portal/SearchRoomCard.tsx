@@ -240,9 +240,9 @@ const SearchRoomCard = ({ data, nights, onClick, promoTag = null }: Props) => {
           <Badge className="absolute top-3 right-3 text-[11px] font-medium border-none bg-foreground/70 text-white pointer-events-none">
             已售完
           </Badge>
-        ) : promoTag === "friday" ? (
+        ) : promoTag === "friday" || promoTag === "sunday" ? (
           <Badge className="absolute top-3 right-3 text-[11px] font-bold border-none text-white pointer-events-none bg-[#A98467]">
-            週五專屬禮遇
+            {promoTag === "friday" ? "週五專屬禮遇" : "週日專屬禮遇"}
           </Badge>
         ) : promoTag === "hot" ? (
           <Badge className="absolute top-3 right-3 text-[11px] font-bold border-none pointer-events-none bg-[#FDF6F5] text-[#C25953]">
