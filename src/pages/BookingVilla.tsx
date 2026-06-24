@@ -497,7 +497,7 @@ const BookingVilla = () => {
       .join(" ") || (info as any).region_1 || null;
 
   return (
-    <div className={`min-h-screen bg-stone-50 pb-24 ${themeClass}`}>
+    <div className={`min-h-screen bg-stone-50 pb-24 overflow-x-hidden w-full max-w-[100vw] ${themeClass}`} style={{ overscrollBehaviorX: "none" }}>
       <SEOHead
         title={(info as any).seo_title || info.og_title || info.name}
         description={
