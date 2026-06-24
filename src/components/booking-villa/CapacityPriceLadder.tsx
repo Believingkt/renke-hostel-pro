@@ -53,7 +53,16 @@ interface CapacityOption {
   originalPrice: number;
   discountPercent: number;
   isRecommended?: boolean;
+  /** 多晚跨平/旺/假日時，某些晚不適用本方案而改用替代價的標註 */
+  fallbackNotes?: Array<{
+    date: Date;
+    tier: "weekday" | "friday_sunday" | "weekend";
+    reason: "no_tier_price" | "no_open_plans";
+    fallbackPlanName?: string;
+    fallbackSale: number;
+  }>;
 }
+
 
 interface Props {
   roomTypes: RoomType[];
@@ -88,9 +97,11 @@ interface Props {
 import {
   SENSAN_PRICING_TABLE as DEFAULT_PRICING_TABLE,
   detectSensanTierByDate as detectTierByDateShared,
+  computeNightlyPackageTotals,
   type SensanPricingTier as PricingTier,
   type SensanTierPrice as TierPrice,
 } from "@/lib/sensan-pricing";
+
 
 const DEFAULT_PLAN_INCLUDES = [
   { icon: <Ticket className="h-3.5 w-3.5" />, label: "星夢森林劇場門票" },
@@ -174,13 +185,18 @@ const CapacityPriceLadder = ({
       roomTypes.find((rt) => rt.capacity >= tier.guestCount) ||
       fallbackRoomType;
 
-    const safeNights = Math.max(1, nights);
-    const baseTotal = tier.sale * safeNights;
-    const baseOriginal = tier.original * safeNights;
-    const totalPrice = baseTotal + childExtraTotal;
-    const originalPrice = baseOriginal + childExtraTotal;
-    const discountPercent = tier.original > tier.sale
-      ? Math.round(((tier.original - tier.sale) / tier.original) * 100)
+    // 跨平/旺/假日逐晚計價：當日該方案不適用 → fallback 該日「有開」方案最低 sale
+    const { totalSale, totalOriginal, fallbackNotes } = computeNightlyPackageTotals({
+      selectedTier: tier,
+      checkIn,
+      nights,
+      pricingTable: PRICING_TABLE,
+      isHolidayDate: isHolidayDate,
+    });
+    const totalPrice = totalSale + childExtraTotal;
+    const originalPrice = totalOriginal + childExtraTotal;
+    const discountPercent = totalOriginal > totalSale
+      ? Math.round(((totalOriginal - totalSale) / totalOriginal) * 100)
       : 0;
 
     return {
@@ -191,8 +207,10 @@ const CapacityPriceLadder = ({
       originalPrice,
       discountPercent,
       isRecommended,
+      fallbackNotes,
     };
   };
+
 
   const currentTiers = PRICING_TABLE[activeTier];
   const fewPeopleTiers = enableFewPeople ? currentTiers.filter((t) => t.isFewPeople) : [];
@@ -528,6 +546,26 @@ const CapacityPriceLadder = ({
                     </Popover>
                   )}
                   <p className="text-[11px] text-gray-300 mt-1">已含稅與服務費</p>
+
+                  {/* 跨平/旺/假日 fallback 標註：某些晚此方案不適用，改用當日最低替代價 */}
+                  {opt.fallbackNotes && opt.fallbackNotes.length > 0 && (
+                    <div className="mt-2 rounded-lg border border-[#EADFCB] bg-[#FDF7EC] px-2.5 py-2 text-[11px] leading-relaxed text-[#7A5A2E]">
+                      <div className="flex items-start gap-1.5">
+                        <Info className="h-3 w-3 mt-0.5 shrink-0" />
+                        <div className="space-y-0.5">
+                          {opt.fallbackNotes.map((n, idx) => (
+                            <div key={idx}>
+                              <span className="font-semibold">{format(n.date, "M/d")}</span>
+                              （{TIER_LABELS[n.tier].short}）本方案不適用，改以
+                              {n.fallbackPlanName ? `「${n.fallbackPlanName}」` : "當日最低價"}
+                              NT${n.fallbackSale.toLocaleString()} 計算
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
 
                   {/* 信任訊號：按鈕正上方 */}
                   {(() => {
