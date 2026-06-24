@@ -1,51 +1,30 @@
-# 精選民宿卡片設定分頁
+## 目標
+搜尋結果卡已顯示「含兒童加價 +NTxxx」，但點進民宿（`/booking/villa/:id`）後價格沒有把兒童加價算進去。需要讓 villa 頁的所有方案總價、底部 sticky 價格與搜尋結果一致包含兒童加價，並在價格旁顯示提示文案。
 
-在 **官網內容** 頁籤底下新增一個獨立分頁「精選民宿卡片」，讓每間民宿可獨立管理 Portal 首頁卡片上顯示的所有內容，與「關於我們」、「輪播圖管理」等其他區塊解耦。
+## 變更內容
 
-## 範圍：可設定的欄位
+1. **抓取兒童規則**  
+   `src/hooks/use-accommodation-cache.tsx`：在 `accommodation_info` 的 `select(...)` 加入 `child_age_rules`，型別補進 `AccommodationInfo`，讓 villa 頁能讀到後台設定的兒童分齡加價規則。
 
-對應卡片由上到下：
+2. **villa 頁計算兒童加價**  
+   `src/pages/BookingVilla.tsx`：
+   - 讀 URL `children` / `infants` / `toddlers`。
+   - 用 `resolveChildRules(info.child_age_rules)` + `evaluateChildSelection(rules, {...}, nights)`（與搜尋頁 `BookingSearchResults.tsx` 相同 helper）算出 `childExtraTotal`。
+   - 把 `childExtraTotal` 傳給 `CapacityPriceLadder`。
+   - 底部 sticky 顯示的最低總價也加上 `childExtraTotal`。
 
-1. **卡片輪播照片**（獨立於首頁 Hero 輪播）
-   - 多張圖片上傳、排序、刪除（最多 8 張）
-2. **顯示名稱**（可覆寫 `accommodation_info.name`，留空則 fallback）
-3. **地點文字**（可覆寫 region_1 · region_2，留空則 fallback）
-4. **管家推薦標題**（預設「管家推薦 · Editor's Pick」，可改）
-5. **管家推薦內文**（獨立欄位，不再吃 `about_section.section_description`）
-6. **CTA 按鈕文字**（預設「探索這間民宿」，可改）
-7. **顯示開關**（是否在 Portal 顯示這張卡片）
+3. **CapacityPriceLadder 顯示**  
+   `src/components/booking-villa/CapacityPriceLadder.tsx`：
+   - 新增 prop：`childExtraTotal?: number`（預設 0）。
+   - `buildOption` 中：`totalPrice = tier.sale * nights + childExtraTotal`，`originalPrice = tier.original * nights + childExtraTotal`（與搜尋頁相同邏輯，保持折扣%不變）。
+   - 在每張方案卡的總價下方加一行小字 `含兒童加價 +NT$X`（僅當 `childExtraTotal > 0`），樣式比照搜尋卡上的提示。
 
-## 技術做法
+## 不更動
+- 兒童加價的後台設定、計算函式（`src/lib/child-rules.ts`）。
+- `BookingFlow` 結帳頁本身已正確計算兒童加價，不動。
+- 包區方案的「不含兒童」標示、上限提醒等既有 UI 不動。
 
-### 1. 資料層
-- 新增資料表 `portal_featured_cards`：
-  - `accommodation_id` (PK, FK → accommodation_info)
-  - `display_name`, `location_override`, `editor_pick_title`, `editor_pick_body`, `cta_label`
-  - `is_visible boolean default true`
-  - `updated_at`
-- 新增資料表 `portal_featured_card_photos`：
-  - `id`, `accommodation_id`, `photo_url`, `display_order`
-- RLS：authenticated 可讀寫、anon 可讀（Portal 公開讀取）
-- GRANT 完整權限
-
-### 2. HQ／管理後台
-- 在 `WebsiteContent.tsx` 頁籤列新增「精選民宿卡片」分頁
-- 新元件 `src/components/website-content/PortalFeaturedCardSection.tsx`：
-  - 照片上傳器（複用既有 hero 上傳邏輯）
-  - 表單欄位（標題/內文/按鈕/顯示開關）
-  - 即時預覽縮圖
-
-### 3. Portal 前端
-- `BookingPortal.fetchData` 多撈 `portal_featured_cards` 與 `portal_featured_card_photos`
-- `AccommodationInfo` 多帶這些欄位，並以 portal 設定優先、fallback 至既有資料：
-  - 照片：若 portal 有照片則用，否則 fallback `hero_photos`
-  - 名稱／地點／推薦文／按鈕：覆寫優先，否則 fallback
-- `is_visible = false` 的民宿不顯示卡片
-
-## 不在此範圍
-- 桌機版「雜誌式」排版的個別覆寫（仍共用相同來源欄位）
-- 多語系欄位
-
----
-
-請確認上方欄位範圍與表格設計，OK 我就開工。若你只想要「管家推薦」獨立可編輯（不需要照片／按鈕／名稱覆寫），告訴我，我可以縮成單一欄位的小型版本。
+## 技術重點
+- 與搜尋頁共用 `resolveChildRules` + `evaluateChildSelection`，邏輯一致，避免雙來源。
+- 折扣百分比仍以 `(original-sale)/original` 計算，兒童加價同時加入兩端，避免假折扣。
+- `childExtraTotal` 走 prop 注入，CapacityPriceLadder 無需感知 URL 與規則細節。
