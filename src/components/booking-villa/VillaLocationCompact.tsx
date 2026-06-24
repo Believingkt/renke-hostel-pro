@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Copy, Maximize2, Check, Train, MapPin, Utensils, ShoppingBag } from "lucide-react";
+import { Copy, Maximize2, Check, Train, MapPin } from "lucide-react";
 import { toast } from "sonner";
 
 interface Attraction {
@@ -21,17 +21,13 @@ interface Props {
   rating?: number | null;
 }
 
-type TabKey = "transport" | "landmark" | "food" | "shop";
+type TabKey = "transport" | "landmark";
 
 const TABS: { key: TabKey; label: string; icon: typeof Train }[] = [
   { key: "transport", label: "交通", icon: Train },
-  { key: "landmark", label: "熱門地標", icon: MapPin },
-  { key: "food", label: "餐點", icon: Utensils },
-  { key: "shop", label: "購物", icon: ShoppingBag },
+  { key: "landmark", label: "週邊景點", icon: MapPin },
 ];
 
-const FOOD_KW = ["餐", "食", "夜市", "咖啡", "cafe", "restaurant", "市場"];
-const SHOP_KW = ["商店", "百貨", "outlet", "shopping", "購物", "mall"];
 const TRANSPORT_KW = ["車站", "火車", "高鐵", "客運", "捷運", "機場", "轉運", "station"];
 
 const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
@@ -53,13 +49,8 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
   const filtered =
     tab === "transport"
       ? attractions.filter((a) => has(a, TRANSPORT_KW))
-      : tab === "food"
-        ? attractions.filter((a) => has(a, FOOD_KW))
-        : tab === "shop"
-          ? attractions.filter((a) => has(a, SHOP_KW))
-          : attractions.filter(
-              (a) => !has(a, TRANSPORT_KW) && !has(a, FOOD_KW) && !has(a, SHOP_KW)
-            );
+      : attractions.filter((a) => !has(a, TRANSPORT_KW));
+
 
   const handleCopy = async () => {
     if (!address) return;
