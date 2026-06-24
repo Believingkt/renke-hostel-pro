@@ -449,9 +449,9 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
                   }
                   const oaId = v.replace(/^@/, "");
                   if (oaMessage) {
-                    return `https://line.me/R/oaMessage/${encodeURIComponent(`@${oaId}`)}/?${encodeURIComponent(oaMessage)}`;
+                    return `https://line.me/R/oaMessage/@${oaId}/?${encodeURIComponent(oaMessage)}`;
                   }
-                  return `https://line.me/R/ti/p/${encodeURIComponent(`@${oaId}`)}`;
+                  return `https://line.me/R/ti/p/@${oaId}`;
                 }
                 case "whatsapp": return `https://wa.me/${v.replace(/[^0-9]/g, "")}`;
                 case "url":
