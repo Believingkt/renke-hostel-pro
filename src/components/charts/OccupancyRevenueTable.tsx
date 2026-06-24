@@ -221,9 +221,9 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
     const isSensan = (accName || '').includes('森山');
     const isOlivia = (accName || '').includes('奧莉');
     const adminSplit = dailyVillaCap > 0 || dailyRoomCap > 0;
-    const splitMode = adminSplit || (isYunxiu && exclusiveRoomCount > 0 && standardRoomCount > 0) || isOlivia;
+    const splitMode = adminSplit || (isYunxiu && exclusiveRoomCount > 0 && standardRoomCount > 0);
     // 管理員啟用分流時，包棟訂單一律視為 1 棟（不分內含房數）
-    const villaAsSingleUnit = adminSplit || isOlivia;
+    const villaAsSingleUnit = adminSplit;
 
     let exclusiveCap: number;
     let standardCap: number;
@@ -237,12 +237,8 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
       exclusiveCap = 0;
       standardCap = 0;
     }
-    // 奧莉薇雅：強制提供 1 棟包棟容量（用於「包棟全鎖房」訂單統計）
-    if (isOlivia && exclusiveCap === 0) {
-      exclusiveCap = 1;
-    }
     let allCapacity: number;
-    if (splitMode || (isOlivia && exclusiveCap > 0)) {
+    if (splitMode) {
       allCapacity = exclusiveCap + standardCap;
     } else {
       const total = roomTypes.reduce((s, rt) => s + (rt.room_count || 0), 0);
@@ -356,21 +352,15 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
 
           // 森山：包棟訂單一筆即視為整館滿房（allCapacity 間），散客則一間一間照算
           const sensanExclusiveFull = isSensan && exclusiveQty > 0;
-          // 奧莉薇雅：訂單若標記「包棟全鎖房」→ 算進包棟（1/1），其他房型訂單照算散客
+          // 奧莉維亞：訂單若標記「包棟全鎖房」，視為整館滿房（佔滿所有散客房）
           const oliviaLockFull = isOlivia && order.lock_whole_building === true;
           // 管理員啟用分流（adminSplit）時，任何包棟訂單一律算 1 棟
           const villaUnitQty = villaAsSingleUnit && exclusiveQty > 0 ? 1 : exclusiveQty;
-          const effectiveTotalQty = sensanExclusiveFull
+          const effectiveTotalQty = sensanExclusiveFull || oliviaLockFull
             ? allCapacity
-            : oliviaLockFull
-              ? exclusiveCap
-              : (villaAsSingleUnit ? villaUnitQty + standardQty : totalQty);
-          const effectiveExclusiveQty = sensanExclusiveFull
-            ? allCapacity
-            : oliviaLockFull
-              ? exclusiveCap
-              : villaUnitQty;
-          const effectiveStandardQty = sensanExclusiveFull ? 0 : (oliviaLockFull ? 0 : standardQty);
+            : (villaAsSingleUnit ? villaUnitQty + standardQty : totalQty);
+          const effectiveExclusiveQty = sensanExclusiveFull ? allCapacity : villaUnitQty;
+          const effectiveStandardQty = sensanExclusiveFull ? 0 : (oliviaLockFull ? standardCap : standardQty);
 
 
           if (splitMode) {
