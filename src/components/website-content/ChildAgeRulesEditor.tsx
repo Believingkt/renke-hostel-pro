@@ -166,6 +166,37 @@ const ChildAgeRulesEditor = ({
                 </div>
               </div>
 
+              <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs text-muted-foreground">
+                    超過上限每位每晚加價 NT$（0 = 嚴格不可超過）
+                  </Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={50}
+                    placeholder="0"
+                    value={t.over_limit_fee_per_night ?? 0}
+                    onChange={(e) =>
+                      update(key, {
+                        over_limit_fee_per_night: Math.max(
+                          0,
+                          parseInt(e.target.value || "0", 10),
+                        ),
+                      })
+                    }
+                    className="h-9 text-sm"
+                    disabled={disabled || t.max_count === null}
+                  />
+                  {t.max_count === null && (
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      未設定人數上限時不適用
+                    </p>
+                  )}
+                </div>
+              </div>
+
+
               <div className="mt-2 flex items-center gap-2">
                 <Switch
                   id={`cap-${key}`}
