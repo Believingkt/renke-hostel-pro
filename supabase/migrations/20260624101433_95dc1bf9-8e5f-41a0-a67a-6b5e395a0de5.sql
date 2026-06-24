@@ -1,0 +1,1 @@
+UPDATE public.orders SET check_out_date='2026-07-09' WHERE order_number='DY7C72S2';
