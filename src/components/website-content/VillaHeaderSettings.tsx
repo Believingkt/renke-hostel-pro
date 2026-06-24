@@ -42,6 +42,7 @@ const empty: State = {
 
 const VillaHeaderSettings = ({ accommodationId }: Props) => {
   const [form, setForm] = useState<State>(empty);
+  const [tags, setTags] = useState<VillaFeatureTag[]>([]);
   const [autoData, setAutoData] = useState<{
     rating: number | null;
     total: number | null;
@@ -54,7 +55,7 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
     supabase
       .from("accommodation_info")
       .select(
-        "villa_header_rating_override, villa_header_rating_label_override, villa_header_review_count_override, villa_header_top_review_override, villa_header_host_response_text, google_reviews_cache"
+        "villa_header_rating_override, villa_header_rating_label_override, villa_header_review_count_override, villa_header_top_review_override, villa_header_host_response_text, villa_header_feature_tags, google_reviews_cache"
       )
       .eq("id", accommodationId)
       .maybeSingle()
@@ -71,6 +72,17 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
           topReview: d.villa_header_top_review_override ?? "",
           hostResponseText: d.villa_header_host_response_text ?? "",
         });
+        const rawTags = d.villa_header_feature_tags;
+        if (Array.isArray(rawTags)) {
+          setTags(
+            rawTags
+              .filter((t: any) => t && typeof t === "object" && t.icon && t.label)
+              .slice(0, 6)
+              .map((t: any) => ({ icon: String(t.icon), label: String(t.label) }))
+          );
+        } else {
+          setTags([]);
+        }
         const cache = d.google_reviews_cache as any;
         let topReview: string | null = null;
         if (cache?.reviews && Array.isArray(cache.reviews) && cache.reviews.length > 0) {
@@ -89,6 +101,25 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
         });
       });
   }, [accommodationId]);
+
+  const addTag = () => {
+    if (tags.length >= 6) return;
+    const first = VILLA_FEATURE_ICON_OPTIONS[0];
+    setTags((arr) => [...arr, { icon: first.value, label: first.defaultLabel }]);
+  };
+  const updateTag = (idx: number, patch: Partial<VillaFeatureTag>) => {
+    setTags((arr) => arr.map((t, i) => (i === idx ? { ...t, ...patch } : t)));
+  };
+  const removeTag = (idx: number) => setTags((arr) => arr.filter((_, i) => i !== idx));
+  const moveTag = (idx: number, dir: -1 | 1) => {
+    setTags((arr) => {
+      const target = idx + dir;
+      if (target < 0 || target >= arr.length) return arr;
+      const copy = [...arr];
+      [copy[idx], copy[target]] = [copy[target], copy[idx]];
+      return copy;
+    });
+  };
 
   const handleSave = async () => {
     if (!accommodationId) return;
@@ -113,6 +144,11 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
       countNum = n;
     }
 
+    const tagsPayload = tags
+      .map((t) => ({ icon: t.icon, label: (t.label || "").trim() }))
+      .filter((t) => t.label !== "")
+      .slice(0, 6);
+
     setSaving(true);
     const { error } = await supabase
       .from("accommodation_info")
@@ -122,6 +158,7 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
         villa_header_review_count_override: countNum,
         villa_header_top_review_override: form.topReview.trim() || null,
         villa_header_host_response_text: form.hostResponseText.trim() || null,
+        villa_header_feature_tags: tagsPayload.length > 0 ? tagsPayload : null,
       } as any)
       .eq("id", accommodationId);
     setSaving(false);
@@ -131,6 +168,7 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
       toast.success("已更新訂房頁標頭");
     }
   };
+
 
   if (!accommodationId) {
     return (
