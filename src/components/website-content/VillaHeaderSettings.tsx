@@ -58,6 +58,7 @@ const CONTACT_TYPES: Array<{ value: string; label: string; placeholder: string; 
 
 const VillaHeaderSettings = ({ accommodationId }: Props) => {
   const [form, setForm] = useState<State>(empty);
+  const [customMessage, setCustomMessage] = useState("");
   const [tags, setTags] = useState<VillaFeatureTag[]>([]);
   const [autoData, setAutoData] = useState<{
     rating: number | null;
