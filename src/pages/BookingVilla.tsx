@@ -931,6 +931,8 @@ const BookingVilla = () => {
               childExtraTotal={childExtraTotal}
               childExtraBreakdown={childExtraBreakdown}
               childRuleLines={childRuleLines}
+              childBlocked={childBlocked}
+              childBlockReason={childBlockReason}
             />
 
           </div>
