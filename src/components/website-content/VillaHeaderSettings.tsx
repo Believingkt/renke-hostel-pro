@@ -5,8 +5,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
-import { LayoutPanelTop } from "lucide-react";
+import { LayoutPanelTop, Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
+import {
+  VILLA_FEATURE_ICON_OPTIONS,
+  getVillaFeatureIcon,
+  type VillaFeatureTag,
+} from "@/lib/villa-feature-icons";
 
 interface Props {
   accommodationId: string | null;
