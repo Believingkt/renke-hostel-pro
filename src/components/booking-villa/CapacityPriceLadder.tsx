@@ -195,7 +195,7 @@ const CapacityPriceLadder = ({
       fallbackRoomType;
 
     // 跨平/旺/假日逐晚計價：當日該方案不適用 → fallback 該日「有開」方案最低 sale
-    const { totalSale, totalOriginal, fallbackNotes } = computeNightlyPackageTotals({
+    const { totalSale, totalOriginal, fallbackNotes, breakdown } = computeNightlyPackageTotals({
       selectedTier: tier,
       checkIn,
       nights,
@@ -217,6 +217,7 @@ const CapacityPriceLadder = ({
       discountPercent,
       isRecommended,
       fallbackNotes,
+      breakdown,
     };
   };
 
