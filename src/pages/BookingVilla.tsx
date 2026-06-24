@@ -59,6 +59,7 @@ import {
   getPackagePriceForTier,
   isPackageExcludedOnDate,
 } from "@/hooks/use-accommodation-packages";
+import { resolveChildRules, evaluateChildSelection } from "@/lib/child-rules";
 
 import FacilitiesSection from "@/components/FacilitiesSection";
 import LocationSection from "@/components/LocationSection";
@@ -264,6 +265,18 @@ const BookingVilla = () => {
     if (!checkIn) return packages;
     return packages.filter((p) => !isPackageExcludedOnDate(p, checkIn));
   }, [packages, checkIn]);
+
+  // 兒童加價（與搜尋頁邏輯一致：民宿層 child_age_rules + URL 的 children/infants/toddlers）
+  const childExtraTotal = useMemo(() => {
+    if (!info) return 0;
+    const rules = resolveChildRules((info as any).child_age_rules, null);
+    const sel = {
+      infants: Math.max(0, parseInt(searchParams.get("infants") || "0", 10) || 0),
+      toddlers: Math.max(0, parseInt(searchParams.get("toddlers") || "0", 10) || 0),
+      children: Math.max(0, parseInt(searchParams.get("children") || "0", 10) || 0),
+    };
+    return evaluateChildSelection(rules, sel, nights || 1).extraFeeTotal;
+  }, [info, searchParams, nights]);
 
   const customPricingTable = useMemo(() => {
     if (visiblePackages.length === 0) return undefined;
@@ -756,6 +769,7 @@ const BookingVilla = () => {
               isSensan={isSensan}
               isHolidayDate={isHolidayDate}
               freeCancelDays={secondaryData?.bookingSettings?.free_cancel_days ?? undefined}
+              childExtraTotal={childExtraTotal}
             />
           </div>
         </section>
@@ -936,11 +950,18 @@ const BookingVilla = () => {
                   return <span className="text-sm text-muted-foreground">查看方案</span>;
                 }
                 return (
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-[11px] text-gray-500">總價</span>
-                    <span className="text-xl font-bold text-gray-800 tabular-nums">
-                      NT${(display * Math.max(1, nights || 1)).toLocaleString()}
-                    </span>
+                  <div className="flex flex-col">
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-[11px] text-gray-500">總價</span>
+                      <span className="text-xl font-bold text-gray-800 tabular-nums">
+                        NT${(display * Math.max(1, nights || 1) + childExtraTotal).toLocaleString()}
+                      </span>
+                    </div>
+                    {childExtraTotal > 0 && (
+                      <span className="text-[10px] font-medium leading-tight" style={{ color: "hsl(15, 78%, 48%)" }}>
+                        含兒童加價 +NT${childExtraTotal.toLocaleString()}
+                      </span>
+                    )}
                   </div>
                 );
               })()}
