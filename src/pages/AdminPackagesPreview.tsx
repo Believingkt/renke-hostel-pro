@@ -22,7 +22,11 @@ const DEVICE_WIDTH: Record<Device, number> = {
   desktop: 1280,
 };
 
-const AdminPackagesPreview = () => {
+interface AdminPackagesPreviewProps {
+  embedded?: boolean;
+}
+
+const AdminPackagesPreview = ({ embedded = false }: AdminPackagesPreviewProps = {}) => {
   const { currentAccommodationId } = useAccommodation();
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -73,6 +77,13 @@ const AdminPackagesPreview = () => {
   }, [previewUrl, reloadKey]);
 
   if (!currentAccommodationId) {
+    if (embedded) {
+      return (
+        <Card className="p-8 text-center text-muted-foreground">
+          請先在上方選擇要預覽的民宿
+        </Card>
+      );
+    }
     return (
       <div className="space-y-6">
         <AdminPageHeader
@@ -88,10 +99,12 @@ const AdminPackagesPreview = () => {
 
   return (
     <div className="space-y-4">
-      <AdminPageHeader
-        title="方案前台預覽"
-        description="模擬入住日期與人數，即時預覽銷售方案在訂房前台的呈現"
-      />
+      {!embedded && (
+        <AdminPageHeader
+          title="方案前台預覽"
+          description="模擬入住日期與人數，即時預覽銷售方案在訂房前台的呈現"
+        />
+      )}
 
       <Card className="p-4 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
