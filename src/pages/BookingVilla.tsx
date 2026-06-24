@@ -462,7 +462,16 @@ const BookingVilla = () => {
     );
   }
 
+  const childBlocked = childCtx?.evalResult.blocked ?? false;
+  const childBlockReason = childCtx?.evalResult.blockReason;
+
   const handleSelectOption = (opt: CapacityOption, subPlanKey?: string) => {
+    if (childBlocked) {
+      toast.error(childBlockReason || "兒童人數不符合此民宿規範", {
+        description: "請點選上方搜尋條調整人數後再試。",
+      });
+      return;
+    }
     const params = new URLSearchParams();
     params.set("acc", info.id);
     params.set("roomId", opt.roomTypeId);
