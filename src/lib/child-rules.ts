@@ -15,6 +15,8 @@ export interface ChildTier {
   fee_per_night: number;
   /** 人數上限；null = 不限 */
   max_count: number | null;
+  /** 超過 max_count 時，每多 1 位的每晚加價（NT$）；0 或未設 = 嚴格不可超過（block） */
+  over_limit_fee_per_night?: number;
   /** 是否接受該年齡層訂房 */
   allowed: boolean;
   /** 是否計入房型容量（一般嬰兒不計） */
@@ -24,7 +26,10 @@ export interface ChildTier {
 export interface ChildAgeRules {
   tiers: Record<ChildTierKey, ChildTier>;
   note: string;
+  /** 兒童加大人合計上限（含計入容量的兒童）；null = 不限 */
+  max_total_guests?: number | null;
 }
+
 
 export const TIER_ORDER: ChildTierKey[] = ["infant", "toddler", "child"];
 
