@@ -217,6 +217,12 @@ const BookingVilla = () => {
         ratingLabel: d.villa_header_rating_label_override || "超棒",
         hostResponseText:
           d.villa_header_host_response_text || "房東通常在 60 分鐘內回覆",
+        featureTagsOverride: Array.isArray(d.villa_header_feature_tags)
+          ? (d.villa_header_feature_tags as any[])
+              .filter((t) => t && t.icon && t.label)
+              .slice(0, 6)
+              .map((t) => ({ icon: String(t.icon), label: String(t.label) }))
+          : null,
       });
     })();
 
