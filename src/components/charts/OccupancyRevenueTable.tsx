@@ -219,6 +219,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
     //  2) 沿用既有的雲岫硬編碼分流（向下相容）
     const isYunxiu = (accName || '').includes('雲岫');
     const isSensan = (accName || '').includes('森山');
+    const isOlivia = (accName || '').includes('奧莉');
     const adminSplit = dailyVillaCap > 0 || dailyRoomCap > 0;
     const splitMode = adminSplit || (isYunxiu && exclusiveRoomCount > 0 && standardRoomCount > 0);
     // 管理員啟用分流時，包棟訂單一律視為 1 棟（不分內含房數）
