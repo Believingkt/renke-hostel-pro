@@ -95,3 +95,103 @@ export function getSensanRangeForTier(tier: SensanPricingTier) {
   const max = table.reduce((a, b) => (a.guestCount > b.guestCount ? a : b));
   return { min, max };
 }
+
+// ─────────────────────────────────────────────────────────────
+// 跨平/旺/假日的多晚總價計算
+//  - 每一晚依當日 tier 用「該方案在當日 tier 的價格」相加
+//  - 若該方案在當日 tier「沒開 / 沒價」，fallback 用當日所有有開方案中最低 sale 總價
+//  - 若整個當日 tier 都沒有方案，最終 fallback 用此方案自身 sale（避免 0）
+// ─────────────────────────────────────────────────────────────
+export interface NightlyFallbackNote {
+  date: Date;
+  tier: SensanPricingTier;
+  reason: "no_tier_price" | "no_open_plans";
+  /** 此晚實際採用的方案名稱（fallback 來源） */
+  fallbackPlanName?: string;
+  /** 此晚實際採用的單晚 sale */
+  fallbackSale: number;
+}
+
+export interface NightlyTotalsResult {
+  totalSale: number;
+  totalOriginal: number;
+  fallbackNotes: NightlyFallbackNote[];
+}
+
+export function computeNightlyPackageTotals(args: {
+  selectedTier: SensanTierPrice;
+  checkIn: Date | null | undefined;
+  nights: number;
+  pricingTable: Record<SensanPricingTier, SensanTierPrice[]>;
+  isHolidayDate?: (d: Date | null | undefined) => boolean | undefined;
+}): NightlyTotalsResult {
+  const { selectedTier, checkIn, nights, pricingTable, isHolidayDate } = args;
+  const safeNights = Math.max(1, nights);
+
+  // 沒有實際入住日 → 退回原本「sale × N」單一 tier 計算
+  if (!checkIn) {
+    return {
+      totalSale: selectedTier.sale * safeNights,
+      totalOriginal: (selectedTier.original ?? selectedTier.sale) * safeNights,
+      fallbackNotes: [],
+    };
+  }
+
+  let totalSale = 0;
+  let totalOriginal = 0;
+  const fallbackNotes: NightlyFallbackNote[] = [];
+
+  for (let i = 0; i < safeNights; i++) {
+    const d = new Date(checkIn);
+    d.setDate(d.getDate() + i);
+    const nightTier = detectSensanTierByDate(d);
+    const effectiveTier: SensanPricingTier = isHolidayDate?.(d) ? "weekend" : nightTier;
+    const candidates = pricingTable[effectiveTier] || [];
+
+    // 1) 同方案在當日 tier 是否有開（用 planName + guestCount，或 roomTypeId 比對）
+    const sameInThisTier = candidates.find((t) => {
+      if (selectedTier.roomTypeId && t.roomTypeId) {
+        return t.roomTypeId === selectedTier.roomTypeId && t.guestCount === selectedTier.guestCount;
+      }
+      if (selectedTier.planName && t.planName) {
+        return t.planName === selectedTier.planName && t.guestCount === selectedTier.guestCount;
+      }
+      return t.guestCount === selectedTier.guestCount && t.isFewPeople === selectedTier.isFewPeople;
+    });
+
+    if (sameInThisTier && sameInThisTier.sale > 0) {
+      totalSale += sameInThisTier.sale;
+      totalOriginal += sameInThisTier.original ?? sameInThisTier.sale;
+      continue;
+    }
+
+    // 2) Fallback：當日所有有開方案中最低 sale
+    const openPlans = candidates.filter((t) => t.sale > 0);
+    if (openPlans.length > 0) {
+      const cheapest = openPlans.reduce((a, b) => (a.sale < b.sale ? a : b));
+      totalSale += cheapest.sale;
+      totalOriginal += cheapest.original ?? cheapest.sale;
+      fallbackNotes.push({
+        date: d,
+        tier: effectiveTier,
+        reason: "no_tier_price",
+        fallbackPlanName: cheapest.planName || `${cheapest.guestCount} 人方案`,
+        fallbackSale: cheapest.sale,
+      });
+      continue;
+    }
+
+    // 3) 最終 fallback：用自身 sale 避免 0
+    totalSale += selectedTier.sale;
+    totalOriginal += selectedTier.original ?? selectedTier.sale;
+    fallbackNotes.push({
+      date: d,
+      tier: effectiveTier,
+      reason: "no_open_plans",
+      fallbackSale: selectedTier.sale,
+    });
+  }
+
+  return { totalSale, totalOriginal, fallbackNotes };
+}
+
