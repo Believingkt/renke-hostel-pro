@@ -360,65 +360,49 @@ const CapacityPriceLadder = ({
                     </div>
                   )}
 
-                  {/* 禮遇標題 + 獨享 Badge */}
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[14px] font-bold text-foreground">
-                      {activeTier_.subtitle || defaultPerks?.title || "尊榮禮遇"}
-                    </p>
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-border/60 text-gray-600 text-[11px]">
-                      <Sparkles className="h-3 w-3" style={{ color: "#A98467" }} />
-                      僅接待一組貴賓
-                    </span>
-                  </div>
-
-                  {/* 禮遇/附加說明清單（資料驅動：含=✓、可選=+、不含=✗） */}
+                  {/* 禮遇/附加說明清單（資料驅動：含=✓、可選=+、不含=✗）— 僅當方案有填 includes 時顯示 */}
                   {(() => {
                     const items = (activeTier_.includes || []).filter((i) => !!i?.text);
-                    if (items.length === 0) {
-                      // 後台「方案預設禮遇」設定（民宿層）
-                      if (!defaultPerks || defaultPerks.enabled === false) return null;
-                      const fallback = (defaultPerks.items || [])
-                        .filter((it) => it && it.enabled !== false && (it.text || "").trim() !== "");
-                      if (fallback.length === 0) return null;
-                      return (
-                        <ul className="space-y-2">
-                          {fallback.map((it, i) => (
-                            <li key={i} className="flex items-start gap-2">
-                              <Check className="h-4 w-4 mt-0.5 shrink-0" style={{ color: "#A98467" }} />
-                              <span className="text-[13px] text-gray-700 leading-snug">{it.text}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      );
-                    }
+                    if (items.length === 0) return null;
                     return (
-
-                      <ul className="space-y-2">
-                        {items.map((inc, i) => {
-                          const Icon = inc.available === "no" ? X : inc.available === "optional" ? Plus : Check;
-                          const iconColor =
-                            inc.available === "no"
-                              ? "hsl(0, 60%, 55%)"
-                              : inc.available === "optional"
-                                ? "hsl(25, 70%, 45%)"
-                                : "#A98467";
-                          const textCls =
-                            inc.available === "no"
-                              ? "text-gray-400 line-through"
-                              : "text-gray-700";
-                          return (
-                            <li key={i} className="flex items-start gap-2">
-                              <Icon className="h-4 w-4 mt-0.5 shrink-0" style={{ color: iconColor }} />
-                              <span className={`text-[13px] leading-snug ${textCls}`}>
-                                {inc.text}
-                                {inc.price_note && (
-                                  <span className="text-muted-foreground ml-1">（{inc.price_note}）</span>
-                                )}
-                              </span>
-                            </li>
-                          );
-                        })}
-                      </ul>
+                      <>
+                        {/* 禮遇標題 + 獨享 Badge */}
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-[14px] font-bold text-foreground">
+                            {activeTier_.subtitle || "尊榮禮遇"}
+                          </p>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-border/60 text-gray-600 text-[11px]">
+                            <Sparkles className="h-3 w-3" style={{ color: "#A98467" }} />
+                            僅接待一組貴賓
+                          </span>
+                        </div>
+                        <ul className="space-y-2">
+                          {items.map((inc, i) => {
+                            const Icon = inc.available === "no" ? X : inc.available === "optional" ? Plus : Check;
+                            const iconColor =
+                              inc.available === "no"
+                                ? "hsl(0, 60%, 55%)"
+                                : inc.available === "optional"
+                                  ? "hsl(25, 70%, 45%)"
+                                  : "#A98467";
+                            const textCls =
+                              inc.available === "no"
+                                ? "text-gray-400 line-through"
+                                : "text-gray-700";
+                            return (
+                              <li key={i} className="flex items-start gap-2">
+                                <Icon className="h-4 w-4 mt-0.5 shrink-0" style={{ color: iconColor }} />
+                                <span className={`text-[13px] leading-snug ${textCls}`}>
+                                  {inc.text}
+                                  {inc.price_note && (
+                                    <span className="text-muted-foreground ml-1">（{inc.price_note}）</span>
+                                  )}
+                                </span>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </>
                     );
                   })()}
 
