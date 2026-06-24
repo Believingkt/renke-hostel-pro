@@ -525,7 +525,7 @@ const AdminPackages = () => {
   return (
     <div className="p-4 sm:p-6 space-y-4">
       <AdminPageHeader
-        title="銷售方案"
+        title="訂房入住方案"
         description="設定民宿首頁訂房區顯示的銷售方案。啟用後，前台會以方案卡取代房型列表。"
         action={
           <Button onClick={openCreate} className="gap-1.5">
