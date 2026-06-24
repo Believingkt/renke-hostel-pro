@@ -542,7 +542,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
       standardCap,
       exclusiveRoomCount,
       standardRoomCount,
-      hasStandardCapSetting: dailyRoomCap > 0,
+      hasStandardCapSetting: splitMode,
     };
   }, [data, selectedYear]);
 
