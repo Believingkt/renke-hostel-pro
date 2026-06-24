@@ -739,29 +739,59 @@ const BookingVilla = () => {
         })()}
 
         {/* ── 2c. 聯繫住宿 row ── */}
-        {info.phone && (
-          <section className="px-4 py-3 bg-card border-b border-border/40">
-            <div className="flex items-center gap-3">
-              <div
-                className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-                style={{ background: "hsl(25, 76%, 50%)" }}
-              >
-                <Phone className="h-4 w-4 text-white" />
+        {(() => {
+          const ctype = extras?.contactType || (info.phone ? "phone" : null);
+          const cvalue = extras?.contactValue || info.phone || "";
+          if (!ctype || !cvalue) return null;
+          const buildHref = (type: string, val: string) => {
+            const v = val.trim();
+            switch (type) {
+              case "phone": return `tel:${v}`;
+              case "sms": return `sms:${v}`;
+              case "email": return `mailto:${v}`;
+              case "line":
+                return v.startsWith("http") ? v : `https://line.me/R/ti/p/${encodeURIComponent(v.replace(/^@/, "@"))}`;
+              case "whatsapp":
+                return `https://wa.me/${v.replace(/[^0-9]/g, "")}`;
+              case "url":
+              default:
+                return v.startsWith("http") ? v : `https://${v}`;
+            }
+          };
+          const defaultLabels: Record<string, string> = {
+            phone: "聯絡人", sms: "傳簡訊", line: "LINE 聯繫",
+            whatsapp: "WhatsApp", email: "寄信", url: "前往",
+          };
+          const btnLabel = extras?.contactLabel || defaultLabels[ctype] || "聯絡人";
+          const href = buildHref(ctype, cvalue);
+          const external = ctype === "line" || ctype === "whatsapp" || ctype === "url";
+          return (
+            <section className="px-4 py-3 bg-card border-b border-border/40">
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+                  style={{ background: "hsl(25, 76%, 50%)" }}
+                >
+                  <Phone className="h-4 w-4 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-semibold text-foreground leading-tight">聯繫住宿</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{extras?.hostResponseText || "房東通常在 60 分鐘內回覆"}</p>
+                </div>
+                <a
+                  href={href}
+                  target={external ? "_blank" : undefined}
+                  rel={external ? "noopener noreferrer" : undefined}
+                  className="text-[13px] font-medium underline whitespace-nowrap"
+                  style={{ color: "hsl(25, 76%, 50%)" }}
+                >
+                  {btnLabel}
+                </a>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[14px] font-semibold text-foreground leading-tight">聯繫住宿</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">{extras?.hostResponseText || "房東通常在 60 分鐘內回覆"}</p>
-              </div>
-              <a
-                href={`tel:${info.phone}`}
-                className="text-[13px] font-medium underline whitespace-nowrap"
-                style={{ color: "hsl(25, 76%, 50%)" }}
-              >
-                聯絡人
-              </a>
-            </div>
-          </section>
-        )}
+            </section>
+          );
+        })()}
+
 
         {/* Villa Overview 已移除 */}
 
