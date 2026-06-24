@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { format, addDays, subDays, isToday, isWeekend, parseISO, differenceInDays } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Lock, Package, CalendarIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Lock, Package, CalendarIcon, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getRoomOverride, isTemplateActiveForDates, type TemplateLike } from "@/utils/pricingTemplateHelpers";
 import { toast } from "sonner";
