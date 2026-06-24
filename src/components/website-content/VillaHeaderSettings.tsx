@@ -434,6 +434,73 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
             </div>
           </div>
 
+          {/* 即時預覽：依目前輸入組裝實際連結 */}
+          {form.contactValue.trim() && (() => {
+            const v = form.contactValue.trim();
+            const buildHref = (oaMessage: string | null) => {
+              switch (form.contactType) {
+                case "phone": return `tel:${v}`;
+                case "sms": return `sms:${v}`;
+                case "email": return `mailto:${v}`;
+                case "line": {
+                  if (v.startsWith("http")) {
+                    return oaMessage ? `${v}${v.includes("?") ? "&" : "?"}oaMessage=${encodeURIComponent(oaMessage)}` : v;
+                  }
+                  const oaId = v.replace(/^@/, "");
+                  if (oaMessage) {
+                    return `https://line.me/R/oaMessage/${encodeURIComponent(`@${oaId}`)}/?${encodeURIComponent(oaMessage)}`;
+                  }
+                  return `https://line.me/R/ti/p/${encodeURIComponent(`@${oaId}`)}`;
+                }
+                case "whatsapp": return `https://wa.me/${v.replace(/[^0-9]/g, "")}`;
+                case "url":
+                default: return v.startsWith("http") ? v : `https://${v}`;
+              }
+            };
+            const isLine = form.contactType === "line";
+            const lineIdValid = !isLine || v.startsWith("http") || /^@?[a-zA-Z0-9._-]{2,}$/.test(v);
+            const rows: { label: string; href: string }[] = [
+              { label: isLine ? "一般點擊（無 promo）" : "實際連結", href: buildHref(null) },
+            ];
+            if (isLine) {
+              rows.push(
+                { label: "promo=friday", href: buildHref("我想了解週五專屬禮遇包棟方案") },
+                { label: "promo=sunday", href: buildHref("我想了解週日專屬禮遇包棟方案") },
+                { label: "promo=hot", href: buildHref("我想預訂熱門檔期包棟方案") },
+              );
+            }
+            return (
+              <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-foreground">連結即時預覽</p>
+                  {isLine && !lineIdValid && (
+                    <span className="text-[11px] text-destructive">LINE ID 格式可能有誤</span>
+                  )}
+                </div>
+                {isLine && !v.startsWith("http") && (
+                  <p className="text-[11px] text-muted-foreground">
+                    系統會自動在 LINE ID 前補上 <code className="px-1 rounded bg-background">@</code>，無論你是否輸入。
+                  </p>
+                )}
+                <ul className="space-y-1.5">
+                  {rows.map((r) => (
+                    <li key={r.label} className="text-[11px] break-all">
+                      <span className="inline-block min-w-[120px] text-muted-foreground">{r.label}</span>
+                      <a
+                        href={r.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary hover:underline font-mono"
+                      >
+                        {r.href}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })()}
+
           <div className="space-y-1.5">
             <Label className="text-sm">按鈕文字</Label>
             <Input
