@@ -83,6 +83,12 @@ interface Props {
   childExtraBreakdown?: Array<{ key: string; label: string; count: number; subtotal: number }>;
   /** 已選擇的兒童年齡層規則（含免費年齡層） */
   childRuleLines?: Array<{ key: string; label: string; ageRange: string; feeText: string; capText: string; count: number }>;
+  /** 民宿層級的「禮遇預設清單」設定；當方案未填 includes 時用以填補 */
+  defaultPerks?: {
+    enabled: boolean;
+    title?: string | null;
+    items: Array<{ text: string; enabled: boolean }>;
+  } | null;
 }
 
 import {
@@ -131,6 +137,7 @@ const CapacityPriceLadder = ({
   childExtraTotal = 0,
   childExtraBreakdown = [],
   childRuleLines = [],
+  defaultPerks = null,
 }: Props) => {
   const TERM = isSensan ? "包區" : "包棟";
   const TIER_HINT: Record<PricingTier, string> = {
@@ -363,7 +370,7 @@ const CapacityPriceLadder = ({
                   {/* 禮遇標題 + 獨享 Badge */}
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-[14px] font-bold text-foreground">
-                      {activeTier_.subtitle || "尊榮禮遇"}
+                      {activeTier_.subtitle || defaultPerks?.title || "尊榮禮遇"}
                     </p>
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-border/60 text-gray-600 text-[11px]">
                       <Sparkles className="h-3 w-3" style={{ color: "#A98467" }} />
@@ -375,19 +382,24 @@ const CapacityPriceLadder = ({
                   {(() => {
                     const items = (activeTier_.includes || []).filter((i) => !!i?.text);
                     if (items.length === 0) {
-                      // fallback：沒設定 includes 時，保留原預設文案
+                      // 後台「方案預設禮遇」設定（民宿層）
+                      if (!defaultPerks || defaultPerks.enabled === false) return null;
+                      const fallback = (defaultPerks.items || [])
+                        .filter((it) => it && it.enabled !== false && (it.text || "").trim() !== "");
+                      if (fallback.length === 0) return null;
                       return (
                         <ul className="space-y-2">
-                          {["私人管家全程接待", "迎賓下午茶與在地點心", "全棟空間尊榮獨享"].map((label, i) => (
+                          {fallback.map((it, i) => (
                             <li key={i} className="flex items-start gap-2">
                               <Check className="h-4 w-4 mt-0.5 shrink-0" style={{ color: "#A98467" }} />
-                              <span className="text-[13px] text-gray-700 leading-snug">{label}</span>
+                              <span className="text-[13px] text-gray-700 leading-snug">{it.text}</span>
                             </li>
                           ))}
                         </ul>
                       );
                     }
                     return (
+
                       <ul className="space-y-2">
                         {items.map((inc, i) => {
                           const Icon = inc.available === "no" ? X : inc.available === "optional" ? Plus : Check;
