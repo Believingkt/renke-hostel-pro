@@ -30,6 +30,9 @@ interface State {
   reviewCount: string;
   topReview: string;
   hostResponseText: string;
+  contactType: string;
+  contactValue: string;
+  contactLabel: string;
 }
 
 const empty: State = {
@@ -38,7 +41,20 @@ const empty: State = {
   reviewCount: "",
   topReview: "",
   hostResponseText: "",
+  contactType: "phone",
+  contactValue: "",
+  contactLabel: "",
 };
+
+const CONTACT_TYPES: Array<{ value: string; label: string; placeholder: string; defaultBtn: string }> = [
+  { value: "phone", label: "電話", placeholder: "0912345678", defaultBtn: "聯絡人" },
+  { value: "sms", label: "簡訊", placeholder: "0912345678", defaultBtn: "傳簡訊" },
+  { value: "line", label: "LINE", placeholder: "@your-line-id 或完整 LINE 連結", defaultBtn: "LINE 聯繫" },
+  { value: "whatsapp", label: "WhatsApp", placeholder: "886912345678 (含國碼)", defaultBtn: "WhatsApp" },
+  { value: "email", label: "Email", placeholder: "host@example.com", defaultBtn: "寄信" },
+  { value: "url", label: "自訂網址", placeholder: "https://...", defaultBtn: "前往" },
+];
+
 
 const VillaHeaderSettings = ({ accommodationId }: Props) => {
   const [form, setForm] = useState<State>(empty);
