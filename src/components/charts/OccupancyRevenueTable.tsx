@@ -548,7 +548,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
       standardCap,
       exclusiveRoomCount,
       standardRoomCount,
-      hasStandardCapSetting: splitMode,
+      hasStandardCapSetting: splitMode && standardCap > 0,
     };
   }, [data, selectedYear]);
 
