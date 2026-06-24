@@ -81,6 +81,8 @@ interface Props {
   childExtraTotal?: number;
   /** 兒童加價分項明細（嬰兒/幼兒/兒童 × 人數 × 小計） */
   childExtraBreakdown?: Array<{ key: string; label: string; count: number; subtotal: number }>;
+  /** 已選擇的兒童年齡層規則（含免費年齡層） */
+  childRuleLines?: Array<{ key: string; label: string; ageRange: string; feeText: string; capText: string; count: number }>;
 }
 
 import {
