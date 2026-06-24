@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Copy, Maximize2, Check, Train, MapPin } from "lucide-react";
+import { Copy, Maximize2, Check, Train, MapPin, Car, Bus } from "lucide-react";
 import { toast } from "sonner";
 
 interface Attraction {
@@ -66,15 +66,8 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
 
   return (
     <section id="location" className="px-4 py-5 bg-background">
-      <h2 className="text-[20px] font-bold text-foreground mb-2">交通建議</h2>
-      {rating != null && (
-        <p className="mb-3 text-[14px]">
-          <span className="font-bold" style={{ color: "hsl(25, 76%, 50%)" }}>
-            {rating <= 5 ? `${rating.toFixed(1)}/5` : `${rating.toFixed(1)}/10`}
-          </span>{" "}
-          <span className="text-foreground/80">位置絕佳</span>
-        </p>
-      )}
+      <h2 className="text-[20px] font-bold text-foreground mb-3">交通建議</h2>
+
 
       {/* Map */}
       <Card className="overflow-hidden border-border/60 mb-3">
@@ -137,32 +130,52 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
 
       {/* Content */}
       {tab === "transport" ? (
-        <div className="space-y-3">
-          {filtered.length > 0 && (
-            <ul className="divide-y divide-border/60">
-              {filtered.slice(0, 8).map((a, i) => (
-                <li key={i} className="py-2.5 flex items-center gap-3">
-                  <Train className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="flex-1 text-[13px] text-foreground/90 line-clamp-1">
-                    {a.name}
-                  </span>
-                  <span className="text-[13px] text-foreground/80 tabular-nums shrink-0">
-                    {a.distance}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-          {(locationInfo?.public_transport_info || locationInfo?.driving_info) && (
-            <div className="space-y-2 text-[13px] text-foreground/85 leading-relaxed [&_strong]:font-semibold [&_strong]:text-foreground [&_p]:mb-1 [&_a]:underline">
-              {locationInfo?.public_transport_info && (
-                <div dangerouslySetInnerHTML={{ __html: locationInfo.public_transport_info }} />
+        <div className="space-y-4">
+          {/* 大眾運輸 */}
+          {(locationInfo?.public_transport_info || filtered.length > 0) && (
+            <div className="rounded-lg border border-border/60 bg-card p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Bus className="h-4 w-4" style={{ color: "hsl(25, 76%, 50%)" }} />
+                <h3 className="text-[14px] font-semibold text-foreground">大眾運輸</h3>
+              </div>
+              {filtered.length > 0 && (
+                <ul className="divide-y divide-border/60 mb-2">
+                  {filtered.slice(0, 8).map((a, i) => (
+                    <li key={i} className="py-2 flex items-center gap-3">
+                      <Train className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <span className="flex-1 text-[13px] text-foreground/90 line-clamp-1">
+                        {a.name}
+                      </span>
+                      <span className="text-[13px] text-foreground/80 tabular-nums shrink-0">
+                        {a.distance}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               )}
-              {locationInfo?.driving_info && (
-                <div dangerouslySetInnerHTML={{ __html: locationInfo.driving_info }} />
+              {locationInfo?.public_transport_info && (
+                <div
+                  className="text-[13px] text-foreground/85 leading-relaxed [&_strong]:font-semibold [&_strong]:text-foreground [&_p]:mb-1 [&_a]:underline"
+                  dangerouslySetInnerHTML={{ __html: locationInfo.public_transport_info }}
+                />
               )}
             </div>
           )}
+
+          {/* 自行開車 */}
+          {locationInfo?.driving_info && (
+            <div className="rounded-lg border border-border/60 bg-card p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Car className="h-4 w-4" style={{ color: "hsl(25, 76%, 50%)" }} />
+                <h3 className="text-[14px] font-semibold text-foreground">自行開車</h3>
+              </div>
+              <div
+                className="text-[13px] text-foreground/85 leading-relaxed [&_strong]:font-semibold [&_strong]:text-foreground [&_p]:mb-1 [&_a]:underline"
+                dangerouslySetInnerHTML={{ __html: locationInfo.driving_info }}
+              />
+            </div>
+          )}
+
           {filtered.length === 0 &&
             !locationInfo?.public_transport_info &&
             !locationInfo?.driving_info && (

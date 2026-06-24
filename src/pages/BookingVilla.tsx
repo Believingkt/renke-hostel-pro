@@ -606,7 +606,7 @@ const BookingVilla = () => {
         tabs={[
           { id: "capacity-price-section", label: "入住方案" },
           { id: "facilities", label: "設施" },
-          { id: "location", label: "位置" },
+          { id: "location", label: "交通建議" },
           { id: "reviews", label: "Google 評論" },
           { id: "faq", label: "常見問題" },
           { id: "about", label: "描述" },
