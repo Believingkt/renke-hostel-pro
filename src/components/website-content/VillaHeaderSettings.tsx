@@ -58,6 +58,7 @@ const CONTACT_TYPES: Array<{ value: string; label: string; placeholder: string; 
 
 const VillaHeaderSettings = ({ accommodationId }: Props) => {
   const [form, setForm] = useState<State>(empty);
+  const [customMessage, setCustomMessage] = useState("");
   const [tags, setTags] = useState<VillaFeatureTag[]>([]);
   const [autoData, setAutoData] = useState<{
     rating: number | null;
@@ -468,6 +469,10 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
                 { label: "promo=sunday", href: buildHref("我想了解週日專屬禮遇包棟方案") },
                 { label: "promo=hot", href: buildHref("我想預訂熱門檔期包棟方案") },
               );
+              const trimmedCustom = customMessage.trim();
+              if (trimmedCustom) {
+                rows.push({ label: "自訂訊息", href: buildHref(trimmedCustom) });
+              }
             }
             return (
               <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
@@ -481,6 +486,20 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
                   <p className="text-[11px] text-muted-foreground">
                     系統會自動在 LINE ID 前補上 <code className="px-1 rounded bg-background">@</code>，無論你是否輸入。
                   </p>
+                )}
+                {isLine && (
+                  <div className="space-y-1">
+                    <Label className="text-[11px] text-muted-foreground">自訂訊息預覽（僅測試用，不會儲存）</Label>
+                    <Input
+                      placeholder="輸入想預填到 LINE 對話框的文字"
+                      value={customMessage}
+                      onChange={(e) => setCustomMessage(e.target.value)}
+                      className="h-8 text-xs"
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      會自動 encode 後帶入 <code className="px-1 rounded bg-background">oaMessage</code> 參數
+                    </p>
+                  </div>
                 )}
                 <ul className="space-y-1.5">
                   {rows.map((r) => (
