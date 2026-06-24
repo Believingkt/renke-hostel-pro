@@ -794,7 +794,7 @@ const BookingVilla = () => {
                 }
                 const oaId = v.replace(/^@/, "");
                 if (oaMessage) {
-                  return `https://line.me/R/oaMessage/${encodeURIComponent(oaId)}/?${encodeURIComponent(oaMessage)}`;
+                  return `https://line.me/R/oaMessage/${encodeURIComponent(`@${oaId}`)}/?${encodeURIComponent(oaMessage)}`;
                 }
                 return `https://line.me/R/ti/p/${encodeURIComponent(`@${oaId}`)}`;
               }
