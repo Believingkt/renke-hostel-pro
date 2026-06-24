@@ -1547,7 +1547,13 @@ const BookingFlow = () => {
   });
 
   const evaluateChildren = () =>
-    evaluateChildSelection(childRules, getChildSelection(), calculateNights());
+    evaluateChildSelection(
+      childRules,
+      getChildSelection(),
+      calculateNights(),
+      contextGuests?.adults || 2,
+    );
+
 
   const calculateChildExtraTotal = () => evaluateChildren().extraFeeTotal;
 
