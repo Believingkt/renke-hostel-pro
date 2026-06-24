@@ -356,15 +356,21 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
 
           // 森山：包棟訂單一筆即視為整館滿房（allCapacity 間），散客則一間一間照算
           const sensanExclusiveFull = isSensan && exclusiveQty > 0;
-          // 奧莉維亞：訂單若標記「包棟全鎖房」，視為整館滿房（佔滿所有散客房）
+          // 奧莉薇雅：訂單若標記「包棟全鎖房」→ 算進包棟（1/1），其他房型訂單照算散客
           const oliviaLockFull = isOlivia && order.lock_whole_building === true;
           // 管理員啟用分流（adminSplit）時，任何包棟訂單一律算 1 棟
           const villaUnitQty = villaAsSingleUnit && exclusiveQty > 0 ? 1 : exclusiveQty;
-          const effectiveTotalQty = sensanExclusiveFull || oliviaLockFull
+          const effectiveTotalQty = sensanExclusiveFull
             ? allCapacity
-            : (villaAsSingleUnit ? villaUnitQty + standardQty : totalQty);
-          const effectiveExclusiveQty = sensanExclusiveFull ? allCapacity : villaUnitQty;
-          const effectiveStandardQty = sensanExclusiveFull ? 0 : (oliviaLockFull ? standardCap : standardQty);
+            : oliviaLockFull
+              ? exclusiveCap
+              : (villaAsSingleUnit ? villaUnitQty + standardQty : totalQty);
+          const effectiveExclusiveQty = sensanExclusiveFull
+            ? allCapacity
+            : oliviaLockFull
+              ? exclusiveCap
+              : villaUnitQty;
+          const effectiveStandardQty = sensanExclusiveFull ? 0 : (oliviaLockFull ? 0 : standardQty);
 
 
           if (splitMode) {
