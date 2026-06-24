@@ -385,10 +385,8 @@ const AdminSearchCard = () => {
             </div>
           </div>
 
-          {/* 特色標籤 */}
-          <div className="rounded-lg border bg-card p-4 sm:p-5">
-            <PortalFeatureTagsSection accommodationId={currentAccommodationId} />
-          </div>
+          {/* 特色標籤(自帶 Card) */}
+          <PortalFeatureTagsSection accommodationId={currentAccommodationId} />
         </div>
 
         {/* 右:前台預覽 */}
