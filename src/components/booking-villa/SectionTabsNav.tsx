@@ -19,6 +19,9 @@ export default function SectionTabsNav({ tabs }: SectionTabsNavProps) {
   const [active, setActive] = useState<string>(tabs[0]?.id ?? "");
   const navRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  // 點擊鎖：smooth scroll 期間忽略 observer，避免沿途 section 觸發 active 亂跳
+  const lockRef = useRef(false);
+  const lockTimerRef = useRef<number | null>(null);
 
   // 觀察各 section 進入視窗時更新 active
   useEffect(() => {
@@ -29,6 +32,7 @@ export default function SectionTabsNav({ tabs }: SectionTabsNavProps) {
 
     const observer = new IntersectionObserver(
       (entries) => {
+        if (lockRef.current) return;
         const visible = entries
           .filter((e) => e.isIntersecting)
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
@@ -71,8 +75,25 @@ export default function SectionTabsNav({ tabs }: SectionTabsNavProps) {
         ? 80 + 48
         : 64 + 48;
     const top = el.getBoundingClientRect().top + window.scrollY - headerOffset;
-    window.scrollTo({ top, behavior: "smooth" });
+
+    // 鎖定 active，scroll 結束後再解鎖（以 scrollend 為主，逾時兜底）
+    lockRef.current = true;
     setActive(id);
+    if (lockTimerRef.current) window.clearTimeout(lockTimerRef.current);
+
+    const release = () => {
+      lockRef.current = false;
+      window.removeEventListener("scrollend", release);
+      if (lockTimerRef.current) {
+        window.clearTimeout(lockTimerRef.current);
+        lockTimerRef.current = null;
+      }
+    };
+    window.addEventListener("scrollend", release, { once: true });
+    // Safari 沒有 scrollend：1.2s 後強制解鎖
+    lockTimerRef.current = window.setTimeout(release, 1200);
+
+    window.scrollTo({ top, behavior: "smooth" });
   };
 
   return (
