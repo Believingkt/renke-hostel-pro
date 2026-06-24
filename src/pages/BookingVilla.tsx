@@ -1093,7 +1093,7 @@ const BookingVilla = () => {
               })()}
             </div>
             <Button
-              className="h-11 px-6 text-[15px] font-bold text-white rounded-full shadow-md hover:shadow-lg active:scale-95 transition-all"
+              className="h-9 px-4 text-[13px] font-semibold text-white rounded-full shadow-md hover:shadow-lg active:scale-95 transition-all"
               style={{ backgroundColor: "#F08A3E" }}
               onClick={() => {
                 document
