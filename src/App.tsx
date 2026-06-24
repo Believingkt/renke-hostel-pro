@@ -75,6 +75,7 @@ const OrderDetail = lazy(() => import("./pages/OrderDetail"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const AdminPackages = lazy(() => import("./pages/AdminPackages"));
 const AdminPackagesPreview = lazy(() => import("./pages/AdminPackagesPreview"));
+const AdminSearchCard = lazy(() => import("./pages/AdminSearchCard"));
 const RoomInventory = lazy(() => import("./pages/RoomInventory"));
 const RoomPriceCalendar = lazy(() => import("./pages/RoomPriceCalendar"));
 const Accounts = lazy(() => import("./pages/Accounts"));
@@ -347,6 +348,11 @@ function App() {
                     <Route path="admin/room-price-calendar" element={
                       <RequireModule module="room_price">
                         <Suspense fallback={<TableSkeleton rows={8} columns={15} />}><RoomPriceCalendar /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/search-card" element={
+                      <RequireModule module="room_price">
+                        <Suspense fallback={<FormSkeleton fields={6} />}><AdminSearchCard /></Suspense>
                       </RequireModule>
                     } />
                     <Route path="admin/accounts" element={
