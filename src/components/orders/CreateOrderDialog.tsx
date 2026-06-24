@@ -1196,11 +1196,12 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         custom_addon_details: selectedAddons.length > 0
           ? selectedAddons.map(a => {
               const addon = addonSettings.find(ad => ad.id === a.addon_id);
+              const addonNights = Math.max(1, calculateNights());
               return {
                 addon_type: addon?.addon_type || '',
                 count: a.quantity,
                 price_per_unit: addon?.price_per_unit || 0,
-                total: (addon?.price_per_unit || 0) * a.quantity,
+                total: (addon?.price_per_unit || 0) * a.quantity * addonNights,
                 unit_label: addon?.unit_label || '',
               };
             })
