@@ -147,11 +147,6 @@ const BookingVilla = () => {
     googleRating: number | null;
     googleTotal: number | null;
     googleTopReview: { text: string; author: string } | null;
-    villaDefaultPerks: {
-      enabled: boolean;
-      title?: string | null;
-      items: Array<{ text: string; enabled: boolean }>;
-    } | null;
   } | null>(null);
 
   useEffect(() => {
