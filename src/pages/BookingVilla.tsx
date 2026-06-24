@@ -941,8 +941,9 @@ const BookingVilla = () => {
                   <>
                     {format(checkIn, "M/d")}–{format(checkOut, "M/d")}
                     {" · "}{roomsN}房
-                    {" · "}{adultsN}位
-                    {kidsN > 0 && <>{" · 兒童 "}{kidsN}位</>}
+                    {" · "}{adultsN}大
+                    {kidsN > 0 && <>{" · "}{kidsN}小</>}
+
                   </>
                 );
               })() : (
