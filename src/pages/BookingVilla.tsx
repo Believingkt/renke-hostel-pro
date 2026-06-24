@@ -993,7 +993,7 @@ const BookingVilla = () => {
               : "translateY(0)",
         }}
       >
-        <div className="flex flex-col px-3 pt-2 pb-2">
+        <div className="flex flex-col px-3 pt-1.5 pb-1.5">
           {/* 上層：搜尋修改入口 */}
           <button
             onClick={() => setEditSearchOpen(true)}
