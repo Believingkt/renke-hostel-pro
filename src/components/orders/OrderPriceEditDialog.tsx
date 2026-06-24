@@ -456,7 +456,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{addon.addon_type}</p>
                         <p className="text-xs text-muted-foreground">
-                          NT$ {addon.price_per_unit.toLocaleString()} / {addon.unit_label}
+                          NT$ {addon.price_per_unit.toLocaleString()} / {addon.unit_label} / 晚
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
