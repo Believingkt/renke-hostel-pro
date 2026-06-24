@@ -21,17 +21,18 @@ interface Props {
   rating?: number | null;
 }
 
-type TabKey = "transport" | "landmark";
+type TabKey = "transit" | "driving" | "landmark";
 
 const TABS: { key: TabKey; label: string; icon: typeof Train }[] = [
-  { key: "transport", label: "交通", icon: Train },
+  { key: "transit", label: "大眾運輸", icon: Bus },
+  { key: "driving", label: "自行開車", icon: Car },
   { key: "landmark", label: "週邊景點", icon: MapPin },
 ];
 
 const TRANSPORT_KW = ["車站", "火車", "高鐵", "客運", "捷運", "機場", "轉運", "station"];
 
 const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
-  const [tab, setTab] = useState<TabKey>("transport");
+  const [tab, setTab] = useState<TabKey>("transit");
   const [copied, setCopied] = useState(false);
 
   const hasAny =
@@ -46,10 +47,8 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
   const has = (a: Attraction, kws: string[]) =>
     kws.some((k) => a.name.toLowerCase().includes(k.toLowerCase()));
 
-  const filtered =
-    tab === "transport"
-      ? attractions.filter((a) => has(a, TRANSPORT_KW))
-      : attractions.filter((a) => !has(a, TRANSPORT_KW));
+  const transitAttractions = attractions.filter((a) => has(a, TRANSPORT_KW));
+  const landmarkAttractions = attractions.filter((a) => !has(a, TRANSPORT_KW));
 
 
   const handleCopy = async () => {
@@ -129,81 +128,73 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
       </div>
 
       {/* Content */}
-      {tab === "transport" ? (
-        <div className="space-y-4">
-          {/* 大眾運輸 */}
-          {(locationInfo?.public_transport_info || filtered.length > 0) && (
-            <div className="rounded-lg border border-border/60 bg-card p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <Bus className="h-4 w-4" style={{ color: "hsl(25, 76%, 50%)" }} />
-                <h3 className="text-[14px] font-semibold text-foreground">大眾運輸</h3>
-              </div>
-              {filtered.length > 0 && (
-                <ul className="divide-y divide-border/60 mb-2">
-                  {filtered.slice(0, 8).map((a, i) => (
-                    <li key={i} className="py-2 flex items-center gap-3">
-                      <Train className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <span className="flex-1 text-[13px] text-foreground/90 line-clamp-1">
-                        {a.name}
-                      </span>
-                      <span className="text-[13px] text-foreground/80 tabular-nums shrink-0">
-                        {a.distance}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {locationInfo?.public_transport_info && (
-                <div
-                  className="text-[13px] text-foreground/85 leading-relaxed [&_strong]:font-semibold [&_strong]:text-foreground [&_p]:mb-1 [&_a]:underline"
-                  dangerouslySetInnerHTML={{ __html: locationInfo.public_transport_info }}
-                />
-              )}
-            </div>
+      {tab === "transit" ? (
+        <div className="rounded-lg border border-border/60 bg-card p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Bus className="h-4 w-4" style={{ color: "hsl(25, 76%, 50%)" }} />
+            <h3 className="text-[14px] font-semibold text-foreground">大眾運輸</h3>
+          </div>
+          {transitAttractions.length > 0 && (
+            <ul className="divide-y divide-border/60 mb-2">
+              {transitAttractions.slice(0, 8).map((a, i) => (
+                <li key={i} className="py-2 flex items-center gap-3">
+                  <Train className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="flex-1 text-[13px] text-foreground/90 line-clamp-1">
+                    {a.name}
+                  </span>
+                  <span className="text-[13px] text-foreground/80 tabular-nums shrink-0">
+                    {a.distance}
+                  </span>
+                </li>
+              ))}
+            </ul>
           )}
-
-          {/* 自行開車 */}
-          {locationInfo?.driving_info && (
-            <div className="rounded-lg border border-border/60 bg-card p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <Car className="h-4 w-4" style={{ color: "hsl(25, 76%, 50%)" }} />
-                <h3 className="text-[14px] font-semibold text-foreground">自行開車</h3>
-              </div>
-              <div
-                className="text-[13px] text-foreground/85 leading-relaxed [&_strong]:font-semibold [&_strong]:text-foreground [&_p]:mb-1 [&_a]:underline"
-                dangerouslySetInnerHTML={{ __html: locationInfo.driving_info }}
-              />
-            </div>
-          )}
-
-          {filtered.length === 0 &&
-            !locationInfo?.public_transport_info &&
-            !locationInfo?.driving_info && (
-              <p className="text-[12px] text-muted-foreground py-2">暫無相關資訊</p>
-            )}
+          {locationInfo?.public_transport_info ? (
+            <div
+              className="text-[13px] text-foreground/85 leading-relaxed [&_strong]:font-semibold [&_strong]:text-foreground [&_p]:mb-1 [&_a]:underline"
+              dangerouslySetInnerHTML={{ __html: locationInfo.public_transport_info }}
+            />
+          ) : transitAttractions.length === 0 ? (
+            <p className="text-[12px] text-muted-foreground py-1">暫無相關資訊</p>
+          ) : null}
         </div>
-      ) : filtered.length > 0 ? (
-        <ul className="space-y-3">
-          {filtered.map((a, i) => (
+      ) : tab === "driving" ? (
+        <div className="rounded-lg border border-border/60 bg-card p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Car className="h-4 w-4" style={{ color: "hsl(25, 76%, 50%)" }} />
+            <h3 className="text-[14px] font-semibold text-foreground">自行開車</h3>
+          </div>
+          {locationInfo?.driving_info ? (
+            <div
+              className="text-[13px] text-foreground/85 leading-relaxed [&_strong]:font-semibold [&_strong]:text-foreground [&_p]:mb-1 [&_a]:underline"
+              dangerouslySetInnerHTML={{ __html: locationInfo.driving_info }}
+            />
+          ) : (
+            <p className="text-[12px] text-muted-foreground py-1">暫無相關資訊</p>
+          )}
+        </div>
+      ) : landmarkAttractions.length > 0 ? (
+        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {landmarkAttractions.map((a, i) => (
             <li
               key={i}
-              className="flex gap-3 p-2 rounded-lg border border-border/60 bg-card"
+              className="overflow-hidden rounded-lg border border-border/60 bg-card"
             >
               {a.image_url ? (
                 <img
                   src={a.image_url}
                   alt={a.name}
                   loading="lazy"
-                  className="w-20 h-20 rounded-md object-cover shrink-0"
+                  className="w-full h-48 object-cover"
                 />
               ) : (
-                <div className="w-20 h-20 rounded-md bg-muted flex items-center justify-center shrink-0">
-                  <MapPin className="h-5 w-5 text-muted-foreground" />
+                <div className="w-full h-48 bg-muted flex items-center justify-center">
+                  <MapPin className="h-8 w-8 text-muted-foreground" />
                 </div>
               )}
-              <div className="flex-1 min-w-0">
+              <div className="p-3">
                 <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-[14px] font-medium text-foreground line-clamp-1">
+                  <span className="text-[15px] font-semibold text-foreground line-clamp-1">
                     {a.name}
                   </span>
                   {a.distance && (
@@ -213,7 +204,7 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
                   )}
                 </div>
                 {a.description && (
-                  <p className="mt-1 text-[12px] text-muted-foreground leading-relaxed line-clamp-3">
+                  <p className="mt-1 text-[13px] text-muted-foreground leading-relaxed">
                     {a.description}
                   </p>
                 )}
