@@ -61,6 +61,15 @@ interface CapacityOption {
     fallbackPlanName?: string;
     fallbackSale: number;
   }>;
+  /** 每晚明細（含 fallback 與非 fallback），供備註展開逐晚加總 */
+  breakdown?: Array<{
+    date: Date;
+    tier: "weekday" | "friday_sunday" | "weekend";
+    isFallback: boolean;
+    planName?: string;
+    sale: number;
+    original: number;
+  }>;
 }
 
 
