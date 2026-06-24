@@ -487,6 +487,20 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
                     系統會自動在 LINE ID 前補上 <code className="px-1 rounded bg-background">@</code>，無論你是否輸入。
                   </p>
                 )}
+                {isLine && (
+                  <div className="space-y-1">
+                    <Label className="text-[11px] text-muted-foreground">自訂訊息預覽（僅測試用，不會儲存）</Label>
+                    <Input
+                      placeholder="輸入想預填到 LINE 對話框的文字"
+                      value={customMessage}
+                      onChange={(e) => setCustomMessage(e.target.value)}
+                      className="h-8 text-xs"
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      會自動 encode 後帶入 <code className="px-1 rounded bg-background">oaMessage</code> 參數
+                    </p>
+                  </div>
+                )}
                 <ul className="space-y-1.5">
                   {rows.map((r) => (
                     <li key={r.label} className="text-[11px] break-all">
