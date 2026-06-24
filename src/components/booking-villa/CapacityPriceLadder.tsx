@@ -414,6 +414,11 @@ const CapacityPriceLadder = ({
                       </span>
                     )}
                   </div>
+                  {childExtraTotal > 0 && (
+                    <p className="text-[11px] mt-1 font-medium" style={{ color: "hsl(15, 78%, 48%)" }}>
+                      含兒童加價 +NT${childExtraTotal.toLocaleString()}
+                    </p>
+                  )}
                   <p className="text-[11px] text-gray-300 mt-1">已含稅與服務費</p>
 
                   {/* 信任訊號：按鈕正上方 */}
@@ -676,6 +681,11 @@ const PriceCard = ({
           <p className="text-[10px] text-muted-foreground mt-0.5">
             {nights > 1 ? `總價/${nights}晚` : "/晚"}
           </p>
+          {childExtraTotal > 0 && (
+            <p className="text-[10px] font-medium mt-0.5" style={{ color: "hsl(15, 78%, 48%)" }}>
+              含兒童加價 +NT${childExtraTotal.toLocaleString()}
+            </p>
+          )}
           <span
             className="inline-flex items-center gap-0.5 mt-1.5 h-7 px-3 text-[11px] rounded-full text-white font-bold shadow-sm"
             style={{ background: `linear-gradient(135deg, ${accentColor}, ${accent === "few" ? "hsl(0,80%,45%)" : "hsl(15,78%,48%)"})` }}
