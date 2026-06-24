@@ -147,6 +147,8 @@ const BookingVilla = () => {
     googleRating: number | null;
     googleTotal: number | null;
     googleTopReview: { text: string; author: string } | null;
+    ratingLabel: string;
+    hostResponseText: string;
   } | null>(null);
 
   useEffect(() => {
@@ -155,13 +157,18 @@ const BookingVilla = () => {
     (async () => {
       const { data } = await supabase
         .from("accommodation_info")
-        .select("villa_trust_badges, villa_overview_labels, google_reviews_cache")
+        .select(
+          "villa_trust_badges, villa_overview_labels, google_reviews_cache, villa_header_rating_override, villa_header_rating_label_override, villa_header_review_count_override, villa_header_top_review_override, villa_header_host_response_text"
+        )
         .eq("id", accId)
         .maybeSingle();
       if (cancelled || !data) return;
-      const cache = data.google_reviews_cache as any;
+      const d = data as any;
+      const cache = d.google_reviews_cache as any;
       let topReview: { text: string; author: string } | null = null;
-      if (cache?.reviews && Array.isArray(cache.reviews) && cache.reviews.length > 0) {
+      if (d.villa_header_top_review_override) {
+        topReview = { text: String(d.villa_header_top_review_override), author: "" };
+      } else if (cache?.reviews && Array.isArray(cache.reviews) && cache.reviews.length > 0) {
         const candidates = cache.reviews.filter((r: any) => r?.text && r.text.length > 5);
         if (candidates.length > 0) {
           const sorted = [...candidates].sort(
@@ -174,8 +181,18 @@ const BookingVilla = () => {
           };
         }
       }
-      const badgesRaw = data.villa_trust_badges as any;
-      const labelsRaw = data.villa_overview_labels as any;
+      const badgesRaw = d.villa_trust_badges as any;
+      const labelsRaw = d.villa_overview_labels as any;
+      const ratingOverride =
+        typeof d.villa_header_rating_override === "number"
+          ? d.villa_header_rating_override
+          : d.villa_header_rating_override != null
+            ? Number(d.villa_header_rating_override)
+            : null;
+      const totalOverride =
+        typeof d.villa_header_review_count_override === "number"
+          ? d.villa_header_review_count_override
+          : null;
       setExtras({
         villaTrustBadges:
           Array.isArray(badgesRaw) && badgesRaw.length > 0
@@ -183,9 +200,22 @@ const BookingVilla = () => {
             : null,
         villaOverviewLabels:
           labelsRaw && typeof labelsRaw === "object" ? labelsRaw : null,
-        googleRating: typeof cache?.rating === "number" ? cache.rating : null,
-        googleTotal: typeof cache?.totalReviews === "number" ? cache.totalReviews : null,
+        googleRating:
+          ratingOverride != null
+            ? ratingOverride
+            : typeof cache?.rating === "number"
+              ? cache.rating
+              : null,
+        googleTotal:
+          totalOverride != null
+            ? totalOverride
+            : typeof cache?.totalReviews === "number"
+              ? cache.totalReviews
+              : null,
         googleTopReview: topReview,
+        ratingLabel: d.villa_header_rating_label_override || "超棒",
+        hostResponseText:
+          d.villa_header_host_response_text || "房東通常在 60 分鐘內回覆",
       });
     })();
 
