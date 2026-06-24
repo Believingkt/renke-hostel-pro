@@ -392,7 +392,7 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
         <CardHeader>
           <CardTitle className="text-base">聯繫房東</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-5">
           <div className="space-y-1.5">
             <Label className="text-sm">回覆時間說明</Label>
             <Input
@@ -405,7 +405,46 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
               顯示在「聯繫住宿」下方的小字
             </p>
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-sm">聯繫方式類型</Label>
+              <Select
+                value={form.contactType}
+                onValueChange={(v) => setForm((s) => ({ ...s, contactType: v }))}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CONTACT_TYPES.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5 md:col-span-2">
+              <Label className="text-sm">聯繫方式內容</Label>
+              <Input
+                placeholder={CONTACT_TYPES.find((t) => t.value === form.contactType)?.placeholder}
+                value={form.contactValue}
+                onChange={(e) => setForm((s) => ({ ...s, contactValue: e.target.value }))}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                留空則使用基本資料中的電話號碼
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-sm">按鈕文字</Label>
+            <Input
+              placeholder={`預設：${CONTACT_TYPES.find((t) => t.value === form.contactType)?.defaultBtn || "聯絡人"}`}
+              maxLength={10}
+              value={form.contactLabel}
+              onChange={(e) => setForm((s) => ({ ...s, contactLabel: e.target.value }))}
+            />
+          </div>
         </CardContent>
+
       </Card>
 
       <div className="flex justify-end">
