@@ -740,6 +740,20 @@ const BookingSearchResults = () => {
     return r;
   }, [dedupedCards, q, filters, adults]);
 
+  /**
+   * 條件式右上角標籤：
+   *  - friday：入住日為週五 → 週五專屬禮遇
+   *  - hot：入住日為週六（系統判定該月份週六熱門）→ 熱門檔期
+   *  - 其他日子預設不顯示
+   */
+  const promoTag = useMemo<"friday" | "hot" | null>(() => {
+    if (!checkIn) return null;
+    const dow = checkIn.getDay();
+    if (dow === 5) return "friday";
+    if (dow === 6) return "hot";
+    return null;
+  }, [checkIn]);
+
   const handleCardClick = useCallback((card: SearchRoomCardData) => {
     const params = new URLSearchParams();
     if (checkInStr) params.set("checkIn", checkInStr);
@@ -749,11 +763,12 @@ const BookingSearchResults = () => {
     if (infantsCount) params.set("infants", String(infantsCount));
     if (toddlersCount) params.set("toddlers", String(toddlersCount));
     if (roomsParam) params.set("rooms", String(roomsParam));
+    if (promoTag) params.set("promo", promoTag);
     const useVilla = isSensanAccommodation(card.accommodation_name);
     const path = useVilla ? `/booking/villa/${card.accommodation_id}` : `/booking/${card.accommodation_id}`;
     const qs = params.toString();
     navigate(`${path}${qs ? `?${qs}` : ""}`);
-  }, [navigate, checkInStr, checkOutStr, adults, childrenCount, infantsCount, toddlersCount, roomsParam]);
+  }, [navigate, checkInStr, checkOutStr, adults, childrenCount, infantsCount, toddlersCount, roomsParam, promoTag]);
 
   const summary = useMemo(() => {
     const parts: string[] = [];
