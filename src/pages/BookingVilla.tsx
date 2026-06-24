@@ -972,6 +972,8 @@ const BookingVilla = () => {
             excludeId={info.id}
             region={(info as any).region_1 || null}
             adults={Math.max(1, parseInt(searchParams.get("adults") || "2", 10) || 2)}
+            checkIn={searchParams.get("checkIn") || null}
+            checkOut={searchParams.get("checkOut") || null}
           />
         </div>
 
