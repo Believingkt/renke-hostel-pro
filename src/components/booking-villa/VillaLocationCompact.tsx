@@ -66,7 +66,7 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
 
   return (
     <section id="location" className="px-4 py-5 bg-background">
-      <h2 className="text-[20px] font-bold text-foreground mb-2">位置</h2>
+      <h2 className="text-[20px] font-bold text-foreground mb-2">交通建議</h2>
       {rating != null && (
         <p className="mb-3 text-[14px]">
           <span className="font-bold" style={{ color: "hsl(25, 76%, 50%)" }}>
@@ -135,42 +135,82 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
         })}
       </div>
 
-      {/* List */}
-      {filtered.length > 0 ? (
-        <ul className="divide-y divide-border/60">
-          {filtered.slice(0, 8).map((a, i) => {
-            const Icon = TABS.find((t) => t.key === tab)?.icon || MapPin;
-            return (
-              <li key={i} className="py-2.5 flex items-center gap-3">
-                <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="flex-1 text-[13px] text-foreground/90 line-clamp-1">
-                  {a.name}
-                  {a.description && (
-                    <span className="ml-1.5 text-[11px] text-muted-foreground">
-                      {a.description.length > 10 ? "" : a.description}
+      {/* Content */}
+      {tab === "transport" ? (
+        <div className="space-y-3">
+          {filtered.length > 0 && (
+            <ul className="divide-y divide-border/60">
+              {filtered.slice(0, 8).map((a, i) => (
+                <li key={i} className="py-2.5 flex items-center gap-3">
+                  <Train className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="flex-1 text-[13px] text-foreground/90 line-clamp-1">
+                    {a.name}
+                  </span>
+                  <span className="text-[13px] text-foreground/80 tabular-nums shrink-0">
+                    {a.distance}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {(locationInfo?.public_transport_info || locationInfo?.driving_info) && (
+            <div className="space-y-2 text-[13px] text-foreground/85 leading-relaxed [&_strong]:font-semibold [&_strong]:text-foreground [&_p]:mb-1 [&_a]:underline">
+              {locationInfo?.public_transport_info && (
+                <div dangerouslySetInnerHTML={{ __html: locationInfo.public_transport_info }} />
+              )}
+              {locationInfo?.driving_info && (
+                <div dangerouslySetInnerHTML={{ __html: locationInfo.driving_info }} />
+              )}
+            </div>
+          )}
+          {filtered.length === 0 &&
+            !locationInfo?.public_transport_info &&
+            !locationInfo?.driving_info && (
+              <p className="text-[12px] text-muted-foreground py-2">暫無相關資訊</p>
+            )}
+        </div>
+      ) : filtered.length > 0 ? (
+        <ul className="space-y-3">
+          {filtered.map((a, i) => (
+            <li
+              key={i}
+              className="flex gap-3 p-2 rounded-lg border border-border/60 bg-card"
+            >
+              {a.image_url ? (
+                <img
+                  src={a.image_url}
+                  alt={a.name}
+                  loading="lazy"
+                  className="w-20 h-20 rounded-md object-cover shrink-0"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-md bg-muted flex items-center justify-center shrink-0">
+                  <MapPin className="h-5 w-5 text-muted-foreground" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-[14px] font-medium text-foreground line-clamp-1">
+                    {a.name}
+                  </span>
+                  {a.distance && (
+                    <span className="text-[12px] text-foreground/70 tabular-nums shrink-0">
+                      {a.distance}
                     </span>
                   )}
-                </span>
-                <span className="text-[13px] text-foreground/80 tabular-nums shrink-0">
-                  {a.distance}
-                </span>
-              </li>
-            );
-          })}
+                </div>
+                {a.description && (
+                  <p className="mt-1 text-[12px] text-muted-foreground leading-relaxed line-clamp-3">
+                    {a.description}
+                  </p>
+                )}
+              </div>
+            </li>
+          ))}
         </ul>
-      ) : tab === "transport" && (locationInfo?.driving_info || locationInfo?.public_transport_info) ? (
-        <div className="space-y-2 text-[12px] text-muted-foreground leading-relaxed [&_strong]:font-semibold [&_strong]:text-foreground [&_p]:mb-1 [&_a]:underline">
-          {locationInfo?.public_transport_info && (
-            <div dangerouslySetInnerHTML={{ __html: locationInfo.public_transport_info }} />
-          )}
-          {locationInfo?.driving_info && (
-            <div dangerouslySetInnerHTML={{ __html: locationInfo.driving_info }} />
-          )}
-        </div>
       ) : (
         <p className="text-[12px] text-muted-foreground py-2">暫無相關資訊</p>
       )}
-
     </section>
   );
 };
