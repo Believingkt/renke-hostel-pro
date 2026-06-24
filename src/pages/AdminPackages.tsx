@@ -147,21 +147,20 @@ const AdminPackages = () => {
   const [accommodationDefaultChildRules, setAccommodationDefaultChildRules] =
     useState<ChildAgeRules>(DEFAULT_CHILD_AGE_RULES);
 
-  // 方案預設禮遇（民宿層）：當銷售方案未填附加說明時，前台訂房卡片要顯示的條列
+  // 禮遇範本庫（民宿層）：可建立多組命名範本，方案編輯時一鍵套用至「附加說明」
   type PerkItem = { text: string; enabled: boolean };
-  type DefaultPerks = { enabled: boolean; title: string; items: PerkItem[] };
-  const DEFAULT_PERKS: DefaultPerks = {
-    enabled: true,
+  type PerkTemplate = { id: string; name: string; title: string; items: PerkItem[] };
+  const makeTemplateId = () =>
+    (globalThis.crypto?.randomUUID?.() ?? `tpl-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+  const newTemplate = (): PerkTemplate => ({
+    id: makeTemplateId(),
+    name: "新範本",
     title: "尊榮禮遇",
-    items: [
-      { text: "私人管家全程接待", enabled: true },
-      { text: "迎賓下午茶與在地點心", enabled: true },
-      { text: "全棟空間尊榮獨享", enabled: true },
-    ],
-  };
-  const [defaultPerks, setDefaultPerks] = useState<DefaultPerks>(DEFAULT_PERKS);
+    items: [{ text: "", enabled: true }],
+  });
+  const [perkTemplates, setPerkTemplates] = useState<PerkTemplate[]>([]);
   const [perksSaving, setPerksSaving] = useState(false);
-  const [perksAutoDisabled, setPerksAutoDisabled] = useState<{ at: number; packageName: string } | null>(null);
+  const [expandedTplId, setExpandedTplId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!currentAccommodationId) return;
@@ -174,7 +173,7 @@ const AdminPackages = () => {
 
     supabase
       .from("accommodation_info")
-      .select("nearby_station, review_summary, rating_score, search_card_photos, country, region_1, region_2, child_age_rules, villa_default_perks")
+      .select("nearby_station, review_summary, rating_score, search_card_photos, country, region_1, region_2, child_age_rules, villa_perk_templates")
       .eq("id", currentAccommodationId)
       .maybeSingle()
       .then(({ data }) => {
@@ -189,44 +188,74 @@ const AdminPackages = () => {
         });
         setCardPhotos(((data as any)?.search_card_photos as string[] | null) ?? []);
         setAccommodationDefaultChildRules(parseChildAgeRules((data as any)?.child_age_rules));
-        const raw = (data as any)?.villa_default_perks;
-        if (raw && typeof raw === "object") {
-          setDefaultPerks({
-            enabled: raw.enabled !== false,
-            title: typeof raw.title === "string" ? raw.title : "尊榮禮遇",
-            items: Array.isArray(raw.items)
-              ? raw.items
-                  .filter((it: any) => it && typeof it.text === "string")
-                  .map((it: any) => ({ text: it.text, enabled: it.enabled !== false }))
-              : [],
-          });
+        const raw = (data as any)?.villa_perk_templates;
+        if (Array.isArray(raw)) {
+          setPerkTemplates(
+            raw
+              .filter((t: any) => t && typeof t === "object")
+              .map((t: any) => ({
+                id: typeof t.id === "string" ? t.id : makeTemplateId(),
+                name: typeof t.name === "string" ? t.name : "未命名範本",
+                title: typeof t.title === "string" ? t.title : "尊榮禮遇",
+                items: Array.isArray(t.items)
+                  ? t.items
+                      .filter((it: any) => it && typeof it.text === "string")
+                      .map((it: any) => ({ text: it.text, enabled: it.enabled !== false }))
+                  : [],
+              }))
+          );
         } else {
-          setDefaultPerks(DEFAULT_PERKS);
+          setPerkTemplates([]);
         }
       });
   }, [currentAccommodationId]);
 
-  const saveDefaultPerks = async () => {
+  const savePerkTemplates = async () => {
     if (!currentAccommodationId) return;
     setPerksSaving(true);
-    const payload: DefaultPerks = {
-      enabled: !!defaultPerks.enabled,
-      title: (defaultPerks.title || "").trim() || "尊榮禮遇",
-      items: defaultPerks.items
+    const payload = perkTemplates.map((t) => ({
+      id: t.id,
+      name: (t.name || "").trim() || "未命名範本",
+      title: (t.title || "").trim() || "尊榮禮遇",
+      items: t.items
         .filter((it) => (it.text || "").trim() !== "")
         .map((it) => ({ text: it.text.trim(), enabled: !!it.enabled })),
-    };
+    }));
     const { error } = await supabase
       .from("accommodation_info")
-      .update({ villa_default_perks: payload as any })
+      .update({ villa_perk_templates: payload as any })
       .eq("id", currentAccommodationId);
     setPerksSaving(false);
     if (error) {
       toast({ title: "儲存失敗", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "已儲存方案預設禮遇" });
+      toast({ title: "已儲存禮遇範本庫" });
     }
   };
+
+  const updateTemplate = (id: string, patch: Partial<PerkTemplate>) =>
+    setPerkTemplates((arr) => arr.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+  const updateTemplateItem = (tplId: string, idx: number, patch: Partial<PerkItem>) =>
+    setPerkTemplates((arr) =>
+      arr.map((t) =>
+        t.id === tplId
+          ? { ...t, items: t.items.map((it, i) => (i === idx ? { ...it, ...patch } : it)) }
+          : t
+      )
+    );
+  const addTemplateItem = (tplId: string) =>
+    setPerkTemplates((arr) =>
+      arr.map((t) =>
+        t.id === tplId ? { ...t, items: [...t.items, { text: "", enabled: true }] } : t
+      )
+    );
+  const removeTemplateItem = (tplId: string, idx: number) =>
+    setPerkTemplates((arr) =>
+      arr.map((t) =>
+        t.id === tplId ? { ...t, items: t.items.filter((_, i) => i !== idx) } : t
+      )
+    );
+
 
 
   const handleCardPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
