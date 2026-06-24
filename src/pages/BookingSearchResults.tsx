@@ -557,6 +557,8 @@ const BookingSearchResults = () => {
         }
         nightsCounted++;
       }
+      // 若有日期條件且所有住宿夜都不適用此方案的 tier，跳過（避免用平日 sale_price fallback 顯示錯誤週末價）
+      if (hasDateFilter && stayDates.length > 0 && nightsCounted === 0) return;
       const total = nightsCounted > 0 ? totalSale : pkg.sale_price;
       const original = hasOriginal && nightsCounted > 0 ? totalOriginal : null;
       const nightly = nights > 0 ? Math.round(total / nights) : total;
