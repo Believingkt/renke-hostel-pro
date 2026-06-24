@@ -15,6 +15,8 @@ export interface ChildTier {
   fee_per_night: number;
   /** 人數上限；null = 不限 */
   max_count: number | null;
+  /** 超過 max_count 時，每多 1 位的每晚加價（NT$）；0 或未設 = 嚴格不可超過（block） */
+  over_limit_fee_per_night?: number;
   /** 是否接受該年齡層訂房 */
   allowed: boolean;
   /** 是否計入房型容量（一般嬰兒不計） */
@@ -24,7 +26,10 @@ export interface ChildTier {
 export interface ChildAgeRules {
   tiers: Record<ChildTierKey, ChildTier>;
   note: string;
+  /** 兒童加大人合計上限（含計入容量的兒童）；null = 不限 */
+  max_total_guests?: number | null;
 }
+
 
 export const TIER_ORDER: ChildTierKey[] = ["infant", "toddler", "child"];
 
@@ -83,6 +88,9 @@ export function parseChildAgeRules(raw: unknown): ChildAgeRules {
           : Number.isFinite(Number(t.max_count))
             ? Number(t.max_count)
             : def.max_count,
+      over_limit_fee_per_night: Number.isFinite(Number(t.over_limit_fee_per_night))
+        ? Math.max(0, Number(t.over_limit_fee_per_night))
+        : 0,
       allowed: typeof t.allowed === "boolean" ? t.allowed : def.allowed,
       counts_toward_capacity:
         typeof t.counts_toward_capacity === "boolean"
@@ -93,8 +101,15 @@ export function parseChildAgeRules(raw: unknown): ChildAgeRules {
   return {
     tiers,
     note: typeof obj.note === "string" ? obj.note : "",
+    max_total_guests:
+      obj.max_total_guests === null || obj.max_total_guests === undefined || obj.max_total_guests === ""
+        ? null
+        : Number.isFinite(Number(obj.max_total_guests))
+          ? Number(obj.max_total_guests)
+          : null,
   };
 }
+
 
 /** 套用方案覆寫：override 非 null 時以 override 為準 */
 export function resolveChildRules(
@@ -124,7 +139,7 @@ export interface ChildEvaluation {
   blocked: boolean;
   /** 被禁止/超限的年齡層 */
   blockedTiers: ChildTierKey[];
-  /** 每晚總加價（NT$） */
+  /** 每晚總加價（NT$；含超量加價） */
   extraFeePerNight: number;
   /** 總加價（NT$，已乘 nights） */
   extraFeeTotal: number;
@@ -132,12 +147,17 @@ export interface ChildEvaluation {
   breakdown: Array<{ key: ChildTierKey; label: string; count: number; subtotal: number }>;
   /** 額外占用的「人」數（用於與成人合計判斷房型容量；嬰兒通常不計） */
   capacityHeadcount: number;
+  /** 是否超過「兒童加大人合計上限」 */
+  totalExceeded?: boolean;
+  /** 整體不可訂時的中文說明（供 UI 直接顯示） */
+  blockReason?: string;
 }
 
 export function evaluateChildSelection(
   rules: ChildAgeRules,
   selection: ChildSelection,
   nights: number,
+  adultsCount?: number,
 ): ChildEvaluation {
   const safeNights = Math.max(1, Math.round(nights || 1));
   const blockedTiers: ChildTierKey[] = [];
@@ -153,27 +173,61 @@ export function evaluateChildSelection(
       blockedTiers.push(key);
       continue;
     }
+
+    let baseCount = count;
+    let overCount = 0;
     if (tier.max_count !== null && count > tier.max_count) {
-      blockedTiers.push(key);
-      continue;
+      const overFee = Math.max(0, tier.over_limit_fee_per_night || 0);
+      if (overFee > 0) {
+        baseCount = tier.max_count;
+        overCount = count - tier.max_count;
+      } else {
+        blockedTiers.push(key);
+        continue;
+      }
     }
+
     if (tier.counts_toward_capacity) capacityHeadcount += count;
-    const subtotal = (tier.fee_per_night || 0) * count * safeNights;
-    extraFeePerNight += (tier.fee_per_night || 0) * count;
+    const basePerNight = (tier.fee_per_night || 0) * baseCount;
+    const overPerNight = (tier.over_limit_fee_per_night || 0) * overCount;
+    extraFeePerNight += basePerNight + overPerNight;
+    const subtotal = (basePerNight + overPerNight) * safeNights;
     if (subtotal > 0) {
       breakdown.push({ key, label: tier.label, count, subtotal });
     }
   }
 
+  let totalExceeded = false;
+  if (
+    typeof adultsCount === "number" &&
+    rules.max_total_guests != null &&
+    rules.max_total_guests > 0
+  ) {
+    const total = Math.max(0, adultsCount) + capacityHeadcount;
+    if (total > rules.max_total_guests) totalExceeded = true;
+  }
+
+  const blocked = blockedTiers.length > 0 || totalExceeded;
+  let blockReason: string | undefined;
+  if (totalExceeded) {
+    blockReason = `兒童加大人合計不可超過 ${rules.max_total_guests} 位，請調整人數`;
+  } else if (blockedTiers.length > 0) {
+    const labels = blockedTiers.map((k) => rules.tiers[k].label).join("、");
+    blockReason = `${labels}人數超過上限`;
+  }
+
   return {
-    blocked: blockedTiers.length > 0,
+    blocked,
     blockedTiers,
     extraFeePerNight,
     extraFeeTotal: extraFeePerNight * safeNights,
     breakdown,
     capacityHeadcount,
+    totalExceeded,
+    blockReason,
   };
 }
+
 
 /** 摘要文字：嬰兒 0-2 歲免費 · 幼兒 3-6 歲 +500/位/晚（上限 2）· … */
 export function summarizeChildRules(rules: ChildAgeRules): string {

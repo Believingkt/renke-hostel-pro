@@ -323,7 +323,8 @@ const BookingVilla = () => {
       toddlers: Math.max(0, parseInt(searchParams.get("toddlers") || "0", 10) || 0),
       children: Math.max(0, parseInt(searchParams.get("children") || "0", 10) || 0),
     };
-    const evalResult = evaluateChildSelection(rules, sel, nights || 1);
+    const adultsForEval = Math.max(1, parseInt(searchParams.get("adults") || "2", 10) || 2);
+    const evalResult = evaluateChildSelection(rules, sel, nights || 1, adultsForEval);
     const tierOrder: Array<"infant" | "toddler" | "child"> = ["infant", "toddler", "child"];
     const ruleLines = tierOrder
       .map((key) => {

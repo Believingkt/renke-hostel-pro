@@ -166,6 +166,37 @@ const ChildAgeRulesEditor = ({
                 </div>
               </div>
 
+              <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs text-muted-foreground">
+                    超過上限每位每晚加價 NT$（0 = 嚴格不可超過）
+                  </Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={50}
+                    placeholder="0"
+                    value={t.over_limit_fee_per_night ?? 0}
+                    onChange={(e) =>
+                      update(key, {
+                        over_limit_fee_per_night: Math.max(
+                          0,
+                          parseInt(e.target.value || "0", 10),
+                        ),
+                      })
+                    }
+                    className="h-9 text-sm"
+                    disabled={disabled || t.max_count === null}
+                  />
+                  {t.max_count === null && (
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      未設定人數上限時不適用
+                    </p>
+                  )}
+                </div>
+              </div>
+
+
               <div className="mt-2 flex items-center gap-2">
                 <Switch
                   id={`cap-${key}`}
@@ -186,6 +217,31 @@ const ChildAgeRulesEditor = ({
           );
         })}
       </div>
+
+      <Card className={`p-3 ${!editing ? "opacity-60" : ""}`}>
+        <Label className="text-xs text-muted-foreground">
+          兒童加大人合計上限（空白 = 不限）
+        </Label>
+        <Input
+          type="number"
+          min={0}
+          placeholder="不限"
+          value={displayRules.max_total_guests ?? ""}
+          onChange={(e) =>
+            onChange({
+              ...rules,
+              max_total_guests:
+                e.target.value === "" ? null : Math.max(0, parseInt(e.target.value, 10)),
+            })
+          }
+          className="h-9 text-sm mt-1 max-w-[200px]"
+          disabled={!editing}
+        />
+        <p className="text-[11px] text-muted-foreground mt-1.5">
+          成人 + 計入容量的兒童總人數超過此值時，將無法入住/訂房並顯示警告
+        </p>
+      </Card>
+
 
       {showNote && (
         <div>
