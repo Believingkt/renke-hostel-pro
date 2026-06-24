@@ -58,7 +58,7 @@ interface Props {
   nights: number;
   onClick: () => void;
   /** 條件式右上角促銷標籤：friday=週五專屬禮遇；hot=熱門檔期 */
-  promoTag?: "friday" | "hot" | null;
+  promoTag?: "friday" | "sunday" | "hot" | null;
 }
 
 const SearchRoomCard = ({ data, nights, onClick, promoTag = null }: Props) => {
