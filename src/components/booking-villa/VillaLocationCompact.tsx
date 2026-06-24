@@ -66,15 +66,8 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
 
   return (
     <section id="location" className="px-4 py-5 bg-background">
-      <h2 className="text-[20px] font-bold text-foreground mb-2">交通建議</h2>
-      {rating != null && (
-        <p className="mb-3 text-[14px]">
-          <span className="font-bold" style={{ color: "hsl(25, 76%, 50%)" }}>
-            {rating <= 5 ? `${rating.toFixed(1)}/5` : `${rating.toFixed(1)}/10`}
-          </span>{" "}
-          <span className="text-foreground/80">位置絕佳</span>
-        </p>
-      )}
+      <h2 className="text-[20px] font-bold text-foreground mb-3">交通建議</h2>
+
 
       {/* Map */}
       <Card className="overflow-hidden border-border/60 mb-3">
