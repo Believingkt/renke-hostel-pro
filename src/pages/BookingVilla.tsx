@@ -327,14 +327,15 @@ const BookingVilla = () => {
     return count > 0 ? `方案內容 · 含 ${count} 項` : "方案內容";
   }, [visiblePackages, customIncludes]);
 
-  // 頂部圖片輪播：僅播放後台「精選照片（hero）」
+  // 頂部圖片輪播：優先使用「輪播圖（hero）」，若無則 fallback 使用「精選照片（gallery）」
   const allPhotos = useMemo(() => {
-    return heroPhotos.map((p: any) => ({
+    const source = (heroPhotos && heroPhotos.length > 0) ? heroPhotos : (galleryPhotos || []);
+    return source.map((p: any) => ({
       id: p.id,
       photo_url: p.photo_url,
       title: p.title,
     }));
-  }, [heroPhotos]);
+  }, [heroPhotos, galleryPhotos]);
 
   // Aggregate capacity stats from room types.
   // 「銷售方案」(如「12 人包區」) 為虛擬人數方案，不應計入實際房間數。
