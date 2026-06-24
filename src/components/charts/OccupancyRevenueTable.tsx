@@ -120,7 +120,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         // Orders: stay-range overlap = check_in <= endDate AND check_out >= startDate (both AND)
         fetchAllPaginated<any>(() =>
           supabase.from('orders')
-            .select('id, check_in_date, check_out_date, room_type_id, final_price, meal_plan, order_status, order_source')
+            .select('id, check_in_date, check_out_date, room_type_id, final_price, meal_plan, order_status, order_source, lock_whole_building')
             .eq('accommodation_id', accommodationId)
             .in('order_status', ['confirmed', 'hold'])
             .lte('check_in_date', endDate)
