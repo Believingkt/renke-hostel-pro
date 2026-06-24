@@ -81,6 +81,8 @@ interface Props {
   childExtraTotal?: number;
   /** 兒童加價分項明細（嬰兒/幼兒/兒童 × 人數 × 小計） */
   childExtraBreakdown?: Array<{ key: string; label: string; count: number; subtotal: number }>;
+  /** 已選擇的兒童年齡層規則（含免費年齡層） */
+  childRuleLines?: Array<{ key: string; label: string; ageRange: string; feeText: string; capText: string; count: number }>;
 }
 
 import {
@@ -128,6 +130,7 @@ const CapacityPriceLadder = ({
   freeCancelDays,
   childExtraTotal = 0,
   childExtraBreakdown = [],
+  childRuleLines = [],
 }: Props) => {
   const TERM = isSensan ? "包區" : "包棟";
   const TIER_HINT: Record<PricingTier, string> = {
@@ -435,19 +438,38 @@ const CapacityPriceLadder = ({
                         className="w-[280px] p-3 text-[12px] leading-relaxed"
                       >
                         <p className="font-semibold mb-2 text-foreground">兒童加價明細</p>
-                        <ul className="space-y-1">
-                          {childExtraBreakdown.map((b) => (
-                            <li key={b.key} className="flex justify-between gap-3 text-muted-foreground">
-                              <span>
-                                {b.label} × {b.count} 位
-                                {nights > 1 ? ` × ${nights} 晚` : ""}
-                              </span>
-                              <span className="font-medium text-foreground tabular-nums">
-                                +NT${b.subtotal.toLocaleString()}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
+                        {childRuleLines.length > 0 && (
+                          <>
+                            <p className="text-[11px] text-muted-foreground mb-1">您選擇的兒童年齡層規則</p>
+                            <ul className="space-y-1 mb-2">
+                              {childRuleLines.map((r) => (
+                                <li key={`rule-${r.key}`} className="flex items-start gap-1.5 text-muted-foreground">
+                                  <span className="text-[#A98467] shrink-0">★</span>
+                                  <span>
+                                    <span className="text-foreground font-medium">{r.label}</span>
+                                    {` ${r.ageRange}　${r.feeText}${r.capText}`}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                            <div className="border-t border-border/60 my-2" />
+                          </>
+                        )}
+                        {childExtraBreakdown.length > 0 && (
+                          <ul className="space-y-1">
+                            {childExtraBreakdown.map((b) => (
+                              <li key={b.key} className="flex justify-between gap-3 text-muted-foreground">
+                                <span>
+                                  {b.label} × {b.count} 位
+                                  {nights > 1 ? ` × ${nights} 晚` : ""}
+                                </span>
+                                <span className="font-medium text-foreground tabular-nums">
+                                  +NT${b.subtotal.toLocaleString()}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                         <div className="mt-2 pt-2 border-t border-border/60 flex justify-between gap-3">
                           <span className="text-foreground font-semibold">合計</span>
                           <span className="font-bold tabular-nums" style={{ color: "hsl(15, 78%, 48%)" }}>
