@@ -111,6 +111,7 @@ const menuItems = [
       { title: "房價庫存設定", url: "/admin/room-price-calendar", icon: DollarSign },
       { title: "專案設定", url: "/admin/projects", icon: TrendingUp },
       { title: "銷售方案", url: "/admin/packages", icon: Package },
+      { title: "方案前台預覽", url: "/admin/packages-preview", icon: Package },
       { title: "國定假日", url: "/admin/holidays", icon: Calendar },
     ]
   },
