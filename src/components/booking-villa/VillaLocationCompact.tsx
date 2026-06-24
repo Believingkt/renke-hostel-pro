@@ -21,17 +21,18 @@ interface Props {
   rating?: number | null;
 }
 
-type TabKey = "transport" | "landmark";
+type TabKey = "transit" | "driving" | "landmark";
 
 const TABS: { key: TabKey; label: string; icon: typeof Train }[] = [
-  { key: "transport", label: "交通", icon: Train },
+  { key: "transit", label: "大眾運輸", icon: Bus },
+  { key: "driving", label: "自行開車", icon: Car },
   { key: "landmark", label: "週邊景點", icon: MapPin },
 ];
 
 const TRANSPORT_KW = ["車站", "火車", "高鐵", "客運", "捷運", "機場", "轉運", "station"];
 
 const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
-  const [tab, setTab] = useState<TabKey>("transport");
+  const [tab, setTab] = useState<TabKey>("transit");
   const [copied, setCopied] = useState(false);
 
   const hasAny =
@@ -46,10 +47,8 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
   const has = (a: Attraction, kws: string[]) =>
     kws.some((k) => a.name.toLowerCase().includes(k.toLowerCase()));
 
-  const filtered =
-    tab === "transport"
-      ? attractions.filter((a) => has(a, TRANSPORT_KW))
-      : attractions.filter((a) => !has(a, TRANSPORT_KW));
+  const transitAttractions = attractions.filter((a) => has(a, TRANSPORT_KW));
+  const landmarkAttractions = attractions.filter((a) => !has(a, TRANSPORT_KW));
 
 
   const handleCopy = async () => {
