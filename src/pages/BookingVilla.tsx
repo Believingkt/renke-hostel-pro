@@ -993,11 +993,11 @@ const BookingVilla = () => {
               : "translateY(0)",
         }}
       >
-        <div className="flex flex-col gap-2 px-4 py-3">
+        <div className="flex flex-col px-3 pt-2 pb-2">
           {/* 上層：搜尋修改入口 */}
           <button
             onClick={() => setEditSearchOpen(true)}
-            className="w-full flex justify-between items-center bg-gray-50 rounded-lg px-3 py-2 active:scale-[0.99] transition"
+            className="w-full flex justify-between items-center bg-gray-50 rounded-lg px-2.5 py-1.5 active:scale-[0.99] transition"
           >
             <span className="flex items-center gap-2 text-sm font-medium text-gray-700">
               <Calendar className="w-3.5 h-3.5 text-gray-500" />
