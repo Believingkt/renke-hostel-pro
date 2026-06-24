@@ -517,20 +517,53 @@ const AdminPackages = () => {
         .map((r) => ({ room_type_id: r.room_type_id, qty: Number(r.qty) })) as any,
       child_age_rules_override: form.child_age_rules_override as any,
     };
-    const { error } = editing
-      ? await supabase.from("accommodation_packages").update(payload as any).eq("id", editing.id)
-      : await supabase.from("accommodation_packages").insert([payload as any]);
+    const { data: saved, error } = editing
+      ? await supabase.from("accommodation_packages").update(payload as any).eq("id", editing.id).select("id").maybeSingle()
+      : await supabase.from("accommodation_packages").insert([payload as any]).select("id").maybeSingle();
     setSaving(false);
     if (error) {
       toast({ title: "儲存失敗", description: error.message, variant: "destructive" });
       return;
     }
 
-
+    // 自動正規化 display_order：依目前順序連續編號 1..N，將編輯/新增的方案插入到指定位置
+    await normalizeDisplayOrder(saved?.id ?? editing?.id ?? null, form.display_order);
 
     toast({ title: editing ? "已更新" : "已新增" });
     setOpen(false);
     refetch();
+  };
+
+  const normalizeDisplayOrder = async (savedId: string | null, desiredOrder: number) => {
+    if (!currentAccommodationId) return;
+    const { data, error } = await supabase
+      .from("accommodation_packages")
+      .select("id, display_order")
+      .eq("accommodation_id", currentAccommodationId)
+      .order("display_order", { ascending: true });
+    if (error || !data) return;
+
+    // 把儲存的方案抽出，再依 desiredOrder 插回對應位置，其餘維持原順序
+    const others = data.filter((p) => p.id !== savedId);
+    const saved = data.find((p) => p.id === savedId);
+    const targetIdx = Math.max(0, Math.min(others.length, (desiredOrder || 1) - 1));
+    const reordered = saved
+      ? [...others.slice(0, targetIdx), saved, ...others.slice(targetIdx)]
+      : others;
+
+    const updates = reordered
+      .map((p, idx) => ({ id: p.id, newOrder: idx + 1, oldOrder: p.display_order }))
+      .filter((u) => u.newOrder !== u.oldOrder);
+
+    if (updates.length === 0) return;
+    await Promise.all(
+      updates.map((u) =>
+        supabase
+          .from("accommodation_packages")
+          .update({ display_order: u.newOrder })
+          .eq("id", u.id)
+      )
+    );
   };
 
   const handleDelete = async () => {
