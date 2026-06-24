@@ -161,6 +161,7 @@ const AdminPackages = () => {
   };
   const [defaultPerks, setDefaultPerks] = useState<DefaultPerks>(DEFAULT_PERKS);
   const [perksSaving, setPerksSaving] = useState(false);
+  const [perksAutoDisabled, setPerksAutoDisabled] = useState<{ at: number; packageName: string } | null>(null);
 
   useEffect(() => {
     if (!currentAccommodationId) return;
