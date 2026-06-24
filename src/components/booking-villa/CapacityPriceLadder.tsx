@@ -679,6 +679,7 @@ const CapacityPriceLadder = ({
 
                   <button
                     type="button"
+                    data-book-cta="true"
                     onClick={() => onSelect(opt)}
                     className="mt-2 w-full h-10 rounded-full font-bold text-[15px] text-white tracking-wide shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 focus:outline-none inline-flex items-center justify-center gap-1.5"
                     style={{ backgroundColor: "#F08A3E" }}
