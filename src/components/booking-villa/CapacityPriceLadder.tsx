@@ -185,13 +185,18 @@ const CapacityPriceLadder = ({
       roomTypes.find((rt) => rt.capacity >= tier.guestCount) ||
       fallbackRoomType;
 
-    const safeNights = Math.max(1, nights);
-    const baseTotal = tier.sale * safeNights;
-    const baseOriginal = tier.original * safeNights;
-    const totalPrice = baseTotal + childExtraTotal;
-    const originalPrice = baseOriginal + childExtraTotal;
-    const discountPercent = tier.original > tier.sale
-      ? Math.round(((tier.original - tier.sale) / tier.original) * 100)
+    // 跨平/旺/假日逐晚計價：當日該方案不適用 → fallback 該日「有開」方案最低 sale
+    const { totalSale, totalOriginal, fallbackNotes } = computeNightlyPackageTotals({
+      selectedTier: tier,
+      checkIn,
+      nights,
+      pricingTable: PRICING_TABLE,
+      isHolidayDate: isHolidayDate,
+    });
+    const totalPrice = totalSale + childExtraTotal;
+    const originalPrice = totalOriginal + childExtraTotal;
+    const discountPercent = totalOriginal > totalSale
+      ? Math.round(((totalOriginal - totalSale) / totalOriginal) * 100)
       : 0;
 
     return {
@@ -202,8 +207,10 @@ const CapacityPriceLadder = ({
       originalPrice,
       discountPercent,
       isRecommended,
+      fallbackNotes,
     };
   };
+
 
   const currentTiers = PRICING_TABLE[activeTier];
   const fewPeopleTiers = enableFewPeople ? currentTiers.filter((t) => t.isFewPeople) : [];
