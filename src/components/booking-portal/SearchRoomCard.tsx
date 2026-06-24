@@ -61,7 +61,7 @@ interface Props {
   promoTag?: "friday" | "hot" | null;
 }
 
-const SearchRoomCard = ({ data, nights, onClick }: Props) => {
+const SearchRoomCard = ({ data, nights, onClick, promoTag = null }: Props) => {
   const location =
     data.country === "台灣" || !data.country
       ? [data.region_1, data.region_2].filter(Boolean).join(" · ")
