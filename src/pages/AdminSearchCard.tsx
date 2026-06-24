@@ -205,6 +205,7 @@ const AdminSearchCard = () => {
       original_total_price: 8800,
       discount_percent: 14,
       available_rooms: 3,
+      n: previewTags,
       feature_tags: previewTags,
       sold_out: false,
     };
