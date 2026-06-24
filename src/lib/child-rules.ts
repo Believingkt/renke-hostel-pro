@@ -88,6 +88,9 @@ export function parseChildAgeRules(raw: unknown): ChildAgeRules {
           : Number.isFinite(Number(t.max_count))
             ? Number(t.max_count)
             : def.max_count,
+      over_limit_fee_per_night: Number.isFinite(Number(t.over_limit_fee_per_night))
+        ? Math.max(0, Number(t.over_limit_fee_per_night))
+        : 0,
       allowed: typeof t.allowed === "boolean" ? t.allowed : def.allowed,
       counts_toward_capacity:
         typeof t.counts_toward_capacity === "boolean"
@@ -98,8 +101,15 @@ export function parseChildAgeRules(raw: unknown): ChildAgeRules {
   return {
     tiers,
     note: typeof obj.note === "string" ? obj.note : "",
+    max_total_guests:
+      obj.max_total_guests === null || obj.max_total_guests === undefined || obj.max_total_guests === ""
+        ? null
+        : Number.isFinite(Number(obj.max_total_guests))
+          ? Number(obj.max_total_guests)
+          : null,
   };
 }
+
 
 /** 套用方案覆寫：override 非 null 時以 override 為準 */
 export function resolveChildRules(
