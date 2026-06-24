@@ -9,52 +9,98 @@ interface Item {
   cover: string | null;
   rating: number | null;
   reviewCount: number | null;
-  base_price: number | null;
+  price: number | null;
   region: string | null;
 }
 
 interface Props {
   excludeId: string;
   region?: string | null;
+  /** 搜尋人數，用來挑最接近的方案價格 */
+  adults?: number;
 }
 
-const SimilarStaysCarousel = ({ excludeId, region }: Props) => {
+/**
+ * 鄰近住宿：
+ * - 僅顯示同 region_1 的物業
+ * - 價格取「最接近搜尋人數」的啟用方案 sale_price (fallback original_price)
+ * - 搜不到方案 → 不顯示價格（不顯示 NT$0）
+ */
+const SimilarStaysCarousel = ({ excludeId, region, adults = 2 }: Props) => {
   const navigate = useNavigate();
   const [items, setItems] = useState<Item[]>([]);
 
   useEffect(() => {
     let cancelled = false;
+    if (!region) {
+      setItems([]);
+      return;
+    }
     (async () => {
+      // 1. 同 region_1 的物業（排除自己）
       const { data } = await (supabase
         .from("accommodation_info") as any)
-        .select("id, name, region_1, region_2, google_reviews_cache")
+        .select("id, name, region_1, google_reviews_cache, og_image_url")
+        .eq("region_1", region)
         .neq("id", excludeId)
-        .limit(8);
-      if (cancelled || !data) return;
+        .limit(12);
+      if (cancelled || !data || data.length === 0) {
+        setItems([]);
+        return;
+      }
 
       const ids: string[] = data.map((d: any) => d.id);
 
-      const [{ data: rooms }, { data: photos }] = await Promise.all([
-        (supabase.from("room_types") as any)
-          .select("accommodation_id, base_price")
-          .in("accommodation_id", ids),
+      const [{ data: packages }, { data: photos }] = await Promise.all([
+        (supabase.from("accommodation_packages") as any)
+          .select("accommodation_id, guest_count, guest_count_max, sale_price, original_price, enabled")
+          .in("accommodation_id", ids)
+          .eq("enabled", true),
         (supabase.from("accommodation_photos") as any)
           .select("accommodation_id, photo_url, order_index")
           .in("accommodation_id", ids)
           .order("order_index", { ascending: true }),
       ]);
 
+      // 挑最接近 adults 的方案價格
       const priceMap = new Map<string, number>();
-      (rooms || []).forEach((r: any) => {
-        const cur = priceMap.get(r.accommodation_id);
-        if (r.base_price != null && (cur == null || r.base_price < cur)) {
-          priceMap.set(r.accommodation_id, r.base_price);
-        }
+      const byAcc = new Map<string, any[]>();
+      (packages || []).forEach((p: any) => {
+        if (!p.accommodation_id) return;
+        const arr = byAcc.get(p.accommodation_id) || [];
+        arr.push(p);
+        byAcc.set(p.accommodation_id, arr);
+      });
+      byAcc.forEach((pkgs, accId) => {
+        // 先找剛好涵蓋 adults 的方案
+        const inRange = pkgs.filter((p) => {
+          const min = p.guest_count ?? 0;
+          const max = p.guest_count_max ?? p.guest_count ?? 99;
+          return adults >= min && adults <= max;
+        });
+        const candidates = inRange.length > 0 ? inRange : pkgs;
+        // 從候選中取「人數最接近 adults」者，價格 = sale_price || original_price
+        let best: { dist: number; price: number | null } | null = null;
+        candidates.forEach((p) => {
+          const gc = p.guest_count ?? p.guest_count_max ?? 0;
+          const dist = Math.abs(gc - adults);
+          const price =
+            p.sale_price != null && Number(p.sale_price) > 0
+              ? Number(p.sale_price)
+              : p.original_price != null && Number(p.original_price) > 0
+                ? Number(p.original_price)
+                : null;
+          if (price == null) return;
+          if (!best || dist < best.dist || (dist === best.dist && price < (best.price ?? Infinity))) {
+            best = { dist, price };
+          }
+        });
+        if (best?.price != null) priceMap.set(accId, best.price);
       });
 
       const coverMap = new Map<string, string>();
       (photos || []).forEach((p: any) => {
-        if (p.accommodation_id && !coverMap.has(p.accommodation_id)) {
+        if (p.accommodation_id && !coverMap.has(p.accommodation_id) && p.photo_url) {
           coverMap.set(p.accommodation_id, p.photo_url);
         }
       });
@@ -64,22 +110,20 @@ const SimilarStaysCarousel = ({ excludeId, region }: Props) => {
         return {
           id: d.id,
           name: d.name,
-          cover: coverMap.get(d.id) || null,
+          cover: coverMap.get(d.id) || d.og_image_url || null,
           rating: typeof cache?.rating === "number" ? cache.rating : null,
           reviewCount: typeof cache?.totalReviews === "number" ? cache.totalReviews : null,
-          base_price: priceMap.get(d.id) ?? null,
+          price: priceMap.get(d.id) ?? null,
           region: d.region_1 || null,
         };
       });
 
-      const same = region ? list.filter((i) => i.region === region) : [];
-      const other = list.filter((i) => !same.includes(i));
-      setItems([...same, ...other].slice(0, 6));
+      setItems(list.slice(0, 8));
     })();
     return () => {
       cancelled = true;
     };
-  }, [excludeId, region]);
+  }, [excludeId, region, adults]);
 
   if (items.length === 0) return null;
 
@@ -128,12 +172,13 @@ const SimilarStaysCarousel = ({ excludeId, region }: Props) => {
                 {it.region && (
                   <p className="mt-1.5 text-[11px] text-muted-foreground line-clamp-1">{it.region}</p>
                 )}
-                {it.base_price != null && (
+                {it.price != null && it.price > 0 && (
                   <p
                     className="mt-2 font-bold text-[16px] tabular-nums"
                     style={{ color: "hsl(25, 76%, 50%)" }}
                   >
-                    NT${it.base_price.toLocaleString()}
+                    NT${it.price.toLocaleString()}
+                    <span className="text-[11px] font-normal text-muted-foreground ml-1">起</span>
                   </p>
                 )}
               </div>
