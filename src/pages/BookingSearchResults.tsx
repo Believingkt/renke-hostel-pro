@@ -749,7 +749,7 @@ const BookingSearchResults = () => {
   const promoTag = useMemo<"friday" | "hot" | null>(() => {
     if (!checkIn) return null;
     const dow = checkIn.getDay();
-    if (dow === 5) return "friday";
+    if (dow === 5 || dow === 0) return "friday";
     if (dow === 6) return "hot";
     return null;
   }, [checkIn]);
