@@ -71,7 +71,7 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
     supabase
       .from("accommodation_info")
       .select(
-        "villa_header_rating_override, villa_header_rating_label_override, villa_header_review_count_override, villa_header_top_review_override, villa_header_host_response_text, villa_header_feature_tags, google_reviews_cache"
+        "villa_header_rating_override, villa_header_rating_label_override, villa_header_review_count_override, villa_header_top_review_override, villa_header_host_response_text, villa_header_feature_tags, villa_header_contact_type, villa_header_contact_value, villa_header_contact_label, google_reviews_cache"
       )
       .eq("id", accommodationId)
       .maybeSingle()
@@ -87,7 +87,11 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
               : "",
           topReview: d.villa_header_top_review_override ?? "",
           hostResponseText: d.villa_header_host_response_text ?? "",
+          contactType: d.villa_header_contact_type ?? "phone",
+          contactValue: d.villa_header_contact_value ?? "",
+          contactLabel: d.villa_header_contact_label ?? "",
         });
+
         const rawTags = d.villa_header_feature_tags;
         if (Array.isArray(rawTags)) {
           setTags(
