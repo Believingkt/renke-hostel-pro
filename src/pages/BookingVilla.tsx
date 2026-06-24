@@ -891,7 +891,7 @@ const BookingVilla = () => {
             </div>
           )}
 
-        {/* ── 8. Location ── Trip.com 風格 compact + 完整 LocationSection（桌機詳細區） ── */}
+        {/* ── 8. Location ── 統一使用 compact 版本（手機 + 桌機） ── */}
         {info.show_location_section !== false && (
           <div id="location">
             <VillaLocationCompact
@@ -899,12 +899,6 @@ const BookingVilla = () => {
               locationInfo={secondaryData?.locationInfo}
               rating={extras?.googleRating ?? null}
             />
-            <div className="hidden md:block">
-              <LocationSection
-                address={info.address}
-                locationInfo={secondaryData?.locationInfo}
-              />
-            </div>
           </div>
         )}
 
