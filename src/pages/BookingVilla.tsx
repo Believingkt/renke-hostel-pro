@@ -253,7 +253,7 @@ const BookingVilla = () => {
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [accId, isLoading]);
+  }, [accId]);
 
 
   const {
