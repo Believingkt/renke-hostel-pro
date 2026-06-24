@@ -1011,7 +1011,8 @@ const BookingVilla = () => {
             </span>
           </button>
 
-          {/* 下層：價格與主行動呼籲 */}
+          {/* 下層：價格與主行動呼籲（捲到入住方案區塊時隱藏） */}
+          {!priceSectionVisible && (
           <div className="flex justify-between items-center w-full">
             <div className="min-w-0">
               {(() => {
