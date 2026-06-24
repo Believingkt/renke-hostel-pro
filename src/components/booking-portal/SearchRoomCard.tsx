@@ -249,11 +249,8 @@ const SearchRoomCard = ({ data, nights, onClick, promoTag = null }: Props) => {
             熱門檔期
           </Badge>
         ) : data.available_rooms !== null && data.available_rooms <= 2 ? (
-          <Badge
-            className="absolute top-3 right-3 text-[11px] font-medium border-none text-white pointer-events-none"
-            style={{ background: "hsla(0, 70%, 50%, 0.9)" }}
-          >
-            僅剩 {data.available_rooms} 間
+          <Badge className="absolute top-3 right-3 rounded-md text-xs font-semibold border-none pointer-events-none bg-[#FDF6F5] text-[#C25953]">
+            全棟獨享
           </Badge>
         ) : null}
 
