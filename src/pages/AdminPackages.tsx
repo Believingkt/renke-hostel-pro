@@ -871,7 +871,9 @@ const AdminPackages = () => {
 
         {/* 特色標籤設定 */}
         {currentAccommodationId && (
-          <PortalFeatureTagsSection accommodationId={currentAccommodationId} />
+          <div className="sm:col-span-3">
+            <PortalFeatureTagsSection accommodationId={currentAccommodationId} />
+          </div>
         )}
       </div>
       </div>
