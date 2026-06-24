@@ -483,7 +483,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
                         </Button>
                         {qty > 0 && (
                           <span className="text-sm w-20 text-right">
-                            NT$ {(addon.price_per_unit * qty).toLocaleString()}
+                            NT$ {(addon.price_per_unit * qty * addonNights).toLocaleString()}
                           </span>
                         )}
                       </div>
