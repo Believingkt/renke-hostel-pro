@@ -257,6 +257,17 @@ const AdminPackages = () => {
         t.id === tplId ? { ...t, items: t.items.filter((_, i) => i !== idx) } : t
       )
     );
+  const moveTemplateItem = (tplId: string, idx: number, dir: -1 | 1) =>
+    setPerkTemplates((arr) =>
+      arr.map((t) => {
+        if (t.id !== tplId) return t;
+        const j = idx + dir;
+        if (j < 0 || j >= t.items.length) return t;
+        const items = [...t.items];
+        [items[idx], items[j]] = [items[j], items[idx]];
+        return { ...t, items };
+      })
+    );
 
 
 
