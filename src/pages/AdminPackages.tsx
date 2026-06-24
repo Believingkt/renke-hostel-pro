@@ -147,6 +147,21 @@ const AdminPackages = () => {
   const [accommodationDefaultChildRules, setAccommodationDefaultChildRules] =
     useState<ChildAgeRules>(DEFAULT_CHILD_AGE_RULES);
 
+  // 方案預設禮遇（民宿層）：當銷售方案未填附加說明時，前台訂房卡片要顯示的條列
+  type PerkItem = { text: string; enabled: boolean };
+  type DefaultPerks = { enabled: boolean; title: string; items: PerkItem[] };
+  const DEFAULT_PERKS: DefaultPerks = {
+    enabled: true,
+    title: "尊榮禮遇",
+    items: [
+      { text: "私人管家全程接待", enabled: true },
+      { text: "迎賓下午茶與在地點心", enabled: true },
+      { text: "全棟空間尊榮獨享", enabled: true },
+    ],
+  };
+  const [defaultPerks, setDefaultPerks] = useState<DefaultPerks>(DEFAULT_PERKS);
+  const [perksSaving, setPerksSaving] = useState(false);
+
   useEffect(() => {
     if (!currentAccommodationId) return;
     supabase
@@ -158,7 +173,7 @@ const AdminPackages = () => {
 
     supabase
       .from("accommodation_info")
-      .select("nearby_station, review_summary, rating_score, search_card_photos, country, region_1, region_2, child_age_rules")
+      .select("nearby_station, review_summary, rating_score, search_card_photos, country, region_1, region_2, child_age_rules, villa_default_perks")
       .eq("id", currentAccommodationId)
       .maybeSingle()
       .then(({ data }) => {
@@ -173,8 +188,45 @@ const AdminPackages = () => {
         });
         setCardPhotos(((data as any)?.search_card_photos as string[] | null) ?? []);
         setAccommodationDefaultChildRules(parseChildAgeRules((data as any)?.child_age_rules));
+        const raw = (data as any)?.villa_default_perks;
+        if (raw && typeof raw === "object") {
+          setDefaultPerks({
+            enabled: raw.enabled !== false,
+            title: typeof raw.title === "string" ? raw.title : "尊榮禮遇",
+            items: Array.isArray(raw.items)
+              ? raw.items
+                  .filter((it: any) => it && typeof it.text === "string")
+                  .map((it: any) => ({ text: it.text, enabled: it.enabled !== false }))
+              : [],
+          });
+        } else {
+          setDefaultPerks(DEFAULT_PERKS);
+        }
       });
   }, [currentAccommodationId]);
+
+  const saveDefaultPerks = async () => {
+    if (!currentAccommodationId) return;
+    setPerksSaving(true);
+    const payload: DefaultPerks = {
+      enabled: !!defaultPerks.enabled,
+      title: (defaultPerks.title || "").trim() || "尊榮禮遇",
+      items: defaultPerks.items
+        .filter((it) => (it.text || "").trim() !== "")
+        .map((it) => ({ text: it.text.trim(), enabled: !!it.enabled })),
+    };
+    const { error } = await supabase
+      .from("accommodation_info")
+      .update({ villa_default_perks: payload as any })
+      .eq("id", currentAccommodationId);
+    setPerksSaving(false);
+    if (error) {
+      toast({ title: "儲存失敗", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "已儲存方案預設禮遇" });
+    }
+  };
+
 
   const handleCardPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!currentAccommodationId || !e.target.files?.length) return;
