@@ -279,14 +279,14 @@ const BookingVilla = () => {
     return count > 0 ? `方案內容 · 含 ${count} 項` : "方案內容";
   }, [visiblePackages, customIncludes]);
 
-  // Combined photo gallery (hero + gallery, mixed)
+  // 頂部圖片輪播：僅播放後台「精選照片（hero）」
   const allPhotos = useMemo(() => {
-    return [...heroPhotos, ...galleryPhotos].map((p: any) => ({
+    return heroPhotos.map((p: any) => ({
       id: p.id,
       photo_url: p.photo_url,
       title: p.title,
     }));
-  }, [heroPhotos, galleryPhotos]);
+  }, [heroPhotos]);
 
   // Aggregate capacity stats from room types.
   // 「銷售方案」(如「12 人包區」) 為虛擬人數方案，不應計入實際房間數。
