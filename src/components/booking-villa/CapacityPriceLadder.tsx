@@ -83,6 +83,12 @@ interface Props {
   childExtraBreakdown?: Array<{ key: string; label: string; count: number; subtotal: number }>;
   /** 已選擇的兒童年齡層規則（含免費年齡層） */
   childRuleLines?: Array<{ key: string; label: string; ageRange: string; feeText: string; capText: string; count: number }>;
+  /** 民宿層級的「禮遇預設清單」設定；當方案未填 includes 時用以填補 */
+  defaultPerks?: {
+    enabled: boolean;
+    title?: string | null;
+    items: Array<{ text: string; enabled: boolean }>;
+  } | null;
 }
 
 import {
