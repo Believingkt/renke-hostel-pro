@@ -101,6 +101,10 @@ interface Props {
   childExtraBreakdown?: Array<{ key: string; label: string; count: number; subtotal: number }>;
   /** 已選擇的兒童年齡層規則（含免費年齡層） */
   childRuleLines?: Array<{ key: string; label: string; ageRange: string; feeText: string; capText: string; count: number }>;
+  /** 兒童人數違反規範（不接待 / 超過上限 / 超過合計人數），整體不可訂 */
+  childBlocked?: boolean;
+  /** 不可訂時的中文說明 */
+  childBlockReason?: string;
 }
 
 import {
