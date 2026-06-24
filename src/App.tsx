@@ -350,6 +350,11 @@ function App() {
                         <Suspense fallback={<TableSkeleton rows={8} columns={15} />}><RoomPriceCalendar /></Suspense>
                       </RequireModule>
                     } />
+                    <Route path="admin/search-card" element={
+                      <RequireModule module="room_price">
+                        <Suspense fallback={<FormSkeleton fields={6} />}><AdminSearchCard /></Suspense>
+                      </RequireModule>
+                    } />
                     <Route path="admin/accounts" element={
                       <RequireModule module="accounts">
                         <Suspense fallback={<FormSkeleton fields={4} />}><Accounts /></Suspense>
