@@ -37,9 +37,10 @@ const FEATURE_TAG_RULES: Array<{ test: (name: string) => boolean; label: string 
 
 interface Props {
   accommodationId: string;
+  onPreviewTagsChange?: (tags: string[]) => void;
 }
 
-export const PortalFeatureTagsSection = ({ accommodationId }: Props) => {
+export const PortalFeatureTagsSection = ({ accommodationId, onPreviewTagsChange }: Props) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [autoTags, setAutoTags] = useState<string[]>([]);
@@ -88,6 +89,11 @@ export const PortalFeatureTagsSection = ({ accommodationId }: Props) => {
       cancelled = true;
     };
   }, [accommodationId]);
+
+  useEffect(() => {
+    if (loading) return;
+    onPreviewTagsChange?.(selectedTags.length > 0 ? selectedTags : autoTags);
+  }, [autoTags, loading, onPreviewTagsChange, selectedTags]);
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) =>
