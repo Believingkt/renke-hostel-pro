@@ -1152,7 +1152,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                         )}
                                         {useUnits && (() => {
                                           const assignedUnit = entry.room_unit_id ? rtUnits.find(u => u.id === entry.room_unit_id) : null;
-                                          const isNarrow = DAY_COL_MIN_WIDTH < 80;
+                                          const isNarrow = DAY_COL_MIN_WIDTH < 110;
                                           return (
                                             <Select
                                               value={entry.room_unit_id || "__none__"}
