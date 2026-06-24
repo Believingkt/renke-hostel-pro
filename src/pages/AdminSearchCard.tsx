@@ -9,7 +9,6 @@ import { toast } from "@/hooks/use-toast";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { PortalFeatureTagsSection } from "@/components/website-content/PortalFeatureTagsSection";
 import SearchRoomCard, { type SearchRoomCardData } from "@/components/booking-portal/SearchRoomCard";
-import { expandFacilitiesForAccommodations } from "@/lib/facility-merge";
 
 /**
  * 搜尋圖卡設定（自 AdminPackages 抽出）：
