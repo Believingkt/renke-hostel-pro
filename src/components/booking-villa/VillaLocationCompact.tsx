@@ -182,12 +182,6 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
               <p className="text-[12px] text-muted-foreground py-2">暫無相關資訊</p>
             )}
         </div>
-          {filtered.length === 0 &&
-            !locationInfo?.public_transport_info &&
-            !locationInfo?.driving_info && (
-              <p className="text-[12px] text-muted-foreground py-2">暫無相關資訊</p>
-            )}
-        </div>
       ) : filtered.length > 0 ? (
         <ul className="space-y-3">
           {filtered.map((a, i) => (
