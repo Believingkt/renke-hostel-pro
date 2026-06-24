@@ -235,10 +235,18 @@ const SearchRoomCard = ({ data, nights, onClick, promoTag = null }: Props) => {
           </Badge>
         )}
 
-        {/* 右上：剩餘 / 售完 */}
+        {/* 右上：售完 / 條件式促銷標籤 / 剩餘房間 */}
         {data.sold_out ? (
           <Badge className="absolute top-3 right-3 text-[11px] font-medium border-none bg-foreground/70 text-white pointer-events-none">
             已售完
+          </Badge>
+        ) : promoTag === "friday" ? (
+          <Badge className="absolute top-3 right-3 text-[11px] font-bold border-none text-white pointer-events-none bg-[#A98467]">
+            週五專屬禮遇
+          </Badge>
+        ) : promoTag === "hot" ? (
+          <Badge className="absolute top-3 right-3 text-[11px] font-bold border-none pointer-events-none bg-[#FDF6F5] text-[#C25953]">
+            熱門檔期
           </Badge>
         ) : data.available_rooms !== null && data.available_rooms <= 2 ? (
           <Badge
