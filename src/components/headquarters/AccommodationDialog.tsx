@@ -16,6 +16,17 @@ import {
 import { Loader2, Globe, CheckCircle2, XCircle, AlertCircle, Upload, Trash2, Image, Crop, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { LogoCropDialog } from "@/components/LogoCropDialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const ACCOMMODATION_TYPE_OPTIONS = [
+  "民宿",
+  "飯店",
+  "Villa",
+  "會館",
+  "小酒店",
+  "獨立包棟",
+  "社區型包棟",
+];
 
 interface AccommodationFormData {
   name: string;
