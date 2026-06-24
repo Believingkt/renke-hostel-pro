@@ -1469,12 +1469,70 @@ const AdminPackages = () => {
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
                 <Label>附加說明</Label>
-                <Button type="button" size="sm" variant="outline" onClick={addInclude}>
-                  <Plus className="h-3.5 w-3.5 mr-1" />
-                  新增
-                </Button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {perkTemplates.length > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] text-muted-foreground">📋 套用範本</span>
+                      <Select
+                        value={pendingTplId}
+                        onValueChange={(v) => setPendingTplId(v)}
+                      >
+                        <SelectTrigger className="w-[180px] h-8 text-xs">
+                          <SelectValue placeholder="選擇範本…" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {perkTemplates.map((t) => (
+                            <SelectItem key={t.id} value={t.id}>
+                              {t.name}（{t.items.filter((it) => it.enabled && it.text.trim()).length} 條）
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-8"
+                        disabled={!pendingTplId}
+                        onClick={() => {
+                          const tpl = perkTemplates.find((t) => t.id === pendingTplId);
+                          if (!tpl) return;
+                          const newIncludes = tpl.items
+                            .filter((it) => it.enabled && it.text.trim())
+                            .map((it) => ({ available: "yes" as const, text: it.text, price_note: null }));
+                          setForm((f) => ({ ...f, includes: newIncludes }));
+                          toast({ title: `已套用範本「${tpl.name}」`, description: "已取代附加說明，可繼續微調" });
+                        }}
+                      >
+                        取代
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-8"
+                        disabled={!pendingTplId}
+                        onClick={() => {
+                          const tpl = perkTemplates.find((t) => t.id === pendingTplId);
+                          if (!tpl) return;
+                          const appended = tpl.items
+                            .filter((it) => it.enabled && it.text.trim())
+                            .map((it) => ({ available: "yes" as const, text: it.text, price_note: null }));
+                          setForm((f) => ({ ...f, includes: [...f.includes, ...appended] }));
+                          toast({ title: `已附加範本「${tpl.name}」` });
+                        }}
+                      >
+                        附加
+                      </Button>
+                    </div>
+                  )}
+                  <Button type="button" size="sm" variant="outline" onClick={addInclude}>
+                    <Plus className="h-3.5 w-3.5 mr-1" />
+                    新增
+                  </Button>
+                </div>
               </div>
               <div className="space-y-2">
                 {form.includes.map((inc, i) => (
