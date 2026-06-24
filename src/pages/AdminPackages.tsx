@@ -482,6 +482,30 @@ const AdminPackages = () => {
       toast({ title: "儲存失敗", description: error.message, variant: "destructive" });
       return;
     }
+
+    // 互斥邏輯：若此方案已填寫任何啟用的附加說明，自動關閉該民宿的「啟用預設禮遇」
+    const hasIncludes = (form.includes || []).some(
+      (inc) => inc && (inc.text || "").trim() !== ""
+    );
+    if (hasIncludes && defaultPerks.enabled) {
+      const nextPerks: DefaultPerks = {
+        enabled: false,
+        title: (defaultPerks.title || "").trim() || "尊榮禮遇",
+        items: (defaultPerks.items || []).map((it) => ({
+          text: (it.text || "").trim(),
+          enabled: !!it.enabled,
+        })),
+      };
+      const { error: perksErr } = await supabase
+        .from("accommodation_info")
+        .update({ villa_default_perks: nextPerks as any })
+        .eq("id", currentAccommodationId);
+      if (!perksErr) {
+        setDefaultPerks(nextPerks);
+        toast({ title: "已自動關閉「啟用預設禮遇」", description: "方案已填寫附加說明，避免與預設禮遇衝突" });
+      }
+    }
+
     toast({ title: editing ? "已更新" : "已新增" });
     setOpen(false);
     refetch();
