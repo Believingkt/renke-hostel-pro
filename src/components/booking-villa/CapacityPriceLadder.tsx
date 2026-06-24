@@ -335,8 +335,31 @@ const CapacityPriceLadder = ({
                   </div>
                 )}
 
-                {/* 3. 模組化資訊區塊：禮遇 + 訂房規則 */}
+                {/* 3. 模組化資訊區塊：標籤 + 禮遇 + 附加說明 + 訂房規則 */}
                 <div className="rounded-xl bg-[#F9F8F6] border border-border/50 p-3.5 space-y-3">
+                  {/* 標籤列（最划算已用其他位置呈現，不重複） */}
+                  {activeTier_.tags && activeTier_.tags.filter((t) => t !== "best_value").length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {activeTier_.tags
+                        .filter((t) => t !== "best_value")
+                        .map((tag) => {
+                          const map: Record<string, string> = {
+                            early_bird: "早鳥優惠",
+                            meal_included: "一泊二食",
+                            few_people: "少人數包棟",
+                          };
+                          return (
+                            <span
+                              key={tag}
+                              className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-white border border-[#E5DDD3] text-[#A98467]"
+                            >
+                              {map[tag] || tag}
+                            </span>
+                          );
+                        })}
+                    </div>
+                  )}
+
                   {/* 禮遇標題 + 獨享 Badge */}
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-[14px] font-bold text-foreground">
@@ -348,19 +371,51 @@ const CapacityPriceLadder = ({
                     </span>
                   </div>
 
-                  {/* 禮遇清單 */}
-                  <ul className="space-y-2">
-                    {[
-                      "私人管家全程接待",
-                      "迎賓下午茶與在地點心",
-                      "全棟空間尊榮獨享",
-                    ].map((label, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <Check className="h-4 w-4 mt-0.5 shrink-0" style={{ color: "#A98467" }} />
-                        <span className="text-[13px] text-gray-700 leading-snug">{label}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  {/* 禮遇/附加說明清單（資料驅動：含=✓、可選=+、不含=✗） */}
+                  {(() => {
+                    const items = (activeTier_.includes || []).filter((i) => !!i?.text);
+                    if (items.length === 0) {
+                      // fallback：沒設定 includes 時，保留原預設文案
+                      return (
+                        <ul className="space-y-2">
+                          {["私人管家全程接待", "迎賓下午茶與在地點心", "全棟空間尊榮獨享"].map((label, i) => (
+                            <li key={i} className="flex items-start gap-2">
+                              <Check className="h-4 w-4 mt-0.5 shrink-0" style={{ color: "#A98467" }} />
+                              <span className="text-[13px] text-gray-700 leading-snug">{label}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      );
+                    }
+                    return (
+                      <ul className="space-y-2">
+                        {items.map((inc, i) => {
+                          const Icon = inc.available === "no" ? X : inc.available === "optional" ? Plus : Check;
+                          const iconColor =
+                            inc.available === "no"
+                              ? "hsl(0, 60%, 55%)"
+                              : inc.available === "optional"
+                                ? "hsl(25, 70%, 45%)"
+                                : "#A98467";
+                          const textCls =
+                            inc.available === "no"
+                              ? "text-gray-400 line-through"
+                              : "text-gray-700";
+                          return (
+                            <li key={i} className="flex items-start gap-2">
+                              <Icon className="h-4 w-4 mt-0.5 shrink-0" style={{ color: iconColor }} />
+                              <span className={`text-[13px] leading-snug ${textCls}`}>
+                                {inc.text}
+                                {inc.price_note && (
+                                  <span className="text-muted-foreground ml-1">（{inc.price_note}）</span>
+                                )}
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    );
+                  })()}
 
                   {/* 分隔線 */}
                   {((activeTier_.childCountMax || activeTier_.childAgeNote)) && (
@@ -377,6 +432,7 @@ const CapacityPriceLadder = ({
                     </p>
                   )}
                 </div>
+
 
                 {/* 4. 價格 + CTA（緊貼按鈕） */}
                 <div className="pt-1">
