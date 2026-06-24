@@ -1152,6 +1152,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                         )}
                                         {useUnits && (() => {
                                           const assignedUnit = entry.room_unit_id ? rtUnits.find(u => u.id === entry.room_unit_id) : null;
+                                          const isNarrow = DAY_COL_MIN_WIDTH < 80;
                                           return (
                                             <Select
                                               value={entry.room_unit_id || "__none__"}
@@ -1159,11 +1160,18 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                             >
                                               <SelectTrigger
                                                 onClick={(e) => e.stopPropagation()}
-                                                className="ml-auto h-5 px-1 py-0 text-[10px] bg-background/70 border-foreground/20 shrink-0 w-auto gap-0.5 [&>svg]:hidden"
+                                                className={cn(
+                                                  "ml-auto h-5 py-0 text-[10px] bg-background/70 border-foreground/20 shrink-0 w-auto gap-0.5 [&>svg]:hidden",
+                                                  isNarrow ? "px-0.5" : "px-1"
+                                                )}
                                                 title={assignedUnit ? `${assignedUnit.unit_number}${assignedUnit.nickname ? ` · ${assignedUnit.nickname}` : ''}` : "指派"}
                                               >
                                                 {assignedUnit ? (
-                                                  <span className="font-medium tabular-nums">{assignedUnit.unit_number}</span>
+                                                  isNarrow ? (
+                                                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                                                  ) : (
+                                                    <span className="font-medium tabular-nums">{assignedUnit.unit_number}</span>
+                                                  )
                                                 ) : (
                                                   <UserPlus className="h-3 w-3" />
                                                 )}
