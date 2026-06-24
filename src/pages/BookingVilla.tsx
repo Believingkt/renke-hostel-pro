@@ -164,7 +164,7 @@ const BookingVilla = () => {
       const { data } = await supabase
         .from("accommodation_info")
         .select(
-          "villa_trust_badges, villa_overview_labels, google_reviews_cache, villa_header_rating_override, villa_header_rating_label_override, villa_header_review_count_override, villa_header_top_review_override, villa_header_host_response_text, villa_header_feature_tags"
+          "villa_trust_badges, villa_overview_labels, google_reviews_cache, villa_header_rating_override, villa_header_rating_label_override, villa_header_review_count_override, villa_header_top_review_override, villa_header_host_response_text, villa_header_feature_tags, villa_header_contact_type, villa_header_contact_value, villa_header_contact_label"
         )
         .eq("id", accId)
         .maybeSingle();
