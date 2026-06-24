@@ -583,7 +583,18 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
     );
   }
 
-  const { rows, totalsSegments, grandTotalRevenue, splitMode, allCapacity, exclusiveCap, standardCap, exclusiveRoomCount, standardRoomCount } = tableData;
+  const { rows: rawRows, totalsSegments: rawTotalsSegments, splitMode, allCapacity, exclusiveCap, standardCap, exclusiveRoomCount, standardRoomCount, hasStandardCapSetting } = tableData;
+
+  const hideStandard = hasStandardCapSetting && !showStandard;
+  const filterSegs = <T extends { segment: SegmentKey; totalRevenue: number }>(segs: T[]): T[] =>
+    hideStandard ? segs.filter(s => s.segment !== 'standard') : segs;
+  const rows = rawRows.map(r => {
+    const segments = filterSegs(r.segments);
+    const totalRevenue = segments.reduce((s, x) => s + x.totalRevenue, 0);
+    return { ...r, segments, totalRevenue };
+  });
+  const totalsSegments = filterSegs(rawTotalsSegments);
+  const grandTotalRevenue = totalsSegments.reduce((s, x) => s + x.totalRevenue, 0);
 
   const formatRate = (rate: number) => `${(Math.round(rate * 10) / 10).toFixed(1)}%`;
   const getRateColor = (rate: number) => {
