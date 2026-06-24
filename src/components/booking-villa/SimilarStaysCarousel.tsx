@@ -37,11 +37,13 @@ const SimilarStaysCarousel = ({ excludeId, region, adults = 2 }: Props) => {
       return;
     }
     (async () => {
+      // region_1 在資料庫存在「宜蘭」/「宜蘭縣」混用 → 用 ilike 寬鬆比對
+      const regionKey = region.replace(/[縣市]$/, "");
       // 1. 同 region_1 的物業（排除自己）
       const { data } = await (supabase
         .from("accommodation_info") as any)
         .select("id, name, region_1, google_reviews_cache, og_image_url")
-        .eq("region_1", region)
+        .ilike("region_1", `${regionKey}%`)
         .neq("id", excludeId)
         .limit(12);
       if (cancelled || !data || data.length === 0) {

@@ -941,7 +941,7 @@ const BookingVilla = () => {
         <div id="similar">
           <SimilarStaysCarousel
             excludeId={info.id}
-            region={region}
+            region={(info as any).region_1 || null}
             adults={Math.max(1, parseInt(searchParams.get("adults") || "2", 10) || 2)}
           />
         </div>
