@@ -335,6 +335,7 @@ export type Database = {
           type: string | null
           updated_at: string
           villa_default_perks: Json
+          villa_header_feature_tags: Json | null
           villa_header_host_response_text: string | null
           villa_header_rating_label_override: string | null
           villa_header_rating_override: number | null
@@ -422,6 +423,7 @@ export type Database = {
           type?: string | null
           updated_at?: string
           villa_default_perks?: Json
+          villa_header_feature_tags?: Json | null
           villa_header_host_response_text?: string | null
           villa_header_rating_label_override?: string | null
           villa_header_rating_override?: number | null
@@ -509,6 +511,7 @@ export type Database = {
           type?: string | null
           updated_at?: string
           villa_default_perks?: Json
+          villa_header_feature_tags?: Json | null
           villa_header_host_response_text?: string | null
           villa_header_rating_label_override?: string | null
           villa_header_rating_override?: number | null
