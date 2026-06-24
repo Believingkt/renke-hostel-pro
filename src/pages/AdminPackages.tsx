@@ -698,6 +698,30 @@ const AdminPackages = () => {
                               maxLength={40}
                               className="flex-1"
                             />
+                            <div className="flex flex-col shrink-0">
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="h-5 w-6"
+                                disabled={idx === 0}
+                                onClick={() => moveTemplateItem(tpl.id, idx, -1)}
+                                title="上移"
+                              >
+                                <ChevronUp className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="h-5 w-6"
+                                disabled={idx === tpl.items.length - 1}
+                                onClick={() => moveTemplateItem(tpl.id, idx, 1)}
+                                title="下移"
+                              >
+                                <ChevronDown className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
                             <Button
                               type="button"
                               size="icon"
