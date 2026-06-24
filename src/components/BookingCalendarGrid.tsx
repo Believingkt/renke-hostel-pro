@@ -1152,7 +1152,6 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                         )}
                                         {useUnits && (() => {
                                           const assignedUnit = entry.room_unit_id ? rtUnits.find(u => u.id === entry.room_unit_id) : null;
-                                          const isNarrow = DAY_COL_MIN_WIDTH < 110;
                                           return (
                                             <Select
                                               value={entry.room_unit_id || "__none__"}
@@ -1160,18 +1159,11 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                             >
                                               <SelectTrigger
                                                 onClick={(e) => e.stopPropagation()}
-                                                className={cn(
-                                                  "ml-auto h-5 py-0 text-[10px] bg-background/70 border-foreground/20 shrink-0 w-auto gap-0.5 [&>svg]:hidden",
-                                                  isNarrow ? "px-0.5" : "px-1"
-                                                )}
+                                                className="ml-auto h-5 px-1 py-0 text-[10px] bg-background/70 border-foreground/20 shrink-0 w-auto gap-0.5 [&>svg]:hidden"
                                                 title={assignedUnit ? `${assignedUnit.unit_number}${assignedUnit.nickname ? ` · ${assignedUnit.nickname}` : ''}` : "指派"}
                                               >
                                                 {assignedUnit ? (
-                                                  isNarrow ? (
-                                                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                                                  ) : (
-                                                    <span className="font-medium tabular-nums">{assignedUnit.unit_number}</span>
-                                                  )
+                                                  <span className="font-medium tabular-nums">{assignedUnit.unit_number}</span>
                                                 ) : (
                                                   <UserPlus className="h-3 w-3" />
                                                 )}
@@ -1187,6 +1179,7 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
                                             </Select>
                                           );
                                         })()}
+
                                       </div>
                                     </TooltipTrigger>
                                     <TooltipContent className="text-sm whitespace-pre-line max-w-xs">
