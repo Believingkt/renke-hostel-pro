@@ -993,7 +993,7 @@ const BookingVilla = () => {
               : "translateY(0)",
         }}
       >
-        <div className="flex flex-col px-3 pt-2 pb-2">
+        <div className="flex flex-col px-3 pt-1.5 pb-1.5">
           {/* 上層：搜尋修改入口 */}
           <button
             onClick={() => setEditSearchOpen(true)}
@@ -1034,7 +1034,7 @@ const BookingVilla = () => {
             className={`overflow-hidden transition-all duration-300 ease-out ${
               bookCtaVisible
                 ? "max-h-0 opacity-0 -translate-y-2 pointer-events-none mt-0"
-                : "max-h-32 opacity-100 translate-y-0 mt-2"
+                : "max-h-32 opacity-100 translate-y-0 mt-1.5"
             }`}
           >
           <div className="flex justify-between items-center w-full">
