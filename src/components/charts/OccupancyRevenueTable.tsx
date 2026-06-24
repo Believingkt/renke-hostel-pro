@@ -237,8 +237,12 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
       exclusiveCap = 0;
       standardCap = 0;
     }
+    // 奧莉薇雅：強制提供 1 棟包棟容量（用於「包棟全鎖房」訂單統計）
+    if (isOlivia && exclusiveCap === 0) {
+      exclusiveCap = 1;
+    }
     let allCapacity: number;
-    if (splitMode) {
+    if (splitMode || (isOlivia && exclusiveCap > 0)) {
       allCapacity = exclusiveCap + standardCap;
     } else {
       const total = roomTypes.reduce((s, rt) => s + (rt.room_count || 0), 0);
