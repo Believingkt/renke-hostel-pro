@@ -944,29 +944,6 @@ const BookingVilla = () => {
 
 
 
-        {/* Contact callout */}
-        {info.phone && (
-          <section className="px-4 py-4">
-            <Card className="p-3 flex items-center gap-3 border-border/60">
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-                style={{ background: "hsl(25, 70%, 95%)" }}
-              >
-                <Phone className="h-4 w-4" style={{ color: "hsl(25, 70%, 45%)" }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-muted-foreground">需要協助？直接聯絡民宿</p>
-                <a
-                  href={`tel:${info.phone}`}
-                  className="font-semibold text-sm text-foreground"
-                >
-                  {info.phone}
-                </a>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </Card>
-          </section>
-        )}
       </main>
 
       {/* ── Sticky Bottom Action Bar — Premium Stacked Bar (mobile) ── */}
