@@ -241,18 +241,35 @@ const BookingVilla = () => {
     };
   }, [accId]);
 
-  // 底部 CTA bar 維持常駐顯示（緊貼下方 MobileBottomNav），不再因捲動到入住方案而隱藏
-  // 當「入住方案」區塊進入視窗時，隱藏 CTA bar 下層（選擇房型 + 總價），保留上層搜尋修改列
-  const [priceSectionVisible, setPriceSectionVisible] = useState(false);
+  // 當任一「預約這段專屬假期」按鈕進入視窗時，隱藏 CTA bar 下層（選擇房型 + 總價）
+  const [bookCtaVisible, setBookCtaVisible] = useState(false);
   useEffect(() => {
-    const el = document.getElementById("capacity-price-section");
-    if (!el) return;
+    const visibleSet = new Set<Element>();
     const io = new IntersectionObserver(
-      ([entry]) => setPriceSectionVisible(entry.isIntersecting),
-      { threshold: 0, rootMargin: "0px 0px -30% 0px" }
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) visibleSet.add(e.target);
+          else visibleSet.delete(e.target);
+        }
+        setBookCtaVisible(visibleSet.size > 0);
+      },
+      { threshold: 0.2 }
     );
-    io.observe(el);
-    return () => io.disconnect();
+    const attach = () => {
+      document.querySelectorAll("[data-book-cta]").forEach((el) => io.observe(el));
+    };
+    attach();
+    // 監聽 DOM 變化（方案卡延遲渲染）
+    const mo = new MutationObserver(() => {
+      io.disconnect();
+      visibleSet.clear();
+      attach();
+    });
+    mo.observe(document.body, { childList: true, subtree: true });
+    return () => {
+      io.disconnect();
+      mo.disconnect();
+    };
   }, [accId]);
 
 
