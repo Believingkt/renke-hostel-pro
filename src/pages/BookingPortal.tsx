@@ -167,6 +167,8 @@ const BookingPortal = () => {
   const [searching, setSearching] = useState(false);
   const [adults, setAdults] = useState(12);
   const [children, setChildren] = useState(0);
+  const [infants, setInfants] = useState(0);
+  const [toddlers, setToddlers] = useState(0);
   const [rooms, setRooms] = useState(4);
   const [hasSearched, setHasSearched] = useState(false);
   const [heroMode, setHeroMode] = useState<"search" | "ai">("search");
@@ -491,11 +493,13 @@ const BookingPortal = () => {
     if (checkOut) params.set("checkOut", format(checkOut, "yyyy-MM-dd"));
     if (adults) params.set("adults", String(adults));
     if (children) params.set("children", String(children));
+    if (infants) params.set("infants", String(infants));
+    if (toddlers) params.set("toddlers", String(toddlers));
     if (rooms) params.set("rooms", String(rooms));
     if (searchQuery.trim()) params.set("q", searchQuery.trim());
     const qs = params.toString();
     navigate(`/booking/search${qs ? `?${qs}` : ""}`);
-  }, [checkIn, checkOut, adults, children, rooms, searchQuery, navigate]);
+  }, [checkIn, checkOut, adults, children, infants, toddlers, rooms, searchQuery, navigate]);
 
 
   const hasDateFilter = !!(checkIn && checkOut && hasSearched);
@@ -853,6 +857,8 @@ const BookingPortal = () => {
     if (checkOut) params.set("checkOut", format(checkOut, "yyyy-MM-dd"));
     if (adults) params.set("adults", String(adults));
     if (children) params.set("children", String(children));
+    if (infants) params.set("infants", String(infants));
+    if (toddlers) params.set("toddlers", String(toddlers));
     if (rooms) params.set("rooms", String(rooms));
     const qs = params.toString();
     // 僅森山使用包區階梯詳情頁（CapacityPriceLadder 為森山專屬硬編碼價目）
@@ -986,6 +992,10 @@ const BookingPortal = () => {
                   onAdultsChange={setAdults}
                   children={children}
                   onChildrenChange={setChildren}
+                  infants={infants}
+                  onInfantsChange={setInfants}
+                  toddlers={toddlers}
+                  onToddlersChange={setToddlers}
                   rooms={rooms}
                   onRoomsChange={setRooms}
                   onSearch={handleSearch}
