@@ -267,7 +267,7 @@ const BookingVilla = () => {
   }, [packages, checkIn]);
 
   // 兒童加價（與搜尋頁邏輯一致：民宿層 child_age_rules + URL 的 children/infants/toddlers）
-  const childEval = useMemo(() => {
+  const childCtx = useMemo(() => {
     if (!info) return null;
     const rules = resolveChildRules((info as any).child_age_rules, null);
     const sel = {
@@ -275,10 +275,23 @@ const BookingVilla = () => {
       toddlers: Math.max(0, parseInt(searchParams.get("toddlers") || "0", 10) || 0),
       children: Math.max(0, parseInt(searchParams.get("children") || "0", 10) || 0),
     };
-    return evaluateChildSelection(rules, sel, nights || 1);
+    const evalResult = evaluateChildSelection(rules, sel, nights || 1);
+    const tierOrder: Array<"infant" | "toddler" | "child"> = ["infant", "toddler", "child"];
+    const ruleLines = tierOrder
+      .map((key) => {
+        const count = key === "infant" ? sel.infants : key === "toddler" ? sel.toddlers : sel.children;
+        if (count <= 0) return null;
+        const t = rules.tiers[key];
+        const fee = t.fee_per_night > 0 ? `+NT$${t.fee_per_night.toLocaleString()}/位/晚` : "免費";
+        const cap = t.max_count !== null ? `（上限 ${t.max_count} 位）` : "";
+        return { key, label: t.label, ageRange: `${t.min_age}-${t.max_age} 歲`, feeText: fee, capText: cap, count };
+      })
+      .filter(Boolean) as Array<{ key: string; label: string; ageRange: string; feeText: string; capText: string; count: number }>;
+    return { evalResult, ruleLines };
   }, [info, searchParams, nights]);
-  const childExtraTotal = childEval?.extraFeeTotal ?? 0;
-  const childExtraBreakdown = childEval?.breakdown ?? [];
+  const childExtraTotal = childCtx?.evalResult.extraFeeTotal ?? 0;
+  const childExtraBreakdown = childCtx?.evalResult.breakdown ?? [];
+  const childRuleLines = childCtx?.ruleLines ?? [];
 
   const customPricingTable = useMemo(() => {
     if (visiblePackages.length === 0) return undefined;
