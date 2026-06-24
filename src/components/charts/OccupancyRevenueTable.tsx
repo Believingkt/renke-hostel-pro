@@ -120,7 +120,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
         // Orders: stay-range overlap = check_in <= endDate AND check_out >= startDate (both AND)
         fetchAllPaginated<any>(() =>
           supabase.from('orders')
-            .select('id, check_in_date, check_out_date, room_type_id, final_price, meal_plan, order_status, order_source')
+            .select('id, check_in_date, check_out_date, room_type_id, final_price, meal_plan, order_status, order_source, lock_whole_building')
             .eq('accommodation_id', accommodationId)
             .in('order_status', ['confirmed', 'hold'])
             .lte('check_in_date', endDate)
@@ -219,6 +219,7 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
     //  2) 沿用既有的雲岫硬編碼分流（向下相容）
     const isYunxiu = (accName || '').includes('雲岫');
     const isSensan = (accName || '').includes('森山');
+    const isOlivia = (accName || '').includes('奧莉');
     const adminSplit = dailyVillaCap > 0 || dailyRoomCap > 0;
     const splitMode = adminSplit || (isYunxiu && exclusiveRoomCount > 0 && standardRoomCount > 0);
     // 管理員啟用分流時，包棟訂單一律視為 1 棟（不分內含房數）
@@ -349,13 +350,16 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear }: Occupan
 
           // 森山：包棟訂單一筆即視為整館滿房（allCapacity 間），散客則一間一間照算
           const sensanExclusiveFull = isSensan && exclusiveQty > 0;
+          // 奧莉維亞：訂單若標記「包棟全鎖房」，視為整館滿房（佔滿所有散客房）
+          const oliviaLockFull = isOlivia && order.lock_whole_building === true;
           // 管理員啟用分流（adminSplit）時，任何包棟訂單一律算 1 棟
           const villaUnitQty = villaAsSingleUnit && exclusiveQty > 0 ? 1 : exclusiveQty;
-          const effectiveTotalQty = sensanExclusiveFull
+          const effectiveTotalQty = sensanExclusiveFull || oliviaLockFull
             ? allCapacity
             : (villaAsSingleUnit ? villaUnitQty + standardQty : totalQty);
           const effectiveExclusiveQty = sensanExclusiveFull ? allCapacity : villaUnitQty;
-          const effectiveStandardQty = sensanExclusiveFull ? 0 : standardQty;
+          const effectiveStandardQty = sensanExclusiveFull ? 0 : (oliviaLockFull ? standardCap : standardQty);
+
 
           if (splitMode) {
             if (effectiveExclusiveQty > 0) {
