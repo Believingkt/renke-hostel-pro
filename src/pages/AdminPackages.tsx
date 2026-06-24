@@ -513,33 +513,7 @@ const AdminPackages = () => {
       return;
     }
 
-    // 互斥邏輯：若此方案已填寫任何啟用的附加說明，自動關閉該民宿的「啟用預設禮遇」
-    const hasIncludes = (form.includes || []).some(
-      (inc) => inc && (inc.text || "").trim() !== ""
-    );
-    if (hasIncludes && defaultPerks.enabled) {
-      const nextPerks: DefaultPerks = {
-        enabled: false,
-        title: (defaultPerks.title || "").trim() || "尊榮禮遇",
-        items: (defaultPerks.items || []).map((it) => ({
-          text: (it.text || "").trim(),
-          enabled: !!it.enabled,
-        })),
-      };
-      const { error: perksErr } = await supabase
-        .from("accommodation_info")
-        .update({ villa_default_perks: nextPerks as any })
-        .eq("id", currentAccommodationId);
-      if (!perksErr) {
-        setDefaultPerks(nextPerks);
-        setPerksAutoDisabled({ at: Date.now(), packageName: form.name.trim() });
-        toast({
-          title: "⚠️ 已自動關閉「啟用預設禮遇」",
-          description: `方案「${form.name.trim()}」已自行填寫附加說明，為避免前台同時顯示兩份禮遇清單而衝突，系統已自動關閉此民宿的預設禮遇開關。如需重新啟用，請至上方「方案預設禮遇」區塊手動開啟。`,
-          duration: 8000,
-        });
-      }
-    }
+
 
     toast({ title: editing ? "已更新" : "已新增" });
     setOpen(false);
