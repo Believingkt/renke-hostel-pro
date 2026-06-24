@@ -642,7 +642,7 @@ const BookingVilla = () => {
                 {extras.googleRating <= 5 ? `${extras.googleRating.toFixed(1)}/5` : `${extras.googleRating.toFixed(1)}/10`}
               </span>
               <span className="text-[14px] font-semibold" style={{ color: "hsl(25, 76%, 50%)" }}>
-                超棒
+                {extras.ratingLabel}
               </span>
               {extras.googleTotal != null && extras.googleTotal > 0 && (
                 <button
