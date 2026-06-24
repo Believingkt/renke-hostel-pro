@@ -535,7 +535,124 @@ const AdminPackages = () => {
         }
       />
 
+      {/* 方案預設禮遇（民宿層）：當銷售方案未填寫附加說明時，前台會顯示這份預設清單 */}
+      <div className="rounded-lg border bg-card p-4 sm:p-5 space-y-4">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h3 className="font-semibold text-base">方案預設禮遇</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              前台「入住方案」卡片中，當某銷售方案沒有填寫「附加說明」時，會自動顯示這份預設禮遇清單；若該方案已自行設定附加說明，則不會出現此預設清單。
+            </p>
+          </div>
+          <Button size="sm" onClick={saveDefaultPerks} disabled={perksSaving}>
+            {perksSaving ? "儲存中…" : "儲存禮遇設定"}
+          </Button>
+        </div>
+
+        <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/30 px-3 py-2">
+          <div>
+            <p className="text-sm font-medium">啟用預設禮遇</p>
+            <p className="text-[11px] text-muted-foreground">
+              關閉後，未設定附加說明的方案前台將不顯示這份禮遇清單。
+            </p>
+          </div>
+          <Switch
+            checked={defaultPerks.enabled}
+            onCheckedChange={(v) => setDefaultPerks((p) => ({ ...p, enabled: v }))}
+          />
+        </div>
+
+        <div>
+          <Label className="text-xs">區塊標題</Label>
+          <Input
+            value={defaultPerks.title}
+            onChange={(e) => setDefaultPerks((p) => ({ ...p, title: e.target.value }))}
+            placeholder="例：尊榮禮遇"
+            maxLength={20}
+            disabled={!defaultPerks.enabled}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs">禮遇條列</Label>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                setDefaultPerks((p) => ({
+                  ...p,
+                  items: [...p.items, { text: "", enabled: true }],
+                }))
+              }
+              disabled={!defaultPerks.enabled}
+            >
+              <Plus className="h-3.5 w-3.5 mr-1" />
+              新增一條
+            </Button>
+          </div>
+          {defaultPerks.items.length === 0 && (
+            <p className="text-[11px] text-muted-foreground">
+              尚未設定任何條目；按「新增一條」開始。
+            </p>
+          )}
+          <ul className="space-y-2">
+            {defaultPerks.items.map((it, idx) => (
+              <li
+                key={idx}
+                className="flex items-center gap-2 rounded-md border bg-background px-2 py-1.5"
+              >
+                <Switch
+                  checked={it.enabled}
+                  onCheckedChange={(v) =>
+                    setDefaultPerks((p) => ({
+                      ...p,
+                      items: p.items.map((x, i) => (i === idx ? { ...x, enabled: v } : x)),
+                    }))
+                  }
+                  disabled={!defaultPerks.enabled}
+                />
+                <Input
+                  value={it.text}
+                  onChange={(e) =>
+                    setDefaultPerks((p) => ({
+                      ...p,
+                      items: p.items.map((x, i) =>
+                        i === idx ? { ...x, text: e.target.value } : x,
+                      ),
+                    }))
+                  }
+                  placeholder="例：私人管家全程接待"
+                  maxLength={40}
+                  className="flex-1"
+                  disabled={!defaultPerks.enabled}
+                />
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  onClick={() =>
+                    setDefaultPerks((p) => ({
+                      ...p,
+                      items: p.items.filter((_, i) => i !== idx),
+                    }))
+                  }
+                  title="刪除"
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+          <p className="text-[11px] text-muted-foreground">
+            每條最多 40 字；關閉開關可暫時隱藏該條而不需刪除。
+          </p>
+        </div>
+      </div>
+
       {/* 搜尋結果圖卡顯示設定 */}
+
       <div className="rounded-lg border bg-card p-4 sm:p-5 space-y-4">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
