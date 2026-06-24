@@ -36,7 +36,8 @@ import {
   ConciergeBell,
   Plug,
   FileText,
-  Mail
+  Mail,
+  LayoutPanelTop
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { PreloadLink } from "@/components/PreloadLink";
