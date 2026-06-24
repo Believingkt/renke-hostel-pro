@@ -5,8 +5,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
-import { LayoutPanelTop } from "lucide-react";
+import { LayoutPanelTop, Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
+import {
+  VILLA_FEATURE_ICON_OPTIONS,
+  getVillaFeatureIcon,
+  type VillaFeatureTag,
+} from "@/lib/villa-feature-icons";
 
 interface Props {
   accommodationId: string | null;
@@ -30,6 +42,7 @@ const empty: State = {
 
 const VillaHeaderSettings = ({ accommodationId }: Props) => {
   const [form, setForm] = useState<State>(empty);
+  const [tags, setTags] = useState<VillaFeatureTag[]>([]);
   const [autoData, setAutoData] = useState<{
     rating: number | null;
     total: number | null;
@@ -42,7 +55,7 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
     supabase
       .from("accommodation_info")
       .select(
-        "villa_header_rating_override, villa_header_rating_label_override, villa_header_review_count_override, villa_header_top_review_override, villa_header_host_response_text, google_reviews_cache"
+        "villa_header_rating_override, villa_header_rating_label_override, villa_header_review_count_override, villa_header_top_review_override, villa_header_host_response_text, villa_header_feature_tags, google_reviews_cache"
       )
       .eq("id", accommodationId)
       .maybeSingle()
@@ -59,6 +72,17 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
           topReview: d.villa_header_top_review_override ?? "",
           hostResponseText: d.villa_header_host_response_text ?? "",
         });
+        const rawTags = d.villa_header_feature_tags;
+        if (Array.isArray(rawTags)) {
+          setTags(
+            rawTags
+              .filter((t: any) => t && typeof t === "object" && t.icon && t.label)
+              .slice(0, 6)
+              .map((t: any) => ({ icon: String(t.icon), label: String(t.label) }))
+          );
+        } else {
+          setTags([]);
+        }
         const cache = d.google_reviews_cache as any;
         let topReview: string | null = null;
         if (cache?.reviews && Array.isArray(cache.reviews) && cache.reviews.length > 0) {
@@ -77,6 +101,25 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
         });
       });
   }, [accommodationId]);
+
+  const addTag = () => {
+    if (tags.length >= 6) return;
+    const first = VILLA_FEATURE_ICON_OPTIONS[0];
+    setTags((arr) => [...arr, { icon: first.value, label: first.defaultLabel }]);
+  };
+  const updateTag = (idx: number, patch: Partial<VillaFeatureTag>) => {
+    setTags((arr) => arr.map((t, i) => (i === idx ? { ...t, ...patch } : t)));
+  };
+  const removeTag = (idx: number) => setTags((arr) => arr.filter((_, i) => i !== idx));
+  const moveTag = (idx: number, dir: -1 | 1) => {
+    setTags((arr) => {
+      const target = idx + dir;
+      if (target < 0 || target >= arr.length) return arr;
+      const copy = [...arr];
+      [copy[idx], copy[target]] = [copy[target], copy[idx]];
+      return copy;
+    });
+  };
 
   const handleSave = async () => {
     if (!accommodationId) return;
@@ -101,6 +144,11 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
       countNum = n;
     }
 
+    const tagsPayload = tags
+      .map((t) => ({ icon: t.icon, label: (t.label || "").trim() }))
+      .filter((t) => t.label !== "")
+      .slice(0, 6);
+
     setSaving(true);
     const { error } = await supabase
       .from("accommodation_info")
@@ -110,6 +158,7 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
         villa_header_review_count_override: countNum,
         villa_header_top_review_override: form.topReview.trim() || null,
         villa_header_host_response_text: form.hostResponseText.trim() || null,
+        villa_header_feature_tags: tagsPayload.length > 0 ? tagsPayload : null,
       } as any)
       .eq("id", accommodationId);
     setSaving(false);
@@ -119,6 +168,7 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
       toast.success("已更新訂房頁標頭");
     }
   };
+
 
   if (!accommodationId) {
     return (
@@ -207,6 +257,111 @@ const VillaHeaderSettings = ({ accommodationId }: Props) => {
               顯示在評分下方的引言；留空則自動取用 Google 最高分評論前 70 字
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center justify-between gap-2">
+            <span>特色標籤（最多 6 個）</span>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={addTag}
+              disabled={tags.length >= 6}
+            >
+              <Plus className="h-3.5 w-3.5 mr-1" /> 新增標籤
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-[11px] text-muted-foreground -mt-1">
+            自訂訂房頁標題下方的 6 個圖示標籤；留空則自動從設施服務關鍵字推測。
+          </p>
+          {tags.length === 0 && (
+            <p className="text-[12px] text-muted-foreground rounded-md border border-dashed bg-muted/20 px-3 py-3 text-center">
+              尚未設定，按「新增標籤」開始建立
+            </p>
+          )}
+          <ul className="space-y-2">
+            {tags.map((tag, idx) => {
+              const Icon = getVillaFeatureIcon(tag.icon);
+              return (
+                <li
+                  key={idx}
+                  className="flex items-center gap-2 rounded-md border bg-background p-2"
+                >
+                  <Select
+                    value={tag.icon}
+                    onValueChange={(v) => {
+                      const opt = VILLA_FEATURE_ICON_OPTIONS.find((o) => o.value === v);
+                      updateTag(idx, {
+                        icon: v,
+                        label: tag.label || opt?.defaultLabel || "",
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="w-[150px] shrink-0">
+                      <div className="flex items-center gap-2">
+                        <Icon className="h-4 w-4 text-primary" />
+                        <SelectValue />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {VILLA_FEATURE_ICON_OPTIONS.map((o) => {
+                        const OptIcon = o.icon;
+                        return (
+                          <SelectItem key={o.value} value={o.value}>
+                            <div className="flex items-center gap-2">
+                              <OptIcon className="h-4 w-4" />
+                              <span>{o.defaultLabel}</span>
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    value={tag.label}
+                    onChange={(e) => updateTag(idx, { label: e.target.value })}
+                    placeholder="標籤文字"
+                    maxLength={12}
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => moveTag(idx, -1)}
+                    disabled={idx === 0}
+                    title="上移"
+                  >
+                    <ArrowUp className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => moveTag(idx, 1)}
+                    disabled={idx === tags.length - 1}
+                    title="下移"
+                  >
+                    <ArrowDown className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => removeTag(idx)}
+                    title="刪除"
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </li>
+              );
+            })}
+          </ul>
         </CardContent>
       </Card>
 

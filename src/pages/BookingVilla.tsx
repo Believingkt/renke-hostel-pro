@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { getVillaFeatureIcon } from "@/lib/villa-feature-icons";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { useAccommodationCache } from "@/hooks/use-accommodation-cache";
 import { usePageAnalytics } from "@/hooks/use-page-analytics";
@@ -149,6 +150,7 @@ const BookingVilla = () => {
     googleTopReview: { text: string; author: string } | null;
     ratingLabel: string;
     hostResponseText: string;
+    featureTagsOverride: Array<{ icon: string; label: string }> | null;
   } | null>(null);
 
   useEffect(() => {
@@ -158,7 +160,7 @@ const BookingVilla = () => {
       const { data } = await supabase
         .from("accommodation_info")
         .select(
-          "villa_trust_badges, villa_overview_labels, google_reviews_cache, villa_header_rating_override, villa_header_rating_label_override, villa_header_review_count_override, villa_header_top_review_override, villa_header_host_response_text"
+          "villa_trust_badges, villa_overview_labels, google_reviews_cache, villa_header_rating_override, villa_header_rating_label_override, villa_header_review_count_override, villa_header_top_review_override, villa_header_host_response_text, villa_header_feature_tags"
         )
         .eq("id", accId)
         .maybeSingle();
@@ -216,6 +218,12 @@ const BookingVilla = () => {
         ratingLabel: d.villa_header_rating_label_override || "超棒",
         hostResponseText:
           d.villa_header_host_response_text || "房東通常在 60 分鐘內回覆",
+        featureTagsOverride: Array.isArray(d.villa_header_feature_tags)
+          ? (d.villa_header_feature_tags as any[])
+              .filter((t) => t && t.icon && t.label)
+              .slice(0, 6)
+              .map((t) => ({ icon: String(t.icon), label: String(t.label) }))
+          : null,
       });
     })();
 
@@ -663,40 +671,47 @@ const BookingVilla = () => {
           )}
         </section>
 
-        {/* ── 2b. Feature icons grid（從 facilities 取前 6 個關鍵字配對 icon） ── */}
+        {/* ── 2b. Feature icons grid（後台覆寫優先；否則從 facilities 關鍵字配對） ── */}
         {(() => {
-          const all = secondaryData?.facilities || [];
-          if (all.length === 0) return null;
-          const matchers: { kw: string[]; icon: typeof Wifi; label: string }[] = [
-            { kw: ["wi-fi", "wifi", "無線"], icon: Wifi, label: "免費 Wi-Fi" },
-            { kw: ["停車", "parking"], icon: Car, label: "免費停車" },
-            { kw: ["早餐", "breakfast", "餐"], icon: Utensils, label: "餐飲服務" },
-            { kw: ["山景", "景觀", "view"], icon: Mountain, label: "景觀房" },
-            { kw: ["陽台", "balcony", "庭院"], icon: Trees, label: "陽台/庭院" },
-            { kw: ["親子", "嬰", "兒童", "family", "baby"], icon: Baby, label: "親子友善" },
-            { kw: ["寵物", "pet", "dog"], icon: Dog, label: "寵物友善" },
-            { kw: ["泳池", "水", "spa", "pool"], icon: Waves, label: "戲水設施" },
-            { kw: ["bbq", "烤", "火"], icon: Flame, label: "烤肉/壁爐" },
-            { kw: ["音響", "ktv", "music"], icon: Music, label: "影音設備" },
-            { kw: ["空調", "冷氣", "ac"], icon: Snowflake, label: "空調" },
-          ];
-          const picked: { icon: typeof Wifi; label: string }[] = [];
-          const usedLabels = new Set<string>();
-          for (const f of all) {
-            const name = (f.facility_name || "").toLowerCase();
-            for (const m of matchers) {
-              if (usedLabels.has(m.label)) continue;
-              if (m.kw.some((k) => name.includes(k))) {
-                picked.push({ icon: m.icon, label: m.label });
-                usedLabels.add(m.label);
-                break;
+          const override = extras?.featureTagsOverride;
+          let picked: { icon: typeof Wifi; label: string }[] = [];
+          if (override && override.length > 0) {
+            picked = override.map((t) => ({
+              icon: getVillaFeatureIcon(t.icon) as typeof Wifi,
+              label: t.label,
+            }));
+          } else {
+            const all = secondaryData?.facilities || [];
+            if (all.length === 0) return null;
+            const matchers: { kw: string[]; icon: typeof Wifi; label: string }[] = [
+              { kw: ["wi-fi", "wifi", "無線"], icon: Wifi, label: "免費 Wi-Fi" },
+              { kw: ["停車", "parking"], icon: Car, label: "免費停車" },
+              { kw: ["早餐", "breakfast", "餐"], icon: Utensils, label: "餐飲服務" },
+              { kw: ["山景", "景觀", "view"], icon: Mountain, label: "景觀房" },
+              { kw: ["陽台", "balcony", "庭院"], icon: Trees, label: "陽台/庭院" },
+              { kw: ["親子", "嬰", "兒童", "family", "baby"], icon: Baby, label: "親子友善" },
+              { kw: ["寵物", "pet", "dog"], icon: Dog, label: "寵物友善" },
+              { kw: ["泳池", "水", "spa", "pool"], icon: Waves, label: "戲水設施" },
+              { kw: ["bbq", "烤", "火"], icon: Flame, label: "烤肉/壁爐" },
+              { kw: ["音響", "ktv", "music"], icon: Music, label: "影音設備" },
+              { kw: ["空調", "冷氣", "ac"], icon: Snowflake, label: "空調" },
+            ];
+            const usedLabels = new Set<string>();
+            for (const f of all) {
+              const name = (f.facility_name || "").toLowerCase();
+              for (const m of matchers) {
+                if (usedLabels.has(m.label)) continue;
+                if (m.kw.some((k) => name.includes(k))) {
+                  picked.push({ icon: m.icon, label: m.label });
+                  usedLabels.add(m.label);
+                  break;
+                }
               }
+              if (picked.length >= 6) break;
             }
-            if (picked.length >= 6) break;
+            if (picked.length < 6) picked.unshift({ icon: Heart, label: "完善服務" });
+            if (picked.length < 6) picked.push({ icon: ShieldCheck, label: "即時確認" });
           }
-          // 補入完善服務 / 即時確認 預設 chip 讓畫面更滿
-          if (picked.length < 6) picked.unshift({ icon: Heart, label: "完善服務" });
-          if (picked.length < 6) picked.push({ icon: ShieldCheck, label: "即時確認" });
           if (picked.length === 0) return null;
           return (
             <section className="px-4 py-3 bg-card border-b border-border/40">
