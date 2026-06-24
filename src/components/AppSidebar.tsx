@@ -36,7 +36,8 @@ import {
   ConciergeBell,
   Plug,
   FileText,
-  Mail
+  Mail,
+  LayoutPanelTop
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { PreloadLink } from "@/components/PreloadLink";
@@ -80,6 +81,7 @@ const menuItems = [
     moduleKey: "website_content",
     subItems: [
       { title: "網頁設定", url: "/admin/website-content?tab=basic-info", icon: Info },
+      { title: "訂房頁標頭", url: "/admin/website-content?tab=villa-header", icon: LayoutPanelTop },
       { title: "設施服務", url: "/admin/website-content?tab=facilities", icon: Wrench },
       { title: "交通地圖", url: "/admin/website-content?tab=location", icon: Navigation },
       { title: "Google 評論", url: "/admin/website-content?tab=reviews", icon: Star },

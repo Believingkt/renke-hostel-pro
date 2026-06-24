@@ -22,6 +22,7 @@ import ChildAgeRulesCard from "@/components/website-content/ChildAgeRulesCard";
 import { HomepageSectionsBlock } from "@/components/website-content/HomepageSectionsBlock";
 import { PortalFeatureTagsSection } from "@/components/website-content/PortalFeatureTagsSection";
 import PortalFeaturedCardSection from "@/components/website-content/PortalFeaturedCardSection";
+import VillaHeaderSettings from "@/components/website-content/VillaHeaderSettings";
 import { AddonPlansSection, AddonPlan } from "@/components/website-content/AddonPlansSection";
 import { CustomSectionsManager } from "@/components/website-content/CustomSectionsManager";
 
@@ -458,6 +459,7 @@ const WebsiteContent = () => {
   const getBreadcrumbTitle = () => {
     const titleMap: Record<string, string> = {
       'basic-info': '網頁設定',
+      'villa-header': '訂房頁標頭',
       'facilities': '設施服務',
       'addon-plans': '加購方案',
       'gallery': '精選照片',
@@ -3391,6 +3393,10 @@ const WebsiteContent = () => {
               onSectionsChange={setCustomImageSections}
             />
           )}
+        </TabsContent>
+
+        <TabsContent value="villa-header" className="space-y-6">
+          <VillaHeaderSettings accommodationId={accommodationId} />
         </TabsContent>
 
         <TabsContent value="facilities" className="space-y-6">
