@@ -149,6 +149,7 @@ const BookingVilla = () => {
     googleTopReview: { text: string; author: string } | null;
     ratingLabel: string;
     hostResponseText: string;
+    featureTagsOverride: Array<{ icon: string; label: string }> | null;
   } | null>(null);
 
   useEffect(() => {
