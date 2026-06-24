@@ -161,6 +161,7 @@ const AdminPackages = () => {
   const [perkTemplates, setPerkTemplates] = useState<PerkTemplate[]>([]);
   const [perksSaving, setPerksSaving] = useState(false);
   const [expandedTplId, setExpandedTplId] = useState<string | null>(null);
+  const [pendingTplId, setPendingTplId] = useState<string>("");
 
   useEffect(() => {
     if (!currentAccommodationId) return;
