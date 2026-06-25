@@ -919,6 +919,7 @@ export default function TeamOrders() {
                   <SortableHead k="orderDate" label="訂購時間 (下單日)" className="whitespace-nowrap" />
                   <SortableHead k="depositConfirm" label="訂金確認日" className="whitespace-nowrap" />
                   <SortableHead k="finalPrice" label="總金額" className="whitespace-nowrap tabular-nums" />
+                  <TableHead className="whitespace-nowrap">分潤狀態</TableHead>
                   <TableHead className="whitespace-nowrap">館別</TableHead>
                   <TableHead className="whitespace-nowrap">訂房方式</TableHead>
                   <TableHead className="whitespace-nowrap">備註</TableHead>
