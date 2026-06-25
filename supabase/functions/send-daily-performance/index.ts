@@ -76,7 +76,7 @@ function defaultTemplate(hasFranchise: boolean): string {
   const general = `{日期}
 【{民宿名稱}進單業績】
 
-今日訂單：{今日訂單}
+今日訂單：{今日訂單筆數} 筆，金額 {今日訂單}
 今日訂單取消：{今日取消筆數} 筆，金額 {今日取消金額}
 
 本月累積訂房業績：{月累積}
