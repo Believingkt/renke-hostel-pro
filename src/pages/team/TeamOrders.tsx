@@ -38,6 +38,7 @@ import ScoutDiscountCodesTab from "@/components/team/ScoutDiscountCodesTab";
 import TeamCommissionStatsTab from "@/components/team/TeamCommissionStatsTab";
 import CommissionRatesTab from "@/components/team/CommissionRatesTab";
 import { getOrderSourceConfig } from "@/utils/orderHelpers";
+import { getCommissionStatus, getCommissionStatusShortLabel } from "@/lib/commissionStatus";
 
 interface Member {
   user_id: string;
