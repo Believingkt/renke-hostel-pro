@@ -268,6 +268,7 @@ export default function TeamOrders() {
       const { data: sess } = await supabase.auth.getSession();
       const uid = sess.session?.user.id;
       if (uid) {
+        setCurrentUserId(uid);
         const { data: roles } = await supabase
           .from("user_roles")
           .select("role")
