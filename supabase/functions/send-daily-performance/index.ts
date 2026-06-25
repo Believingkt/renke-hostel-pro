@@ -410,8 +410,10 @@ Deno.serve(async (req) => {
                 const d = isoToTaipeiDateStr(iso); // YYYY-MM-DD in Taipei
                 franchiseBookingYear += amt;
                 if (d >= month.start && d < month.end) franchiseBookingMonth += amt;
-                if (d === today) franchiseBookingToday += amt;
-              }
+                if (d === today) {
+                  franchiseBookingToday += amt;
+                  franchiseBookingTodayCount += 1;
+                }
             }
           }
         }
