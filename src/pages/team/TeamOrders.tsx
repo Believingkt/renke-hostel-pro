@@ -1242,20 +1242,40 @@ export default function TeamOrders() {
                       <div className="text-base font-medium">
                         {`NT$ ${Number(tcp).toLocaleString()}`}
                       </div>
-                      {mismatch && !confirmedBy && (
-                        <div className="text-xs text-orange-600">
-                          ⚠️ 訂單金額已變動，務必在退房日+7天內修改並確認分潤基準金額
-                        </div>
-                      )}
-                      {confirmedBy && (
-                        <div className="text-xs text-muted-foreground">
-                          🔔 {confirmerNameMap[confirmedBy] ?? "—"} 已於{" "}
-                          {confirmedAt
-                            ? new Date(confirmedAt).toLocaleDateString("zh-TW")
-                            : "—"}{" "}
-                          修改並確認此分潤基準金額
-                        </div>
-                      )}
+                      {(() => {
+                        const status = getCommissionStatus({
+                          checkOutDate: editOrder.check_out_date,
+                          teamCommissionPrice: tcp,
+                          finalPrice: fp,
+                          confirmedBy,
+                        });
+                        if (status === "locked") {
+                          return (
+                            <div className="text-xs text-red-600">
+                              ⛔ 已超過退房日7天，金額不建議任意修改
+                            </div>
+                          );
+                        }
+                        if (status === "mismatch") {
+                          return (
+                            <div className="text-xs text-orange-600">
+                              ⚠️ 訂單金額已變動，務必在退房日+7天內修改並確認分潤基準金額
+                            </div>
+                          );
+                        }
+                        if (status === "confirmed") {
+                          return (
+                            <div className="text-xs text-muted-foreground">
+                              🔔 {confirmerNameMap[confirmedBy!] ?? "—"} 已於{" "}
+                              {confirmedAt
+                                ? new Date(confirmedAt).toLocaleDateString("zh-TW")
+                                : "—"}{" "}
+                              修改並確認此分潤基準金額
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   );
                 })()}
