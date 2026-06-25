@@ -31,6 +31,7 @@ const MobileBottomNav = () => {
 
   return (
     <nav
+      data-mobile-bottom-nav
       className={`fixed bottom-0 inset-x-0 z-50 bg-white border-t border-border md:hidden transition-transform duration-300 ${
         visible ? "translate-y-0" : "translate-y-full"
       }`}

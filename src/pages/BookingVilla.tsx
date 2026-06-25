@@ -107,32 +107,60 @@ const BookingVilla = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [memberName, setMemberName] = useState("");
   const [bottomBarHidden, setBottomBarHidden] = useState(false);
-  // 追蹤底部 MobileBottomNav 是否被滾動隱藏（與 MobileBottomNav 內部邏輯一致）
-  const [navHidden, setNavHidden] = useState(false);
-  const [navHeight, setNavHeight] = useState(64);
+  // 以實際渲染位置貼齊 MobileBottomNav，避免不同瀏覽器 safe-area / transform 造成 CTA 與選單中間露縫。
+  const [bottomNavOffset, setBottomNavOffset] = useState(60);
   useEffect(() => {
-    let lastY = 0;
-    const onScroll = () => {
-      const y = window.scrollY;
-      if (y > lastY && y > 60) setNavHidden(true);
-      else setNavHidden(false);
-      lastY = y;
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-  useEffect(() => {
+    let raf = 0;
+    let mo: MutationObserver | null = null;
+
     const measure = () => {
-      const nav = document.querySelector('nav.fixed.bottom-0') as HTMLElement | null;
-      if (nav) setNavHeight(Math.round(nav.getBoundingClientRect().height));
+      raf = 0;
+      const nav = document.querySelector("[data-mobile-bottom-nav]") as HTMLElement | null;
+      if (!nav) return;
+      const rect = nav.getBoundingClientRect();
+      const visibleHeight = Math.max(0, window.innerHeight - rect.top);
+      // 微幅重疊 2px，避免 Safari 位移/四捨五入時出現白線或空隙。
+      setBottomNavOffset(Math.max(0, Math.round(visibleHeight) - 2));
     };
-    measure();
-    const ro = new ResizeObserver(measure);
-    const nav = document.querySelector('nav.fixed.bottom-0');
-    if (nav) ro.observe(nav);
-    window.addEventListener("resize", measure);
-    return () => { ro.disconnect(); window.removeEventListener("resize", measure); };
-  }, []);
+
+    const scheduleMeasure = () => {
+      if (raf) return;
+      raf = window.requestAnimationFrame(measure);
+    };
+
+    scheduleMeasure();
+    window.setTimeout(scheduleMeasure, 350);
+    window.addEventListener("scroll", scheduleMeasure, { passive: true });
+    window.addEventListener("resize", scheduleMeasure);
+    window.visualViewport?.addEventListener("resize", scheduleMeasure);
+
+    const attachObserver = () => {
+      const nav = document.querySelector("[data-mobile-bottom-nav]");
+      if (!nav) return;
+      mo = new MutationObserver(scheduleMeasure);
+      mo.observe(nav, { attributes: true, attributeFilter: ["class", "style"] });
+      nav.addEventListener("transitionrun", scheduleMeasure);
+      nav.addEventListener("transitionend", scheduleMeasure);
+    };
+
+    attachObserver();
+    const observerRetry = window.setTimeout(() => {
+      if (!mo) attachObserver();
+      scheduleMeasure();
+    }, 0);
+
+    return () => {
+      if (raf) window.cancelAnimationFrame(raf);
+      mo?.disconnect();
+      window.clearTimeout(observerRetry);
+      const nav = document.querySelector("[data-mobile-bottom-nav]");
+      nav?.removeEventListener("transitionrun", scheduleMeasure);
+      nav?.removeEventListener("transitionend", scheduleMeasure);
+      window.removeEventListener("scroll", scheduleMeasure);
+      window.removeEventListener("resize", scheduleMeasure);
+      window.visualViewport?.removeEventListener("resize", scheduleMeasure);
+    };
+  }, [editSearchOpen]);
   const [editSearchOpen, setEditSearchOpen] = useState(false);
   const [availableDateSet, setAvailableDateSet] = useState<Set<string> | null>(null);
   const [availMinPrice, setAvailMinPrice] = useState<number | null>(null);
