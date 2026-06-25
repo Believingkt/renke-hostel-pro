@@ -347,6 +347,7 @@ Deno.serve(async (req) => {
         let franchiseMonthSales = 0;
         let franchiseYearSales = 0;
         let franchiseBookingToday = 0;
+        let franchiseBookingTodayCount = 0;
         let franchiseBookingMonth = 0;
         let franchiseBookingYear = 0;
 
