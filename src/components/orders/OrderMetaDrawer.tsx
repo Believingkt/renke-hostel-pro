@@ -477,7 +477,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
 
       const { error } = await supabase
         .from("order_meta")
-        .upsert(payload, { onConflict: "order_id" });
+        .upsert(payload as any, { onConflict: "order_id" });
       if (error) throw error;
 
       toast.success("行銷資訊已儲存");
