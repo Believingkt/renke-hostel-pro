@@ -209,38 +209,8 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
             </div>
           </SheetHeader>
 
-          {!userId ? (
-            <div className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-4">
-              <div
-                className="w-16 h-16 rounded-full flex items-center justify-center text-white"
-                style={{ background: "linear-gradient(135deg, #F08A3E, #E5701A)" }}
-              >
-                <Sparkles className="w-8 h-8" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-base mb-1">請先登入會員</h3>
-                <p className="text-sm text-muted-foreground">
-                  登入後即可使用 AI 管家，並保留對話紀錄
-                </p>
-              </div>
-              <Button asChild className="w-full max-w-xs">
-                <Link to={`/auth?redirect=${encodeURIComponent(location.pathname + location.search)}`}>
-                  <LogIn className="w-4 h-4 mr-2" /> 前往登入
-                </Link>
-              </Button>
-              {contactHref && (
-                <a
-                  href={contactHref}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm text-muted-foreground underline underline-offset-2"
-                >
-                  或直接聯繫真人客服
-                </a>
-              )}
-            </div>
-          ) : (
-            <>
+          <>
+
               <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
                 {messages.length === 0 && !streaming && (
                   <div className="text-center pt-6 space-y-3">
