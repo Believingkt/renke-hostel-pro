@@ -1041,9 +1041,14 @@ const BookingVilla = () => {
           {/* 下層：價格與主行動呼籲（「預約這段專屬假期」按鈕進入畫面時隱藏，附動畫過渡） */}
           <div
             aria-hidden={bookCtaVisible}
-            className={`overflow-hidden transition-all duration-300 ease-out ${
+            style={{
+              transitionProperty: "max-height, opacity, transform, margin-top",
+              transitionDuration: "400ms",
+              transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
+            }}
+            className={`overflow-hidden ${
               bookCtaVisible
-                ? "max-h-0 opacity-0 -translate-y-2 pointer-events-none mt-0"
+                ? "max-h-0 opacity-0 -translate-y-1 pointer-events-none mt-0"
                 : "max-h-32 opacity-100 translate-y-0 mt-1.5"
             }`}
           >
