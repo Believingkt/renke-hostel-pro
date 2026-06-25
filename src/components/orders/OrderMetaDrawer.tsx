@@ -84,6 +84,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [nickname, setNickname] = useState("");
   const [depositConfirmDate, setDepositConfirmDate] = useState<string>("");
   const [orderDate, setOrderDate] = useState<string | null>(null);
+  const [checkOutDate, setCheckOutDate] = useState<string | null>(null);
   const [finalPrice, setFinalPrice] = useState<number | null>(null);
   const [teamCommissionPrice, setTeamCommissionPrice] = useState<number | null>(null);
   const [initialTeamCommissionPrice, setInitialTeamCommissionPrice] = useState<number | null>(null);
