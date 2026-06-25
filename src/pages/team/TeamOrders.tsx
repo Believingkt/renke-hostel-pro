@@ -979,6 +979,27 @@ export default function TeamOrders() {
                       </TableCell>
                       <TableCell className="whitespace-nowrap">{o.meta?.deposit_confirm_date || "-"}</TableCell>
                       <TableCell className="tabular-nums">${o.final_price?.toLocaleString()}</TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {(() => {
+                          const status = getCommissionStatus({
+                            checkOutDate: o.check_out_date,
+                            teamCommissionPrice:
+                              o.meta?.team_commission_price ?? o.final_price ?? null,
+                            finalPrice: o.final_price,
+                            confirmedBy: o.meta?.commission_price_confirmed_by,
+                          });
+                          const label = getCommissionStatusShortLabel(status);
+                          const cls =
+                            status === "locked"
+                              ? "text-red-600"
+                              : status === "mismatch"
+                                ? "text-orange-600"
+                                : status === "confirmed"
+                                  ? "text-muted-foreground"
+                                  : "text-muted-foreground";
+                          return <span className={cls}>{label}</span>;
+                        })()}
+                      </TableCell>
                       <TableCell className="whitespace-nowrap">{o.accommodation_name}</TableCell>
                       <TableCell className="whitespace-nowrap">{bookingMap.get(o.meta?.booking_method ?? "") ?? o.meta?.booking_method ?? "-"}</TableCell>
                       <TableCell className="whitespace-nowrap max-w-[200px] truncate" title={o.meta?.exclusion_note ?? ""}>{o.meta?.exclusion_note || "-"}</TableCell>
