@@ -191,6 +191,7 @@ interface RyanEdgePayload {
     discount_code: string | null;
     room_type_id: string | null;
     accommodation_id: string;
+    import_project: string | null;
   };
   order_rooms: Array<{
     room_type_id: string;
@@ -347,6 +348,7 @@ async function importRyanOrders(
         payment_status: mapped.payment_status,
         notes: finalNotes,
         discount_code: discountCode,
+        import_project: projectName || null,
         room_type_id: orderLevelRoomTypeId,
         accommodation_id: RYAN_ACCOMMODATION_ID,
       },
