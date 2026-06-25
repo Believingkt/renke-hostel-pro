@@ -1139,6 +1139,25 @@ const BookingVilla = () => {
 
       <BookingFooter />
       {!editSearchOpen && <MobileBottomNav />}
+      {info?.id && (
+        <FloatingAIChat
+          accommodationId={info.id}
+          accommodationName={info.name}
+          contactHref={(() => {
+            const t = (extras as any)?.contactType;
+            const v = (extras as any)?.contactValue || info.phone || "";
+            if (!t || !v) return null;
+            if (t === "line") {
+              if (v.startsWith("http")) return v;
+              return `https://line.me/R/ti/p/@${v.replace(/^@/, "")}`;
+            }
+            if (t === "phone") return `tel:${v}`;
+            if (t === "whatsapp") return `https://wa.me/${v.replace(/[^0-9]/g, "")}`;
+            if (t === "url") return v.startsWith("http") ? v : `https://${v}`;
+            return null;
+          })()}
+        />
+      )}
 
       <EditSearchSheet
         open={editSearchOpen}
