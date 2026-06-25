@@ -237,7 +237,27 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setAdNameByAdId(nameMap);
 
 
-      setOrderDate((orderRow as { order_date?: string | null } | null)?.order_date ?? null);
+      const orderRowTyped =
+        (orderRow as { order_date?: string | null; final_price?: number | null } | null);
+      setOrderDate(orderRowTyped?.order_date ?? null);
+      const fp = orderRowTyped?.final_price ?? null;
+      setFinalPrice(fp);
+
+      // Determine if current user can edit 分潤基準金額 (closer / hotel_admin / super_admin)
+      if (uid) {
+        const { data: roleRows } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", uid);
+        const roles = ((roleRows ?? []) as Array<{ role: string }>).map((r) => r.role);
+        setCanEditCommissionPrice(
+          roles.includes("closer") ||
+            roles.includes("hotel_admin") ||
+            roles.includes("super_admin"),
+        );
+      } else {
+        setCanEditCommissionPrice(false);
+      }
 
       if (existingMeta) {
         const m = existingMeta as Record<string, unknown>;
@@ -256,9 +276,40 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         setAddonAmount(Number(m.addon_amount ?? 0));
         setNickname((m.nickname as string) ?? "");
         setDepositConfirmDate((m.deposit_confirm_date as string) ?? "");
-      } else if (uid && closerIds.includes(uid)) {
-        // 預設成交人為目前登入者(若身分為 closer)
-        setCloserId(uid);
+
+        const tcp =
+          m.team_commission_price === null || m.team_commission_price === undefined
+            ? fp
+            : Number(m.team_commission_price);
+        setTeamCommissionPrice(tcp);
+        setInitialTeamCommissionPrice(tcp);
+        const confBy = (m.commission_price_confirmed_by as string) ?? null;
+        setCommissionConfirmedBy(confBy);
+        setCommissionConfirmedAt(
+          (m.commission_price_confirmed_at as string) ?? null,
+        );
+        if (confBy) {
+          const { data: confProf } = await supabase
+            .from("team_member_profiles")
+            .select("display_name")
+            .eq("user_id", confBy)
+            .maybeSingle();
+          setCommissionConfirmerName(
+            (confProf as { display_name?: string } | null)?.display_name ?? null,
+          );
+        } else {
+          setCommissionConfirmerName(null);
+        }
+      } else {
+        setTeamCommissionPrice(fp);
+        setInitialTeamCommissionPrice(fp);
+        setCommissionConfirmedBy(null);
+        setCommissionConfirmedAt(null);
+        setCommissionConfirmerName(null);
+        if (uid && closerIds.includes(uid)) {
+          // 預設成交人為目前登入者(若身分為 closer)
+          setCloserId(uid);
+        }
       }
 
     })();
