@@ -1013,9 +1013,10 @@ const BookingVilla = () => {
 
       {/* ── Sticky Bottom Action Bar — Premium Stacked Bar (mobile) ── */}
       <div
-        className={`fixed left-0 right-0 bottom-0 z-[60] w-full bg-white border-t border-gray-100 sm:hidden transition-transform duration-300 ease-out ${editSearchOpen ? "pointer-events-none" : ""}`}
+        className={`fixed left-0 right-0 z-[60] w-full bg-white border-t border-gray-100 sm:hidden transition-[bottom,transform] duration-300 ease-out ${editSearchOpen ? "pointer-events-none" : ""}`}
         style={{
-          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          bottom: navHidden ? 0 : `${Math.max(0, navHeight - 1)}px`,
+          paddingBottom: navHidden ? "env(safe-area-inset-bottom, 0px)" : "0px",
           boxShadow: "0 -4px 15px rgba(0,0,0,0.05)",
           transform: editSearchOpen ? "translateY(120%)" : "translateY(0)",
         }}
