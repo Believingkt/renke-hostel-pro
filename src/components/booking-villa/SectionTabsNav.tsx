@@ -68,21 +68,15 @@ export default function SectionTabsNav({ tabs }: SectionTabsNavProps) {
   const handleClick = (id: string) => {
     const el = document.getElementById(id);
     if (!el) return;
-
-    // header (mobile 64) + 本列高度 (約 48)
+    // header (mobile 64) + 本列高度 (約 44)
     const headerOffset = window.matchMedia("(min-width: 768px)").matches
       ? 96 + 48
       : window.matchMedia("(min-width: 640px)").matches
         ? 80 + 48
         : 64 + 48;
-    // 整數化目標位置，避免 sub-pixel rounding 造成 sticky 微跳
-    const targetTop = Math.round(
-      el.getBoundingClientRect().top + window.scrollY - headerOffset
-    );
-    const startTop = Math.round(window.scrollY);
-    const distance = targetTop - startTop;
+    const targetTop = el.getBoundingClientRect().top + window.scrollY - headerOffset;
 
-    // 立刻把點到的頁籤標為 active，並鎖定 observer 直到動畫結束
+    // 鎖定 active，scroll 結束後再解鎖
     lockRef.current = true;
     setActive(id);
     if (lockTimerRef.current) {
@@ -90,67 +84,64 @@ export default function SectionTabsNav({ tabs }: SectionTabsNavProps) {
       lockTimerRef.current = null;
     }
 
-    // 已在目標位置（< 2px）直接解鎖
-    if (Math.abs(distance) < 2) {
-      lockRef.current = false;
-      return;
-    }
-
-    // 自訂 rAF 平滑捲動：跨瀏覽器一致、可被使用者觸控/滾輪打斷
-    // 比 native smooth scroll 更穩定，避免 iOS Safari sticky 在中途閃爍
-    const duration = Math.min(600, Math.max(280, Math.abs(distance) * 0.6));
-    const startTime = performance.now();
-    let rafId = 0;
-    let interrupted = false;
-
-    const onUserScroll = (e: Event) => {
-      if (e.isTrusted) interrupted = true;
-    };
-    window.addEventListener("wheel", onUserScroll, { passive: true });
-    window.addEventListener("touchstart", onUserScroll, { passive: true });
-
-    const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+    // 相容性策略：
+    //  - Chrome/Edge：原生 `scrollend` 事件（最準確）
+    //  - Safari/Firefox：監聽 `scroll` 並用 debounce 偵測「停止滾動」
+    //  - 兩者都加 2.5s 硬性逾時兜底（避免使用者中途打斷滾動造成卡鎖）
+    const supportsScrollEnd = "onscrollend" in window;
+    let idleTimer: number | null = null;
+    let hardTimer: number | null = null;
+    let settleTimer: number | null = null;
 
     const cleanup = () => {
-      window.removeEventListener("wheel", onUserScroll);
-      window.removeEventListener("touchstart", onUserScroll);
-      cancelAnimationFrame(rafId);
-      window.setTimeout(() => {
-        lockRef.current = false;
-      }, 80);
+      lockRef.current = false;
+      window.removeEventListener("scrollend", onScrollEnd);
+      window.removeEventListener("scroll", onScrollPoll);
+      if (idleTimer) window.clearTimeout(idleTimer);
+      if (hardTimer) window.clearTimeout(hardTimer);
+      if (settleTimer) window.clearTimeout(settleTimer);
       lockTimerRef.current = null;
     };
 
-    const step = (now: number) => {
-      if (interrupted) {
-        cleanup();
-        return;
-      }
-      const elapsed = now - startTime;
-      const t = Math.min(1, elapsed / duration);
-      const y = Math.round(startTop + distance * easeOutCubic(t));
-      window.scrollTo(0, y);
-      if (t < 1) {
-        rafId = requestAnimationFrame(step);
-      } else {
-        cleanup();
-      }
+    const onScrollEnd = () => {
+      // 多等一拍讓 IntersectionObserver 以最終位置回報
+      settleTimer = window.setTimeout(cleanup, 80);
     };
-    rafId = requestAnimationFrame(step);
-    // 兜底：1.5s 後一定解鎖
-    lockTimerRef.current = window.setTimeout(cleanup, 1500);
+
+    const onScrollPoll = () => {
+      if (idleTimer) window.clearTimeout(idleTimer);
+      // 150ms 沒有新的 scroll → 視為停止
+      idleTimer = window.setTimeout(() => {
+        settleTimer = window.setTimeout(cleanup, 80);
+      }, 150);
+    };
+
+    if (supportsScrollEnd) {
+      window.addEventListener("scrollend", onScrollEnd, { once: true });
+    } else {
+      window.addEventListener("scroll", onScrollPoll, { passive: true });
+      // 啟動 idle 計時（萬一目標距離極短，scroll 事件可能很少）
+      idleTimer = window.setTimeout(() => {
+        settleTimer = window.setTimeout(cleanup, 80);
+      }, 400);
+    }
+
+    // 硬性兜底：無論如何 2.5s 後解鎖
+    hardTimer = window.setTimeout(cleanup, 2500);
+    lockTimerRef.current = hardTimer;
+
+    // 已在目標位置（距離 < 2px）直接立即解鎖，否則 smooth scroll
+    if (Math.abs(targetTop - window.scrollY) < 2) {
+      cleanup();
+      return;
+    }
+    window.scrollTo({ top: targetTop, behavior: "smooth" });
   };
 
   return (
     <div
       className="sticky top-16 sm:top-20 md:top-24 z-40 bg-white/95 backdrop-blur border-b border-gray-100"
-      style={{
-        boxShadow: "0 1px 0 rgba(0,0,0,0.02)",
-        // 提示瀏覽器將 sticky 元素提升到自己的合成層
-        // （不使用 transform，避免破壞 sticky 包含區塊）
-        willChange: "transform",
-        WebkitBackfaceVisibility: "hidden",
-      }}
+      style={{ boxShadow: "0 1px 0 rgba(0,0,0,0.02)" }}
     >
       <div
         ref={navRef}
