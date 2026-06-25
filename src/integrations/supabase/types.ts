@@ -4233,6 +4233,8 @@ export type Database = {
           closer_assisted: boolean | null
           closer_commission_rate: number | null
           closer_id: string | null
+          commission_price_confirmed_at: string | null
+          commission_price_confirmed_by: string | null
           deposit_confirm_date: string | null
           exclusion_note: string | null
           filled_at: string | null
@@ -4249,6 +4251,7 @@ export type Database = {
           order_id: string
           scout_commission_rate: number | null
           scout_id: string | null
+          team_commission_price: number | null
           traffic_source: string | null
           updated_at: string | null
           video_creator_id: string | null
@@ -4264,6 +4267,8 @@ export type Database = {
           closer_assisted?: boolean | null
           closer_commission_rate?: number | null
           closer_id?: string | null
+          commission_price_confirmed_at?: string | null
+          commission_price_confirmed_by?: string | null
           deposit_confirm_date?: string | null
           exclusion_note?: string | null
           filled_at?: string | null
@@ -4280,6 +4285,7 @@ export type Database = {
           order_id: string
           scout_commission_rate?: number | null
           scout_id?: string | null
+          team_commission_price?: number | null
           traffic_source?: string | null
           updated_at?: string | null
           video_creator_id?: string | null
@@ -4295,6 +4301,8 @@ export type Database = {
           closer_assisted?: boolean | null
           closer_commission_rate?: number | null
           closer_id?: string | null
+          commission_price_confirmed_at?: string | null
+          commission_price_confirmed_by?: string | null
           deposit_confirm_date?: string | null
           exclusion_note?: string | null
           filled_at?: string | null
@@ -4311,6 +4319,7 @@ export type Database = {
           order_id?: string
           scout_commission_rate?: number | null
           scout_id?: string | null
+          team_commission_price?: number | null
           traffic_source?: string | null
           updated_at?: string | null
           video_creator_id?: string | null
