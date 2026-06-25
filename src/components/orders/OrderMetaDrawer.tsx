@@ -439,7 +439,11 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
 
       if (orderErr) throw orderErr;
 
-      const payload = {
+      const tcpChanged =
+        Number(teamCommissionPrice ?? NaN) !==
+        Number(initialTeamCommissionPrice ?? NaN);
+
+      const payload: Record<string, any> = {
         order_id: orderId,
         accommodation_id: order?.accommodation_id ?? null,
         closer_id: closerId !== NONE ? closerId : null,
@@ -457,10 +461,18 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         addon_amount: Number.isFinite(addonAmount) ? addonAmount : 0,
         nickname: nickname.trim() || null,
         deposit_confirm_date: depositConfirmDate || null,
+        team_commission_price:
+          teamCommissionPrice === null || teamCommissionPrice === undefined
+            ? null
+            : Number(teamCommissionPrice),
         import_source: "manual",
         filled_by: currentUserId,
         filled_at: new Date().toISOString(),
       };
+      if (tcpChanged) {
+        payload.commission_price_confirmed_by = currentUserId;
+        payload.commission_price_confirmed_at = new Date().toISOString();
+      }
 
 
       const { error } = await supabase
