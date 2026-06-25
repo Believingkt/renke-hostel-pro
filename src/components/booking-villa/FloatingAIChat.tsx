@@ -161,15 +161,16 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
         <button
           onClick={() => setOpen(true)}
           aria-label="開啟 AI 管家"
-          className="fixed z-[55] right-3 rounded-full shadow-lg flex items-center justify-center text-white active:scale-95 transition"
+          className="fixed z-[70] right-3 rounded-full shadow-lg flex items-center justify-center text-white active:scale-95 hover:opacity-100 transition-opacity"
           style={{
             bottom: "calc(env(safe-area-inset-bottom, 0px) + 132px)",
-            width: 52,
-            height: 52,
+            width: 40,
+            height: 40,
+            opacity: 0.7,
             background: "linear-gradient(135deg, #F08A3E, #E5701A)",
           }}
         >
-          <Sparkles className="w-6 h-6" />
+          <Sparkles className="w-[18px] h-[18px]" />
         </button>
       )}
 
