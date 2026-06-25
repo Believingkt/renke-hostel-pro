@@ -118,6 +118,12 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setNickname("");
       setDepositConfirmDate("");
       setOrderDate(null);
+      setFinalPrice(null);
+      setTeamCommissionPrice(null);
+      setInitialTeamCommissionPrice(null);
+      setCommissionConfirmedBy(null);
+      setCommissionConfirmedAt(null);
+      setCommissionConfirmerName(null);
       setNewTrafficSource("");
       setNewBookingMethod("");
     }
