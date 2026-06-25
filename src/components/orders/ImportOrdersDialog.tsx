@@ -347,6 +347,7 @@ async function importRyanOrders(
         payment_status: mapped.payment_status,
         notes: finalNotes,
         discount_code: discountCode,
+        import_project: projectName || null,
         room_type_id: orderLevelRoomTypeId,
         accommodation_id: RYAN_ACCOMMODATION_ID,
       },
