@@ -1197,6 +1197,67 @@ export default function TeamOrders() {
                   label="金額"
                   value={`$${editOrder.final_price?.toLocaleString()}`}
                 />
+
+                {/* ===== 分潤基準金額 ===== */}
+                {(() => {
+                  const canEdit = isAdmin || isCloser;
+                  const tcp =
+                    form.team_commission_price ?? editOrder.final_price ?? 0;
+                  const fp = editOrder.final_price ?? 0;
+                  const confirmedBy = form.commission_price_confirmed_by;
+                  const confirmedAt = form.commission_price_confirmed_at;
+                  const mismatch = Number(tcp) !== Number(fp);
+
+                  if (isEditing && canEdit) {
+                    return (
+                      <div className="space-y-2">
+                        <Label className="text-sm">分潤基準金額</Label>
+                        <Input
+                          type="number"
+                          className="text-base"
+                          value={form.team_commission_price ?? ""}
+                          onChange={(e) =>
+                            setForm((f) => ({
+                              ...f,
+                              team_commission_price:
+                                e.target.value === ""
+                                  ? null
+                                  : Number(e.target.value),
+                            }))
+                          }
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          請輸入分潤計算用的金額（可排除清潔費、寵物費、賠償罰款等不計入業績的費用）
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-1">
+                      <div className="text-xs text-muted-foreground">
+                        分潤基準金額
+                      </div>
+                      <div className="text-base font-medium">
+                        {`NT$ ${Number(tcp).toLocaleString()}`}
+                      </div>
+                      {mismatch && !confirmedBy && (
+                        <div className="text-xs text-orange-600">
+                          ⚠️ 訂單金額已變動，務必在退房日+7天內修改並確認分潤基準金額
+                        </div>
+                      )}
+                      {confirmedBy && (
+                        <div className="text-xs text-muted-foreground">
+                          🔔 {confirmerNameMap[confirmedBy] ?? "—"} 已於{" "}
+                          {confirmedAt
+                            ? new Date(confirmedAt).toLocaleDateString("zh-TW")
+                            : "—"}{" "}
+                          修改並確認此分潤基準金額
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </section>
 
               <Separator />
