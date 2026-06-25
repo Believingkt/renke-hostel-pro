@@ -259,6 +259,7 @@ Deno.serve(async (req) => {
           .gte("order_date", todayStartUtc)
           .lt("order_date", tomorrowStartUtc)
           .neq("order_status", "cancelled");
+        const todayCount = (todayOrders ?? []).length;
         const todaySales = (todayOrders ?? []).reduce(
           (sum, o: any) => sum + Number(o.final_price || 0),
           0,
