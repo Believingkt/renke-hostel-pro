@@ -447,7 +447,7 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
       supabase.from("line_oa_channels").select("*"),
       supabase.from("user_roles").select("role"),
       supabase.from("line_event_types").select("*").eq("is_active", true).order("label"),
-      supabase.from("accommodation_info").select("id, name").order("name"),
+      supabase.from("accommodation_info").select("id, name").order("name").limit(1000),
     ]);
     setChannels((chans ?? []) as LineChannel[]);
     setEventTypes((evts ?? []) as EventType[]);
