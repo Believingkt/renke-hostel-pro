@@ -284,21 +284,6 @@ const PortalSearchBar = ({
         </div>
       )}
 
-      <div className="flex items-center justify-between pt-3 border-t border-border/40">
-        <div>
-          <p className="text-sm font-medium">房間數</p>
-          <p className="text-xs text-muted-foreground">需求房間數量</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="icon" className="h-9 w-9 rounded-full" onClick={() => onRoomsChange(Math.max(1, rooms - 1))} disabled={rooms <= 1}>
-            <Minus className="h-4 w-4" />
-          </Button>
-          <span className="w-7 text-center text-base font-medium tabular-nums">{rooms}</span>
-          <Button variant="outline" size="icon" className="h-9 w-9 rounded-full" onClick={() => onRoomsChange(Math.min(20, rooms + 1))} disabled={rooms >= 20}>
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
     </div>
   );
 
@@ -473,7 +458,7 @@ const PortalSearchBar = ({
           {/* Guests & Rooms */}
           <div className="text-left">
             <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
-              房客 / 房間
+              房客
             </label>
             <Popover>
               <PopoverTrigger asChild>
@@ -482,7 +467,7 @@ const PortalSearchBar = ({
                   className="h-10 justify-start text-left font-normal border-border text-foreground gap-2"
                 >
                   <Users className="h-4 w-4 text-muted-foreground shrink-0" />
-                  {adults} 大人{children > 0 ? ` · ${children} 兒童` : ""} · {rooms} 間
+                  {adults} 大人{children > 0 ? ` · ${children} 兒童` : ""}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-72 p-4" align="start">
@@ -574,7 +559,7 @@ const PortalSearchBar = ({
                   className="flex-1 h-11 justify-start text-left font-normal border-border text-foreground text-base gap-2"
                 >
                   <Users className="h-4 w-4 text-muted-foreground shrink-0" />
-                  {adults} 大人{children > 0 ? ` · ${children} 兒童` : ""} · {rooms} 間
+                  {adults} 大人{children > 0 ? ` · ${children} 兒童` : ""}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-72 p-4" align="start">

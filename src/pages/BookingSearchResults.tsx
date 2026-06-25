@@ -784,9 +784,8 @@ const BookingSearchResults = () => {
       const childTotal = childrenCount + infantsCount + toddlersCount;
       parts.push(`${adults} 位成人${childTotal > 0 ? ` · ${childTotal} 位兒童` : ""}`);
     }
-    if (roomsParam) parts.push(`${roomsParam} 間`);
     return parts.join(" · ");
-  }, [checkIn, checkOut, nights, adults, childrenCount, infantsCount, toddlersCount, roomsParam]);
+  }, [checkIn, checkOut, nights, adults, childrenCount, infantsCount, toddlersCount]);
 
   return (
     <div className="min-h-screen bg-background pb-16 md:pb-0">
