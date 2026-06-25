@@ -9,12 +9,14 @@ import {
   Bell,
   Users,
   Tag,
+  MessageCircle,
   type LucideIcon,
 } from "lucide-react";
 
 export type TeamRole =
   | "super_admin"
   | "admin"
+  | "am"
   | "closer"
   | "scout"
   | "scout_manager"
@@ -31,6 +33,7 @@ export type TeamRole =
 export const TEAM_ROLES: TeamRole[] = [
   "super_admin",
   "admin",
+  "am",
   "closer",
   "scout",
   "scout_manager",
@@ -118,6 +121,12 @@ export const TEAM_MENU: TeamMenuItem[] = [
     icon: Tag,
     allowedRoles: ["super_admin", "admin", "venue_manager"],
   },
+  {
+    title: "LINE群設定",
+    url: "/team/lineoa",
+    icon: MessageCircle,
+    allowedRoles: ["super_admin", "admin", "am"],
+  },
 ];
 
 export const PAGE_TITLES: Record<string, string> = {
@@ -131,4 +140,5 @@ export const PAGE_TITLES: Record<string, string> = {
   "/team/notification": "業績通報設定",
   "/team/franchise": "特許加盟",
   "/team/starlink": "星鏈",
+  "/team/lineoa": "LINE群設定",
 };

@@ -20,6 +20,7 @@ const NORRIS_USER_ID = "1bc5761a-49a3-40ee-aa45-96ab87070c2e";
 // 完整可指派角色（僅 admin 可選）
 const ALL_INVITABLE_ROLES: TeamRole[] = [
   "admin",
+  "am",
   "scout_manager",
   "franchise_manager" as TeamRole,
   "scout",
@@ -37,6 +38,7 @@ const ALL_INVITABLE_ROLES: TeamRole[] = [
 const ROLE_LABEL = {
   super_admin: "超級管理員",
   admin: "管理員",
+  am: "AM",
   scout_manager: "星探主管",
   franchise_manager: "特許加盟主管",
   scout: "星探",
@@ -55,6 +57,7 @@ const ROLE_LABEL = {
 const ROLE_BADGE_CLASS = {
   super_admin: "bg-purple-100 text-purple-700 border-purple-200",
   admin: "bg-blue-100 text-blue-700 border-blue-200",
+  am: "bg-indigo-100 text-indigo-700 border-indigo-200",
   scout_manager: "bg-orange-100 text-orange-700 border-orange-200",
   franchise_manager: "bg-amber-100 text-amber-700 border-amber-200",
   scout: "bg-orange-100 text-orange-700 border-orange-200",

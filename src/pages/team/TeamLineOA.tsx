@@ -123,7 +123,7 @@ export default function TeamLineOA() {
         .from("user_roles")
         .select("role")
         .eq("user_id", userId)
-        .in("role", ["super_admin", "hotel_admin"]);
+        .in("role", ["super_admin", "admin", "am"]);
       if (!data || data.length === 0) {
         navigate("/team", { replace: true });
       } else {
