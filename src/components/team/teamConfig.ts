@@ -121,6 +121,12 @@ export const TEAM_MENU: TeamMenuItem[] = [
     icon: Tag,
     allowedRoles: ["super_admin", "admin", "venue_manager"],
   },
+  {
+    title: "LINE群設定",
+    url: "/team/lineoa",
+    icon: MessageCircle,
+    allowedRoles: ["super_admin", "admin", "am"],
+  },
 ];
 
 export const PAGE_TITLES: Record<string, string> = {
