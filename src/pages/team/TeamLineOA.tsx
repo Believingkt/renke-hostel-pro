@@ -715,65 +715,26 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
               </div>
 
               <div>
-                <Label>對應館別（已建立，多選）</Label>
+                <Label>對應館別</Label>
                 <p className="text-xs text-muted-foreground mt-1">
-                  指定這個群組只接收哪些館別的通知。若不勾選任何館別，則接收所有館別的通知（適合內部工作群等不分館別的群組）。
+                  指定這個群組接收哪些館別的通知。若不選擇，則接收所有館別的通知（適合內部工作群等不分館別的群組）。可同時選擇「已建立館別」與新增「自訂館別名稱」。
                 </p>
-                <div className="flex flex-wrap gap-2 mt-2 max-h-32 overflow-y-auto p-2 border rounded-md">
-                  {accommodations.length === 0 && (
-                    <span className="text-xs text-muted-foreground">無館別</span>
-                  )}
-                  {accommodations.map((a) => (
-                    <Badge
-                      key={a.id}
-                      variant={form.accommodation_ids.includes(a.id) ? "default" : "outline"}
-                      className="cursor-pointer"
-                      onClick={() => toggleItem("accommodation_ids", a.id)}
-                    >
-                      {a.name}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-
-              <div>
-                <Label>自訂館別名稱（尚未建立的館別）</Label>
-                <div className="flex gap-2 mt-2">
-                  <Input
-                    value={venueInput}
-                    onChange={(e) => setVenueInput(e.target.value)}
-                    placeholder="輸入名稱後按 Enter 或新增"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        addVenueTag();
-                      }
-                    }}
+                <div className="mt-2">
+                  <VenuePicker
+                    accommodations={accommodations}
+                    selectedIds={form.accommodation_ids}
+                    selectedCustom={form.custom_venue_names}
+                    onChangeIds={(ids) =>
+                      setForm({ ...form, accommodation_ids: ids })
+                    }
+                    onChangeCustom={(names) =>
+                      setForm({ ...form, custom_venue_names: names })
+                    }
                   />
-                  <Button type="button" variant="outline" onClick={addVenueTag}>
-                    新增
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {form.custom_venue_names.map((v) => (
-                    <Badge key={v} variant="secondary" className="cursor-pointer">
-                      {v}
-                      <button
-                        type="button"
-                        className="ml-1"
-                        onClick={() => removeVenueTag(v)}
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
                 </div>
               </div>
 
-              <p className="text-xs text-muted-foreground">
-                若不選擇館別，則接收所有館別的通知
-              </p>
+
 
 
 
