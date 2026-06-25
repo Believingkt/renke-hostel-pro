@@ -704,6 +704,9 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
 
               <div>
                 <Label>接收事件類型（多選）</Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  勾選這個群組要接收哪些類型的通知。例如勾選「每日業績通報」，當系統發送每日業績統計時，這個群組就會收到推播訊息。
+                </p>
                 <div className="flex flex-wrap gap-2 mt-2">
                   {eventTypes.length === 0 && (
                     <span className="text-xs text-muted-foreground">尚未設定事件類型</span>
@@ -723,6 +726,9 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
 
               <div>
                 <Label>對應館別（已建立，多選）</Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  指定這個群組只接收哪些館別的通知。若不勾選任何館別，則接收所有館別的通知（適合內部工作群等不分館別的群組）。
+                </p>
                 <div className="flex flex-wrap gap-2 mt-2 max-h-32 overflow-y-auto p-2 border rounded-md">
                   {accommodations.length === 0 && (
                     <span className="text-xs text-muted-foreground">無館別</span>
@@ -739,6 +745,7 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
                   ))}
                 </div>
               </div>
+
 
               <div>
                 <Label>自訂館別名稱（尚未建立的館別）</Label>
