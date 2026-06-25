@@ -772,21 +772,6 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
               </p>
 
 
-              <div>
-                <Label>對應角色（多選）</Label>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {roleOptions.map((r) => (
-                    <Badge
-                      key={r}
-                      variant={form.roles.includes(r) ? "default" : "outline"}
-                      className="cursor-pointer"
-                      onClick={() => toggleItem("roles", r)}
-                    >
-                      {r}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
 
               <div className="flex items-center gap-2">
                 <Switch
