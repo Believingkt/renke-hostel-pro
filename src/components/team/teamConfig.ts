@@ -140,4 +140,5 @@ export const PAGE_TITLES: Record<string, string> = {
   "/team/notification": "業績通報設定",
   "/team/franchise": "特許加盟",
   "/team/starlink": "星鏈",
+  "/team/lineoa": "LINE群設定",
 };
