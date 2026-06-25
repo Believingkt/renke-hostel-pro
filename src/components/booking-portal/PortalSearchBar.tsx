@@ -458,7 +458,7 @@ const PortalSearchBar = ({
           {/* Guests & Rooms */}
           <div className="text-left">
             <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
-              房客 / 房間
+              房客
             </label>
             <Popover>
               <PopoverTrigger asChild>
@@ -467,7 +467,7 @@ const PortalSearchBar = ({
                   className="h-10 justify-start text-left font-normal border-border text-foreground gap-2"
                 >
                   <Users className="h-4 w-4 text-muted-foreground shrink-0" />
-                  {adults} 大人{children > 0 ? ` · ${children} 兒童` : ""} · {rooms} 間
+                  {adults} 大人{children > 0 ? ` · ${children} 兒童` : ""}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-72 p-4" align="start">
