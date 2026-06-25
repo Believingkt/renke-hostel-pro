@@ -227,34 +227,32 @@ const BookingVilla = () => {
     };
   }, [accId]);
 
-  // 當任一「預約這段專屬假期」按鈕進入視窗時，隱藏 CTA bar 下層（選擇房型 + 總價）
+  // 當「入住方案」區塊進入視窗時，隱藏 CTA bar 下層（選擇房型 + 總價）
   const [bookCtaVisible, setBookCtaVisible] = useState(false);
   useEffect(() => {
-    const visibleSet = new Set<Element>();
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          if (e.isIntersecting) visibleSet.add(e.target);
-          else visibleSet.delete(e.target);
-        }
-        setBookCtaVisible(visibleSet.size > 0);
-      },
-      { threshold: 0.2 }
-    );
+    let io: IntersectionObserver | null = null;
     const attach = () => {
-      document.querySelectorAll("[data-book-cta]").forEach((el) => io.observe(el));
+      const target = document.getElementById("capacity-price-section");
+      if (!target) return false;
+      io = new IntersectionObserver(
+        (entries) => {
+          for (const e of entries) setBookCtaVisible(e.isIntersecting);
+        },
+        { threshold: 0, rootMargin: "0px 0px -20% 0px" }
+      );
+      io.observe(target);
+      return true;
     };
-    attach();
-    // 監聽 DOM 變化（方案卡延遲渲染）
+    if (attach()) {
+      return () => io?.disconnect();
+    }
     const mo = new MutationObserver(() => {
-      io.disconnect();
-      visibleSet.clear();
-      attach();
+      if (attach()) mo.disconnect();
     });
     mo.observe(document.body, { childList: true, subtree: true });
     return () => {
-      io.disconnect();
       mo.disconnect();
+      io?.disconnect();
     };
   }, [accId]);
 
