@@ -277,16 +277,8 @@ const EditSearchSheet = ({
             </div>
           </div>
 
-          {/* 人數 / 房間 */}
+          {/* 人數 */}
           <div className="mt-4 rounded-xl bg-muted/30 px-3 divide-y divide-border/60">
-            <Counter
-              icon={BedDouble}
-              label="房間數"
-              value={r}
-              onChange={setR}
-              min={1}
-              max={20}
-            />
             <Counter
               icon={User}
               label="成人"
