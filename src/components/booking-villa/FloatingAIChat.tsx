@@ -57,7 +57,7 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
 
   const send = async () => {
     const text = input.trim();
-    if (!text || loading || !userId) return;
+    if (!text || loading) return;
     setInput("");
     setLoading(true);
     setStreaming("");
@@ -66,13 +66,15 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
     const next = [...messages, userMsg];
     setMessages(next);
 
-    // Persist user message (fire-and-forget but await for error visibility)
-    await supabase.from("villa_chat_messages").insert({
-      user_id: userId,
-      accommodation_id: accommodationId,
-      role: "user",
-      content: text,
-    });
+    // Persist only if logged in
+    if (userId) {
+      await supabase.from("villa_chat_messages").insert({
+        user_id: userId,
+        accommodation_id: accommodationId,
+        role: "user",
+        content: text,
+      });
+    }
 
     try {
       const { data: sess } = await supabase.auth.getSession();
