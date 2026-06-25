@@ -39,7 +39,11 @@ import {
   Pencil,
   Tags,
   X,
+  ChevronsUpDown,
+  Check,
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type LineChannel = {
   id: string;
@@ -711,65 +715,26 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
               </div>
 
               <div>
-                <Label>對應館別（已建立，多選）</Label>
+                <Label>對應館別</Label>
                 <p className="text-xs text-muted-foreground mt-1">
-                  指定這個群組只接收哪些館別的通知。若不勾選任何館別，則接收所有館別的通知（適合內部工作群等不分館別的群組）。
+                  指定這個群組接收哪些館別的通知。若不選擇，則接收所有館別的通知（適合內部工作群等不分館別的群組）。可同時選擇「已建立館別」與新增「自訂館別名稱」。
                 </p>
-                <div className="flex flex-wrap gap-2 mt-2 max-h-32 overflow-y-auto p-2 border rounded-md">
-                  {accommodations.length === 0 && (
-                    <span className="text-xs text-muted-foreground">無館別</span>
-                  )}
-                  {accommodations.map((a) => (
-                    <Badge
-                      key={a.id}
-                      variant={form.accommodation_ids.includes(a.id) ? "default" : "outline"}
-                      className="cursor-pointer"
-                      onClick={() => toggleItem("accommodation_ids", a.id)}
-                    >
-                      {a.name}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-
-              <div>
-                <Label>自訂館別名稱（尚未建立的館別）</Label>
-                <div className="flex gap-2 mt-2">
-                  <Input
-                    value={venueInput}
-                    onChange={(e) => setVenueInput(e.target.value)}
-                    placeholder="輸入名稱後按 Enter 或新增"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        addVenueTag();
-                      }
-                    }}
+                <div className="mt-2">
+                  <VenuePicker
+                    accommodations={accommodations}
+                    selectedIds={form.accommodation_ids}
+                    selectedCustom={form.custom_venue_names}
+                    onChangeIds={(ids) =>
+                      setForm({ ...form, accommodation_ids: ids })
+                    }
+                    onChangeCustom={(names) =>
+                      setForm({ ...form, custom_venue_names: names })
+                    }
                   />
-                  <Button type="button" variant="outline" onClick={addVenueTag}>
-                    新增
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {form.custom_venue_names.map((v) => (
-                    <Badge key={v} variant="secondary" className="cursor-pointer">
-                      {v}
-                      <button
-                        type="button"
-                        className="ml-1"
-                        onClick={() => removeVenueTag(v)}
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
                 </div>
               </div>
 
-              <p className="text-xs text-muted-foreground">
-                若不選擇館別，則接收所有館別的通知
-              </p>
+
 
 
 
@@ -1312,3 +1277,172 @@ function EventsTab() {
     </Card>
   );
 }
+
+function VenuePicker({
+  accommodations,
+  selectedIds,
+  selectedCustom,
+  onChangeIds,
+  onChangeCustom,
+}: {
+  accommodations: { id: string; name: string }[];
+  selectedIds: string[];
+  selectedCustom: string[];
+  onChangeIds: (ids: string[]) => void;
+  onChangeCustom: (names: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const total = selectedIds.length + selectedCustom.length;
+  const summary = total === 0 ? "全部館別" : `已選擇 ${total} 個館別`;
+
+  const kw = search.trim().toLowerCase();
+  const filteredAcc = accommodations.filter((a) =>
+    !kw ? true : a.name.toLowerCase().includes(kw)
+  );
+  const filteredCustom = selectedCustom.filter((n) =>
+    !kw ? true : n.toLowerCase().includes(kw)
+  );
+
+  const exactExists =
+    !!search.trim() &&
+    (accommodations.some((a) => a.name === search.trim()) ||
+      selectedCustom.includes(search.trim()));
+
+  const toggleId = (id: string) => {
+    onChangeIds(
+      selectedIds.includes(id)
+        ? selectedIds.filter((x) => x !== id)
+        : [...selectedIds, id]
+    );
+  };
+  const toggleCustom = (n: string) => {
+    onChangeCustom(
+      selectedCustom.includes(n)
+        ? selectedCustom.filter((x) => x !== n)
+        : [...selectedCustom, n]
+    );
+  };
+  const addCustom = () => {
+    const v = search.trim();
+    if (!v || exactExists) return;
+    onChangeCustom([...selectedCustom, v]);
+    setSearch("");
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full justify-between font-normal"
+        >
+          <span className={total === 0 ? "text-muted-foreground" : ""}>
+            {summary}
+          </span>
+          <ChevronsUpDown className="h-4 w-4 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <div className="p-2 border-b">
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="搜尋或輸入新自訂館別"
+            className="h-8"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addCustom();
+              }
+            }}
+          />
+        </div>
+        <div className="max-h-64 overflow-y-auto p-1">
+          {total > 0 && (
+            <div className="flex flex-wrap gap-1 p-2 border-b mb-1">
+              {selectedIds.map((id) => {
+                const a = accommodations.find((x) => x.id === id);
+                return (
+                  <Badge key={id} variant="default" className="gap-1">
+                    {a?.name ?? id}
+                    <button type="button" onClick={() => toggleId(id)}>
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                );
+              })}
+              {selectedCustom.map((n) => (
+                <Badge key={n} variant="secondary" className="gap-1">
+                  {n}
+                  <button type="button" onClick={() => toggleCustom(n)}>
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          )}
+
+          {filteredAcc.length === 0 && filteredCustom.length === 0 && !search && (
+            <div className="px-2 py-3 text-xs text-muted-foreground text-center">
+              無館別
+            </div>
+          )}
+
+          {filteredAcc.map((a) => {
+            const checked = selectedIds.includes(a.id);
+            return (
+              <button
+                type="button"
+                key={a.id}
+                onClick={() => toggleId(a.id)}
+                className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left"
+              >
+                <Checkbox checked={checked} className="pointer-events-none" />
+                <span className="flex-1">{a.name}</span>
+              </button>
+            );
+          })}
+
+          {filteredCustom.map((n) => (
+            <button
+              type="button"
+              key={`c-${n}`}
+              onClick={() => toggleCustom(n)}
+              className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left"
+            >
+              <Checkbox checked className="pointer-events-none" />
+              <span className="flex-1">{n}</span>
+              <Badge variant="outline" className="text-[10px] px-1 py-0">
+                未建立
+              </Badge>
+            </button>
+          ))}
+
+          {search.trim() && !exactExists && (
+            <button
+              type="button"
+              onClick={addCustom}
+              className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left border-t mt-1"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span className="flex-1">
+                新增自訂館別「{search.trim()}」
+              </span>
+              <Badge variant="outline" className="text-[10px] px-1 py-0">
+                未建立
+              </Badge>
+            </button>
+          )}
+        </div>
+        <div className="p-2 border-t flex justify-end">
+          <Button size="sm" onClick={() => setOpen(false)}>
+            完成
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
