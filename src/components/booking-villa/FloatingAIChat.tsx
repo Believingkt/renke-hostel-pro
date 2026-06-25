@@ -78,13 +78,14 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
 
     try {
       const { data: sess } = await supabase.auth.getSession();
-      const token = sess.session?.access_token;
+      const token = sess.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/accommodation-ai-chat`;
       const res = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
         body: JSON.stringify({
           accommodation_id: accommodationId,
