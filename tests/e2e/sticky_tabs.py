@@ -110,8 +110,18 @@ async def run(url: str):
                 tid,
             )
             print(f"tab {tid} landed top={land} samples={samples}")
-            # Expected to land near header+tab height (~112px) within ±6px
-            if land is not None and not (100 <= land <= 124):
+            # Landing tolerance: ~112px ±6, but allow edge cases where the page
+            # cannot scroll further (top or bottom of document).
+            at_top = await page.evaluate("window.scrollY <= 1")
+            at_bottom = await page.evaluate(
+                "Math.ceil(window.scrollY + window.innerHeight) >= document.documentElement.scrollHeight - 1"
+            )
+            if (
+                land is not None
+                and not (100 <= land <= 124)
+                and not at_top
+                and not at_bottom
+            ):
                 failures.append(f"tab {tid}: landed at {land}px (expected ~112±6)")
             await page.screenshot(path=str(OUT / f"03_tab_{tid}.png"))
 
