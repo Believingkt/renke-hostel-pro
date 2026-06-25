@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -108,61 +108,16 @@ const BookingVilla = () => {
   const [memberName, setMemberName] = useState("");
   const [bottomBarHidden, setBottomBarHidden] = useState(false);
   const [editSearchOpen, setEditSearchOpen] = useState(false);
-  // 以實際渲染位置貼齊 MobileBottomNav，避免不同瀏覽器 safe-area / transform 造成 CTA 與選單中間露縫。
-  const [bottomNavOffset, setBottomNavOffset] = useState(60);
-  useEffect(() => {
-    let raf = 0;
-    let mo: MutationObserver | null = null;
-
-    const measure = () => {
-      raf = 0;
-      const nav = document.querySelector("[data-mobile-bottom-nav]") as HTMLElement | null;
-      if (!nav) return;
-      const rect = nav.getBoundingClientRect();
-      const navIsHidden = nav.classList.contains("translate-y-full");
-      // 跟隨 MobileBottomNav 的 class 狀態，不另用一套 scroll 判斷，避免兩者不同步產生空隙。
-      // 微幅重疊 2px，避免 Safari 位移/四捨五入時出現白線或空隙。
-      setBottomNavOffset(navIsHidden ? 0 : Math.max(0, Math.round(rect.height) - 2));
-    };
-
-    const scheduleMeasure = () => {
-      if (raf) return;
-      raf = window.requestAnimationFrame(measure);
-    };
-
-    scheduleMeasure();
-    window.setTimeout(scheduleMeasure, 350);
-    window.addEventListener("scroll", scheduleMeasure, { passive: true });
-    window.addEventListener("resize", scheduleMeasure);
-    window.visualViewport?.addEventListener("resize", scheduleMeasure);
-
-    const attachObserver = () => {
-      const nav = document.querySelector("[data-mobile-bottom-nav]");
-      if (!nav) return;
-      mo = new MutationObserver(scheduleMeasure);
-      mo.observe(nav, { attributes: true, attributeFilter: ["class", "style"] });
-      nav.addEventListener("transitionrun", scheduleMeasure);
-      nav.addEventListener("transitionend", scheduleMeasure);
-    };
-
-    attachObserver();
-    const observerRetry = window.setTimeout(() => {
-      if (!mo) attachObserver();
-      scheduleMeasure();
-    }, 0);
-
-    return () => {
-      if (raf) window.cancelAnimationFrame(raf);
-      mo?.disconnect();
-      window.clearTimeout(observerRetry);
-      const nav = document.querySelector("[data-mobile-bottom-nav]");
-      nav?.removeEventListener("transitionrun", scheduleMeasure);
-      nav?.removeEventListener("transitionend", scheduleMeasure);
-      window.removeEventListener("scroll", scheduleMeasure);
-      window.removeEventListener("resize", scheduleMeasure);
-      window.visualViewport?.removeEventListener("resize", scheduleMeasure);
-    };
-  }, [editSearchOpen]);
+  const [bottomNavVisible, setBottomNavVisible] = useState(true);
+  const [bottomNavHeight, setBottomNavHeight] = useState(61);
+  const handleBottomNavVisibility = useCallback((visible: boolean) => {
+    setBottomNavVisible(visible);
+  }, []);
+  const handleBottomNavHeight = useCallback((height: number) => {
+    setBottomNavHeight(height);
+  }, []);
+  // 微幅重疊 2px，避免 Safari 位移/四捨五入時 CTA 與選單中間露縫。
+  const bottomNavOffset = bottomNavVisible && !editSearchOpen ? Math.max(0, bottomNavHeight - 2) : 0;
   const [availableDateSet, setAvailableDateSet] = useState<Set<string> | null>(null);
   const [availMinPrice, setAvailMinPrice] = useState<number | null>(null);
   const [availEarliestDate, setAvailEarliestDate] = useState<string | null>(null);
