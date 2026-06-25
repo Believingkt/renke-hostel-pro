@@ -447,7 +447,7 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
       supabase.from("line_oa_channels").select("*"),
       supabase.from("user_roles").select("role"),
       supabase.from("line_event_types").select("*").eq("is_active", true).order("label"),
-      supabase.from("accommodation_info").select("id, name").order("name"),
+      supabase.from("accommodation_info").select("id, name").order("name").limit(1000),
     ]);
     setChannels((chans ?? []) as LineChannel[]);
     setEventTypes((evts ?? []) as EventType[]);
@@ -1359,36 +1359,37 @@ function VenuePicker({
             }}
           />
         </div>
-        <div className="max-h-64 overflow-y-auto p-1">
-          {total > 0 && (
-            <div className="flex flex-wrap gap-1 p-2 border-b mb-1">
-              {selectedIds.map((id) => {
-                const a = accommodations.find((x) => x.id === id);
-                return (
-                  <Badge key={id} variant="default" className="gap-1">
-                    {a?.name ?? id}
-                    <button type="button" onClick={() => toggleId(id)}>
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                );
-              })}
-              {selectedCustom.map((n) => (
-                <Badge key={n} variant="secondary" className="gap-1">
-                  {n}
-                  <button type="button" onClick={() => toggleCustom(n)}>
+        {total > 0 && (
+          <div className="flex flex-wrap gap-1 p-2 border-b">
+            {selectedIds.map((id) => {
+              const a = accommodations.find((x) => x.id === id);
+              return (
+                <Badge key={id} variant="default" className="gap-1">
+                  {a?.name ?? id}
+                  <button type="button" onClick={() => toggleId(id)}>
                     <X className="h-3 w-3" />
                   </button>
                 </Badge>
-              ))}
-            </div>
-          )}
-
+              );
+            })}
+            {selectedCustom.map((n) => (
+              <Badge key={n} variant="secondary" className="gap-1">
+                {n}
+                <button type="button" onClick={() => toggleCustom(n)}>
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+          </div>
+        )}
+        <div className="max-h-[240px] overflow-y-auto p-1">
           {filteredAcc.length === 0 && filteredCustom.length === 0 && !search && (
             <div className="px-2 py-3 text-xs text-muted-foreground text-center">
               無館別
             </div>
           )}
+
+
 
           {filteredAcc.map((a) => {
             const checked = selectedIds.includes(a.id);
