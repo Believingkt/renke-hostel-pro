@@ -191,6 +191,7 @@ interface RyanEdgePayload {
     discount_code: string | null;
     room_type_id: string | null;
     accommodation_id: string;
+    import_project: string | null;
   };
   order_rooms: Array<{
     room_type_id: string;
