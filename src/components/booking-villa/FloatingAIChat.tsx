@@ -163,7 +163,7 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
           aria-label="開啟 AI 管家"
           className="fixed z-[70] right-3 rounded-full shadow-lg flex items-center justify-center text-white active:scale-95 hover:opacity-100 transition-opacity"
           style={{
-            bottom: "calc(env(safe-area-inset-bottom, 0px) + 132px)",
+            bottom: "calc(env(safe-area-inset-bottom, 0px) + 180px)",
             width: 40,
             height: 40,
             opacity: 0.7,
