@@ -290,7 +290,7 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
                 </Button>
               </form>
             </>
-          )}
+
         </SheetContent>
       </Sheet>
     </>
