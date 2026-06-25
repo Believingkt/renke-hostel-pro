@@ -39,7 +39,11 @@ import {
   Pencil,
   Tags,
   X,
+  ChevronsUpDown,
+  Check,
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type LineChannel = {
   id: string;
