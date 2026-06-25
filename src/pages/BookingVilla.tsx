@@ -1030,7 +1030,6 @@ const BookingVilla = () => {
             <span className="flex items-center gap-2 text-sm font-medium text-gray-700">
               <Calendar className="w-3.5 h-3.5 text-gray-500" />
               {checkIn && checkOut ? (() => {
-                const roomsN = Math.max(1, parseInt(searchParams.get("rooms") || "1", 10) || 1);
                 const adultsN = Math.max(1, parseInt(searchParams.get("adults") || "0", 10) || 1);
                 const kidsN =
                   Math.max(0, parseInt(searchParams.get("children") || "0", 10) || 0) +
@@ -1039,7 +1038,6 @@ const BookingVilla = () => {
                 return (
                   <>
                     {format(checkIn, "M/d")}–{format(checkOut, "M/d")}
-                    {" · "}{roomsN}房
                     {" · "}{adultsN}大
                     {kidsN > 0 && <>{" · "}{kidsN}小</>}
 
