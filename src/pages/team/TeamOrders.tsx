@@ -766,7 +766,7 @@ export default function TeamOrders() {
           .eq("order_id", editOrder.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("order_meta").insert(payload);
+        const { error } = await supabase.from("order_meta").insert(payload as any);
         if (error) throw error;
       }
       toast.success("已儲存");
