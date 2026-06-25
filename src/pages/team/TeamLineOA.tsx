@@ -580,7 +580,7 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
             <TableBody>
               {list.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={hideGroupId ? 7 : 8} className="text-center text-muted-foreground py-8">
                     尚無群組，請將 OA 加入 LINE 群組以自動建立
                   </TableCell>
                 </TableRow>
@@ -588,9 +588,11 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
                 list.map((g) => (
                   <TableRow key={g.id}>
                     <TableCell className="font-medium">{g.display_name || "—"}</TableCell>
-                    <TableCell>
-                      <code className="text-xs">{g.target_id}</code>
-                    </TableCell>
+                    {!hideGroupId && (
+                      <TableCell>
+                        <code className="text-xs">{g.target_id}</code>
+                      </TableCell>
+                    )}
                     <TableCell>{g.channel_name || "—"}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1 max-w-[180px]">
