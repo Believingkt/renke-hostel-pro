@@ -15,6 +15,7 @@ import {
 export type TeamRole =
   | "super_admin"
   | "admin"
+  | "am"
   | "closer"
   | "scout"
   | "scout_manager"
@@ -31,6 +32,7 @@ export type TeamRole =
 export const TEAM_ROLES: TeamRole[] = [
   "super_admin",
   "admin",
+  "am",
   "closer",
   "scout",
   "scout_manager",
