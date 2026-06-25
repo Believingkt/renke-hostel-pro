@@ -146,10 +146,10 @@ export default function SectionTabsNav({ tabs }: SectionTabsNavProps) {
       className="sticky top-16 sm:top-20 md:top-24 z-40 bg-white/95 backdrop-blur border-b border-gray-100"
       style={{
         boxShadow: "0 1px 0 rgba(0,0,0,0.02)",
-        // 鎖定合成層，避免 iOS Safari sticky 在快速捲動時閃爍
-        transform: "translateZ(0)",
-        WebkitBackfaceVisibility: "hidden",
+        // 提示瀏覽器將 sticky 元素提升到自己的合成層
+        // （不使用 transform，避免破壞 sticky 包含區塊）
         willChange: "transform",
+        WebkitBackfaceVisibility: "hidden",
       }}
     >
       <div
