@@ -107,6 +107,7 @@ const BookingVilla = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [memberName, setMemberName] = useState("");
   const [bottomBarHidden, setBottomBarHidden] = useState(false);
+  const [editSearchOpen, setEditSearchOpen] = useState(false);
   // 以實際渲染位置貼齊 MobileBottomNav，避免不同瀏覽器 safe-area / transform 造成 CTA 與選單中間露縫。
   const [bottomNavOffset, setBottomNavOffset] = useState(60);
   useEffect(() => {
@@ -161,7 +162,6 @@ const BookingVilla = () => {
       window.visualViewport?.removeEventListener("resize", scheduleMeasure);
     };
   }, [editSearchOpen]);
-  const [editSearchOpen, setEditSearchOpen] = useState(false);
   const [availableDateSet, setAvailableDateSet] = useState<Set<string> | null>(null);
   const [availMinPrice, setAvailMinPrice] = useState<number | null>(null);
   const [availEarliestDate, setAvailEarliestDate] = useState<string | null>(null);
@@ -1044,8 +1044,8 @@ const BookingVilla = () => {
       <div
         className={`fixed left-0 right-0 z-[60] w-full bg-white border-t border-gray-100 sm:hidden transition-[bottom,transform] duration-300 ease-out ${editSearchOpen ? "pointer-events-none" : ""}`}
         style={{
-          bottom: navHidden ? 0 : `${Math.max(0, navHeight - 1)}px`,
-          paddingBottom: navHidden ? "env(safe-area-inset-bottom, 0px)" : "0px",
+          bottom: `${bottomNavOffset}px`,
+          paddingBottom: bottomNavOffset <= 0 ? "env(safe-area-inset-bottom, 0px)" : "0px",
           boxShadow: "0 -4px 15px rgba(0,0,0,0.05)",
           transform: editSearchOpen ? "translateY(120%)" : "translateY(0)",
         }}
