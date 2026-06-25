@@ -76,7 +76,7 @@ function defaultTemplate(hasFranchise: boolean): string {
   const general = `{日期}
 【{民宿名稱}進單業績】
 
-今日訂單：{今日訂單}
+今日訂單：{今日訂單筆數} 筆，金額 {今日訂單}
 今日訂單取消：{今日取消筆數} 筆，金額 {今日取消金額}
 
 本月累積訂房業績：{月累積}
@@ -259,6 +259,7 @@ Deno.serve(async (req) => {
           .gte("order_date", todayStartUtc)
           .lt("order_date", tomorrowStartUtc)
           .neq("order_status", "cancelled");
+        const todayCount = (todayOrders ?? []).length;
         const todaySales = (todayOrders ?? []).reduce(
           (sum, o: any) => sum + Number(o.final_price || 0),
           0,
@@ -403,6 +404,7 @@ Deno.serve(async (req) => {
           "民宿名稱": accName,
           "M": String(tp.m),
           "今日訂單": fmtMoney(todaySales),
+          "今日訂單筆數": String(todayCount),
           "今日取消筆數": String(cancelCount),
           "今日取消金額": fmtMoney(cancelAmount),
           "月累積": fmtMoney(monthSales),
