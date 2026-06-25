@@ -41,6 +41,16 @@ serve(async (req) => {
     const now = new Date();
     const tp = getTaipeiParts(now);
 
+    // Only run on day 10 of each Taipei month, unless test_mode
+    if (!testMode && tp.day !== 10) {
+      return jsonResponse({
+        success: true,
+        skipped: true,
+        reason: "今日非發放日（每月10日），不執行",
+        today_taipei: `${tp.y}-${pad2(tp.m)}-${pad2(tp.day)}`,
+      });
+    }
+
     // adjustment_month = current Taipei month
     const adjMonthStr = `${tp.y}-${pad2(tp.m)}`;
 
