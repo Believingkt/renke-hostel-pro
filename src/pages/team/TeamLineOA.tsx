@@ -418,7 +418,7 @@ function emptyGroupForm(): GroupFormState {
   };
 }
 
-function GroupsTab() {
+function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
   const [list, setList] = useState<(PushTarget & { channel_name?: string })[]>([]);
   const [channels, setChannels] = useState<LineChannel[]>([]);
   const [roleOptions, setRoleOptions] = useState<string[]>(ROLE_OPTIONS);
