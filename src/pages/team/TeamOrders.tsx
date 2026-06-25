@@ -693,6 +693,10 @@ export default function TeamOrders() {
       addon_amount: o.meta?.addon_amount ?? 0,
       nickname: o.meta?.nickname ?? null,
       deposit_confirm_date: o.meta?.deposit_confirm_date ?? null,
+      team_commission_price:
+        o.meta?.team_commission_price ?? o.final_price ?? null,
+      commission_price_confirmed_by: o.meta?.commission_price_confirmed_by ?? null,
+      commission_price_confirmed_at: o.meta?.commission_price_confirmed_at ?? null,
     });
     setIsEditing(false);
     setEditOpen(true);
