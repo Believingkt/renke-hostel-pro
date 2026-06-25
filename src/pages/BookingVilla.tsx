@@ -1035,9 +1035,10 @@ const BookingVilla = () => {
                   Math.max(0, parseInt(searchParams.get("children") || "0", 10) || 0) +
                   Math.max(0, parseInt(searchParams.get("toddlers") || "0", 10) || 0) +
                   Math.max(0, parseInt(searchParams.get("infants") || "0", 10) || 0);
+                const nights = Math.max(1, Math.round((checkOut.getTime() - checkIn.getTime()) / 86400000));
                 return (
                   <>
-                    {format(checkIn, "M/d")}–{format(checkOut, "M/d")}
+                    {format(checkIn, "M/d")}–{format(checkOut, "M/d")} {nights}晚
                     {" · "}{adultsN}大
                     {kidsN > 0 && <>{" · "}{kidsN}小</>}
 
