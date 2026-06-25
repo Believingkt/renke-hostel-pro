@@ -414,6 +414,7 @@ Deno.serve(async (req) => {
                   franchiseBookingToday += amt;
                   franchiseBookingTodayCount += 1;
                 }
+              }
             }
           }
         }
