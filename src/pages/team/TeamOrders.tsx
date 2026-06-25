@@ -89,6 +89,9 @@ interface MetaRow {
   addon_amount?: number | null;
   nickname?: string | null;
   deposit_confirm_date?: string | null;
+  team_commission_price?: number | null;
+  commission_price_confirmed_by?: string | null;
+  commission_price_confirmed_at?: string | null;
 }
 
 const DEFAULT_PAGE_SIZE = 20;
