@@ -1122,7 +1122,12 @@ const BookingVilla = () => {
 
 
       <BookingFooter />
-      {!editSearchOpen && <MobileBottomNav />}
+      {!editSearchOpen && (
+        <MobileBottomNav
+          onVisibilityChange={handleBottomNavVisibility}
+          onHeightChange={handleBottomNavHeight}
+        />
+      )}
       {info?.id && (
         <FloatingAIChat
           accommodationId={info.id}
