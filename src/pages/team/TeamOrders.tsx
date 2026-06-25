@@ -33,6 +33,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { notifyOrderAmountChanged } from "@/lib/notifyOrderAmountChanged";
 import { Pencil, Check, X, Search, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import ScoutDiscountCodesTab from "@/components/team/ScoutDiscountCodesTab";
 import TeamCommissionStatsTab from "@/components/team/TeamCommissionStatsTab";
@@ -771,6 +772,21 @@ export default function TeamOrders() {
         if (error) throw error;
       }
       toast.success("已儲存");
+
+      // 分潤基準金額有變動 → 推 LINE 通知（失敗不影響儲存）
+      if (tcpChanged) {
+        void notifyOrderAmountChanged({
+          orderNumber: editOrder.order_number,
+          guestName: editOrder.guest_name,
+          accommodationId: editOrder.accommodation_id,
+          accommodationName: editOrder.accommodation_name,
+          previousAmount:
+            prevTcp === null || prevTcp === undefined ? null : Number(prevTcp),
+          newAmount: newTcp,
+          changedByUserId: currentUserId,
+        });
+      }
+
       setIsEditing(false);
       await loadOrders();
     } catch (e: any) {
