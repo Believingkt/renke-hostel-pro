@@ -9,6 +9,7 @@ import {
   Bell,
   Users,
   Tag,
+  MessageCircle,
   type LucideIcon,
 } from "lucide-react";
 
