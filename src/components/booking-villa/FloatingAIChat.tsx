@@ -157,22 +157,25 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
   return (
     <>
       {/* 懸浮按鈕 */}
-      <button
-        onClick={() => setOpen(true)}
-        aria-label="開啟 AI 管家"
-        className="fixed z-[55] right-3 rounded-full shadow-lg flex items-center justify-center text-white active:scale-95 transition"
-        style={{
-          bottom: "calc(env(safe-area-inset-bottom, 0px) + 132px)",
-          width: 52,
-          height: 52,
-          background: "linear-gradient(135deg, #F08A3E, #E5701A)",
-        }}
-      >
-        <Sparkles className="w-6 h-6" />
-      </button>
+      {!open && (
+        <button
+          onClick={() => setOpen(true)}
+          aria-label="開啟 AI 管家"
+          className="fixed z-[55] right-3 rounded-full shadow-lg flex items-center justify-center text-white active:scale-95 transition"
+          style={{
+            bottom: "calc(env(safe-area-inset-bottom, 0px) + 132px)",
+            width: 52,
+            height: 52,
+            background: "linear-gradient(135deg, #F08A3E, #E5701A)",
+          }}
+        >
+          <Sparkles className="w-6 h-6" />
+        </button>
+      )}
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="bottom" className="h-[85vh] p-0 flex flex-col rounded-t-2xl">
+        <SheetContent side="bottom" className="h-[90vh] p-0 flex flex-col rounded-t-2xl z-[80]">
+
           <SheetHeader className="px-4 py-3 border-b flex-row items-center justify-between space-y-0">
             <div className="flex items-center gap-2">
               <div
