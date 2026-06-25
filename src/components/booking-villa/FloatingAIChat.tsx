@@ -203,9 +203,6 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
                   <Trash2 className="w-4 h-4" />
                 </Button>
               )}
-              <Button variant="ghost" size="icon" onClick={() => setOpen(false)} aria-label="關閉">
-                <X className="w-4 h-4" />
-              </Button>
             </div>
           </SheetHeader>
 
