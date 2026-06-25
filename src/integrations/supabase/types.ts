@@ -8115,6 +8115,7 @@ export type Database = {
         | "venue_manager"
         | "franchise_internal"
         | "franchise_external"
+        | "am"
       coupon_scope: "platform" | "accommodation"
       coupon_type: "percentage" | "fixed"
       member_point_type:
@@ -8281,6 +8282,7 @@ export const Constants = {
         "venue_manager",
         "franchise_internal",
         "franchise_external",
+        "am",
       ],
       coupon_scope: ["platform", "accommodation"],
       coupon_type: ["percentage", "fixed"],
