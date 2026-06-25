@@ -250,15 +250,28 @@ Deno.serve(async (req) => {
           .maybeSingle();
         const hasFranchise = !!flags?.has_franchise;
 
+        // ── 天送幸福和苑：額外排除「團媽」(notes) 與「票卷訂房」(order_source) ──
+        const TIANSONG_ID = "4ee31aca-5641-4d05-80e2-1c67626be83d";
+        const isTiansong = accId === TIANSONG_ID;
+        const applyTiansongExclusions = <T extends { not: Function; neq: Function }>(q: T): T => {
+          if (!isTiansong) return q;
+          // notes 不含「團媽」(含 null) + order_source != '票卷訂房' (含 null)
+          return q
+            .not("notes", "ilike", "%團媽%")
+            .or("order_source.is.null,order_source.neq.票卷訂房") as T;
+        };
+
         // ── General booking metrics ────────────────────────
         // Today orders (non-cancelled) — order_date is timestamptz, use Taipei-day UTC range
-        const { data: todayOrders } = await supabase
-          .from("orders")
-          .select("final_price, order_status")
-          .eq("accommodation_id", accId)
-          .gte("order_date", todayStartUtc)
-          .lt("order_date", tomorrowStartUtc)
-          .neq("order_status", "cancelled");
+        const { data: todayOrders } = await applyTiansongExclusions(
+          supabase
+            .from("orders")
+            .select("final_price, order_status")
+            .eq("accommodation_id", accId)
+            .gte("order_date", todayStartUtc)
+            .lt("order_date", tomorrowStartUtc)
+            .neq("order_status", "cancelled"),
+        );
         const todayCount = (todayOrders ?? []).length;
         const todaySales = (todayOrders ?? []).reduce(
           (sum, o: any) => sum + Number(o.final_price || 0),
@@ -266,13 +279,15 @@ Deno.serve(async (req) => {
         );
 
         // Today cancellations (by updated_at within Taipei day)
-        const { data: cancelOrders } = await supabase
-          .from("orders")
-          .select("final_price")
-          .eq("accommodation_id", accId)
-          .eq("order_status", "cancelled")
-          .gte("updated_at", todayStartUtc)
-          .lt("updated_at", tomorrowStartUtc);
+        const { data: cancelOrders } = await applyTiansongExclusions(
+          supabase
+            .from("orders")
+            .select("final_price")
+            .eq("accommodation_id", accId)
+            .eq("order_status", "cancelled")
+            .gte("updated_at", todayStartUtc)
+            .lt("updated_at", tomorrowStartUtc),
+        );
         const cancelCount = (cancelOrders ?? []).length;
         const cancelAmount = (cancelOrders ?? []).reduce(
           (sum, o: any) => sum + Number(o.final_price || 0),
@@ -280,39 +295,45 @@ Deno.serve(async (req) => {
         );
 
         // Month accumulated (Taipei month → UTC range)
-        const { data: monthOrders } = await supabase
-          .from("orders")
-          .select("final_price")
-          .eq("accommodation_id", accId)
-          .neq("order_status", "cancelled")
-          .gte("order_date", monthStartUtc)
-          .lt("order_date", monthEndUtc);
+        const { data: monthOrders } = await applyTiansongExclusions(
+          supabase
+            .from("orders")
+            .select("final_price")
+            .eq("accommodation_id", accId)
+            .neq("order_status", "cancelled")
+            .gte("order_date", monthStartUtc)
+            .lt("order_date", monthEndUtc),
+        );
         const monthSales = (monthOrders ?? []).reduce(
           (s, o: any) => s + Number(o.final_price || 0),
           0,
         );
 
         // Previous month accumulated
-        const { data: prevMonthOrders } = await supabase
-          .from("orders")
-          .select("final_price")
-          .eq("accommodation_id", accId)
-          .neq("order_status", "cancelled")
-          .gte("order_date", prevMonthStartUtc)
-          .lt("order_date", prevMonthEndUtc);
+        const { data: prevMonthOrders } = await applyTiansongExclusions(
+          supabase
+            .from("orders")
+            .select("final_price")
+            .eq("accommodation_id", accId)
+            .neq("order_status", "cancelled")
+            .gte("order_date", prevMonthStartUtc)
+            .lt("order_date", prevMonthEndUtc),
+        );
         const prevMonthSales = (prevMonthOrders ?? []).reduce(
           (s, o: any) => s + Number(o.final_price || 0),
           0,
         );
 
         // Year accumulated
-        const { data: yearOrders } = await supabase
-          .from("orders")
-          .select("final_price")
-          .eq("accommodation_id", accId)
-          .neq("order_status", "cancelled")
-          .gte("order_date", yearStartUtc)
-          .lt("order_date", yearEndUtc);
+        const { data: yearOrders } = await applyTiansongExclusions(
+          supabase
+            .from("orders")
+            .select("final_price")
+            .eq("accommodation_id", accId)
+            .neq("order_status", "cancelled")
+            .gte("order_date", yearStartUtc)
+            .lt("order_date", yearEndUtc),
+        );
         const yearSales = (yearOrders ?? []).reduce(
           (s, o: any) => s + Number(o.final_price || 0),
           0,
