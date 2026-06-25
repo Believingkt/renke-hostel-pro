@@ -195,7 +195,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           .maybeSingle(),
         supabase
           .from("orders")
-          .select("order_date, final_price")
+          .select("order_date, final_price, check_out_date")
           .eq("id", orderId)
           .maybeSingle(),
       ]) as any;
@@ -245,8 +245,9 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
 
 
       const orderRowTyped =
-        (orderRow as { order_date?: string | null; final_price?: number | null } | null);
+        (orderRow as { order_date?: string | null; final_price?: number | null; check_out_date?: string | null } | null);
       setOrderDate(orderRowTyped?.order_date ?? null);
+      setCheckOutDate(orderRowTyped?.check_out_date ?? null);
       const fp = orderRowTyped?.final_price ?? null;
       setFinalPrice(fp);
 
