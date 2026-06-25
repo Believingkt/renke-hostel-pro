@@ -131,12 +131,14 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
       if (full) {
         setMessages((m) => [...m, { role: "assistant", content: full }]);
         setStreaming("");
-        await supabase.from("villa_chat_messages").insert({
-          user_id: userId,
-          accommodation_id: accommodationId,
-          role: "assistant",
-          content: full,
-        });
+        if (userId) {
+          await supabase.from("villa_chat_messages").insert({
+            user_id: userId,
+            accommodation_id: accommodationId,
+            role: "assistant",
+            content: full,
+          });
+        }
       } else {
         setStreaming("");
       }
