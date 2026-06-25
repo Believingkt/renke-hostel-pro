@@ -541,7 +541,8 @@ export default function TeamOrders() {
                  booking_method, ad_id, is_excluded, closer_assisted,
                  scout_commission_rate, closer_commission_rate, exclusion_note,
                  franchise_project, member_number, inquiry_date, voucher_used, voucher_count, addon_note, addon_amount,
-                 nickname, deposit_confirm_date`
+                 nickname, deposit_confirm_date,
+                 team_commission_price, commission_price_confirmed_by, commission_price_confirmed_at`
               )
               .in("order_id", orderIds)
           : Promise.resolve({ data: [], error: null } as any),
@@ -552,6 +553,26 @@ export default function TeamOrders() {
 
       const metaMap = new Map<string, MetaRow>();
       ((metaRes.data || []) as any[]).forEach((m) => metaMap.set(m.order_id, m));
+
+      // Fetch display names of confirmers for the 分潤基準金額 confirmation banner
+      const confirmerIds = Array.from(
+        new Set(
+          ((metaRes.data || []) as any[])
+            .map((m) => m.commission_price_confirmed_by)
+            .filter((v): v is string => !!v),
+        ),
+      );
+      if (confirmerIds.length > 0) {
+        const { data: profs } = await supabase
+          .from("team_member_profiles")
+          .select("user_id, display_name")
+          .in("user_id", confirmerIds);
+        const map: Record<string, string> = {};
+        ((profs ?? []) as any[]).forEach((p) => {
+          map[p.user_id] = p.display_name;
+        });
+        setConfirmerNameMap((prev) => ({ ...prev, ...map }));
+      }
 
       const accMap = new Map<string, string>();
       (accRes.data || []).forEach((a: any) => accMap.set(a.id, a.name));
