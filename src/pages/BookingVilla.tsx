@@ -1013,16 +1013,11 @@ const BookingVilla = () => {
 
       {/* ── Sticky Bottom Action Bar — Premium Stacked Bar (mobile) ── */}
       <div
-        className={`fixed left-0 right-0 z-[60] w-full bg-white border-t border-gray-100 sm:hidden transition-transform duration-300 ease-out ${editSearchOpen ? "pointer-events-none" : ""}`}
+        className={`fixed left-0 right-0 bottom-0 z-[60] w-full bg-white border-t border-gray-100 sm:hidden transition-transform duration-300 ease-out ${editSearchOpen ? "pointer-events-none" : ""}`}
         style={{
-          bottom: `${Math.max(0, navHeight - 1)}px`,
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
           boxShadow: "0 -4px 15px rgba(0,0,0,0.05)",
-          transform: editSearchOpen
-            ? "translateY(120%)"
-            : navHidden
-              ? `translateY(${Math.max(0, navHeight - 1)}px)`
-              : "translateY(0)",
+          transform: editSearchOpen ? "translateY(120%)" : "translateY(0)",
         }}
       >
         <div className="flex flex-col px-3 pt-1.5 pb-1.5">
