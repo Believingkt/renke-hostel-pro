@@ -196,6 +196,9 @@ export default function TeamOrders() {
       addon_amount: 0,
       nickname: null,
       deposit_confirm_date: null,
+      team_commission_price: null,
+      commission_price_confirmed_by: null,
+      commission_price_confirmed_at: null,
     };
   }
 
