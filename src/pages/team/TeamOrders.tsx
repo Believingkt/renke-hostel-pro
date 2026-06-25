@@ -89,6 +89,9 @@ interface MetaRow {
   addon_amount?: number | null;
   nickname?: string | null;
   deposit_confirm_date?: string | null;
+  team_commission_price?: number | null;
+  commission_price_confirmed_by?: string | null;
+  commission_price_confirmed_at?: string | null;
 }
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -138,6 +141,8 @@ export default function TeamOrders() {
   const [isScout, setIsScout] = useState(false);
   const [isCloser, setIsCloser] = useState(false);
   const [isVideo, setIsVideo] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [confirmerNameMap, setConfirmerNameMap] = useState<Record<string, string>>({});
   const [trafficSources, setTrafficSources] = useState<
     { id: string; name: string; is_active: boolean; sort_order: number | null }[]
   >([]);
@@ -191,6 +196,9 @@ export default function TeamOrders() {
       addon_amount: 0,
       nickname: null,
       deposit_confirm_date: null,
+      team_commission_price: null,
+      commission_price_confirmed_by: null,
+      commission_price_confirmed_at: null,
     };
   }
 
@@ -260,6 +268,7 @@ export default function TeamOrders() {
       const { data: sess } = await supabase.auth.getSession();
       const uid = sess.session?.user.id;
       if (uid) {
+        setCurrentUserId(uid);
         const { data: roles } = await supabase
           .from("user_roles")
           .select("role")
@@ -532,7 +541,8 @@ export default function TeamOrders() {
                  booking_method, ad_id, is_excluded, closer_assisted,
                  scout_commission_rate, closer_commission_rate, exclusion_note,
                  franchise_project, member_number, inquiry_date, voucher_used, voucher_count, addon_note, addon_amount,
-                 nickname, deposit_confirm_date`
+                 nickname, deposit_confirm_date,
+                 team_commission_price, commission_price_confirmed_by, commission_price_confirmed_at`
               )
               .in("order_id", orderIds)
           : Promise.resolve({ data: [], error: null } as any),
@@ -543,6 +553,26 @@ export default function TeamOrders() {
 
       const metaMap = new Map<string, MetaRow>();
       ((metaRes.data || []) as any[]).forEach((m) => metaMap.set(m.order_id, m));
+
+      // Fetch display names of confirmers for the 分潤基準金額 confirmation banner
+      const confirmerIds = Array.from(
+        new Set(
+          ((metaRes.data || []) as any[])
+            .map((m) => m.commission_price_confirmed_by)
+            .filter((v): v is string => !!v),
+        ),
+      );
+      if (confirmerIds.length > 0) {
+        const { data: profs } = await supabase
+          .from("team_member_profiles")
+          .select("user_id, display_name")
+          .in("user_id", confirmerIds);
+        const map: Record<string, string> = {};
+        ((profs ?? []) as any[]).forEach((p) => {
+          map[p.user_id] = p.display_name;
+        });
+        setConfirmerNameMap((prev) => ({ ...prev, ...map }));
+      }
 
       const accMap = new Map<string, string>();
       (accRes.data || []).forEach((a: any) => accMap.set(a.id, a.name));
@@ -663,6 +693,10 @@ export default function TeamOrders() {
       addon_amount: o.meta?.addon_amount ?? 0,
       nickname: o.meta?.nickname ?? null,
       deposit_confirm_date: o.meta?.deposit_confirm_date ?? null,
+      team_commission_price:
+        o.meta?.team_commission_price ?? o.final_price ?? null,
+      commission_price_confirmed_by: o.meta?.commission_price_confirmed_by ?? null,
+      commission_price_confirmed_at: o.meta?.commission_price_confirmed_at ?? null,
     });
     setIsEditing(false);
     setEditOpen(true);
@@ -681,7 +715,17 @@ export default function TeamOrders() {
     if (!editOrder) return;
     setSaving(true);
     try {
-      const payload = {
+      // Decide whether 分潤基準金額 changed → bump confirmed_by / confirmed_at
+      const prevTcp =
+        editOrder.meta?.team_commission_price ?? editOrder.final_price ?? null;
+      const newTcpRaw = form.team_commission_price;
+      const newTcp =
+        newTcpRaw === null || newTcpRaw === undefined || (newTcpRaw as any) === ""
+          ? null
+          : Number(newTcpRaw);
+      const tcpChanged = Number(prevTcp ?? NaN) !== Number(newTcp ?? NaN);
+
+      const payload: Record<string, any> = {
         order_id: editOrder.id,
         accommodation_id: editOrder.accommodation_id,
         closer_id: form.closer_id,
@@ -707,7 +751,12 @@ export default function TeamOrders() {
         addon_amount: form.addon_amount ?? 0,
         nickname: form.nickname ?? null,
         deposit_confirm_date: form.deposit_confirm_date ?? null,
+        team_commission_price: newTcp,
       };
+      if (tcpChanged) {
+        payload.commission_price_confirmed_by = currentUserId;
+        payload.commission_price_confirmed_at = new Date().toISOString();
+      }
 
       const exists = !!editOrder.meta;
       if (exists) {
@@ -717,7 +766,7 @@ export default function TeamOrders() {
           .eq("order_id", editOrder.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("order_meta").insert(payload);
+        const { error } = await supabase.from("order_meta").insert(payload as any);
         if (error) throw error;
       }
       toast.success("已儲存");
@@ -1148,6 +1197,67 @@ export default function TeamOrders() {
                   label="金額"
                   value={`$${editOrder.final_price?.toLocaleString()}`}
                 />
+
+                {/* ===== 分潤基準金額 ===== */}
+                {(() => {
+                  const canEdit = isAdmin || isCloser;
+                  const tcp =
+                    form.team_commission_price ?? editOrder.final_price ?? 0;
+                  const fp = editOrder.final_price ?? 0;
+                  const confirmedBy = form.commission_price_confirmed_by;
+                  const confirmedAt = form.commission_price_confirmed_at;
+                  const mismatch = Number(tcp) !== Number(fp);
+
+                  if (isEditing && canEdit) {
+                    return (
+                      <div className="space-y-2">
+                        <Label className="text-sm">分潤基準金額</Label>
+                        <Input
+                          type="number"
+                          className="text-base"
+                          value={form.team_commission_price ?? ""}
+                          onChange={(e) =>
+                            setForm((f) => ({
+                              ...f,
+                              team_commission_price:
+                                e.target.value === ""
+                                  ? null
+                                  : Number(e.target.value),
+                            }))
+                          }
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          請輸入分潤計算用的金額（可排除清潔費、寵物費、賠償罰款等不計入業績的費用）
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-1">
+                      <div className="text-xs text-muted-foreground">
+                        分潤基準金額
+                      </div>
+                      <div className="text-base font-medium">
+                        {`NT$ ${Number(tcp).toLocaleString()}`}
+                      </div>
+                      {mismatch && !confirmedBy && (
+                        <div className="text-xs text-orange-600">
+                          ⚠️ 訂單金額已變動，務必在退房日+7天內修改並確認分潤基準金額
+                        </div>
+                      )}
+                      {confirmedBy && (
+                        <div className="text-xs text-muted-foreground">
+                          🔔 {confirmerNameMap[confirmedBy] ?? "—"} 已於{" "}
+                          {confirmedAt
+                            ? new Date(confirmedAt).toLocaleDateString("zh-TW")
+                            : "—"}{" "}
+                          修改並確認此分潤基準金額
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </section>
 
               <Separator />

@@ -84,6 +84,13 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [nickname, setNickname] = useState("");
   const [depositConfirmDate, setDepositConfirmDate] = useState<string>("");
   const [orderDate, setOrderDate] = useState<string | null>(null);
+  const [finalPrice, setFinalPrice] = useState<number | null>(null);
+  const [teamCommissionPrice, setTeamCommissionPrice] = useState<number | null>(null);
+  const [initialTeamCommissionPrice, setInitialTeamCommissionPrice] = useState<number | null>(null);
+  const [commissionConfirmedBy, setCommissionConfirmedBy] = useState<string | null>(null);
+  const [commissionConfirmedAt, setCommissionConfirmedAt] = useState<string | null>(null);
+  const [commissionConfirmerName, setCommissionConfirmerName] = useState<string | null>(null);
+  const [canEditCommissionPrice, setCanEditCommissionPrice] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Inline add option inputs
@@ -111,6 +118,12 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setNickname("");
       setDepositConfirmDate("");
       setOrderDate(null);
+      setFinalPrice(null);
+      setTeamCommissionPrice(null);
+      setInitialTeamCommissionPrice(null);
+      setCommissionConfirmedBy(null);
+      setCommissionConfirmedAt(null);
+      setCommissionConfirmerName(null);
       setNewTrafficSource("");
       setNewBookingMethod("");
     }
@@ -181,7 +194,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           .maybeSingle(),
         supabase
           .from("orders")
-          .select("order_date")
+          .select("order_date, final_price")
           .eq("id", orderId)
           .maybeSingle(),
       ]) as any;
@@ -230,7 +243,27 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setAdNameByAdId(nameMap);
 
 
-      setOrderDate((orderRow as { order_date?: string | null } | null)?.order_date ?? null);
+      const orderRowTyped =
+        (orderRow as { order_date?: string | null; final_price?: number | null } | null);
+      setOrderDate(orderRowTyped?.order_date ?? null);
+      const fp = orderRowTyped?.final_price ?? null;
+      setFinalPrice(fp);
+
+      // Determine if current user can edit 分潤基準金額 (closer / hotel_admin / super_admin)
+      if (uid) {
+        const { data: roleRows } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", uid);
+        const roles = ((roleRows ?? []) as Array<{ role: string }>).map((r) => r.role);
+        setCanEditCommissionPrice(
+          roles.includes("closer") ||
+            roles.includes("hotel_admin") ||
+            roles.includes("super_admin"),
+        );
+      } else {
+        setCanEditCommissionPrice(false);
+      }
 
       if (existingMeta) {
         const m = existingMeta as Record<string, unknown>;
@@ -249,9 +282,40 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         setAddonAmount(Number(m.addon_amount ?? 0));
         setNickname((m.nickname as string) ?? "");
         setDepositConfirmDate((m.deposit_confirm_date as string) ?? "");
-      } else if (uid && closerIds.includes(uid)) {
-        // 預設成交人為目前登入者(若身分為 closer)
-        setCloserId(uid);
+
+        const tcp =
+          m.team_commission_price === null || m.team_commission_price === undefined
+            ? fp
+            : Number(m.team_commission_price);
+        setTeamCommissionPrice(tcp);
+        setInitialTeamCommissionPrice(tcp);
+        const confBy = (m.commission_price_confirmed_by as string) ?? null;
+        setCommissionConfirmedBy(confBy);
+        setCommissionConfirmedAt(
+          (m.commission_price_confirmed_at as string) ?? null,
+        );
+        if (confBy) {
+          const { data: confProf } = await supabase
+            .from("team_member_profiles")
+            .select("display_name")
+            .eq("user_id", confBy)
+            .maybeSingle();
+          setCommissionConfirmerName(
+            (confProf as { display_name?: string } | null)?.display_name ?? null,
+          );
+        } else {
+          setCommissionConfirmerName(null);
+        }
+      } else {
+        setTeamCommissionPrice(fp);
+        setInitialTeamCommissionPrice(fp);
+        setCommissionConfirmedBy(null);
+        setCommissionConfirmedAt(null);
+        setCommissionConfirmerName(null);
+        if (uid && closerIds.includes(uid)) {
+          // 預設成交人為目前登入者(若身分為 closer)
+          setCloserId(uid);
+        }
       }
 
     })();
@@ -375,7 +439,11 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
 
       if (orderErr) throw orderErr;
 
-      const payload = {
+      const tcpChanged =
+        Number(teamCommissionPrice ?? NaN) !==
+        Number(initialTeamCommissionPrice ?? NaN);
+
+      const payload: Record<string, any> = {
         order_id: orderId,
         accommodation_id: order?.accommodation_id ?? null,
         closer_id: closerId !== NONE ? closerId : null,
@@ -393,15 +461,23 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         addon_amount: Number.isFinite(addonAmount) ? addonAmount : 0,
         nickname: nickname.trim() || null,
         deposit_confirm_date: depositConfirmDate || null,
+        team_commission_price:
+          teamCommissionPrice === null || teamCommissionPrice === undefined
+            ? null
+            : Number(teamCommissionPrice),
         import_source: "manual",
         filled_by: currentUserId,
         filled_at: new Date().toISOString(),
       };
+      if (tcpChanged) {
+        payload.commission_price_confirmed_by = currentUserId;
+        payload.commission_price_confirmed_at = new Date().toISOString();
+      }
 
 
       const { error } = await supabase
         .from("order_meta")
-        .upsert(payload, { onConflict: "order_id" });
+        .upsert(payload as any, { onConflict: "order_id" });
       if (error) throw error;
 
       toast.success("行銷資訊已儲存");
@@ -433,6 +509,69 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           <div className="space-y-1 p-3 rounded-md bg-muted/40">
             <Label className="text-xs text-muted-foreground">下單日</Label>
             <div className="text-sm">{orderDate || "-"}</div>
+          </div>
+
+          {/* 訂單基本資訊 — 金額 / 分潤基準金額 */}
+          <div className="space-y-3 p-3 rounded-md border">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">金額</Label>
+              <div className="text-sm font-medium">
+                {finalPrice !== null ? `NT$ ${Number(finalPrice).toLocaleString()}` : "-"}
+              </div>
+            </div>
+
+            {canEditCommissionPrice ? (
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">分潤基準金額</Label>
+                <Input
+                  type="number"
+                  value={teamCommissionPrice ?? ""}
+                  onChange={(e) =>
+                    setTeamCommissionPrice(
+                      e.target.value === "" ? null : Number(e.target.value),
+                    )
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  請輸入分潤計算用的金額（可排除清潔費、寵物費、賠償罰款等不計入業績的費用）
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">分潤基準金額</Label>
+                <div className="text-sm font-medium">
+                  {teamCommissionPrice !== null
+                    ? `NT$ ${Number(teamCommissionPrice).toLocaleString()}`
+                    : "-"}
+                </div>
+              </div>
+            )}
+
+            {(() => {
+              const tcp = teamCommissionPrice;
+              const fp = finalPrice;
+              const mismatch =
+                tcp !== null && fp !== null && Number(tcp) !== Number(fp);
+              if (mismatch && !commissionConfirmedBy) {
+                return (
+                  <div className="text-xs text-orange-600">
+                    ⚠️ 訂單金額已變動，務必在退房日+7天內修改並確認分潤基準金額
+                  </div>
+                );
+              }
+              if (commissionConfirmedBy) {
+                return (
+                  <div className="text-xs text-muted-foreground">
+                    🔔 {commissionConfirmerName ?? "—"} 已於{" "}
+                    {commissionConfirmedAt
+                      ? new Date(commissionConfirmedAt).toLocaleDateString("zh-TW")
+                      : "—"}{" "}
+                    修改並確認此分潤基準金額
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
 
           {/* 1. 成交人 / 詢問日期 */}
