@@ -511,6 +511,69 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
             <div className="text-sm">{orderDate || "-"}</div>
           </div>
 
+          {/* 訂單基本資訊 — 金額 / 分潤基準金額 */}
+          <div className="space-y-3 p-3 rounded-md border">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">金額</Label>
+              <div className="text-sm font-medium">
+                {finalPrice !== null ? `NT$ ${Number(finalPrice).toLocaleString()}` : "-"}
+              </div>
+            </div>
+
+            {canEditCommissionPrice ? (
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">分潤基準金額</Label>
+                <Input
+                  type="number"
+                  value={teamCommissionPrice ?? ""}
+                  onChange={(e) =>
+                    setTeamCommissionPrice(
+                      e.target.value === "" ? null : Number(e.target.value),
+                    )
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  請輸入分潤計算用的金額（可排除清潔費、寵物費、賠償罰款等不計入業績的費用）
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">分潤基準金額</Label>
+                <div className="text-sm font-medium">
+                  {teamCommissionPrice !== null
+                    ? `NT$ ${Number(teamCommissionPrice).toLocaleString()}`
+                    : "-"}
+                </div>
+              </div>
+            )}
+
+            {(() => {
+              const tcp = teamCommissionPrice;
+              const fp = finalPrice;
+              const mismatch =
+                tcp !== null && fp !== null && Number(tcp) !== Number(fp);
+              if (mismatch && !commissionConfirmedBy) {
+                return (
+                  <div className="text-xs text-orange-600">
+                    ⚠️ 訂單金額已變動，務必在退房日+7天內修改並確認分潤基準金額
+                  </div>
+                );
+              }
+              if (commissionConfirmedBy) {
+                return (
+                  <div className="text-xs text-muted-foreground">
+                    🔔 {commissionConfirmerName ?? "—"} 已於{" "}
+                    {commissionConfirmedAt
+                      ? new Date(commissionConfirmedAt).toLocaleDateString("zh-TW")
+                      : "—"}{" "}
+                    修改並確認此分潤基準金額
+                  </div>
+                );
+              }
+              return null;
+            })()}
+          </div>
+
           {/* 1. 成交人 / 詢問日期 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
