@@ -827,23 +827,40 @@ function MembersTab() {
     (MemberProfile & { roles: string[] })[]
   >([]);
   const [oaId, setOaId] = useState<string | null>(null);
+  const [defaultChannelId, setDefaultChannelId] = useState<string | null>(null);
+  const [eventTypes, setEventTypes] = useState<EventType[]>([]);
+  const [targetsByLineId, setTargetsByLineId] = useState<Record<string, PushTarget>>({});
   const [linkDialog, setLinkDialog] = useState<{ memberName: string; url: string } | null>(null);
+  const [eventEditor, setEventEditor] = useState<
+    | {
+        member: MemberProfile;
+        selected: string[];
+      }
+    | null
+  >(null);
 
   const load = async () => {
-    const [{ data: profiles }, { data: chans }] = await Promise.all([
+    const [{ data: profiles }, { data: chans }, { data: evts }] = await Promise.all([
       supabase
         .from("team_member_profiles")
         .select("id, user_id, display_name, line_user_id")
         .order("display_name", { ascending: true }),
       supabase
         .from("line_oa_channels")
-        .select("line_oa_id")
+        .select("id, line_oa_id")
         .eq("is_active", true)
         .order("created_at", { ascending: true })
         .limit(1),
+      supabase
+        .from("line_event_types")
+        .select("*")
+        .eq("is_active", true)
+        .order("label"),
     ]);
 
     setOaId((chans?.[0] as any)?.line_oa_id ?? null);
+    setDefaultChannelId((chans?.[0] as any)?.id ?? null);
+    setEventTypes((evts ?? []) as EventType[]);
 
     const userIds = (profiles ?? []).map((p: any) => p.user_id);
     const roleMap = new Map<string, string[]>();
@@ -858,6 +875,28 @@ function MembersTab() {
         roleMap.set(r.user_id, arr);
       });
     }
+
+    const lineUserIds = (profiles ?? [])
+      .map((p: any) => p.line_user_id)
+      .filter(Boolean) as string[];
+    const tMap: Record<string, PushTarget> = {};
+    if (lineUserIds.length > 0) {
+      const { data: targets } = await supabase
+        .from("line_push_targets")
+        .select("*")
+        .eq("target_type", "user")
+        .in("target_id", lineUserIds);
+      (targets ?? []).forEach((t: any) => {
+        tMap[t.target_id] = {
+          ...t,
+          event_types: t.event_types ?? [],
+          accommodation_ids: t.accommodation_ids ?? [],
+          custom_venue_names: t.custom_venue_names ?? [],
+        };
+      });
+    }
+    setTargetsByLineId(tMap);
+
     setMembers(
       ((profiles ?? []) as MemberProfile[]).map((m) => ({
         ...m,
@@ -904,6 +943,57 @@ function MembersTab() {
     }
   };
 
+  const openEventEditor = (m: MemberProfile) => {
+    if (!m.line_user_id) {
+      toast.error("請先完成綁定");
+      return;
+    }
+    const existing = targetsByLineId[m.line_user_id];
+    setEventEditor({
+      member: m,
+      selected: existing?.event_types ?? [],
+    });
+  };
+
+  const toggleEvt = (code: string) => {
+    if (!eventEditor) return;
+    const arr = eventEditor.selected;
+    const next = arr.includes(code) ? arr.filter((x) => x !== code) : [...arr, code];
+    setEventEditor({ ...eventEditor, selected: next });
+  };
+
+  const saveEvents = async () => {
+    if (!eventEditor) return;
+    const m = eventEditor.member;
+    if (!m.line_user_id) return;
+    const existing = targetsByLineId[m.line_user_id];
+    const payload: any = {
+      target_type: "user",
+      target_id: m.line_user_id,
+      display_name: m.display_name,
+      team_member_id: m.id,
+      event_types: eventEditor.selected,
+      channel_id: existing?.channel_id ?? defaultChannelId,
+      roles: existing?.roles ?? [],
+      accommodation_ids: existing?.accommodation_ids ?? [],
+      custom_venue_names: existing?.custom_venue_names ?? [],
+      is_active: existing?.is_active ?? true,
+    };
+    if (existing?.id) payload.id = existing.id;
+    const { error } = await supabase
+      .from("line_push_targets")
+      .upsert(payload, { onConflict: "target_type,target_id" });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("已儲存訂閱事件");
+    setEventEditor(null);
+    load();
+  };
+
+  const evtMap = new Map(eventTypes.map((e) => [e.code, e.label]));
+
   return (
     <Card>
       <CardHeader>
@@ -920,19 +1010,22 @@ function MembersTab() {
                 <TableHead>姓名</TableHead>
                 <TableHead>角色</TableHead>
                 <TableHead>綁定狀態</TableHead>
+                <TableHead>訂閱事件</TableHead>
                 <TableHead className="w-48">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {members.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                     尚無成員
                   </TableCell>
                 </TableRow>
               ) : (
                 members.map((m) => {
                   const bound = !!m.line_user_id;
+                  const target = m.line_user_id ? targetsByLineId[m.line_user_id] : undefined;
+                  const events = target?.event_types ?? [];
                   return (
                     <TableRow key={m.id}>
                       <TableCell className="font-medium">{m.display_name || "—"}</TableCell>
@@ -954,6 +1047,30 @@ function MembersTab() {
                           <Badge className="bg-green-600 hover:bg-green-600">已綁定</Badge>
                         ) : (
                           <Badge variant="outline">未綁定</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {bound ? (
+                          <button
+                            type="button"
+                            className="flex flex-wrap gap-1 max-w-[200px] text-left hover:opacity-80"
+                            onClick={() => openEventEditor(m)}
+                            title="點擊編輯訂閱事件"
+                          >
+                            {events.length === 0 ? (
+                              <span className="text-muted-foreground text-xs underline decoration-dotted">
+                                點擊設定
+                              </span>
+                            ) : (
+                              events.map((c) => (
+                                <Badge key={c} variant="secondary" className="text-xs">
+                                  {evtMap.get(c) ?? c}
+                                </Badge>
+                              ))
+                            )}
+                          </button>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
                         )}
                       </TableCell>
                       <TableCell>
@@ -1010,9 +1127,46 @@ function MembersTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!eventEditor} onOpenChange={(o) => !o && setEventEditor(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              設定訂閱事件：{eventEditor?.member.display_name || "—"}
+            </DialogTitle>
+          </DialogHeader>
+          {eventEditor && (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                勾選此成員的 LINE 帳號要接收哪些類型的個人通知。
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {eventTypes.length === 0 && (
+                  <span className="text-xs text-muted-foreground">尚未設定事件類型</span>
+                )}
+                {eventTypes.map((e) => (
+                  <Badge
+                    key={e.code}
+                    variant={eventEditor.selected.includes(e.code) ? "default" : "outline"}
+                    className="cursor-pointer"
+                    onClick={() => toggleEvt(e.code)}
+                  >
+                    {e.label}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEventEditor(null)}>取消</Button>
+            <Button onClick={saveEvents}>儲存</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
+
 
 // ============== Events Tab ==============
 function EventsTab() {
