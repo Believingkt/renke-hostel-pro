@@ -404,6 +404,7 @@ Deno.serve(async (req) => {
           "民宿名稱": accName,
           "M": String(tp.m),
           "今日訂單": fmtMoney(todaySales),
+          "今日訂單筆數": String(todayCount),
           "今日取消筆數": String(cancelCount),
           "今日取消金額": fmtMoney(cancelAmount),
           "月累積": fmtMoney(monthSales),
