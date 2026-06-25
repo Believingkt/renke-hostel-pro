@@ -568,7 +568,7 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
             <TableHeader>
               <TableRow>
                 <TableHead>群組名稱</TableHead>
-                <TableHead>groupId</TableHead>
+                {!hideGroupId && <TableHead>groupId</TableHead>}
                 <TableHead>使用 OA</TableHead>
                 <TableHead>事件</TableHead>
                 <TableHead>館別</TableHead>
