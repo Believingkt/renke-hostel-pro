@@ -4466,6 +4466,7 @@ export type Database = {
           guest_phone: string
           id: string
           idempotency_key: string | null
+          import_project: string | null
           internal_email_sent: boolean
           internal_email_sent_at: string | null
           lock_whole_building: boolean
@@ -4534,6 +4535,7 @@ export type Database = {
           guest_phone: string
           id?: string
           idempotency_key?: string | null
+          import_project?: string | null
           internal_email_sent?: boolean
           internal_email_sent_at?: string | null
           lock_whole_building?: boolean
@@ -4602,6 +4604,7 @@ export type Database = {
           guest_phone?: string
           id?: string
           idempotency_key?: string | null
+          import_project?: string | null
           internal_email_sent?: boolean
           internal_email_sent_at?: string | null
           lock_whole_building?: boolean
