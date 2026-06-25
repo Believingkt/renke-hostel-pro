@@ -487,6 +487,31 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       if (error) throw error;
 
       toast.success("行銷資訊已儲存");
+
+      // 分潤基準金額有變動 → 推 LINE 通知（失敗不影響儲存）
+      if (tcpChanged) {
+        const accInfo = (order as any)?.accommodation_info;
+        const accName = Array.isArray(accInfo)
+          ? accInfo[0]?.name
+          : accInfo?.name;
+        void notifyOrderAmountChanged({
+          orderNumber: (order as any)?.order_number ?? "-",
+          guestName: (order as any)?.guest_name ?? "-",
+          accommodationId: order?.accommodation_id ?? null,
+          accommodationName: accName ?? "-",
+          previousAmount:
+            initialTeamCommissionPrice === null ||
+            initialTeamCommissionPrice === undefined
+              ? null
+              : Number(initialTeamCommissionPrice),
+          newAmount:
+            teamCommissionPrice === null || teamCommissionPrice === undefined
+              ? null
+              : Number(teamCommissionPrice),
+          changedByUserId: currentUserId,
+        });
+      }
+
       onClose();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "儲存失敗";
