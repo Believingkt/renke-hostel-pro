@@ -1137,7 +1137,7 @@ const BookingVilla = () => {
 
 
       <BookingFooter />
-      {!editSearchOpen && <MobileBottomNav />}
+      {/* MobileBottomNav hidden on villa booking page to keep CTA flush to viewport bottom */}
 
       <EditSearchSheet
         open={editSearchOpen}
