@@ -1774,6 +1774,7 @@ export type Database = {
       closer_commission_snapshots: {
         Row: {
           accommodation_id: string
+          check_out_date: string | null
           closer_commission_amount: number | null
           closer_id: string | null
           closer_rate: number | null
@@ -1781,6 +1782,7 @@ export type Database = {
           final_price_snapshot: number
           id: string
           order_id: string
+          payout_month: string | null
           snapshot_month: string
           video_commission_amount: number | null
           video_creator_id: string | null
@@ -1788,6 +1790,7 @@ export type Database = {
         }
         Insert: {
           accommodation_id: string
+          check_out_date?: string | null
           closer_commission_amount?: number | null
           closer_id?: string | null
           closer_rate?: number | null
@@ -1795,6 +1798,7 @@ export type Database = {
           final_price_snapshot: number
           id?: string
           order_id: string
+          payout_month?: string | null
           snapshot_month: string
           video_commission_amount?: number | null
           video_creator_id?: string | null
@@ -1802,6 +1806,7 @@ export type Database = {
         }
         Update: {
           accommodation_id?: string
+          check_out_date?: string | null
           closer_commission_amount?: number | null
           closer_id?: string | null
           closer_rate?: number | null
@@ -1809,6 +1814,7 @@ export type Database = {
           final_price_snapshot?: number
           id?: string
           order_id?: string
+          payout_month?: string | null
           snapshot_month?: string
           video_commission_amount?: number | null
           video_creator_id?: string | null
@@ -1832,7 +1838,7 @@ export type Database = {
           {
             foreignKeyName: "closer_commission_snapshots_order_id_fkey"
             columns: ["order_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
