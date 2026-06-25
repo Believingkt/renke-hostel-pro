@@ -10,10 +10,16 @@ const navItems = [
   { path: "/member/profile", label: "我的", icon: User },
 ];
 
-const MobileBottomNav = () => {
+interface MobileBottomNavProps {
+  onVisibilityChange?: (visible: boolean) => void;
+  onHeightChange?: (height: number) => void;
+}
+
+const MobileBottomNav = ({ onVisibilityChange, onHeightChange }: MobileBottomNavProps) => {
   const location = useLocation();
   const [visible, setVisible] = useState(true);
   const lastScrollY = useRef(0);
+  const navRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const onScroll = () => {
@@ -29,8 +35,28 @@ const MobileBottomNav = () => {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    onVisibilityChange?.(visible);
+  }, [visible, onVisibilityChange]);
+
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav || !onHeightChange) return;
+    const measure = () => onHeightChange(Math.round(nav.getBoundingClientRect().height));
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(nav);
+    window.addEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [onHeightChange]);
+
   return (
     <nav
+      ref={navRef}
+      data-mobile-bottom-nav
       className={`fixed bottom-0 inset-x-0 z-50 bg-white border-t border-border md:hidden transition-transform duration-300 ${
         visible ? "translate-y-0" : "translate-y-full"
       }`}

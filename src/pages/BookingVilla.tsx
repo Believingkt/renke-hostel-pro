@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -107,33 +107,17 @@ const BookingVilla = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [memberName, setMemberName] = useState("");
   const [bottomBarHidden, setBottomBarHidden] = useState(false);
-  // 追蹤底部 MobileBottomNav 是否被滾動隱藏（與 MobileBottomNav 內部邏輯一致）
-  const [navHidden, setNavHidden] = useState(false);
-  const [navHeight, setNavHeight] = useState(64);
-  useEffect(() => {
-    let lastY = 0;
-    const onScroll = () => {
-      const y = window.scrollY;
-      if (y > lastY && y > 60) setNavHidden(true);
-      else setNavHidden(false);
-      lastY = y;
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-  useEffect(() => {
-    const measure = () => {
-      const nav = document.querySelector('nav.fixed.bottom-0') as HTMLElement | null;
-      if (nav) setNavHeight(Math.round(nav.getBoundingClientRect().height));
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    const nav = document.querySelector('nav.fixed.bottom-0');
-    if (nav) ro.observe(nav);
-    window.addEventListener("resize", measure);
-    return () => { ro.disconnect(); window.removeEventListener("resize", measure); };
-  }, []);
   const [editSearchOpen, setEditSearchOpen] = useState(false);
+  const [bottomNavVisible, setBottomNavVisible] = useState(true);
+  const [bottomNavHeight, setBottomNavHeight] = useState(61);
+  const handleBottomNavVisibility = useCallback((visible: boolean) => {
+    setBottomNavVisible(visible);
+  }, []);
+  const handleBottomNavHeight = useCallback((height: number) => {
+    setBottomNavHeight(height);
+  }, []);
+  // 微幅重疊 2px，避免 Safari 位移/四捨五入時 CTA 與選單中間露縫。
+  const bottomNavOffset = bottomNavVisible && !editSearchOpen ? Math.max(0, bottomNavHeight - 2) : 0;
   const [availableDateSet, setAvailableDateSet] = useState<Set<string> | null>(null);
   const [availMinPrice, setAvailMinPrice] = useState<number | null>(null);
   const [availEarliestDate, setAvailEarliestDate] = useState<string | null>(null);
@@ -1016,8 +1000,8 @@ const BookingVilla = () => {
       <div
         className={`fixed left-0 right-0 z-[60] w-full bg-white border-t border-gray-100 sm:hidden transition-[bottom,transform] duration-300 ease-out ${editSearchOpen ? "pointer-events-none" : ""}`}
         style={{
-          bottom: navHidden ? 0 : `${Math.max(0, navHeight - 1)}px`,
-          paddingBottom: navHidden ? "env(safe-area-inset-bottom, 0px)" : "0px",
+          bottom: `${bottomNavOffset}px`,
+          paddingBottom: bottomNavOffset <= 0 ? "env(safe-area-inset-bottom, 0px)" : "0px",
           boxShadow: "0 -4px 15px rgba(0,0,0,0.05)",
           transform: editSearchOpen ? "translateY(120%)" : "translateY(0)",
         }}
@@ -1138,7 +1122,12 @@ const BookingVilla = () => {
 
 
       <BookingFooter />
-      {!editSearchOpen && <MobileBottomNav />}
+      {!editSearchOpen && (
+        <MobileBottomNav
+          onVisibilityChange={handleBottomNavVisibility}
+          onHeightChange={handleBottomNavHeight}
+        />
+      )}
       {info?.id && (
         <FloatingAIChat
           accommodationId={info.id}
