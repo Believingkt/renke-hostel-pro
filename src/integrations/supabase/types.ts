@@ -7732,6 +7732,33 @@ export type Database = {
           },
         ]
       }
+      villa_chat_messages: {
+        Row: {
+          accommodation_id: string
+          content: string
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          accommodation_id: string
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          accommodation_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       discount_codes_safe: {
