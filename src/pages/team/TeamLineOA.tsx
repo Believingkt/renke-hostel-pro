@@ -572,7 +572,6 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
                 <TableHead>使用 OA</TableHead>
                 <TableHead>事件</TableHead>
                 <TableHead>館別</TableHead>
-                <TableHead>角色</TableHead>
                 <TableHead>啟用</TableHead>
                 <TableHead className="w-16">操作</TableHead>
               </TableRow>
