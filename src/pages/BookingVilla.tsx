@@ -1038,7 +1038,7 @@ const BookingVilla = () => {
                 const nights = Math.max(1, Math.round((checkOut.getTime() - checkIn.getTime()) / 86400000));
                 return (
                   <>
-                    {format(checkIn, "M/d")}–{format(checkOut, "M/d")} {nights}晚
+                    {format(checkIn, "M/d")}–{format(checkOut, "M/d")}｜{nights}晚
                     {" · "}{adultsN}大
                     {kidsN > 0 && <>{" · "}{kidsN}小</>}
 
