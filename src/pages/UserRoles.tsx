@@ -42,7 +42,7 @@ interface UserRole {
   id: string;
   user_id: string;
   accommodation_id: string;
-  role: "super_admin" | "hotel_admin" | "staff" | "admin" | "closer" | "scout" | "scout_manager" | "video" | "franchise" | "franchise_internal" | "franchise_external" | "franchise_manager" | "starlink" | "owner" | "kol" | "finance" | "venue_manager"; // kol 保留以對應 DB enum（已停用）
+  role: "super_admin" | "hotel_admin" | "staff" | "admin" | "am" | "closer" | "scout" | "scout_manager" | "video" | "franchise" | "franchise_internal" | "franchise_external" | "franchise_manager" | "starlink" | "owner" | "kol" | "finance" | "venue_manager"; // kol 保留以對應 DB enum（已停用）
   created_at: string;
 }
 
