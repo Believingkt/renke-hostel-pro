@@ -22,6 +22,7 @@ import {
 import { Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getCommissionStatus } from "@/lib/commissionStatus";
 
 interface TeamOption {
   user_id: string;
@@ -84,6 +85,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [nickname, setNickname] = useState("");
   const [depositConfirmDate, setDepositConfirmDate] = useState<string>("");
   const [orderDate, setOrderDate] = useState<string | null>(null);
+  const [checkOutDate, setCheckOutDate] = useState<string | null>(null);
   const [finalPrice, setFinalPrice] = useState<number | null>(null);
   const [teamCommissionPrice, setTeamCommissionPrice] = useState<number | null>(null);
   const [initialTeamCommissionPrice, setInitialTeamCommissionPrice] = useState<number | null>(null);
@@ -194,7 +196,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           .maybeSingle(),
         supabase
           .from("orders")
-          .select("order_date, final_price")
+          .select("order_date, final_price, check_out_date")
           .eq("id", orderId)
           .maybeSingle(),
       ]) as any;
@@ -244,8 +246,9 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
 
 
       const orderRowTyped =
-        (orderRow as { order_date?: string | null; final_price?: number | null } | null);
+        (orderRow as { order_date?: string | null; final_price?: number | null; check_out_date?: string | null } | null);
       setOrderDate(orderRowTyped?.order_date ?? null);
+      setCheckOutDate(orderRowTyped?.check_out_date ?? null);
       const fp = orderRowTyped?.final_price ?? null;
       setFinalPrice(fp);
 
@@ -548,18 +551,27 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
             )}
 
             {(() => {
-              const tcp = teamCommissionPrice;
-              const fp = finalPrice;
-              const mismatch =
-                tcp !== null && fp !== null && Number(tcp) !== Number(fp);
-              if (mismatch && !commissionConfirmedBy) {
+              const status = getCommissionStatus({
+                checkOutDate,
+                teamCommissionPrice,
+                finalPrice,
+                confirmedBy: commissionConfirmedBy,
+              });
+              if (status === "locked") {
+                return (
+                  <div className="text-xs text-red-600">
+                    ⛔ 已超過退房日7天，金額不建議任意修改
+                  </div>
+                );
+              }
+              if (status === "mismatch") {
                 return (
                   <div className="text-xs text-orange-600">
                     ⚠️ 訂單金額已變動，務必在退房日+7天內修改並確認分潤基準金額
                   </div>
                 );
               }
-              if (commissionConfirmedBy) {
+              if (status === "confirmed") {
                 return (
                   <div className="text-xs text-muted-foreground">
                     🔔 {commissionConfirmerName ?? "—"} 已於{" "}

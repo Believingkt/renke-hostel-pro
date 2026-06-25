@@ -38,6 +38,7 @@ import ScoutDiscountCodesTab from "@/components/team/ScoutDiscountCodesTab";
 import TeamCommissionStatsTab from "@/components/team/TeamCommissionStatsTab";
 import CommissionRatesTab from "@/components/team/CommissionRatesTab";
 import { getOrderSourceConfig } from "@/utils/orderHelpers";
+import { getCommissionStatus, getCommissionStatusShortLabel } from "@/lib/commissionStatus";
 
 interface Member {
   user_id: string;
@@ -918,6 +919,7 @@ export default function TeamOrders() {
                   <SortableHead k="orderDate" label="訂購時間 (下單日)" className="whitespace-nowrap" />
                   <SortableHead k="depositConfirm" label="訂金確認日" className="whitespace-nowrap" />
                   <SortableHead k="finalPrice" label="總金額" className="whitespace-nowrap tabular-nums" />
+                  <TableHead className="whitespace-nowrap">分潤狀態</TableHead>
                   <TableHead className="whitespace-nowrap">館別</TableHead>
                   <TableHead className="whitespace-nowrap">訂房方式</TableHead>
                   <TableHead className="whitespace-nowrap">備註</TableHead>
@@ -934,13 +936,13 @@ export default function TeamOrders() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={20} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={21} className="text-center py-8 text-muted-foreground">
                       載入中...
                     </TableCell>
                   </TableRow>
                 ) : pageItems.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={20} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={21} className="text-center py-8 text-muted-foreground">
                       無資料
                     </TableCell>
                   </TableRow>
@@ -977,6 +979,27 @@ export default function TeamOrders() {
                       </TableCell>
                       <TableCell className="whitespace-nowrap">{o.meta?.deposit_confirm_date || "-"}</TableCell>
                       <TableCell className="tabular-nums">${o.final_price?.toLocaleString()}</TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {(() => {
+                          const status = getCommissionStatus({
+                            checkOutDate: o.check_out_date,
+                            teamCommissionPrice:
+                              o.meta?.team_commission_price ?? o.final_price ?? null,
+                            finalPrice: o.final_price,
+                            confirmedBy: o.meta?.commission_price_confirmed_by,
+                          });
+                          const label = getCommissionStatusShortLabel(status);
+                          const cls =
+                            status === "locked"
+                              ? "text-red-600"
+                              : status === "mismatch"
+                                ? "text-orange-600"
+                                : status === "confirmed"
+                                  ? "text-muted-foreground"
+                                  : "text-muted-foreground";
+                          return <span className={cls}>{label}</span>;
+                        })()}
+                      </TableCell>
                       <TableCell className="whitespace-nowrap">{o.accommodation_name}</TableCell>
                       <TableCell className="whitespace-nowrap">{bookingMap.get(o.meta?.booking_method ?? "") ?? o.meta?.booking_method ?? "-"}</TableCell>
                       <TableCell className="whitespace-nowrap max-w-[200px] truncate" title={o.meta?.exclusion_note ?? ""}>{o.meta?.exclusion_note || "-"}</TableCell>
@@ -1241,20 +1264,40 @@ export default function TeamOrders() {
                       <div className="text-base font-medium">
                         {`NT$ ${Number(tcp).toLocaleString()}`}
                       </div>
-                      {mismatch && !confirmedBy && (
-                        <div className="text-xs text-orange-600">
-                          ⚠️ 訂單金額已變動，務必在退房日+7天內修改並確認分潤基準金額
-                        </div>
-                      )}
-                      {confirmedBy && (
-                        <div className="text-xs text-muted-foreground">
-                          🔔 {confirmerNameMap[confirmedBy] ?? "—"} 已於{" "}
-                          {confirmedAt
-                            ? new Date(confirmedAt).toLocaleDateString("zh-TW")
-                            : "—"}{" "}
-                          修改並確認此分潤基準金額
-                        </div>
-                      )}
+                      {(() => {
+                        const status = getCommissionStatus({
+                          checkOutDate: editOrder.check_out_date,
+                          teamCommissionPrice: tcp,
+                          finalPrice: fp,
+                          confirmedBy,
+                        });
+                        if (status === "locked") {
+                          return (
+                            <div className="text-xs text-red-600">
+                              ⛔ 已超過退房日7天，金額不建議任意修改
+                            </div>
+                          );
+                        }
+                        if (status === "mismatch") {
+                          return (
+                            <div className="text-xs text-orange-600">
+                              ⚠️ 訂單金額已變動，務必在退房日+7天內修改並確認分潤基準金額
+                            </div>
+                          );
+                        }
+                        if (status === "confirmed") {
+                          return (
+                            <div className="text-xs text-muted-foreground">
+                              🔔 {confirmerNameMap[confirmedBy!] ?? "—"} 已於{" "}
+                              {confirmedAt
+                                ? new Date(confirmedAt).toLocaleDateString("zh-TW")
+                                : "—"}{" "}
+                              修改並確認此分潤基準金額
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   );
                 })()}
