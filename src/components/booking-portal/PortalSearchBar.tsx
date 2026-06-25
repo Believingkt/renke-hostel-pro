@@ -284,21 +284,6 @@ const PortalSearchBar = ({
         </div>
       )}
 
-      <div className="flex items-center justify-between pt-3 border-t border-border/40">
-        <div>
-          <p className="text-sm font-medium">房間數</p>
-          <p className="text-xs text-muted-foreground">需求房間數量</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="icon" className="h-9 w-9 rounded-full" onClick={() => onRoomsChange(Math.max(1, rooms - 1))} disabled={rooms <= 1}>
-            <Minus className="h-4 w-4" />
-          </Button>
-          <span className="w-7 text-center text-base font-medium tabular-nums">{rooms}</span>
-          <Button variant="outline" size="icon" className="h-9 w-9 rounded-full" onClick={() => onRoomsChange(Math.min(20, rooms + 1))} disabled={rooms >= 20}>
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
     </div>
   );
 
