@@ -84,6 +84,13 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [nickname, setNickname] = useState("");
   const [depositConfirmDate, setDepositConfirmDate] = useState<string>("");
   const [orderDate, setOrderDate] = useState<string | null>(null);
+  const [finalPrice, setFinalPrice] = useState<number | null>(null);
+  const [teamCommissionPrice, setTeamCommissionPrice] = useState<number | null>(null);
+  const [initialTeamCommissionPrice, setInitialTeamCommissionPrice] = useState<number | null>(null);
+  const [commissionConfirmedBy, setCommissionConfirmedBy] = useState<string | null>(null);
+  const [commissionConfirmedAt, setCommissionConfirmedAt] = useState<string | null>(null);
+  const [commissionConfirmerName, setCommissionConfirmerName] = useState<string | null>(null);
+  const [canEditCommissionPrice, setCanEditCommissionPrice] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Inline add option inputs
