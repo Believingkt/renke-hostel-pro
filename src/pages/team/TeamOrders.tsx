@@ -141,6 +141,8 @@ export default function TeamOrders() {
   const [isScout, setIsScout] = useState(false);
   const [isCloser, setIsCloser] = useState(false);
   const [isVideo, setIsVideo] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [confirmerNameMap, setConfirmerNameMap] = useState<Record<string, string>>({});
   const [trafficSources, setTrafficSources] = useState<
     { id: string; name: string; is_active: boolean; sort_order: number | null }[]
   >([]);
