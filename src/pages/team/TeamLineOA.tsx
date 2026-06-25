@@ -104,18 +104,21 @@ const ROLE_OPTIONS = [
   "venue_manager",
 ];
 
-const TABS = [
-  { value: "channels", label: "OA 設定", icon: Cable },
+const ALL_TABS = [
   { value: "groups", label: "群組管理", icon: Users },
   { value: "members", label: "成員 LINE 帳號", icon: UserCheck },
   { value: "events", label: "事件類型", icon: Tags },
+  { value: "channels", label: "OA 設定", icon: Cable },
 ];
+
+const AM_TAB_VALUES = ["groups", "events"];
 
 export default function TeamLineOA() {
   const navigate = useNavigate();
   const { userId } = useTeam();
   const [authorized, setAuthorized] = useState<boolean | null>(null);
-  const [tab, setTab] = useState("channels");
+  const [isAm, setIsAm] = useState(false);
+  const [tab, setTab] = useState("groups");
 
   useEffect(() => {
     (async () => {
@@ -127,12 +130,22 @@ export default function TeamLineOA() {
       if (!data || data.length === 0) {
         navigate("/team", { replace: true });
       } else {
+        const roles = data.map((r: any) => r.role);
+        const onlyAm =
+          roles.includes("am") &&
+          !roles.includes("super_admin") &&
+          !roles.includes("admin");
+        setIsAm(onlyAm);
         setAuthorized(true);
       }
     })();
   }, [userId, navigate]);
 
   if (!authorized) return null;
+
+  const tabs = isAm
+    ? ALL_TABS.filter((t) => AM_TAB_VALUES.includes(t.value))
+    : ALL_TABS;
 
   return (
     <div className="space-y-6 max-w-6xl">
@@ -142,19 +155,23 @@ export default function TeamLineOA() {
         icon={Cable}
       />
       <Tabs value={tab} onValueChange={setTab}>
-        <ResponsiveTabs tabs={TABS} value={tab} onValueChange={setTab} />
-        <TabsContent value="channels" className="mt-4">
-          <ChannelsTab />
-        </TabsContent>
+        <ResponsiveTabs tabs={tabs} value={tab} onValueChange={setTab} />
         <TabsContent value="groups" className="mt-4">
-          <GroupsTab />
-        </TabsContent>
-        <TabsContent value="members" className="mt-4">
-          <MembersTab />
+          <GroupsTab hideGroupId={isAm} />
         </TabsContent>
         <TabsContent value="events" className="mt-4">
           <EventsTab />
         </TabsContent>
+        {!isAm && (
+          <>
+            <TabsContent value="members" className="mt-4">
+              <MembersTab />
+            </TabsContent>
+            <TabsContent value="channels" className="mt-4">
+              <ChannelsTab />
+            </TabsContent>
+          </>
+        )}
       </Tabs>
     </div>
   );
@@ -401,7 +418,7 @@ function emptyGroupForm(): GroupFormState {
   };
 }
 
-function GroupsTab() {
+function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
   const [list, setList] = useState<(PushTarget & { channel_name?: string })[]>([]);
   const [channels, setChannels] = useState<LineChannel[]>([]);
   const [roleOptions, setRoleOptions] = useState<string[]>(ROLE_OPTIONS);
@@ -551,7 +568,7 @@ function GroupsTab() {
             <TableHeader>
               <TableRow>
                 <TableHead>群組名稱</TableHead>
-                <TableHead>groupId</TableHead>
+                {!hideGroupId && <TableHead>groupId</TableHead>}
                 <TableHead>使用 OA</TableHead>
                 <TableHead>事件</TableHead>
                 <TableHead>館別</TableHead>
@@ -563,7 +580,7 @@ function GroupsTab() {
             <TableBody>
               {list.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={hideGroupId ? 7 : 8} className="text-center text-muted-foreground py-8">
                     尚無群組，請將 OA 加入 LINE 群組以自動建立
                   </TableCell>
                 </TableRow>
@@ -571,9 +588,11 @@ function GroupsTab() {
                 list.map((g) => (
                   <TableRow key={g.id}>
                     <TableCell className="font-medium">{g.display_name || "—"}</TableCell>
-                    <TableCell>
-                      <code className="text-xs">{g.target_id}</code>
-                    </TableCell>
+                    {!hideGroupId && (
+                      <TableCell>
+                        <code className="text-xs">{g.target_id}</code>
+                      </TableCell>
+                    )}
                     <TableCell>{g.channel_name || "—"}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1 max-w-[180px]">
@@ -653,14 +672,16 @@ function GroupsTab() {
                     placeholder="例如：行銷團隊群組"
                   />
                 </div>
-                <div>
-                  <Label>groupId</Label>
-                  <Input
-                    value={form.target_id}
-                    onChange={(e) => setForm({ ...form, target_id: e.target.value })}
-                    placeholder="C..."
-                  />
-                </div>
+                {!hideGroupId && (
+                  <div>
+                    <Label>groupId</Label>
+                    <Input
+                      value={form.target_id}
+                      onChange={(e) => setForm({ ...form, target_id: e.target.value })}
+                      placeholder="C..."
+                    />
+                  </div>
+                )}
               </div>
 
               <div>
