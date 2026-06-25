@@ -625,19 +625,6 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-wrap gap-1 max-w-[160px]">
-                        {g.roles.length === 0 ? (
-                          <span className="text-muted-foreground text-xs">—</span>
-                        ) : (
-                          g.roles.map((r) => (
-                            <Badge key={r} variant="secondary" className="text-xs">
-                              {r}
-                            </Badge>
-                          ))
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
                       <Badge variant={g.is_active ? "default" : "outline"}>
                         {g.is_active ? "啟用" : "停用"}
                       </Badge>
