@@ -579,7 +579,7 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
             <TableBody>
               {list.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={hideGroupId ? 7 : 8} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={hideGroupId ? 6 : 7} className="text-center text-muted-foreground py-8">
                     尚無群組，請將 OA 加入 LINE 群組以自動建立
                   </TableCell>
                 </TableRow>
