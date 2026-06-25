@@ -715,7 +715,17 @@ export default function TeamOrders() {
     if (!editOrder) return;
     setSaving(true);
     try {
-      const payload = {
+      // Decide whether 分潤基準金額 changed → bump confirmed_by / confirmed_at
+      const prevTcp =
+        editOrder.meta?.team_commission_price ?? editOrder.final_price ?? null;
+      const newTcpRaw = form.team_commission_price;
+      const newTcp =
+        newTcpRaw === null || newTcpRaw === undefined || (newTcpRaw as any) === ""
+          ? null
+          : Number(newTcpRaw);
+      const tcpChanged = Number(prevTcp ?? NaN) !== Number(newTcp ?? NaN);
+
+      const payload: Record<string, any> = {
         order_id: editOrder.id,
         accommodation_id: editOrder.accommodation_id,
         closer_id: form.closer_id,
@@ -741,7 +751,12 @@ export default function TeamOrders() {
         addon_amount: form.addon_amount ?? 0,
         nickname: form.nickname ?? null,
         deposit_confirm_date: form.deposit_confirm_date ?? null,
+        team_commission_price: newTcp,
       };
+      if (tcpChanged) {
+        payload.commission_price_confirmed_by = currentUserId;
+        payload.commission_price_confirmed_at = new Date().toISOString();
+      }
 
       const exists = !!editOrder.meta;
       if (exists) {
