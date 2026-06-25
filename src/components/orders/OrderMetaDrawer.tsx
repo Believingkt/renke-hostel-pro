@@ -434,10 +434,12 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
     if (!orderId) return;
     setSaving(true);
     try {
-      // 抓 accommodation_id
+      // 抓 accommodation_id + 通知所需欄位
       const { data: order, error: orderErr } = await supabase
         .from("orders")
-        .select("accommodation_id")
+        .select(
+          "accommodation_id, order_number, guest_name, accommodation_info:accommodation_id(name)"
+        )
         .eq("id", orderId)
         .maybeSingle();
 
