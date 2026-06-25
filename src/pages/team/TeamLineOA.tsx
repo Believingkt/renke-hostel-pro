@@ -672,14 +672,16 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
                     placeholder="例如：行銷團隊群組"
                   />
                 </div>
-                <div>
-                  <Label>groupId</Label>
-                  <Input
-                    value={form.target_id}
-                    onChange={(e) => setForm({ ...form, target_id: e.target.value })}
-                    placeholder="C..."
-                  />
-                </div>
+                {!hideGroupId && (
+                  <div>
+                    <Label>groupId</Label>
+                    <Input
+                      value={form.target_id}
+                      onChange={(e) => setForm({ ...form, target_id: e.target.value })}
+                      placeholder="C..."
+                    />
+                  </div>
+                )}
               </div>
 
               <div>
