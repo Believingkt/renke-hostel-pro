@@ -551,18 +551,27 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
             )}
 
             {(() => {
-              const tcp = teamCommissionPrice;
-              const fp = finalPrice;
-              const mismatch =
-                tcp !== null && fp !== null && Number(tcp) !== Number(fp);
-              if (mismatch && !commissionConfirmedBy) {
+              const status = getCommissionStatus({
+                checkOutDate,
+                teamCommissionPrice,
+                finalPrice,
+                confirmedBy: commissionConfirmedBy,
+              });
+              if (status === "locked") {
+                return (
+                  <div className="text-xs text-red-600">
+                    ⛔ 已超過退房日7天，金額不建議任意修改
+                  </div>
+                );
+              }
+              if (status === "mismatch") {
                 return (
                   <div className="text-xs text-orange-600">
                     ⚠️ 訂單金額已變動，務必在退房日+7天內修改並確認分潤基準金額
                   </div>
                 );
               }
-              if (commissionConfirmedBy) {
+              if (status === "confirmed") {
                 return (
                   <div className="text-xs text-muted-foreground">
                     🔔 {commissionConfirmerName ?? "—"} 已於{" "}
