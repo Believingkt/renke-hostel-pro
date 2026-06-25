@@ -8,14 +8,14 @@ const supabase = createClient(
 
 interface PushRequest {
   channel_id?: string;
+  // 直接指定模式：跳過所有篩選，直接推給這些 target_id
   targets?: string[];
-  roles?: string[];
+  // 事件廣播模式：依 event_types 查 line_push_targets
   event_type?: string;
   accommodation_id?: string;
   venue_name?: string;
   message: string;
 }
-
 
 async function pushOne(token: string, to: string, message: string) {
   const r = await fetch("https://api.line.me/v2/bot/message/push", {
@@ -87,41 +87,13 @@ Deno.serve(async (req) => {
     });
   }
 
-  // 2. resolve targets by roles
+  // 2. resolve targets
   const targetSet = new Set<string>();
+
+  // 2a. 直接指定模式 (targets[])：完全跳過篩選
   (body.targets ?? []).forEach((t) => t && targetSet.add(t));
 
-  if (body.roles && body.roles.length > 0) {
-    const { data: roleTargets, error: rtErr } = await supabase
-      .from("line_push_targets")
-      .select("target_id, roles, accommodation_ids, custom_venue_names")
-      .eq("is_active", true)
-      .overlaps("roles", body.roles);
-    if (rtErr) {
-      return new Response(JSON.stringify({ error: rtErr.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    (roleTargets ?? []).forEach((t: any) => {
-      if (!t.target_id) return;
-      const accIds: string[] = t.accommodation_ids ?? [];
-      const venueNames: string[] = t.custom_venue_names ?? [];
-      const isAllVenues = accIds.length === 0 && venueNames.length === 0;
-      const hasVenueFilter = body.accommodation_id || body.venue_name;
-      if (!isAllVenues && hasVenueFilter) {
-        const accMatch = body.accommodation_id && accIds.includes(body.accommodation_id);
-        const venueMatch = body.venue_name && venueNames.includes(body.venue_name);
-        if (!accMatch && !venueMatch) return;
-      } else if (!isAllVenues && !hasVenueFilter) {
-        // target restricted to specific venues but caller didn't specify any → skip
-        return;
-      }
-      targetSet.add(t.target_id);
-    });
-  }
-
-  // 2b. resolve targets by event_type
+  // 2b. 事件廣播模式 (event_type)：用 event_types 篩選 line_push_targets
   if (body.event_type) {
     const { data: evTargets, error: evErr } = await supabase
       .from("line_push_targets")
@@ -147,7 +119,6 @@ Deno.serve(async (req) => {
       targetSet.add(t.target_id);
     });
   }
-
 
   if (targetSet.size === 0) {
     return new Response(
