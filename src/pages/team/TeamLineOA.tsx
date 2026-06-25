@@ -104,18 +104,21 @@ const ROLE_OPTIONS = [
   "venue_manager",
 ];
 
-const TABS = [
-  { value: "channels", label: "OA 設定", icon: Cable },
+const ALL_TABS = [
   { value: "groups", label: "群組管理", icon: Users },
   { value: "members", label: "成員 LINE 帳號", icon: UserCheck },
   { value: "events", label: "事件類型", icon: Tags },
+  { value: "channels", label: "OA 設定", icon: Cable },
 ];
+
+const AM_TAB_VALUES = ["groups", "events"];
 
 export default function TeamLineOA() {
   const navigate = useNavigate();
   const { userId } = useTeam();
   const [authorized, setAuthorized] = useState<boolean | null>(null);
-  const [tab, setTab] = useState("channels");
+  const [isAm, setIsAm] = useState(false);
+  const [tab, setTab] = useState("groups");
 
   useEffect(() => {
     (async () => {
@@ -127,12 +130,22 @@ export default function TeamLineOA() {
       if (!data || data.length === 0) {
         navigate("/team", { replace: true });
       } else {
+        const roles = data.map((r: any) => r.role);
+        const onlyAm =
+          roles.includes("am") &&
+          !roles.includes("super_admin") &&
+          !roles.includes("admin");
+        setIsAm(onlyAm);
         setAuthorized(true);
       }
     })();
   }, [userId, navigate]);
 
   if (!authorized) return null;
+
+  const tabs = isAm
+    ? ALL_TABS.filter((t) => AM_TAB_VALUES.includes(t.value))
+    : ALL_TABS;
 
   return (
     <div className="space-y-6 max-w-6xl">
@@ -142,19 +155,23 @@ export default function TeamLineOA() {
         icon={Cable}
       />
       <Tabs value={tab} onValueChange={setTab}>
-        <ResponsiveTabs tabs={TABS} value={tab} onValueChange={setTab} />
-        <TabsContent value="channels" className="mt-4">
-          <ChannelsTab />
-        </TabsContent>
+        <ResponsiveTabs tabs={tabs} value={tab} onValueChange={setTab} />
         <TabsContent value="groups" className="mt-4">
-          <GroupsTab />
-        </TabsContent>
-        <TabsContent value="members" className="mt-4">
-          <MembersTab />
+          <GroupsTab hideGroupId={isAm} />
         </TabsContent>
         <TabsContent value="events" className="mt-4">
           <EventsTab />
         </TabsContent>
+        {!isAm && (
+          <>
+            <TabsContent value="members" className="mt-4">
+              <MembersTab />
+            </TabsContent>
+            <TabsContent value="channels" className="mt-4">
+              <ChannelsTab />
+            </TabsContent>
+          </>
+        )}
       </Tabs>
     </div>
   );
