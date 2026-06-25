@@ -572,7 +572,6 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
                 <TableHead>使用 OA</TableHead>
                 <TableHead>事件</TableHead>
                 <TableHead>館別</TableHead>
-                <TableHead>角色</TableHead>
                 <TableHead>啟用</TableHead>
                 <TableHead className="w-16">操作</TableHead>
               </TableRow>
@@ -580,7 +579,7 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
             <TableBody>
               {list.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={hideGroupId ? 7 : 8} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={hideGroupId ? 6 : 7} className="text-center text-muted-foreground py-8">
                     尚無群組，請將 OA 加入 LINE 群組以自動建立
                   </TableCell>
                 </TableRow>
@@ -623,19 +622,6 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
                           (g.custom_venue_names ?? []).length === 0 && (
                             <span className="text-muted-foreground text-xs">—</span>
                           )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1 max-w-[160px]">
-                        {g.roles.length === 0 ? (
-                          <span className="text-muted-foreground text-xs">—</span>
-                        ) : (
-                          g.roles.map((r) => (
-                            <Badge key={r} variant="secondary" className="text-xs">
-                              {r}
-                            </Badge>
-                          ))
-                        )}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -786,21 +772,6 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
               </p>
 
 
-              <div>
-                <Label>對應角色（多選）</Label>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {roleOptions.map((r) => (
-                    <Badge
-                      key={r}
-                      variant={form.roles.includes(r) ? "default" : "outline"}
-                      className="cursor-pointer"
-                      onClick={() => toggleItem("roles", r)}
-                    >
-                      {r}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
 
               <div className="flex items-center gap-2">
                 <Switch
