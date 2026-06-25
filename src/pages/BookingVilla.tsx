@@ -119,9 +119,10 @@ const BookingVilla = () => {
       const nav = document.querySelector("[data-mobile-bottom-nav]") as HTMLElement | null;
       if (!nav) return;
       const rect = nav.getBoundingClientRect();
-      const visibleHeight = Math.max(0, window.innerHeight - rect.top);
+      const navIsHidden = nav.classList.contains("translate-y-full");
+      // 跟隨 MobileBottomNav 的 class 狀態，不另用一套 scroll 判斷，避免兩者不同步產生空隙。
       // 微幅重疊 2px，避免 Safari 位移/四捨五入時出現白線或空隙。
-      setBottomNavOffset(Math.max(0, Math.round(visibleHeight) - 2));
+      setBottomNavOffset(navIsHidden ? 0 : Math.max(0, Math.round(rect.height) - 2));
     };
 
     const scheduleMeasure = () => {
