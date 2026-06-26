@@ -215,6 +215,60 @@ async function markInternalEmailSent(supabase: any, orderId: string) {
   }
 }
 
+// Send KOL/星探 order LINE push via send-line-push Edge Function. Never throws.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function sendKolLinePush(supabase: any, order: any, isCorrection: boolean) {
+  try {
+    const { name: accommodationName } = await lookupAccommodationInfo(supabase, order.accommodation_id);
+    const sourceMap: Record<string, string> = {
+      kol: "KOL互惠",
+      manual: "現場訂房",
+    };
+    const rawSource = order.order_source ?? "";
+    const sourceLabel = sourceMap[rawSource] ?? rawSource;
+
+    const title = isCorrection ? "🎯 KOL/星探訂單折扣碼修正" : "🎯 KOL/星探訂單通知";
+    const lines = [
+      title,
+      `訂單編號：${order.order_number}`,
+      `館別：${accommodationName}`,
+      `入住日：${order.check_in_date}`,
+      `訂單金額：NT$ ${order.final_price}`,
+      `房客姓名：${order.guest_name}`,
+      `折扣代碼：${order.discount_code ?? ""}`,
+      `來源：${sourceLabel}`,
+    ];
+    if (isCorrection) {
+      lines.push(`新折扣代碼：${order.discount_code ?? ""}`);
+    }
+    const message = lines.join("\n");
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const resp = await fetch(`${supabaseUrl}/functions/v1/send-line-push`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${serviceKey}`,
+        "apikey": serviceKey,
+      },
+      body: JSON.stringify({
+        event_type: "kol_order",
+        accommodation_id: order.accommodation_id,
+        message,
+      }),
+    });
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => "");
+      console.error("[KOL-Webhook] send-line-push failed:", resp.status, text);
+    } else {
+      console.log("[KOL-Webhook] send-line-push ok", isCorrection ? "(correction)" : "(normal)");
+    }
+  } catch (e) {
+    console.error("[KOL-Webhook] sendKolLinePush error:", e);
+  }
+}
+
 // Send webhook notification
 async function sendWebhook(
   webhookUrl: string,
