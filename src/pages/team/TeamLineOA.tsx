@@ -954,28 +954,23 @@ function MembersTab() {
                         )}
                       </TableCell>
                       <TableCell>
-                        {bound ? (
-                          <button
-                            type="button"
-                            className="flex flex-wrap gap-1 max-w-[200px] text-left hover:opacity-80"
-                            onClick={() => openEventEditor(m)}
-                            title="點擊編輯訂閱事件"
-                          >
-                            {events.length === 0 ? (
-                              <span className="text-muted-foreground text-xs underline decoration-dotted">
-                                點擊設定
-                              </span>
-                            ) : (
-                              events.map((c) => (
-                                <Badge key={c} variant="secondary" className="text-xs">
-                                  {evtMap.get(c) ?? c}
+                        {(() => {
+                          const caps: { icon: string; label: string }[] = [];
+                          if (m.roles.includes("closer")) caps.push({ icon: "💰", label: "訂單金額異動通知" });
+                          if (m.roles.includes("scout")) caps.push({ icon: "🎯", label: "KOL訂單通知" });
+                          if (caps.length === 0) {
+                            return <span className="text-muted-foreground text-xs">—</span>;
+                          }
+                          return (
+                            <div className="flex flex-wrap gap-1">
+                              {caps.map((c) => (
+                                <Badge key={c.label} variant="secondary" className="text-xs">
+                                  {c.icon} {c.label}
                                 </Badge>
-                              ))
-                            )}
-                          </button>
-                        ) : (
-                          <span className="text-muted-foreground text-xs">—</span>
-                        )}
+                              ))}
+                            </div>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell>
                         {bound ? (
