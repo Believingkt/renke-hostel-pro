@@ -47,6 +47,7 @@ export async function notifyOrderAmountChanged(params: {
       `異動人員：${displayName}`;
 
     // ============ 1. 個人通知：closer 本人 ============
+    let closerLineUserId: string | null = null;
     try {
       const { data: orderRow } = await supabase
         .from("orders")
@@ -71,6 +72,7 @@ export async function notifyOrderAmountChanged(params: {
 
           const lineUserId = closerProfile?.line_user_id;
           if (lineUserId) {
+            closerLineUserId = lineUserId;
             const { error: directErr } = await supabase.functions.invoke(
               "send-line-push",
               {
@@ -96,12 +98,13 @@ export async function notifyOrderAmountChanged(params: {
       );
     }
 
-    // ============ 2. 群組廣播 ============
+    // ============ 2. 群組廣播（排除已個別推播的 closer，避免重複） ============
     const { error: groupErr } = await supabase.functions.invoke("send-line-push", {
       body: {
         event_type: "order_amount_changed",
         accommodation_id: params.accommodationId ?? undefined,
         message,
+        exclude_targets: closerLineUserId ? [closerLineUserId] : undefined,
       },
     });
     if (groupErr) {

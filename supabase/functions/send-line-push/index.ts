@@ -14,6 +14,8 @@ interface PushRequest {
   event_type?: string;
   accommodation_id?: string;
   venue_name?: string;
+  // 排除清單：最終 target 集合會移除這些 ID（避免重複推播）
+  exclude_targets?: string[];
   message: string;
 }
 
@@ -119,6 +121,9 @@ Deno.serve(async (req) => {
       targetSet.add(t.target_id);
     });
   }
+
+  // 2c. 排除清單
+  (body.exclude_targets ?? []).forEach((t) => t && targetSet.delete(t));
 
   if (targetSet.size === 0) {
     return new Response(
