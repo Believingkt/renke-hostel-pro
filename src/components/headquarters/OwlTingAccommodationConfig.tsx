@@ -55,7 +55,10 @@ interface PricingTemplate {
   accommodation_id: string;
   template_name: string;
   default_package_id: string | null;
+  room_type_id: string | null;
+  weekday_price: number | null;
 }
+
 
 export function OwlTingAccommodationConfig() {
   const [loading, setLoading] = useState(true);
