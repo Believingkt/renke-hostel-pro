@@ -246,17 +246,17 @@ async function sendKolLinePush(
 
     const lines = [
       `${displayName}-新訂單 🏡`,
-      `訂單日期:${fmtDateTime(orderDate)}`,
+      `訂單日期：${fmtDateTime(orderDate)}`,
       `訂單編號:${order.order_number}`,
-      `入住日:${order.check_in_date}`,
-      `入住天數:${nights}天`,
-      `包棟房型:${roomTypeName ?? ""}`,
-      `訂單金額:${order.final_price}`,
-      `訂單姓名:${order.guest_name}`,
-      `折扣代碼:${discountCodeLine}`,
+      `入住日：${order.check_in_date}`,
+      `入住天數：${nights}天`,
+      `包棟房型：${roomTypeName ?? ""}`,
+      `訂單金額：${order.final_price}`,
+      `訂單姓名：${order.guest_name}`,
+      `折扣代碼：${discountCodeLine}`,
     ];
     if (isCorrection) {
-      lines.push(`新折扣代碼:${currentCode}`);
+      lines.push(`新折扣代碼：${currentCode}`);
     }
     const message = lines.join("\n");
 
