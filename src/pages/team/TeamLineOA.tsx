@@ -944,7 +944,7 @@ function MembersTab() {
                 <TableHead>綁定狀態</TableHead>
                 <TableHead>
                   <span className="inline-flex items-center gap-1">
-                    個人化通知能力
+                    個人化通知
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -1009,8 +1009,10 @@ function MembersTab() {
                       <TableCell>
                         {(() => {
                           const caps: { icon: string; label: string }[] = [];
-                          if (m.notificationRoles.includes("closer")) caps.push({ icon: "💰", label: "訂單金額異動通知" });
-                          if (m.notificationRoles.includes("scout")) caps.push({ icon: "🎯", label: "KOL訂單通知" });
+                          if (bound) {
+                            if (m.notificationRoles.includes("closer")) caps.push({ icon: "💰", label: "訂單金額異動通知" });
+                            if (m.notificationRoles.includes("scout")) caps.push({ icon: "🎯", label: "KOL訂單通知" });
+                          }
                           if (caps.length === 0) {
                             return <span className="text-muted-foreground text-xs">—</span>;
                           }
