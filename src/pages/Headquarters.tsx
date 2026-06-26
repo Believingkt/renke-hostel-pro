@@ -867,6 +867,8 @@ const Headquarters = () => {
         case 'health': return '系統健康監控';
         case 'api-keys': return '民宿 API Keys';
         case 'owlting': return '奧丁丁服務帳號';
+        case 'owlting-config': return '奧丁丁物業設定';
+        case 'owlting-push': return '奧丁丁推送監控';
       }
     }
     
