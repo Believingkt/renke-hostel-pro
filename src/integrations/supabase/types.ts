@@ -5723,6 +5723,30 @@ export type Database = {
         }
         Relationships: []
       }
+      performance_notification_sent_log: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          id: string
+          notify_time: string
+          sent_date: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          id?: string
+          notify_time: string
+          sent_date: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          id?: string
+          notify_time?: string
+          sent_date?: string
+        }
+        Relationships: []
+      }
       performance_notification_settings: {
         Row: {
           accommodation_id: string
