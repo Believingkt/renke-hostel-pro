@@ -8,7 +8,7 @@ import {
 import type { ParsedReservation } from "./xml.ts";
 
 function makeReservation(over: Partial<ParsedReservation> = {}): ParsedReservation {
-  return {
+  const base: ParsedReservation = {
     recordId: "1",
     hotelnabeResId: "HN-TEST-1",
     otaResId: "OTA-1",
@@ -21,16 +21,19 @@ function makeReservation(over: Partial<ParsedReservation> = {}): ParsedReservati
     checkOut: "2026-08-02",
     roomTypeCode: 1063,
     ratePlanCode: 1001,
+    guestCounts: [],
     adults: 12,
     children: 0,
     currency: "TWD",
     amountAfterTax: 18000,
+    decimalPlaces: 0,
     taxAmount: 0,
     guestName: "張小明",
     guestPhone: "0912345678",
     guestEmail: "test@example.com",
-    ...over,
+    errors: [],
   };
+  return { ...base, ...over };
 }
 
 const ACC = "8e3e8866-3cb0-4654-91f3-d9b09a543301";
