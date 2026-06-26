@@ -55,7 +55,10 @@ interface PricingTemplate {
   accommodation_id: string;
   template_name: string;
   default_package_id: string | null;
+  room_type_id: string | null;
+  weekday_price: number | null;
 }
+
 
 export function OwlTingAccommodationConfig() {
   const [loading, setLoading] = useState(true);
@@ -75,7 +78,7 @@ export function OwlTingAccommodationConfig() {
       supabase.from("accommodation_owlting_config").select("id, accommodation_id, owlting_hotel_code, sync_enabled, last_successful_sync_at"),
       supabase.from("room_types").select("id, accommodation_id, name, numeric_code").order("display_order"),
       supabase.from("accommodation_packages").select("id, accommodation_id, name, numeric_code, enabled").order("display_order"),
-      supabase.from("pricing_templates").select("id, accommodation_id, template_name, default_package_id").order("display_order"),
+      supabase.from("pricing_templates").select("id, accommodation_id, template_name, default_package_id, room_type_id, weekday_price").order("display_order"),
     ]);
 
     if (accRes.error) toast.error("載入民宿失敗：" + accRes.error.message);
@@ -369,26 +372,48 @@ export function OwlTingAccommodationConfig() {
                             </TableCell>
                           </TableRow>
                         ) : (
-                          tpls.map((t) => {
-                            const unset = !t.default_package_id;
-                            return (
-                              <TableRow
-                                key={t.id}
-                                className={unset ? "bg-amber-50 dark:bg-amber-950/20" : ""}
-                              >
-                                <TableCell>
-                                  <div className="flex items-center gap-2">
-                                    {t.template_name}
-                                    {unset && (
-                                      <Badge variant="destructive" className="gap-1">
-                                        <AlertTriangle className="h-3 w-3" /> 未設定
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <Select
-                                    value={t.default_package_id ?? "none"}
+                          (() => {
+                            const rtName = (id: string | null) =>
+                              rts.find((r) => r.id === id)?.name ?? "未指定房型";
+                            // base label: 房型名稱 · 餐食方案名稱
+                            const baseLabels = new Map<string, string>();
+                            tpls.forEach((t) => {
+                              baseLabels.set(t.id, `${rtName(t.room_type_id)} · ${t.template_name}`);
+                            });
+                            // detect duplicates -> add weekday price suffix
+                            const counts = new Map<string, number>();
+                            baseLabels.forEach((v) => counts.set(v, (counts.get(v) ?? 0) + 1));
+                            const finalLabel = (t: PricingTemplate) => {
+                              const base = baseLabels.get(t.id)!;
+                              if ((counts.get(base) ?? 0) > 1) {
+                                const price = t.weekday_price != null
+                                  ? `平日 NT$${Number(t.weekday_price).toLocaleString()}`
+                                  : "未設平日價";
+                                return `${base} · ${price}`;
+                              }
+                              return base;
+                            };
+                            return tpls.map((t) => {
+                              const unset = !t.default_package_id;
+                              return (
+                                <TableRow
+                                  key={t.id}
+                                  className={unset ? "bg-amber-50 dark:bg-amber-950/20" : ""}
+                                >
+                                  <TableCell>
+                                    <div className="flex items-center gap-2">
+                                      {finalLabel(t)}
+                                      {unset && (
+                                        <Badge variant="destructive" className="gap-1">
+                                          <AlertTriangle className="h-3 w-3" /> 未設定
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Select
+                                      value={t.default_package_id ?? "none"}
+
                                     onValueChange={(v) =>
                                       handleSetDefaultPackage(t.id, v === "none" ? null : v)
                                     }
@@ -409,8 +434,10 @@ export function OwlTingAccommodationConfig() {
                                 </TableCell>
                               </TableRow>
                             );
-                          })
+                          });
+                          })()
                         )}
+
                       </TableBody>
                     </Table>
                   </div>
