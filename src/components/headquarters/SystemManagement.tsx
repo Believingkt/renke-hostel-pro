@@ -36,6 +36,7 @@ import { OwlTingServiceAccountManagement } from "@/components/headquarters/OwlTi
 import { AccommodationOwnersManagement } from "@/components/headquarters/AccommodationOwnersManagement";
 import { OwlTingAliasesEditor } from "@/components/headquarters/OwlTingAliasesEditor";
 import { OwlTingPushMonitor } from "@/components/headquarters/OwlTingPushMonitor";
+import { OwlTingAccommodationConfig } from "@/components/headquarters/OwlTingAccommodationConfig";
 import { SystemHealthMonitor } from "@/components/headquarters/SystemHealthMonitor";
 import { 
   ScrollText,
