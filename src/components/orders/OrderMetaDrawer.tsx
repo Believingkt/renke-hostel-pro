@@ -499,10 +499,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
 
       // 分潤基準金額有變動 → 推 LINE 通知（失敗不影響儲存）
       if (tcpChanged) {
-        const accInfo = (order as any)?.accommodation_info;
-        const accName = Array.isArray(accInfo)
-          ? accInfo[0]?.name
-          : accInfo?.name;
+        const accInfo = null;
         void notifyOrderAmountChanged({
           orderNumber: (order as any)?.order_number ?? "-",
           guestName: (order as any)?.guest_name ?? "-",
