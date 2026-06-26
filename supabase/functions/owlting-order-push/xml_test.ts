@@ -49,6 +49,20 @@ Deno.test("Commit: bare OTA root, CreateDateTime only, no SOAP/wsse", () => {
   // Two RoomStay elements
   const count = (xml.match(/<RoomStay>/g) ?? []).length;
   assertEquals(count, 2);
+  // <Rate> must carry date span + unit attrs (OwlTing 0528 sample)
+  assertStringIncludes(xml, `<Rate UnitMultiplier="1" RateTimeUnit="Day" EffectiveDate="2030-05-01" ExpireDate="2030-05-03">`);
+  const rateCount = (xml.match(/<Rate\s/g) ?? []).length;
+  assertEquals(rateCount, 2);
+});
+
+Deno.test("Modify / Cancel: <Rate> also carries EffectiveDate + ExpireDate", () => {
+  for (const status of ["Modify", "Cancel"] as const) {
+    const xml = buildResNotifRq(order, config, { resStatus: status, echoToken: "E", uniqueId: "ABC12345", nowIso: NOW });
+    assertStringIncludes(xml, `EffectiveDate="2030-05-01"`);
+    assertStringIncludes(xml, `ExpireDate="2030-05-03"`);
+    assertStringIncludes(xml, `UnitMultiplier="1"`);
+    assertStringIncludes(xml, `RateTimeUnit="Day"`);
+  }
 });
 
 Deno.test("Modify: LastModifyDateTime only, no SOAP/wsse", () => {
