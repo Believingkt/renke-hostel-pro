@@ -513,9 +513,17 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       }
 
       onClose();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "儲存失敗";
-      toast.error(msg);
+    } catch (err: any) {
+      console.error("[OrderMetaDrawer] save error:", err);
+      const msg =
+        err?.message ||
+        err?.error_description ||
+        err?.hint ||
+        err?.details ||
+        (typeof err === "string" ? err : null) ||
+        "儲存失敗";
+      const code = err?.code ? `（${err.code}）` : "";
+      toast.error(`儲存失敗：${msg}${code}`);
     } finally {
       setSaving(false);
     }
