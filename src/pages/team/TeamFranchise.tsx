@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTeam } from "@/components/team/TeamContext";
+import {
+  notifyFranchiseExternalOrder,
+  notifyFranchiseInternalOrder,
+} from "@/lib/notifyFranchiseOrder";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -783,10 +787,7 @@ function OrdersTab({
     toast.success("已新增訂單");
     // LINE 推播（失敗不阻斷流程）
     try {
-      const { notifyFranchiseInternalOrder } = await import(
-        "@/lib/notifyFranchiseOrder"
-      );
-      void notifyFranchiseInternalOrder({
+      await notifyFranchiseInternalOrder({
         planName: payload.plan_name,
         customerName: payload.customer_name,
         soldByUserId: payload.sold_by,
@@ -2517,10 +2518,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
     toast.success(editingId ? "已更新" : "已新增");
     if (isInsert) {
       try {
-        const { notifyFranchiseExternalOrder } = await import(
-          "@/lib/notifyFranchiseOrder"
-        );
-        void notifyFranchiseExternalOrder({
+        await notifyFranchiseExternalOrder({
           projectName: payload.project_name,
           customerName: payload.customer_name,
           salesName: payload.sales_name,
