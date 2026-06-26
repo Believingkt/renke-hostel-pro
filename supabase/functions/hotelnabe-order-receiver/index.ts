@@ -174,7 +174,7 @@ interface ProcessFail { ok: false; errorType: string; errorCode: string; errorMe
 type ProcessResult = ProcessOk | ProcessFail;
 
 async function processReservation(
-  admin: ReturnType<typeof createClient>,
+  admin: any,
   r: ParsedReservation,
   rawXml: string,
 ): Promise<ProcessResult> {
@@ -431,7 +431,7 @@ export async function upsertHotelnabeOrderCore(
 
 /** Live-mode wrapper around the Supabase client. */
 export async function upsertHotelnabeOrder(
-  admin: ReturnType<typeof createClient>,
+  admin: any,
   payload: OrderUpsertPayload,
 ): Promise<string | null> {
   const table: OrdersTableLike = {
@@ -512,7 +512,7 @@ function baseLog(
 }
 
 async function writeLog(
-  admin: ReturnType<typeof createClient>,
+  admin: any,
   row: LogRow,
 ): Promise<void> {
   try {
