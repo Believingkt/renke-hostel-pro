@@ -781,6 +781,21 @@ function OrdersTab({
       return;
     }
     toast.success("已新增訂單");
+    // LINE 推播（失敗不阻斷流程）
+    try {
+      const { notifyFranchiseInternalOrder } = await import(
+        "@/lib/notifyFranchiseOrder"
+      );
+      void notifyFranchiseInternalOrder({
+        planName: payload.plan_name,
+        customerName: payload.customer_name,
+        soldByUserId: payload.sold_by,
+        amount: planPrice,
+        soldAt: payload.sold_at,
+      });
+    } catch (notifyErr) {
+      console.error("[franchise internal notify] failed:", notifyErr);
+    }
     setSheetOpen(false);
     setForm({
       member_number: "",
@@ -2488,6 +2503,7 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
     };
     setSaving(true);
     let error;
+    const isInsert = !editingId;
     if (editingId) {
       ({ error } = await supabase.from("franchise_external_orders").update(payload).eq("id", editingId));
     } else {
@@ -2499,6 +2515,23 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
       return;
     }
     toast.success(editingId ? "已更新" : "已新增");
+    if (isInsert) {
+      try {
+        const { notifyFranchiseExternalOrder } = await import(
+          "@/lib/notifyFranchiseOrder"
+        );
+        void notifyFranchiseExternalOrder({
+          projectName: payload.project_name,
+          customerName: payload.customer_name,
+          salesName: payload.sales_name,
+          unitCount: Number(payload.unit_count) || 0,
+          totalAmount: (Number(payload.unit_count) || 0) * (Number(payload.plan_price) || 0),
+          signedAt: payload.signed_at,
+        });
+      } catch (notifyErr) {
+        console.error("[franchise external notify] failed:", notifyErr);
+      }
+    }
     setSheetOpen(false);
     setEditingId(null);
     void load();
