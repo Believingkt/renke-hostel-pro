@@ -215,6 +215,60 @@ async function markInternalEmailSent(supabase: any, orderId: string) {
   }
 }
 
+// Send KOL/星探 order LINE push via send-line-push Edge Function. Never throws.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function sendKolLinePush(supabase: any, order: any, isCorrection: boolean) {
+  try {
+    const { name: accommodationName } = await lookupAccommodationInfo(supabase, order.accommodation_id);
+    const sourceMap: Record<string, string> = {
+      kol: "KOL互惠",
+      manual: "現場訂房",
+    };
+    const rawSource = order.order_source ?? "";
+    const sourceLabel = sourceMap[rawSource] ?? rawSource;
+
+    const title = isCorrection ? "🎯 KOL/星探訂單折扣碼修正" : "🎯 KOL/星探訂單通知";
+    const lines = [
+      title,
+      `訂單編號：${order.order_number}`,
+      `館別：${accommodationName}`,
+      `入住日：${order.check_in_date}`,
+      `訂單金額：NT$ ${order.final_price}`,
+      `房客姓名：${order.guest_name}`,
+      `折扣代碼：${order.discount_code ?? ""}`,
+      `來源：${sourceLabel}`,
+    ];
+    if (isCorrection) {
+      lines.push(`新折扣代碼：${order.discount_code ?? ""}`);
+    }
+    const message = lines.join("\n");
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const resp = await fetch(`${supabaseUrl}/functions/v1/send-line-push`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${serviceKey}`,
+        "apikey": serviceKey,
+      },
+      body: JSON.stringify({
+        event_type: "kol_order",
+        accommodation_id: order.accommodation_id,
+        message,
+      }),
+    });
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => "");
+      console.error("[KOL-Webhook] send-line-push failed:", resp.status, text);
+    } else {
+      console.log("[KOL-Webhook] send-line-push ok", isCorrection ? "(correction)" : "(normal)");
+    }
+  } catch (e) {
+    console.error("[KOL-Webhook] sendKolLinePush error:", e);
+  }
+}
+
 // Send webhook notification
 async function sendWebhook(
   webhookUrl: string,
@@ -485,10 +539,16 @@ Deno.serve(async (req) => {
       } else if (!prevCode && currentCode && !order.internal_email_sent) {
         // Branch 3: was empty, now has value, and never emailed → Type 1
         const r = await sendInternalOrderEmail(supabase, order, roomTypeNameEarly);
-        if (r.success) await markInternalEmailSent(supabase, order.id);
+        if (r.success) {
+          await markInternalEmailSent(supabase, order.id);
+          await sendKolLinePush(supabase, order, false);
+        }
       } else if (prevCode && currentCode && currentCode !== prevCode) {
         // Branch 4: both had values, code changed → Type 2 (correction)
-        await sendDiscountCorrectionEmail(supabase, order, previous_discount_code ?? null, roomTypeNameEarly);
+        const r = await sendDiscountCorrectionEmail(supabase, order, previous_discount_code ?? null, roomTypeNameEarly);
+        if (r.success) {
+          await sendKolLinePush(supabase, order, true);
+        }
         // Do not change internal_email_sent
       } else {
         console.log("[KOL-Webhook] UPDATE: no email branch matched", { prevCode, currentCode, sent: order.internal_email_sent });
@@ -497,7 +557,10 @@ Deno.serve(async (req) => {
       // INSERT branch (default)
       if (currentCode && !isKolSource) {
         const r = await sendInternalOrderEmail(supabase, order, roomTypeNameEarly);
-        if (r.success) await markInternalEmailSent(supabase, order.id);
+        if (r.success) {
+          await markInternalEmailSent(supabase, order.id);
+          await sendKolLinePush(supabase, order, false);
+        }
       } else {
         console.log("[KOL-Webhook] INSERT: skip internal email", { hasCode: !!currentCode, isKolSource });
       }
