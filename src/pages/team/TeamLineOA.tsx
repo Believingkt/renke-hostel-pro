@@ -900,7 +900,21 @@ function MembersTab() {
                 <TableHead>姓名</TableHead>
                 <TableHead>角色</TableHead>
                 <TableHead>綁定狀態</TableHead>
-                <TableHead>訂閱事件</TableHead>
+                <TableHead>
+                  <span className="inline-flex items-center gap-1">
+                    個人化通知能力
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          當您是該訂單的成交人/該折扣碼的負責星探時，系統會自動推播通知給您，無需另外設定
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </span>
+                </TableHead>
                 <TableHead className="w-48">操作</TableHead>
               </TableRow>
             </TableHeader>
