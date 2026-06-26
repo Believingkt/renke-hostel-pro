@@ -576,7 +576,7 @@ Deno.serve(async (req) => {
         const r = await sendInternalOrderEmail(supabase, order, roomTypeNameEarly);
         if (r.success) {
           await markInternalEmailSent(supabase, order.id);
-          await sendKolLinePush(supabase, order, false);
+          await sendKolLinePush(supabase, order, false, roomTypeNameEarly);
         }
       } else {
         console.log("[KOL-Webhook] INSERT: skip internal email", { hasCode: !!currentCode, isKolSource });
