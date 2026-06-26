@@ -164,3 +164,6 @@ verify_jwt = false
 
 [functions.kol-bonus-public]
 verify_jwt = false
+
+[functions.hotelnabe-order-receiver]
+verify_jwt = false
