@@ -234,6 +234,32 @@ Deno.serve(async (req) => {
     for (const s of settings) {
       const accId: string = s.accommodation_id;
       try {
+        // ── Dedup guard：同日同民宿同分鐘只發送一次（test_mode 跳過）──
+        if (!testMode) {
+          const notifyTimeKey = String(s.notify_time || hhmm);
+          const { error: logErr, data: logRow } = await supabase
+            .from("performance_notification_sent_log")
+            .insert({
+              accommodation_id: accId,
+              sent_date: today,
+              notify_time: notifyTimeKey,
+            })
+            .select("id")
+            .maybeSingle();
+          if (logErr) {
+            const code = (logErr as any).code;
+            if (code === "23505") {
+              console.log(`[send-daily-performance] skip dup ${accId} ${today} ${notifyTimeKey}`);
+              results.push({ accommodation_id: accId, ok: true, error: "duplicate_skipped" } as any);
+              continue;
+            }
+            throw logErr;
+          }
+          if (!logRow) {
+            console.log(`[send-daily-performance] skip (no log row) ${accId}`);
+            continue;
+          }
+        }
         // Accommodation name
         const { data: acc } = await supabase
           .from("accommodation_info")
