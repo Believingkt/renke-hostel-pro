@@ -400,10 +400,7 @@ Deno.serve(async (req) => {
       try {
         const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
         const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-        // Reuse sendKolLinePush by capturing fetch response: inline a direct call mirroring it for visibility
-        // Build message via the same helper indirectly: call sendKolLinePush then also do a direct fetch to capture response
-        await sendKolLinePush(supabase, latestOrder, false, roomTypeName);
-        // Additional direct call to surface response detail
+        // Direct call to send-line-push to capture response detail (skip sendKolLinePush to avoid duplicate)
         const { data: acc } = await supabase
           .from("accommodation_info")
           .select("short_name,name")
