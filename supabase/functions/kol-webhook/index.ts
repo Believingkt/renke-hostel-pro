@@ -396,6 +396,55 @@ Deno.serve(async (req) => {
 
       const emailResult = await sendInternalOrderEmail(supabase, latestOrder, roomTypeName);
 
+      let linePushResult: unknown = null;
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+        const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+        // Direct call to send-line-push to capture response detail (skip sendKolLinePush to avoid duplicate)
+        const { data: acc } = await supabase
+          .from("accommodation_info")
+          .select("short_name,name")
+          .eq("id", latestOrder.accommodation_id)
+          .maybeSingle();
+        const shortName = acc?.short_name || acc?.name || "民宿";
+        const orderDate = new Date(latestOrder.order_date || latestOrder.created_at);
+        const fmtDateTime = (d: Date) => {
+          const tw = new Date(d.getTime() + 8 * 3600 * 1000);
+          const y = tw.getUTCFullYear();
+          const mo = String(tw.getUTCMonth() + 1).padStart(2, "0");
+          const da = String(tw.getUTCDate()).padStart(2, "0");
+          const hh = String(tw.getUTCHours()).padStart(2, "0");
+          const mm = String(tw.getUTCMinutes()).padStart(2, "0");
+          return `${y}/${mo}/${da} | ${hh}:${mm}`;
+        };
+        const ci = new Date(latestOrder.check_in_date);
+        const co = new Date(latestOrder.check_out_date);
+        const nights = Math.max(1, Math.round((co.getTime() - ci.getTime()) / 86400000));
+        const message = [
+          `${shortName}-新訂單 🏡`,
+          `訂單日期：${fmtDateTime(orderDate)}`,
+          `訂單編號:${latestOrder.order_number}`,
+          `入住日:${latestOrder.check_in_date}`,
+          `入住天數：${nights}天`,
+          `包棟房型：${roomTypeName ?? "-"}`,
+          `訂單金額：${latestOrder.final_price}`,
+          `訂單姓名：${latestOrder.guest_name}`,
+          `折扣代碼：${latestOrder.discount_code ?? "-"}`,
+        ].join("\n");
+        const r = await fetch(`${supabaseUrl}/functions/v1/send-line-push`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
+          body: JSON.stringify({
+            event_type: "kol_order",
+            accommodation_id: latestOrder.accommodation_id,
+            message,
+          }),
+        });
+        linePushResult = { status: r.status, body: await r.json(), message };
+      } catch (e) {
+        linePushResult = { error: e instanceof Error ? e.message : String(e) };
+      }
+
       return new Response(
         JSON.stringify({
           success: emailResult.success,
@@ -405,6 +454,7 @@ Deno.serve(async (req) => {
           order_number: latestOrder.order_number,
           order_id: latestOrder.id,
           email_result: emailResult,
+          line_push_result: linePushResult,
         }),
         {
           status: emailResult.success ? 200 : 500,
