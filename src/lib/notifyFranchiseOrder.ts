@@ -1,24 +1,47 @@
 import { supabase } from "@/integrations/supabase/client";
 
+const FALLBACK_SHORT_NAME = "特許加盟";
+
 const fmtMoney = (v: number | null | undefined) =>
   v === null || v === undefined || Number.isNaN(Number(v))
     ? "-"
     : `NT$ ${Number(v).toLocaleString()}`;
 
-async function resolveProjectAccommodationId(
+const fmtDate = (v: string | null | undefined) => {
+  if (!v) return "-";
+  const s = String(v).slice(0, 10);
+  return s.includes("-") ? s.replace(/-/g, "/") : s;
+};
+
+/**
+ * 透過 franchise_projects.name 比對取得 accommodation_info.short_name (fallback name)
+ * 若完全找不到對應 project，回傳 null（呼叫端使用「特許加盟」fallback）
+ */
+async function resolveProjectShortName(
   projectName: string | null | undefined,
-): Promise<string | null> {
+): Promise<{ shortName: string | null; accommodationId: string | null }> {
   const name = (projectName ?? "").trim();
-  if (!name) return null;
+  if (!name) return { shortName: null, accommodationId: null };
   try {
-    const { data } = await (supabase as any)
+    const { data: proj } = await (supabase as any)
       .from("franchise_projects")
       .select("accommodation_id")
       .eq("name", name)
       .maybeSingle();
-    return (data?.accommodation_id as string | null) ?? null;
+    const accommodationId = (proj?.accommodation_id as string | null) ?? null;
+    if (!accommodationId) return { shortName: null, accommodationId: null };
+    const { data: info } = await supabase
+      .from("accommodation_info")
+      .select("short_name,name")
+      .eq("id", accommodationId)
+      .maybeSingle();
+    const shortName =
+      (info?.short_name && String(info.short_name).trim()) ||
+      (info?.name && String(info.name).trim()) ||
+      null;
+    return { shortName, accommodationId };
   } catch {
-    return null;
+    return { shortName: null, accommodationId: null };
   }
 }
 
@@ -50,13 +73,18 @@ export async function notifyFranchiseInternalOrder(params: {
       console.error("[notifyFranchiseInternalOrder] profile lookup failed:", err);
     }
 
+    const { shortName, accommodationId } = await resolveProjectShortName(
+      params.planName,
+    );
+    const title = shortName ?? FALLBACK_SHORT_NAME;
+
     const message =
-      `🏢 特許加盟內部銷售通知\n\n` +
+      `${title}-新訂單 💰\n\n` +
+      `成交日期：${fmtDate(params.soldAt)}\n` +
       `專案名稱：${params.planName}\n` +
+      `成交總額：${fmtMoney(params.amount)}\n` +
       `客戶姓名：${params.customerName}\n` +
-      `銷售人員：${soldByName}\n` +
-      `金額：${fmtMoney(params.amount)}\n` +
-      `簽約日期：${params.soldAt ?? "-"}`;
+      `銷售人員：${soldByName}`;
 
     // 1. 個人化推播
     if (soldByLineUserId) {
@@ -73,7 +101,6 @@ export async function notifyFranchiseInternalOrder(params: {
     }
 
     // 2. 群組廣播（排除已個別推播者）
-    const accommodationId = await resolveProjectAccommodationId(params.planName);
     const { error: groupErr } = await supabase.functions.invoke(
       "send-line-push",
       {
@@ -109,18 +136,17 @@ export async function notifyFranchiseExternalOrder(params: {
   signedAt: string | null;
 }) {
   try {
-    const message =
-      `🏢 特許加盟外部銷售通知\n\n` +
-      `專案名稱：${params.projectName}\n` +
-      `會員姓名：${params.customerName}\n` +
-      `開發業務：${params.salesName?.trim() || "未指定"}\n` +
-      `單位數：${params.unitCount}\n` +
-      `總金額：${fmtMoney(params.totalAmount)}\n` +
-      `簽約日期：${params.signedAt ?? "-"}`;
-
-    const accommodationId = await resolveProjectAccommodationId(
+    const { shortName, accommodationId } = await resolveProjectShortName(
       params.projectName,
     );
+    const title = shortName ?? FALLBACK_SHORT_NAME;
+
+    const message =
+      `${title}-新訂單 💰\n\n` +
+      `成交日期：${fmtDate(params.signedAt)}\n` +
+      `專案名稱：${params.projectName}\n` +
+      `成交總額：${fmtMoney(params.totalAmount)}`;
+
     const { error: groupErr } = await supabase.functions.invoke(
       "send-line-push",
       {
