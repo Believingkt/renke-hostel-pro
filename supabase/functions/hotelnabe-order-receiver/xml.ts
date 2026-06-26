@@ -2,7 +2,8 @@
 // Independent module — DO NOT reuse owlting-order-push code.
 // Targets OTA_HotelResNotifRQ V1.0.2 from HotelNabe.
 
-import { XMLParser, XMLBuilder } from "npm:fast-xml-parser@4.4.1";
+// @ts-ignore - esm.sh resolves bundled fast-xml-parser for Deno (no node_modules needed)
+import { XMLParser, XMLBuilder } from "https://esm.sh/fast-xml-parser@4.4.1";
 
 export type ResStatus = "Book" | "Modify" | "Cancel";
 
