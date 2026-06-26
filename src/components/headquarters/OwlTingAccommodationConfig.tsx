@@ -434,8 +434,10 @@ export function OwlTingAccommodationConfig() {
                                 </TableCell>
                               </TableRow>
                             );
-                          })
+                          });
+                          })()
                         )}
+
                       </TableBody>
                     </Table>
                   </div>
