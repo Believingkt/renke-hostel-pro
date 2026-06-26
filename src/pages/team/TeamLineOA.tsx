@@ -921,8 +921,7 @@ function MembersTab() {
               ) : (
                 members.map((m) => {
                   const bound = !!m.line_user_id;
-                  const target = m.line_user_id ? targetsByLineId[m.line_user_id] : undefined;
-                  const events = target?.event_types ?? [];
+                  void m.line_user_id;
                   return (
                     <TableRow key={m.id}>
                       <TableCell className="font-medium">{m.display_name || "—"}</TableCell>
