@@ -217,29 +217,46 @@ async function markInternalEmailSent(supabase: any, orderId: string) {
 
 // Send KOL/星探 order LINE push via send-line-push Edge Function. Never throws.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function sendKolLinePush(supabase: any, order: any, isCorrection: boolean) {
+async function sendKolLinePush(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  order: any,
+  isCorrection: boolean,
+  roomTypeName?: string,
+  previousDiscountCode?: string | null,
+) {
   try {
-    const { name: accommodationName } = await lookupAccommodationInfo(supabase, order.accommodation_id);
-    const sourceMap: Record<string, string> = {
-      kol: "KOL互惠",
-      manual: "現場訂房",
-    };
-    const rawSource = order.order_source ?? "";
-    const sourceLabel = sourceMap[rawSource] ?? rawSource;
+    const { name: accommodationName, short_name: shortName } = await lookupAccommodationInfo(supabase, order.accommodation_id);
+    const displayName = (shortName ?? "").trim() || accommodationName;
 
-    const title = isCorrection ? "🎯 KOL/星探訂單折扣碼修正" : "🎯 KOL/星探訂單通知";
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const toTW = (d: Date) => new Date(d.getTime() + 8 * 60 * 60 * 1000);
+    const fmtDateTime = (d: Date) => {
+      const tw = toTW(d);
+      return `${tw.getUTCFullYear()}/${pad(tw.getUTCMonth() + 1)}/${pad(tw.getUTCDate())} | ${pad(tw.getUTCHours())}:${pad(tw.getUTCMinutes())}`;
+    };
+    const orderDate = order.order_date ? new Date(order.order_date) : (order.created_at ? new Date(order.created_at) : new Date());
+    const checkIn = new Date(order.check_in_date);
+    const checkOut = new Date(order.check_out_date);
+    const nights = Math.max(0, Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)));
+
+    const currentCode = order.discount_code ?? "";
+    const discountCodeLine = isCorrection ? (previousDiscountCode ?? "") : currentCode;
+
     const lines = [
-      title,
-      `訂單編號：${order.order_number}`,
-      `館別：${accommodationName}`,
+      `${displayName}-新訂單 🏡`,
+      `訂單日期：${fmtDateTime(orderDate)}`,
+      `訂單編號:${order.order_number}`,
       `入住日：${order.check_in_date}`,
-      `訂單金額：NT$ ${order.final_price}`,
-      `房客姓名：${order.guest_name}`,
-      `折扣代碼：${order.discount_code ?? ""}`,
-      `來源：${sourceLabel}`,
+      `入住天數：${nights}天`,
+      `包棟房型：${roomTypeName ?? ""}`,
+      `訂單金額：${order.final_price}`,
+      `訂單姓名：${order.guest_name}`,
+      `折扣代碼：${discountCodeLine}`,
     ];
     if (isCorrection) {
-      lines.push(`新折扣代碼：${order.discount_code ?? ""}`);
+      lines.push(`新折扣代碼：${currentCode}`);
     }
     const message = lines.join("\n");
 
@@ -541,13 +558,13 @@ Deno.serve(async (req) => {
         const r = await sendInternalOrderEmail(supabase, order, roomTypeNameEarly);
         if (r.success) {
           await markInternalEmailSent(supabase, order.id);
-          await sendKolLinePush(supabase, order, false);
+          await sendKolLinePush(supabase, order, false, roomTypeNameEarly);
         }
       } else if (prevCode && currentCode && currentCode !== prevCode) {
         // Branch 4: both had values, code changed → Type 2 (correction)
         const r = await sendDiscountCorrectionEmail(supabase, order, previous_discount_code ?? null, roomTypeNameEarly);
         if (r.success) {
-          await sendKolLinePush(supabase, order, true);
+          await sendKolLinePush(supabase, order, true, roomTypeNameEarly, previous_discount_code ?? null);
         }
         // Do not change internal_email_sent
       } else {
@@ -559,7 +576,7 @@ Deno.serve(async (req) => {
         const r = await sendInternalOrderEmail(supabase, order, roomTypeNameEarly);
         if (r.success) {
           await markInternalEmailSent(supabase, order.id);
-          await sendKolLinePush(supabase, order, false);
+          await sendKolLinePush(supabase, order, false, roomTypeNameEarly);
         }
       } else {
         console.log("[KOL-Webhook] INSERT: skip internal email", { hasCode: !!currentCode, isKolSource });
