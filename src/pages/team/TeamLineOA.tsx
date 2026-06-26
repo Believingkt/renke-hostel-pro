@@ -759,6 +759,42 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
   );
 }
 
+const ROLE_LABEL: Record<string, string> = {
+  super_admin: "超級管理員",
+  admin: "管理員",
+  am: "AM",
+  scout_manager: "星探主管",
+  franchise_manager: "特許加盟主管",
+  scout: "星探",
+  closer: "成交組",
+  video: "影音組",
+  franchise: "特許加盟內部",
+  franchise_internal: "特許加盟內部",
+  franchise_external: "特許加盟外部",
+  starlink: "星鏈",
+  owner: "屋主",
+  finance: "財務",
+  venue_manager: "場域負責人",
+};
+
+const ROLE_BADGE_CLASS: Record<string, string> = {
+  super_admin: "bg-purple-100 text-purple-700 border-purple-200",
+  admin: "bg-blue-100 text-blue-700 border-blue-200",
+  am: "bg-indigo-100 text-indigo-700 border-indigo-200",
+  scout_manager: "bg-orange-100 text-orange-700 border-orange-200",
+  franchise_manager: "bg-amber-100 text-amber-700 border-amber-200",
+  scout: "bg-orange-100 text-orange-700 border-orange-200",
+  closer: "bg-green-100 text-green-700 border-green-200",
+  video: "bg-cyan-100 text-cyan-700 border-cyan-200",
+  franchise: "bg-amber-100 text-amber-700 border-amber-200",
+  franchise_internal: "bg-amber-100 text-amber-700 border-amber-200",
+  franchise_external: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  starlink: "bg-gray-100 text-gray-700 border-gray-200",
+  owner: "bg-stone-200 text-stone-700 border-stone-300",
+  finance: "bg-red-100 text-red-700 border-red-200",
+  venue_manager: "bg-teal-100 text-teal-700 border-teal-200",
+};
+
 // ============== Members Tab ==============
 function MembersTab() {
   const [members, setMembers] = useState<
