@@ -867,6 +867,8 @@ const Headquarters = () => {
         case 'health': return '系統健康監控';
         case 'api-keys': return '民宿 API Keys';
         case 'owlting': return '奧丁丁服務帳號';
+        case 'owlting-config': return '奧丁丁物業設定';
+        case 'owlting-push': return '奧丁丁推送監控';
       }
     }
     
@@ -902,6 +904,8 @@ const Headquarters = () => {
         case 'health': return Activity;
         case 'api-keys': return FileText;
         case 'owlting': return Plug;
+        case 'owlting-config': return Plug;
+        case 'owlting-push': return Activity;
       }
     }
     
@@ -937,6 +941,8 @@ const Headquarters = () => {
         case 'health': return '監控 Edge Function、資料庫與外部服務的健康狀況';
         case 'api-keys': return '為各民宿產生 API 金鑰，供其後端系統呼叫';
         case 'owlting': return '管理奧丁丁通路 SOAP API 共用的 WS-Security 服務帳號';
+        case 'owlting-config': return '管理各物業的奧丁丁 Hotel Code、訂單即時同步開關，並檢視房型 / 方案代碼與價格範本對應';
+        case 'owlting-push': return '監控奧丁丁訂單推送佇列、成功率與失敗紀錄';
       }
     }
     
