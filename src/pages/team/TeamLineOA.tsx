@@ -41,9 +41,11 @@ import {
   X,
   ChevronsUpDown,
   Check,
+  Info,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type LineChannel = {
   id: string;
