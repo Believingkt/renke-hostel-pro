@@ -904,6 +904,8 @@ const Headquarters = () => {
         case 'health': return Activity;
         case 'api-keys': return FileText;
         case 'owlting': return Plug;
+        case 'owlting-config': return Plug;
+        case 'owlting-push': return Activity;
       }
     }
     
