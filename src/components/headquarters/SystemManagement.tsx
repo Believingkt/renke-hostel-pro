@@ -889,6 +889,10 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
           <OwlTingServiceAccountManagement />
         </TabsContent>
 
+        <TabsContent value="owlting-config" className="space-y-4">
+          <OwlTingAccommodationConfig />
+        </TabsContent>
+
         <TabsContent value="owlting-push" className="space-y-4">
           <OwlTingPushMonitor />
         </TabsContent>
