@@ -258,11 +258,50 @@ export type Database = {
           },
         ]
       }
+      accommodation_hotelnabe_config: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          hotelnabe_hotel_code: string
+          id: string
+          inbound_enabled: boolean
+          last_received_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          hotelnabe_hotel_code: string
+          id?: string
+          inbound_enabled?: boolean
+          last_received_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          hotelnabe_hotel_code?: string
+          id?: string
+          inbound_enabled?: boolean
+          last_received_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodation_hotelnabe_config_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: true
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accommodation_info: {
         Row: {
           address: string | null
           booking_type: string
           building_count: number
+          channel_manager: string
           check_in_notice: string | null
           child_age_rules: Json
           country: string | null
@@ -354,6 +393,7 @@ export type Database = {
           address?: string | null
           booking_type?: string
           building_count?: number
+          channel_manager?: string
           check_in_notice?: string | null
           child_age_rules?: Json
           country?: string | null
@@ -445,6 +485,7 @@ export type Database = {
           address?: string | null
           booking_type?: string
           building_count?: number
+          channel_manager?: string
           check_in_notice?: string | null
           child_age_rules?: Json
           country?: string | null
@@ -3156,6 +3197,68 @@ export type Database = {
         }
         Relationships: []
       }
+      hotelnabe_order_inbound_log: {
+        Row: {
+          created_at: string
+          echo_token: string | null
+          error_message: string | null
+          hotelnabe_hotel_code: string | null
+          hotelnabe_res_id: string | null
+          http_status: number | null
+          id: string
+          mode: string | null
+          ota_code: string | null
+          ota_res_id: string | null
+          parsed_order_id: string | null
+          request_xml: string | null
+          res_status: string | null
+          response_xml: string | null
+          success: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          echo_token?: string | null
+          error_message?: string | null
+          hotelnabe_hotel_code?: string | null
+          hotelnabe_res_id?: string | null
+          http_status?: number | null
+          id?: string
+          mode?: string | null
+          ota_code?: string | null
+          ota_res_id?: string | null
+          parsed_order_id?: string | null
+          request_xml?: string | null
+          res_status?: string | null
+          response_xml?: string | null
+          success?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          echo_token?: string | null
+          error_message?: string | null
+          hotelnabe_hotel_code?: string | null
+          hotelnabe_res_id?: string | null
+          http_status?: number | null
+          id?: string
+          mode?: string | null
+          ota_code?: string | null
+          ota_res_id?: string | null
+          parsed_order_id?: string | null
+          request_xml?: string | null
+          res_status?: string | null
+          response_xml?: string | null
+          success?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotelnabe_order_inbound_log_parsed_order_id_fkey"
+            columns: ["parsed_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kol_blocked_dates: {
         Row: {
           accommodation_id: string
@@ -4479,6 +4582,9 @@ export type Database = {
           guest_name: string
           guest_nationality: string | null
           guest_phone: string
+          hotelnabe_last_modify: string | null
+          hotelnabe_res_id: string | null
+          hotelnabe_sync_state: Json | null
           id: string
           idempotency_key: string | null
           import_project: string | null
@@ -4548,6 +4654,9 @@ export type Database = {
           guest_name: string
           guest_nationality?: string | null
           guest_phone: string
+          hotelnabe_last_modify?: string | null
+          hotelnabe_res_id?: string | null
+          hotelnabe_sync_state?: Json | null
           id?: string
           idempotency_key?: string | null
           import_project?: string | null
@@ -4617,6 +4726,9 @@ export type Database = {
           guest_name?: string
           guest_nationality?: string | null
           guest_phone?: string
+          hotelnabe_last_modify?: string | null
+          hotelnabe_res_id?: string | null
+          hotelnabe_sync_state?: Json | null
           id?: string
           idempotency_key?: string | null
           import_project?: string | null
