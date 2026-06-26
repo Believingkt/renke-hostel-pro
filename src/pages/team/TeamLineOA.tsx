@@ -939,17 +939,29 @@ function MembersTab() {
                     <TableRow key={m.id}>
                       <TableCell className="font-medium">{m.display_name || "—"}</TableCell>
                       <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {m.roles.length === 0 ? (
-                            <span className="text-muted-foreground text-xs">—</span>
-                          ) : (
-                            m.roles.map((r, i) => (
-                              <Badge key={i} variant="secondary" className="text-xs">
-                                {r}
-                              </Badge>
-                            ))
-                          )}
-                        </div>
+                        {(() => {
+                          const visibleRoles = bound
+                            ? m.roles.filter(
+                                (r) => r !== "hotel_admin" && r !== "super_admin",
+                              )
+                            : [];
+                          if (visibleRoles.length === 0) {
+                            return <span className="text-muted-foreground text-xs">—</span>;
+                          }
+                          return (
+                            <div className="flex flex-wrap gap-1">
+                              {visibleRoles.map((r, i) => (
+                                <Badge
+                                  key={i}
+                                  variant="outline"
+                                  className={`text-xs ${ROLE_BADGE_CLASS[r as keyof typeof ROLE_BADGE_CLASS] ?? ""}`}
+                                >
+                                  {ROLE_LABEL[r as keyof typeof ROLE_LABEL] ?? r}
+                                </Badge>
+                              ))}
+                            </div>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell>
                         {bound ? (
