@@ -14,6 +14,8 @@ interface PushRequest {
   event_type?: string;
   accommodation_id?: string;
   venue_name?: string;
+  // 排除清單：最終 target 集合會移除這些 ID（避免重複推播）
+  exclude_targets?: string[];
   message: string;
 }
 
