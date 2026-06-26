@@ -174,7 +174,7 @@ interface ProcessFail { ok: false; errorType: string; errorCode: string; errorMe
 type ProcessResult = ProcessOk | ProcessFail;
 
 async function processReservation(
-  admin: ReturnType<typeof createClient>,
+  admin: any,
   r: ParsedReservation,
   rawXml: string,
 ): Promise<ProcessResult> {
@@ -300,7 +300,9 @@ async function processReservation(
   return { ok: true, uniqueId: orderId ?? undefined };
 }
 
-// ─── Order payload + upsert (scaffold — NOT called in dryrun) ───────
+// ─── Order payload + upsert ─────────────────────────────────────────
+// Aligned with public.orders schema (Lovable Cloud).
+// NOT NULL fields filled with safe defaults when source is missing.
 
 interface BuildPayloadInput {
   reservation: ParsedReservation;
@@ -309,11 +311,51 @@ interface BuildPayloadInput {
   packageId: string | null;
 }
 
-export function buildOrderPayload(input: BuildPayloadInput) {
+export interface OrderUpsertPayload {
+  // identifiers / source
+  order_source: "hotelnabe";
+  ota_channel: "hotelnabe";
+  hotelnabe_res_id: string | null;
+  hotelnabe_last_modify: string | null;
+  hotelnabe_sync_state: Record<string, unknown>;
+  // booking
+  accommodation_id: string;
+  room_type_id: string;
+  package_id: string | null;
+  check_in_date: string | null;
+  check_out_date: string | null;
+  guest_count: number;
+  // guest (NOT NULL: guest_name, guest_phone)
+  guest_name: string;
+  guest_phone: string;
+  guest_email: string | null;
+  // pricing (NOT NULL: total_price, final_price)
+  total_price: number;
+  final_price: number;
+  // status
+  order_status: "confirmed" | "cancelled";
+  payment_status: "paid";
+  cancelled_at: string | null;
+  // misc audit
+  notes: string | null;
+}
+
+export function buildOrderPayload(input: BuildPayloadInput): OrderUpsertPayload {
   const r = input.reservation;
-  const status = r.resStatus === "Cancel" ? "cancelled" : "confirmed";
+  const isCancel = r.resStatus === "Cancel";
+  const guestCount = Math.max(1, (r.adults ?? 0) + (r.children ?? 0));
+  const amount = r.amountAfterTax ?? 0;
+
+  const noteLines = [
+    `[HotelNabe] ResID=${r.hotelnabeResId ?? "n/a"}`,
+    r.otaCode ? `OTA=${r.otaCode}` : null,
+    r.otaResId ? `OTAResID=${r.otaResId}` : null,
+    `Adults=${r.adults} Children=${r.children}`,
+  ].filter(Boolean);
+
   return {
-    order_source: "hotelnabe" as const,
+    order_source: "hotelnabe",
+    ota_channel: "hotelnabe",
     hotelnabe_res_id: r.hotelnabeResId,
     hotelnabe_last_modify: r.lastModifyDateTime,
     hotelnabe_sync_state: {
@@ -322,35 +364,108 @@ export function buildOrderPayload(input: BuildPayloadInput) {
       res_status: r.resStatus,
       currency: r.currency,
       tax_amount: r.taxAmount,
+      adults: r.adults,
+      children: r.children,
     },
     accommodation_id: input.accommodationId,
     room_type_id: input.roomTypeId,
     package_id: input.packageId,
     check_in_date: r.checkIn,
     check_out_date: r.checkOut,
-    guests: r.adults + r.children,
-    adults: r.adults,
-    children: r.children,
-    final_price: r.amountAfterTax,
-    customer_name: r.guestName,
-    customer_phone: r.guestPhone,
-    customer_email: r.guestEmail,
-    status,
+    guest_count: guestCount,
+    guest_name: r.guestName?.trim() || "HotelNabe Guest",
+    guest_phone: r.guestPhone?.trim() || "0000000000",
+    guest_email: r.guestEmail,
+    total_price: amount,
+    final_price: amount,
+    order_status: isCancel ? "cancelled" : "confirmed",
+    payment_status: "paid",
+    cancelled_at: isCancel ? new Date().toISOString() : null,
+    notes: noteLines.join(" | "),
   };
 }
 
 /**
- * Idempotent upsert by hotelnabe_res_id.
- * STUB — kept for live mode wiring in a later step.
+ * Minimal client surface so this fn is unit-testable without the full
+ * Supabase JS client.
  */
+export interface OrdersTableLike {
+  // SELECT id, hotelnabe_last_modify WHERE hotelnabe_res_id = ?
+  findByHotelnabeResId(resId: string): Promise<
+    { id: string; hotelnabe_last_modify: string | null } | null
+  >;
+  insert(payload: OrderUpsertPayload): Promise<{ id: string }>;
+  updateById(id: string, patch: Partial<OrderUpsertPayload>): Promise<void>;
+}
+
+/**
+ * Idempotent upsert by hotelnabe_res_id.
+ * - Book / Modify → full overwrite (insert when new, update when existing)
+ * - Cancel → set order_status='cancelled' + cancelled_at on existing row
+ *   (creates a cancelled row if it does not yet exist — defensive)
+ * - Stale guard: caller should already have filtered, but we re-check here.
+ */
+export async function upsertHotelnabeOrderCore(
+  table: OrdersTableLike,
+  payload: OrderUpsertPayload,
+): Promise<{ orderId: string; action: "inserted" | "updated" | "stale_skipped" }> {
+  if (!payload.hotelnabe_res_id) {
+    throw new Error("hotelnabe_res_id required for upsert");
+  }
+  const existing = await table.findByHotelnabeResId(payload.hotelnabe_res_id);
+
+  if (existing) {
+    if (
+      payload.hotelnabe_last_modify &&
+      isOlderThan(payload.hotelnabe_last_modify, existing.hotelnabe_last_modify)
+    ) {
+      return { orderId: existing.id, action: "stale_skipped" };
+    }
+    await table.updateById(existing.id, payload);
+    return { orderId: existing.id, action: "updated" };
+  }
+
+  const inserted = await table.insert(payload);
+  return { orderId: inserted.id, action: "inserted" };
+}
+
+/** Live-mode wrapper around the Supabase client. */
 export async function upsertHotelnabeOrder(
-  _admin: ReturnType<typeof createClient>,
-  _payload: ReturnType<typeof buildOrderPayload>,
+  admin: any,
+  payload: OrderUpsertPayload,
 ): Promise<string | null> {
-  // Intentionally not implemented in this step.
-  // Live wiring will: upsert into public.orders on hotelnabe_res_id with order_source='hotelnabe',
-  // skip if existing.hotelnabe_last_modify is newer.
-  throw new Error("upsertHotelnabeOrder not implemented in dryrun step");
+  const table: OrdersTableLike = {
+    async findByHotelnabeResId(resId) {
+      const { data, error } = await admin
+        .from("orders")
+        .select("id, hotelnabe_last_modify")
+        .eq("hotelnabe_res_id", resId)
+        .maybeSingle();
+      if (error) throw new Error(`orders select failed: ${error.message}`);
+      return data
+        ? { id: data.id as string, hotelnabe_last_modify: data.hotelnabe_last_modify as string | null }
+        : null;
+    },
+    async insert(p) {
+      const { data, error } = await admin
+        .from("orders")
+        .insert(p as unknown as Record<string, unknown>)
+        .select("id")
+        .single();
+      if (error) throw new Error(`orders insert failed: ${error.message}`);
+      return { id: data.id as string };
+    },
+    async updateById(id, patch) {
+      const { error } = await admin
+        .from("orders")
+        .update(patch as unknown as Record<string, unknown>)
+        .eq("id", id);
+      if (error) throw new Error(`orders update failed: ${error.message}`);
+    },
+  };
+
+  const result = await upsertHotelnabeOrderCore(table, payload);
+  return result.orderId;
 }
 
 // ─── Logging ────────────────────────────────────────────────────────
@@ -397,7 +512,7 @@ function baseLog(
 }
 
 async function writeLog(
-  admin: ReturnType<typeof createClient>,
+  admin: any,
   row: LogRow,
 ): Promise<void> {
   try {
