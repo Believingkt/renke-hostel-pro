@@ -1027,41 +1027,6 @@ function MembersTab() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!eventEditor} onOpenChange={(o) => !o && setEventEditor(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              設定訂閱事件：{eventEditor?.member.display_name || "—"}
-            </DialogTitle>
-          </DialogHeader>
-          {eventEditor && (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                勾選此成員的 LINE 帳號要接收哪些類型的個人通知。
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {eventTypes.length === 0 && (
-                  <span className="text-xs text-muted-foreground">尚未設定事件類型</span>
-                )}
-                {eventTypes.map((e) => (
-                  <Badge
-                    key={e.code}
-                    variant={eventEditor.selected.includes(e.code) ? "default" : "outline"}
-                    className="cursor-pointer"
-                    onClick={() => toggleEvt(e.code)}
-                  >
-                    {e.label}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEventEditor(null)}>取消</Button>
-            <Button onClick={saveEvents}>儲存</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Card>
   );
 }
