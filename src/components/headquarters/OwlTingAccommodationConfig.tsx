@@ -78,7 +78,7 @@ export function OwlTingAccommodationConfig() {
       supabase.from("accommodation_owlting_config").select("id, accommodation_id, owlting_hotel_code, sync_enabled, last_successful_sync_at"),
       supabase.from("room_types").select("id, accommodation_id, name, numeric_code").order("display_order"),
       supabase.from("accommodation_packages").select("id, accommodation_id, name, numeric_code, enabled").order("display_order"),
-      supabase.from("pricing_templates").select("id, accommodation_id, template_name, default_package_id").order("display_order"),
+      supabase.from("pricing_templates").select("id, accommodation_id, template_name, default_package_id, room_type_id, weekday_price").order("display_order"),
     ]);
 
     if (accRes.error) toast.error("載入民宿失敗：" + accRes.error.message);
