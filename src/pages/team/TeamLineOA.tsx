@@ -72,7 +72,7 @@ type PushTarget = {
 
 type MemberProfile = {
   id: string;
-  user_id: string;
+  user_id: string | null;
   display_name: string | null;
   line_user_id: string | null;
 };
@@ -762,7 +762,7 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
 // ============== Members Tab ==============
 function MembersTab() {
   const [members, setMembers] = useState<
-    (MemberProfile & { roles: string[] })[]
+    (MemberProfile & { roles: string[]; notificationRoles: string[] })[]
   >([]);
   const [oaId, setOaId] = useState<string | null>(null);
   const [defaultChannelId, setDefaultChannelId] = useState<string | null>(null);
@@ -793,17 +793,29 @@ function MembersTab() {
     setDefaultChannelId((chans?.[0] as any)?.id ?? null);
     setEventTypes((evts ?? []) as EventType[]);
 
-    const userIds = (profiles ?? []).map((p: any) => p.user_id);
+    const userIds = (profiles ?? [])
+      .map((p: any) => p.user_id)
+      .filter((id: unknown): id is string => typeof id === "string" && id.length > 0);
     const roleMap = new Map<string, string[]>();
+    const notificationRoleMap = new Map<string, string[]>();
     if (userIds.length > 0) {
-      const { data: roles } = await supabase
+      const { data: roles, error: rolesError } = await supabase
         .from("user_roles")
-        .select("user_id, role")
+        .select("user_id, role, accommodation_id")
         .in("user_id", userIds);
+      if (rolesError) {
+        toast.error(`讀取成員角色失敗：${rolesError.message}`);
+      }
       (roles ?? []).forEach((r: any) => {
         const arr = roleMap.get(r.user_id) ?? [];
         arr.push(r.role);
         roleMap.set(r.user_id, arr);
+
+        if (r.accommodation_id === null && ["closer", "scout"].includes(r.role)) {
+          const notifyArr = notificationRoleMap.get(r.user_id) ?? [];
+          notifyArr.push(r.role);
+          notificationRoleMap.set(r.user_id, notifyArr);
+        }
       });
     }
 
@@ -831,7 +843,8 @@ function MembersTab() {
     setMembers(
       ((profiles ?? []) as MemberProfile[]).map((m) => ({
         ...m,
-        roles: roleMap.get(m.user_id) ?? [],
+        roles: m.user_id ? roleMap.get(m.user_id) ?? [] : [],
+        notificationRoles: m.user_id ? notificationRoleMap.get(m.user_id) ?? [] : [],
       }))
     );
   };
@@ -948,8 +961,8 @@ function MembersTab() {
                       <TableCell>
                         {(() => {
                           const caps: { icon: string; label: string }[] = [];
-                          if (m.roles.includes("closer")) caps.push({ icon: "💰", label: "訂單金額異動通知" });
-                          if (m.roles.includes("scout")) caps.push({ icon: "🎯", label: "KOL訂單通知" });
+                          if (m.notificationRoles.includes("closer")) caps.push({ icon: "💰", label: "訂單金額異動通知" });
+                          if (m.notificationRoles.includes("scout")) caps.push({ icon: "🎯", label: "KOL訂單通知" });
                           if (caps.length === 0) {
                             return <span className="text-muted-foreground text-xs">—</span>;
                           }
