@@ -881,56 +881,8 @@ function MembersTab() {
     }
   };
 
-  const openEventEditor = (m: MemberProfile) => {
-    if (!m.line_user_id) {
-      toast.error("請先完成綁定");
-      return;
-    }
-    const existing = targetsByLineId[m.line_user_id];
-    setEventEditor({
-      member: m,
-      selected: existing?.event_types ?? [],
-    });
-  };
-
-  const toggleEvt = (code: string) => {
-    if (!eventEditor) return;
-    const arr = eventEditor.selected;
-    const next = arr.includes(code) ? arr.filter((x) => x !== code) : [...arr, code];
-    setEventEditor({ ...eventEditor, selected: next });
-  };
-
-  const saveEvents = async () => {
-    if (!eventEditor) return;
-    const m = eventEditor.member;
-    if (!m.line_user_id) return;
-    const existing = targetsByLineId[m.line_user_id];
-    const payload: any = {
-      target_type: "user",
-      target_id: m.line_user_id,
-      display_name: m.display_name,
-      team_member_id: m.id,
-      event_types: eventEditor.selected,
-      channel_id: existing?.channel_id ?? defaultChannelId,
-      roles: existing?.roles ?? [],
-      accommodation_ids: existing?.accommodation_ids ?? [],
-      custom_venue_names: existing?.custom_venue_names ?? [],
-      is_active: existing?.is_active ?? true,
-    };
-    if (existing?.id) payload.id = existing.id;
-    const { error } = await supabase
-      .from("line_push_targets")
-      .upsert(payload, { onConflict: "target_type,target_id" });
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    toast.success("已儲存訂閱事件");
-    setEventEditor(null);
-    load();
-  };
-
   const evtMap = new Map(eventTypes.map((e) => [e.code, e.label]));
+
 
   return (
     <Card>
