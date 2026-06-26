@@ -769,13 +769,6 @@ function MembersTab() {
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
   const [targetsByLineId, setTargetsByLineId] = useState<Record<string, PushTarget>>({});
   const [linkDialog, setLinkDialog] = useState<{ memberName: string; url: string } | null>(null);
-  const [eventEditor, setEventEditor] = useState<
-    | {
-        member: MemberProfile;
-        selected: string[];
-      }
-    | null
-  >(null);
 
   const load = async () => {
     const [{ data: profiles }, { data: chans }, { data: evts }] = await Promise.all([
