@@ -122,6 +122,9 @@ Deno.serve(async (req) => {
     });
   }
 
+  // 2c. 排除清單
+  (body.exclude_targets ?? []).forEach((t) => t && targetSet.delete(t));
+
   if (targetSet.size === 0) {
     return new Response(
       JSON.stringify({ error: "No targets resolved", sent: 0, results: [] }),
