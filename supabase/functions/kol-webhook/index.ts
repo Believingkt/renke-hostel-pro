@@ -558,13 +558,13 @@ Deno.serve(async (req) => {
         const r = await sendInternalOrderEmail(supabase, order, roomTypeNameEarly);
         if (r.success) {
           await markInternalEmailSent(supabase, order.id);
-          await sendKolLinePush(supabase, order, false);
+          await sendKolLinePush(supabase, order, false, roomTypeNameEarly);
         }
       } else if (prevCode && currentCode && currentCode !== prevCode) {
         // Branch 4: both had values, code changed → Type 2 (correction)
         const r = await sendDiscountCorrectionEmail(supabase, order, previous_discount_code ?? null, roomTypeNameEarly);
         if (r.success) {
-          await sendKolLinePush(supabase, order, true);
+          await sendKolLinePush(supabase, order, true, roomTypeNameEarly, previous_discount_code ?? null);
         }
         // Do not change internal_email_sent
       } else {
