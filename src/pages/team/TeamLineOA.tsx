@@ -41,9 +41,11 @@ import {
   X,
   ChevronsUpDown,
   Check,
+  Info,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type LineChannel = {
   id: string;
@@ -767,13 +769,6 @@ function MembersTab() {
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
   const [targetsByLineId, setTargetsByLineId] = useState<Record<string, PushTarget>>({});
   const [linkDialog, setLinkDialog] = useState<{ memberName: string; url: string } | null>(null);
-  const [eventEditor, setEventEditor] = useState<
-    | {
-        member: MemberProfile;
-        selected: string[];
-      }
-    | null
-  >(null);
 
   const load = async () => {
     const [{ data: profiles }, { data: chans }, { data: evts }] = await Promise.all([
@@ -879,56 +874,8 @@ function MembersTab() {
     }
   };
 
-  const openEventEditor = (m: MemberProfile) => {
-    if (!m.line_user_id) {
-      toast.error("請先完成綁定");
-      return;
-    }
-    const existing = targetsByLineId[m.line_user_id];
-    setEventEditor({
-      member: m,
-      selected: existing?.event_types ?? [],
-    });
-  };
-
-  const toggleEvt = (code: string) => {
-    if (!eventEditor) return;
-    const arr = eventEditor.selected;
-    const next = arr.includes(code) ? arr.filter((x) => x !== code) : [...arr, code];
-    setEventEditor({ ...eventEditor, selected: next });
-  };
-
-  const saveEvents = async () => {
-    if (!eventEditor) return;
-    const m = eventEditor.member;
-    if (!m.line_user_id) return;
-    const existing = targetsByLineId[m.line_user_id];
-    const payload: any = {
-      target_type: "user",
-      target_id: m.line_user_id,
-      display_name: m.display_name,
-      team_member_id: m.id,
-      event_types: eventEditor.selected,
-      channel_id: existing?.channel_id ?? defaultChannelId,
-      roles: existing?.roles ?? [],
-      accommodation_ids: existing?.accommodation_ids ?? [],
-      custom_venue_names: existing?.custom_venue_names ?? [],
-      is_active: existing?.is_active ?? true,
-    };
-    if (existing?.id) payload.id = existing.id;
-    const { error } = await supabase
-      .from("line_push_targets")
-      .upsert(payload, { onConflict: "target_type,target_id" });
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    toast.success("已儲存訂閱事件");
-    setEventEditor(null);
-    load();
-  };
-
   const evtMap = new Map(eventTypes.map((e) => [e.code, e.label]));
+
 
   return (
     <Card>
@@ -946,7 +893,21 @@ function MembersTab() {
                 <TableHead>姓名</TableHead>
                 <TableHead>角色</TableHead>
                 <TableHead>綁定狀態</TableHead>
-                <TableHead>訂閱事件</TableHead>
+                <TableHead>
+                  <span className="inline-flex items-center gap-1">
+                    個人化通知能力
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          當您是該訂單的成交人/該折扣碼的負責星探時，系統會自動推播通知給您，無需另外設定
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </span>
+                </TableHead>
                 <TableHead className="w-48">操作</TableHead>
               </TableRow>
             </TableHeader>
@@ -960,8 +921,7 @@ function MembersTab() {
               ) : (
                 members.map((m) => {
                   const bound = !!m.line_user_id;
-                  const target = m.line_user_id ? targetsByLineId[m.line_user_id] : undefined;
-                  const events = target?.event_types ?? [];
+                  void m.line_user_id;
                   return (
                     <TableRow key={m.id}>
                       <TableCell className="font-medium">{m.display_name || "—"}</TableCell>
@@ -986,28 +946,23 @@ function MembersTab() {
                         )}
                       </TableCell>
                       <TableCell>
-                        {bound ? (
-                          <button
-                            type="button"
-                            className="flex flex-wrap gap-1 max-w-[200px] text-left hover:opacity-80"
-                            onClick={() => openEventEditor(m)}
-                            title="點擊編輯訂閱事件"
-                          >
-                            {events.length === 0 ? (
-                              <span className="text-muted-foreground text-xs underline decoration-dotted">
-                                點擊設定
-                              </span>
-                            ) : (
-                              events.map((c) => (
-                                <Badge key={c} variant="secondary" className="text-xs">
-                                  {evtMap.get(c) ?? c}
+                        {(() => {
+                          const caps: { icon: string; label: string }[] = [];
+                          if (m.roles.includes("closer")) caps.push({ icon: "💰", label: "訂單金額異動通知" });
+                          if (m.roles.includes("scout")) caps.push({ icon: "🎯", label: "KOL訂單通知" });
+                          if (caps.length === 0) {
+                            return <span className="text-muted-foreground text-xs">—</span>;
+                          }
+                          return (
+                            <div className="flex flex-wrap gap-1">
+                              {caps.map((c) => (
+                                <Badge key={c.label} variant="secondary" className="text-xs">
+                                  {c.icon} {c.label}
                                 </Badge>
-                              ))
-                            )}
-                          </button>
-                        ) : (
-                          <span className="text-muted-foreground text-xs">—</span>
-                        )}
+                              ))}
+                            </div>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell>
                         {bound ? (
@@ -1064,41 +1019,6 @@ function MembersTab() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!eventEditor} onOpenChange={(o) => !o && setEventEditor(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              設定訂閱事件：{eventEditor?.member.display_name || "—"}
-            </DialogTitle>
-          </DialogHeader>
-          {eventEditor && (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                勾選此成員的 LINE 帳號要接收哪些類型的個人通知。
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {eventTypes.length === 0 && (
-                  <span className="text-xs text-muted-foreground">尚未設定事件類型</span>
-                )}
-                {eventTypes.map((e) => (
-                  <Badge
-                    key={e.code}
-                    variant={eventEditor.selected.includes(e.code) ? "default" : "outline"}
-                    className="cursor-pointer"
-                    onClick={() => toggleEvt(e.code)}
-                  >
-                    {e.label}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEventEditor(null)}>取消</Button>
-            <Button onClick={saveEvents}>儲存</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Card>
   );
 }
