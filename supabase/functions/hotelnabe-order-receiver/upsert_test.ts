@@ -14,6 +14,7 @@ function makeReservation(over: Partial<ParsedReservation> = {}): ParsedReservati
     otaResId: "OTA-1",
     otaCode: "EXPE",
     resStatus: "Book",
+    createDateTime: "2026-06-26T09:00:00+08:00",
     lastModifyDateTime: "2026-06-26T10:00:00+08:00",
     hotelCode: "1886",
     checkIn: "2026-08-01",
