@@ -539,10 +539,16 @@ Deno.serve(async (req) => {
       } else if (!prevCode && currentCode && !order.internal_email_sent) {
         // Branch 3: was empty, now has value, and never emailed → Type 1
         const r = await sendInternalOrderEmail(supabase, order, roomTypeNameEarly);
-        if (r.success) await markInternalEmailSent(supabase, order.id);
+        if (r.success) {
+          await markInternalEmailSent(supabase, order.id);
+          await sendKolLinePush(supabase, order, false);
+        }
       } else if (prevCode && currentCode && currentCode !== prevCode) {
         // Branch 4: both had values, code changed → Type 2 (correction)
-        await sendDiscountCorrectionEmail(supabase, order, previous_discount_code ?? null, roomTypeNameEarly);
+        const r = await sendDiscountCorrectionEmail(supabase, order, previous_discount_code ?? null, roomTypeNameEarly);
+        if (r.success) {
+          await sendKolLinePush(supabase, order, true);
+        }
         // Do not change internal_email_sent
       } else {
         console.log("[KOL-Webhook] UPDATE: no email branch matched", { prevCode, currentCode, sent: order.internal_email_sent });
@@ -551,7 +557,10 @@ Deno.serve(async (req) => {
       // INSERT branch (default)
       if (currentCode && !isKolSource) {
         const r = await sendInternalOrderEmail(supabase, order, roomTypeNameEarly);
-        if (r.success) await markInternalEmailSent(supabase, order.id);
+        if (r.success) {
+          await markInternalEmailSent(supabase, order.id);
+          await sendKolLinePush(supabase, order, false);
+        }
       } else {
         console.log("[KOL-Webhook] INSERT: skip internal email", { hasCode: !!currentCode, isKolSource });
       }
