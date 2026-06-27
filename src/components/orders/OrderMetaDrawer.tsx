@@ -94,6 +94,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [commissionConfirmedAt, setCommissionConfirmedAt] = useState<string | null>(null);
   const [commissionConfirmerName, setCommissionConfirmerName] = useState<string | null>(null);
   const [lastConfirmedCommissionPrice, setLastConfirmedCommissionPrice] = useState<number | null>(null);
+  const [lastConfirmedFinalPrice, setLastConfirmedFinalPrice] = useState<number | null>(null);
   const [canEditCommissionPrice, setCanEditCommissionPrice] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -129,6 +130,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setCommissionConfirmedAt(null);
       setCommissionConfirmerName(null);
       setLastConfirmedCommissionPrice(null);
+      setLastConfirmedFinalPrice(null);
       setNewTrafficSource("");
       setNewBookingMethod("");
     }
@@ -305,6 +307,11 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
             ? null
             : Number(m.last_confirmed_commission_price),
         );
+        setLastConfirmedFinalPrice(
+          (m as any).last_confirmed_final_price === null || (m as any).last_confirmed_final_price === undefined
+            ? null
+            : Number((m as any).last_confirmed_final_price),
+        );
         if (confBy) {
           const { data: confProf } = await supabase
             .from("team_member_profiles")
@@ -324,6 +331,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         setCommissionConfirmedAt(null);
         setCommissionConfirmerName(null);
         setLastConfirmedCommissionPrice(null);
+        setLastConfirmedFinalPrice(null);
         if (uid && closerIds.includes(uid)) {
           // 預設成交人為目前登入者(若身分為 closer)
           setCloserId(uid);
@@ -499,6 +507,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           teamCommissionPrice === null || teamCommissionPrice === undefined
             ? null
             : Number(teamCommissionPrice);
+        payload.last_confirmed_final_price = finalPrice ?? null;
       }
 
 
@@ -611,6 +620,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
                 finalPrice,
                 confirmedBy: commissionConfirmedBy,
                 lastConfirmedCommissionPrice,
+                lastConfirmedFinalPrice,
               });
               if (status === "locked") {
                 return (

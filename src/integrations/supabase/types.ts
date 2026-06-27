@@ -4356,6 +4356,7 @@ export type Database = {
           is_excluded: boolean | null
           kol_commission_only: boolean | null
           last_confirmed_commission_price: number | null
+          last_confirmed_final_price: number | null
           member_number: string | null
           nickname: string | null
           order_id: string
@@ -4391,6 +4392,7 @@ export type Database = {
           is_excluded?: boolean | null
           kol_commission_only?: boolean | null
           last_confirmed_commission_price?: number | null
+          last_confirmed_final_price?: number | null
           member_number?: string | null
           nickname?: string | null
           order_id: string
@@ -4426,6 +4428,7 @@ export type Database = {
           is_excluded?: boolean | null
           kol_commission_only?: boolean | null
           last_confirmed_commission_price?: number | null
+          last_confirmed_final_price?: number | null
           member_number?: string | null
           nickname?: string | null
           order_id?: string

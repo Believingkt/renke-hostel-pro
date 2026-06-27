@@ -95,6 +95,7 @@ interface MetaRow {
   commission_price_confirmed_by?: string | null;
   commission_price_confirmed_at?: string | null;
   last_confirmed_commission_price?: number | null;
+  last_confirmed_final_price?: number | null;
 }
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -545,7 +546,7 @@ export default function TeamOrders() {
                  scout_commission_rate, closer_commission_rate, exclusion_note,
                  franchise_project, member_number, inquiry_date, voucher_used, voucher_count, addon_note, addon_amount,
                  nickname, deposit_confirm_date,
-                 team_commission_price, commission_price_confirmed_by, commission_price_confirmed_at, last_confirmed_commission_price`
+                 team_commission_price, commission_price_confirmed_by, commission_price_confirmed_at, last_confirmed_commission_price, last_confirmed_final_price`
               )
               .in("order_id", orderIds)
           : Promise.resolve({ data: [], error: null } as any),
@@ -701,6 +702,7 @@ export default function TeamOrders() {
       commission_price_confirmed_by: o.meta?.commission_price_confirmed_by ?? null,
       commission_price_confirmed_at: o.meta?.commission_price_confirmed_at ?? null,
       last_confirmed_commission_price: o.meta?.last_confirmed_commission_price ?? null,
+      last_confirmed_final_price: o.meta?.last_confirmed_final_price ?? null,
     });
     setIsEditing(false);
     setEditOpen(true);
@@ -761,6 +763,7 @@ export default function TeamOrders() {
         payload.commission_price_confirmed_by = currentUserId;
         payload.commission_price_confirmed_at = new Date().toISOString();
         payload.last_confirmed_commission_price = newTcp;
+        payload.last_confirmed_final_price = editOrder.final_price ?? null;
       }
 
       const exists = !!editOrder.meta;
@@ -1007,6 +1010,7 @@ export default function TeamOrders() {
                             finalPrice: o.final_price,
                             confirmedBy: o.meta?.commission_price_confirmed_by,
                             lastConfirmedCommissionPrice: o.meta?.last_confirmed_commission_price ?? null,
+                            lastConfirmedFinalPrice: o.meta?.last_confirmed_final_price ?? null,
                           });
                           const label = getCommissionStatusShortLabel(status);
                           const cls =
@@ -1291,6 +1295,7 @@ export default function TeamOrders() {
                           finalPrice: fp,
                           confirmedBy,
                           lastConfirmedCommissionPrice: form.last_confirmed_commission_price ?? null,
+                          lastConfirmedFinalPrice: form.last_confirmed_final_price ?? null,
                         });
                         if (status === "locked") {
                           return (
