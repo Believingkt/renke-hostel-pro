@@ -2755,22 +2755,28 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
             <div className="grid grid-cols-3 gap-2">
               <div className="space-y-1">
                 <Label>開發業務姓名</Label>
-                <Input
-                  list="ext-sales-names"
-                  value={form.sales_name ?? ""}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    const contact = salesContacts.get(v.trim());
+                <Select
+                  value={form.sales_member_id ?? "__none"}
+                  onValueChange={(v) => {
+                    const id = v === "__none" ? null : v;
+                    const name = id ? (memberById.get(id) ?? "") : "";
+                    const contact = name ? salesContacts.get(name) : undefined;
                     setForm((prev) => ({
                       ...prev,
-                      sales_name: v,
+                      sales_member_id: id,
+                      sales_name: name,
                       ...(contact ? { sales_email: contact.email, sales_phone: contact.phone } : {}),
                     }));
                   }}
-                />
-                <datalist id="ext-sales-names">
-                  {salesNameOptions.map((n) => (<option key={n} value={n} />))}
-                </datalist>
+                >
+                  <SelectTrigger><SelectValue placeholder="請選擇成員" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none">未指定</SelectItem>
+                    {memberOptions.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>{m.display_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <Label>業務 Email</Label>
