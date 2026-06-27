@@ -286,7 +286,7 @@ export default function TeamCommissionStatsTab() {
     setLoading(true);
     try {
       const selectCols =
-        "id, accommodation_id, final_price, order_status, discount_code, order_number, guest_name, check_in_date, order_date, order_source, cancelled_at";
+        "id, accommodation_id, final_price, order_status, discount_code, order_number, guest_name, check_in_date, order_date, confirmed_at, order_source, cancelled_at";
 
       // 分頁抓取以繞過 PostgREST 1000 筆上限
       async function fetchAllPaged(
@@ -308,6 +308,8 @@ export default function TeamCommissionStatsTab() {
         return all;
       }
 
+      // 有效訂單：期間以 COALESCE(confirmed_at, order_date) 為準
+      // → confirmed_at 落在期間，或 confirmed_at 為 null 且 order_date 落在期間
       const validRows = await fetchAllPaged((from, to) => {
         let q = supabase
           .from("orders")
@@ -315,10 +317,15 @@ export default function TeamCommissionStatsTab() {
           .neq("order_status", "cancelled")
           .order("order_date", { ascending: true })
           .range(from, to);
-        if (period.startIso) q = q.gte("order_date", period.startIso);
-        if (period.nextIso) q = q.lt("order_date", period.nextIso);
+        if (period.startIso && period.nextIso) {
+          q = q.or(
+            `and(confirmed_at.gte.${period.startIso},confirmed_at.lt.${period.nextIso}),` +
+              `and(confirmed_at.is.null,order_date.gte.${period.startIso},order_date.lt.${period.nextIso})`,
+          );
+        }
         return q;
       });
+
 
       const cancelField = period.cancelField;
       const cancelRows = await fetchAllPaged((from, to) => {
