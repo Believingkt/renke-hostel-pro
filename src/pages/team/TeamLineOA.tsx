@@ -1084,10 +1084,9 @@ function MembersTab() {
                       <TableCell className="font-medium">{m.display_name || "—"}</TableCell>
                       <TableCell>
                         {(() => {
+                          const HIDDEN_ROLES = new Set(["hotel_admin", "super_admin", "staff"]);
                           const visibleRoles = bound
-                            ? m.roles.filter(
-                                (r) => r !== "hotel_admin" && r !== "super_admin",
-                              )
+                            ? m.roles.filter((r) => !HIDDEN_ROLES.has(r) && ROLE_LABEL[r])
                             : [];
                           if (visibleRoles.length === 0) {
                             return <span className="text-muted-foreground text-xs">—</span>;
@@ -1146,61 +1145,58 @@ function MembersTab() {
                                 </div>
                               )}
                               {isAm && (
-                                <div className="flex items-start gap-2">
-                                  <Badge variant="secondary" className="text-xs shrink-0">
-                                    📊 業績通報訂閱
-                                  </Badge>
-                                  {editing ? (
-                                    <div className="min-w-[240px] flex-1">
-                                      <VenuePicker
-                                        accommodations={accommodations}
-                                        selectedIds={editingAmIds}
-                                        selectedCustom={[]}
-                                        onChangeIds={setEditingAmIds}
-                                        onChangeCustom={() => {}}
-                                      />
-                                      <div className="flex gap-1 mt-1">
-                                        <Button
-                                          size="sm"
-                                          className="h-7 px-2 text-xs"
-                                          onClick={() => saveAmSubscription(m, editingAmIds)}
-                                        >
-                                          儲存
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          className="h-7 px-2 text-xs"
-                                          onClick={() => setEditingAmId(null)}
-                                        >
-                                          取消
-                                        </Button>
-                                      </div>
+                                editing ? (
+                                  <div className="border rounded-md p-2 bg-muted/30">
+                                    <div className="text-xs font-medium mb-1.5">📊 業績通報訂閱館別</div>
+                                    <VenuePicker
+                                      accommodations={accommodations}
+                                      selectedIds={editingAmIds}
+                                      selectedCustom={[]}
+                                      onChangeIds={setEditingAmIds}
+                                      onChangeCustom={() => {}}
+                                    />
+                                    <div className="flex gap-1 mt-2">
+                                      <Button
+                                        size="sm"
+                                        className="h-8 px-3 text-xs"
+                                        onClick={() => saveAmSubscription(m, editingAmIds)}
+                                      >
+                                        儲存
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-8 px-3 text-xs"
+                                        onClick={() => setEditingAmId(null)}
+                                      >
+                                        取消
+                                      </Button>
                                     </div>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setEditingAmId(m.id);
-                                        setEditingAmIds(subscribedIds);
-                                      }}
-                                      className="text-xs text-left hover:underline"
-                                    >
-                                      {!subscribed || subscribedIds.length === 0 ? (
-                                        <span className="text-muted-foreground">未訂閱（點擊設定）</span>
-                                      ) : (
-                                        <span>
-                                          {subscribedIds
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingAmId(m.id);
+                                      setEditingAmIds(subscribedIds);
+                                    }}
+                                    className="w-full flex flex-col items-start gap-1 p-2 rounded-md border border-dashed hover:border-solid hover:bg-muted/40 active:bg-muted/60 transition text-left"
+                                  >
+                                    <Badge variant="secondary" className="text-xs pointer-events-none">
+                                      📊 業績通報訂閱（點擊設定）
+                                    </Badge>
+                                    <span className="text-xs text-muted-foreground break-all">
+                                      {!subscribed || subscribedIds.length === 0
+                                        ? "未訂閱任何館別"
+                                        : subscribedIds
                                             .map(
                                               (id) =>
                                                 accommodations.find((a) => a.id === id)?.name ?? id,
                                             )
                                             .join("、")}
-                                        </span>
-                                      )}
-                                    </button>
-                                  )}
-                                </div>
+                                    </span>
+                                  </button>
+                                )
                               )}
                             </div>
                           );
