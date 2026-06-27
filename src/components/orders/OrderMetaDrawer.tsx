@@ -93,6 +93,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [commissionConfirmedBy, setCommissionConfirmedBy] = useState<string | null>(null);
   const [commissionConfirmedAt, setCommissionConfirmedAt] = useState<string | null>(null);
   const [commissionConfirmerName, setCommissionConfirmerName] = useState<string | null>(null);
+  const [lastConfirmedCommissionPrice, setLastConfirmedCommissionPrice] = useState<number | null>(null);
   const [canEditCommissionPrice, setCanEditCommissionPrice] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -127,6 +128,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setCommissionConfirmedBy(null);
       setCommissionConfirmedAt(null);
       setCommissionConfirmerName(null);
+      setLastConfirmedCommissionPrice(null);
       setNewTrafficSource("");
       setNewBookingMethod("");
     }
@@ -298,6 +300,11 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         setCommissionConfirmedAt(
           (m.commission_price_confirmed_at as string) ?? null,
         );
+        setLastConfirmedCommissionPrice(
+          m.last_confirmed_commission_price === null || m.last_confirmed_commission_price === undefined
+            ? null
+            : Number(m.last_confirmed_commission_price),
+        );
         if (confBy) {
           const { data: confProf } = await supabase
             .from("team_member_profiles")
@@ -316,6 +323,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         setCommissionConfirmedBy(null);
         setCommissionConfirmedAt(null);
         setCommissionConfirmerName(null);
+        setLastConfirmedCommissionPrice(null);
         if (uid && closerIds.includes(uid)) {
           // 預設成交人為目前登入者(若身分為 closer)
           setCloserId(uid);
@@ -487,6 +495,10 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       if (tcpChanged) {
         payload.commission_price_confirmed_by = currentUserId;
         payload.commission_price_confirmed_at = new Date().toISOString();
+        payload.last_confirmed_commission_price =
+          teamCommissionPrice === null || teamCommissionPrice === undefined
+            ? null
+            : Number(teamCommissionPrice);
       }
 
 
@@ -598,6 +610,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
                 teamCommissionPrice,
                 finalPrice,
                 confirmedBy: commissionConfirmedBy,
+                lastConfirmedCommissionPrice,
               });
               if (status === "locked") {
                 return (

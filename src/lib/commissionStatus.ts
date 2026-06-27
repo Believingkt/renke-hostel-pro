@@ -2,8 +2,8 @@
  * 分潤基準金額狀態判斷工具
  * 依照優先順序：
  *   1. 今天 > check_out_date + 7天 → locked
- *   2. team_commission_price != final_price 且 未確認 → mismatch
- *   3. 已確認 → confirmed
+ *   2. team_commission_price !== last_confirmed_commission_price（含 null）→ mismatch
+ *   3. 已有 confirmed_by 且 team_commission_price === last_confirmed_commission_price → confirmed
  *   4. 其他 → none
  */
 export type CommissionStatus = "locked" | "mismatch" | "confirmed" | "none";
@@ -11,10 +11,16 @@ export type CommissionStatus = "locked" | "mismatch" | "confirmed" | "none";
 export function getCommissionStatus(args: {
   checkOutDate: string | null | undefined;
   teamCommissionPrice: number | null | undefined;
-  finalPrice: number | null | undefined;
+  finalPrice?: number | null | undefined;
   confirmedBy: string | null | undefined;
+  lastConfirmedCommissionPrice?: number | null | undefined;
 }): CommissionStatus {
-  const { checkOutDate, teamCommissionPrice, finalPrice, confirmedBy } = args;
+  const {
+    checkOutDate,
+    teamCommissionPrice,
+    confirmedBy,
+    lastConfirmedCommissionPrice,
+  } = args;
 
   if (checkOutDate) {
     const co = new Date(checkOutDate);
@@ -29,11 +35,16 @@ export function getCommissionStatus(args: {
   }
 
   const tcp = teamCommissionPrice;
-  const fp = finalPrice;
-  const mismatch =
-    tcp !== null && tcp !== undefined && fp !== null && fp !== undefined &&
-    Number(tcp) !== Number(fp);
-  if (mismatch && !confirmedBy) return "mismatch";
+  const lcp = lastConfirmedCommissionPrice;
+
+  // 沒有 tcp 視為無金額可比，回 none
+  if (tcp === null || tcp === undefined) return "none";
+
+  // lcp 為 null/undefined → 從未確認過 → mismatch
+  if (lcp === null || lcp === undefined) return "mismatch";
+
+  if (Number(tcp) !== Number(lcp)) return "mismatch";
+
   if (confirmedBy) return "confirmed";
   return "none";
 }
