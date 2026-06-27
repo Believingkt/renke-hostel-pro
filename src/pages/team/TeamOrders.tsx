@@ -431,8 +431,11 @@ export default function TeamOrders() {
       } else if (filters.closerOnly) {
         q = q.not("closer_id", "is", null);
       }
+      // 方案A：成交大師訂單模式下排除「不分潤」訂單，與成交統計 Tab 邏輯一致
+      if (filters.closerOnly) q = q.or("is_excluded.is.null,is_excluded.eq.false");
       if (filters.franchiseProject !== "ALL") q = q.eq("franchise_project", filters.franchiseProject);
       const { data, error } = await q.range(from, from + SIZE - 1);
+
       if (error) throw error;
       const batch = (data ?? []) as Array<{ order_id: string }>;
       for (const r of batch) if (r.order_id) ids.push(r.order_id);
