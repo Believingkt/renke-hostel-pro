@@ -618,9 +618,11 @@ export default function TeamMembers() {
   const displayRoles = (m: MemberRow): TeamRole[] =>
     m.user_id === NORRIS_USER_ID ? m.roles.filter((r) => r !== "super_admin") : m.roles;
 
+  // 特許加盟外部銷售業務不顯示在成員列表（仍寫入 DB 以供發放管理使用）
+  const visibleMembers = members.filter((m) => !displayRoles(m).includes("franchise_external"));
   const filteredMembers = filterRole === "all"
-    ? members
-    : members.filter((m) => displayRoles(m).includes(filterRole));
+    ? visibleMembers
+    : visibleMembers.filter((m) => displayRoles(m).includes(filterRole));
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -761,7 +763,7 @@ export default function TeamMembers() {
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <CardTitle className="text-base">
-              現有成員 ({filterRole === "all" ? members.length : `${filteredMembers.length} / ${members.length}`})
+              現有成員 ({filterRole === "all" ? visibleMembers.length : `${filteredMembers.length} / ${visibleMembers.length}`})
             </CardTitle>
             <div className="flex items-center gap-2">
               {canEditAll && (
