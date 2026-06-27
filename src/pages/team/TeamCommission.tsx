@@ -638,6 +638,15 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
   const [groups, setGroups] = useState<MemberGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [bulkMarking, setBulkMarking] = useState(false);
+  const [expandedMembers, setExpandedMembers] = useState<Set<string>>(new Set());
+  const toggleMember = useCallback((id: string) => {
+    setExpandedMembers((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
 
   const range = useMemo(() => previousMonthRange(year, month), [year, month]);
 
