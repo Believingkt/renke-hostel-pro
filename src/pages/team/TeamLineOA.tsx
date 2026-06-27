@@ -117,7 +117,7 @@ const ALL_TABS = [
   { value: "channels", label: "OA 設定", icon: Cable },
 ];
 
-const AM_TAB_VALUES = ["groups", "events"];
+const AM_TAB_VALUES = ["groups", "events", "members"];
 
 export default function TeamLineOA() {
   const navigate = useNavigate();
@@ -168,11 +168,11 @@ export default function TeamLineOA() {
         <TabsContent value="events" className="mt-4">
           <EventsTab />
         </TabsContent>
+        <TabsContent value="members" className="mt-4">
+          <MembersTab selfUserId={isAm ? userId : null} />
+        </TabsContent>
         {!isAm && (
           <>
-            <TabsContent value="members" className="mt-4">
-              <MembersTab />
-            </TabsContent>
             <TabsContent value="channels" className="mt-4">
               <ChannelsTab />
             </TabsContent>
@@ -834,7 +834,7 @@ const ROLE_BADGE_CLASS: Record<string, string> = {
 };
 
 // ============== Members Tab ==============
-function MembersTab() {
+function MembersTab({ selfUserId = null }: { selfUserId?: string | null }) {
   const [members, setMembers] = useState<
     (MemberProfile & { roles: string[]; notificationRoles: string[] })[]
   >([]);
@@ -848,11 +848,13 @@ function MembersTab() {
   const [linkDialog, setLinkDialog] = useState<{ memberName: string; url: string } | null>(null);
 
   const load = async () => {
+    let profilesQuery = supabase
+      .from("team_member_profiles")
+      .select("id, user_id, display_name, line_user_id")
+      .order("display_name", { ascending: true });
+    if (selfUserId) profilesQuery = profilesQuery.eq("user_id", selfUserId);
     const [{ data: profiles }, { data: chans }, { data: evts }, { data: accs }] = await Promise.all([
-      supabase
-        .from("team_member_profiles")
-        .select("id, user_id, display_name, line_user_id")
-        .order("display_name", { ascending: true }),
+      profilesQuery,
       supabase
         .from("line_oa_channels")
         .select("id, line_oa_id")
