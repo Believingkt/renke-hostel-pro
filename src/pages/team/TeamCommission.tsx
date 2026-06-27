@@ -800,8 +800,9 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
       });
 
 
-      // 3. 撈取已標記紀錄
-      const sourceIds = Array.from(new Set(items.map((i) => i.source_id)));
+      // 3. 撈取已標記紀錄（scout_monthly_payouts 已自帶 payout_status，跳過）
+      const markableItems = items.filter((i) => i.source_table !== "scout_monthly_payouts");
+      const sourceIds = Array.from(new Set(markableItems.map((i) => i.source_id)));
       if (sourceIds.length > 0) {
         const { data: marks } = await supabase
           .from("commission_payout_marks")
@@ -814,7 +815,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
             date: m.payout_date,
           });
         });
-        items.forEach((it) => {
+        markableItems.forEach((it) => {
           const m = markMap.get(it.key);
           if (m) {
             it.paid = m.paid;
@@ -822,6 +823,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           }
         });
       }
+
 
       // 4. 依人分組
       const groupMap = new Map<string, MemberGroup>();
