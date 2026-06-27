@@ -495,6 +495,10 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       if (tcpChanged) {
         payload.commission_price_confirmed_by = currentUserId;
         payload.commission_price_confirmed_at = new Date().toISOString();
+        payload.last_confirmed_commission_price =
+          teamCommissionPrice === null || teamCommissionPrice === undefined
+            ? null
+            : Number(teamCommissionPrice);
       }
 
 
