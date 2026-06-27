@@ -620,6 +620,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
                 finalPrice,
                 confirmedBy: commissionConfirmedBy,
                 lastConfirmedCommissionPrice,
+                lastConfirmedFinalPrice,
               });
               if (status === "locked") {
                 return (
