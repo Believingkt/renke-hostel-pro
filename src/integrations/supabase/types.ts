@@ -2705,6 +2705,8 @@ export type Database = {
           card_status: string | null
           co_sales_bonus: number | null
           co_sales_bonus2: number | null
+          co_sales_member_id: string | null
+          co_sales_member_id2: string | null
           co_sales_name: string | null
           co_sales_name2: string | null
           contract_progress: string | null
@@ -2726,6 +2728,7 @@ export type Database = {
           project_name: string
           sales_bonus: number | null
           sales_email: string | null
+          sales_member_id: string | null
           sales_name: string | null
           sales_phone: string | null
           signed_at: string | null
@@ -2747,6 +2750,8 @@ export type Database = {
           card_status?: string | null
           co_sales_bonus?: number | null
           co_sales_bonus2?: number | null
+          co_sales_member_id?: string | null
+          co_sales_member_id2?: string | null
           co_sales_name?: string | null
           co_sales_name2?: string | null
           contract_progress?: string | null
@@ -2768,6 +2773,7 @@ export type Database = {
           project_name?: string
           sales_bonus?: number | null
           sales_email?: string | null
+          sales_member_id?: string | null
           sales_name?: string | null
           sales_phone?: string | null
           signed_at?: string | null
@@ -2789,6 +2795,8 @@ export type Database = {
           card_status?: string | null
           co_sales_bonus?: number | null
           co_sales_bonus2?: number | null
+          co_sales_member_id?: string | null
+          co_sales_member_id2?: string | null
           co_sales_name?: string | null
           co_sales_name2?: string | null
           contract_progress?: string | null
@@ -2810,6 +2818,7 @@ export type Database = {
           project_name?: string
           sales_bonus?: number | null
           sales_email?: string | null
+          sales_member_id?: string | null
           sales_name?: string | null
           sales_phone?: string | null
           signed_at?: string | null
@@ -2827,7 +2836,29 @@ export type Database = {
           voucher_start_date?: string | null
           voucher_status?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "franchise_external_orders_co_sales_member_id_fkey"
+            columns: ["co_sales_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "franchise_external_orders_co_sales_member_id2_fkey"
+            columns: ["co_sales_member_id2"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "franchise_external_orders_sales_member_id_fkey"
+            columns: ["sales_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_member_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       franchise_monthly_distributions: {
         Row: {
