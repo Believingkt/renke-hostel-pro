@@ -101,7 +101,7 @@ export const TEAM_MENU: TeamMenuItem[] = [
     title: "民宿業績通報",
     url: "/team/notification",
     icon: Bell,
-    allowedRoles: ["super_admin", "admin"],
+    allowedRoles: ["super_admin", "admin", "am"],
   },
   {
     title: "獎金管理",

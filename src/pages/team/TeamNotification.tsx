@@ -150,7 +150,10 @@ const buildDefaultTemplate = (hasFranchise: boolean) =>
 
 export default function TeamNotification() {
   const { roles } = useTeam();
-  const canAccess = roles.includes("super_admin") || roles.includes("admin");
+  const canAccess =
+    roles.includes("super_admin") ||
+    roles.includes("admin") ||
+    roles.includes("am");
 
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [flags, setFlags] = useState<Record<string, FlagsRow>>({});
