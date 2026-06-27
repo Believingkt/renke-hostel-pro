@@ -63,6 +63,7 @@ interface InternalRates {
   tier2_rate: number;
   leader_supplement_rate: number;
   company_rate: number;
+  leader_override_rate: number;
   payout_day: string | null;
 }
 interface ExternalRates {
@@ -615,7 +616,8 @@ function OrdersTab({
         tier1_rate: Number(r.tier1_rate ?? 0.11),
         tier2_rate: Number(r.tier2_rate ?? 0.13),
         leader_supplement_rate: Number(r.leader_supplement_rate ?? 0),
-        company_rate: Number(r.company_rate ?? 0.035),
+        company_rate: Number(r.company_rate ?? 0),
+        leader_override_rate: Number(r.leader_override_rate ?? 0.035),
         payout_day: r.payout_day ?? null,
       });
     }
@@ -703,19 +705,19 @@ function OrdersTab({
   const computeRates = (soldBy: string) => {
     const setting = teamSettings[soldBy];
     const directLeader = setting?.direct_leader_id ?? null;
-    const topLeader = setting?.top_leader_id ?? null;
     const downlineCount = Object.values(teamSettings).filter(
       (t) => t.direct_leader_id === soldBy,
     ).length;
     const base = internalRates?.base_rate ?? 0.1;
     const tier1 = internalRates?.tier1_rate ?? 0.11;
     const tier2 = internalRates?.tier2_rate ?? 0.13;
-    const companyR = internalRates?.company_rate ?? 0.035;
+    const leaderOverride = internalRates?.leader_override_rate ?? 0.035;
     let commission_rate = base;
     if (downlineCount === 1) commission_rate = tier1;
     else if (downlineCount >= 2) commission_rate = tier2;
-    const leader_rate = directLeader ? Math.max(tier2 - commission_rate, 0) : 0;
-    const company_rate = topLeader ? companyR : 0;
+    // 獨立池模型：隊長獎金為固定比例（預設 3.5%），與業務自身階梯無關；公司提撥已停用
+    const leader_rate = directLeader ? leaderOverride : 0;
+    const company_rate = 0;
     return { commission_rate, leader_rate, company_rate, directLeader };
   };
 
@@ -1122,7 +1124,7 @@ function OrdersTab({
                   const r = computeRates(form.sold_by);
                   return (
                     <p>
-                      個人 {fmtRate(r.commission_rate)} ／ 隊長補差額 {fmtRate(r.leader_rate)} ／ 公司 {fmtRate(r.company_rate)}
+                      個人 {fmtRate(r.commission_rate)} ／ 隊長獎金 {fmtRate(r.leader_rate)}
                     </p>
                   );
                 })()}
@@ -1227,13 +1229,9 @@ function OrdersTab({
                 {fmtMoney(detailOrder.commission_amount)}
                 <span className="text-xs text-muted-foreground ml-1">({fmtRate(detailOrder.commission_rate)})</span>
               </DetailRow>
-              <DetailRow label="隊長補差額">
+              <DetailRow label="隊長獎金">
                 {fmtMoney(detailOrder.leader_amount)}
                 <span className="text-xs text-muted-foreground ml-1">({fmtRate(detailOrder.leader_rate)})</span>
-              </DetailRow>
-              <DetailRow label="公司提撥">
-                {fmtMoney(detailOrder.company_amount)}
-                <span className="text-xs text-muted-foreground ml-1">({fmtRate(detailOrder.company_rate)})</span>
               </DetailRow>
               <DetailRow label="成交日期">
                 {detailEditing ? (
@@ -1384,7 +1382,7 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
     base_rate: 10,
     tier1_rate: 11,
     tier2_rate: 13,
-    company_rate: 3.5,
+    leader_override_rate: 3.5,
     payout_day: "10",
     effective_from: new Date().toISOString().slice(0, 10),
   });
@@ -1437,7 +1435,8 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
       tier1_rate: internalForm.tier1_rate / 100,
       tier2_rate: internalForm.tier2_rate / 100,
       leader_supplement_rate: 0,
-      company_rate: internalForm.company_rate / 100,
+      company_rate: 0,
+      leader_override_rate: internalForm.leader_override_rate / 100,
       payout_day: "10",
       effective_from: internalForm.effective_from,
     };
@@ -1473,7 +1472,7 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
         base_rate: parseFloat((Number(latestInternal.base_rate ?? 0.1) * 100).toFixed(4)),
         tier1_rate: parseFloat((Number(latestInternal.tier1_rate ?? 0.11) * 100).toFixed(4)),
         tier2_rate: parseFloat((Number(latestInternal.tier2_rate ?? 0.13) * 100).toFixed(4)),
-        company_rate: parseFloat((Number(latestInternal.company_rate ?? 0.035) * 100).toFixed(4)),
+        leader_override_rate: parseFloat((Number((latestInternal as any).leader_override_rate ?? 0.035) * 100).toFixed(4)),
         payout_day: latestInternal.payout_day ?? "10",
         effective_from: new Date().toISOString().slice(0, 10),
       });
@@ -1533,7 +1532,7 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
                   <div><span className="text-muted-foreground">個人基本比例：</span>{fmtRate(latestInternal.base_rate)}</div>
                   <div><span className="text-muted-foreground">帶 1 人比例：</span>{fmtRate(latestInternal.tier1_rate)}</div>
                   <div><span className="text-muted-foreground">帶 2 人以上：</span>{fmtRate(latestInternal.tier2_rate)}</div>
-                  <div><span className="text-muted-foreground">公司提撥：</span>{fmtRate(latestInternal.company_rate)}</div>
+                  <div><span className="text-muted-foreground">隊長獎金：</span>{fmtRate((latestInternal as any).leader_override_rate ?? 0.035)}</div>
                 </div>
               </div>
               {internalRows.length > 1 && (
@@ -1546,7 +1545,7 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
                         <TableHead className="text-right">個人</TableHead>
                         <TableHead className="text-right">帶1人</TableHead>
                         <TableHead className="text-right">帶2人+</TableHead>
-                        <TableHead className="text-right">公司</TableHead>
+                        <TableHead className="text-right">隊長獎金</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1556,7 +1555,7 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
                           <TableCell className="text-right tabular-nums">{fmtRate(r.base_rate)}</TableCell>
                           <TableCell className="text-right tabular-nums">{fmtRate(r.tier1_rate)}</TableCell>
                           <TableCell className="text-right tabular-nums">{fmtRate(r.tier2_rate)}</TableCell>
-                          <TableCell className="text-right tabular-nums">{fmtRate(r.company_rate)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{fmtRate((r as any).leader_override_rate ?? 0.035)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -1665,9 +1664,9 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
                   onChange={(e) => setInternalForm({ ...internalForm, tier2_rate: Number(e.target.value) || 0 })} />
               </div>
               <div className="space-y-1">
-                <Label>公司提撥比例 (%)</Label>
-                <Input type="number" step="0.1" value={internalForm.company_rate}
-                  onChange={(e) => setInternalForm({ ...internalForm, company_rate: Number(e.target.value) || 0 })} />
+                <Label>隊長獎金比例 (%)</Label>
+                <Input type="number" step="0.1" value={internalForm.leader_override_rate}
+                  onChange={(e) => setInternalForm({ ...internalForm, leader_override_rate: Number(e.target.value) || 0 })} />
               </div>
               <div className="space-y-1">
                 <Label>生效日期</Label>
@@ -1681,7 +1680,7 @@ function SettingsTab({ canManage, visibleCards }: { canManage: boolean; visibleC
             <div>・個人基本比例：無直屬下線時的個人分潤比例</div>
             <div>・帶 1 人比例：有 1 位直屬下線時的個人分潤比例</div>
             <div>・帶 2 人以上：有 2 位以上直屬下線時的個人分潤比例</div>
-            <div>・公司提撥比例：有最上層隊長時，額外提撥給公司的比例</div>
+            <div>・隊長獎金比例：業務有直屬隊長時，固定發放給隊長的比例（與業務階梯無關）</div>
             <div>・新增版本後，舊版本會保留為歷史記錄，新版本立即生效</div>
           </div>
           <DialogFooter>

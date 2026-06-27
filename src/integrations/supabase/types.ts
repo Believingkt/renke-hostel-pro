@@ -2653,6 +2653,7 @@ export type Database = {
           created_by: string | null
           effective_from: string
           id: string
+          leader_override_rate: number
           leader_supplement_rate: number | null
           payout_day: string | null
           project_name: string
@@ -2670,6 +2671,7 @@ export type Database = {
           created_by?: string | null
           effective_from?: string
           id?: string
+          leader_override_rate?: number
           leader_supplement_rate?: number | null
           payout_day?: string | null
           project_name?: string
@@ -2687,6 +2689,7 @@ export type Database = {
           created_by?: string | null
           effective_from?: string
           id?: string
+          leader_override_rate?: number
           leader_supplement_rate?: number | null
           payout_day?: string | null
           project_name?: string
