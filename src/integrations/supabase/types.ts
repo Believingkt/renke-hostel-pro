@@ -8166,6 +8166,12 @@ export type Database = {
           webhook_url: string
         }[]
       }
+      get_franchise_external_member_ids: {
+        Args: never
+        Returns: {
+          profile_id: string
+        }[]
+      }
       get_public_discount_code_info:
         | {
             Args: { p_accommodation_id: string; p_code: string }
