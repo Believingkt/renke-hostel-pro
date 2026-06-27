@@ -512,11 +512,17 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
       custom_venue_names: form.custom_venue_names,
       is_active: form.is_active,
     };
-    if (form.id) payload.id = form.id;
-
-    const { error } = await supabase
-      .from("line_push_targets")
-      .upsert(payload, { onConflict: form.id ? "id" : "target_type,target_id" });
+    // 允許同一個 (target_type, target_id) 有多筆訂閱規則
+    // → 沒有 id 時直接 insert（建立新訂閱規則），有 id 時 update（修改該筆）
+    let error;
+    if (form.id) {
+      ({ error } = await supabase
+        .from("line_push_targets")
+        .update(payload)
+        .eq("id", form.id));
+    } else {
+      ({ error } = await supabase.from("line_push_targets").insert(payload));
+    }
     if (error) toast.error(error.message);
     else {
       toast.success("已儲存");
