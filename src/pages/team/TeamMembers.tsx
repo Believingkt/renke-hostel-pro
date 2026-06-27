@@ -763,7 +763,7 @@ export default function TeamMembers() {
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <CardTitle className="text-base">
-              現有成員 ({filterRole === "all" ? members.length : `${filteredMembers.length} / ${members.length}`})
+              現有成員 ({filterRole === "all" ? visibleMembers.length : `${filteredMembers.length} / ${visibleMembers.length}`})
             </CardTitle>
             <div className="flex items-center gap-2">
               {canEditAll && (
