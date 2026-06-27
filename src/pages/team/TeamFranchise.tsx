@@ -2522,6 +2522,9 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
       co_sales_bonus: form.co_sales_bonus == null || form.co_sales_bonus === ("" as never) ? null : Number(form.co_sales_bonus),
       co_sales_name2: form.co_sales_name2?.trim() || null,
       co_sales_bonus2: form.co_sales_bonus2 == null || form.co_sales_bonus2 === ("" as never) ? null : Number(form.co_sales_bonus2),
+      sales_member_id: form.sales_member_id || null,
+      co_sales_member_id: form.co_sales_member_id || null,
+      co_sales_member_id2: form.co_sales_member_id2 || null,
       notes: form.notes?.trim() || null,
     };
     setSaving(true);
