@@ -128,6 +128,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setCommissionConfirmedBy(null);
       setCommissionConfirmedAt(null);
       setCommissionConfirmerName(null);
+      setLastConfirmedCommissionPrice(null);
       setNewTrafficSource("");
       setNewBookingMethod("");
     }
