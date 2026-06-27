@@ -35,6 +35,21 @@ async function pushOne(token: string, to: string, message: string) {
   return { ok: r.ok, status: r.status, body: text };
 }
 
+async function sha256Hex(input: string): Promise<string> {
+  const buf = new TextEncoder().encode(input);
+  const digest = await crypto.subtle.digest("SHA-256", buf);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function currentMinuteBucket(): string {
+  // YYYY-MM-DD HH:MM (UTC)
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -127,14 +142,51 @@ Deno.serve(async (req) => {
 
   if (targetSet.size === 0) {
     return new Response(
-      JSON.stringify({ error: "No targets resolved", sent: 0, results: [] }),
+      JSON.stringify({ error: "No targets resolved", sent: 0, results: [], deduped: 0 }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 
-  // 3. push
-  const results: Array<{ target: string; ok: boolean; status: number; body: string }> = [];
+  // 3. 計算 dedup key（message hash + 分鐘 bucket）
+  const messageHash = await sha256Hex(body.message);
+  const minuteBucket = currentMinuteBucket();
+
+  // 4. push（每個 target 先嘗試寫 dedup log，撞 UNIQUE 則跳過）
+  const results: Array<{ target: string; ok: boolean; status: number; body: string; deduped?: boolean }> = [];
+  const dedupedTargets: string[] = [];
+
   for (const to of targetSet) {
+    // 4a. 嘗試插入 dedup log
+    const { error: dedupErr } = await supabase
+      .from("line_push_dedup_log")
+      .insert({
+        target_id: to,
+        message_hash: messageHash,
+        minute_bucket: minuteBucket,
+      });
+
+    if (dedupErr) {
+      const code = (dedupErr as any).code;
+      if (code === "23505") {
+        // 同一分鐘內、同一對象、同一訊息已推過 → 跳過
+        console.log(
+          `[send-line-push] DEDUPED target=${to} hash=${messageHash.slice(0, 12)} bucket=${minuteBucket}`,
+        );
+        dedupedTargets.push(to);
+        results.push({
+          target: to,
+          ok: true,
+          status: 0,
+          body: "deduped (duplicate within same minute)",
+          deduped: true,
+        });
+        continue;
+      }
+      // 其他錯誤（例如 DB 暫時不可用）→ 為保險起見仍嘗試推播，但記錄
+      console.error(`[send-line-push] dedup log insert error for ${to}:`, dedupErr);
+    }
+
+    // 4b. 正常推播
     try {
       const r = await pushOne(channel.channel_access_token, to, body.message);
       results.push({ target: to, ...r });
@@ -143,13 +195,16 @@ Deno.serve(async (req) => {
     }
   }
 
-  const success = results.filter((r) => r.ok).length;
+  const success = results.filter((r) => r.ok && !r.deduped).length;
+  const deduped = dedupedTargets.length;
   return new Response(
     JSON.stringify({
       channel_id: channel.id,
       total: results.length,
       success,
-      failed: results.length - success,
+      failed: results.length - success - deduped,
+      deduped,
+      deduped_targets: dedupedTargets,
       results,
     }),
     { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
