@@ -300,6 +300,11 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         setCommissionConfirmedAt(
           (m.commission_price_confirmed_at as string) ?? null,
         );
+        setLastConfirmedCommissionPrice(
+          m.last_confirmed_commission_price === null || m.last_confirmed_commission_price === undefined
+            ? null
+            : Number(m.last_confirmed_commission_price),
+        );
         if (confBy) {
           const { data: confProf } = await supabase
             .from("team_member_profiles")
