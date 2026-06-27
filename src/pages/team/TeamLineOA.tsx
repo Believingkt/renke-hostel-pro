@@ -117,7 +117,7 @@ const ALL_TABS = [
   { value: "channels", label: "OA 設定", icon: Cable },
 ];
 
-const AM_TAB_VALUES = ["groups", "events"];
+const AM_TAB_VALUES = ["groups", "events", "members"];
 
 export default function TeamLineOA() {
   const navigate = useNavigate();
