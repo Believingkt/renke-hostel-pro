@@ -1039,7 +1039,16 @@ export default function TeamOrders() {
                         );
                       })()}</TableCell>
                       <TableCell className="whitespace-nowrap">{trafficMap.get(o.meta?.traffic_source ?? "") ?? o.meta?.traffic_source ?? "-"}</TableCell>
-                      <TableCell className="font-mono text-xs">{o.order_number}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        <span className="inline-flex items-center gap-1.5">
+                          {o.order_number}
+                          {isCancelled && (
+                            <span className="no-underline inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700 border border-red-200">
+                              已取消
+                            </span>
+                          )}
+                        </span>
+                      </TableCell>
                       <TableCell className="whitespace-nowrap">{closerName}</TableCell>
                       <TableCell className="whitespace-nowrap">{o.meta?.ad_id || "-"}</TableCell>
                       <TableCell className="whitespace-nowrap">{videoName}</TableCell>
