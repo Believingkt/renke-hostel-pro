@@ -584,9 +584,15 @@ export function BookingCalendarGrid({ accommodationId }: BookingCalendarGridProp
       }
       toast.success(newUnitId ? "已指派房間" : "已取消指派");
       await loadData();
-    } catch (err: unknown) {
-      console.error(err);
-      toast.error(err instanceof Error ? err.message : "指派失敗");
+    } catch (err: any) {
+      console.error("[assignEntryToUnit]", err);
+      const msg =
+        err?.message ||
+        err?.details ||
+        err?.hint ||
+        (typeof err === "string" ? err : "") ||
+        "指派失敗";
+      toast.error(`指派失敗：${msg}`);
     }
   };
 
