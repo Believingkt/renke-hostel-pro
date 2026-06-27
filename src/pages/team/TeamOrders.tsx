@@ -596,6 +596,7 @@ export default function TeamOrders() {
         accommodation_id: o.accommodation_id,
         order_date: o.order_date ?? null,
         created_at: o.created_at,
+        order_status: o.order_status ?? null,
         accommodation_name: accMap.get(o.accommodation_id) || "-",
         meta: metaMap.get(o.id) || null,
       }));
