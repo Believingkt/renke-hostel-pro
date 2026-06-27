@@ -974,10 +974,11 @@ export default function TeamOrders() {
                   pageItems.map((o) => {
                     const closerName = closers.find((m) => m.user_id === o.meta?.closer_id)?.display_name ?? "-";
                     const videoName = videos.find((m) => m.user_id === o.meta?.video_creator_id)?.display_name ?? "-";
+                    const isCancelled = o.order_status === "cancelled";
                     return (
                     <TableRow
                       key={o.id}
-                      className="cursor-pointer hover:bg-muted/50"
+                      className={`cursor-pointer hover:bg-muted/50 ${isCancelled ? "line-through text-muted-foreground" : ""}`}
                       onClick={() => openEdit(o)}
                     >
                       <TableCell className="whitespace-nowrap">{o.meta?.inquiry_date || "-"}</TableCell>
