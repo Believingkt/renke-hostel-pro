@@ -848,11 +848,13 @@ function MembersTab({ selfUserId = null }: { selfUserId?: string | null }) {
   const [linkDialog, setLinkDialog] = useState<{ memberName: string; url: string } | null>(null);
 
   const load = async () => {
+    let profilesQuery = supabase
+      .from("team_member_profiles")
+      .select("id, user_id, display_name, line_user_id")
+      .order("display_name", { ascending: true });
+    if (selfUserId) profilesQuery = profilesQuery.eq("user_id", selfUserId);
     const [{ data: profiles }, { data: chans }, { data: evts }, { data: accs }] = await Promise.all([
-      supabase
-        .from("team_member_profiles")
-        .select("id, user_id, display_name, line_user_id")
-        .order("display_name", { ascending: true }),
+      profilesQuery,
       supabase
         .from("line_oa_channels")
         .select("id, line_oa_id")
