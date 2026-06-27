@@ -2717,6 +2717,8 @@ export type Database = {
           member_number: string | null
           notes: string | null
           payment_at: string | null
+          payout_date: string | null
+          payout_status: string
           plan_price: number
           project_name: string
           sales_bonus: number | null
@@ -2757,6 +2759,8 @@ export type Database = {
           member_number?: string | null
           notes?: string | null
           payment_at?: string | null
+          payout_date?: string | null
+          payout_status?: string
           plan_price?: number
           project_name?: string
           sales_bonus?: number | null
@@ -2797,6 +2801,8 @@ export type Database = {
           member_number?: string | null
           notes?: string | null
           payment_at?: string | null
+          payout_date?: string | null
+          payout_status?: string
           plan_price?: number
           project_name?: string
           sales_bonus?: number | null
