@@ -3965,6 +3965,30 @@ export type Database = {
         }
         Relationships: []
       }
+      line_push_dedup_log: {
+        Row: {
+          created_at: string
+          id: string
+          message_hash: string
+          minute_bucket: string
+          target_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_hash: string
+          minute_bucket: string
+          target_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_hash?: string
+          minute_bucket?: string
+          target_id?: string
+        }
+        Relationships: []
+      }
       line_push_targets: {
         Row: {
           accommodation_ids: string[]
