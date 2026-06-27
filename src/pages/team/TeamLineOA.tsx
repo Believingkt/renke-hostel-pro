@@ -168,11 +168,11 @@ export default function TeamLineOA() {
         <TabsContent value="events" className="mt-4">
           <EventsTab />
         </TabsContent>
+        <TabsContent value="members" className="mt-4">
+          <MembersTab selfUserId={isAm ? userId : null} />
+        </TabsContent>
         {!isAm && (
           <>
-            <TabsContent value="members" className="mt-4">
-              <MembersTab />
-            </TabsContent>
             <TabsContent value="channels" className="mt-4">
               <ChannelsTab />
             </TabsContent>
