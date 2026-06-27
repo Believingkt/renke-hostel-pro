@@ -763,6 +763,7 @@ export default function TeamOrders() {
         payload.commission_price_confirmed_by = currentUserId;
         payload.commission_price_confirmed_at = new Date().toISOString();
         payload.last_confirmed_commission_price = newTcp;
+        payload.last_confirmed_final_price = editOrder.final_price ?? null;
       }
 
       const exists = !!editOrder.meta;
