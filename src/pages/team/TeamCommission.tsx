@@ -70,7 +70,8 @@ const CYCLE_PAYOUT_DAYS: Record<string, number[]> = {
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
 const formatMoney = (n: number | null | undefined) =>
-  `NT$ ${Number(n ?? 0).toLocaleString()}`;
+  `NT$ ${Math.round(Number(n ?? 0)).toLocaleString()}`;
+
 
 export default function TeamCommission() {
   const { roles } = useTeam();
@@ -611,7 +612,12 @@ const SOURCE_LABEL: Record<string, string> = {
   franchise_external_co1: "特許加盟外部協同業務1",
   franchise_external_co2: "特許加盟外部協同業務2",
   starlink: "星鏈分潤",
+  scout_base: "星探底薪",
+  scout_rarity: "星探稀有度獎金",
+  scout_kol: "星探KOL分潤",
+  scout_team: "星探團隊獎金",
 };
+
 
 function previousMonthRange(year: number, month: number) {
   // 選定 year/month 代表「發放月」，資料為上個月
