@@ -323,6 +323,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         setCommissionConfirmedBy(null);
         setCommissionConfirmedAt(null);
         setCommissionConfirmerName(null);
+        setLastConfirmedCommissionPrice(null);
         if (uid && closerIds.includes(uid)) {
           // 預設成交人為目前登入者(若身分為 closer)
           setCloserId(uid);
