@@ -580,145 +580,286 @@ function MultiplierBlock({ readOnly = false }: { readOnly?: boolean }) {
   );
 }
 
-/* ============================== Tab 4: Payouts ============================== */
-interface PayoutRow {
-  id: string;
-  year: number;
-  month: number;
-  scout_id: string;
-  base_salary: number;
-  team_bonus: number;
-  kol_commission: number;
-  total_payout: number;
-  bonus_breakdown: {
-    base_salary?: number;
-    rarity_bonus?: number;
-    kol_commission?: number;
-    team_bonus?: number;
-  } | null;
-  individual_achieved: boolean | null;
-  team_achieved: boolean | null;
-  payout_status: string | null;
+/* ============================== Tab 1: Payouts (彙整所有獎金來源) ============================== */
+
+interface SourceItem {
+  key: string;                  // unique: source_table:source_id:role_key
+  source_table: string;
+  source_id: string;
+  role_key: string;
+  member_id: string | null;     // team_member_profiles.id
+  source_label: string;
+  detail: string;               // 訂單描述 / 客戶名
+  amount: number;
+  paid: boolean;
   payout_date: string | null;
-  calculated_at: string | null;
-  scout_name?: string;
 }
 
-const formatTW = (iso: string | null | undefined) => {
-  if (!iso) return "—";
-  try {
-    return new Date(iso).toLocaleString("zh-TW", {
-      timeZone: "Asia/Taipei",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return iso;
-  }
+interface MemberGroup {
+  member_id: string;
+  display_name: string;
+  items: SourceItem[];
+  total: number;
+}
+
+const SOURCE_LABEL: Record<string, string> = {
+  closer: "成交組分潤",
+  video: "影音組分潤",
+  franchise_internal_sales: "特許加盟業務",
+  franchise_internal_leader: "特許加盟隊長",
+  franchise_external_sales: "特許加盟外部業務",
+  franchise_external_co1: "特許加盟外部協同業務1",
+  franchise_external_co2: "特許加盟外部協同業務2",
+  starlink: "星鏈分潤",
 };
 
-function PayoutsBlock({ scoutManagerOnly = false, readOnly = false }: { scoutManagerOnly?: boolean; readOnly?: boolean }) {
-  // 以台灣時間取得預設期別
-  const computeDefault = () => {
-    const tw = new Date(
-      new Date().toLocaleString("en-US", { timeZone: "Asia/Taipei" }),
-    );
-    const y = tw.getFullYear();
-    const m = tw.getMonth() + 1;
-    const d = tw.getDate();
-    if (d <= 10) return { year: y, month: m, period: 10 as 10 | 25 };
-    if (d <= 25) return { year: y, month: m, period: 25 as 10 | 25 };
-    // > 25 → 下月 10 日
-    const nextMonth = m === 12 ? 1 : m + 1;
-    const nextYear = m === 12 ? y + 1 : y;
-    return { year: nextYear, month: nextMonth, period: 10 as 10 | 25 };
-  };
-  const def = computeDefault();
-  const now = new Date();
+function previousMonthRange(year: number, month: number) {
+  // 選定 year/month 代表「發放月」，資料為上個月
+  const prevMonth = month === 1 ? 12 : month - 1;
+  const prevYear = month === 1 ? year - 1 : year;
+  const start = `${prevYear}-${String(prevMonth).padStart(2, "0")}-01`;
+  // 月末
+  const lastDay = new Date(prevYear, prevMonth, 0).getDate();
+  const end = `${prevYear}-${String(prevMonth).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+  const payoutMonthKey = `${year}-${String(month).padStart(2, "0")}`;
+  return { start, end, payoutMonthKey, prevYear, prevMonth };
+}
 
-  const [year, setYear] = useState(def.year);
-  const [month, setMonth] = useState(def.month);
-  const [period, setPeriod] = useState<10 | 25>(def.period);
-  const [status, setStatus] = useState<string>("all");
-  const [rows, setRows] = useState<PayoutRow[]>([]);
+function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = false }: { scoutManagerOnly?: boolean; readOnly?: boolean }) {
+  const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Taipei" }));
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [groups, setGroups] = useState<MemberGroup[]>([]);
   const [loading, setLoading] = useState(true);
-  const [recalculating, setRecalculating] = useState(false);
+  const [bulkMarking, setBulkMarking] = useState(false);
 
-  const fetchRows = useCallback(async () => {
+  const range = useMemo(() => previousMonthRange(year, month), [year, month]);
+
+  const fetchData = useCallback(async () => {
     setLoading(true);
-    let q = supabase
-      .from("scout_monthly_payouts")
-      .select("*")
-      .eq("year", year)
-      .eq("month", month)
-      .eq("period", period);
-    if (status !== "all") q = q.eq("payout_status", status);
-    const { data, error } = await q.order("calculated_at", { ascending: false });
-    if (error) {
-      toast.error(error.message);
-      setLoading(false);
-      return;
-    }
-    const list = (data as unknown as PayoutRow[]) ?? [];
-    const scoutIds = Array.from(new Set(list.map((r) => r.scout_id)));
-    let nameMap: Record<string, string> = {};
-    if (scoutIds.length > 0) {
+    try {
+      const { start, end, payoutMonthKey } = range;
+
+      // 1. team_member_profiles：建立 id ↔ user_id ↔ display_name 對照
       const { data: profiles } = await supabase
         .from("team_member_profiles")
-        .select("user_id, display_name")
-        .in("user_id", scoutIds);
-      nameMap = Object.fromEntries((profiles ?? []).map((p) => [p.user_id, p.display_name]));
-    }
-    setRows(list.map((r) => ({ ...r, scout_name: nameMap[r.scout_id] ?? r.scout_id })));
-    setLoading(false);
-  }, [year, month, period, status]);
-
-  useEffect(() => {
-    fetchRows();
-  }, [fetchRows]);
-
-  const handleRecalculate = async () => {
-    setRecalculating(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("calculate-scout-payout", {
-        body: { year, month, period },
+        .select("id, user_id, display_name");
+      const profileById = new Map<string, { id: string; user_id: string | null; display_name: string }>();
+      const profileByUserId = new Map<string, { id: string; user_id: string | null; display_name: string }>();
+      (profiles ?? []).forEach((p: any) => {
+        profileById.set(p.id, p);
+        if (p.user_id) profileByUserId.set(p.user_id, p);
       });
-      if (error) throw error;
-      if (data?.success === false) throw new Error(data?.error ?? "計算失敗");
-      toast.success(`計算完成（${data?.scouts_calculated ?? 0} 位星探）`);
-      await fetchRows();
+
+      // 2. 並行撈取四種來源
+      const [
+        { data: closers },
+        { data: fInternal },
+        { data: fExternal },
+        { data: starlinks },
+        { data: teamSettings },
+      ] = await Promise.all([
+        supabase
+          .from("closer_commission_snapshots")
+          .select("id, closer_id, video_creator_id, closer_commission_amount, video_commission_amount, payout_month, order_id")
+          .eq("payout_month", payoutMonthKey),
+        supabase
+          .from("franchise_orders")
+          .select("id, sold_by, commission_amount, leader_amount, customer_name, plan_name, sold_at")
+          .gte("sold_at", start)
+          .lte("sold_at", end),
+        supabase
+          .from("franchise_external_orders")
+          .select("id, sales_member_id, co_sales_member_id, co_sales_member_id2, sales_bonus, co_sales_bonus, co_sales_bonus2, customer_name, project_name, signed_at")
+          .gte("signed_at", start)
+          .lte("signed_at", end),
+        supabase
+          .from("starlink_orders")
+          .select("id, sold_by, commission_amount, client_name, plan_name, sold_at")
+          .gte("sold_at", start)
+          .lte("sold_at", end),
+        supabase
+          .from("franchise_team_settings")
+          .select("member_id, direct_leader_id"),
+      ]);
+
+      // 隊長對應：member_id (team_member_profiles.id) → direct_leader_id (user_id)
+      const leaderByMember = new Map<string, string>();
+      (teamSettings ?? []).forEach((t: any) => {
+        if (t.direct_leader_id) leaderByMember.set(t.member_id, t.direct_leader_id);
+      });
+
+      const items: SourceItem[] = [];
+      const pushItem = (
+        source_table: string,
+        source_id: string,
+        role_key: string,
+        memberRef: { id: string } | undefined,
+        source_label: string,
+        detail: string,
+        amount: number,
+      ) => {
+        if (!amount || amount === 0) return;
+        items.push({
+          key: `${source_table}:${source_id}:${role_key}`,
+          source_table,
+          source_id,
+          role_key,
+          member_id: memberRef?.id ?? null,
+          source_label,
+          detail,
+          amount: Number(amount),
+          paid: false,
+          payout_date: null,
+        });
+      };
+
+      (closers ?? []).forEach((r: any) => {
+        if (r.closer_id && Number(r.closer_commission_amount) > 0) {
+          pushItem("closer_commission_snapshots", r.id, "closer", profileByUserId.get(r.closer_id), SOURCE_LABEL.closer, `訂單 ${String(r.order_id).slice(0, 8)}`, r.closer_commission_amount);
+        }
+        if (r.video_creator_id && Number(r.video_commission_amount) > 0) {
+          pushItem("closer_commission_snapshots", r.id, "video", profileByUserId.get(r.video_creator_id), SOURCE_LABEL.video, `訂單 ${String(r.order_id).slice(0, 8)}`, r.video_commission_amount);
+        }
+      });
+
+      (fInternal ?? []).forEach((r: any) => {
+        const detail = `${r.customer_name ?? ""}・${r.plan_name ?? ""}`.trim();
+        if (r.sold_by && Number(r.commission_amount) > 0) {
+          pushItem("franchise_orders", r.id, "sales", profileByUserId.get(r.sold_by), SOURCE_LABEL.franchise_internal_sales, detail, r.commission_amount);
+        }
+        if (r.sold_by && Number(r.leader_amount) > 0) {
+          const seller = profileByUserId.get(r.sold_by);
+          const leaderUserId = seller ? leaderByMember.get(seller.id) : undefined;
+          const leader = leaderUserId ? profileByUserId.get(leaderUserId) : undefined;
+          pushItem("franchise_orders", r.id, "leader", leader, SOURCE_LABEL.franchise_internal_leader, detail, r.leader_amount);
+        }
+      });
+
+      (fExternal ?? []).forEach((r: any) => {
+        const detail = `${r.project_name ?? ""}・${r.customer_name ?? ""}`.trim();
+        if (r.sales_member_id && Number(r.sales_bonus) > 0) {
+          pushItem("franchise_external_orders", r.id, "sales", profileById.get(r.sales_member_id), SOURCE_LABEL.franchise_external_sales, detail, r.sales_bonus);
+        }
+        if (r.co_sales_member_id && Number(r.co_sales_bonus) > 0) {
+          pushItem("franchise_external_orders", r.id, "co1", profileById.get(r.co_sales_member_id), SOURCE_LABEL.franchise_external_co1, detail, r.co_sales_bonus);
+        }
+        if (r.co_sales_member_id2 && Number(r.co_sales_bonus2) > 0) {
+          pushItem("franchise_external_orders", r.id, "co2", profileById.get(r.co_sales_member_id2), SOURCE_LABEL.franchise_external_co2, detail, r.co_sales_bonus2);
+        }
+      });
+
+      (starlinks ?? []).forEach((r: any) => {
+        const detail = `${r.client_name ?? ""}・${r.plan_name ?? ""}`.trim();
+        if (r.sold_by && Number(r.commission_amount) > 0) {
+          pushItem("starlink_orders", r.id, "sales", profileByUserId.get(r.sold_by), SOURCE_LABEL.starlink, detail, r.commission_amount);
+        }
+      });
+
+      // 3. 撈取已標記紀錄
+      const sourceIds = Array.from(new Set(items.map((i) => i.source_id)));
+      if (sourceIds.length > 0) {
+        const { data: marks } = await supabase
+          .from("commission_payout_marks")
+          .select("source_table, source_id, role_key, payout_status, payout_date")
+          .in("source_id", sourceIds);
+        const markMap = new Map<string, { paid: boolean; date: string | null }>();
+        (marks ?? []).forEach((m: any) => {
+          markMap.set(`${m.source_table}:${m.source_id}:${m.role_key}`, {
+            paid: m.payout_status === "paid",
+            date: m.payout_date,
+          });
+        });
+        items.forEach((it) => {
+          const m = markMap.get(it.key);
+          if (m) {
+            it.paid = m.paid;
+            it.payout_date = m.date;
+          }
+        });
+      }
+
+      // 4. 依人分組
+      const groupMap = new Map<string, MemberGroup>();
+      items.forEach((it) => {
+        const key = it.member_id ?? "__unassigned__";
+        const name = it.member_id
+          ? (profileById.get(it.member_id)?.display_name ?? "未命名成員")
+          : "（未對應到成員）";
+        if (!groupMap.has(key)) {
+          groupMap.set(key, { member_id: key, display_name: name, items: [], total: 0 });
+        }
+        const g = groupMap.get(key)!;
+        g.items.push(it);
+        g.total += it.amount;
+      });
+
+      const list = Array.from(groupMap.values()).sort((a, b) => b.total - a.total);
+      setGroups(list);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
-      setRecalculating(false);
+      setLoading(false);
     }
-  };
+  }, [range]);
 
-  const markPaid = async (id: string) => {
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const markItem = async (item: SourceItem) => {
+    const { data: auth } = await supabase.auth.getUser();
     const { error } = await supabase
-      .from("scout_monthly_payouts")
-      .update({
-        payout_status: "paid",
-        payout_date: todayStr(),
-        locked_at: new Date().toISOString(),
-      })
-      .eq("id", id);
+      .from("commission_payout_marks")
+      .upsert(
+        {
+          source_table: item.source_table,
+          source_id: item.source_id,
+          role_key: item.role_key,
+          member_id: item.member_id,
+          payout_status: "paid",
+          payout_date: todayStr(),
+          marked_by: auth.user?.id ?? null,
+        },
+        { onConflict: "source_table,source_id,role_key" },
+      );
     if (error) return toast.error(error.message);
     toast.success("已標記為發放");
-    fetchRows();
+    fetchData();
   };
 
-  const yearOptions = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
+  const bulkMarkAll = async () => {
+    const unpaid = groups.flatMap((g) => g.items).filter((i) => !i.paid);
+    if (unpaid.length === 0) return toast.info("沒有待標記的記錄");
+    if (!confirm(`確定要將 ${unpaid.length} 筆待發放記錄全部標記為已發放？`)) return;
+    setBulkMarking(true);
+    const { data: auth } = await supabase.auth.getUser();
+    const payload = unpaid.map((i) => ({
+      source_table: i.source_table,
+      source_id: i.source_id,
+      role_key: i.role_key,
+      member_id: i.member_id,
+      payout_status: "paid",
+      payout_date: todayStr(),
+      marked_by: auth.user?.id ?? null,
+    }));
+    const { error } = await supabase
+      .from("commission_payout_marks")
+      .upsert(payload, { onConflict: "source_table,source_id,role_key" });
+    setBulkMarking(false);
+    if (error) return toast.error(error.message);
+    toast.success(`已標記 ${unpaid.length} 筆`);
+    fetchData();
+  };
 
-  // 期別選項：每月 10 / 25
-  const periodOptions = Array.from({ length: 12 }, (_, i) => i + 1).flatMap((m) => [
-    { month: m, period: 10 as const, label: `${m}月10日` },
-    { month: m, period: 25 as const, label: `${m}月25日` },
-  ]);
-  const currentPeriodKey = `${month}-${period}`;
+  const yearOptions = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i + 1);
+  const monthOptions = Array.from({ length: 12 }, (_, i) => i + 1);
+
+  const totalAll = groups.reduce((s, g) => s + g.total, 0);
+  const totalUnpaid = groups.reduce(
+    (s, g) => s + g.items.filter((i) => !i.paid).reduce((a, i) => a + i.amount, 0),
+    0,
+  );
 
   return (
     <Card>
@@ -727,11 +868,11 @@ function PayoutsBlock({ scoutManagerOnly = false, readOnly = false }: { scoutMan
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-xs text-muted-foreground">
-          為了增加頁面讀取速度，固定每天晚上 23:59 自動更新數據，若有即時需求可手動「立即更新」。
+          每月 10 號發放上個月份的所有獎金。選擇下方「發放年月」，將載入該月對應的上個月份結算資料。
         </p>
         <div className="flex flex-wrap gap-2 items-end">
           <div>
-            <Label className="text-xs">年份</Label>
+            <Label className="text-xs">發放年份</Label>
             <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
               <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -742,117 +883,93 @@ function PayoutsBlock({ scoutManagerOnly = false, readOnly = false }: { scoutMan
             </Select>
           </div>
           <div>
-            <Label className="text-xs">期別</Label>
-            <Select
-              value={currentPeriodKey}
-              onValueChange={(v) => {
-                const [m, p] = v.split("-").map(Number);
-                setMonth(m);
-                setPeriod(p as 10 | 25);
-              }}
-            >
-              <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+            <Label className="text-xs">發放月份</Label>
+            <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
+              <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {periodOptions.map((opt) => (
-                  <SelectItem key={`${opt.month}-${opt.period}`} value={`${opt.month}-${opt.period}`}>
-                    {opt.label}
-                  </SelectItem>
+                {monthOptions.map((m) => (
+                  <SelectItem key={m} value={String(m)}>{m} 月</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <Label className="text-xs">狀態</Label>
-            <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全部</SelectItem>
-                <SelectItem value="pending">待發放</SelectItem>
-                <SelectItem value="paid">已發放</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="text-xs text-muted-foreground self-center ml-2">
+            資料區間：{range.start} ~ {range.end}
           </div>
           {!readOnly && (
-            <Button size="sm" onClick={handleRecalculate} disabled={recalculating}>
-              {recalculating ? "計算中…" : "立即更新"}
+            <Button size="sm" onClick={bulkMarkAll} disabled={bulkMarking || loading}>
+              {bulkMarking ? "處理中…" : "一鍵標記全部已發放"}
             </Button>
           )}
         </div>
 
-        {loading ? null : rows.length === 0 ? (
-          <p className="text-sm text-muted-foreground">本月份無記錄</p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>星探</TableHead>
-                <TableHead>底薪</TableHead>
-                <TableHead>稀有度獎金</TableHead>
-                <TableHead>KOL分潤</TableHead>
-                <TableHead>團隊獎金</TableHead>
-                <TableHead>合計</TableHead>
-                <TableHead>個人</TableHead>
-                <TableHead>團隊</TableHead>
-                <TableHead>狀態</TableHead>
-                <TableHead>計算時間</TableHead>
-                <TableHead></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((r) => {
-                const bb = r.bonus_breakdown ?? {};
-                const baseSalary = bb.base_salary ?? r.base_salary;
-                const rarityBonus = bb.rarity_bonus ?? 0;
-                const kolCommission = bb.kol_commission ?? r.kol_commission;
-                const teamBonus = bb.team_bonus ?? r.team_bonus;
-                return (
-                  <TableRow key={r.id}>
-                    <TableCell>{r.scout_name}</TableCell>
-                    <TableCell>{formatMoney(baseSalary)}</TableCell>
-                    <TableCell>{formatMoney(rarityBonus)}</TableCell>
-                    <TableCell>{formatMoney(kolCommission)}</TableCell>
-                    <TableCell>{formatMoney(teamBonus)}</TableCell>
-                    <TableCell className="font-medium">{formatMoney(r.total_payout)}</TableCell>
-                    <TableCell>{r.individual_achieved ? "✓" : "✗"}</TableCell>
-                    <TableCell>{r.team_achieved ? "✓" : "✗"}</TableCell>
-                    <TableCell>
-                      {r.payout_status === "paid" ? (
-                        <Badge variant="outline">已發放</Badge>
-                      ) : (
-                        <Badge className="bg-amber-100 text-amber-700 border-amber-200">待發放</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                      {formatTW(r.calculated_at)}
-                    </TableCell>
-                    <TableCell>
-                      {r.payout_status === "paid" ? (
-                        <span className="text-xs text-muted-foreground">{r.payout_date ?? ""}</span>
-                      ) : !readOnly ? (
-                        <Button size="sm" variant="outline" onClick={() => markPaid(r.id)}>
-                          標記已發放
-                        </Button>
-                      ) : null}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+        {!loading && groups.length > 0 && (
+          <div className="flex gap-6 text-sm bg-muted/30 rounded p-3">
+            <div>總人數：<span className="font-medium">{groups.length}</span></div>
+            <div>總金額：<span className="font-medium">{formatMoney(totalAll)}</span></div>
+            <div>未發放：<span className="font-medium text-amber-700">{formatMoney(totalUnpaid)}</span></div>
+          </div>
         )}
 
-        {/*
-          ⚠️ 注意：若未來修改期別結算區間邏輯，
-          必須同步更新此處說明文字、KolStatsTab.tsx 的說明文字，
-          以及 calculate-scout-payout Edge Function 的對應邏輯。
-        */}
-        <div className="mt-3 px-1 text-xs text-muted-foreground space-y-1">
-          <div className="font-medium">期別結算區間說明：</div>
-          <div>・稀有度獎金／KOL分潤：</div>
-          <div className="pl-3">X月10日期別：上月21日 ～ 當月05日（整天）</div>
-          <div className="pl-3">X月25日期別：當月06日 ～ 當月20日（整天）</div>
-          <div>・底薪／團隊獎金：以整月（當月01日～當月末日）達標為準，於當月10日期發放，25日期不發</div>
-        </div>
+        {loading ? null : groups.length === 0 ? (
+          <p className="text-sm text-muted-foreground">本期間無發放記錄</p>
+        ) : (
+          <div className="space-y-3">
+            {groups.map((g) => {
+              const allPaid = g.items.every((i) => i.paid);
+              return (
+                <div key={g.member_id} className="border rounded-lg overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-2 bg-muted/40">
+                    <div className="flex items-center gap-3">
+                      <span className="font-medium">{g.display_name}</span>
+                      <span className="text-xs text-muted-foreground">{g.items.length} 筆</span>
+                      {allPaid ? (
+                        <Badge variant="outline">全部已發放</Badge>
+                      ) : (
+                        <Badge className="bg-amber-100 text-amber-700 border-amber-200">部分待發放</Badge>
+                      )}
+                    </div>
+                    <div className="text-sm font-medium">合計 {formatMoney(g.total)}</div>
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[180px]">來源類型</TableHead>
+                        <TableHead>明細</TableHead>
+                        <TableHead className="text-right w-[120px]">金額</TableHead>
+                        <TableHead className="w-[120px]">狀態</TableHead>
+                        <TableHead className="w-[140px] text-right"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {g.items.map((it) => (
+                        <TableRow key={it.key}>
+                          <TableCell className="text-xs">{it.source_label}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{it.detail || "—"}</TableCell>
+                          <TableCell className="text-right tabular-nums">{formatMoney(it.amount)}</TableCell>
+                          <TableCell>
+                            {it.paid ? (
+                              <Badge variant="outline" className="text-xs">已發放 {it.payout_date ?? ""}</Badge>
+                            ) : (
+                              <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">待發放</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {!it.paid && !readOnly && it.member_id && (
+                              <Button size="sm" variant="outline" onClick={() => markItem(it)}>
+                                標記已發放
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
