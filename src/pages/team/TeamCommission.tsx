@@ -855,21 +855,29 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
 
   const markItem = async (item: SourceItem) => {
     const { data: auth } = await supabase.auth.getUser();
-    const { error } = await supabase
-      .from("commission_payout_marks")
-      .upsert(
-        {
-          source_table: item.source_table,
-          source_id: item.source_id,
-          role_key: item.role_key,
-          member_id: item.member_id,
-          payout_status: "paid",
-          payout_date: todayStr(),
-          marked_by: auth.user?.id ?? null,
-        },
-        { onConflict: "source_table,source_id,role_key" },
-      );
-    if (error) return toast.error(error.message);
+    if (item.source_table === "scout_monthly_payouts") {
+      const { error } = await supabase
+        .from("scout_monthly_payouts")
+        .update({ payout_status: "paid", payout_date: todayStr() })
+        .eq("id", item.source_id);
+      if (error) return toast.error(error.message);
+    } else {
+      const { error } = await supabase
+        .from("commission_payout_marks")
+        .upsert(
+          {
+            source_table: item.source_table,
+            source_id: item.source_id,
+            role_key: item.role_key,
+            member_id: item.member_id,
+            payout_status: "paid",
+            payout_date: todayStr(),
+            marked_by: auth.user?.id ?? null,
+          },
+          { onConflict: "source_table,source_id,role_key" },
+        );
+      if (error) return toast.error(error.message);
+    }
     toast.success("已標記為發放");
     fetchData();
   };
@@ -880,23 +888,44 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
     if (!confirm(`確定要將 ${unpaid.length} 筆待發放記錄全部標記為已發放？`)) return;
     setBulkMarking(true);
     const { data: auth } = await supabase.auth.getUser();
-    const payload = unpaid.map((i) => ({
-      source_table: i.source_table,
-      source_id: i.source_id,
-      role_key: i.role_key,
-      member_id: i.member_id,
-      payout_status: "paid",
-      payout_date: todayStr(),
-      marked_by: auth.user?.id ?? null,
-    }));
-    const { error } = await supabase
-      .from("commission_payout_marks")
-      .upsert(payload, { onConflict: "source_table,source_id,role_key" });
-    setBulkMarking(false);
-    if (error) return toast.error(error.message);
-    toast.success(`已標記 ${unpaid.length} 筆`);
-    fetchData();
+
+    const scoutIds = Array.from(
+      new Set(unpaid.filter((i) => i.source_table === "scout_monthly_payouts").map((i) => i.source_id)),
+    );
+    const others = unpaid.filter((i) => i.source_table !== "scout_monthly_payouts");
+
+    try {
+      if (scoutIds.length > 0) {
+        const { error } = await supabase
+          .from("scout_monthly_payouts")
+          .update({ payout_status: "paid", payout_date: todayStr() })
+          .in("id", scoutIds);
+        if (error) throw error;
+      }
+      if (others.length > 0) {
+        const payload = others.map((i) => ({
+          source_table: i.source_table,
+          source_id: i.source_id,
+          role_key: i.role_key,
+          member_id: i.member_id,
+          payout_status: "paid",
+          payout_date: todayStr(),
+          marked_by: auth.user?.id ?? null,
+        }));
+        const { error } = await supabase
+          .from("commission_payout_marks")
+          .upsert(payload, { onConflict: "source_table,source_id,role_key" });
+        if (error) throw error;
+      }
+      toast.success(`已標記 ${unpaid.length} 筆`);
+      fetchData();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBulkMarking(false);
+    }
   };
+
 
   const yearOptions = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i + 1);
   const monthOptions = Array.from({ length: 12 }, (_, i) => i + 1);
