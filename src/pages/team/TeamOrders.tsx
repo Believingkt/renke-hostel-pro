@@ -1295,6 +1295,7 @@ export default function TeamOrders() {
                           finalPrice: fp,
                           confirmedBy,
                           lastConfirmedCommissionPrice: form.last_confirmed_commission_price ?? null,
+                          lastConfirmedFinalPrice: form.last_confirmed_final_price ?? null,
                         });
                         if (status === "locked") {
                           return (
