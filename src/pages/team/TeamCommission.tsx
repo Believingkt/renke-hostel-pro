@@ -992,10 +992,19 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           <div className="space-y-3">
             {groups.map((g) => {
               const allPaid = g.items.every((i) => i.paid);
+              const isOpen = expandedMembers.has(g.member_id);
               return (
                 <div key={g.member_id} className="border rounded-lg overflow-hidden">
-                  <div className="flex items-center justify-between px-4 py-2 bg-muted/40">
+                  <button
+                    type="button"
+                    onClick={() => toggleMember(g.member_id)}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-muted/40 hover:bg-muted/60 transition-colors text-left"
+                    aria-expanded={isOpen}
+                  >
                     <div className="flex items-center gap-3">
+                      <ChevronDown
+                        className={`h-4 w-4 text-muted-foreground transition-transform ${isOpen ? "rotate-0" : "-rotate-90"}`}
+                      />
                       <span className="font-medium">{g.display_name}</span>
                       <span className="text-xs text-muted-foreground">{g.items.length} 筆</span>
                       {allPaid ? (
@@ -1005,45 +1014,48 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                       )}
                     </div>
                     <div className="text-sm font-medium">合計 {formatMoney(g.total)}</div>
-                  </div>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[180px]">來源類型</TableHead>
-                        <TableHead>明細</TableHead>
-                        <TableHead className="text-right w-[120px]">金額</TableHead>
-                        <TableHead className="w-[120px]">狀態</TableHead>
-                        <TableHead className="w-[140px] text-right"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {g.items.map((it) => (
-                        <TableRow key={it.key}>
-                          <TableCell className="text-xs">{it.source_label}</TableCell>
-                          <TableCell className="text-xs text-muted-foreground">{it.detail || "—"}</TableCell>
-                          <TableCell className="text-right tabular-nums">{formatMoney(it.amount)}</TableCell>
-                          <TableCell>
-                            {it.paid ? (
-                              <Badge variant="outline" className="text-xs">已發放 {it.payout_date ?? ""}</Badge>
-                            ) : (
-                              <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">待發放</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {!it.paid && !readOnly && it.member_id && (
-                              <Button size="sm" variant="outline" onClick={() => markItem(it)}>
-                                標記已發放
-                              </Button>
-                            )}
-                          </TableCell>
+                  </button>
+                  {isOpen && (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[180px]">來源類型</TableHead>
+                          <TableHead>明細</TableHead>
+                          <TableHead className="text-right w-[120px]">金額</TableHead>
+                          <TableHead className="w-[120px]">狀態</TableHead>
+                          <TableHead className="w-[140px] text-right"></TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {g.items.map((it) => (
+                          <TableRow key={it.key}>
+                            <TableCell className="text-xs">{it.source_label}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">{it.detail || "—"}</TableCell>
+                            <TableCell className="text-right tabular-nums">{formatMoney(it.amount)}</TableCell>
+                            <TableCell>
+                              {it.paid ? (
+                                <Badge variant="outline" className="text-xs">已發放 {it.payout_date ?? ""}</Badge>
+                              ) : (
+                                <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">待發放</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {!it.paid && !readOnly && it.member_id && (
+                                <Button size="sm" variant="outline" onClick={() => markItem(it)}>
+                                  標記已發放
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
                 </div>
               );
             })}
           </div>
+
         )}
       </CardContent>
     </Card>
