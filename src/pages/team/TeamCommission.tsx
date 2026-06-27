@@ -657,13 +657,14 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         if (p.user_id) profileByUserId.set(p.user_id, p);
       });
 
-      // 2. 並行撈取四種來源
+      // 2. 並行撈取所有來源
       const [
         { data: closers },
         { data: fInternal },
         { data: fExternal },
         { data: starlinks },
         { data: teamSettings },
+        { data: scoutPayouts },
       ] = await Promise.all([
         supabase
           .from("closer_commission_snapshots")
@@ -687,7 +688,13 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         supabase
           .from("franchise_team_settings")
           .select("member_id, direct_leader_id"),
+        supabase
+          .from("scout_monthly_payouts")
+          .select("id, scout_id, year, month, period, base_salary, team_bonus, kol_commission, bonus_breakdown, payout_status, payout_date")
+          .eq("year", year)
+          .eq("month", month),
       ]);
+
 
       // 隊長對應：member_id (team_member_profiles.id) → direct_leader_id (user_id)
       const leaderByMember = new Map<string, string>();
