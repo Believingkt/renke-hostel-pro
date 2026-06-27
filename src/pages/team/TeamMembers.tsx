@@ -210,15 +210,13 @@ export default function TeamMembers() {
       fulltime_start_yearmonth: (p as { fulltime_start_yearmonth?: string | null }).fulltime_start_yearmonth ?? null,
     }));
 
-    // 3.5 取得「特許加盟外部銷售業務」profile IDs（從 franchise_external_orders.sales_member_id 推導）
-    // 這些成員多為無帳號（user_id = null），無法從 user_roles 判斷，需另外標記後過濾
-    const { data: extSales } = await supabase
-      .from("franchise_external_orders")
-      .select("sales_member_id")
-      .not("sales_member_id", "is", null);
+    // 3.5 取得「特許加盟外部銷售業務」profile IDs
+    // 這些成員多為無帳號（user_id = null），且 franchise_external_orders 有 RLS 限制
+    // 改用 SECURITY DEFINER RPC 確保所有後台角色都能取得完整名單後過濾
+    const { data: extSales } = await supabase.rpc("get_franchise_external_member_ids");
     const externalSalesIds = new Set<string>(
       (extSales ?? [])
-        .map((r: { sales_member_id: string | null }) => r.sales_member_id as string)
+        .map((r: { profile_id: string | null }) => r.profile_id as string)
         .filter(Boolean),
     );
     rows.forEach((r) => {
