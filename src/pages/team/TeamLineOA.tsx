@@ -589,7 +589,7 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
                 <TableHead>事件</TableHead>
                 <TableHead>館別</TableHead>
                 <TableHead>啟用</TableHead>
-                <TableHead className="w-16">操作</TableHead>
+                <TableHead className="w-24">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
