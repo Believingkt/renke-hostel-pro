@@ -70,7 +70,8 @@ const CYCLE_PAYOUT_DAYS: Record<string, number[]> = {
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
 const formatMoney = (n: number | null | undefined) =>
-  `NT$ ${Number(n ?? 0).toLocaleString()}`;
+  `NT$ ${Math.round(Number(n ?? 0)).toLocaleString()}`;
+
 
 export default function TeamCommission() {
   const { roles } = useTeam();
@@ -611,7 +612,12 @@ const SOURCE_LABEL: Record<string, string> = {
   franchise_external_co1: "特許加盟外部協同業務1",
   franchise_external_co2: "特許加盟外部協同業務2",
   starlink: "星鏈分潤",
+  scout_base: "星探底薪",
+  scout_rarity: "星探稀有度獎金",
+  scout_kol: "星探KOL分潤",
+  scout_team: "星探團隊獎金",
 };
+
 
 function previousMonthRange(year: number, month: number) {
   // 選定 year/month 代表「發放月」，資料為上個月
@@ -651,13 +657,14 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         if (p.user_id) profileByUserId.set(p.user_id, p);
       });
 
-      // 2. 並行撈取四種來源
+      // 2. 並行撈取所有來源
       const [
         { data: closers },
         { data: fInternal },
         { data: fExternal },
         { data: starlinks },
         { data: teamSettings },
+        { data: scoutPayouts },
       ] = await Promise.all([
         supabase
           .from("closer_commission_snapshots")
@@ -681,7 +688,13 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         supabase
           .from("franchise_team_settings")
           .select("member_id, direct_leader_id"),
+        supabase
+          .from("scout_monthly_payouts")
+          .select("id, scout_id, year, month, period, base_salary, team_bonus, kol_commission, bonus_breakdown, payout_status, payout_date")
+          .eq("year", year)
+          .eq("month", month),
       ]);
+
 
       // 隊長對應：member_id (team_member_profiles.id) → direct_leader_id (user_id)
       const leaderByMember = new Map<string, string>();
@@ -756,8 +769,40 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         }
       });
 
-      // 3. 撈取已標記紀錄
-      const sourceIds = Array.from(new Set(items.map((i) => i.source_id)));
+      (scoutPayouts ?? []).forEach((r: any) => {
+        const scout = r.scout_id ? profileByUserId.get(r.scout_id) : undefined;
+        const periodLabel = r.period === 10 ? "10日期" : "25日期";
+        const detail = `${r.year}/${String(r.month).padStart(2, "0")} ${periodLabel}`;
+        const breakdown = (r.bonus_breakdown ?? {}) as Record<string, unknown>;
+        const rarityBonus = Number(breakdown.rarity_bonus ?? 0);
+        const paid = r.payout_status === "paid";
+        const baseItems: Array<[string, string, number]> = [
+          ["base", SOURCE_LABEL.scout_base, Number(r.base_salary ?? 0)],
+          ["rarity", SOURCE_LABEL.scout_rarity, rarityBonus],
+          ["kol", SOURCE_LABEL.scout_kol, Number(r.kol_commission ?? 0)],
+          ["team", SOURCE_LABEL.scout_team, Number(r.team_bonus ?? 0)],
+        ];
+        baseItems.forEach(([roleKey, label, amount]) => {
+          if (!amount || amount === 0) return;
+          items.push({
+            key: `scout_monthly_payouts:${r.id}:${roleKey}`,
+            source_table: "scout_monthly_payouts",
+            source_id: r.id,
+            role_key: roleKey,
+            member_id: scout?.id ?? null,
+            source_label: label,
+            detail,
+            amount,
+            paid,
+            payout_date: r.payout_date ?? null,
+          });
+        });
+      });
+
+
+      // 3. 撈取已標記紀錄（scout_monthly_payouts 已自帶 payout_status，跳過）
+      const markableItems = items.filter((i) => i.source_table !== "scout_monthly_payouts");
+      const sourceIds = Array.from(new Set(markableItems.map((i) => i.source_id)));
       if (sourceIds.length > 0) {
         const { data: marks } = await supabase
           .from("commission_payout_marks")
@@ -770,7 +815,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
             date: m.payout_date,
           });
         });
-        items.forEach((it) => {
+        markableItems.forEach((it) => {
           const m = markMap.get(it.key);
           if (m) {
             it.paid = m.paid;
@@ -778,6 +823,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           }
         });
       }
+
 
       // 4. 依人分組
       const groupMap = new Map<string, MemberGroup>();
@@ -809,21 +855,29 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
 
   const markItem = async (item: SourceItem) => {
     const { data: auth } = await supabase.auth.getUser();
-    const { error } = await supabase
-      .from("commission_payout_marks")
-      .upsert(
-        {
-          source_table: item.source_table,
-          source_id: item.source_id,
-          role_key: item.role_key,
-          member_id: item.member_id,
-          payout_status: "paid",
-          payout_date: todayStr(),
-          marked_by: auth.user?.id ?? null,
-        },
-        { onConflict: "source_table,source_id,role_key" },
-      );
-    if (error) return toast.error(error.message);
+    if (item.source_table === "scout_monthly_payouts") {
+      const { error } = await supabase
+        .from("scout_monthly_payouts")
+        .update({ payout_status: "paid", payout_date: todayStr() })
+        .eq("id", item.source_id);
+      if (error) return toast.error(error.message);
+    } else {
+      const { error } = await supabase
+        .from("commission_payout_marks")
+        .upsert(
+          {
+            source_table: item.source_table,
+            source_id: item.source_id,
+            role_key: item.role_key,
+            member_id: item.member_id,
+            payout_status: "paid",
+            payout_date: todayStr(),
+            marked_by: auth.user?.id ?? null,
+          },
+          { onConflict: "source_table,source_id,role_key" },
+        );
+      if (error) return toast.error(error.message);
+    }
     toast.success("已標記為發放");
     fetchData();
   };
@@ -834,23 +888,44 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
     if (!confirm(`確定要將 ${unpaid.length} 筆待發放記錄全部標記為已發放？`)) return;
     setBulkMarking(true);
     const { data: auth } = await supabase.auth.getUser();
-    const payload = unpaid.map((i) => ({
-      source_table: i.source_table,
-      source_id: i.source_id,
-      role_key: i.role_key,
-      member_id: i.member_id,
-      payout_status: "paid",
-      payout_date: todayStr(),
-      marked_by: auth.user?.id ?? null,
-    }));
-    const { error } = await supabase
-      .from("commission_payout_marks")
-      .upsert(payload, { onConflict: "source_table,source_id,role_key" });
-    setBulkMarking(false);
-    if (error) return toast.error(error.message);
-    toast.success(`已標記 ${unpaid.length} 筆`);
-    fetchData();
+
+    const scoutIds = Array.from(
+      new Set(unpaid.filter((i) => i.source_table === "scout_monthly_payouts").map((i) => i.source_id)),
+    );
+    const others = unpaid.filter((i) => i.source_table !== "scout_monthly_payouts");
+
+    try {
+      if (scoutIds.length > 0) {
+        const { error } = await supabase
+          .from("scout_monthly_payouts")
+          .update({ payout_status: "paid", payout_date: todayStr() })
+          .in("id", scoutIds);
+        if (error) throw error;
+      }
+      if (others.length > 0) {
+        const payload = others.map((i) => ({
+          source_table: i.source_table,
+          source_id: i.source_id,
+          role_key: i.role_key,
+          member_id: i.member_id,
+          payout_status: "paid",
+          payout_date: todayStr(),
+          marked_by: auth.user?.id ?? null,
+        }));
+        const { error } = await supabase
+          .from("commission_payout_marks")
+          .upsert(payload, { onConflict: "source_table,source_id,role_key" });
+        if (error) throw error;
+      }
+      toast.success(`已標記 ${unpaid.length} 筆`);
+      fetchData();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBulkMarking(false);
+    }
   };
+
 
   const yearOptions = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i + 1);
   const monthOptions = Array.from({ length: 12 }, (_, i) => i + 1);
