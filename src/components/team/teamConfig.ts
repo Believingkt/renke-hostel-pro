@@ -116,7 +116,7 @@ export const TEAM_MENU: TeamMenuItem[] = [
     allowedRoles: ["super_admin", "admin", "scout_manager"],
   },
   {
-    title: "折扣碼設定",
+    title: "外部導購連結",
     url: "/team/kol/venue-confirm",
     icon: Tag,
     allowedRoles: ["super_admin", "admin", "venue_manager"],
@@ -132,7 +132,7 @@ export const TEAM_MENU: TeamMenuItem[] = [
 export const PAGE_TITLES: Record<string, string> = {
   "/team": "個人業績總覽",
   "/team/members": "成員管理",
-  "/team/kol/venue-confirm": "折扣碼設定管理",
+  "/team/kol/venue-confirm": "外部導購連結",
   "/team/kol": "KOL 星探管理",
   "/team/orders": "訂單補充資料",
   "/team/commission": "獎金管理",
