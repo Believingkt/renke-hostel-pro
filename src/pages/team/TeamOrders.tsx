@@ -702,6 +702,7 @@ export default function TeamOrders() {
       commission_price_confirmed_by: o.meta?.commission_price_confirmed_by ?? null,
       commission_price_confirmed_at: o.meta?.commission_price_confirmed_at ?? null,
       last_confirmed_commission_price: o.meta?.last_confirmed_commission_price ?? null,
+      last_confirmed_final_price: o.meta?.last_confirmed_final_price ?? null,
     });
     setIsEditing(false);
     setEditOpen(true);
