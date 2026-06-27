@@ -2241,6 +2241,9 @@ const emptyExternalForm = (): Partial<ExternalOrder> => ({
   co_sales_bonus: null,
   co_sales_name2: "",
   co_sales_bonus2: null,
+  sales_member_id: null,
+  co_sales_member_id: null,
+  co_sales_member_id2: null,
   notes: "",
 });
 
