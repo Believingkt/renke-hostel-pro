@@ -94,6 +94,7 @@ interface MetaRow {
   team_commission_price?: number | null;
   commission_price_confirmed_by?: string | null;
   commission_price_confirmed_at?: string | null;
+  last_confirmed_commission_price?: number | null;
 }
 
 const DEFAULT_PAGE_SIZE = 20;
