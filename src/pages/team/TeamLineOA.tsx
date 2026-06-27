@@ -1121,20 +1121,92 @@ function MembersTab() {
                             if (m.notificationRoles.includes("closer")) caps.push({ icon: "💰", label: "訂單金額異動通知" });
                             if (m.notificationRoles.includes("scout")) caps.push({ icon: "🎯", label: "KOL訂單通知" });
                           }
-                          if (caps.length === 0) {
+                          const isAm = bound && m.roles.includes("am");
+                          const target = m.line_user_id ? targetsByLineId[m.line_user_id] : undefined;
+                          const subscribed =
+                            !!target &&
+                            (target.event_types ?? []).includes("daily_performance");
+                          const subscribedIds = subscribed
+                            ? (target?.accommodation_ids ?? [])
+                            : [];
+                          const editing = isAm && editingAmId === m.id;
+
+                          if (caps.length === 0 && !isAm) {
                             return <span className="text-muted-foreground text-xs">—</span>;
                           }
                           return (
-                            <div className="flex flex-wrap gap-1">
-                              {caps.map((c) => (
-                                <Badge key={c.label} variant="secondary" className="text-xs">
-                                  {c.icon} {c.label}
-                                </Badge>
-                              ))}
+                            <div className="flex flex-col gap-1.5">
+                              {caps.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {caps.map((c) => (
+                                    <Badge key={c.label} variant="secondary" className="text-xs">
+                                      {c.icon} {c.label}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+                              {isAm && (
+                                <div className="flex items-start gap-2">
+                                  <Badge variant="secondary" className="text-xs shrink-0">
+                                    📊 業績通報訂閱
+                                  </Badge>
+                                  {editing ? (
+                                    <div className="min-w-[240px] flex-1">
+                                      <VenuePicker
+                                        accommodations={accommodations}
+                                        selectedIds={editingAmIds}
+                                        selectedCustom={[]}
+                                        onChangeIds={setEditingAmIds}
+                                        onChangeCustom={() => {}}
+                                      />
+                                      <div className="flex gap-1 mt-1">
+                                        <Button
+                                          size="sm"
+                                          className="h-7 px-2 text-xs"
+                                          onClick={() => saveAmSubscription(m, editingAmIds)}
+                                        >
+                                          儲存
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-7 px-2 text-xs"
+                                          onClick={() => setEditingAmId(null)}
+                                        >
+                                          取消
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setEditingAmId(m.id);
+                                        setEditingAmIds(subscribedIds);
+                                      }}
+                                      className="text-xs text-left hover:underline"
+                                    >
+                                      {!subscribed || subscribedIds.length === 0 ? (
+                                        <span className="text-muted-foreground">未訂閱（點擊設定）</span>
+                                      ) : (
+                                        <span>
+                                          {subscribedIds
+                                            .map(
+                                              (id) =>
+                                                accommodations.find((a) => a.id === id)?.name ?? id,
+                                            )
+                                            .join("、")}
+                                        </span>
+                                      )}
+                                    </button>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           );
                         })()}
                       </TableCell>
+
                       <TableCell>
                         {bound ? (
                           <Button size="sm" variant="outline" onClick={() => unbind(m)}>
