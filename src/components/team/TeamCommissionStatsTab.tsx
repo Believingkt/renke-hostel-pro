@@ -166,8 +166,10 @@ export default function TeamCommissionStatsTab() {
   const isPrivileged = roles.some((r) =>
     ["admin", "super_admin", "hotel_admin"].includes(r as string)
   );
+  const hasCloserOrVideo = roles.some((r) => r === "closer" || r === "video");
   const isScoutOnly =
     !isPrivileged &&
+    !hasCloserOrVideo &&
     roles.some((r) => r === "scout" || r === "scout_manager");
   const now = new Date();
   const [mode, setMode] = useState<"period" | "custom">("period");
