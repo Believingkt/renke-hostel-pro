@@ -1198,10 +1198,6 @@ function MembersTab() {
                                   </button>
                                 )
                               )}
-                                    </button>
-                                  )}
-                                </div>
-                              )}
                             </div>
                           );
                         })()}
