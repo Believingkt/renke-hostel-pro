@@ -431,8 +431,11 @@ export default function TeamOrders() {
       } else if (filters.closerOnly) {
         q = q.not("closer_id", "is", null);
       }
+      // 方案A：成交大師訂單模式下排除「不分潤」訂單，與成交統計 Tab 邏輯一致
+      if (filters.closerOnly) q = q.or("is_excluded.is.null,is_excluded.eq.false");
       if (filters.franchiseProject !== "ALL") q = q.eq("franchise_project", filters.franchiseProject);
       const { data, error } = await q.range(from, from + SIZE - 1);
+
       if (error) throw error;
       const batch = (data ?? []) as Array<{ order_id: string }>;
       for (const r of batch) if (r.order_id) ids.push(r.order_id);
@@ -474,11 +477,21 @@ export default function TeamOrders() {
             const startDay = `${y}-${String(m).padStart(2, "0")}-01`;
             const lastDay = new Date(y, m, 0).getDate();
             const endDay = `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-            q = q.gte("order_date", startDay).lte("order_date", endDay);
+            // 方案A：期間以 COALESCE(confirmed_at, order_date) 為準
+            q = q.or(
+              `and(confirmed_at.gte.${startDay},confirmed_at.lte.${endDay}),` +
+                `and(confirmed_at.is.null,order_date.gte.${startDay},order_date.lte.${endDay})`
+            );
           } else {
-            q = q.gte("order_date", `${y}-01-01`).lte("order_date", `${y}-12-31`);
+            const startDay = `${y}-01-01`;
+            const endDay = `${y}-12-31`;
+            q = q.or(
+              `and(confirmed_at.gte.${startDay},confirmed_at.lte.${endDay}),` +
+                `and(confirmed_at.is.null,order_date.gte.${startDay},order_date.lte.${endDay})`
+            );
           }
         }
+
         const s = search.trim();
         if (s) {
           const esc = s.replace(/[,()]/g, " ").trim();
