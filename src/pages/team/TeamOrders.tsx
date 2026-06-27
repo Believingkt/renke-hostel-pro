@@ -65,6 +65,7 @@ interface OrderRow {
   accommodation_id: string;
   order_date: string | null;
   created_at: string;
+  order_status: string | null;
   accommodation_name: string;
   meta: MetaRow | null;
 }
@@ -497,7 +498,7 @@ export default function TeamOrders() {
           .from("orders")
           .select(
             `id, order_number, guest_name, guest_phone, check_in_date, check_out_date,
-             final_price, discount_code, order_source, ota_channel, accommodation_id, order_date, created_at`,
+             final_price, discount_code, order_source, ota_channel, accommodation_id, order_date, created_at, order_status`,
             { count: "exact" }
           )
       );
@@ -595,6 +596,7 @@ export default function TeamOrders() {
         accommodation_id: o.accommodation_id,
         order_date: o.order_date ?? null,
         created_at: o.created_at,
+        order_status: o.order_status ?? null,
         accommodation_name: accMap.get(o.accommodation_id) || "-",
         meta: metaMap.get(o.id) || null,
       }));
@@ -972,10 +974,11 @@ export default function TeamOrders() {
                   pageItems.map((o) => {
                     const closerName = closers.find((m) => m.user_id === o.meta?.closer_id)?.display_name ?? "-";
                     const videoName = videos.find((m) => m.user_id === o.meta?.video_creator_id)?.display_name ?? "-";
+                    const isCancelled = o.order_status === "cancelled";
                     return (
                     <TableRow
                       key={o.id}
-                      className="cursor-pointer hover:bg-muted/50"
+                      className={`cursor-pointer hover:bg-muted/50 ${isCancelled ? "line-through text-muted-foreground" : ""}`}
                       onClick={() => openEdit(o)}
                     >
                       <TableCell className="whitespace-nowrap">{o.meta?.inquiry_date || "-"}</TableCell>
@@ -1036,7 +1039,16 @@ export default function TeamOrders() {
                         );
                       })()}</TableCell>
                       <TableCell className="whitespace-nowrap">{trafficMap.get(o.meta?.traffic_source ?? "") ?? o.meta?.traffic_source ?? "-"}</TableCell>
-                      <TableCell className="font-mono text-xs">{o.order_number}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        <span className="inline-flex items-center gap-1.5">
+                          {o.order_number}
+                          {isCancelled && (
+                            <span className="no-underline inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700 border border-red-200">
+                              已取消
+                            </span>
+                          )}
+                        </span>
+                      </TableCell>
                       <TableCell className="whitespace-nowrap">{closerName}</TableCell>
                       <TableCell className="whitespace-nowrap">{o.meta?.ad_id || "-"}</TableCell>
                       <TableCell className="whitespace-nowrap">{videoName}</TableCell>
