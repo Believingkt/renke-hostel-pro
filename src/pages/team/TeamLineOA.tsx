@@ -512,11 +512,17 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
       custom_venue_names: form.custom_venue_names,
       is_active: form.is_active,
     };
-    if (form.id) payload.id = form.id;
-
-    const { error } = await supabase
-      .from("line_push_targets")
-      .upsert(payload, { onConflict: form.id ? "id" : "target_type,target_id" });
+    // 允許同一個 (target_type, target_id) 有多筆訂閱規則
+    // → 沒有 id 時直接 insert（建立新訂閱規則），有 id 時 update（修改該筆）
+    let error;
+    if (form.id) {
+      ({ error } = await supabase
+        .from("line_push_targets")
+        .update(payload)
+        .eq("id", form.id));
+    } else {
+      ({ error } = await supabase.from("line_push_targets").insert(payload));
+    }
     if (error) toast.error(error.message);
     else {
       toast.success("已儲存");
@@ -561,7 +567,11 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
         <div>
           <CardTitle className="text-base">推播群組管理</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            將 LINE OA 機器人加入群組後，系統會自動記錄群組資訊
+            將 LINE OA 機器人加入群組後，系統會自動記錄群組資訊。
+            <br />
+            💡 同一個群組可建立多筆訂閱規則（例如「每日業績只收特定館」+「金額異動收全館」），點選最右側
+            <Copy className="inline h-3 w-3 mx-1" />
+            複製為新規則。
           </p>
         </div>
         <Button size="sm" onClick={openAdd}>
@@ -579,7 +589,7 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
                 <TableHead>事件</TableHead>
                 <TableHead>館別</TableHead>
                 <TableHead>啟用</TableHead>
-                <TableHead className="w-16">操作</TableHead>
+                <TableHead className="w-24">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -636,9 +646,37 @@ function GroupsTab({ hideGroupId = false }: { hideGroupId?: boolean }) {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(g)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(g)} title="編輯">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="複製為新訂閱規則（同群組可有多筆）"
+                          onClick={() => {
+                            openEdit(g);
+                            // 移除 id → 變成新增模式，但保留 target_id / display_name / channel
+                            setTimeout(() => {
+                              setForm((prev) =>
+                                prev
+                                  ? {
+                                      ...prev,
+                                      id: undefined,
+                                      event_types: [],
+                                      accommodation_ids: [],
+                                      custom_venue_names: [],
+                                      display_name:
+                                        (prev.display_name || "") + "（新規則）",
+                                    }
+                                  : prev,
+                              );
+                            }, 0);
+                          }}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
