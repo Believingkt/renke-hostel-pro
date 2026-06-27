@@ -1010,6 +1010,7 @@ export default function TeamOrders() {
                             finalPrice: o.final_price,
                             confirmedBy: o.meta?.commission_price_confirmed_by,
                             lastConfirmedCommissionPrice: o.meta?.last_confirmed_commission_price ?? null,
+                            lastConfirmedFinalPrice: o.meta?.last_confirmed_final_price ?? null,
                           });
                           const label = getCommissionStatusShortLabel(status);
                           const cls =
