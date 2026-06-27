@@ -2875,7 +2875,22 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>協同業務1 姓名</Label>
-                <Input list="ext-co-sales-names" value={form.co_sales_name ?? ""} onChange={(e) => onChange("co_sales_name", e.target.value)} />
+                <Select
+                  value={form.co_sales_member_id ?? "__none"}
+                  onValueChange={(v) => {
+                    const id = v === "__none" ? null : v;
+                    const name = id ? (memberById.get(id) ?? "") : "";
+                    setForm((prev) => ({ ...prev, co_sales_member_id: id, co_sales_name: name }));
+                  }}
+                >
+                  <SelectTrigger><SelectValue placeholder="請選擇成員" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none">未指定</SelectItem>
+                    {memberOptions.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>{m.display_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               {(form.co_sales_name ?? "").trim() && (
                 <div className="space-y-1">
@@ -2887,10 +2902,22 @@ function ExternalSalesTab({ canManage }: { canManage: boolean }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>協同業務2 姓名</Label>
-                <Input list="ext-co-sales-names" value={form.co_sales_name2 ?? ""} onChange={(e) => onChange("co_sales_name2", e.target.value)} />
-                <datalist id="ext-co-sales-names">
-                  {coSalesNameOptions.map((n) => (<option key={n} value={n} />))}
-                </datalist>
+                <Select
+                  value={form.co_sales_member_id2 ?? "__none"}
+                  onValueChange={(v) => {
+                    const id = v === "__none" ? null : v;
+                    const name = id ? (memberById.get(id) ?? "") : "";
+                    setForm((prev) => ({ ...prev, co_sales_member_id2: id, co_sales_name2: name }));
+                  }}
+                >
+                  <SelectTrigger><SelectValue placeholder="請選擇成員" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none">未指定</SelectItem>
+                    {memberOptions.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>{m.display_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               {(form.co_sales_name2 ?? "").trim() && (
                 <div className="space-y-1">
