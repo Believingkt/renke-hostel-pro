@@ -1084,10 +1084,9 @@ function MembersTab() {
                       <TableCell className="font-medium">{m.display_name || "—"}</TableCell>
                       <TableCell>
                         {(() => {
+                          const HIDDEN_ROLES = new Set(["hotel_admin", "super_admin", "staff"]);
                           const visibleRoles = bound
-                            ? m.roles.filter(
-                                (r) => r !== "hotel_admin" && r !== "super_admin",
-                              )
+                            ? m.roles.filter((r) => !HIDDEN_ROLES.has(r) && ROLE_LABEL[r])
                             : [];
                           if (visibleRoles.length === 0) {
                             return <span className="text-muted-foreground text-xs">—</span>;
