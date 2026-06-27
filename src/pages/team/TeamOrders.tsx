@@ -545,7 +545,7 @@ export default function TeamOrders() {
                  scout_commission_rate, closer_commission_rate, exclusion_note,
                  franchise_project, member_number, inquiry_date, voucher_used, voucher_count, addon_note, addon_amount,
                  nickname, deposit_confirm_date,
-                 team_commission_price, commission_price_confirmed_by, commission_price_confirmed_at`
+                 team_commission_price, commission_price_confirmed_by, commission_price_confirmed_at, last_confirmed_commission_price`
               )
               .in("order_id", orderIds)
           : Promise.resolve({ data: [], error: null } as any),
