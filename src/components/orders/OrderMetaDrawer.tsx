@@ -94,6 +94,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [commissionConfirmedAt, setCommissionConfirmedAt] = useState<string | null>(null);
   const [commissionConfirmerName, setCommissionConfirmerName] = useState<string | null>(null);
   const [lastConfirmedCommissionPrice, setLastConfirmedCommissionPrice] = useState<number | null>(null);
+  const [lastConfirmedFinalPrice, setLastConfirmedFinalPrice] = useState<number | null>(null);
   const [canEditCommissionPrice, setCanEditCommissionPrice] = useState(false);
   const [saving, setSaving] = useState(false);
 
