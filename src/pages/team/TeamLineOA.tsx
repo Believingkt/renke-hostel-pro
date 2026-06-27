@@ -842,10 +842,13 @@ function MembersTab() {
   const [defaultChannelId, setDefaultChannelId] = useState<string | null>(null);
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);
   const [targetsByLineId, setTargetsByLineId] = useState<Record<string, PushTarget>>({});
+  const [accommodations, setAccommodations] = useState<AccommodationOption[]>([]);
+  const [editingAmId, setEditingAmId] = useState<string | null>(null);
+  const [editingAmIds, setEditingAmIds] = useState<string[]>([]);
   const [linkDialog, setLinkDialog] = useState<{ memberName: string; url: string } | null>(null);
 
   const load = async () => {
-    const [{ data: profiles }, { data: chans }, { data: evts }] = await Promise.all([
+    const [{ data: profiles }, { data: chans }, { data: evts }, { data: accs }] = await Promise.all([
       supabase
         .from("team_member_profiles")
         .select("id, user_id, display_name, line_user_id")
@@ -861,11 +864,13 @@ function MembersTab() {
         .select("*")
         .eq("is_active", true)
         .order("label"),
+      supabase.from("accommodation_info").select("id, name").order("name").limit(1000),
     ]);
 
     setOaId((chans?.[0] as any)?.line_oa_id ?? null);
     setDefaultChannelId((chans?.[0] as any)?.id ?? null);
     setEventTypes((evts ?? []) as EventType[]);
+    setAccommodations(((accs ?? []) as AccommodationOption[]));
 
     const userIds = (profiles ?? [])
       .map((p: any) => p.user_id)
