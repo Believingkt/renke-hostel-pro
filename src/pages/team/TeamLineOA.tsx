@@ -1352,119 +1352,121 @@ function VenuePicker({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full justify-between font-normal"
-        >
-          <span className={total === 0 ? "text-muted-foreground" : ""}>
-            {summary}
-          </span>
-          <ChevronsUpDown className="h-4 w-4 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-        <div className="p-2 border-b">
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="搜尋或輸入新自訂館別"
-            className="h-8"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                addCustom();
-              }
-            }}
-          />
-        </div>
-        {total > 0 && (
-          <div className="flex flex-wrap gap-1 p-2 border-b">
-            {selectedIds.map((id) => {
-              const a = accommodations.find((x) => x.id === id);
-              return (
-                <Badge key={id} variant="default" className="gap-1">
-                  {a?.name ?? id}
-                  <button type="button" onClick={() => toggleId(id)}>
+    <div className="w-full">
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full justify-between font-normal"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className={total === 0 ? "text-muted-foreground" : ""}>
+          {summary}
+        </span>
+        <ChevronsUpDown className="h-4 w-4 opacity-50" />
+      </Button>
+      {open && (
+        <div className="mt-1 rounded-md border bg-popover text-popover-foreground shadow-md">
+          <div className="p-2 border-b">
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="搜尋或輸入新自訂館別"
+              className="h-8"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addCustom();
+                }
+              }}
+            />
+          </div>
+          {total > 0 && (
+            <div className="flex flex-wrap gap-1 p-2 border-b">
+              {selectedIds.map((id) => {
+                const a = accommodations.find((x) => x.id === id);
+                return (
+                  <Badge key={id} variant="default" className="gap-1">
+                    {a?.name ?? id}
+                    <button type="button" onClick={() => toggleId(id)}>
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                );
+              })}
+              {selectedCustom.map((n) => (
+                <Badge key={n} variant="secondary" className="gap-1">
+                  {n}
+                  <button type="button" onClick={() => toggleCustom(n)}>
                     <X className="h-3 w-3" />
                   </button>
                 </Badge>
-              );
-            })}
-            {selectedCustom.map((n) => (
-              <Badge key={n} variant="secondary" className="gap-1">
-                {n}
-                <button type="button" onClick={() => toggleCustom(n)}>
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-          </div>
-        )}
-        <div className="max-h-[240px] overflow-y-auto p-1">
-          {filteredAcc.length === 0 && filteredCustom.length === 0 && !search && (
-            <div className="px-2 py-3 text-xs text-muted-foreground text-center">
-              無館別
+              ))}
             </div>
           )}
+          <div
+            className="max-h-[240px] overflow-y-auto overscroll-contain p-1"
+            style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
+          >
+            {filteredAcc.length === 0 && filteredCustom.length === 0 && !search && (
+              <div className="px-2 py-3 text-xs text-muted-foreground text-center">
+                無館別
+              </div>
+            )}
 
+            {filteredAcc.map((a) => {
+              const checked = selectedIds.includes(a.id);
+              return (
+                <button
+                  type="button"
+                  key={a.id}
+                  onClick={() => toggleId(a.id)}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left"
+                >
+                  <Checkbox checked={checked} className="pointer-events-none" />
+                  <span className="flex-1">{a.name}</span>
+                </button>
+              );
+            })}
 
-
-          {filteredAcc.map((a) => {
-            const checked = selectedIds.includes(a.id);
-            return (
+            {filteredCustom.map((n) => (
               <button
                 type="button"
-                key={a.id}
-                onClick={() => toggleId(a.id)}
+                key={`c-${n}`}
+                onClick={() => toggleCustom(n)}
                 className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left"
               >
-                <Checkbox checked={checked} className="pointer-events-none" />
-                <span className="flex-1">{a.name}</span>
+                <Checkbox checked className="pointer-events-none" />
+                <span className="flex-1">{n}</span>
+                <Badge variant="outline" className="text-[10px] px-1 py-0">
+                  未建立
+                </Badge>
               </button>
-            );
-          })}
+            ))}
 
-          {filteredCustom.map((n) => (
-            <button
-              type="button"
-              key={`c-${n}`}
-              onClick={() => toggleCustom(n)}
-              className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left"
-            >
-              <Checkbox checked className="pointer-events-none" />
-              <span className="flex-1">{n}</span>
-              <Badge variant="outline" className="text-[10px] px-1 py-0">
-                未建立
-              </Badge>
-            </button>
-          ))}
-
-          {search.trim() && !exactExists && (
-            <button
-              type="button"
-              onClick={addCustom}
-              className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left border-t mt-1"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              <span className="flex-1">
-                新增自訂館別「{search.trim()}」
-              </span>
-              <Badge variant="outline" className="text-[10px] px-1 py-0">
-                未建立
-              </Badge>
-            </button>
-          )}
+            {search.trim() && !exactExists && (
+              <button
+                type="button"
+                onClick={addCustom}
+                className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left border-t mt-1"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span className="flex-1">
+                  新增自訂館別「{search.trim()}」
+                </span>
+                <Badge variant="outline" className="text-[10px] px-1 py-0">
+                  未建立
+                </Badge>
+              </button>
+            )}
+          </div>
+          <div className="p-2 border-t flex justify-end">
+            <Button size="sm" onClick={() => setOpen(false)}>
+              完成
+            </Button>
+          </div>
         </div>
-        <div className="p-2 border-t flex justify-end">
-          <Button size="sm" onClick={() => setOpen(false)}>
-            完成
-          </Button>
-        </div>
-      </PopoverContent>
-    </Popover>
+      )}
+    </div>
   );
 }
 
